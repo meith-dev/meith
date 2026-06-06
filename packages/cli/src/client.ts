@@ -7,8 +7,9 @@ import {
   encodeMessage,
   ServerMessageSchema,
   type ServerMessage,
+  type ToolDescriptor,
 } from "@aide/protocol";
-import { AideConfigSchema, newRequestId, type ToolDescriptor } from "@aide/shared";
+import { AideConfigSchema, newRequestId } from "@aide/shared";
 
 export interface ClientOptions {
   socketPath?: string;

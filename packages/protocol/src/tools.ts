@@ -19,11 +19,16 @@ export interface ToolDefinition<
   execute: (ctx: ToolContext, input: z.infer<I>) => Promise<O> | O;
 }
 
-/** Helper to define a tool with inference preserved. */
+/**
+ * Helper to define a tool. The generic parameters give you full inference and
+ * type-checking inside `execute` at the definition site, while the return type
+ * is widened to the base `ToolDefinition` so heterogeneous tools can live in a
+ * single `ToolDefinition[]` (Zod schema generics are invariant otherwise).
+ */
 export function defineTool<I extends z.ZodTypeAny, O>(
   def: ToolDefinition<I, O>,
-): ToolDefinition<I, O> {
-  return def;
+): ToolDefinition {
+  return def as unknown as ToolDefinition;
 }
 
 /**

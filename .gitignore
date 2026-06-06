@@ -13,3 +13,12 @@ __v0_jsx-dev-runtime.ts
 node_modules
 .next/
 .DS_Store
+
+# Monorepo build output
+dist/
+out/
+.vite/
+*.log
+
+# AIDE runtime config/socket
+.aide/

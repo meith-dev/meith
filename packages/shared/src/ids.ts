@@ -1,14 +1,14 @@
-import { randomUUID } from "node:crypto";
-
 /**
  * Small, dependency-light ID helpers. Centralized here so every package
- * (main process, CLI, future agent runtime) generates IDs the same way.
+ * (main process, CLI, renderer, future agent runtime) generates IDs the same
+ * way. Uses the global `crypto` (Node 20+ and browsers) so this module stays
+ * bundler-safe for the renderer — no `node:crypto` import.
  */
 
 function uuid(): string {
-  // randomUUID exists in Node 16+ and modern browsers (crypto.randomUUID).
+  const g = globalThis as { crypto?: { randomUUID?: () => string } };
+  if (typeof g.crypto?.randomUUID === "function") return g.crypto.randomUUID();
   // Fall back to a manual implementation for very old runtimes.
-  if (typeof randomUUID === "function") return randomUUID();
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === "x" ? r : (r & 0x3) | 0x8;

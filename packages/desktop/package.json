@@ -21,6 +21,7 @@
     "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
+    "@aide/cli": "workspace:*",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
