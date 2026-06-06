@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { createId, type LogEntry } from "@meith/shared";
+import { type LogEntry, createId } from "@meith/shared";
 
 /**
  * In-memory ring buffer of structured logs. Backs the `app_get_logs` tool and

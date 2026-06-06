@@ -11,5 +11,10 @@
     }
   },
   "references": [{ "path": "../shared" }, { "path": "../protocol" }],
-  "include": ["src/**/*.ts", "src/**/*.tsx", "electron.vite.config.ts", "vite.renderer.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "electron.vite.config.ts",
+    "vite.renderer.config.ts"
+  ]
 }

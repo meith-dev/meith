@@ -3,9 +3,9 @@ import { ipcMain, app, BrowserWindow } from "electron";
 import { homedir } from "node:os";
 import { existsSync, readFileSync, mkdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { EventEmitter } from "node:events";
-import { createId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, newSessionId, newMessageId } from "@meith/shared";
+import { createId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, newSessionId, newMessageId, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult, okResult, ToolError } from "@meith/shared";
 import net from "node:net";
-import { NdjsonParser, ClientMessageSchema, encodeMessage, defineTool } from "@meith/protocol";
+import { NdjsonParser, ClientMessageSchema, PROTOCOL_VERSION, encodeMessage, defineTool } from "@meith/protocol";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { z } from "zod";
 import __cjs_mod__ from "node:module";
@@ -355,52 +355,77 @@ class ToolSocketService {
     });
   }
   handleConnection(socket) {
-    const parser = new NdjsonParser();
+    const inflight = /* @__PURE__ */ new Map();
+    const send = (msg) => {
+      if (!socket.writableEnded) socket.write(encodeMessage(msg));
+    };
+    const parser = new NdjsonParser((err, line) => {
+      this.logger.warn("Socket", `dropping malformed frame: ${err.message}`);
+      send({
+        type: "error",
+        code: "PROTOCOL_ERROR",
+        message: `Malformed JSON frame ignored: ${err.message}`
+      });
+    });
     socket.setEncoding("utf8");
-    const send = (msg) => socket.write(encodeMessage(msg));
-    socket.on("data", async (chunk) => {
-      let parsedFrames;
-      try {
-        parsedFrames = parser.push(chunk);
-      } catch (err) {
-        send({ type: "error", message: `Malformed JSON: ${String(err)}` });
-        return;
-      }
-      for (const frame of parsedFrames) {
-        await this.handleFrame(frame, send);
+    socket.on("data", (chunk) => {
+      for (const frame of parser.push(chunk)) {
+        void this.handleFrame(frame, send, inflight);
       }
     });
     socket.on("error", (err) => {
       this.logger.warn("Socket", `connection error: ${String(err)}`);
     });
+    socket.on("close", () => {
+      for (const controller of inflight.values()) controller.abort();
+      inflight.clear();
+    });
   }
-  async handleFrame(frame, send) {
+  async handleFrame(frame, send, inflight) {
     const parsed = ClientMessageSchema.safeParse(frame);
     if (!parsed.success) {
       send({
         type: "error",
+        code: "PROTOCOL_ERROR",
         message: `Invalid message: ${parsed.error.message}`
       });
       return;
     }
     const msg = parsed.data;
+    if (msg.protocol != null && msg.protocol !== PROTOCOL_VERSION) {
+      this.logger.warn(
+        "Socket",
+        `client protocol ${msg.protocol} != server ${PROTOCOL_VERSION}`
+      );
+    }
     if (msg.type === "list_tools") {
       send({ type: "tools_list", tools: this.registry.describe() });
       return;
     }
+    if (msg.type === "cancel_tool_call") {
+      inflight.get(msg.requestId)?.abort();
+      return;
+    }
+    const info = msg.clientInfo;
     const ctx = {
-      cwd: msg.context.cwd ?? process.cwd(),
-      caller: "cli"
+      cwd: info.cwd ?? process.cwd(),
+      caller: info.caller,
+      sessionId: info.sessionId,
+      spaceId: info.spaceId,
+      tabId: info.tabId
     };
+    const controller = new AbortController();
+    inflight.set(msg.requestId, controller);
+    const emit = (event) => send({ type: "tool_event", requestId: msg.requestId, event });
     try {
-      const result = await this.registry.call(ctx, msg.toolName, msg.arguments);
-      send({ type: "tool_result", requestId: msg.requestId, result });
-    } catch (err) {
-      send({
-        type: "error",
-        requestId: msg.requestId,
-        message: err instanceof Error ? err.message : String(err)
+      const result = await this.registry.call(ctx, msg.toolName, msg.arguments, {
+        timeoutMs: msg.timeoutMs,
+        signal: controller.signal,
+        emit
       });
+      send({ type: "tool_result", requestId: msg.requestId, result });
+    } finally {
+      inflight.delete(msg.requestId);
     }
   }
   async stop() {
@@ -417,6 +442,7 @@ class ToolSocketService {
 }
 class ToolRegistry {
   tools = /* @__PURE__ */ new Map();
+  shuttingDown = false;
   register(tool) {
     if (this.tools.has(tool.name)) {
       throw new Error(`Tool already registered: ${tool.name}`);
@@ -429,30 +455,95 @@ class ToolRegistry {
   has(name) {
     return this.tools.has(name);
   }
+  /** Reject new calls during shutdown so in-flight work can drain cleanly. */
+  beginShutdown() {
+    this.shuttingDown = true;
+  }
   /** Serializable list for `list_tools` / agent function definitions. */
   describe() {
     return [...this.tools.values()].map((tool) => ({
       name: tool.name,
       description: tool.description,
+      capabilities: tool.capabilities ?? [],
       inputSchema: zodToJsonSchema(tool.inputSchema, {
         $refStrategy: "none"
       })
     }));
   }
-  /** Validate input against the tool's schema, then execute it. */
-  async call(ctx, name, args) {
+  /**
+   * Validate input, apply timeout + cancellation, run the tool, and normalize
+   * the outcome into a `ToolResult`. This never throws for tool-level problems —
+   * failures come back as `{ ok: false, error }` so every transport can relay
+   * them uniformly.
+   */
+  async call(ctx, name, args, opts = {}) {
+    if (this.shuttingDown) {
+      return errorResult("RUNTIME_SHUTTING_DOWN", "Runtime is shutting down");
+    }
     const tool = this.tools.get(name);
     if (!tool) {
-      throw new Error(`Unknown tool: ${name}`);
+      return errorResult("UNKNOWN_TOOL", `Unknown tool: ${name}`);
     }
-    const parsed = tool.inputSchema.parse(args ?? {});
-    return await tool.execute(ctx, parsed);
+    const parsed = tool.inputSchema.safeParse(args ?? {});
+    if (!parsed.success) {
+      return errorResult(
+        "VALIDATION_ERROR",
+        `Invalid arguments for "${name}"`,
+        parsed.error.flatten()
+      );
+    }
+    const timeoutMs = opts.timeoutMs ?? tool.timeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS;
+    const timeoutController = new AbortController();
+    const timer = setTimeout(() => timeoutController.abort(), timeoutMs);
+    const signal = mergeSignals(opts.signal, timeoutController.signal);
+    const fullCtx = { ...ctx, signal, emit: opts.emit };
+    try {
+      const raw = await Promise.race([
+        Promise.resolve(tool.execute(fullCtx, parsed.data)),
+        abortPromise(signal)
+      ]);
+      return isToolResult(raw) ? raw : okResult(raw);
+    } catch (err) {
+      if (timeoutController.signal.aborted) {
+        return errorResult("TIMEOUT", `Tool "${name}" timed out after ${timeoutMs}ms`);
+      }
+      if (opts.signal?.aborted) {
+        return errorResult("CANCELLED", `Tool "${name}" was cancelled`);
+      }
+      if (err instanceof ToolError) {
+        return errorResult(err.code, err.message, err.details);
+      }
+      return errorResult("TOOL_FAILED", err instanceof Error ? err.message : String(err));
+    } finally {
+      clearTimeout(timer);
+    }
   }
+}
+function abortPromise(signal) {
+  return new Promise((_resolve, reject) => {
+    if (signal.aborted) {
+      reject(new Error("aborted"));
+      return;
+    }
+    signal.addEventListener("abort", () => reject(new Error("aborted")), {
+      once: true
+    });
+  });
+}
+function mergeSignals(a, b) {
+  if (!a) return b;
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  if (a.aborted || b.aborted) controller.abort();
+  a.addEventListener("abort", onAbort, { once: true });
+  b.addEventListener("abort", onAbort, { once: true });
+  return controller.signal;
 }
 function createBrowserTools(deps) {
   const getTabs = defineTool({
     name: "get_tabs",
     description: "List browser tabs and workspace tabs, optionally filtered by space.",
+    capabilities: ["read-only"],
     inputSchema: z.object({
       spaceId: z.string().optional().describe("Filter to a single space id.")
     }),
@@ -464,6 +555,7 @@ function createBrowserTools(deps) {
   const openBrowserTab = defineTool({
     name: "open_browser_tab",
     description: "Open a new browser tab pointing at a URL. Becomes a WebContentsView later.",
+    capabilities: ["controls-browser"],
     inputSchema: z.object({
       url: z.string().describe("URL to open, e.g. http://localhost:3000"),
       title: z.string().optional(),
@@ -475,15 +567,23 @@ function createBrowserTools(deps) {
   const takeScreenshot = defineTool({
     name: "take_screenshot",
     description: "[placeholder] Capture a screenshot of a browser tab. Returns a stub until WebContentsView capture is implemented.",
+    capabilities: ["controls-browser", "read-only"],
     inputSchema: z.object({
       tabId: z.string().optional()
     }),
-    execute: (_ctx, input) => ({
-      ok: false,
-      placeholder: true,
-      message: "take_screenshot is not implemented yet. Will use webContents.capturePage().",
-      tabId: input.tabId ?? null
-    })
+    // Resolves ok=true with a placeholder payload + a diagnostic so callers can
+    // integrate against the final shape before capture is implemented.
+    execute: (_ctx, input) => okResult(
+      { placeholder: true, tabId: input.tabId ?? null },
+      {
+        diagnostics: [
+          {
+            level: "warn",
+            message: "take_screenshot is not implemented yet. Will use webContents.capturePage()."
+          }
+        ]
+      }
+    )
   });
   return [getTabs, openBrowserTab, takeScreenshot];
 }
@@ -491,12 +591,14 @@ function createAppTools(deps) {
   const appGetState = defineTool({
     name: "app_get_state",
     description: "Return the full persistent application state.",
+    capabilities: ["read-only"],
     inputSchema: z.object({}),
     execute: () => deps.appState.getState()
   });
   const appGetLogs = defineTool({
     name: "app_get_logs",
     description: "Return recent structured app log entries.",
+    capabilities: ["read-only"],
     inputSchema: z.object({
       limit: z.number().int().positive().max(1e3).optional()
     }),
@@ -505,32 +607,43 @@ function createAppTools(deps) {
   const getProcessTree = defineTool({
     name: "get_process_tree",
     description: "[placeholder] Return the tree of managed child processes (dev servers, terminals).",
+    capabilities: ["read-only"],
     inputSchema: z.object({}),
-    execute: () => ({
-      placeholder: true,
-      message: "get_process_tree is not implemented yet. Will reflect DevServerService/TerminalService PIDs.",
-      devServers: deps.devServers.list().map((s) => ({
-        id: s.id,
-        command: s.command,
-        cwd: s.cwd,
-        status: s.status,
-        pid: s.pid ?? null
-      }))
-    })
+    execute: () => okResult(
+      {
+        placeholder: true,
+        devServers: deps.devServers.list().map((s) => ({
+          id: s.id,
+          command: s.command,
+          cwd: s.cwd,
+          status: s.status,
+          pid: s.pid ?? null
+        }))
+      },
+      {
+        diagnostics: [
+          {
+            level: "warn",
+            message: "get_process_tree is partial: reflects DevServerService/TerminalService PIDs only."
+          }
+        ]
+      }
+    )
   });
   const getProcessLogs = defineTool({
     name: "get_process_logs",
     description: "[placeholder] Return captured logs for a managed process (dev server / terminal).",
+    capabilities: ["read-only"],
     inputSchema: z.object({
       processId: z.string().describe("Dev server or terminal id.")
     }),
     execute: (_ctx, input) => {
       const server = deps.devServers.get(input.processId);
-      return {
+      return okResult({
         placeholder: true,
         processId: input.processId,
         logs: server?.logs ?? []
-      };
+      });
     }
   });
   return [appGetState, appGetLogs, getProcessTree, getProcessLogs];
@@ -561,6 +674,11 @@ async function bootstrap(userDataPath) {
   const socket = new ToolSocketService(socketPath, registry, logger);
   await socket.start();
   logger.info("Bootstrap", "service container ready");
+  const shutdown = async () => {
+    registry.beginShutdown();
+    await socket.stop();
+    logger.info("Bootstrap", "shutdown complete");
+  };
   return {
     logger,
     appState,
@@ -571,7 +689,8 @@ async function bootstrap(userDataPath) {
     agents,
     registry,
     socket,
-    config
+    config,
+    shutdown
   };
 }
 const IPC = {
@@ -587,7 +706,10 @@ function registerIpcHandlers(container2, getWindow) {
   ipcMain.handle(
     IPC.toolCall,
     async (_event, name, args) => {
-      const ctx = { cwd: process.cwd(), caller: "renderer" };
+      const ctx = {
+        cwd: process.cwd(),
+        caller: "renderer"
+      };
       return container2.registry.call(ctx, name, args ?? {});
     }
   );

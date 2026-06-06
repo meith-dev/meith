@@ -1,5 +1,5 @@
-import type { AppState, LogEntry } from "@meith/shared";
 import type { ToolDescriptor } from "@meith/protocol";
+import type { AppState, LogEntry, ToolResult } from "@meith/shared";
 
 /**
  * The API surface exposed on `window.meith` by the preload script. Shared
@@ -8,7 +8,7 @@ import type { ToolDescriptor } from "@meith/protocol";
 export interface MeithBridge {
   tools: {
     list: () => Promise<ToolDescriptor[]>;
-    call: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
+    call: (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
   };
   state: {
     get: () => Promise<AppState>;

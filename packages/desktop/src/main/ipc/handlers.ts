@@ -1,5 +1,5 @@
-import { ipcMain, type BrowserWindow } from "electron";
 import type { ToolContext } from "@meith/shared";
+import { type BrowserWindow, ipcMain } from "electron";
 import type { ServiceContainer } from "../bootstrap.js";
 
 /**
@@ -29,15 +29,16 @@ export function registerIpcHandlers(
   ipcMain.handle(
     IPC.toolCall,
     async (_event, name: string, args: Record<string, unknown>) => {
-      const ctx: ToolContext = { cwd: process.cwd(), caller: "renderer" };
+      const ctx: Omit<ToolContext, "signal" | "emit"> = {
+        cwd: process.cwd(),
+        caller: "renderer",
+      };
       return container.registry.call(ctx, name, args ?? {});
     },
   );
 
   ipcMain.handle(IPC.getState, () => container.appState.getState());
-  ipcMain.handle(IPC.getLogs, (_event, limit?: number) =>
-    container.logger.list(limit),
-  );
+  ipcMain.handle(IPC.getLogs, (_event, limit?: number) => container.logger.list(limit));
 
   // Push state changes and new log entries to the renderer.
   container.appState.on("change", (state) => {

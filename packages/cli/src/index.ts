@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { parseArgs, buildParams } from "./args.js";
-import { commands, listCommands } from "./commands.js";
+import type { ToolResult } from "@meith/shared";
+import { buildParams, parseArgs } from "./args.js";
 import { ToolClient, resolveSocketPath } from "./client.js";
+import { commands, listCommands } from "./commands.js";
 
 const HELP = `meith — control the meith desktop runtime from your terminal
 
@@ -19,7 +20,9 @@ Built-in:
 
 Options:
   --socket <path>   Override the runtime socket path
-  --json            Print raw JSON output
+  --timeout <ms>    Per-call timeout override
+  --json            Print the raw ToolResult envelope as JSON
+  -v, --verbose     Print streamed tool log events
   -h, --help        Show this help
 `;
 
@@ -34,8 +37,14 @@ async function main(): Promise<void> {
   const socketPath =
     typeof parsed.flags.socket === "string" ? parsed.flags.socket : undefined;
   const asJson = parsed.flags.json === true;
+  const verbose = parsed.flags.verbose === true || parsed.flags.v === true;
+  const timeoutMs =
+    typeof parsed.flags.timeout === "string" ? Number(parsed.flags.timeout) : undefined;
   delete parsed.flags.socket;
   delete parsed.flags.json;
+  delete parsed.flags.verbose;
+  delete parsed.flags.v;
+  delete parsed.flags.timeout;
 
   const client = new ToolClient({ socketPath });
   try {
@@ -59,7 +68,7 @@ async function main(): Promise<void> {
     if (parsed.command === "call") {
       const name = parsed.positionals.shift();
       if (!name) {
-        fail('Usage: meith call <toolName> [--key value ...]');
+        fail("Usage: meith call <toolName> [--key value ...]");
         return;
       }
       toolName = name;
@@ -74,7 +83,21 @@ async function main(): Promise<void> {
       params = buildParams(parsed, spec.positionals);
     }
 
-    const result = await client.callTool(toolName, params);
+    const result = await client.callTool(toolName, params, {
+      timeoutMs,
+      onEvent: (event) => {
+        if (asJson) return;
+        if (event.kind === "progress") {
+          const pct =
+            event.fraction != null ? ` ${Math.round(event.fraction * 100)}%` : "";
+          process.stderr.write(`… ${event.message ?? "working"}${pct}\n`);
+        } else if (event.kind === "log" && verbose) {
+          process.stderr.write(`  [${event.level}] ${event.message}\n`);
+        } else if (event.kind === "partial_text") {
+          process.stdout.write(event.text);
+        }
+      },
+    });
     printResult(result, asJson);
   } catch (err) {
     fail(err instanceof Error ? err.message : String(err));
@@ -83,14 +106,35 @@ async function main(): Promise<void> {
   }
 }
 
-function printResult(result: unknown, asJson: boolean): void {
+function printResult(result: ToolResult, asJson: boolean): void {
   if (asJson) {
     process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    if (!result.ok) process.exitCode = 1;
     return;
   }
-  if (result == null) process.stdout.write("ok\n");
-  else if (typeof result === "string") process.stdout.write(result + "\n");
-  else process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+
+  if (result.diagnostics?.length) {
+    for (const d of result.diagnostics) {
+      process.stderr.write(`  [${d.level}] ${d.message}\n`);
+    }
+  }
+
+  if (!result.ok) {
+    const err = result.error;
+    process.stderr.write(
+      `error (${err?.code ?? "TOOL_FAILED"}): ${err?.message ?? "failed"}\n`,
+    );
+    if (err?.details !== undefined) {
+      process.stderr.write(JSON.stringify(err.details, null, 2) + "\n");
+    }
+    process.exitCode = 1;
+    return;
+  }
+
+  const content = result.content;
+  if (content == null) process.stdout.write("ok\n");
+  else if (typeof content === "string") process.stdout.write(content + "\n");
+  else process.stdout.write(JSON.stringify(content, null, 2) + "\n");
 }
 
 function fail(message: string): void {

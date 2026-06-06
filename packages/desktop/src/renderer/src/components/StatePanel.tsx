@@ -21,7 +21,10 @@ export function StatePanel({ state }: { state: AppState | null }) {
             key={space.id}
             className={`card${space.id === state.activeSpaceId ? " is-active" : ""}`}
           >
-            <span className="card-swatch" style={{ background: space.color ?? "#6366f1" }} />
+            <span
+              className="card-swatch"
+              style={{ background: space.color ?? "#6366f1" }}
+            />
             <div>
               <div className="card-title">{space.name}</div>
               <div className="card-meta">{space.id}</div>

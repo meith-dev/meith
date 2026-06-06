@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { parseArgs, coerce, buildParams } from "../args.js";
+import { describe, expect, it } from "vitest";
+import { buildParams, coerce, parseArgs } from "../args.js";
 import { commands } from "../commands.js";
 
 describe("parseArgs", () => {
@@ -14,6 +14,13 @@ describe("parseArgs", () => {
     const parsed = parseArgs(["logs", "--limit=50", "--json"]);
     expect(parsed.command).toBe("logs");
     expect(parsed.flags).toEqual({ limit: "50", json: true });
+  });
+
+  it("parses --timeout and --verbose protocol flags", () => {
+    const parsed = parseArgs(["call", "slow", "--timeout", "5000", "--verbose"]);
+    expect(parsed.command).toBe("call");
+    expect(parsed.positionals).toEqual(["slow"]);
+    expect(parsed.flags).toEqual({ timeout: "5000", verbose: true });
   });
 });
 

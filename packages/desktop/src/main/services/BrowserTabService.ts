@@ -1,8 +1,8 @@
 import {
-  newBrowserTabId,
-  newWorkspaceTabId,
   type BrowserTab,
   type WorkspaceTab,
+  newBrowserTabId,
+  newWorkspaceTabId,
 } from "@meith/shared";
 import type { AppStateService } from "./AppStateService.js";
 import type { Logger } from "./Logger.js";

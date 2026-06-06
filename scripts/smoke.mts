@@ -10,8 +10,8 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { bootstrap } from "../packages/desktop/src/main/bootstrap.ts";
 import { ToolClient } from "../packages/cli/src/client.ts";
+import { bootstrap } from "../packages/desktop/src/main/bootstrap.ts";
 
 async function main(): Promise<void> {
   const home = mkdtempSync(join(tmpdir(), "meith-smoke-home-"));

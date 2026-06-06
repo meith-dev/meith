@@ -1,6 +1,6 @@
 import { join } from "node:path";
-import { app, BrowserWindow } from "electron";
-import { bootstrap, type ServiceContainer } from "./bootstrap.js";
+import { BrowserWindow, app } from "electron";
+import { type ServiceContainer, bootstrap } from "./bootstrap.js";
 import { registerIpcHandlers } from "./ipc/handlers.js";
 
 let mainWindow: BrowserWindow | null = null;

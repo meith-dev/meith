@@ -1,6 +1,6 @@
+import type { LogEntry } from "@meith/shared";
 import { useEffect, useRef, useState } from "react";
 import type { MeithBridge } from "../../../bridge";
-import type { LogEntry } from "@meith/shared";
 
 export function LogsPanel({ bridge }: { bridge: MeithBridge }) {
   const [entries, setEntries] = useState<LogEntry[]>([]);

@@ -2,10 +2,10 @@ import { EventEmitter } from "node:events";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import {
+  type AppState,
   AppStateSchema,
   defaultAppState,
   newSpaceId,
-  type AppState,
 } from "@meith/shared";
 import type { Logger } from "./Logger.js";
 

@@ -1,18 +1,31 @@
+import { existsSync, readFileSync } from "node:fs";
 import net from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { existsSync, readFileSync } from "node:fs";
 import {
   NdjsonParser,
-  encodeMessage,
-  ServerMessageSchema,
+  PROTOCOL_VERSION,
   type ServerMessage,
+  ServerMessageSchema,
   type ToolDescriptor,
+  encodeMessage,
 } from "@meith/protocol";
-import { MeithConfigSchema, newRequestId } from "@meith/shared";
+import {
+  MeithConfigSchema,
+  type ToolEvent,
+  type ToolResult,
+  newRequestId,
+} from "@meith/shared";
 
 export interface ClientOptions {
   socketPath?: string;
+  timeoutMs?: number;
+}
+
+export interface CallToolOptions {
+  /** Receive streaming events (progress/log/partial_text/artifact). */
+  onEvent?: (event: ToolEvent) => void;
+  /** Per-call timeout override (ms) sent to the runtime. */
   timeoutMs?: number;
 }
 
@@ -42,7 +55,8 @@ export function resolveSocketPath(override?: string): string {
 
 /**
  * A thin newline-delimited JSON client for the desktop tool socket. Pending
- * `tool_call` requests are correlated by `requestId`.
+ * `tool_call` requests are correlated by `requestId`; streaming `tool_event`s
+ * are routed to the optional per-call `onEvent` handler.
  */
 export class ToolClient {
   private socket: net.Socket | null = null;
@@ -55,6 +69,7 @@ export class ToolClient {
       resolve: (m: ServerMessage) => void;
       reject: (e: Error) => void;
       timer: NodeJS.Timeout;
+      onEvent?: (event: ToolEvent) => void;
     }
   >();
   private listError: ((m: ServerMessage) => void) | null = null;
@@ -92,13 +107,7 @@ export class ToolClient {
 
   private attach(socket: net.Socket): void {
     socket.on("data", (chunk) => {
-      let frames: unknown[];
-      try {
-        frames = this.parser.push(chunk);
-      } catch {
-        return;
-      }
-      for (const frame of frames) {
+      for (const frame of this.parser.push(chunk)) {
         const parsed = ServerMessageSchema.safeParse(frame);
         if (!parsed.success) continue;
         this.dispatch(parsed.data);
@@ -116,6 +125,10 @@ export class ToolClient {
   private dispatch(msg: ServerMessage): void {
     if (msg.type === "tools_list") {
       this.listError?.(msg);
+      return;
+    }
+    if (msg.type === "tool_event") {
+      this.pending.get(msg.requestId)?.onEvent?.(msg.event);
       return;
     }
     if (msg.type === "tool_result" || (msg.type === "error" && msg.requestId)) {
@@ -146,12 +159,21 @@ export class ToolClient {
         if (msg.type === "tools_list") resolve(msg.tools);
         else reject(new Error(msg.type === "error" ? msg.message : "Unexpected reply"));
       };
-      this.socket!.write(encodeMessage({ type: "list_tools" }));
+      this.socket!.write(
+        encodeMessage({ type: "list_tools", clientInfo: { caller: "cli" } }),
+      );
     });
   }
 
-  /** Invoke a tool by name and resolve with its result (or reject on error). */
-  callTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
+  /**
+   * Invoke a tool by name and resolve with its `ToolResult` envelope. Transport
+   * errors reject; tool-level failures resolve as `{ ok: false, error }`.
+   */
+  callTool(
+    toolName: string,
+    args: Record<string, unknown>,
+    opts: CallToolOptions = {},
+  ): Promise<ToolResult> {
     if (!this.socket) return Promise.reject(new Error("Client is not connected"));
     const requestId = newRequestId();
     return new Promise((resolve, reject) => {
@@ -161,6 +183,7 @@ export class ToolClient {
       }, this.timeoutMs);
       this.pending.set(requestId, {
         timer,
+        onEvent: opts.onEvent,
         resolve: (msg) => {
           if (msg.type === "tool_result") resolve(msg.result);
           else reject(new Error(msg.type === "error" ? msg.message : "Unexpected reply"));
@@ -170,13 +193,20 @@ export class ToolClient {
       this.socket!.write(
         encodeMessage({
           type: "tool_call",
+          protocol: PROTOCOL_VERSION,
           requestId,
           toolName,
           arguments: args,
-          context: { cwd: process.cwd() },
+          clientInfo: { caller: "cli", cwd: process.cwd() },
+          ...(opts.timeoutMs ? { timeoutMs: opts.timeoutMs } : {}),
         }),
       );
     });
+  }
+
+  /** Ask the runtime to cancel an in-flight tool call. */
+  cancel(requestId: string): void {
+    this.socket?.write(encodeMessage({ type: "cancel_tool_call", requestId }));
   }
 
   close(): void {

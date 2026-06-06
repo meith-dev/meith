@@ -249,8 +249,41 @@ button {
 }
 
 .tool-description {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   color: var(--text-muted);
+}
+
+.cap-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.cap-badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  text-transform: lowercase;
+}
+
+.cap-badge.cap-read-only {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.cap-badge.cap-destructive,
+.cap-badge.cap-writes-files,
+.cap-badge.cap-starts-process {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 40%, var(--border));
 }
 
 .field {

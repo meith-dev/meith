@@ -1,18 +1,18 @@
+import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdirSync, writeFileSync } from "node:fs";
 import type { MeithConfig } from "@meith/shared";
-import { Logger } from "./services/Logger.js";
+import { AgentService } from "./services/AgentService.js";
 import { AppStateService } from "./services/AppStateService.js";
 import { BrowserTabService } from "./services/BrowserTabService.js";
 import { DevServerService } from "./services/DevServerService.js";
-import { TerminalService } from "./services/TerminalService.js";
+import { Logger } from "./services/Logger.js";
 import { ProjectService } from "./services/ProjectService.js";
-import { AgentService } from "./services/AgentService.js";
+import { TerminalService } from "./services/TerminalService.js";
 import { ToolSocketService } from "./services/ToolSocketService.js";
-import { ToolRegistry } from "./tools/registry.js";
-import { createBrowserTools } from "./tools/browserTools.js";
 import { createAppTools } from "./tools/appTools.js";
+import { createBrowserTools } from "./tools/browserTools.js";
+import { ToolRegistry } from "./tools/registry.js";
 
 /** Everything the app wires up. Returned so the renderer/IPC can use it. */
 export interface ServiceContainer {
@@ -26,6 +26,8 @@ export interface ServiceContainer {
   registry: ToolRegistry;
   socket: ToolSocketService;
   config: MeithConfig;
+  /** Stop accepting new tool calls and tear down the socket server. */
+  shutdown: () => Promise<void>;
 }
 
 /** The `~/.meith` directory and the config file path inside it. */
@@ -71,6 +73,12 @@ export async function bootstrap(userDataPath: string): Promise<ServiceContainer>
 
   logger.info("Bootstrap", "service container ready");
 
+  const shutdown = async (): Promise<void> => {
+    registry.beginShutdown();
+    await socket.stop();
+    logger.info("Bootstrap", "shutdown complete");
+  };
+
   return {
     logger,
     appState,
@@ -82,5 +90,6 @@ export async function bootstrap(userDataPath: string): Promise<ServiceContainer>
     registry,
     socket,
     config,
+    shutdown,
   };
 }

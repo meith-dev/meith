@@ -1,13 +1,13 @@
-import { newMessageId, newSessionId } from "@meith/shared";
 import type { ToolDescriptor } from "@meith/protocol";
+import { newMessageId, newSessionId } from "@meith/shared";
 import type {
   AgentAdapter,
   AgentHostContext,
   AgentMessage,
   AgentSession,
 } from "../agent/types.js";
-import type { Logger } from "./Logger.js";
 import type { ToolRegistry } from "../tools/registry.js";
+import type { Logger } from "./Logger.js";
 
 /**
  * Manages agent sessions and dispatches runs to a registered adapter.

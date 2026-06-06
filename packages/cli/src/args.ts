@@ -57,7 +57,7 @@ export function coerce(value: string | boolean): unknown {
  */
 export function buildParams(
   parsed: ParsedArgs,
-  positionalNames: string[] = []
+  positionalNames: string[] = [],
 ): Record<string, unknown> {
   const params: Record<string, unknown> = {};
   positionalNames.forEach((name, i) => {

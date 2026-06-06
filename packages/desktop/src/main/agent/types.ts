@@ -1,4 +1,5 @@
 import type { ToolDescriptor } from "@meith/protocol";
+import type { ToolResult } from "@meith/shared";
 
 /**
  * Provider-agnostic agent runtime interfaces.
@@ -34,7 +35,7 @@ export interface AgentSession {
 export interface AgentHostContext {
   /** Tools the agent is allowed to call (same registry as CLI/renderer). */
   listTools: () => ToolDescriptor[];
-  callTool: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+  callTool: (name: string, args: Record<string, unknown>) => Promise<ToolResult>;
   log: (message: string) => void;
 }
 
@@ -57,8 +58,5 @@ export interface AgentAdapter {
    * Send the current session to the backend and stream back chunks.
    * Implementations may call `host.callTool` to use app tools.
    */
-  run(
-    session: AgentSession,
-    host: AgentHostContext,
-  ): AsyncIterable<AgentStreamChunk>;
+  run(session: AgentSession, host: AgentHostContext): AsyncIterable<AgentStreamChunk>;
 }

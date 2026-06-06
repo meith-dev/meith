@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
 /**
  * Standalone Vite config for running ONLY the renderer in a normal browser.

@@ -1,5 +1,9 @@
+import {
+  type ToolCapability,
+  ToolCapabilitySchema,
+  type ToolContext,
+} from "@meith/shared";
 import { z } from "zod";
-import { type ToolCapability, ToolCapabilitySchema, type ToolContext } from "@meith/shared";
 
 /**
  * The Tool contract. A Tool is a structured, self-describing unit of behavior

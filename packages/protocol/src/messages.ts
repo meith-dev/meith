@@ -1,9 +1,5 @@
+import { ToolErrorCodeSchema, ToolEventSchema, ToolResultSchema } from "@meith/shared";
 import { z } from "zod";
-import {
-  ToolErrorCodeSchema,
-  ToolEventSchema,
-  ToolResultSchema,
-} from "@meith/shared";
 import { ToolDescriptorSchema } from "./tools.js";
 
 /**
@@ -23,13 +19,7 @@ const protocolField = z.number().int().optional();
 
 // ---------- Shared sub-schemas ----------
 
-export const CallerSchema = z.enum([
-  "cli",
-  "renderer",
-  "agent",
-  "plugin",
-  "internal",
-]);
+export const CallerSchema = z.enum(["cli", "renderer", "agent", "plugin", "internal"]);
 export type Caller = z.infer<typeof CallerSchema>;
 
 /** Identifies who is calling and the scope of the call. Becomes ToolContext. */
@@ -119,16 +109,29 @@ export type ServerMessage = z.infer<typeof ServerMessageSchema>;
 
 /** Encode a message as a single newline-terminated JSON frame, stamping the version. */
 export function encodeMessage(msg: Record<string, unknown>): string {
-  const stamped = "protocol" in msg && msg.protocol != null ? msg : { ...msg, protocol: PROTOCOL_VERSION };
+  const stamped =
+    "protocol" in msg && msg.protocol != null
+      ? msg
+      : { ...msg, protocol: PROTOCOL_VERSION };
   return JSON.stringify(stamped) + "\n";
 }
+
+/** Guards against unbounded buffering from a peer that never sends a newline. */
+export const MAX_FRAME_BYTES = 8 * 1024 * 1024;
 
 /**
  * Stateful splitter for newline-delimited JSON. Feed it raw chunks; it returns
  * fully-received JSON objects and buffers any partial trailing frame.
+ *
+ * Malformed frames do NOT throw out of `push` (which would abort an entire
+ * batch and is easy to weaponize): instead each bad line is reported via the
+ * optional `onError` callback and skipped, so one garbage frame can't kill the
+ * connection. An oversized buffer with no newline is also reported and reset.
  */
 export class NdjsonParser {
   private buffer = "";
+
+  constructor(private readonly onError?: (err: Error, line: string) => void) {}
 
   push(chunk: string | Buffer): unknown[] {
     this.buffer += chunk.toString();
@@ -138,7 +141,19 @@ export class NdjsonParser {
       const line = this.buffer.slice(0, idx).trim();
       this.buffer = this.buffer.slice(idx + 1);
       if (line.length === 0) continue;
-      out.push(JSON.parse(line));
+      try {
+        out.push(JSON.parse(line));
+      } catch (err) {
+        this.onError?.(err as Error, line);
+      }
+    }
+    if (this.buffer.length > MAX_FRAME_BYTES) {
+      const overflow = this.buffer;
+      this.buffer = "";
+      this.onError?.(
+        new Error("Frame exceeds MAX_FRAME_BYTES without newline"),
+        overflow,
+      );
     }
     return out;
   }

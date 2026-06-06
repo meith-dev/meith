@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
 import type { AppState } from "@meith/shared";
+import { useEffect, useMemo, useState } from "react";
 import { getBridge } from "./bridge";
-import { TitleBar } from "./components/TitleBar";
-import { Sidebar } from "./components/Sidebar";
-import { StatusBar } from "./components/StatusBar";
-import { ToolsPanel } from "./components/ToolsPanel";
-import { StatePanel } from "./components/StatePanel";
 import { LogsPanel } from "./components/LogsPanel";
+import { Sidebar } from "./components/Sidebar";
+import { StatePanel } from "./components/StatePanel";
+import { StatusBar } from "./components/StatusBar";
+import { TitleBar } from "./components/TitleBar";
+import { ToolsPanel } from "./components/ToolsPanel";
 
 export type View = "tools" | "state" | "logs";
 

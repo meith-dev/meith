@@ -1,11 +1,13 @@
+import type { ToolDescriptor } from "@meith/protocol";
 import {
-  defaultAppState,
-  newBrowserTabId,
-  newSpaceId,
   type AppState,
   type LogEntry,
+  defaultAppState,
+  errorResult,
+  newBrowserTabId,
+  newSpaceId,
+  okResult,
 } from "@meith/shared";
-import type { ToolDescriptor } from "@meith/protocol";
 import type { MeithBridge } from "../../bridge.js";
 
 /**
@@ -68,14 +70,30 @@ function createMockBridge(): MeithBridge {
   };
 
   const tools: ToolDescriptor[] = [
-    { name: "get_tabs", description: "List browser and workspace tabs.", inputSchema: {} },
+    {
+      name: "get_tabs",
+      description: "List browser and workspace tabs.",
+      inputSchema: {},
+      capabilities: ["read-only"],
+    },
     {
       name: "open_browser_tab",
       description: "Open a new browser tab.",
       inputSchema: { type: "object", properties: { url: { type: "string" } } },
+      capabilities: ["controls-browser"],
     },
-    { name: "app_get_state", description: "Return full app state.", inputSchema: {} },
-    { name: "app_get_logs", description: "Return recent logs.", inputSchema: {} },
+    {
+      name: "app_get_state",
+      description: "Return full app state.",
+      inputSchema: {},
+      capabilities: ["read-only"],
+    },
+    {
+      name: "app_get_logs",
+      description: "Return recent logs.",
+      inputSchema: {},
+      capabilities: ["read-only"],
+    },
   ];
 
   return {
@@ -83,7 +101,10 @@ function createMockBridge(): MeithBridge {
       list: async () => tools,
       call: async (name, args = {}) => {
         if (name === "get_tabs") {
-          return { browserTabs: state.browserTabs, workspaceTabs: state.workspaceTabs };
+          return okResult({
+            browserTabs: state.browserTabs,
+            workspaceTabs: state.workspaceTabs,
+          });
         }
         if (name === "open_browser_tab") {
           const url = String(args.url ?? "about:blank");
@@ -99,11 +120,11 @@ function createMockBridge(): MeithBridge {
           state.browserTabs.push(tab);
           pushLog("info", "Mock", `opened browser tab -> ${url}`);
           emitState();
-          return tab;
+          return okResult(tab);
         }
-        if (name === "app_get_state") return structuredClone(state);
-        if (name === "app_get_logs") return [...logs];
-        throw new Error(`Unknown tool: ${name}`);
+        if (name === "app_get_state") return okResult(structuredClone(state));
+        if (name === "app_get_logs") return okResult([...logs]);
+        return errorResult("UNKNOWN_TOOL", `Unknown tool: ${name}`);
       },
     },
     state: {

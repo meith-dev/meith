@@ -1,6 +1,6 @@
+import type { ToolDescriptor } from "@meith/protocol";
 import { useEffect, useState } from "react";
 import type { MeithBridge } from "../../../bridge";
-import type { ToolDescriptor } from "@meith/protocol";
 
 interface RunState {
   status: "idle" | "running" | "ok" | "error";
@@ -37,10 +37,19 @@ export function ToolsPanel({ bridge }: { bridge: MeithBridge }) {
     }
     setRun({ status: "running" });
     try {
-      const output = await bridge.tools.call(selected, parsed);
-      setRun({ status: "ok", output });
+      const result = await bridge.tools.call(selected, parsed);
+      if (result.ok) {
+        setRun({ status: "ok", output: result.content });
+      } else {
+        const code = result.error?.code ?? "TOOL_FAILED";
+        const message = result.error?.message ?? "Tool failed";
+        setRun({ status: "error", error: `${code}: ${message}` });
+      }
     } catch (err) {
-      setRun({ status: "error", error: err instanceof Error ? err.message : String(err) });
+      setRun({
+        status: "error",
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -74,6 +83,15 @@ export function ToolsPanel({ bridge }: { bridge: MeithBridge }) {
             <header className="tools-detail-head">
               <h2 className="tool-title">{current.name}</h2>
               <p className="tool-description">{current.description}</p>
+              {current.capabilities && current.capabilities.length > 0 && (
+                <ul className="cap-badges" aria-label="Capabilities">
+                  {current.capabilities.map((cap) => (
+                    <li key={cap} className={`cap-badge cap-${cap}`}>
+                      {cap}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </header>
 
             <label className="field">
@@ -100,12 +118,16 @@ export function ToolsPanel({ bridge }: { bridge: MeithBridge }) {
 
             <details className="schema" open>
               <summary>Input schema</summary>
-              <pre className="code-block">{JSON.stringify(current.inputSchema, null, 2)}</pre>
+              <pre className="code-block">
+                {JSON.stringify(current.inputSchema, null, 2)}
+              </pre>
             </details>
 
             {run.status !== "idle" && (
               <div className={`result result-${run.status}`}>
-                <div className="result-head">{run.status === "error" ? "Error" : "Result"}</div>
+                <div className="result-head">
+                  {run.status === "error" ? "Error" : "Result"}
+                </div>
                 <pre className="code-block">
                   {run.status === "error"
                     ? run.error

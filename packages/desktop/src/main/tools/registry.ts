@@ -1,14 +1,37 @@
-import { zodToJsonSchema } from "zod-to-json-schema";
-import type { ToolContext } from "@meith/shared";
 import type { ToolDefinition, ToolDescriptor } from "@meith/protocol";
+import {
+  DEFAULT_TOOL_TIMEOUT_MS,
+  type ToolContext,
+  ToolError,
+  type ToolErrorCode,
+  type ToolEvent,
+  type ToolResult,
+  errorResult,
+  isToolResult,
+  okResult,
+} from "@meith/shared";
+import { zodToJsonSchema } from "zod-to-json-schema";
+
+/** Options accepted per call so transports can pass timeout/cancellation/streaming. */
+export interface CallOptions {
+  /** Per-call timeout override (ms). Falls back to tool.timeoutMs, then default. */
+  timeoutMs?: number;
+  /** Caller-controlled cancellation. Merged with the internal timeout signal. */
+  signal?: AbortSignal;
+  /** Stream events (progress/log/partial_text/artifact) back to the caller. */
+  emit?: (event: ToolEvent) => void;
+}
 
 /**
  * The single tool registry. Every caller — CLI (via socket), renderer/debug UI
  * (via IPC), future MCP server, and future AI agent runtime — goes through this
- * same object. Tools validate their input with their Zod schema before running.
+ * same object. The registry owns cross-cutting concerns so individual tools stay
+ * simple: input validation, per-call timeout, cancellation wiring, and
+ * normalizing every outcome into a structured `ToolResult` envelope.
  */
 export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>();
+  private shuttingDown = false;
 
   register(tool: ToolDefinition): void {
     if (this.tools.has(tool.name)) {
@@ -25,28 +48,105 @@ export class ToolRegistry {
     return this.tools.has(name);
   }
 
+  /** Reject new calls during shutdown so in-flight work can drain cleanly. */
+  beginShutdown(): void {
+    this.shuttingDown = true;
+  }
+
   /** Serializable list for `list_tools` / agent function definitions. */
   describe(): ToolDescriptor[] {
     return [...this.tools.values()].map((tool) => ({
       name: tool.name,
       description: tool.description,
+      capabilities: tool.capabilities ?? [],
       inputSchema: zodToJsonSchema(tool.inputSchema, {
         $refStrategy: "none",
       }) as Record<string, unknown>,
     }));
   }
 
-  /** Validate input against the tool's schema, then execute it. */
+  /**
+   * Validate input, apply timeout + cancellation, run the tool, and normalize
+   * the outcome into a `ToolResult`. This never throws for tool-level problems —
+   * failures come back as `{ ok: false, error }` so every transport can relay
+   * them uniformly.
+   */
   async call(
-    ctx: ToolContext,
+    ctx: Omit<ToolContext, "signal" | "emit">,
     name: string,
     args: Record<string, unknown>,
-  ): Promise<unknown> {
+    opts: CallOptions = {},
+  ): Promise<ToolResult> {
+    if (this.shuttingDown) {
+      return errorResult("RUNTIME_SHUTTING_DOWN", "Runtime is shutting down");
+    }
+
     const tool = this.tools.get(name);
     if (!tool) {
-      throw new Error(`Unknown tool: ${name}`);
+      return errorResult("UNKNOWN_TOOL", `Unknown tool: ${name}`);
     }
-    const parsed = tool.inputSchema.parse(args ?? {});
-    return await tool.execute(ctx, parsed);
+
+    const parsed = tool.inputSchema.safeParse(args ?? {});
+    if (!parsed.success) {
+      return errorResult(
+        "VALIDATION_ERROR",
+        `Invalid arguments for "${name}"`,
+        parsed.error.flatten(),
+      );
+    }
+
+    const timeoutMs = opts.timeoutMs ?? tool.timeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS;
+    const timeoutController = new AbortController();
+    const timer = setTimeout(() => timeoutController.abort(), timeoutMs);
+    const signal = mergeSignals(opts.signal, timeoutController.signal);
+
+    const fullCtx: ToolContext = { ...ctx, signal, emit: opts.emit };
+
+    try {
+      // Race execution against the merged abort signal so a tool that ignores
+      // `ctx.signal` is still bounded by the timeout / caller cancellation.
+      const raw = await Promise.race([
+        Promise.resolve(tool.execute(fullCtx, parsed.data)),
+        abortPromise(signal),
+      ]);
+      return isToolResult(raw) ? raw : okResult(raw);
+    } catch (err) {
+      if (timeoutController.signal.aborted) {
+        return errorResult("TIMEOUT", `Tool "${name}" timed out after ${timeoutMs}ms`);
+      }
+      if (opts.signal?.aborted) {
+        return errorResult("CANCELLED", `Tool "${name}" was cancelled`);
+      }
+      if (err instanceof ToolError) {
+        return errorResult(err.code as ToolErrorCode, err.message, err.details);
+      }
+      return errorResult("TOOL_FAILED", err instanceof Error ? err.message : String(err));
+    } finally {
+      clearTimeout(timer);
+    }
   }
+}
+
+/** A promise that never resolves but rejects as soon as `signal` aborts. */
+function abortPromise(signal: AbortSignal): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    if (signal.aborted) {
+      reject(new Error("aborted"));
+      return;
+    }
+    signal.addEventListener("abort", () => reject(new Error("aborted")), {
+      once: true,
+    });
+  });
+}
+
+/** Combine optional signals into one that aborts when either does. */
+function mergeSignals(a: AbortSignal | undefined, b: AbortSignal): AbortSignal {
+  if (!a) return b;
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  if (a.aborted || b.aborted) controller.abort();
+  a.addEventListener("abort", onAbort, { once: true });
+  b.addEventListener("abort", onAbort, { once: true });
+  return controller.signal;
 }

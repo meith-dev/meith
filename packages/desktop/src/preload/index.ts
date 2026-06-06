@@ -1,6 +1,6 @@
-import { contextBridge, ipcRenderer } from "electron";
-import type { AppState, LogEntry } from "@meith/shared";
 import type { ToolDescriptor } from "@meith/protocol";
+import type { AppState, LogEntry } from "@meith/shared";
+import { contextBridge, ipcRenderer } from "electron";
 import type { MeithBridge } from "../bridge.js";
 
 // Channel names duplicated as literals to avoid importing main-process code
