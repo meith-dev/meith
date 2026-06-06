@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ToolContext } from "@meith/shared";
+import { type ToolCapability, ToolCapabilitySchema, type ToolContext } from "@meith/shared";
 
 /**
  * The Tool contract. A Tool is a structured, self-describing unit of behavior
@@ -9,13 +9,22 @@ import type { ToolContext } from "@meith/shared";
  * Tools are defined with Zod input schemas so we get runtime validation plus
  * static types, and so we can emit JSON Schema for MCP / agent function-calling.
  */
-export interface ToolDefinition<
-  I extends z.ZodTypeAny = z.ZodTypeAny,
-  O = unknown,
-> {
+export interface ToolDefinition<I extends z.ZodTypeAny = z.ZodTypeAny, O = unknown> {
   name: string;
   description: string;
   inputSchema: I;
+  /**
+   * Safety metadata. Declares what the tool can do so an agent/plugin host can
+   * make permission decisions before invoking it. Defaults to `[]`.
+   */
+  capabilities?: ToolCapability[];
+  /** Optional per-tool timeout (ms). Falls back to the call's timeout, then the default. */
+  timeoutMs?: number;
+  /**
+   * Run the tool. Return a raw value (wrapped into `{ ok: true, content }`) or a
+   * full `ToolResult`. Throw `ToolError` for a typed failure code. Observe
+   * `ctx.signal` for cancellation and use `ctx.emit` to stream events.
+   */
   execute: (ctx: ToolContext, input: z.infer<I>) => Promise<O> | O;
 }
 
@@ -39,5 +48,6 @@ export const ToolDescriptorSchema = z.object({
   name: z.string(),
   description: z.string(),
   inputSchema: z.record(z.unknown()),
+  capabilities: z.array(ToolCapabilitySchema).default([]),
 });
 export type ToolDescriptor = z.infer<typeof ToolDescriptorSchema>;

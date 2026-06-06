@@ -31,6 +31,11 @@ later — an MCP server or an AI agent runtime.
 | `@meith/desktop`   | Electron main + preload + React renderer, services, tool registry.|
 | `@meith/cli`       | `meith` command — connects to the runtime socket and calls tools.  |
 
+## Requirements
+
+- **Node** >= 20
+- **pnpm** >= 9 (this repo pins `pnpm@9.12.0` via `packageManager`)
+
 ## Getting started
 
 ```bash
@@ -38,6 +43,8 @@ pnpm install
 pnpm build           # builds libs, then desktop + cli
 pnpm test            # runs every package's vitest suite
 pnpm typecheck
+pnpm lint            # Biome lint + format check
+pnpm check           # lint + typecheck + build + test (run this before pushing)
 ```
 
 ### Run the desktop app
@@ -54,7 +61,7 @@ in-memory mock bridge so the UI still runs in a normal browser.
 ### Run headless (no Electron) + drive it with the CLI
 
 ```bash
-pnpm --filter @meith/desktop dev:headless   # boots services + socket server
+pnpm dev:headless    # boots services + socket server (no Electron)
 ```
 
 In another terminal:
@@ -107,9 +114,20 @@ Register it in `bootstrap.ts` (`registry.registerAll(createMyTools(deps))`). It 
 now callable from the renderer, from `meith call say_hello --name World`, and from
 any future agent — no extra plumbing.
 
+## Documentation
+
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — packages, the single registry, boot path.
+- [docs/TOOL_PROTOCOL.md](./docs/TOOL_PROTOCOL.md) — ndjson wire protocol + `ToolResult` envelope.
+- [docs/ADDING_TOOLS.md](./docs/ADDING_TOOLS.md) — authoring a new tool.
+- [docs/AGENT_RUNTIME.md](./docs/AGENT_RUNTIME.md) — how an agent runtime plugs in.
+- [docs/PLUGIN_API.md](./docs/PLUGIN_API.md) — intended plugin surface.
+- [TODO.md](./TODO.md) — the full phased roadmap.
+
 ## Status
 
 This is a **scaffold**. Several tools (`take_screenshot`, `get_process_tree`,
 `get_process_logs`) return structured placeholder results so callers can integrate
 against the final shape before the implementations land. `AgentService` exposes the
 runtime interface for a future model-driven loop. See `packages/desktop/prompts/system.md`.
+The protocol layer (versioning, `ToolResult` envelope, capabilities, streaming,
+cancellation) is implemented — see [docs/TOOL_PROTOCOL.md](./docs/TOOL_PROTOCOL.md).

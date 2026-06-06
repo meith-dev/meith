@@ -1,34 +1,78 @@
 import { z } from "zod";
+import {
+  ToolErrorCodeSchema,
+  ToolEventSchema,
+  ToolResultSchema,
+} from "@meith/shared";
 import { ToolDescriptorSchema } from "./tools.js";
 
 /**
- * Newline-delimited JSON protocol spoken over the local Unix socket.
+ * Newline-delimited JSON protocol spoken over the local Unix socket (and
+ * mirrored over Electron IPC for the renderer).
  *
  * Every message has a `type`. Requests that expect a correlated response carry
- * a `requestId` which is echoed back on the matching response/error.
+ * a `requestId` which is echoed back on every `tool_event` and the final
+ * `tool_result` / `error`.
  */
+
+/** Bump when the wire format changes incompatibly. */
+export const PROTOCOL_VERSION = 1;
+
+/** Optional protocol-version stamp present on every message. */
+const protocolField = z.number().int().optional();
+
+// ---------- Shared sub-schemas ----------
+
+export const CallerSchema = z.enum([
+  "cli",
+  "renderer",
+  "agent",
+  "plugin",
+  "internal",
+]);
+export type Caller = z.infer<typeof CallerSchema>;
+
+/** Identifies who is calling and the scope of the call. Becomes ToolContext. */
+export const ClientInfoSchema = z
+  .object({
+    caller: CallerSchema.default("cli"),
+    cwd: z.string().optional(),
+    sessionId: z.string().optional(),
+    spaceId: z.string().optional(),
+    tabId: z.string().optional(),
+  })
+  .default({ caller: "cli" });
+export type ClientInfo = z.infer<typeof ClientInfoSchema>;
 
 // ---------- Requests (client -> server) ----------
 
 export const ListToolsRequestSchema = z.object({
   type: z.literal("list_tools"),
+  protocol: protocolField,
+  clientInfo: ClientInfoSchema,
 });
 
 export const ToolCallRequestSchema = z.object({
   type: z.literal("tool_call"),
+  protocol: protocolField,
   requestId: z.string(),
   toolName: z.string(),
   arguments: z.record(z.unknown()).default({}),
-  context: z
-    .object({
-      cwd: z.string().optional(),
-    })
-    .default({}),
+  clientInfo: ClientInfoSchema,
+  /** Optional per-call timeout override (ms). */
+  timeoutMs: z.number().int().positive().optional(),
+});
+
+export const CancelRequestSchema = z.object({
+  type: z.literal("cancel_tool_call"),
+  protocol: protocolField,
+  requestId: z.string(),
 });
 
 export const ClientMessageSchema = z.discriminatedUnion("type", [
   ListToolsRequestSchema,
   ToolCallRequestSchema,
+  CancelRequestSchema,
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
@@ -36,23 +80,36 @@ export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 export const ToolsListResponseSchema = z.object({
   type: z.literal("tools_list"),
+  protocol: protocolField,
   tools: z.array(ToolDescriptorSchema),
+});
+
+export const ToolEventResponseSchema = z.object({
+  type: z.literal("tool_event"),
+  protocol: protocolField,
+  requestId: z.string(),
+  event: ToolEventSchema,
 });
 
 export const ToolResultResponseSchema = z.object({
   type: z.literal("tool_result"),
+  protocol: protocolField,
   requestId: z.string(),
-  result: z.unknown(),
+  result: ToolResultSchema,
 });
 
+/** Transport/protocol-level failures only. Tool failures live in `tool_result`. */
 export const ErrorResponseSchema = z.object({
   type: z.literal("error"),
+  protocol: protocolField,
   requestId: z.string().optional(),
+  code: ToolErrorCodeSchema.default("PROTOCOL_ERROR"),
   message: z.string(),
 });
 
 export const ServerMessageSchema = z.discriminatedUnion("type", [
   ToolsListResponseSchema,
+  ToolEventResponseSchema,
   ToolResultResponseSchema,
   ErrorResponseSchema,
 ]);
@@ -60,9 +117,10 @@ export type ServerMessage = z.infer<typeof ServerMessageSchema>;
 
 // ---------- Helpers ----------
 
-/** Encode a message as a single newline-terminated JSON frame. */
-export function encodeMessage(msg: unknown): string {
-  return JSON.stringify(msg) + "\n";
+/** Encode a message as a single newline-terminated JSON frame, stamping the version. */
+export function encodeMessage(msg: Record<string, unknown>): string {
+  const stamped = "protocol" in msg && msg.protocol != null ? msg : { ...msg, protocol: PROTOCOL_VERSION };
+  return JSON.stringify(stamped) + "\n";
 }
 
 /**

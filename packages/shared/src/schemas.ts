@@ -64,3 +64,86 @@ export const LogEntrySchema = z.object({
   message: z.string(),
 });
 export type LogEntry = z.infer<typeof LogEntrySchema>;
+
+// ---------------------------------------------------------------------------
+// Tool result envelope, error codes, capabilities, and streaming events.
+// These are the contract every caller (CLI, renderer, agent, plugin) sees.
+// ---------------------------------------------------------------------------
+
+/** Default tool timeout if neither the call nor the tool specifies one. */
+export const DEFAULT_TOOL_TIMEOUT_MS = 30_000;
+
+/** Stable, typed error codes returned inside a failed `ToolResult`. */
+export const ToolErrorCodeSchema = z.enum([
+  "UNKNOWN_TOOL",
+  "VALIDATION_ERROR",
+  "PERMISSION_DENIED",
+  "TIMEOUT",
+  "TOOL_FAILED",
+  "RUNTIME_SHUTTING_DOWN",
+  "CANCELLED",
+  "PROTOCOL_ERROR",
+]);
+export type ToolErrorCode = z.infer<typeof ToolErrorCodeSchema>;
+
+/**
+ * Safety metadata a tool declares so an agent/plugin host can make permission
+ * decisions before calling it.
+ */
+export const ToolCapabilitySchema = z.enum([
+  "read-only",
+  "writes-files",
+  "controls-browser",
+  "starts-process",
+  "accesses-network",
+  "destructive",
+]);
+export type ToolCapability = z.infer<typeof ToolCapabilitySchema>;
+
+export const ToolDiagnosticSchema = z.object({
+  level: z.enum(["info", "warn", "error"]),
+  message: z.string(),
+});
+export type ToolDiagnostic = z.infer<typeof ToolDiagnosticSchema>;
+
+export const ToolErrorInfoSchema = z.object({
+  code: ToolErrorCodeSchema,
+  message: z.string(),
+  details: z.unknown().optional(),
+});
+export type ToolErrorInfo = z.infer<typeof ToolErrorInfoSchema>;
+
+/** Streaming events a long-running tool can emit while it executes. */
+export const ToolEventSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("progress"),
+    message: z.string().optional(),
+    fraction: z.number().min(0).max(1).optional(),
+  }),
+  z.object({
+    kind: z.literal("log"),
+    level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+    message: z.string(),
+  }),
+  z.object({
+    kind: z.literal("partial_text"),
+    text: z.string(),
+  }),
+  z.object({
+    kind: z.literal("artifact"),
+    mimeType: z.string(),
+    name: z.string().optional(),
+    dataBase64: z.string().optional(),
+    path: z.string().optional(),
+  }),
+]);
+export type ToolEvent = z.infer<typeof ToolEventSchema>;
+
+/** The structured envelope every tool call resolves to (success or failure). */
+export const ToolResultSchema = z.object({
+  ok: z.boolean(),
+  content: z.unknown().optional(),
+  meta: z.record(z.unknown()).optional(),
+  diagnostics: z.array(ToolDiagnosticSchema).optional(),
+  error: ToolErrorInfoSchema.optional(),
+});
