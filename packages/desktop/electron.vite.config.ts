@@ -12,7 +12,14 @@ export default defineConfig({
   preload: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      lib: { entry: resolve(__dirname, "src/preload/index.ts") },
+      lib: {
+        // Two preload bundles: the app renderer bridge (index) and the safe
+        // bridge applied to ordinary browser-tab web content (webContent).
+        entry: {
+          index: resolve(__dirname, "src/preload/index.ts"),
+          webContent: resolve(__dirname, "src/preload/webContent.ts"),
+        },
+      },
     },
   },
   renderer: {

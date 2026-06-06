@@ -41,6 +41,10 @@ export function StatePanel({ state }: { state: AppState | null }) {
           primary: t.title,
           secondary: t.url,
           active: t.active,
+          badges: [
+            t.loadState !== "idle" ? t.loadState : null,
+            t.ownerId ? `owned: ${t.ownerId}` : null,
+          ].filter((b): b is string => b !== null),
         }))}
         empty="No browser tabs. Run open_browser_tab to add one."
       />
@@ -52,6 +56,7 @@ export function StatePanel({ state }: { state: AppState | null }) {
           primary: `${t.title} (${t.kind})`,
           secondary: t.cwd,
           active: t.active,
+          badges: [],
         }))}
         empty="No workspace tabs yet."
       />
@@ -64,13 +69,15 @@ export function StatePanel({ state }: { state: AppState | null }) {
   );
 }
 
-function TabTable({
-  rows,
-  empty,
-}: {
-  rows: { id: string; primary: string; secondary: string; active: boolean }[];
-  empty: string;
-}) {
+interface TabRow {
+  id: string;
+  primary: string;
+  secondary: string;
+  active: boolean;
+  badges: string[];
+}
+
+function TabTable({ rows, empty }: { rows: TabRow[]; empty: string }) {
   if (rows.length === 0) return <p className="muted">{empty}</p>;
   return (
     <ul className="tab-list">
@@ -78,6 +85,11 @@ function TabTable({
         <li key={row.id} className={`tab-row${row.active ? " is-active" : ""}`}>
           <span className="tab-primary">{row.primary}</span>
           <span className="tab-secondary">{row.secondary}</span>
+          {row.badges.map((badge) => (
+            <span key={badge} className="card-tag">
+              {badge}
+            </span>
+          ))}
           {row.active && <span className="card-tag">active</span>}
         </li>
       ))}

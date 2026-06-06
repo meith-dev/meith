@@ -1,8 +1,8 @@
-import { dirname, basename, join } from "node:path";
+import { join, dirname, basename } from "node:path";
 import { ipcMain, app, BrowserWindow } from "electron";
-import { mkdirSync, writeFileSync, openSync, writeSync, fsyncSync, closeSync, renameSync, existsSync, readFileSync, statSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync, openSync, writeSync, fsyncSync, closeSync, renameSync, readFileSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
-import { newSessionId, newMessageId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, LogEntrySchema, createId, okResult, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult, ToolError } from "@meith/shared";
+import { newSessionId, newMessageId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, LogEntrySchema, createId, okResult, ToolError, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult } from "@meith/shared";
 import { EventEmitter } from "node:events";
 import net from "node:net";
 import { NdjsonParser, ClientMessageSchema, PROTOCOL_VERSION, encodeMessage, defineTool } from "@meith/protocol";
@@ -12,6 +12,36 @@ import __cjs_mod__ from "node:module";
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 const require2 = __cjs_mod__.createRequire(import.meta.url);
+class ArtifactStore {
+  dir;
+  constructor(dataDir) {
+    this.dir = join(dataDir, "artifacts");
+  }
+  get directory() {
+    return this.dir;
+  }
+  /** Persist bytes and return the absolute path written. */
+  write(id, ext, data) {
+    if (!existsSync(this.dir)) mkdirSync(this.dir, { recursive: true });
+    const fileName = `${id}.${ext.replace(/^\./, "")}`;
+    const path = join(this.dir, fileName);
+    writeFileSync(path, data);
+    return { id, path, sizeBytes: data.byteLength, createdAt: Date.now() };
+  }
+  list() {
+    if (!existsSync(this.dir)) return [];
+    return readdirSync(this.dir).map((name) => {
+      const path = join(this.dir, name);
+      const st = statSync(path);
+      return {
+        id: name.replace(/\.[^.]+$/, ""),
+        path,
+        sizeBytes: st.size,
+        createdAt: st.birthtimeMs || st.mtimeMs
+      };
+    });
+  }
+}
 class AgentService {
   constructor(registry, logger) {
     this.registry = registry;
@@ -161,7 +191,7 @@ class JsonStore {
     this.dirty = false;
   }
 }
-const CURRENT_STATE_VERSION = 1;
+const CURRENT_STATE_VERSION = 2;
 const migrations = {
   // 0 -> 1: the original unversioned shape. Ensure the versioned fields exist
   // (early builds had no `workspaceTabs`/`activeSpaceId`).
@@ -172,6 +202,23 @@ const migrations = {
     activeSpaceId: raw.activeSpaceId ?? null,
     browserTabs: Array.isArray(raw.browserTabs) ? raw.browserTabs : [],
     workspaceTabs: Array.isArray(raw.workspaceTabs) ? raw.workspaceTabs : []
+  }),
+  // 1 -> 2: real browser runtime adds live navigation/loading/ownership fields
+  // to each browser tab. Backfill them on existing tab records.
+  1: (raw) => ({
+    ...raw,
+    version: 2,
+    browserTabs: (Array.isArray(raw.browserTabs) ? raw.browserTabs : []).map((tab) => {
+      const t = tab ?? {};
+      return {
+        ...t,
+        faviconUrl: t.faviconUrl ?? void 0,
+        loadState: t.loadState ?? "idle",
+        canGoBack: t.canGoBack ?? false,
+        canGoForward: t.canGoForward ?? false,
+        ownerId: t.ownerId ?? null
+      };
+    })
   })
 };
 function rawVersion(raw) {
@@ -1002,6 +1049,22 @@ function createAppTools(deps) {
   });
   return [appGetState, appGetLogs, getProcessTree, getProcessLogs];
 }
+async function guardOwnership(fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof TabOwnershipError) {
+      throw new ToolError("PERMISSION_DENIED", err.message, {
+        tabId: err.tabId,
+        ownerId: err.ownerId
+      });
+    }
+    throw err;
+  }
+}
+function ownerOf(ctx, explicit) {
+  return explicit ?? ctx.sessionId ?? ctx.caller;
+}
 function createBrowserTools(deps) {
   const getTabs = defineTool({
     name: "get_tabs",
@@ -1015,9 +1078,16 @@ function createBrowserTools(deps) {
       workspaceTabs: deps.browserTabs.listWorkspaceTabs(input.spaceId)
     })
   });
+  const getActiveTab = defineTool({
+    name: "get_active_tab",
+    description: "Return the active browser tab for a space (or the active space).",
+    capabilities: ["read-only"],
+    inputSchema: z.object({ spaceId: z.string().optional() }),
+    execute: (_ctx, input) => deps.browserTabs.getActiveBrowserTab(input.spaceId)
+  });
   const openBrowserTab = defineTool({
     name: "open_browser_tab",
-    description: "Open a new browser tab pointing at a URL. Becomes a WebContentsView later.",
+    description: "Open a new browser tab pointing at a URL and focus it.",
     capabilities: ["controls-browser"],
     inputSchema: z.object({
       url: z.string().describe("URL to open, e.g. http://localhost:3000"),
@@ -1027,28 +1097,113 @@ function createBrowserTools(deps) {
     }),
     execute: (_ctx, input) => deps.browserTabs.openBrowserTab(input)
   });
-  const takeScreenshot = defineTool({
-    name: "take_screenshot",
-    description: "[placeholder] Capture a screenshot of a browser tab. Returns a stub until WebContentsView capture is implemented.",
-    capabilities: ["controls-browser", "read-only"],
+  const navigate = defineTool({
+    name: "navigate",
+    description: "Navigate an existing browser tab to a new URL.",
+    capabilities: ["controls-browser"],
     inputSchema: z.object({
-      tabId: z.string().optional()
+      tabId: z.string(),
+      url: z.string(),
+      owner: z.string().optional().describe("Automation owner id, if claimed.")
     }),
-    // Resolves ok=true with a placeholder payload + a diagnostic so callers can
-    // integrate against the final shape before capture is implemented.
-    execute: (_ctx, input) => okResult(
-      { placeholder: true, tabId: input.tabId ?? null },
-      {
-        diagnostics: [
-          {
-            level: "warn",
-            message: "take_screenshot is not implemented yet. Will use webContents.capturePage()."
-          }
-        ]
-      }
+    execute: (ctx, input) => guardOwnership(
+      () => deps.browserTabs.navigate(input.tabId, input.url, ownerOf(ctx, input.owner))
     )
   });
-  return [getTabs, openBrowserTab, takeScreenshot];
+  const goBack = defineTool({
+    name: "go_back",
+    description: "Navigate a browser tab back in its history.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
+    execute: (ctx, input) => guardOwnership(() => deps.browserTabs.goBack(input.tabId, ownerOf(ctx, input.owner)))
+  });
+  const goForward = defineTool({
+    name: "go_forward",
+    description: "Navigate a browser tab forward in its history.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
+    execute: (ctx, input) => guardOwnership(
+      () => deps.browserTabs.goForward(input.tabId, ownerOf(ctx, input.owner))
+    )
+  });
+  const refresh = defineTool({
+    name: "refresh",
+    description: "Reload a browser tab.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
+    execute: (ctx, input) => guardOwnership(
+      () => deps.browserTabs.refresh(input.tabId, ownerOf(ctx, input.owner))
+    )
+  });
+  const focusBrowserTab = defineTool({
+    name: "focus_browser_tab",
+    description: "Make a browser tab the active/visible tab in its space.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({ tabId: z.string() }),
+    execute: (_ctx, input) => deps.browserTabs.focusBrowserTab(input.tabId)
+  });
+  const closeBrowserTab = defineTool({
+    name: "close_browser_tab",
+    description: "Close a browser tab and destroy its live view.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
+    execute: (ctx, input) => guardOwnership(async () => ({
+      closed: await deps.browserTabs.closeBrowserTab(
+        input.tabId,
+        ownerOf(ctx, input.owner)
+      )
+    }))
+  });
+  const browserUseStart = defineTool({
+    name: "browser_use_start",
+    description: "Claim exclusive automation control of a browser tab. Prevents other agents/tools from controlling it concurrently.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      owner: z.string().optional().describe("Owner id; defaults to the session id.")
+    }),
+    execute: (ctx, input) => guardOwnership(() => deps.browserTabs.startUse(input.tabId, ownerOf(ctx, input.owner)))
+  });
+  const browserUseEnd = defineTool({
+    name: "browser_use_end",
+    description: "Release automation control of a browser tab.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      owner: z.string().optional(),
+      force: z.boolean().optional().describe("Release even if owned by another id.")
+    }),
+    execute: (ctx, input) => guardOwnership(
+      () => deps.browserTabs.endUse(input.tabId, ownerOf(ctx, input.owner), input.force ?? false)
+    )
+  });
+  const takeScreenshot = defineTool({
+    name: "take_screenshot",
+    description: "Capture a screenshot of a browser tab using the live view. Persists a PNG artifact when storage is available.",
+    capabilities: ["controls-browser", "read-only"],
+    inputSchema: z.object({ tabId: z.string() }),
+    execute: async (_ctx, input) => {
+      try {
+        return await deps.browserTabs.captureScreenshot(input.tabId);
+      } catch (err) {
+        throw new ToolError("TOOL_FAILED", err instanceof Error ? err.message : String(err));
+      }
+    }
+  });
+  return [
+    getTabs,
+    getActiveTab,
+    openBrowserTab,
+    navigate,
+    goBack,
+    goForward,
+    refresh,
+    focusBrowserTab,
+    closeBrowserTab,
+    browserUseStart,
+    browserUseEnd,
+    takeScreenshot
+  ];
 }
 class ToolRegistry {
   tools = /* @__PURE__ */ new Map();
@@ -1193,7 +1348,7 @@ function meithPaths() {
   const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
   return { home, configPath: join(home, "config.json") };
 }
-async function bootstrap(userDataPath) {
+async function bootstrap(userDataPath, options = {}) {
   mkdirSync(userDataPath, { recursive: true });
   const logPath = join(userDataPath, "logs.jsonl");
   const logger = new Logger({ logPath });
@@ -1204,7 +1359,11 @@ async function bootstrap(userDataPath) {
   writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
   logger.info("Bootstrap", `wrote config to ${configPath}`);
   const appState = new AppStateService(join(userDataPath, "state.json"), logger);
-  const browserTabs = new BrowserTabService(appState, logger);
+  const artifacts = new ArtifactStore(join(userDataPath, "artifacts"));
+  const browserTabs = new BrowserTabService(appState, logger, {
+    host: options.browserViewHost,
+    artifacts
+  });
   const devServers = new DevServerService(logger);
   const terminals = new TerminalService(logger);
   const projects = new ProjectService(logger);

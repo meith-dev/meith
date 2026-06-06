@@ -55,7 +55,7 @@ export const SpaceSchema = z.object({
 export type Space = z.infer<typeof SpaceSchema>;
 
 export const AppStateSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   spaces: z.array(SpaceSchema),
   activeSpaceId: z.string().nullable(),
   browserTabs: z.array(BrowserTabSchema),

@@ -2,6 +2,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { MeithConfig } from "@meith/shared";
+import type { BrowserViewHost } from "./browser/BrowserViewHost.js";
+import { ArtifactStore } from "./storage/ArtifactStore.js";
 import { AgentService } from "./services/AgentService.js";
 import { AppStateService } from "./services/AppStateService.js";
 import { BrowserTabService } from "./services/BrowserTabService.js";
@@ -33,6 +35,16 @@ export interface ServiceContainer {
   shutdown: () => Promise<void>;
 }
 
+/** Optional injection points for the real (Electron) main process. */
+export interface BootstrapOptions {
+  /**
+   * Live browser view host. The Electron main process passes a
+   * `WebContentsView`-backed implementation; headless callers (tests, harness,
+   * CLI runtime) omit it and get the in-memory default.
+   */
+  browserViewHost?: BrowserViewHost;
+}
+
 /** The `~/.meith` directory and the config file path inside it. */
 export function meithPaths() {
   const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
@@ -46,7 +58,10 @@ export function meithPaths() {
  * This deliberately does NOT import Electron, so it can run from the headless
  * harness and tests as well as from the real main process.
  */
-export async function bootstrap(userDataPath: string): Promise<ServiceContainer> {
+export async function bootstrap(
+  userDataPath: string,
+  options: BootstrapOptions = {},
+): Promise<ServiceContainer> {
   mkdirSync(userDataPath, { recursive: true });
   const logPath = join(userDataPath, "logs.jsonl");
   const logger = new Logger({ logPath });
@@ -60,7 +75,11 @@ export async function bootstrap(userDataPath: string): Promise<ServiceContainer>
   logger.info("Bootstrap", `wrote config to ${configPath}`);
 
   const appState = new AppStateService(join(userDataPath, "state.json"), logger);
-  const browserTabs = new BrowserTabService(appState, logger);
+  const artifacts = new ArtifactStore(join(userDataPath, "artifacts"));
+  const browserTabs = new BrowserTabService(appState, logger, {
+    host: options.browserViewHost,
+    artifacts,
+  });
   const devServers = new DevServerService(logger);
   const terminals = new TerminalService(logger);
   const projects = new ProjectService(logger);

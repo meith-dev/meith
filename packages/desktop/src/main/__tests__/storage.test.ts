@@ -38,13 +38,32 @@ describe("migrations", () => {
 
   it("passes through a valid current-version state", () => {
     const valid = {
-      version: 1,
+      version: 2,
       spaces: [{ id: "s1", name: "S", createdAt: 1 }],
       activeSpaceId: "s1",
       browserTabs: [],
       workspaceTabs: [],
     };
     expect(migrateAppState(valid).activeSpaceId).toBe("s1");
+  });
+
+  it("migrates v1 -> v2 by backfilling browser tab runtime fields", () => {
+    const v1 = {
+      version: 1,
+      spaces: [{ id: "s1", name: "S", createdAt: 1 }],
+      activeSpaceId: "s1",
+      browserTabs: [
+        { id: "t1", spaceId: "s1", url: "https://x.test", title: "X", createdAt: 1 },
+      ],
+      workspaceTabs: [],
+    };
+    const migrated = migrateAppState(v1);
+    expect(migrated.version).toBe(2);
+    const tab = migrated.browserTabs[0];
+    expect(tab.loadState).toBe("idle");
+    expect(tab.canGoBack).toBe(false);
+    expect(tab.canGoForward).toBe(false);
+    expect(tab.ownerId).toBeNull();
   });
 
   it("throws on a newer-than-supported version", () => {

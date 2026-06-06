@@ -1,7 +1,7 @@
 import { type AppState, AppStateSchema } from "@meith/shared";
 
 /** The state version this build writes and migrates up to. */
-export const CURRENT_STATE_VERSION = 1;
+export const CURRENT_STATE_VERSION = 2;
 
 type RawState = Record<string, unknown>;
 
@@ -20,6 +20,24 @@ const migrations: Record<number, (raw: RawState) => RawState> = {
     activeSpaceId: raw.activeSpaceId ?? null,
     browserTabs: Array.isArray(raw.browserTabs) ? raw.browserTabs : [],
     workspaceTabs: Array.isArray(raw.workspaceTabs) ? raw.workspaceTabs : [],
+  }),
+
+  // 1 -> 2: real browser runtime adds live navigation/loading/ownership fields
+  // to each browser tab. Backfill them on existing tab records.
+  1: (raw) => ({
+    ...raw,
+    version: 2,
+    browserTabs: (Array.isArray(raw.browserTabs) ? raw.browserTabs : []).map((tab) => {
+      const t = (tab ?? {}) as RawState;
+      return {
+        ...t,
+        faviconUrl: t.faviconUrl ?? undefined,
+        loadState: t.loadState ?? "idle",
+        canGoBack: t.canGoBack ?? false,
+        canGoForward: t.canGoForward ?? false,
+        ownerId: t.ownerId ?? null,
+      };
+    }),
   }),
 };
 

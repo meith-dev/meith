@@ -38,6 +38,10 @@ function createMockBridge(): MeithBridge {
         title: "Local Dev",
         active: true,
         createdAt: Date.now(),
+        loadState: "complete",
+        canGoBack: false,
+        canGoForward: false,
+        ownerId: null,
       },
     ],
     workspaceTabs: [],
@@ -118,6 +122,10 @@ function createMockBridge(): MeithBridge {
             title: typeof args.title === "string" ? args.title : url,
             active: true,
             createdAt: Date.now(),
+            loadState: "complete" as const,
+            canGoBack: false,
+            canGoForward: false,
+            ownerId: null,
           };
           state.browserTabs.push(tab);
           pushLog("info", "Mock", `opened browser tab -> ${url}`);
