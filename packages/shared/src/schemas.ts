@@ -6,6 +6,10 @@ import { z } from "zod";
  * them, and tools validate their I/O against them.
  */
 
+/** Live loading status of a browser tab's web contents. */
+export const BrowserLoadStateSchema = z.enum(["idle", "loading", "complete", "failed"]);
+export type BrowserLoadState = z.infer<typeof BrowserLoadStateSchema>;
+
 export const BrowserTabSchema = z.object({
   id: z.string(),
   spaceId: z.string(),
@@ -15,6 +19,18 @@ export const BrowserTabSchema = z.object({
   cwd: z.string().optional(),
   active: z.boolean().default(false),
   createdAt: z.number(),
+  /** Last known favicon URL reported by the web contents. */
+  faviconUrl: z.string().optional(),
+  /** Live load status; persisted so the UI can render last-known state. */
+  loadState: BrowserLoadStateSchema.default("idle"),
+  /** Whether the underlying view can navigate back/forward. */
+  canGoBack: z.boolean().default(false),
+  canGoForward: z.boolean().default(false),
+  /**
+   * Automation ownership. When set, a single agent/tool session controls this
+   * tab; concurrent control attempts by other owners are rejected.
+   */
+  ownerId: z.string().nullable().default(null),
 });
 export type BrowserTab = z.infer<typeof BrowserTabSchema>;
 

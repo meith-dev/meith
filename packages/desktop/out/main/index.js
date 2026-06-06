@@ -259,14 +259,130 @@ class AppStateService extends EventEmitter {
     this.store.flush();
   }
 }
+class HeadlessBrowserViewHost {
+  views = /* @__PURE__ */ new Map();
+  listeners = [];
+  createView(tabId, url) {
+    this.views.set(tabId, {
+      url,
+      title: titleFromUrl(url),
+      history: [url],
+      cursor: 0,
+      loadState: "complete"
+    });
+    this.emit(tabId);
+  }
+  loadURL(tabId, url) {
+    const view = this.views.get(tabId);
+    if (!view) {
+      this.createView(tabId, url);
+      return;
+    }
+    view.history = view.history.slice(0, view.cursor + 1);
+    view.history.push(url);
+    view.cursor = view.history.length - 1;
+    view.url = url;
+    view.title = titleFromUrl(url);
+    view.loadState = "complete";
+    this.emit(tabId);
+  }
+  destroyView(tabId) {
+    this.views.delete(tabId);
+  }
+  focusView(_tabId) {
+  }
+  reload(tabId) {
+    const view = this.views.get(tabId);
+    if (!view) return;
+    view.loadState = "complete";
+    this.emit(tabId);
+  }
+  goBack(tabId) {
+    const view = this.views.get(tabId);
+    if (!view || view.cursor <= 0) return;
+    view.cursor -= 1;
+    view.url = view.history[view.cursor];
+    view.title = titleFromUrl(view.url);
+    this.emit(tabId);
+  }
+  goForward(tabId) {
+    const view = this.views.get(tabId);
+    if (!view || view.cursor >= view.history.length - 1) return;
+    view.cursor += 1;
+    view.url = view.history[view.cursor];
+    view.title = titleFromUrl(view.url);
+    this.emit(tabId);
+  }
+  async capture(tabId) {
+    if (!this.views.has(tabId)) return null;
+    return { data: PLACEHOLDER_PNG, width: 1, height: 1 };
+  }
+  getNavState(tabId) {
+    const view = this.views.get(tabId);
+    if (!view) return null;
+    return this.toNavState(view);
+  }
+  onNavStateChanged(cb) {
+    this.listeners.push(cb);
+  }
+  toNavState(view) {
+    return {
+      url: view.url,
+      title: view.title,
+      loadState: view.loadState,
+      canGoBack: view.cursor > 0,
+      canGoForward: view.cursor < view.history.length - 1
+    };
+  }
+  emit(tabId) {
+    const view = this.views.get(tabId);
+    if (!view) return;
+    const state = this.toNavState(view);
+    for (const cb of this.listeners) cb(tabId, state);
+  }
+}
+function titleFromUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.host || url;
+  } catch {
+    return url;
+  }
+}
+const PLACEHOLDER_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64"
+);
+class TabOwnershipError extends Error {
+  constructor(tabId, ownerId) {
+    super(`Tab ${tabId} is currently controlled by owner ${ownerId}`);
+    this.tabId = tabId;
+    this.ownerId = ownerId;
+    this.name = "TabOwnershipError";
+  }
+}
 class BrowserTabService {
-  constructor(appState, logger) {
+  constructor(appState, logger, options = {}) {
     this.appState = appState;
     this.logger = logger;
+    this.host = options.host ?? new HeadlessBrowserViewHost();
+    this.artifacts = options.artifacts;
+    this.host.onNavStateChanged((tabId, nav) => this.applyNavState(tabId, nav));
   }
+  host;
+  artifacts;
   activeSpaceId() {
     const state = this.appState.getState();
     return state.activeSpaceId ?? state.spaces[0]?.id ?? "default";
+  }
+  getTab(id) {
+    return this.appState.getState().browserTabs.find((t) => t.id === id);
+  }
+  /** Throw unless `ownerId` is allowed to control `tab` (matches or unowned). */
+  assertOwner(tab, ownerId) {
+    if (tab.ownerId && tab.ownerId !== ownerId) {
+      throw new TabOwnershipError(tab.id, tab.ownerId);
+    }
   }
   listBrowserTabs(spaceId) {
     const tabs = this.appState.getState().browserTabs;
@@ -276,7 +392,11 @@ class BrowserTabService {
     const tabs = this.appState.getState().workspaceTabs;
     return spaceId ? tabs.filter((t) => t.spaceId === spaceId) : tabs;
   }
-  openBrowserTab(input) {
+  getActiveBrowserTab(spaceId) {
+    const sid = spaceId ?? this.activeSpaceId();
+    return this.appState.getState().browserTabs.find((t) => t.spaceId === sid && t.active) ?? null;
+  }
+  async openBrowserTab(input) {
     const spaceId = input.spaceId ?? this.activeSpaceId();
     const tab = {
       id: newBrowserTabId(),
@@ -285,7 +405,11 @@ class BrowserTabService {
       title: input.title ?? input.url,
       cwd: input.cwd,
       active: true,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      loadState: "loading",
+      canGoBack: false,
+      canGoForward: false,
+      ownerId: null
     };
     this.appState.update((draft) => {
       for (const t of draft.browserTabs) {
@@ -293,17 +417,125 @@ class BrowserTabService {
       }
       draft.browserTabs.push(tab);
     }, "open_browser_tab");
+    await this.host.createView(tab.id, tab.url);
+    await this.host.focusView(tab.id);
     this.logger.info("BrowserTabs", `opened browser tab ${tab.id} -> ${tab.url}`);
-    return tab;
+    return this.getTab(tab.id) ?? tab;
   }
-  closeBrowserTab(id) {
+  async navigate(id, url, ownerId) {
+    const tab = this.requireTab(id);
+    this.assertOwner(tab, ownerId);
+    this.appState.update((draft) => {
+      const t = draft.browserTabs.find((b) => b.id === id);
+      if (t) {
+        t.url = url;
+        t.loadState = "loading";
+      }
+    }, "navigate");
+    await this.host.loadURL(id, url);
+    this.logger.info("BrowserTabs", `navigate ${id} -> ${url}`);
+    return this.requireTab(id);
+  }
+  async goBack(id, ownerId) {
+    const tab = this.requireTab(id);
+    this.assertOwner(tab, ownerId);
+    await this.host.goBack(id);
+    return this.requireTab(id);
+  }
+  async goForward(id, ownerId) {
+    const tab = this.requireTab(id);
+    this.assertOwner(tab, ownerId);
+    await this.host.goForward(id);
+    return this.requireTab(id);
+  }
+  async refresh(id, ownerId) {
+    const tab = this.requireTab(id);
+    this.assertOwner(tab, ownerId);
+    await this.host.reload(id);
+    return this.requireTab(id);
+  }
+  async focusBrowserTab(id) {
+    const tab = this.requireTab(id);
+    this.appState.update((draft) => {
+      for (const t of draft.browserTabs) {
+        if (t.spaceId === tab.spaceId) t.active = t.id === id;
+      }
+    }, "focus_browser_tab");
+    await this.host.focusView(id);
+    return this.requireTab(id);
+  }
+  async closeBrowserTab(id, ownerId) {
+    const tab = this.getTab(id);
+    if (!tab) return false;
+    this.assertOwner(tab, ownerId);
     let removed = false;
     this.appState.update((draft) => {
       const before = draft.browserTabs.length;
       draft.browserTabs = draft.browserTabs.filter((t) => t.id !== id);
       removed = draft.browserTabs.length < before;
+      if (removed && tab.active) {
+        const sameSpace = draft.browserTabs.filter((t) => t.spaceId === tab.spaceId);
+        const last = sameSpace[sameSpace.length - 1];
+        if (last) last.active = true;
+      }
     }, "close_browser_tab");
+    await this.host.destroyView(id);
+    if (removed) this.logger.info("BrowserTabs", `closed browser tab ${id}`);
     return removed;
+  }
+  /**
+   * Claim exclusive automation control of a tab. Returns the session owner id.
+   * Throws `TabOwnershipError` if another owner already holds it.
+   */
+  startUse(id, ownerId) {
+    const tab = this.requireTab(id);
+    if (tab.ownerId && tab.ownerId !== ownerId) {
+      throw new TabOwnershipError(id, tab.ownerId);
+    }
+    this.appState.update((draft) => {
+      const t = draft.browserTabs.find((b) => b.id === id);
+      if (t) t.ownerId = ownerId;
+    }, "browser_use_start");
+    this.logger.info("BrowserTabs", `owner ${ownerId} claimed tab ${id}`);
+    return this.requireTab(id);
+  }
+  /** Release automation control. Only the current owner (or force) may release. */
+  endUse(id, ownerId, force = false) {
+    const tab = this.requireTab(id);
+    if (tab.ownerId && tab.ownerId !== ownerId && !force) {
+      throw new TabOwnershipError(id, tab.ownerId);
+    }
+    this.appState.update((draft) => {
+      const t = draft.browserTabs.find((b) => b.id === id);
+      if (t) t.ownerId = null;
+    }, "browser_use_end");
+    this.logger.info("BrowserTabs", `owner ${ownerId} released tab ${id}`);
+    return this.requireTab(id);
+  }
+  /** Release any tabs held by an owner (e.g. on session end/crash). */
+  releaseOwner(ownerId) {
+    this.appState.update((draft) => {
+      for (const t of draft.browserTabs) {
+        if (t.ownerId === ownerId) t.ownerId = null;
+      }
+    }, "browser_release_owner");
+  }
+  /**
+   * Capture a screenshot of a tab. Persists a PNG artifact when an
+   * `ArtifactStore` is configured and returns a structured descriptor.
+   */
+  async captureScreenshot(id) {
+    this.requireTab(id);
+    const capture = await this.host.capture(id);
+    if (!capture) {
+      throw new Error(`No live view to capture for tab ${id}`);
+    }
+    let path;
+    if (this.artifacts) {
+      const info = this.artifacts.write(`screenshot-${id}-${Date.now()}`, "png", capture.data);
+      path = info.path;
+    }
+    return { tabId: id, width: capture.width, height: capture.height, path };
   }
   openWorkspaceTab(input) {
     const spaceId = input.spaceId ?? this.activeSpaceId();
@@ -324,6 +556,25 @@ class BrowserTabService {
     }, "open_workspace_tab");
     this.logger.info("WorkspaceTabs", `opened workspace tab ${tab.id} (${tab.cwd})`);
     return tab;
+  }
+  requireTab(id) {
+    const tab = this.getTab(id);
+    if (!tab) throw new Error(`Unknown browser tab: ${id}`);
+    return tab;
+  }
+  /** Merge a host nav-state update into the persisted tab record. */
+  applyNavState(tabId, nav) {
+    if (!this.getTab(tabId)) return;
+    this.appState.update((draft) => {
+      const t = draft.browserTabs.find((b) => b.id === tabId);
+      if (!t) return;
+      if (nav.url !== void 0) t.url = nav.url;
+      if (nav.title !== void 0) t.title = nav.title;
+      if (nav.faviconUrl !== void 0) t.faviconUrl = nav.faviconUrl;
+      if (nav.loadState !== void 0) t.loadState = nav.loadState;
+      if (nav.canGoBack !== void 0) t.canGoBack = nav.canGoBack;
+      if (nav.canGoForward !== void 0) t.canGoForward = nav.canGoForward;
+    }, "browser_nav_state");
   }
 }
 class DevServerService extends EventEmitter {
