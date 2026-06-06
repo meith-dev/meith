@@ -52,10 +52,30 @@ socket + CLI path without a display.
 
 ## Persistence
 
-`AppStateService` persists `AppState` (spaces + tabs) to `state.json` under the
-user data directory. `~/.meith/config.json` records the resolved `socketPath` so
-the CLI can find a running runtime. See [TODO.md](../TODO.md) Phase 2 for the
-planned migration/storage work.
+Storage lives under `packages/desktop/src/main/storage/` and is split by access
+pattern:
+
+- **Small, bounded state** — `AppState` (spaces + tabs) is held by
+  `AppStateService` and persisted to `state.json` through `JsonStore`, which
+  writes **atomically** (temp file → `fsync` → rename) and **debounces** writes
+  so rapid mutations don't thrash the disk.
+- **Append-only history** — `Logger` appends structured entries to `logs.jsonl`
+  through `JsonlStore`. Appends are single-line writes (never a full-file
+  rewrite), and the file is **compacted** automatically once it grows past a
+  threshold. The in-memory ring buffer is hydrated from disk on startup so logs
+  survive a restart.
+
+On load, raw JSON is run through a **migration system**
+(`storage/migrations.ts`, `CURRENT_STATE_VERSION`) that upgrades older shapes to
+the current version before Zod validation. A file that fails to parse/validate
+is **backed up** to a `.corrupt-<ts>` sibling, a warning is logged, and the store
+resets to defaults rather than crashing.
+
+`StorageService` catalogs these collections and backs the read-only
+`storage_list_collections`, `storage_read_collection`, and
+`storage_export_state` tools so the CLI and agents can introspect persisted data.
+`~/.meith/config.json` records the resolved `socketPath` so the CLI can find a
+running runtime.
 
 ## Related docs
 

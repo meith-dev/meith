@@ -89,6 +89,45 @@ describe("socket integration", () => {
     expect(result.ok).toBe(false);
     expect(result.error?.code).toBe("VALIDATION_ERROR");
   });
+
+  it("lists storage collections via storage_list_collections", async () => {
+    const result = await client.callTool("storage_list_collections", {});
+    expect(result.ok).toBe(true);
+    const content = result.content as {
+      dataDirectory: string;
+      collections: { name: string; kind: string }[];
+    };
+    const names = content.collections.map((c) => c.name);
+    expect(names).toContain("state");
+    expect(names).toContain("logs");
+  });
+
+  it("reads the logs collection from disk", async () => {
+    const result = await client.callTool("storage_read_collection", {
+      name: "logs",
+      limit: 5,
+    });
+    expect(result.ok).toBe(true);
+    expect(Array.isArray(result.content)).toBe(true);
+  });
+
+  it("errors clearly on an unknown collection", async () => {
+    const result = await client.callTool("storage_read_collection", { name: "nope" });
+    expect(result.ok).toBe(false);
+    expect(result.error?.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("exports a full state snapshot with storage metadata", async () => {
+    const result = await client.callTool("storage_export_state", {});
+    expect(result.ok).toBe(true);
+    const snapshot = result.content as {
+      stateVersion: number;
+      dataDirectory: string;
+      state: { version: number };
+    };
+    expect(snapshot.stateVersion).toBe(1);
+    expect(snapshot.state.version).toBe(1);
+  });
 });
 
 describe("registry cross-cutting behavior", () => {

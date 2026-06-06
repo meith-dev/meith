@@ -103,35 +103,35 @@ Acceptance criteria:
 
 `AppStateService` currently stores the whole app state as one JSON file. That is acceptable for a scaffold, but it will not scale to chats, logs, screenshots, large histories, browser events, or process streams.
 
-- [ ] Add a state migration system:
-  - `version: 1`
-  - migration functions from old versions to new versions
-  - tests for loading older state shapes
-- [ ] Split durable storage into categories:
-  - small app preferences/state
-  - tab/workspace/project collections
-  - append-only logs
-  - agent messages/sessions
-  - artifacts such as screenshots
-- [ ] Decide storage backend:
+- [x] Add a state migration system:
+  - `version: 1` (`CURRENT_STATE_VERSION` in `storage/migrations.ts`)
+  - migration functions from old versions to new versions (legacy v0 -> v1)
+  - tests for loading older state shapes (`storage.test.ts`)
+- [x] Split durable storage into categories:
+  - small app preferences/state (`state.json` via `JsonStore`)
+  - tab/workspace/project collections (in app state)
+  - append-only logs (`logs.jsonl` via `JsonlStore`)
+  - agent messages/sessions (deferred to the agent runtime phase)
+  - artifacts such as screenshots (deferred to the browser runtime phase)
+- [x] Decide storage backend:
   - keep JSON for small state
   - use JSONL for append-only collections
-  - consider SQLite for queryable chat, tool, and process history
-- [ ] Make writes atomic:
+  - SQLite considered but deferred (no native dep yet; JSON/JSONL meets needs)
+- [x] Make writes atomic:
   - write to temp file
-  - fsync where appropriate
-  - rename into place
-- [ ] Add debounced persistence for high-frequency state changes.
-- [ ] Add storage compaction for append-only logs.
-- [ ] Add a storage inspection/debug tool:
+  - fsync the temp file before rename
+  - rename into place (`atomicWriteFileSync`)
+- [x] Add debounced persistence for high-frequency state changes (`JsonStore` debounce).
+- [x] Add storage compaction for append-only logs (`JsonlStore.compact`).
+- [x] Add a storage inspection/debug tool:
   - `storage_list_collections`
   - `storage_read_collection`
   - `storage_export_state`
-- [ ] Add a setting for data directory location.
-- [ ] Add corruption handling:
-  - backup invalid state
+- [~] Add a setting for data directory location (current dir reported by storage tools / `MEITH_USER_DATA`; runtime relocation deferred).
+- [x] Add corruption handling:
+  - backup invalid state (`.corrupt-<ts>` sibling)
   - reset to defaults
-  - surface warning in UI/logs
+  - surface warning in logs
 
 Acceptance criteria:
 

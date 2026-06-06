@@ -14,6 +14,11 @@
     "dev:renderer": "pnpm --filter @meith/desktop dev:renderer",
     "test": "pnpm -r --filter \"./packages/**\" test",
     "typecheck": "pnpm -r --filter \"./packages/**\" typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "check": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
+    "smoke": "tsx scripts/smoke.mts",
     "cli": "pnpm --filter @meith/cli start --"
   },
   "devDependencies": {

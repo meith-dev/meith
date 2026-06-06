@@ -1,71 +1,72 @@
 import { EventEmitter } from "node:events";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
 import {
   type AppState,
   AppStateSchema,
   defaultAppState,
   newSpaceId,
 } from "@meith/shared";
+import { JsonStore } from "../storage/JsonStore.js";
+import { migrateAppState } from "../storage/migrations.js";
 import type { Logger } from "./Logger.js";
 
 /**
  * Owns the persistent application state. The main process is the single
  * authority: renderer, CLI, agents and plugins all read/mutate through here.
  *
- * State is persisted as JSON at `statePath` and re-validated on load. Any
- * mutation emits `"change"` with the new state so subscribers (renderer, IPC
- * push, future agents) can react.
+ * Persistence is delegated to a debounced, atomic `JsonStore`. On load, raw
+ * JSON is run through the migration system and validated; corrupt files are
+ * backed up and the state resets to defaults. Any mutation emits `"change"`
+ * with the new state so subscribers (renderer, IPC push, agents) can react.
  */
 export class AppStateService extends EventEmitter {
-  private state: AppState;
+  private readonly store: JsonStore<AppState>;
 
   constructor(
-    private readonly statePath: string,
+    statePath: string,
     private readonly logger: Logger,
+    debounceMs = 150,
   ) {
     super();
-    this.state = this.load();
+    this.store = new JsonStore<AppState>({
+      path: statePath,
+      parse: migrateAppState,
+      defaults: defaultAppState,
+      debounceMs,
+      onCorruption: (backupPath) => {
+        this.logger.warn(
+          "AppState",
+          `state file was corrupt; reset to defaults${
+            backupPath ? ` (backed up to ${backupPath})` : ""
+          }`,
+        );
+      },
+    });
     this.ensureDefaultSpace();
   }
 
-  private load(): AppState {
-    try {
-      if (existsSync(this.statePath)) {
-        const raw = JSON.parse(readFileSync(this.statePath, "utf8"));
-        return AppStateSchema.parse(raw);
-      }
-    } catch (err) {
-      this.logger.warn("AppState", `Failed to load state, resetting: ${String(err)}`);
-    }
-    return defaultAppState();
-  }
-
-  private persist(): void {
-    mkdirSync(dirname(this.statePath), { recursive: true });
-    writeFileSync(this.statePath, JSON.stringify(this.state, null, 2), "utf8");
-  }
-
   private ensureDefaultSpace(): void {
-    if (this.state.spaces.length === 0) {
+    const state = this.store.get();
+    if (state.spaces.length === 0) {
       const id = newSpaceId();
-      this.state.spaces.push({
-        id,
-        name: "Default",
-        color: "#6366f1",
-        createdAt: Date.now(),
-      });
-      this.state.activeSpaceId = id;
-      this.commit("init default space");
-    } else if (!this.state.activeSpaceId) {
-      this.state.activeSpaceId = this.state.spaces[0].id;
-      this.commit("set active space");
+      this.update((draft) => {
+        draft.spaces.push({
+          id,
+          name: "Default",
+          color: "#6366f1",
+          createdAt: Date.now(),
+        });
+        draft.activeSpaceId = id;
+      }, "init default space");
+    } else if (!state.activeSpaceId) {
+      this.update((draft) => {
+        draft.activeSpaceId = draft.spaces[0].id;
+      }, "set active space");
     }
   }
 
   /** Read a deep copy so callers can't mutate internal state directly. */
   getState(): AppState {
-    return structuredClone(this.state);
+    return structuredClone(this.store.get());
   }
 
   /**
@@ -73,16 +74,18 @@ export class AppStateService extends EventEmitter {
    * All writes funnel through here to keep persistence + events consistent.
    */
   update(mutate: (draft: AppState) => void, reason = "update"): AppState {
-    const draft = structuredClone(this.state);
+    const draft = structuredClone(this.store.get());
     mutate(draft);
-    this.state = AppStateSchema.parse(draft);
-    this.commit(reason);
-    return this.getState();
+    const next = AppStateSchema.parse(draft);
+    this.store.set(next);
+    this.logger.debug("AppState", `state changed (${reason})`);
+    const snapshot = structuredClone(next);
+    this.emit("change", snapshot);
+    return snapshot;
   }
 
-  private commit(reason: string): void {
-    this.persist();
-    this.logger.debug("AppState", `state changed (${reason})`);
-    this.emit("change", this.getState());
+  /** Force any pending debounced write to disk (call on shutdown). */
+  flush(): void {
+    this.store.flush();
   }
 }

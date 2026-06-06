@@ -1,8 +1,8 @@
 import { dirname, basename, join } from "node:path";
 import { ipcMain, app, BrowserWindow } from "electron";
-import { existsSync, readFileSync, mkdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { mkdirSync, writeFileSync, openSync, writeSync, fsyncSync, closeSync, renameSync, existsSync, readFileSync, statSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
-import { newSessionId, newMessageId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, createId, okResult, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult, ToolError } from "@meith/shared";
+import { newSessionId, newMessageId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, LogEntrySchema, createId, okResult, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult, ToolError } from "@meith/shared";
 import { EventEmitter } from "node:events";
 import net from "node:net";
 import { NdjsonParser, ClientMessageSchema, PROTOCOL_VERSION, encodeMessage, defineTool } from "@meith/protocol";
@@ -79,65 +79,184 @@ class AgentService {
     }
   }
 }
+function atomicWriteFileSync(path, data) {
+  mkdirSync(dirname(path), { recursive: true });
+  const tmp = `${path}.${process.pid}.${Date.now()}.tmp`;
+  const fd = openSync(tmp, "w");
+  try {
+    writeSync(fd, data);
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
+  renameSync(tmp, path);
+}
+function appendLineSync(path, line) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${line}
+`, { flag: "a" });
+}
+function readJsonSafe(path, parse) {
+  if (!existsSync(path)) return { value: null, corrupt: false };
+  let text;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch {
+    return { value: null, corrupt: false };
+  }
+  try {
+    return { value: parse(JSON.parse(text)), corrupt: false };
+  } catch {
+    const backupPath = `${path}.corrupt-${Date.now()}`;
+    try {
+      renameSync(path, backupPath);
+    } catch {
+      return { value: null, corrupt: true };
+    }
+    return { value: null, corrupt: true, backupPath };
+  }
+}
+class JsonStore {
+  constructor(opts) {
+    this.opts = opts;
+    this.debounceMs = opts.debounceMs ?? 150;
+    const { value, corrupt, backupPath } = readJsonSafe(opts.path, opts.parse);
+    if (value !== null) {
+      this.value = value;
+    } else {
+      this.value = opts.defaults();
+      if (corrupt) opts.onCorruption?.(backupPath);
+    }
+  }
+  value;
+  timer = null;
+  dirty = false;
+  debounceMs;
+  get() {
+    return this.value;
+  }
+  /** Replace the value and schedule a persist. */
+  set(value) {
+    this.value = value;
+    this.schedule();
+  }
+  schedule() {
+    this.dirty = true;
+    if (this.debounceMs <= 0) {
+      this.flush();
+      return;
+    }
+    if (this.timer) return;
+    this.timer = setTimeout(() => this.flush(), this.debounceMs);
+    this.timer.unref?.();
+  }
+  /** Force any pending write to disk immediately (e.g. on shutdown). */
+  flush() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (!this.dirty) return;
+    atomicWriteFileSync(this.opts.path, JSON.stringify(this.value, null, 2));
+    this.dirty = false;
+  }
+}
+const CURRENT_STATE_VERSION = 1;
+const migrations = {
+  // 0 -> 1: the original unversioned shape. Ensure the versioned fields exist
+  // (early builds had no `workspaceTabs`/`activeSpaceId`).
+  0: (raw) => ({
+    ...raw,
+    version: 1,
+    spaces: Array.isArray(raw.spaces) ? raw.spaces : [],
+    activeSpaceId: raw.activeSpaceId ?? null,
+    browserTabs: Array.isArray(raw.browserTabs) ? raw.browserTabs : [],
+    workspaceTabs: Array.isArray(raw.workspaceTabs) ? raw.workspaceTabs : []
+  })
+};
+function rawVersion(raw) {
+  if (raw && typeof raw === "object" && typeof raw.version === "number") {
+    return raw.version;
+  }
+  return 0;
+}
+function migrateAppState(raw) {
+  let current = raw && typeof raw === "object" ? { ...raw } : {};
+  let version = rawVersion(current);
+  while (version < CURRENT_STATE_VERSION) {
+    const migrate = migrations[version];
+    if (!migrate) {
+      throw new Error(`No migration from state version ${version}`);
+    }
+    current = migrate(current);
+    version = rawVersion(current);
+  }
+  if (version > CURRENT_STATE_VERSION) {
+    throw new Error(
+      `State version ${version} is newer than supported ${CURRENT_STATE_VERSION}`
+    );
+  }
+  return AppStateSchema.parse(current);
+}
 class AppStateService extends EventEmitter {
-  constructor(statePath, logger) {
+  constructor(statePath, logger, debounceMs = 150) {
     super();
-    this.statePath = statePath;
     this.logger = logger;
-    this.state = this.load();
+    this.store = new JsonStore({
+      path: statePath,
+      parse: migrateAppState,
+      defaults: defaultAppState,
+      debounceMs,
+      onCorruption: (backupPath) => {
+        this.logger.warn(
+          "AppState",
+          `state file was corrupt; reset to defaults${backupPath ? ` (backed up to ${backupPath})` : ""}`
+        );
+      }
+    });
     this.ensureDefaultSpace();
   }
-  state;
-  load() {
-    try {
-      if (existsSync(this.statePath)) {
-        const raw = JSON.parse(readFileSync(this.statePath, "utf8"));
-        return AppStateSchema.parse(raw);
-      }
-    } catch (err) {
-      this.logger.warn("AppState", `Failed to load state, resetting: ${String(err)}`);
-    }
-    return defaultAppState();
-  }
-  persist() {
-    mkdirSync(dirname(this.statePath), { recursive: true });
-    writeFileSync(this.statePath, JSON.stringify(this.state, null, 2), "utf8");
-  }
+  store;
   ensureDefaultSpace() {
-    if (this.state.spaces.length === 0) {
+    const state = this.store.get();
+    if (state.spaces.length === 0) {
       const id = newSpaceId();
-      this.state.spaces.push({
-        id,
-        name: "Default",
-        color: "#6366f1",
-        createdAt: Date.now()
-      });
-      this.state.activeSpaceId = id;
-      this.commit("init default space");
-    } else if (!this.state.activeSpaceId) {
-      this.state.activeSpaceId = this.state.spaces[0].id;
-      this.commit("set active space");
+      this.update((draft) => {
+        draft.spaces.push({
+          id,
+          name: "Default",
+          color: "#6366f1",
+          createdAt: Date.now()
+        });
+        draft.activeSpaceId = id;
+      }, "init default space");
+    } else if (!state.activeSpaceId) {
+      this.update((draft) => {
+        draft.activeSpaceId = draft.spaces[0].id;
+      }, "set active space");
     }
   }
   /** Read a deep copy so callers can't mutate internal state directly. */
   getState() {
-    return structuredClone(this.state);
+    return structuredClone(this.store.get());
   }
   /**
    * Apply a mutation function, persist, validate, and broadcast the change.
    * All writes funnel through here to keep persistence + events consistent.
    */
   update(mutate, reason = "update") {
-    const draft = structuredClone(this.state);
+    const draft = structuredClone(this.store.get());
     mutate(draft);
-    this.state = AppStateSchema.parse(draft);
-    this.commit(reason);
-    return this.getState();
-  }
-  commit(reason) {
-    this.persist();
+    const next = AppStateSchema.parse(draft);
+    this.store.set(next);
     this.logger.debug("AppState", `state changed (${reason})`);
-    this.emit("change", this.getState());
+    const snapshot = structuredClone(next);
+    this.emit("change", snapshot);
+    return snapshot;
+  }
+  /** Force any pending debounced write to disk (call on shutdown). */
+  flush() {
+    this.store.flush();
   }
 }
 class BrowserTabService {
@@ -250,12 +369,73 @@ class DevServerService extends EventEmitter {
     return [...this.servers.values()];
   }
 }
+class JsonlStore {
+  constructor(opts) {
+    this.opts = opts;
+    this.maxRecords = opts.maxRecords ?? 5e3;
+    this.compactFactor = opts.compactFactor ?? 1.5;
+    this.count = this.readAll().length;
+  }
+  count = 0;
+  maxRecords;
+  compactFactor;
+  /** Append one record and compact if the file has grown past the threshold. */
+  append(record) {
+    appendLineSync(this.opts.path, JSON.stringify(record));
+    this.count += 1;
+    if (this.maxRecords > 0 && this.count > Math.ceil(this.maxRecords * this.compactFactor)) {
+      this.compact();
+    }
+  }
+  /** Read all valid records, skipping any malformed lines. */
+  readAll() {
+    if (!existsSync(this.opts.path)) return [];
+    const text = readFileSync(this.opts.path, "utf8");
+    const out = [];
+    for (const line of text.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const parsed = this.opts.parse(JSON.parse(trimmed));
+        if (parsed !== null) out.push(parsed);
+      } catch {
+      }
+    }
+    return out;
+  }
+  /** Read the most recent `limit` records (all if omitted). */
+  tail(limit) {
+    const all = this.readAll();
+    if (!limit || limit >= all.length) return all;
+    return all.slice(-limit);
+  }
+  /** Rewrite the file atomically, keeping only the most recent `maxRecords`. */
+  compact() {
+    const kept = this.tail(this.maxRecords || void 0);
+    const body = kept.map((r) => JSON.stringify(r)).join("\n");
+    atomicWriteFileSync(this.opts.path, body.length ? `${body}
+` : "");
+    this.count = kept.length;
+  }
+}
 class Logger extends EventEmitter {
   entries = [];
   max;
-  constructor(max = 1e3) {
+  store;
+  constructor(options = {}) {
     super();
-    this.max = max;
+    this.max = options.max ?? 1e3;
+    if (options.logPath) {
+      this.store = new JsonlStore({
+        path: options.logPath,
+        parse: (raw) => {
+          const parsed = LogEntrySchema.safeParse(raw);
+          return parsed.success ? parsed.data : null;
+        },
+        maxRecords: options.maxRecords ?? 5e3
+      });
+      this.entries = this.store.tail(this.max);
+    }
   }
   log(level, source, message) {
     const entry = {
@@ -267,6 +447,7 @@ class Logger extends EventEmitter {
     };
     this.entries.push(entry);
     if (this.entries.length > this.max) this.entries.shift();
+    this.store?.append(entry);
     const line = `[${source}] ${message}`;
     if (level === "error") console.error(line);
     else if (level === "warn") console.warn(line);
@@ -303,6 +484,75 @@ class ProjectService {
   }
   list() {
     return [...this.projects.values()];
+  }
+}
+class StorageService {
+  constructor(opts) {
+    this.opts = opts;
+    const logStore = new JsonlStore({
+      path: opts.logPath,
+      parse: (raw) => raw
+    });
+    this.define({
+      name: "state",
+      kind: "json",
+      path: `${opts.dataDir}/state.json`,
+      description: "Small, bounded application state (spaces, tabs).",
+      read: () => opts.appState.getState()
+    });
+    this.define({
+      name: "logs",
+      kind: "jsonl",
+      path: opts.logPath,
+      description: "Append-only structured log history.",
+      read: (limit) => logStore.tail(limit ?? 200)
+    });
+  }
+  collections = /* @__PURE__ */ new Map();
+  define(def) {
+    this.collections.set(def.name, def);
+  }
+  /** The directory all collections live under. */
+  get dataDirectory() {
+    return this.opts.dataDir;
+  }
+  listCollections() {
+    return [...this.collections.values()].map((def) => {
+      let sizeBytes = 0;
+      const exists = existsSync(def.path);
+      if (exists) {
+        try {
+          sizeBytes = statSync(def.path).size;
+        } catch {
+          sizeBytes = 0;
+        }
+      }
+      return {
+        name: def.name,
+        kind: def.kind,
+        path: def.path,
+        description: def.description,
+        exists,
+        sizeBytes
+      };
+    });
+  }
+  readCollection(name, limit) {
+    const def = this.collections.get(name);
+    if (!def) {
+      throw new Error(`Unknown collection: ${name}`);
+    }
+    return def.read(limit);
+  }
+  /** Full snapshot suitable for backup/debugging. */
+  exportState() {
+    return {
+      exportedAt: Date.now(),
+      dataDirectory: this.opts.dataDir,
+      stateVersion: CURRENT_STATE_VERSION,
+      collections: this.listCollections(),
+      state: this.opts.appState.getState()
+    };
   }
 }
 class TerminalService extends EventEmitter {
@@ -648,13 +898,54 @@ function mergeSignals(a, b) {
   b.addEventListener("abort", onAbort, { once: true });
   return controller.signal;
 }
+function createStorageTools(deps) {
+  const listCollections = defineTool({
+    name: "storage_list_collections",
+    description: "List durable storage collections with kind, path, and size.",
+    capabilities: ["read-only"],
+    inputSchema: z.object({}),
+    execute: () => ({
+      dataDirectory: deps.storage.dataDirectory,
+      collections: deps.storage.listCollections()
+    })
+  });
+  const readCollection = defineTool({
+    name: "storage_read_collection",
+    description: "Read a storage collection by name. For append-only collections, returns the most recent records.",
+    capabilities: ["read-only"],
+    inputSchema: z.object({
+      name: z.string().describe("Collection name, e.g. 'state' or 'logs'."),
+      limit: z.number().int().positive().max(5e3).optional()
+    }),
+    execute: (_ctx, input) => {
+      try {
+        return deps.storage.readCollection(input.name, input.limit);
+      } catch (err) {
+        return errorResult(
+          "VALIDATION_ERROR",
+          err instanceof Error ? err.message : String(err),
+          { name: input.name }
+        );
+      }
+    }
+  });
+  const exportState = defineTool({
+    name: "storage_export_state",
+    description: "Export a full snapshot of persisted state plus storage metadata for backup/debugging.",
+    capabilities: ["read-only"],
+    inputSchema: z.object({}),
+    execute: () => deps.storage.exportState()
+  });
+  return [listCollections, readCollection, exportState];
+}
 function meithPaths() {
   const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
   return { home, configPath: join(home, "config.json") };
 }
 async function bootstrap(userDataPath) {
-  const logger = new Logger();
   mkdirSync(userDataPath, { recursive: true });
+  const logPath = join(userDataPath, "logs.jsonl");
+  const logger = new Logger({ logPath });
   const { home, configPath } = meithPaths();
   const socketPath = join(userDataPath, "tool.sock");
   const config = { userDataPath, socketPath, version: 1 };
@@ -666,10 +957,12 @@ async function bootstrap(userDataPath) {
   const devServers = new DevServerService(logger);
   const terminals = new TerminalService(logger);
   const projects = new ProjectService(logger);
+  const storage = new StorageService({ dataDir: userDataPath, appState, logPath });
   const registry = new ToolRegistry();
-  const deps = { appState, browserTabs, devServers, logger };
+  const deps = { appState, browserTabs, devServers, logger, storage };
   registry.registerAll(createBrowserTools(deps));
   registry.registerAll(createAppTools(deps));
+  registry.registerAll(createStorageTools(deps));
   const agents = new AgentService(registry, logger);
   const socket = new ToolSocketService(socketPath, registry, logger);
   await socket.start();
@@ -677,6 +970,7 @@ async function bootstrap(userDataPath) {
   const shutdown = async () => {
     registry.beginShutdown();
     await socket.stop();
+    appState.flush();
     logger.info("Bootstrap", "shutdown complete");
   };
   return {
@@ -687,6 +981,7 @@ async function bootstrap(userDataPath) {
     terminals,
     projects,
     agents,
+    storage,
     registry,
     socket,
     config,

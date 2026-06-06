@@ -8,11 +8,13 @@ import { BrowserTabService } from "./services/BrowserTabService.js";
 import { DevServerService } from "./services/DevServerService.js";
 import { Logger } from "./services/Logger.js";
 import { ProjectService } from "./services/ProjectService.js";
+import { StorageService } from "./services/StorageService.js";
 import { TerminalService } from "./services/TerminalService.js";
 import { ToolSocketService } from "./services/ToolSocketService.js";
 import { createAppTools } from "./tools/appTools.js";
 import { createBrowserTools } from "./tools/browserTools.js";
 import { ToolRegistry } from "./tools/registry.js";
+import { createStorageTools } from "./tools/storageTools.js";
 
 /** Everything the app wires up. Returned so the renderer/IPC can use it. */
 export interface ServiceContainer {
@@ -23,6 +25,7 @@ export interface ServiceContainer {
   terminals: TerminalService;
   projects: ProjectService;
   agents: AgentService;
+  storage: StorageService;
   registry: ToolRegistry;
   socket: ToolSocketService;
   config: MeithConfig;
@@ -44,8 +47,9 @@ export function meithPaths() {
  * harness and tests as well as from the real main process.
  */
 export async function bootstrap(userDataPath: string): Promise<ServiceContainer> {
-  const logger = new Logger();
   mkdirSync(userDataPath, { recursive: true });
+  const logPath = join(userDataPath, "logs.jsonl");
+  const logger = new Logger({ logPath });
 
   const { home, configPath } = meithPaths();
   const socketPath = join(userDataPath, "tool.sock");
@@ -60,11 +64,13 @@ export async function bootstrap(userDataPath: string): Promise<ServiceContainer>
   const devServers = new DevServerService(logger);
   const terminals = new TerminalService(logger);
   const projects = new ProjectService(logger);
+  const storage = new StorageService({ dataDir: userDataPath, appState, logPath });
 
   const registry = new ToolRegistry();
-  const deps = { appState, browserTabs, devServers, logger };
+  const deps = { appState, browserTabs, devServers, logger, storage };
   registry.registerAll(createBrowserTools(deps));
   registry.registerAll(createAppTools(deps));
+  registry.registerAll(createStorageTools(deps));
 
   const agents = new AgentService(registry, logger);
 
@@ -76,6 +82,8 @@ export async function bootstrap(userDataPath: string): Promise<ServiceContainer>
   const shutdown = async (): Promise<void> => {
     registry.beginShutdown();
     await socket.stop();
+    // Flush any debounced state write so nothing is lost on exit.
+    appState.flush();
     logger.info("Bootstrap", "shutdown complete");
   };
 
@@ -87,6 +95,7 @@ export async function bootstrap(userDataPath: string): Promise<ServiceContainer>
     terminals,
     projects,
     agents,
+    storage,
     registry,
     socket,
     config,
