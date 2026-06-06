@@ -56,7 +56,9 @@ function createMockBridge(): MeithBridge {
   const stateSubs = new Set<(s: AppState) => void>();
   const logSubs = new Set<(e: LogEntry) => void>();
 
-  const emitState = () => stateSubs.forEach((cb) => cb(structuredClone(state)));
+  const emitState = () => {
+    for (const cb of stateSubs) cb(structuredClone(state));
+  };
   const pushLog = (level: LogEntry["level"], source: string, message: string) => {
     const entry: LogEntry = {
       id: `log_${Math.random().toString(16).slice(2)}`,
@@ -66,7 +68,7 @@ function createMockBridge(): MeithBridge {
       message,
     };
     logs.push(entry);
-    logSubs.forEach((cb) => cb(entry));
+    for (const cb of logSubs) cb(entry);
   };
 
   const tools: ToolDescriptor[] = [

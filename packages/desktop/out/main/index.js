@@ -1,48 +1,82 @@
 import { dirname, basename, join } from "node:path";
 import { ipcMain, app, BrowserWindow } from "electron";
-import { homedir } from "node:os";
 import { existsSync, readFileSync, mkdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { homedir } from "node:os";
+import { newSessionId, newMessageId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, createId, okResult, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult, ToolError } from "@meith/shared";
 import { EventEmitter } from "node:events";
-import { createId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, newSessionId, newMessageId, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult, okResult, ToolError } from "@meith/shared";
 import net from "node:net";
 import { NdjsonParser, ClientMessageSchema, PROTOCOL_VERSION, encodeMessage, defineTool } from "@meith/protocol";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import __cjs_mod__ from "node:module";
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 const require2 = __cjs_mod__.createRequire(import.meta.url);
-class Logger extends EventEmitter {
-  entries = [];
-  max;
-  constructor(max = 1e3) {
-    super();
-    this.max = max;
+class AgentService {
+  constructor(registry, logger) {
+    this.registry = registry;
+    this.logger = logger;
   }
-  log(level, source, message) {
-    const entry = {
-      id: createId("log"),
-      ts: Date.now(),
-      level,
-      source,
-      message
+  sessions = /* @__PURE__ */ new Map();
+  adapter = null;
+  registerAdapter(adapter) {
+    this.adapter = adapter;
+    this.logger.info("Agent", `registered adapter: ${adapter.displayName}`);
+  }
+  createSession(cwd) {
+    const session = {
+      id: newSessionId(),
+      cwd,
+      messages: [],
+      createdAt: Date.now(),
+      status: "idle"
     };
-    this.entries.push(entry);
-    if (this.entries.length > this.max) this.entries.shift();
-    const line = `[${source}] ${message}`;
-    if (level === "error") console.error(line);
-    else if (level === "warn") console.warn(line);
-    else console.log(line);
-    this.emit("entry", entry);
-    return entry;
+    this.sessions.set(session.id, session);
+    return session;
   }
-  debug = (source, message) => this.log("debug", source, message);
-  info = (source, message) => this.log("info", source, message);
-  warn = (source, message) => this.log("warn", source, message);
-  error = (source, message) => this.log("error", source, message);
-  list(limit) {
-    if (!limit) return [...this.entries];
-    return this.entries.slice(-limit);
+  getSession(id) {
+    return this.sessions.get(id);
+  }
+  appendMessage(sessionId, role, content) {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    const message = {
+      id: newMessageId(),
+      role,
+      content,
+      createdAt: Date.now()
+    };
+    session.messages.push(message);
+    return message;
+  }
+  /** Builds the host context an adapter uses to call app tools. */
+  hostContext() {
+    return {
+      listTools: () => this.registry.describe(),
+      callTool: (name, args) => this.registry.call({ cwd: process.cwd(), caller: "agent" }, name, args),
+      log: (message) => this.logger.info("Agent", message)
+    };
+  }
+  /**
+   * Run a session through the registered adapter.
+   * Throws until an adapter is registered — by design, so callers fail loudly.
+   */
+  async *run(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    if (!this.adapter) {
+      throw new Error(
+        "No AgentAdapter registered. Implement AgentAdapter (ACP/MCP/SDK) and call registerAdapter()."
+      );
+    }
+    session.status = "running";
+    try {
+      yield* this.adapter.run(session, this.hostContext());
+      session.status = "idle";
+    } catch (err) {
+      session.status = "error";
+      throw err;
+    }
   }
 }
 class AppStateService extends EventEmitter {
@@ -216,27 +250,37 @@ class DevServerService extends EventEmitter {
     return [...this.servers.values()];
   }
 }
-class TerminalService extends EventEmitter {
-  constructor(logger) {
+class Logger extends EventEmitter {
+  entries = [];
+  max;
+  constructor(max = 1e3) {
     super();
-    this.logger = logger;
+    this.max = max;
   }
-  sessions = /* @__PURE__ */ new Map();
-  create(cwd, shell = process.env.SHELL ?? "/bin/bash") {
-    const session = {
-      id: `term_${Math.random().toString(16).slice(2, 10)}`,
-      cwd,
-      shell
+  log(level, source, message) {
+    const entry = {
+      id: createId("log"),
+      ts: Date.now(),
+      level,
+      source,
+      message
     };
-    this.sessions.set(session.id, session);
-    this.logger.warn("Terminal", `create() is a stub (no pty spawned) for ${session.id}`);
-    return session;
+    this.entries.push(entry);
+    if (this.entries.length > this.max) this.entries.shift();
+    const line = `[${source}] ${message}`;
+    if (level === "error") console.error(line);
+    else if (level === "warn") console.warn(line);
+    else console.log(line);
+    this.emit("entry", entry);
+    return entry;
   }
-  write(id, _data) {
-    if (!this.sessions.has(id)) throw new Error(`Unknown terminal: ${id}`);
-  }
-  list() {
-    return [...this.sessions.values()];
+  debug = (source, message) => this.log("debug", source, message);
+  info = (source, message) => this.log("info", source, message);
+  warn = (source, message) => this.log("warn", source, message);
+  error = (source, message) => this.log("error", source, message);
+  list(limit) {
+    if (!limit) return [...this.entries];
+    return this.entries.slice(-limit);
   }
 }
 class ProjectService {
@@ -261,71 +305,27 @@ class ProjectService {
     return [...this.projects.values()];
   }
 }
-class AgentService {
-  constructor(registry, logger) {
-    this.registry = registry;
+class TerminalService extends EventEmitter {
+  constructor(logger) {
+    super();
     this.logger = logger;
   }
   sessions = /* @__PURE__ */ new Map();
-  adapter = null;
-  registerAdapter(adapter) {
-    this.adapter = adapter;
-    this.logger.info("Agent", `registered adapter: ${adapter.displayName}`);
-  }
-  createSession(cwd) {
+  create(cwd, shell = process.env.SHELL ?? "/bin/bash") {
     const session = {
-      id: newSessionId(),
+      id: `term_${Math.random().toString(16).slice(2, 10)}`,
       cwd,
-      messages: [],
-      createdAt: Date.now(),
-      status: "idle"
+      shell
     };
     this.sessions.set(session.id, session);
+    this.logger.warn("Terminal", `create() is a stub (no pty spawned) for ${session.id}`);
     return session;
   }
-  getSession(id) {
-    return this.sessions.get(id);
+  write(id, _data) {
+    if (!this.sessions.has(id)) throw new Error(`Unknown terminal: ${id}`);
   }
-  appendMessage(sessionId, role, content) {
-    const session = this.sessions.get(sessionId);
-    if (!session) throw new Error(`Unknown session: ${sessionId}`);
-    const message = {
-      id: newMessageId(),
-      role,
-      content,
-      createdAt: Date.now()
-    };
-    session.messages.push(message);
-    return message;
-  }
-  /** Builds the host context an adapter uses to call app tools. */
-  hostContext() {
-    return {
-      listTools: () => this.registry.describe(),
-      callTool: (name, args) => this.registry.call({ cwd: process.cwd(), caller: "agent" }, name, args),
-      log: (message) => this.logger.info("Agent", message)
-    };
-  }
-  /**
-   * Run a session through the registered adapter.
-   * Throws until an adapter is registered — by design, so callers fail loudly.
-   */
-  async *run(sessionId) {
-    const session = this.sessions.get(sessionId);
-    if (!session) throw new Error(`Unknown session: ${sessionId}`);
-    if (!this.adapter) {
-      throw new Error(
-        "No AgentAdapter registered. Implement AgentAdapter (ACP/MCP/SDK) and call registerAdapter()."
-      );
-    }
-    session.status = "running";
-    try {
-      yield* this.adapter.run(session, this.hostContext());
-      session.status = "idle";
-    } catch (err) {
-      session.status = "error";
-      throw err;
-    }
+  list() {
+    return [...this.sessions.values()];
   }
 }
 class ToolSocketService {
@@ -440,6 +440,115 @@ class ToolSocketService {
     }
   }
 }
+function createAppTools(deps) {
+  const appGetState = defineTool({
+    name: "app_get_state",
+    description: "Return the full persistent application state.",
+    capabilities: ["read-only"],
+    inputSchema: z.object({}),
+    execute: () => deps.appState.getState()
+  });
+  const appGetLogs = defineTool({
+    name: "app_get_logs",
+    description: "Return recent structured app log entries.",
+    capabilities: ["read-only"],
+    inputSchema: z.object({
+      limit: z.number().int().positive().max(1e3).optional()
+    }),
+    execute: (_ctx, input) => deps.logger.list(input.limit)
+  });
+  const getProcessTree = defineTool({
+    name: "get_process_tree",
+    description: "[placeholder] Return the tree of managed child processes (dev servers, terminals).",
+    capabilities: ["read-only"],
+    inputSchema: z.object({}),
+    execute: () => okResult(
+      {
+        placeholder: true,
+        devServers: deps.devServers.list().map((s) => ({
+          id: s.id,
+          command: s.command,
+          cwd: s.cwd,
+          status: s.status,
+          pid: s.pid ?? null
+        }))
+      },
+      {
+        diagnostics: [
+          {
+            level: "warn",
+            message: "get_process_tree is partial: reflects DevServerService/TerminalService PIDs only."
+          }
+        ]
+      }
+    )
+  });
+  const getProcessLogs = defineTool({
+    name: "get_process_logs",
+    description: "[placeholder] Return captured logs for a managed process (dev server / terminal).",
+    capabilities: ["read-only"],
+    inputSchema: z.object({
+      processId: z.string().describe("Dev server or terminal id.")
+    }),
+    execute: (_ctx, input) => {
+      const server = deps.devServers.get(input.processId);
+      return okResult({
+        placeholder: true,
+        processId: input.processId,
+        logs: server?.logs ?? []
+      });
+    }
+  });
+  return [appGetState, appGetLogs, getProcessTree, getProcessLogs];
+}
+function createBrowserTools(deps) {
+  const getTabs = defineTool({
+    name: "get_tabs",
+    description: "List browser tabs and workspace tabs, optionally filtered by space.",
+    capabilities: ["read-only"],
+    inputSchema: z.object({
+      spaceId: z.string().optional().describe("Filter to a single space id.")
+    }),
+    execute: (_ctx, input) => ({
+      browserTabs: deps.browserTabs.listBrowserTabs(input.spaceId),
+      workspaceTabs: deps.browserTabs.listWorkspaceTabs(input.spaceId)
+    })
+  });
+  const openBrowserTab = defineTool({
+    name: "open_browser_tab",
+    description: "Open a new browser tab pointing at a URL. Becomes a WebContentsView later.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      url: z.string().describe("URL to open, e.g. http://localhost:3000"),
+      title: z.string().optional(),
+      spaceId: z.string().optional(),
+      cwd: z.string().optional().describe("Optional associated project cwd.")
+    }),
+    execute: (_ctx, input) => deps.browserTabs.openBrowserTab(input)
+  });
+  const takeScreenshot = defineTool({
+    name: "take_screenshot",
+    description: "[placeholder] Capture a screenshot of a browser tab. Returns a stub until WebContentsView capture is implemented.",
+    capabilities: ["controls-browser", "read-only"],
+    inputSchema: z.object({
+      tabId: z.string().optional()
+    }),
+    // Resolves ok=true with a placeholder payload + a diagnostic so callers can
+    // integrate against the final shape before capture is implemented.
+    execute: (_ctx, input) => okResult(
+      { placeholder: true, tabId: input.tabId ?? null },
+      {
+        diagnostics: [
+          {
+            level: "warn",
+            message: "take_screenshot is not implemented yet. Will use webContents.capturePage()."
+          }
+        ]
+      }
+    )
+  });
+  return [getTabs, openBrowserTab, takeScreenshot];
+}
 class ToolRegistry {
   tools = /* @__PURE__ */ new Map();
   shuttingDown = false;
@@ -539,115 +648,6 @@ function mergeSignals(a, b) {
   b.addEventListener("abort", onAbort, { once: true });
   return controller.signal;
 }
-function createBrowserTools(deps) {
-  const getTabs = defineTool({
-    name: "get_tabs",
-    description: "List browser tabs and workspace tabs, optionally filtered by space.",
-    capabilities: ["read-only"],
-    inputSchema: z.object({
-      spaceId: z.string().optional().describe("Filter to a single space id.")
-    }),
-    execute: (_ctx, input) => ({
-      browserTabs: deps.browserTabs.listBrowserTabs(input.spaceId),
-      workspaceTabs: deps.browserTabs.listWorkspaceTabs(input.spaceId)
-    })
-  });
-  const openBrowserTab = defineTool({
-    name: "open_browser_tab",
-    description: "Open a new browser tab pointing at a URL. Becomes a WebContentsView later.",
-    capabilities: ["controls-browser"],
-    inputSchema: z.object({
-      url: z.string().describe("URL to open, e.g. http://localhost:3000"),
-      title: z.string().optional(),
-      spaceId: z.string().optional(),
-      cwd: z.string().optional().describe("Optional associated project cwd.")
-    }),
-    execute: (_ctx, input) => deps.browserTabs.openBrowserTab(input)
-  });
-  const takeScreenshot = defineTool({
-    name: "take_screenshot",
-    description: "[placeholder] Capture a screenshot of a browser tab. Returns a stub until WebContentsView capture is implemented.",
-    capabilities: ["controls-browser", "read-only"],
-    inputSchema: z.object({
-      tabId: z.string().optional()
-    }),
-    // Resolves ok=true with a placeholder payload + a diagnostic so callers can
-    // integrate against the final shape before capture is implemented.
-    execute: (_ctx, input) => okResult(
-      { placeholder: true, tabId: input.tabId ?? null },
-      {
-        diagnostics: [
-          {
-            level: "warn",
-            message: "take_screenshot is not implemented yet. Will use webContents.capturePage()."
-          }
-        ]
-      }
-    )
-  });
-  return [getTabs, openBrowserTab, takeScreenshot];
-}
-function createAppTools(deps) {
-  const appGetState = defineTool({
-    name: "app_get_state",
-    description: "Return the full persistent application state.",
-    capabilities: ["read-only"],
-    inputSchema: z.object({}),
-    execute: () => deps.appState.getState()
-  });
-  const appGetLogs = defineTool({
-    name: "app_get_logs",
-    description: "Return recent structured app log entries.",
-    capabilities: ["read-only"],
-    inputSchema: z.object({
-      limit: z.number().int().positive().max(1e3).optional()
-    }),
-    execute: (_ctx, input) => deps.logger.list(input.limit)
-  });
-  const getProcessTree = defineTool({
-    name: "get_process_tree",
-    description: "[placeholder] Return the tree of managed child processes (dev servers, terminals).",
-    capabilities: ["read-only"],
-    inputSchema: z.object({}),
-    execute: () => okResult(
-      {
-        placeholder: true,
-        devServers: deps.devServers.list().map((s) => ({
-          id: s.id,
-          command: s.command,
-          cwd: s.cwd,
-          status: s.status,
-          pid: s.pid ?? null
-        }))
-      },
-      {
-        diagnostics: [
-          {
-            level: "warn",
-            message: "get_process_tree is partial: reflects DevServerService/TerminalService PIDs only."
-          }
-        ]
-      }
-    )
-  });
-  const getProcessLogs = defineTool({
-    name: "get_process_logs",
-    description: "[placeholder] Return captured logs for a managed process (dev server / terminal).",
-    capabilities: ["read-only"],
-    inputSchema: z.object({
-      processId: z.string().describe("Dev server or terminal id.")
-    }),
-    execute: (_ctx, input) => {
-      const server = deps.devServers.get(input.processId);
-      return okResult({
-        placeholder: true,
-        processId: input.processId,
-        logs: server?.logs ?? []
-      });
-    }
-  });
-  return [appGetState, appGetLogs, getProcessTree, getProcessLogs];
-}
 function meithPaths() {
   const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
   return { home, configPath: join(home, "config.json") };
@@ -714,10 +714,7 @@ function registerIpcHandlers(container2, getWindow) {
     }
   );
   ipcMain.handle(IPC.getState, () => container2.appState.getState());
-  ipcMain.handle(
-    IPC.getLogs,
-    (_event, limit) => container2.logger.list(limit)
-  );
+  ipcMain.handle(IPC.getLogs, (_event, limit) => container2.logger.list(limit));
   container2.appState.on("change", (state) => {
     getWindow()?.webContents.send(IPC.stateChanged, state);
   });

@@ -58,14 +58,17 @@ export function coerce(value: string | boolean): unknown {
 export function buildParams(
   parsed: ParsedArgs,
   positionalNames: string[] = [],
+  reservedFlags: readonly string[] = [],
 ): Record<string, unknown> {
   const params: Record<string, unknown> = {};
+  const reserved = new Set(reservedFlags);
   positionalNames.forEach((name, i) => {
     if (parsed.positionals[i] !== undefined) {
       params[name] = coerce(parsed.positionals[i]);
     }
   });
   for (const [key, value] of Object.entries(parsed.flags)) {
+    if (reserved.has(key)) continue;
     params[key] = coerce(value);
   }
   return params;

@@ -23,6 +23,9 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "correctness": {
+        "useExhaustiveDependencies": "off"
+      },
       "style": {
         "noNonNullAssertion": "off",
         "useNodejsImportProtocol": "error"

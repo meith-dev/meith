@@ -31,7 +31,7 @@ describe("socket integration", () => {
     await container.shutdown();
     rmSync(home, { recursive: true, force: true });
     rmSync(userData, { recursive: true, force: true });
-    delete process.env.MEITH_HOME;
+    process.env.MEITH_HOME = undefined;
   });
 
   it("lists the registered tools with capability metadata", async () => {

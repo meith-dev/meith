@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   const parsed = parseArgs(process.argv.slice(2));
 
   if (!parsed.command || parsed.flags.help === true || parsed.flags.h === true) {
-    process.stdout.write(HELP + "\n");
+    process.stdout.write(`${HELP}\n`);
     return;
   }
 
@@ -40,11 +40,8 @@ async function main(): Promise<void> {
   const verbose = parsed.flags.verbose === true || parsed.flags.v === true;
   const timeoutMs =
     typeof parsed.flags.timeout === "string" ? Number(parsed.flags.timeout) : undefined;
-  delete parsed.flags.socket;
-  delete parsed.flags.json;
-  delete parsed.flags.verbose;
-  delete parsed.flags.v;
-  delete parsed.flags.timeout;
+  // Flags consumed by the CLI itself, never forwarded as tool params.
+  const RESERVED_FLAGS = ["socket", "json", "verbose", "v", "timeout"] as const;
 
   const client = new ToolClient({ socketPath });
   try {
@@ -53,7 +50,7 @@ async function main(): Promise<void> {
     if (parsed.command === "tools") {
       const tools = await client.listTools();
       if (asJson) {
-        process.stdout.write(JSON.stringify(tools, null, 2) + "\n");
+        process.stdout.write(`${JSON.stringify(tools, null, 2)}\n`);
       } else {
         for (const t of tools) {
           process.stdout.write(`${t.name}\n    ${t.description}\n`);
@@ -72,7 +69,7 @@ async function main(): Promise<void> {
         return;
       }
       toolName = name;
-      params = buildParams(parsed, []);
+      params = buildParams(parsed, [], RESERVED_FLAGS);
     } else {
       const spec = commands[parsed.command];
       if (!spec) {
@@ -80,7 +77,7 @@ async function main(): Promise<void> {
         return;
       }
       toolName = spec.tool;
-      params = buildParams(parsed, spec.positionals);
+      params = buildParams(parsed, spec.positionals, RESERVED_FLAGS);
     }
 
     const result = await client.callTool(toolName, params, {
@@ -108,7 +105,7 @@ async function main(): Promise<void> {
 
 function printResult(result: ToolResult, asJson: boolean): void {
   if (asJson) {
-    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     if (!result.ok) process.exitCode = 1;
     return;
   }
@@ -125,7 +122,7 @@ function printResult(result: ToolResult, asJson: boolean): void {
       `error (${err?.code ?? "TOOL_FAILED"}): ${err?.message ?? "failed"}\n`,
     );
     if (err?.details !== undefined) {
-      process.stderr.write(JSON.stringify(err.details, null, 2) + "\n");
+      process.stderr.write(`${JSON.stringify(err.details, null, 2)}\n`);
     }
     process.exitCode = 1;
     return;
@@ -133,8 +130,8 @@ function printResult(result: ToolResult, asJson: boolean): void {
 
   const content = result.content;
   if (content == null) process.stdout.write("ok\n");
-  else if (typeof content === "string") process.stdout.write(content + "\n");
-  else process.stdout.write(JSON.stringify(content, null, 2) + "\n");
+  else if (typeof content === "string") process.stdout.write(`${content}\n`);
+  else process.stdout.write(`${JSON.stringify(content, null, 2)}\n`);
 }
 
 function fail(message: string): void {

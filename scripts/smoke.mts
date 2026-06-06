@@ -49,7 +49,7 @@ async function main(): Promise<void> {
     await container.socket.stop();
     rmSync(home, { recursive: true, force: true });
     rmSync(userData, { recursive: true, force: true });
-    delete process.env.MEITH_HOME;
+    process.env.MEITH_HOME = undefined;
   }
 }
 

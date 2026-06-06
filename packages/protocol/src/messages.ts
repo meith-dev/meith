@@ -113,7 +113,7 @@ export function encodeMessage(msg: Record<string, unknown>): string {
     "protocol" in msg && msg.protocol != null
       ? msg
       : { ...msg, protocol: PROTOCOL_VERSION };
-  return JSON.stringify(stamped) + "\n";
+  return `${JSON.stringify(stamped)}\n`;
 }
 
 /** Guards against unbounded buffering from a peer that never sends a newline. */
@@ -136,10 +136,11 @@ export class NdjsonParser {
   push(chunk: string | Buffer): unknown[] {
     this.buffer += chunk.toString();
     const out: unknown[] = [];
-    let idx: number;
-    while ((idx = this.buffer.indexOf("\n")) >= 0) {
+    let idx = this.buffer.indexOf("\n");
+    while (idx >= 0) {
       const line = this.buffer.slice(0, idx).trim();
       this.buffer = this.buffer.slice(idx + 1);
+      idx = this.buffer.indexOf("\n");
       if (line.length === 0) continue;
       try {
         out.push(JSON.parse(line));
