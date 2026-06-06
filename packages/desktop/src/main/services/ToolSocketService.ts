@@ -5,8 +5,8 @@ import {
   NdjsonParser,
   encodeMessage,
   type ServerMessage,
-} from "@aide/protocol";
-import type { ToolContext } from "@aide/shared";
+} from "@meith/protocol";
+import type { ToolContext } from "@meith/shared";
 import type { ToolRegistry } from "../tools/registry.js";
 import type { Logger } from "./Logger.js";
 

@@ -8,8 +8,8 @@ import {
   ServerMessageSchema,
   type ServerMessage,
   type ToolDescriptor,
-} from "@aide/protocol";
-import { AideConfigSchema, newRequestId } from "@aide/shared";
+} from "@meith/protocol";
+import { MeithConfigSchema, newRequestId } from "@meith/shared";
 
 export interface ClientOptions {
   socketPath?: string;
@@ -19,24 +19,24 @@ export interface ClientOptions {
 /**
  * Resolve the runtime socket path. Priority:
  *   1. explicit override (`--socket`)
- *   2. `~/.aide/config.json` written by the desktop/headless bootstrap
- *   3. `$AIDE_USER_DATA/tool.sock` fallback
+ *   2. `~/.meith/config.json` written by the desktop/headless bootstrap
+ *   3. `$MEITH_USER_DATA/tool.sock` fallback
  */
 export function resolveSocketPath(override?: string): string {
   if (override) return override;
 
-  const home = process.env.AIDE_HOME ?? join(homedir(), ".aide");
+  const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
   const configPath = join(home, "config.json");
   if (existsSync(configPath)) {
     try {
-      const cfg = AideConfigSchema.parse(JSON.parse(readFileSync(configPath, "utf8")));
+      const cfg = MeithConfigSchema.parse(JSON.parse(readFileSync(configPath, "utf8")));
       return cfg.socketPath;
     } catch {
       /* fall through */
     }
   }
 
-  const userData = process.env.AIDE_USER_DATA ?? join(home, "userData");
+  const userData = process.env.MEITH_USER_DATA ?? join(home, "userData");
   return join(userData, "tool.sock");
 }
 
@@ -75,7 +75,7 @@ export class ToolClient {
       const onError = (err: Error) => {
         reject(
           new Error(
-            `Could not connect to the AIDE runtime at ${this.socketPath}. ` +
+            `Could not connect to the meith runtime at ${this.socketPath}. ` +
               `Is the desktop app (or "pnpm dev:headless") running? (${err.message})`,
           ),
         );

@@ -1,19 +1,19 @@
 {
-  "name": "aide-monorepo",
+  "name": "meith-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "Scaffold for AIDE, an extensible desktop AI IDE (Electron + tool registry + CLI).",
+  "description": "Scaffold for meith, an extensible desktop AI IDE (Electron + tool registry + CLI).",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "build": "pnpm -r --filter \"./packages/**\" build",
-    "build:libs": "pnpm --filter @aide/shared --filter @aide/protocol build",
-    "dev": "pnpm --filter @aide/desktop dev",
-    "dev:renderer": "pnpm --filter @aide/desktop dev:renderer",
+    "build:libs": "pnpm --filter @meith/shared --filter @meith/protocol build",
+    "dev": "pnpm --filter @meith/desktop dev",
+    "dev:renderer": "pnpm --filter @meith/desktop dev:renderer",
     "test": "pnpm -r --filter \"./packages/**\" test",
     "typecheck": "pnpm -r --filter \"./packages/**\" typecheck",
-    "cli": "pnpm --filter @aide/cli start --"
+    "cli": "pnpm --filter @meith/cli start --"
   },
   "devDependencies": {
     "typescript": "5.7.3",

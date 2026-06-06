@@ -3,12 +3,12 @@ import { parseArgs, buildParams } from "./args.js";
 import { commands, listCommands } from "./commands.js";
 import { ToolClient, resolveSocketPath } from "./client.js";
 
-const HELP = `aide — control the AIDE desktop runtime from your terminal
+const HELP = `meith — control the meith desktop runtime from your terminal
 
 Usage:
-  aide <command> [args] [--flags]
-  aide call <toolName> [--key value ...]
-  aide tools
+  meith <command> [args] [--flags]
+  meith call <toolName> [--key value ...]
+  meith tools
 
 Commands:
 ${listCommands()}
@@ -59,7 +59,7 @@ async function main(): Promise<void> {
     if (parsed.command === "call") {
       const name = parsed.positionals.shift();
       if (!name) {
-        fail('Usage: aide call <toolName> [--key value ...]');
+        fail('Usage: meith call <toolName> [--key value ...]');
         return;
       }
       toolName = name;
@@ -67,7 +67,7 @@ async function main(): Promise<void> {
     } else {
       const spec = commands[parsed.command];
       if (!spec) {
-        fail(`Unknown command "${parsed.command}". Run "aide --help".`);
+        fail(`Unknown command "${parsed.command}". Run "meith --help".`);
         return;
       }
       toolName = spec.tool;

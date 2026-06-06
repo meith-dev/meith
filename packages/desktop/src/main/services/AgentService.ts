@@ -1,5 +1,5 @@
-import { newMessageId, newSessionId } from "@aide/shared";
-import type { ToolDescriptor } from "@aide/protocol";
+import { newMessageId, newSessionId } from "@meith/shared";
+import type { ToolDescriptor } from "@meith/protocol";
 import type {
   AgentAdapter,
   AgentHostContext,

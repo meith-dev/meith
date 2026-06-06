@@ -7,14 +7,14 @@ import { bootstrap } from "./bootstrap.js";
  *
  * This proves (and lets you test) the integration path:
  *   1. services start + socket server listens
- *   2. `~/.aide/config.json` is written
+ *   2. `~/.meith/config.json` is written
  *   3. the CLI can connect and call tools
  *
- * Run with: `pnpm --filter @aide/desktop dev:headless`
+ * Run with: `pnpm --filter @meith/desktop dev:headless`
  */
 async function main() {
   const userDataPath =
-    process.env.AIDE_USER_DATA ?? join(homedir(), ".aide", "userData");
+    process.env.MEITH_USER_DATA ?? join(homedir(), ".meith", "userData");
 
   const container = await bootstrap(userDataPath);
   container.logger.info("Harness", "headless services running. Ctrl+C to stop.");

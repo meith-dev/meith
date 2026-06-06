@@ -1,4 +1,4 @@
-import type { AppState } from "@aide/shared";
+import type { AppState } from "@meith/shared";
 
 export function StatePanel({ state }: { state: AppState | null }) {
   if (!state) {

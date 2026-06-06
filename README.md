@@ -1,4 +1,9 @@
-# AIDE — Agentic Desktop IDE (scaffold)
+# meith — Agentic Desktop IDE (scaffold)
+
+> **meith** (from the Irish _meitheal_ — a gathering of neighbors who pool their
+> labor to bring in a harvest or raise a structure together). The name fits the
+> architecture: the Electron main process, the local CLI, the UI, and future AI
+> agents all cooperate around one shared tool registry to do the heavy lifting.
 
 A pnpm monorepo scaffold for an extensible desktop AI IDE. The core idea: every
 capability is a **Tool** in a single registry, and that registry is reachable
@@ -13,7 +18,7 @@ later — an MCP server or an AI agent runtime.
                          │  └──────────────────┘  │
 ┌─────────────┐  socket  │   ▲ services: state,   │
 │     CLI     │ ───────► │   │ tabs, dev servers, │
-│  (aide ...) │  ndjson  │   │ terminals, agents  │
+│  (meith ...) │  ndjson  │   │ terminals, agents  │
 └─────────────┘          └────────────────────────┘
 ```
 
@@ -21,10 +26,10 @@ later — an MCP server or an AI agent runtime.
 
 | Package           | What it is                                                        |
 | ----------------- | ----------------------------------------------------------------- |
-| `@aide/shared`    | Zod schemas, domain types (`AppState`, tabs, config), id helpers. |
-| `@aide/protocol`  | Tool contract (`defineTool`), ndjson wire protocol, naming utils. |
-| `@aide/desktop`   | Electron main + preload + React renderer, services, tool registry.|
-| `@aide/cli`       | `aide` command — connects to the runtime socket and calls tools.  |
+| `@meith/shared`    | Zod schemas, domain types (`AppState`, tabs, config), id helpers. |
+| `@meith/protocol`  | Tool contract (`defineTool`), ndjson wire protocol, naming utils. |
+| `@meith/desktop`   | Electron main + preload + React renderer, services, tool registry.|
+| `@meith/cli`       | `meith` command — connects to the runtime socket and calls tools.  |
 
 ## Getting started
 
@@ -49,7 +54,7 @@ in-memory mock bridge so the UI still runs in a normal browser.
 ### Run headless (no Electron) + drive it with the CLI
 
 ```bash
-pnpm --filter @aide/desktop dev:headless   # boots services + socket server
+pnpm --filter @meith/desktop dev:headless   # boots services + socket server
 ```
 
 In another terminal:
@@ -63,13 +68,13 @@ pnpm cli logs --limit 50               # recent log lines
 pnpm cli call get_tabs --json          # generic escape hatch to any tool
 ```
 
-The CLI discovers the socket from `~/.aide/config.json` (written on boot), or
-honors `--socket <path>` / `$AIDE_HOME`.
+The CLI discovers the socket from `~/.meith/config.json` (written on boot), or
+honors `--socket <path>` / `$MEITH_HOME`.
 
 ## How it fits together
 
-1. **`bootstrap(userDataPath)`** (in `@aide/desktop`) wires every service, builds
-   the `ToolRegistry`, writes `~/.aide/config.json`, and starts the socket server.
+1. **`bootstrap(userDataPath)`** (in `@meith/desktop`) wires every service, builds
+   the `ToolRegistry`, writes `~/.meith/config.json`, and starts the socket server.
    It imports **no Electron**, so the same path runs in the headless harness and
    in tests.
 2. **Tools** are defined with `defineTool({ name, description, inputSchema, execute })`.
@@ -83,7 +88,7 @@ honors `--socket <path>` / `$AIDE_HOME`.
 ```ts
 // packages/desktop/src/main/tools/myTools.ts
 import { z } from "zod";
-import { defineTool } from "@aide/protocol";
+import { defineTool } from "@meith/protocol";
 import type { ToolDeps } from "./deps.js";
 
 export function createMyTools(deps: ToolDeps) {
@@ -99,7 +104,7 @@ export function createMyTools(deps: ToolDeps) {
 ```
 
 Register it in `bootstrap.ts` (`registry.registerAll(createMyTools(deps))`). It is
-now callable from the renderer, from `aide call say_hello --name World`, and from
+now callable from the renderer, from `meith call say_hello --name World`, and from
 any future agent — no extra plumbing.
 
 ## Status

@@ -1,6 +1,6 @@
 import { zodToJsonSchema } from "zod-to-json-schema";
-import type { ToolContext } from "@aide/shared";
-import type { ToolDefinition, ToolDescriptor } from "@aide/protocol";
+import type { ToolContext } from "@meith/shared";
+import type { ToolDefinition, ToolDescriptor } from "@meith/protocol";
 
 /**
  * The single tool registry. Every caller — CLI (via socket), renderer/debug UI

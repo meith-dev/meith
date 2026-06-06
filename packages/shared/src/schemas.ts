@@ -47,13 +47,13 @@ export const AppStateSchema = z.object({
 });
 export type AppState = z.infer<typeof AppStateSchema>;
 
-/** The on-disk `~/.aide/config.json` shape written by the desktop app. */
-export const AideConfigSchema = z.object({
+/** The on-disk `~/.meith/config.json` shape written by the desktop app. */
+export const MeithConfigSchema = z.object({
   userDataPath: z.string(),
   socketPath: z.string(),
   version: z.number().default(1),
 });
-export type AideConfig = z.infer<typeof AideConfigSchema>;
+export type MeithConfig = z.infer<typeof MeithConfigSchema>;
 
 /** A structured log line shared by services, CLI, and the renderer log panel. */
 export const LogEntrySchema = z.object({

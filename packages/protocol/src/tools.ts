@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ToolContext } from "@aide/shared";
+import type { ToolContext } from "@meith/shared";
 
 /**
  * The Tool contract. A Tool is a structured, self-describing unit of behavior

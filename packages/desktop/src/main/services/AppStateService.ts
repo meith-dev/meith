@@ -6,7 +6,7 @@ import {
   defaultAppState,
   newSpaceId,
   type AppState,
-} from "@aide/shared";
+} from "@meith/shared";
 import type { Logger } from "./Logger.js";
 
 /**

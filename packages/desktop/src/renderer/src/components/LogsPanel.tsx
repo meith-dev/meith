@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { AideBridge } from "../../../bridge";
-import type { LogEntry } from "@aide/shared";
+import type { MeithBridge } from "../../../bridge";
+import type { LogEntry } from "@meith/shared";
 
-export function LogsPanel({ bridge }: { bridge: AideBridge }) {
+export function LogsPanel({ bridge }: { bridge: MeithBridge }) {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 

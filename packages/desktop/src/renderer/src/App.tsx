@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppState } from "@aide/shared";
+import type { AppState } from "@meith/shared";
 import { getBridge } from "./bridge";
 import { TitleBar } from "./components/TitleBar";
 import { Sidebar } from "./components/Sidebar";

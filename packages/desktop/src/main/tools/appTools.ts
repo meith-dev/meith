@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { defineTool, type ToolDefinition } from "@aide/protocol";
+import { defineTool, type ToolDefinition } from "@meith/protocol";
 import type { ToolDeps } from "./deps.js";
 
 /**

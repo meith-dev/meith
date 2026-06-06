@@ -3,7 +3,7 @@ import {
   newWorkspaceTabId,
   type BrowserTab,
   type WorkspaceTab,
-} from "@aide/shared";
+} from "@meith/shared";
 import type { AppStateService } from "./AppStateService.js";
 import type { Logger } from "./Logger.js";
 

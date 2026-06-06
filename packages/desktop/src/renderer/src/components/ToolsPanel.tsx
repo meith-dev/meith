@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { AideBridge } from "../../../bridge";
-import type { ToolDescriptor } from "@aide/protocol";
+import type { MeithBridge } from "../../../bridge";
+import type { ToolDescriptor } from "@meith/protocol";
 
 interface RunState {
   status: "idle" | "running" | "ok" | "error";
@@ -8,7 +8,7 @@ interface RunState {
   error?: string;
 }
 
-export function ToolsPanel({ bridge }: { bridge: AideBridge }) {
+export function ToolsPanel({ bridge }: { bridge: MeithBridge }) {
   const [tools, setTools] = useState<ToolDescriptor[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [args, setArgs] = useState("{}");

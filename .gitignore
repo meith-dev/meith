@@ -20,5 +20,5 @@ out/
 .vite/
 *.log
 
-# AIDE runtime config/socket
-.aide/
+# meith runtime config/socket
+.meith/

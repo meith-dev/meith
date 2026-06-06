@@ -1,4 +1,4 @@
-import type { ToolDescriptor } from "@aide/protocol";
+import type { ToolDescriptor } from "@meith/protocol";
 
 /**
  * Provider-agnostic agent runtime interfaces.

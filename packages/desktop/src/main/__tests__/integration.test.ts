@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ToolClient } from "@aide/cli/client";
+import { ToolClient } from "@meith/cli/client";
 import { bootstrap, type ServiceContainer } from "../bootstrap.js";
 
 /**
@@ -17,9 +17,9 @@ describe("socket integration", () => {
   let client: ToolClient;
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "aide-home-"));
-    userData = mkdtempSync(join(tmpdir(), "aide-data-"));
-    process.env.AIDE_HOME = home;
+    home = mkdtempSync(join(tmpdir(), "meith-home-"));
+    userData = mkdtempSync(join(tmpdir(), "meith-data-"));
+    process.env.MEITH_HOME = home;
     container = await bootstrap(userData);
     client = new ToolClient({ socketPath: container.config.socketPath });
     await client.connect();
@@ -30,7 +30,7 @@ describe("socket integration", () => {
     await container.socket.stop();
     rmSync(home, { recursive: true, force: true });
     rmSync(userData, { recursive: true, force: true });
-    delete process.env.AIDE_HOME;
+    delete process.env.MEITH_HOME;
   });
 
   it("lists the registered tools", async () => {

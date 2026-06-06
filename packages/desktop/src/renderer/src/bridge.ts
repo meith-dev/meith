@@ -4,25 +4,25 @@ import {
   newSpaceId,
   type AppState,
   type LogEntry,
-} from "@aide/shared";
-import type { ToolDescriptor } from "@aide/protocol";
-import type { AideBridge } from "../../bridge.js";
+} from "@meith/shared";
+import type { ToolDescriptor } from "@meith/protocol";
+import type { MeithBridge } from "../../bridge.js";
 
 /**
- * Returns the real Electron bridge (`window.aide`) when running inside the
+ * Returns the real Electron bridge (`window.meith`) when running inside the
  * desktop app, or a self-contained in-memory MOCK when running in a plain
  * browser (e.g. `pnpm dev:renderer` or a CI/preview environment).
  *
  * The mock implements just enough tool behavior to demonstrate the data model.
  */
-export function getBridge(): { bridge: AideBridge; isMock: boolean } {
-  if (typeof window !== "undefined" && window.aide) {
-    return { bridge: window.aide, isMock: false };
+export function getBridge(): { bridge: MeithBridge; isMock: boolean } {
+  if (typeof window !== "undefined" && window.meith) {
+    return { bridge: window.meith, isMock: false };
   }
   return { bridge: createMockBridge(), isMock: true };
 }
 
-function createMockBridge(): AideBridge {
+function createMockBridge(): MeithBridge {
   const spaceId = newSpaceId();
   const state: AppState = {
     ...defaultAppState(),

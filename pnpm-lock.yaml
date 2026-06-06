@@ -17,10 +17,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@aide/protocol':
+      '@meith/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@aide/shared':
+      '@meith/shared':
         specifier: workspace:*
         version: link:../shared
       zod:
@@ -39,10 +39,10 @@ importers:
 
   packages/desktop:
     dependencies:
-      '@aide/protocol':
+      '@meith/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@aide/shared':
+      '@meith/shared':
         specifier: workspace:*
         version: link:../shared
       react:
@@ -58,7 +58,7 @@ importers:
         specifier: ^3.24.1
         version: 3.25.2(zod@3.25.76)
     devDependencies:
-      '@aide/cli':
+      '@meith/cli':
         specifier: workspace:*
         version: link:../cli
       '@types/node':
@@ -94,7 +94,7 @@ importers:
 
   packages/protocol:
     dependencies:
-      '@aide/shared':
+      '@meith/shared':
         specifier: workspace:*
         version: link:../shared
       zod:

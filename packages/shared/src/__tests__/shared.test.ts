@@ -3,7 +3,7 @@ import {
   createId,
   newRequestId,
   AppStateSchema,
-  AideConfigSchema,
+  MeithConfigSchema,
   defaultAppState,
 } from "../index.js";
 
@@ -24,10 +24,10 @@ describe("state schemas", () => {
     expect(() => AppStateSchema.parse(defaultAppState())).not.toThrow();
   });
 
-  it("AideConfigSchema requires socketPath + userDataPath", () => {
+  it("MeithConfigSchema requires socketPath + userDataPath", () => {
     expect(() =>
-      AideConfigSchema.parse({ userDataPath: "/tmp/x", socketPath: "/tmp/x/tool.sock" }),
+      MeithConfigSchema.parse({ userDataPath: "/tmp/x", socketPath: "/tmp/x/tool.sock" }),
     ).not.toThrow();
-    expect(() => AideConfigSchema.parse({ socketPath: "/tmp/x" })).toThrow();
+    expect(() => MeithConfigSchema.parse({ socketPath: "/tmp/x" })).toThrow();
   });
 });

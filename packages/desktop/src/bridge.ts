@@ -1,11 +1,11 @@
-import type { AppState, LogEntry } from "@aide/shared";
-import type { ToolDescriptor } from "@aide/protocol";
+import type { AppState, LogEntry } from "@meith/shared";
+import type { ToolDescriptor } from "@meith/protocol";
 
 /**
- * The API surface exposed on `window.aide` by the preload script. Shared
+ * The API surface exposed on `window.meith` by the preload script. Shared
  * (type-only) between the preload and the renderer so they cannot drift.
  */
-export interface AideBridge {
+export interface MeithBridge {
   tools: {
     list: () => Promise<ToolDescriptor[]>;
     call: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
@@ -22,6 +22,6 @@ export interface AideBridge {
 
 declare global {
   interface Window {
-    aide?: AideBridge;
+    meith?: MeithBridge;
   }
 }

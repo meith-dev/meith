@@ -1,5 +1,5 @@
 import { ipcMain, type BrowserWindow } from "electron";
-import type { ToolContext } from "@aide/shared";
+import type { ToolContext } from "@meith/shared";
 import type { ServiceContainer } from "../bootstrap.js";
 
 /**
@@ -7,12 +7,12 @@ import type { ServiceContainer } from "../bootstrap.js";
  * `src/preload/index.ts`.
  */
 export const IPC = {
-  toolsList: "aide:tools:list",
-  toolCall: "aide:tools:call",
-  getState: "aide:state:get",
-  stateChanged: "aide:state:changed",
-  getLogs: "aide:logs:get",
-  logEntry: "aide:logs:entry",
+  toolsList: "meith:tools:list",
+  toolCall: "meith:tools:call",
+  getState: "meith:state:get",
+  stateChanged: "meith:state:changed",
+  getLogs: "meith:logs:get",
+  logEntry: "meith:logs:entry",
 } as const;
 
 /**

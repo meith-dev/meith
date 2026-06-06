@@ -3,9 +3,9 @@ import { ipcMain, app, BrowserWindow } from "electron";
 import { homedir } from "node:os";
 import { existsSync, readFileSync, mkdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { EventEmitter } from "node:events";
-import { createId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, newSessionId, newMessageId } from "@aide/shared";
+import { createId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, newSessionId, newMessageId } from "@meith/shared";
 import net from "node:net";
-import { NdjsonParser, ClientMessageSchema, encodeMessage, defineTool } from "@aide/protocol";
+import { NdjsonParser, ClientMessageSchema, encodeMessage, defineTool } from "@meith/protocol";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { z } from "zod";
 import __cjs_mod__ from "node:module";
@@ -535,14 +535,14 @@ function createAppTools(deps) {
   });
   return [appGetState, appGetLogs, getProcessTree, getProcessLogs];
 }
-function aidePaths() {
-  const home = process.env.AIDE_HOME ?? join(homedir(), ".aide");
+function meithPaths() {
+  const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
   return { home, configPath: join(home, "config.json") };
 }
 async function bootstrap(userDataPath) {
   const logger = new Logger();
   mkdirSync(userDataPath, { recursive: true });
-  const { home, configPath } = aidePaths();
+  const { home, configPath } = meithPaths();
   const socketPath = join(userDataPath, "tool.sock");
   const config = { userDataPath, socketPath, version: 1 };
   mkdirSync(home, { recursive: true });
@@ -575,12 +575,12 @@ async function bootstrap(userDataPath) {
   };
 }
 const IPC = {
-  toolsList: "aide:tools:list",
-  toolCall: "aide:tools:call",
-  getState: "aide:state:get",
-  stateChanged: "aide:state:changed",
-  getLogs: "aide:logs:get",
-  logEntry: "aide:logs:entry"
+  toolsList: "meith:tools:list",
+  toolCall: "meith:tools:call",
+  getState: "meith:state:get",
+  stateChanged: "meith:state:changed",
+  getLogs: "meith:logs:get",
+  logEntry: "meith:logs:entry"
 };
 function registerIpcHandlers(container2, getWindow) {
   ipcMain.handle(IPC.toolsList, () => container2.registry.describe());

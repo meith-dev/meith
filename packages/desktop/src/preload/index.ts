@@ -1,20 +1,20 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { AppState, LogEntry } from "@aide/shared";
-import type { ToolDescriptor } from "@aide/protocol";
-import type { AideBridge } from "../bridge.js";
+import type { AppState, LogEntry } from "@meith/shared";
+import type { ToolDescriptor } from "@meith/protocol";
+import type { MeithBridge } from "../bridge.js";
 
 // Channel names duplicated as literals to avoid importing main-process code
 // into the sandboxed preload bundle. Keep in sync with main/ipc/handlers.ts.
 const IPC = {
-  toolsList: "aide:tools:list",
-  toolCall: "aide:tools:call",
-  getState: "aide:state:get",
-  stateChanged: "aide:state:changed",
-  getLogs: "aide:logs:get",
-  logEntry: "aide:logs:entry",
+  toolsList: "meith:tools:list",
+  toolCall: "meith:tools:call",
+  getState: "meith:state:get",
+  stateChanged: "meith:state:changed",
+  getLogs: "meith:logs:get",
+  logEntry: "meith:logs:entry",
 } as const;
 
-const api: AideBridge = {
+const api: MeithBridge = {
   tools: {
     list: () => ipcRenderer.invoke(IPC.toolsList) as Promise<ToolDescriptor[]>,
     call: (name, args = {}) => ipcRenderer.invoke(IPC.toolCall, name, args),
@@ -37,4 +37,4 @@ const api: AideBridge = {
   },
 };
 
-contextBridge.exposeInMainWorld("aide", api);
+contextBridge.exposeInMainWorld("meith", api);

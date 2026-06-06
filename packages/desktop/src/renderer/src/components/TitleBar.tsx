@@ -9,7 +9,7 @@ export function TitleBar({
     <header className="titlebar">
       <div className="titlebar-brand">
         <span className="titlebar-dot" aria-hidden="true" />
-        <span className="titlebar-title">AIDE</span>
+        <span className="titlebar-title">meith</span>
         <span className="titlebar-sub">control panel</span>
       </div>
       <div className="titlebar-space">

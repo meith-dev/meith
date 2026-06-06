@@ -1,10 +1,10 @@
 {
-  "name": "@aide/cli",
+  "name": "@meith/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "aide": "./dist/index.js"
+    "meith": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "exports": {
@@ -25,8 +25,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@aide/protocol": "workspace:*",
-    "@aide/shared": "workspace:*",
+    "@meith/protocol": "workspace:*",
+    "@meith/shared": "workspace:*",
     "zod": "^3.24.1"
   },
   "devDependencies": {

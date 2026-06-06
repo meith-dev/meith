@@ -8,8 +8,8 @@
     "moduleResolution": "Bundler",
     "types": ["node"],
     "paths": {
-      "@aide/shared": ["../shared/src/index.ts"],
-      "@aide/protocol": ["../protocol/src/index.ts"]
+      "@meith/shared": ["../shared/src/index.ts"],
+      "@meith/protocol": ["../protocol/src/index.ts"]
     }
   },
   "references": [{ "path": "../shared" }, { "path": "../protocol" }],

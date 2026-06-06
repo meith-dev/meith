@@ -1,11 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
 const IPC = {
-  toolsList: "aide:tools:list",
-  toolCall: "aide:tools:call",
-  getState: "aide:state:get",
-  stateChanged: "aide:state:changed",
-  getLogs: "aide:logs:get",
-  logEntry: "aide:logs:entry"
+  toolsList: "meith:tools:list",
+  toolCall: "meith:tools:call",
+  getState: "meith:state:get",
+  stateChanged: "meith:state:changed",
+  getLogs: "meith:logs:get",
+  logEntry: "meith:logs:entry"
 };
 const api = {
   tools: {
@@ -29,4 +29,4 @@ const api = {
     }
   }
 };
-contextBridge.exposeInMainWorld("aide", api);
+contextBridge.exposeInMainWorld("meith", api);

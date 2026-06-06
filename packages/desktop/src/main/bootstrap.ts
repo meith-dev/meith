@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
-import type { AideConfig } from "@aide/shared";
+import type { MeithConfig } from "@meith/shared";
 import { Logger } from "./services/Logger.js";
 import { AppStateService } from "./services/AppStateService.js";
 import { BrowserTabService } from "./services/BrowserTabService.js";
@@ -25,17 +25,17 @@ export interface ServiceContainer {
   agents: AgentService;
   registry: ToolRegistry;
   socket: ToolSocketService;
-  config: AideConfig;
+  config: MeithConfig;
 }
 
-/** The `~/.aide` directory and the config file path inside it. */
-export function aidePaths() {
-  const home = process.env.AIDE_HOME ?? join(homedir(), ".aide");
+/** The `~/.meith` directory and the config file path inside it. */
+export function meithPaths() {
+  const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
   return { home, configPath: join(home, "config.json") };
 }
 
 /**
- * Wire all services together for a given userDataPath, write `~/.aide/config.json`,
+ * Wire all services together for a given userDataPath, write `~/.meith/config.json`,
  * register tools, and start the local socket server.
  *
  * This deliberately does NOT import Electron, so it can run from the headless
@@ -45,10 +45,10 @@ export async function bootstrap(userDataPath: string): Promise<ServiceContainer>
   const logger = new Logger();
   mkdirSync(userDataPath, { recursive: true });
 
-  const { home, configPath } = aidePaths();
+  const { home, configPath } = meithPaths();
   const socketPath = join(userDataPath, "tool.sock");
 
-  const config: AideConfig = { userDataPath, socketPath, version: 1 };
+  const config: MeithConfig = { userDataPath, socketPath, version: 1 };
   mkdirSync(home, { recursive: true });
   writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
   logger.info("Bootstrap", `wrote config to ${configPath}`);
