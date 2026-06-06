@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@aide/shared": ["../shared/src/index.ts"],
+      "@aide/protocol": ["../protocol/src/index.ts"]
+    }
+  },
+  "references": [{ "path": "../shared" }, { "path": "../protocol" }],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "electron.vite.config.ts", "vite.renderer.config.ts"]
+}
