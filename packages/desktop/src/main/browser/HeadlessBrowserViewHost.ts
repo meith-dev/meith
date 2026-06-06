@@ -1,8 +1,4 @@
-import type {
-  BrowserViewHost,
-  ViewCapture,
-  ViewNavState,
-} from "./BrowserViewHost.js";
+import type { BrowserViewHost, ViewCapture, ViewNavState } from "./BrowserViewHost.js";
 
 interface HeadlessView {
   url: string;

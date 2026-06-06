@@ -20,6 +20,11 @@ export default defineConfig({
           webContent: resolve(__dirname, "src/preload/webContent.ts"),
         },
       },
+      rollupOptions: {
+        // Keep `.js` filenames so main-process require paths stay stable
+        // (multi-entry libs would otherwise emit `.mjs`).
+        output: { entryFileNames: "[name].js" },
+      },
     },
   },
   renderer: {

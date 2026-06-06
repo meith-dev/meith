@@ -157,9 +157,7 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
       if (code !== -3) sync({ loadState: "failed" });
     });
     wc.on("page-title-updated", (_e, title) => sync({ title }));
-    wc.on("page-favicon-updated", (_e, favicons) =>
-      sync({ faviconUrl: favicons[0] }),
-    );
+    wc.on("page-favicon-updated", (_e, favicons) => sync({ faviconUrl: favicons[0] }));
   }
 
   private markFailed(tabId: string): void {

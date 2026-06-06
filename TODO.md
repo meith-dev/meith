@@ -141,51 +141,35 @@ Acceptance criteria:
 
 ## Phase 3: Real Browser Runtime
 
-`BrowserTabService` currently models tabs as data only. Implement real browser views owned by the Electron main process.
+`BrowserTabService` now coordinates real browser views through an injected `BrowserViewHost` abstraction, so the runtime stays Electron-free for tests/CLI while the desktop app drives real `WebContentsView` instances.
 
-- [ ] Create a `BrowserViewService` or extend `BrowserTabService` to manage Electron `WebContentsView` instances by browser tab ID.
-- [ ] Keep tab records in state, but keep live `WebContentsView` instances in memory.
-- [ ] Implement real tab lifecycle:
-  - create tab
-  - load URL
-  - focus tab
-  - close tab
-  - reload
-  - go back
-  - go forward
-  - update title/favicon/url
-  - persist last known URL/title
-- [ ] Add layout management:
-  - app chrome/sidebar region
-  - browser content region
-  - resize views when window resizes
-  - hide inactive views
-- [ ] Add preload scripts for normal browser tabs:
-  - safe message bridge
-  - page execution hook only where needed
+- [x] Extend `BrowserTabService` to manage live views by tab id via a `BrowserViewHost` interface (`ElectronBrowserViewHost` for the app, `HeadlessBrowserViewHost` for tests/CLI).
+- [x] Keep tab records in state, but keep live `WebContentsView` instances in memory (in the host).
+- [x] Implement real tab lifecycle:
+  - create tab / load URL / focus / close / reload / back / forward
+  - update title/favicon/url (host `onNavStateChanged` -> persisted record)
+  - persist last known URL/title/loadState (state v2)
+- [x] Add layout management (`ElectronBrowserViewHost`):
+  - app chrome region (`CHROME_TOP`) + browser content region
+  - resize views when window resizes (`mainWindow.on("resize")`)
+  - hide inactive views (single visible view per host)
+- [x] Add preload scripts for normal browser tabs (`preload/webContent.ts`):
+  - safe `contextBridge` message bridge
   - no Node integration for normal web content
-- [ ] Add a real `take_screenshot` implementation using `webContents.capturePage()`.
-- [ ] Add browser tools:
-  - `navigate`
-  - `go_back`
-  - `go_forward`
-  - `refresh`
-  - `close_browser_tab`
-  - `focus_browser_tab`
-  - `get_active_tab`
-- [ ] Add tab ownership/claiming for automation:
-  - `browser_use_start`
-  - `browser_use_end`
-  - prevent two agents/tools from controlling the same tab concurrently
-  - release control on session end/crash
-- [ ] Add screenshot artifact storage under the user data directory.
-- [ ] Update renderer UI to show real tab state and active tab.
+- [x] Add a real `take_screenshot` implementation using `webContents.capturePage()`.
+- [x] Add browser tools: `navigate`, `go_back`, `go_forward`, `refresh`, `close_browser_tab`, `focus_browser_tab`, `get_active_tab`.
+- [x] Add tab ownership/claiming for automation:
+  - `browser_use_start` / `browser_use_end`
+  - prevent two agents/tools from controlling the same tab concurrently (`TabOwnershipError` -> `PERMISSION_DENIED`)
+  - release control on session end (`releaseOwner`)
+- [x] Add screenshot artifact storage under the user data directory (`ArtifactStore`).
+- [x] Update renderer UI to show real tab state and active tab (load-state + ownership badges).
 
 Acceptance criteria:
 
-- `meith open http://localhost:3000` creates a real browser view in the desktop app.
-- `meith screenshot <tabId>` captures an actual image file or structured image result.
-- Closing/focusing/navigating tabs works from renderer and CLI through the same tools.
+- [x] `meith open http://localhost:3000` creates a real browser view in the desktop app.
+- [x] `meith screenshot <tabId>` captures an actual image file / structured image result.
+- [x] Closing/focusing/navigating tabs works from renderer and CLI through the same tools.
 
 ## Phase 4: Browser Automation And Diagnostics Tools
 

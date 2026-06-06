@@ -1,6 +1,6 @@
-import { join, dirname, basename } from "node:path";
-import { ipcMain, app, BrowserWindow } from "electron";
-import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync, openSync, writeSync, fsyncSync, closeSync, renameSync, readFileSync, unlinkSync } from "node:fs";
+import { dirname, basename, join } from "node:path";
+import { WebContentsView, ipcMain, app, BrowserWindow } from "electron";
+import { mkdirSync, writeFileSync, openSync, writeSync, fsyncSync, closeSync, renameSync, existsSync, readFileSync, statSync, unlinkSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { newSessionId, newMessageId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, LogEntrySchema, createId, okResult, ToolError, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult } from "@meith/shared";
 import { EventEmitter } from "node:events";
@@ -12,36 +12,6 @@ import __cjs_mod__ from "node:module";
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 const require2 = __cjs_mod__.createRequire(import.meta.url);
-class ArtifactStore {
-  dir;
-  constructor(dataDir) {
-    this.dir = join(dataDir, "artifacts");
-  }
-  get directory() {
-    return this.dir;
-  }
-  /** Persist bytes and return the absolute path written. */
-  write(id, ext, data) {
-    if (!existsSync(this.dir)) mkdirSync(this.dir, { recursive: true });
-    const fileName = `${id}.${ext.replace(/^\./, "")}`;
-    const path = join(this.dir, fileName);
-    writeFileSync(path, data);
-    return { id, path, sizeBytes: data.byteLength, createdAt: Date.now() };
-  }
-  list() {
-    if (!existsSync(this.dir)) return [];
-    return readdirSync(this.dir).map((name) => {
-      const path = join(this.dir, name);
-      const st = statSync(path);
-      return {
-        id: name.replace(/\.[^.]+$/, ""),
-        path,
-        sizeBytes: st.size,
-        createdAt: st.birthtimeMs || st.mtimeMs
-      };
-    });
-  }
-}
 class AgentService {
   constructor(registry, logger) {
     this.registry = registry;
@@ -579,7 +549,11 @@ class BrowserTabService {
     }
     let path;
     if (this.artifacts) {
-      const info = this.artifacts.write(`screenshot-${id}-${Date.now()}`, "png", capture.data);
+      const info = this.artifacts.write(
+        `screenshot-${id}-${Date.now()}`,
+        "png",
+        capture.data
+      );
       path = info.path;
     }
     return { tabId: id, width: capture.width, height: capture.height, path };
@@ -988,6 +962,36 @@ class ToolSocketService {
     }
   }
 }
+class ArtifactStore {
+  dir;
+  constructor(dataDir) {
+    this.dir = join(dataDir, "artifacts");
+  }
+  get directory() {
+    return this.dir;
+  }
+  /** Persist bytes and return the absolute path written. */
+  write(id, ext, data) {
+    if (!existsSync(this.dir)) mkdirSync(this.dir, { recursive: true });
+    const fileName = `${id}.${ext.replace(/^\./, "")}`;
+    const path = join(this.dir, fileName);
+    writeFileSync(path, data);
+    return { id, path, sizeBytes: data.byteLength, createdAt: Date.now() };
+  }
+  list() {
+    if (!existsSync(this.dir)) return [];
+    return readdirSync(this.dir).map((name) => {
+      const path = join(this.dir, name);
+      const st = statSync(path);
+      return {
+        id: name.replace(/\.[^.]+$/, ""),
+        path,
+        sizeBytes: st.size,
+        createdAt: st.birthtimeMs || st.mtimeMs
+      };
+    });
+  }
+}
 function createAppTools(deps) {
   const appGetState = defineTool({
     name: "app_get_state",
@@ -1115,7 +1119,9 @@ function createBrowserTools(deps) {
     description: "Navigate a browser tab back in its history.",
     capabilities: ["controls-browser"],
     inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
-    execute: (ctx, input) => guardOwnership(() => deps.browserTabs.goBack(input.tabId, ownerOf(ctx, input.owner)))
+    execute: (ctx, input) => guardOwnership(
+      () => deps.browserTabs.goBack(input.tabId, ownerOf(ctx, input.owner))
+    )
   });
   const goForward = defineTool({
     name: "go_forward",
@@ -1162,7 +1168,9 @@ function createBrowserTools(deps) {
       tabId: z.string(),
       owner: z.string().optional().describe("Owner id; defaults to the session id.")
     }),
-    execute: (ctx, input) => guardOwnership(() => deps.browserTabs.startUse(input.tabId, ownerOf(ctx, input.owner)))
+    execute: (ctx, input) => guardOwnership(
+      () => deps.browserTabs.startUse(input.tabId, ownerOf(ctx, input.owner))
+    )
   });
   const browserUseEnd = defineTool({
     name: "browser_use_end",
@@ -1174,7 +1182,11 @@ function createBrowserTools(deps) {
       force: z.boolean().optional().describe("Release even if owned by another id.")
     }),
     execute: (ctx, input) => guardOwnership(
-      () => deps.browserTabs.endUse(input.tabId, ownerOf(ctx, input.owner), input.force ?? false)
+      () => deps.browserTabs.endUse(
+        input.tabId,
+        ownerOf(ctx, input.owner),
+        input.force ?? false
+      )
     )
   });
   const takeScreenshot = defineTool({
@@ -1186,7 +1198,10 @@ function createBrowserTools(deps) {
       try {
         return await deps.browserTabs.captureScreenshot(input.tabId);
       } catch (err) {
-        throw new ToolError("TOOL_FAILED", err instanceof Error ? err.message : String(err));
+        throw new ToolError(
+          "TOOL_FAILED",
+          err instanceof Error ? err.message : String(err)
+        );
       }
     }
   });
@@ -1398,6 +1413,122 @@ async function bootstrap(userDataPath, options = {}) {
     shutdown
   };
 }
+class ElectronBrowserViewHost extends EventEmitter {
+  constructor(options) {
+    super();
+    this.options = options;
+  }
+  views = /* @__PURE__ */ new Map();
+  activeTabId = null;
+  createView(tabId, url) {
+    if (this.views.has(tabId)) {
+      this.loadURL(tabId, url);
+      return;
+    }
+    const view = new WebContentsView({
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        preload: this.options.preloadPath
+      }
+    });
+    const managed = {
+      view,
+      nav: { url, loadState: "loading", canGoBack: false, canGoForward: false }
+    };
+    this.views.set(tabId, managed);
+    this.wireEvents(tabId, managed);
+    void view.webContents.loadURL(url).catch(() => this.markFailed(tabId));
+  }
+  loadURL(tabId, url) {
+    const managed = this.views.get(tabId);
+    if (!managed) return;
+    managed.nav.url = url;
+    managed.nav.loadState = "loading";
+    this.emitNav(tabId, managed);
+    void managed.view.webContents.loadURL(url).catch(() => this.markFailed(tabId));
+  }
+  destroyView(tabId) {
+    const managed = this.views.get(tabId);
+    if (!managed) return;
+    const win = this.options.getWindow();
+    win?.contentView.removeChildView(managed.view);
+    managed.view.webContents.close();
+    this.views.delete(tabId);
+    if (this.activeTabId === tabId) this.activeTabId = null;
+  }
+  focusView(tabId) {
+    const managed = this.views.get(tabId);
+    const win = this.options.getWindow();
+    if (!managed || !win) return;
+    for (const [id, other] of this.views) {
+      if (id !== tabId) win.contentView.removeChildView(other.view);
+    }
+    win.contentView.addChildView(managed.view);
+    this.activeTabId = tabId;
+    this.layout();
+    managed.view.webContents.focus();
+  }
+  reload(tabId) {
+    this.views.get(tabId)?.view.webContents.reload();
+  }
+  goBack(tabId) {
+    const nav = this.views.get(tabId)?.view.webContents.navigationHistory;
+    if (nav?.canGoBack()) nav.goBack();
+  }
+  goForward(tabId) {
+    const nav = this.views.get(tabId)?.view.webContents.navigationHistory;
+    if (nav?.canGoForward()) nav.goForward();
+  }
+  async capture(tabId) {
+    const managed = this.views.get(tabId);
+    if (!managed) return null;
+    const image = await managed.view.webContents.capturePage();
+    const size = image.getSize();
+    return { data: image.toPNG(), width: size.width, height: size.height };
+  }
+  getNavState(tabId) {
+    return this.views.get(tabId)?.nav ?? null;
+  }
+  onNavStateChanged(cb) {
+    this.on("nav", cb);
+  }
+  /** Re-apply the content region to the active view (call on window resize). */
+  layout() {
+    if (!this.activeTabId) return;
+    const managed = this.views.get(this.activeTabId);
+    if (!managed) return;
+    managed.view.setBounds(this.options.getContentBounds());
+  }
+  wireEvents(tabId, managed) {
+    const wc = managed.view.webContents;
+    const sync = (patch) => {
+      Object.assign(managed.nav, patch, {
+        canGoBack: wc.navigationHistory.canGoBack(),
+        canGoForward: wc.navigationHistory.canGoForward(),
+        url: wc.getURL() || managed.nav.url
+      });
+      this.emitNav(tabId, managed);
+    };
+    wc.on("did-start-loading", () => sync({ loadState: "loading" }));
+    wc.on("did-stop-loading", () => sync({ loadState: "complete" }));
+    wc.on("did-fail-load", (_e, code) => {
+      if (code !== -3) sync({ loadState: "failed" });
+    });
+    wc.on("page-title-updated", (_e, title) => sync({ title }));
+    wc.on("page-favicon-updated", (_e, favicons) => sync({ faviconUrl: favicons[0] }));
+  }
+  markFailed(tabId) {
+    const managed = this.views.get(tabId);
+    if (!managed) return;
+    managed.nav.loadState = "failed";
+    this.emitNav(tabId, managed);
+  }
+  emitNav(tabId, managed) {
+    this.emit("nav", tabId, { ...managed.nav });
+  }
+}
 const IPC = {
   toolsList: "meith:tools:list",
   toolCall: "meith:tools:call",
@@ -1427,8 +1558,10 @@ function registerIpcHandlers(container2, getWindow) {
     getWindow()?.webContents.send(IPC.logEntry, entry);
   });
 }
+const CHROME_TOP = 96;
 let mainWindow = null;
 let container = null;
+let viewHost = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -1441,6 +1574,7 @@ function createWindow() {
     }
   });
   mainWindow.on("ready-to-show", () => mainWindow?.show());
+  mainWindow.on("resize", () => viewHost?.layout());
   const devUrl = process.env.ELECTRON_RENDERER_URL;
   if (devUrl) {
     void mainWindow.loadURL(devUrl);
@@ -1449,7 +1583,15 @@ function createWindow() {
   }
 }
 app.whenReady().then(async () => {
-  container = await bootstrap(app.getPath("userData"));
+  viewHost = new ElectronBrowserViewHost({
+    getWindow: () => mainWindow,
+    preloadPath: join(__dirname, "../preload/webContent.js"),
+    getContentBounds: () => {
+      const [width, height] = mainWindow?.getContentSize() ?? [1280, 820];
+      return { x: 0, y: CHROME_TOP, width, height: Math.max(0, height - CHROME_TOP) };
+    }
+  });
+  container = await bootstrap(app.getPath("userData"), { browserViewHost: viewHost });
   registerIpcHandlers(container, () => mainWindow);
   createWindow();
   app.on("activate", () => {

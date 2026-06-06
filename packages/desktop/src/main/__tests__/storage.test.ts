@@ -180,6 +180,10 @@ describe("AppStateService persistence", () => {
         title: "Dev",
         active: true,
         createdAt: Date.now(),
+        loadState: "idle",
+        canGoBack: false,
+        canGoForward: false,
+        ownerId: null,
       });
     });
     a.flush();

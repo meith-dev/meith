@@ -77,6 +77,33 @@ resets to defaults rather than crashing.
 `~/.meith/config.json` records the resolved `socketPath` so the CLI can find a
 running runtime.
 
+## Browser runtime
+
+Browser tabs have two halves that stay in sync:
+
+- **Tab records** (id, url, title, favicon, `loadState`, `canGoBack/Forward`,
+  `ownerId`) live in persistent `AppState`, so the last-known state survives a
+  restart.
+- **Live views** live in a `BrowserViewHost` (`main/browser/`). The interface is
+  injected so `bootstrap()` stays Electron-free: the desktop app passes an
+  `ElectronBrowserViewHost` (real `WebContentsView`s, laid out below the chrome
+  region and resized with the window), while tests/CLI/headless use the
+  in-memory `HeadlessBrowserViewHost`.
+
+`BrowserTabService` owns the lifecycle (open/navigate/back/forward/refresh/
+focus/close), delegates live operations to the host, and merges the host's
+`onNavStateChanged` callbacks back into the persisted record. Ordinary web
+content loads with a minimal `preload/webContent.ts` bridge and **no Node
+integration**. Screenshots go through `webContents.capturePage()` and are
+persisted by `ArtifactStore` under `<userData>/artifacts/`.
+
+For automation, a tab can be claimed with `browser_use_start` and released with
+`browser_use_end`. While owned, control calls from a different owner throw
+`TabOwnershipError`, which surfaces as a `PERMISSION_DENIED` tool error;
+`releaseOwner` frees all of a session's tabs on shutdown/crash. All of this is
+exposed through the same tool registry, so the renderer and `meith` CLI drive
+identical behavior (`meith open`, `navigate`, `back`, `screenshot`, …).
+
 ## Related docs
 
 - [TOOL_PROTOCOL.md](./TOOL_PROTOCOL.md) — the wire protocol and `ToolResult` envelope.

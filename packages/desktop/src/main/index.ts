@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { BrowserWindow, app } from "electron";
-import { ElectronBrowserViewHost } from "./browser/ElectronBrowserViewHost.js";
 import { type ServiceContainer, bootstrap } from "./bootstrap.js";
+import { ElectronBrowserViewHost } from "./browser/ElectronBrowserViewHost.js";
 import { registerIpcHandlers } from "./ipc/handlers.js";
 
 /** Height (px) of the app chrome/sidebar header above the browser content. */

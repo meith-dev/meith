@@ -34,6 +34,7 @@ async function main(): Promise<void> {
       title: "Smoke",
     });
     assert(opened.ok, `open_browser_tab failed: ${opened.error?.message}`);
+    const tabId = (opened.content as { id: string }).id;
 
     const tabs = await client.callTool("get_tabs", {});
     assert(tabs.ok, "get_tabs failed");
@@ -41,6 +42,52 @@ async function main(): Promise<void> {
     assert(
       list.some((t) => t.url === "http://localhost:3000"),
       "opened tab not reflected in get_tabs",
+    );
+
+    // Navigate forward then back; verify history flags track correctly.
+    const nav = await client.callTool("navigate", {
+      tabId,
+      url: "http://localhost:3000/about",
+    });
+    assert(nav.ok, `navigate failed: ${nav.error?.message}`);
+    assert(
+      (nav.content as { canGoBack: boolean }).canGoBack,
+      "expected canGoBack after navigate",
+    );
+    const back = await client.callTool("go_back", { tabId });
+    assert(back.ok, "go_back failed");
+    assert(
+      (back.content as { url: string }).url === "http://localhost:3000",
+      "go_back did not restore the previous URL",
+    );
+
+    // Ownership: claim, block a different owner, then release.
+    const claim = await client.callTool("browser_use_start", {
+      tabId,
+      owner: "smoke-agent",
+    });
+    assert(claim.ok, "browser_use_start failed");
+    const blocked = await client.callTool("navigate", {
+      tabId,
+      url: "http://localhost:3000/x",
+      owner: "other-agent",
+    });
+    assert(
+      !blocked.ok && blocked.error?.code === "PERMISSION_DENIED",
+      "ownership not enforced",
+    );
+    const release = await client.callTool("browser_use_end", {
+      tabId,
+      owner: "smoke-agent",
+    });
+    assert(release.ok, "browser_use_end failed");
+
+    // Screenshot artifact.
+    const shot = await client.callTool("take_screenshot", { tabId });
+    assert(shot.ok, `take_screenshot failed: ${shot.error?.message}`);
+    assert(
+      typeof (shot.content as { path?: string }).path === "string",
+      "no screenshot path",
     );
 
     console.log("[smoke] OK");

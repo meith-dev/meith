@@ -70,11 +70,16 @@ describe("socket integration", () => {
     expect(list.some((t) => t.id === tab.id)).toBe(true);
   });
 
-  it("returns a placeholder tool result with a diagnostic", async () => {
-    const result = await client.callTool("take_screenshot", {});
+  it("captures a real screenshot artifact for a tab", async () => {
+    const opened = await client.callTool("open_browser_tab", {
+      url: "http://localhost:3000",
+    });
+    const tab = opened.content as { id: string };
+    const result = await client.callTool("take_screenshot", { tabId: tab.id });
     expect(result.ok).toBe(true);
-    expect(result.diagnostics?.[0]?.level).toBe("warn");
-    expect((result.content as { placeholder: boolean }).placeholder).toBe(true);
+    const shot = result.content as { tabId: string; path?: string };
+    expect(shot.tabId).toBe(tab.id);
+    expect(typeof shot.path).toBe("string");
   });
 
   it("reports an unknown tool as a structured error (not a throw)", async () => {

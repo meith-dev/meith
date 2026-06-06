@@ -241,7 +241,11 @@ export class BrowserTabService {
     }
     let path: string | undefined;
     if (this.artifacts) {
-      const info = this.artifacts.write(`screenshot-${id}-${Date.now()}`, "png", capture.data);
+      const info = this.artifacts.write(
+        `screenshot-${id}-${Date.now()}`,
+        "png",
+        capture.data,
+      );
       path = info.path;
     }
     return { tabId: id, width: capture.width, height: capture.height, path };

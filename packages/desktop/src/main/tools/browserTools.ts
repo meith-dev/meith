@@ -85,7 +85,9 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     capabilities: ["controls-browser"],
     inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
     execute: (ctx, input) =>
-      guardOwnership(() => deps.browserTabs.goBack(input.tabId, ownerOf(ctx, input.owner))),
+      guardOwnership(() =>
+        deps.browserTabs.goBack(input.tabId, ownerOf(ctx, input.owner)),
+      ),
   });
 
   const goForward = defineTool({
@@ -142,7 +144,9 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
       owner: z.string().optional().describe("Owner id; defaults to the session id."),
     }),
     execute: (ctx, input) =>
-      guardOwnership(() => deps.browserTabs.startUse(input.tabId, ownerOf(ctx, input.owner))),
+      guardOwnership(() =>
+        deps.browserTabs.startUse(input.tabId, ownerOf(ctx, input.owner)),
+      ),
   });
 
   const browserUseEnd = defineTool({
@@ -156,7 +160,11 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     }),
     execute: (ctx, input) =>
       guardOwnership(() =>
-        deps.browserTabs.endUse(input.tabId, ownerOf(ctx, input.owner), input.force ?? false),
+        deps.browserTabs.endUse(
+          input.tabId,
+          ownerOf(ctx, input.owner),
+          input.force ?? false,
+        ),
       ),
   });
 
@@ -170,7 +178,10 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
       try {
         return await deps.browserTabs.captureScreenshot(input.tabId);
       } catch (err) {
-        throw new ToolError("TOOL_FAILED", err instanceof Error ? err.message : String(err));
+        throw new ToolError(
+          "TOOL_FAILED",
+          err instanceof Error ? err.message : String(err),
+        );
       }
     },
   });
