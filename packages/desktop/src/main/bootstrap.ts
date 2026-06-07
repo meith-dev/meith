@@ -9,6 +9,7 @@ import { BrowserTabService } from "./services/BrowserTabService.js";
 import { DevServerService } from "./services/DevServerService.js";
 import { Logger } from "./services/Logger.js";
 import { ProjectService } from "./services/ProjectService.js";
+import { SpaceService } from "./services/SpaceService.js";
 import { StorageService } from "./services/StorageService.js";
 import { TerminalService } from "./services/TerminalService.js";
 import { ToolSocketService } from "./services/ToolSocketService.js";
@@ -16,6 +17,7 @@ import { ArtifactStore } from "./storage/ArtifactStore.js";
 import { createAppTools } from "./tools/appTools.js";
 import { createBrowserTools } from "./tools/browserTools.js";
 import { ToolRegistry } from "./tools/registry.js";
+import { createSpaceTools } from "./tools/spaceTools.js";
 import { createStorageTools } from "./tools/storageTools.js";
 
 /** Everything the app wires up. Returned so the renderer/IPC can use it. */
@@ -23,6 +25,7 @@ export interface ServiceContainer {
   logger: Logger;
   appState: AppStateService;
   browserTabs: BrowserTabService;
+  spaces: SpaceService;
   devServers: DevServerService;
   terminals: TerminalService;
   projects: ProjectService;
@@ -80,14 +83,16 @@ export async function bootstrap(
     host: options.browserViewHost,
     artifacts,
   });
+  const spaces = new SpaceService(appState, logger);
   const devServers = new DevServerService(logger);
   const terminals = new TerminalService(logger);
   const projects = new ProjectService(logger);
   const storage = new StorageService({ dataDir: userDataPath, appState, logPath });
 
   const registry = new ToolRegistry();
-  const deps = { appState, browserTabs, devServers, logger, storage };
+  const deps = { appState, browserTabs, spaces, devServers, logger, storage };
   registry.registerAll(createBrowserTools(deps));
+  registry.registerAll(createSpaceTools(deps));
   registry.registerAll(createAppTools(deps));
   registry.registerAll(createStorageTools(deps));
 
@@ -114,6 +119,7 @@ export async function bootstrap(
     logger,
     appState,
     browserTabs,
+    spaces,
     devServers,
     terminals,
     projects,

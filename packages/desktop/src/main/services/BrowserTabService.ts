@@ -464,6 +464,39 @@ export class BrowserTabService {
     return tab;
   }
 
+  /** Make a workspace tab the active one within its space. */
+  focusWorkspaceTab(id: string): WorkspaceTab {
+    const tab = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!tab) throw new Error(`Unknown workspace tab: ${id}`);
+    this.appState.update((draft) => {
+      for (const t of draft.workspaceTabs) {
+        if (t.spaceId === tab.spaceId) t.active = t.id === id;
+      }
+    }, "focus_workspace_tab");
+    const next = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!next) throw new Error(`Unknown workspace tab: ${id}`);
+    return next;
+  }
+
+  /** Close a workspace tab; activates the most recent remaining tab in-space. */
+  closeWorkspaceTab(id: string): boolean {
+    const tab = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!tab) return false;
+    let removed = false;
+    this.appState.update((draft) => {
+      const before = draft.workspaceTabs.length;
+      draft.workspaceTabs = draft.workspaceTabs.filter((t) => t.id !== id);
+      removed = draft.workspaceTabs.length < before;
+      if (removed && tab.active) {
+        const sameSpace = draft.workspaceTabs.filter((t) => t.spaceId === tab.spaceId);
+        const last = sameSpace[sameSpace.length - 1];
+        if (last) last.active = true;
+      }
+    }, "close_workspace_tab");
+    if (removed) this.logger.info("WorkspaceTabs", `closed workspace tab ${id}`);
+    return removed;
+  }
+
   private requireTab(id: string): BrowserTab {
     const tab = this.getTab(id);
     if (!tab) throw new Error(`Unknown browser tab: ${id}`);
