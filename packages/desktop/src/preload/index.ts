@@ -1,5 +1,5 @@
 import type { ToolDescriptor } from "@meith/protocol";
-import type { AppState, LogEntry } from "@meith/shared";
+import type { AppState, BrowserViewport, LogEntry } from "@meith/shared";
 import { contextBridge, ipcRenderer } from "electron";
 import type { MeithBridge } from "../bridge.js";
 
@@ -12,6 +12,7 @@ const IPC = {
   stateChanged: "meith:state:changed",
   getLogs: "meith:logs:get",
   logEntry: "meith:logs:entry",
+  browserViewport: "meith:browser:viewport",
 } as const;
 
 const api: MeithBridge = {
@@ -34,6 +35,10 @@ const api: MeithBridge = {
       ipcRenderer.on(IPC.logEntry, listener);
       return () => ipcRenderer.removeListener(IPC.logEntry, listener);
     },
+  },
+  browser: {
+    setViewport: (bounds: BrowserViewport) =>
+      ipcRenderer.send(IPC.browserViewport, bounds),
   },
 };
 

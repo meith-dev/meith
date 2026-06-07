@@ -20,5 +20,9 @@ out/
 .vite/
 *.log
 
+# TypeScript incremental build cache (must NOT be committed: stale build info
+# makes a fresh clone think packages are already emitted when dist/ is absent)
+*.tsbuildinfo
+
 # meith runtime config/socket
 .meith/

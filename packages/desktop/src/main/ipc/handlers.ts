@@ -13,6 +13,8 @@ export const IPC = {
   stateChanged: "meith:state:changed",
   getLogs: "meith:logs:get",
   logEntry: "meith:logs:entry",
+  /** Renderer -> main (one-way): measured browser content viewport bounds. */
+  browserViewport: "meith:browser:viewport",
 } as const;
 
 /**

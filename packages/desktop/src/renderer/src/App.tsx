@@ -1,5 +1,5 @@
 import type { AppState } from "@meith/shared";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getBridge } from "./bridge";
 import { LogsPanel } from "./components/LogsPanel";
 import { Sidebar } from "./components/Sidebar";
@@ -15,6 +15,7 @@ export function App() {
   const { bridge, isMock } = useMemo(() => getBridge(), []);
   const [view, setView] = useState<View>("tools");
   const [state, setState] = useState<AppState | null>(null);
+  const mainRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -29,6 +30,30 @@ export function App() {
     };
   }, [bridge]);
 
+  // Report the measured browser content region to the main process so the
+  // native browser view is sized to the real layout (not a hard-coded inset).
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const report = () => {
+      const r = el.getBoundingClientRect();
+      bridge.browser.setViewport({
+        x: Math.round(r.left),
+        y: Math.round(r.top),
+        width: Math.round(r.width),
+        height: Math.round(r.height),
+      });
+    };
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    window.addEventListener("resize", report);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", report);
+    };
+  }, [bridge]);
+
   const activeSpace =
     state?.spaces.find((s) => s.id === state.activeSpaceId) ?? state?.spaces[0] ?? null;
 
@@ -37,7 +62,7 @@ export function App() {
       <TitleBar spaceName={activeSpace?.name ?? null} isMock={isMock} />
       <div className="app-body">
         <Sidebar view={view} onViewChange={setView} />
-        <main className="app-main">
+        <main className="app-main" ref={mainRef}>
           {view === "tools" && <ToolsPanel bridge={bridge} />}
           {view === "state" && <StatePanel state={state} />}
           {view === "logs" && <LogsPanel bridge={bridge} />}

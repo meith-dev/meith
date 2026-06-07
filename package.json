@@ -10,6 +10,8 @@
   "scripts": {
     "build": "pnpm -r --filter \"./packages/**\" build",
     "build:libs": "pnpm --filter @meith/shared --filter @meith/protocol build",
+    "clean": "rm -rf packages/*/dist packages/*/out packages/*/*.tsbuildinfo",
+    "rebuild": "pnpm clean && pnpm build",
     "dev": "pnpm --filter @meith/desktop dev",
     "dev:renderer": "pnpm --filter @meith/desktop dev:renderer",
     "test": "pnpm -r --filter \"./packages/**\" test",

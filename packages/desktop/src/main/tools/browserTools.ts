@@ -1,10 +1,25 @@
 import { type ToolDefinition, defineTool } from "@meith/protocol";
 import { ToolError } from "@meith/shared";
 import { z } from "zod";
-import { TabOwnershipError } from "../services/BrowserTabService.js";
+import {
+  type ControlContext,
+  TabClaimRequiredError,
+  TabOwnershipError,
+} from "../services/BrowserTabService.js";
 import type { ToolDeps } from "./deps.js";
 
-/** Run a service call, mapping ownership conflicts to PERMISSION_DENIED. */
+/**
+ * Callers that must claim a tab (via `browser_use_start`) before mutating it.
+ * Multiple agents/plugins can run concurrently, so automated browser control
+ * is exclusive. Interactive callers (`renderer`, `cli`) and first-party
+ * `internal` orchestration may control unclaimed tabs directly.
+ */
+const AUTOMATION_CALLERS = new Set<string>(["agent", "plugin"]);
+
+/**
+ * Run a service call, mapping ownership conflicts and missing-claim errors to
+ * the `PERMISSION_DENIED` tool error code.
+ */
 async function guardOwnership<T>(fn: () => T | Promise<T>): Promise<T> {
   try {
     return await fn();
@@ -15,6 +30,12 @@ async function guardOwnership<T>(fn: () => T | Promise<T>): Promise<T> {
         ownerId: err.ownerId,
       });
     }
+    if (err instanceof TabClaimRequiredError) {
+      throw new ToolError("PERMISSION_DENIED", err.message, {
+        tabId: err.tabId,
+        reason: "claim_required",
+      });
+    }
     throw err;
   }
 }
@@ -22,6 +43,17 @@ async function guardOwnership<T>(fn: () => T | Promise<T>): Promise<T> {
 /** Resolve the automation owner for a control call. */
 function ownerOf(ctx: { sessionId?: string; caller: string }, explicit?: string): string {
   return explicit ?? ctx.sessionId ?? ctx.caller;
+}
+
+/** Build the control context (owner + whether a prior claim is enforced). */
+function controlFor(
+  ctx: { sessionId?: string; caller: string },
+  explicit?: string,
+): ControlContext {
+  return {
+    ownerId: ownerOf(ctx, explicit),
+    requireClaim: AUTOMATION_CALLERS.has(ctx.caller),
+  };
 }
 
 /**
@@ -75,7 +107,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     }),
     execute: (ctx, input) =>
       guardOwnership(() =>
-        deps.browserTabs.navigate(input.tabId, input.url, ownerOf(ctx, input.owner)),
+        deps.browserTabs.navigate(input.tabId, input.url, controlFor(ctx, input.owner)),
       ),
   });
 
@@ -86,7 +118,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
     execute: (ctx, input) =>
       guardOwnership(() =>
-        deps.browserTabs.goBack(input.tabId, ownerOf(ctx, input.owner)),
+        deps.browserTabs.goBack(input.tabId, controlFor(ctx, input.owner)),
       ),
   });
 
@@ -97,7 +129,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
     execute: (ctx, input) =>
       guardOwnership(() =>
-        deps.browserTabs.goForward(input.tabId, ownerOf(ctx, input.owner)),
+        deps.browserTabs.goForward(input.tabId, controlFor(ctx, input.owner)),
       ),
   });
 

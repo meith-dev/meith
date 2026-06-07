@@ -34,6 +34,20 @@ export const BrowserTabSchema = z.object({
 });
 export type BrowserTab = z.infer<typeof BrowserTabSchema>;
 
+/**
+ * Pixel rectangle (in renderer/content-area coordinates) where live browser
+ * web content should be rendered. This is the explicit contract the renderer
+ * reports to the main process so the native browser view tracks the measured
+ * layout (sidebars, panels, resizable regions) instead of a hard-coded inset.
+ */
+export const BrowserViewportSchema = z.object({
+  x: z.number().nonnegative(),
+  y: z.number().nonnegative(),
+  width: z.number().nonnegative(),
+  height: z.number().nonnegative(),
+});
+export type BrowserViewport = z.infer<typeof BrowserViewportSchema>;
+
 export const WorkspaceTabSchema = z.object({
   id: z.string(),
   spaceId: z.string(),

@@ -1,11 +1,15 @@
 import { join } from "node:path";
-import { BrowserWindow, app } from "electron";
+import { BrowserViewportSchema } from "@meith/shared";
+import { BrowserWindow, app, ipcMain } from "electron";
 import { type ServiceContainer, bootstrap } from "./bootstrap.js";
 import { ElectronBrowserViewHost } from "./browser/ElectronBrowserViewHost.js";
-import { registerIpcHandlers } from "./ipc/handlers.js";
+import { IPC, registerIpcHandlers } from "./ipc/handlers.js";
 
-/** Height (px) of the app chrome/sidebar header above the browser content. */
-const CHROME_TOP = 96;
+/**
+ * Fallback inset (px) used only until the renderer reports its measured
+ * browser viewport via the `meith:browser:viewport` channel.
+ */
+const FALLBACK_CHROME_TOP = 96;
 
 let mainWindow: BrowserWindow | null = null;
 let container: ServiceContainer | null = null;
@@ -23,7 +27,12 @@ function createWindow(): void {
     },
   });
 
-  mainWindow.on("ready-to-show", () => mainWindow?.show());
+  mainWindow.on("ready-to-show", () => {
+    mainWindow?.show();
+    // Resolve the startup race: attach any active view that was created during
+    // bootstrap/hydrate before the window existed.
+    viewHost?.attachActiveView();
+  });
   // Keep the active browser view sized to the content region on resize.
   mainWindow.on("resize", () => viewHost?.layout());
 
@@ -44,15 +53,30 @@ app.whenReady().then(async () => {
     preloadPath: join(__dirname, "../preload/webContent.cjs"),
     getContentBounds: () => {
       const [width, height] = mainWindow?.getContentSize() ?? [1280, 820];
-      return { x: 0, y: CHROME_TOP, width, height: Math.max(0, height - CHROME_TOP) };
+      return {
+        x: 0,
+        y: FALLBACK_CHROME_TOP,
+        width,
+        height: Math.max(0, height - FALLBACK_CHROME_TOP),
+      };
     },
   });
+
+  // Create the window BEFORE bootstrap so that, by the time the socket server
+  // starts accepting tool calls (and hydrate() focuses the active tab), the
+  // window exists and views can attach immediately.
+  createWindow();
 
   // The Electron-provided per-user data directory is our userDataPath.
   container = await bootstrap(app.getPath("userData"), { browserViewHost: viewHost });
   registerIpcHandlers(container, () => mainWindow);
 
-  createWindow();
+  // Viewport contract: the renderer reports the measured browser content
+  // region; resize the native view to match instead of using a fixed inset.
+  ipcMain.on(IPC.browserViewport, (_event, raw) => {
+    const parsed = BrowserViewportSchema.safeParse(raw);
+    if (parsed.success) viewHost?.setContentBounds(parsed.data);
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

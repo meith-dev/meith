@@ -151,5 +151,7 @@ function createMockBridge(): MeithBridge {
         return () => logSubs.delete(cb);
       },
     },
+    // No native browser views in preview mode; viewport reports are ignored.
+    browser: { setViewport: () => undefined },
   };
 }

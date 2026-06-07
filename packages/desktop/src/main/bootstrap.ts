@@ -96,6 +96,10 @@ export async function bootstrap(
   const socket = new ToolSocketService(socketPath, registry, logger);
   await socket.start();
 
+  // Recreate live browser views for any tabs restored from persisted state so
+  // focus/navigation/screenshots operate on real views after a restart.
+  await browserTabs.hydrate();
+
   logger.info("Bootstrap", "service container ready");
 
   const shutdown = async (): Promise<void> => {

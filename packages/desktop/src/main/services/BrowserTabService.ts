@@ -29,6 +29,32 @@ export class TabOwnershipError extends Error {
 }
 
 /**
+ * Raised when an automation caller tries to mutate an unclaimed tab. Automated
+ * browser control is exclusive: agents/plugins MUST call `startUse()`
+ * (`browser_use_start`) before navigating, reloading, or closing a tab.
+ */
+export class TabClaimRequiredError extends Error {
+  constructor(public readonly tabId: string) {
+    super(`Tab ${tabId} must be claimed via browser_use_start before control`);
+    this.name = "TabClaimRequiredError";
+  }
+}
+
+/**
+ * Identifies who is controlling a tab and whether a prior claim is required.
+ *
+ * Interactive callers (the renderer UI, the CLI) may control unclaimed tabs
+ * directly. Automation callers (agents/plugins) set `requireClaim: true`, which
+ * forces them to claim the tab first so concurrent agents cannot fight over it.
+ */
+export interface ControlContext {
+  /** Claim identity of the caller (session/owner id). */
+  ownerId?: string;
+  /** When true, the tab must already be claimed by `ownerId`. */
+  requireClaim?: boolean;
+}
+
+/**
  * Owns the browser/workspace tab model AND coordinates the live browser views.
  *
  * Tab records (metadata) live in persistent `AppState`; live `WebContentsView`
@@ -61,11 +87,46 @@ export class BrowserTabService {
     return this.appState.getState().browserTabs.find((t) => t.id === id);
   }
 
-  /** Throw unless `ownerId` is allowed to control `tab` (matches or unowned). */
-  private assertOwner(tab: BrowserTab, ownerId?: string): void {
-    if (tab.ownerId && tab.ownerId !== ownerId) {
-      throw new TabOwnershipError(tab.id, tab.ownerId);
+  /**
+   * Throw unless `control` is allowed to mutate `tab`:
+   *  - if the tab is claimed by someone else -> `TabOwnershipError`;
+   *  - if the tab is unclaimed and the caller requires a claim
+   *    (automation) -> `TabClaimRequiredError`.
+   */
+  private assertControl(tab: BrowserTab, control: ControlContext): void {
+    if (tab.ownerId) {
+      if (tab.ownerId !== control.ownerId) {
+        throw new TabOwnershipError(tab.id, tab.ownerId);
+      }
+      return;
     }
+    if (control.requireClaim) {
+      throw new TabClaimRequiredError(tab.id);
+    }
+  }
+
+  /**
+   * Ensure a live view exists for a persisted tab, recreating it lazily (e.g.
+   * after an app restart, when only the tab record survived). Safe to call
+   * repeatedly: it no-ops when the host already has the view.
+   */
+  private async ensureView(tab: BrowserTab): Promise<void> {
+    if (this.host.getNavState(tab.id) === null) {
+      await this.host.createView(tab.id, tab.url);
+    }
+  }
+
+  /**
+   * Recreate live views for all persisted tabs and focus the active tab so the
+   * window shows content immediately after startup. Call once during bootstrap.
+   */
+  async hydrate(): Promise<void> {
+    const tabs = this.appState.getState().browserTabs;
+    for (const tab of tabs) {
+      await this.ensureView(tab);
+    }
+    const active = this.getActiveBrowserTab();
+    if (active) await this.host.focusView(active.id);
   }
 
   listBrowserTabs(spaceId?: string): BrowserTab[] {
@@ -119,9 +180,9 @@ export class BrowserTabService {
     return this.getTab(tab.id) ?? tab;
   }
 
-  async navigate(id: string, url: string, ownerId?: string): Promise<BrowserTab> {
+  async navigate(id: string, url: string, control: ControlContext = {}): Promise<BrowserTab> {
     const tab = this.requireTab(id);
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
     this.appState.update((draft) => {
       const t = draft.browserTabs.find((b) => b.id === id);
       if (t) {
@@ -129,28 +190,37 @@ export class BrowserTabService {
         t.loadState = "loading";
       }
     }, "navigate");
-    await this.host.loadURL(id, url);
+    // Create the view straight at the target URL if it doesn't exist yet
+    // (e.g. a rehydrated tab), otherwise navigate the existing view.
+    if (this.host.getNavState(id) === null) {
+      await this.host.createView(id, url);
+    } else {
+      await this.host.loadURL(id, url);
+    }
     this.logger.info("BrowserTabs", `navigate ${id} -> ${url}`);
     return this.requireTab(id);
   }
 
-  async goBack(id: string, ownerId?: string): Promise<BrowserTab> {
+  async goBack(id: string, control: ControlContext = {}): Promise<BrowserTab> {
     const tab = this.requireTab(id);
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
     await this.host.goBack(id);
     return this.requireTab(id);
   }
 
-  async goForward(id: string, ownerId?: string): Promise<BrowserTab> {
+  async goForward(id: string, control: ControlContext = {}): Promise<BrowserTab> {
     const tab = this.requireTab(id);
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
     await this.host.goForward(id);
     return this.requireTab(id);
   }
 
-  async refresh(id: string, ownerId?: string): Promise<BrowserTab> {
+  async refresh(id: string, control: ControlContext = {}): Promise<BrowserTab> {
     const tab = this.requireTab(id);
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
     await this.host.reload(id);
     return this.requireTab(id);
   }
@@ -162,15 +232,17 @@ export class BrowserTabService {
         if (t.spaceId === tab.spaceId) t.active = t.id === id;
       }
     }, "focus_browser_tab");
+    await this.ensureView(tab);
     await this.host.focusView(id);
     return this.requireTab(id);
   }
 
-  async closeBrowserTab(id: string, ownerId?: string): Promise<boolean> {
+  async closeBrowserTab(id: string, control: ControlContext = {}): Promise<boolean> {
     const tab = this.getTab(id);
     if (!tab) return false;
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
     let removed = false;
+    let nextActiveId: string | null = null;
     this.appState.update((draft) => {
       const before = draft.browserTabs.length;
       draft.browserTabs = draft.browserTabs.filter((t) => t.id !== id);
@@ -179,10 +251,22 @@ export class BrowserTabService {
       if (removed && tab.active) {
         const sameSpace = draft.browserTabs.filter((t) => t.spaceId === tab.spaceId);
         const last = sameSpace[sameSpace.length - 1];
-        if (last) last.active = true;
+        if (last) {
+          last.active = true;
+          nextActiveId = last.id;
+        }
       }
     }, "close_browser_tab");
     await this.host.destroyView(id);
+    // Focus the newly-active tab's view so Electron always has a visible
+    // browser view after the old one is destroyed.
+    if (nextActiveId) {
+      const next = this.getTab(nextActiveId);
+      if (next) {
+        await this.ensureView(next);
+        await this.host.focusView(nextActiveId);
+      }
+    }
     if (removed) this.logger.info("BrowserTabs", `closed browser tab ${id}`);
     return removed;
   }
@@ -234,7 +318,10 @@ export class BrowserTabService {
   async captureScreenshot(
     id: string,
   ): Promise<{ tabId: string; width: number; height: number; path?: string }> {
-    this.requireTab(id);
+    const tab = this.requireTab(id);
+    // Recreate the live view if it was lost (e.g. after restart) so capture
+    // doesn't spuriously fail with "No live view to capture".
+    await this.ensureView(tab);
     const capture = await this.host.capture(id);
     if (!capture) {
       throw new Error(`No live view to capture for tab ${id}`);

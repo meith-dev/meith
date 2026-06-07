@@ -17,10 +17,11 @@ export interface ElectronBrowserViewHostOptions {
   /** Preload script applied to all web-content views (safe message bridge). */
   preloadPath?: string;
   /**
-   * Returns the current content region (area below the app chrome). Recomputed
-   * on focus and on `layout()` so views track window/sidebar resizes.
+   * Fallback content region used until the renderer reports a measured
+   * viewport via `setContentBounds()`. Optional; defaults to filling the
+   * window content area below a small inset.
    */
-  getContentBounds: () => ContentBounds;
+  getContentBounds?: () => ContentBounds;
 }
 
 interface ManagedView {
@@ -41,9 +42,21 @@ interface ManagedView {
 export class ElectronBrowserViewHost extends EventEmitter implements BrowserViewHost {
   private readonly views = new Map<string, ManagedView>();
   private activeTabId: string | null = null;
+  /** Last viewport reported by the renderer; takes precedence over fallback. */
+  private explicitBounds: ContentBounds | null = null;
 
   constructor(private readonly options: ElectronBrowserViewHostOptions) {
     super();
+  }
+
+  /**
+   * Set the content region from the renderer's measured layout. This is the
+   * viewport contract: the native view is sized to wherever the renderer says
+   * browser content belongs, instead of a hard-coded inset.
+   */
+  setContentBounds(bounds: ContentBounds): void {
+    this.explicitBounds = bounds;
+    this.layout();
   }
 
   createView(tabId: string, url: string): void {
@@ -89,15 +102,28 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
   }
 
   focusView(tabId: string): void {
-    const managed = this.views.get(tabId);
+    if (!this.views.has(tabId)) return;
+    // Record intent even if the window isn't ready yet; attachActiveView()
+    // (called on window creation/ready) will attach it once it exists.
+    this.activeTabId = tabId;
+    this.attachActiveView();
+  }
+
+  /**
+   * Attach the active view to the window and size it. No-ops if the window
+   * doesn't exist yet; call again from the main process once the window is
+   * created/ready to resolve the startup race.
+   */
+  attachActiveView(): void {
     const win = this.options.getWindow();
-    if (!managed || !win) return;
+    if (!win || !this.activeTabId) return;
+    const managed = this.views.get(this.activeTabId);
+    if (!managed) return;
     // Detach all other views, attach + size the focused one.
     for (const [id, other] of this.views) {
-      if (id !== tabId) win.contentView.removeChildView(other.view);
+      if (id !== this.activeTabId) win.contentView.removeChildView(other.view);
     }
     win.contentView.addChildView(managed.view);
-    this.activeTabId = tabId;
     this.layout();
     managed.view.webContents.focus();
   }
@@ -137,7 +163,15 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
     if (!this.activeTabId) return;
     const managed = this.views.get(this.activeTabId);
     if (!managed) return;
-    managed.view.setBounds(this.options.getContentBounds());
+    managed.view.setBounds(this.resolveBounds());
+  }
+
+  /** Renderer-reported bounds win; otherwise fall back to the option/default. */
+  private resolveBounds(): ContentBounds {
+    if (this.explicitBounds) return this.explicitBounds;
+    if (this.options.getContentBounds) return this.options.getContentBounds();
+    const [width, height] = this.options.getWindow()?.getContentSize() ?? [1280, 820];
+    return { x: 0, y: 0, width, height };
   }
 
   private wireEvents(tabId: string, managed: ManagedView): void {
