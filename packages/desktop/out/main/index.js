@@ -1,8 +1,8 @@
 import { dirname, basename, join } from "node:path";
+import { newSessionId, newMessageId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, LogEntrySchema, createId, okResult, ToolError, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult, BrowserViewportSchema } from "@meith/shared";
 import { WebContentsView, ipcMain, app, BrowserWindow } from "electron";
 import { mkdirSync, writeFileSync, openSync, writeSync, fsyncSync, closeSync, renameSync, existsSync, readFileSync, statSync, unlinkSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { newSessionId, newMessageId, AppStateSchema, defaultAppState, newSpaceId, newBrowserTabId, newWorkspaceTabId, LogEntrySchema, createId, okResult, ToolError, errorResult, DEFAULT_TOOL_TIMEOUT_MS, isToolResult } from "@meith/shared";
 import { EventEmitter } from "node:events";
 import net from "node:net";
 import { NdjsonParser, ClientMessageSchema, PROTOCOL_VERSION, encodeMessage, defineTool } from "@meith/protocol";
@@ -378,6 +378,13 @@ class TabOwnershipError extends Error {
     this.name = "TabOwnershipError";
   }
 }
+class TabClaimRequiredError extends Error {
+  constructor(tabId) {
+    super(`Tab ${tabId} must be claimed via browser_use_start before control`);
+    this.tabId = tabId;
+    this.name = "TabClaimRequiredError";
+  }
+}
 class BrowserTabService {
   constructor(appState, logger, options = {}) {
     this.appState = appState;
@@ -395,11 +402,44 @@ class BrowserTabService {
   getTab(id) {
     return this.appState.getState().browserTabs.find((t) => t.id === id);
   }
-  /** Throw unless `ownerId` is allowed to control `tab` (matches or unowned). */
-  assertOwner(tab, ownerId) {
-    if (tab.ownerId && tab.ownerId !== ownerId) {
-      throw new TabOwnershipError(tab.id, tab.ownerId);
+  /**
+   * Throw unless `control` is allowed to mutate `tab`:
+   *  - if the tab is claimed by someone else -> `TabOwnershipError`;
+   *  - if the tab is unclaimed and the caller requires a claim
+   *    (automation) -> `TabClaimRequiredError`.
+   */
+  assertControl(tab, control) {
+    if (tab.ownerId) {
+      if (tab.ownerId !== control.ownerId) {
+        throw new TabOwnershipError(tab.id, tab.ownerId);
+      }
+      return;
     }
+    if (control.requireClaim) {
+      throw new TabClaimRequiredError(tab.id);
+    }
+  }
+  /**
+   * Ensure a live view exists for a persisted tab, recreating it lazily (e.g.
+   * after an app restart, when only the tab record survived). Safe to call
+   * repeatedly: it no-ops when the host already has the view.
+   */
+  async ensureView(tab) {
+    if (this.host.getNavState(tab.id) === null) {
+      await this.host.createView(tab.id, tab.url);
+    }
+  }
+  /**
+   * Recreate live views for all persisted tabs and focus the active tab so the
+   * window shows content immediately after startup. Call once during bootstrap.
+   */
+  async hydrate() {
+    const tabs = this.appState.getState().browserTabs;
+    for (const tab of tabs) {
+      await this.ensureView(tab);
+    }
+    const active = this.getActiveBrowserTab();
+    if (active) await this.host.focusView(active.id);
   }
   listBrowserTabs(spaceId) {
     const tabs = this.appState.getState().browserTabs;
@@ -439,9 +479,9 @@ class BrowserTabService {
     this.logger.info("BrowserTabs", `opened browser tab ${tab.id} -> ${tab.url}`);
     return this.getTab(tab.id) ?? tab;
   }
-  async navigate(id, url, ownerId) {
+  async navigate(id, url, control = {}) {
     const tab = this.requireTab(id);
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
     this.appState.update((draft) => {
       const t = draft.browserTabs.find((b) => b.id === id);
       if (t) {
@@ -449,25 +489,32 @@ class BrowserTabService {
         t.loadState = "loading";
       }
     }, "navigate");
-    await this.host.loadURL(id, url);
+    if (this.host.getNavState(id) === null) {
+      await this.host.createView(id, url);
+    } else {
+      await this.host.loadURL(id, url);
+    }
     this.logger.info("BrowserTabs", `navigate ${id} -> ${url}`);
     return this.requireTab(id);
   }
-  async goBack(id, ownerId) {
+  async goBack(id, control = {}) {
     const tab = this.requireTab(id);
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
     await this.host.goBack(id);
     return this.requireTab(id);
   }
-  async goForward(id, ownerId) {
+  async goForward(id, control = {}) {
     const tab = this.requireTab(id);
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
     await this.host.goForward(id);
     return this.requireTab(id);
   }
-  async refresh(id, ownerId) {
+  async refresh(id, control = {}) {
     const tab = this.requireTab(id);
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
     await this.host.reload(id);
     return this.requireTab(id);
   }
@@ -478,14 +525,16 @@ class BrowserTabService {
         if (t.spaceId === tab.spaceId) t.active = t.id === id;
       }
     }, "focus_browser_tab");
+    await this.ensureView(tab);
     await this.host.focusView(id);
     return this.requireTab(id);
   }
-  async closeBrowserTab(id, ownerId) {
+  async closeBrowserTab(id, control = {}) {
     const tab = this.getTab(id);
     if (!tab) return false;
-    this.assertOwner(tab, ownerId);
+    this.assertControl(tab, control);
     let removed = false;
+    let nextActiveId = null;
     this.appState.update((draft) => {
       const before = draft.browserTabs.length;
       draft.browserTabs = draft.browserTabs.filter((t) => t.id !== id);
@@ -493,10 +542,20 @@ class BrowserTabService {
       if (removed && tab.active) {
         const sameSpace = draft.browserTabs.filter((t) => t.spaceId === tab.spaceId);
         const last = sameSpace[sameSpace.length - 1];
-        if (last) last.active = true;
+        if (last) {
+          last.active = true;
+          nextActiveId = last.id;
+        }
       }
     }, "close_browser_tab");
     await this.host.destroyView(id);
+    if (nextActiveId) {
+      const next = this.getTab(nextActiveId);
+      if (next) {
+        await this.ensureView(next);
+        await this.host.focusView(nextActiveId);
+      }
+    }
     if (removed) this.logger.info("BrowserTabs", `closed browser tab ${id}`);
     return removed;
   }
@@ -542,7 +601,8 @@ class BrowserTabService {
    * `ArtifactStore` is configured and returns a structured descriptor.
    */
   async captureScreenshot(id) {
-    this.requireTab(id);
+    const tab = this.requireTab(id);
+    await this.ensureView(tab);
     const capture = await this.host.capture(id);
     if (!capture) {
       throw new Error(`No live view to capture for tab ${id}`);
@@ -1053,6 +1113,7 @@ function createAppTools(deps) {
   });
   return [appGetState, appGetLogs, getProcessTree, getProcessLogs];
 }
+const AUTOMATION_CALLERS = /* @__PURE__ */ new Set(["agent", "plugin"]);
 async function guardOwnership(fn) {
   try {
     return await fn();
@@ -1063,11 +1124,23 @@ async function guardOwnership(fn) {
         ownerId: err.ownerId
       });
     }
+    if (err instanceof TabClaimRequiredError) {
+      throw new ToolError("PERMISSION_DENIED", err.message, {
+        tabId: err.tabId,
+        reason: "claim_required"
+      });
+    }
     throw err;
   }
 }
 function ownerOf(ctx, explicit) {
   return explicit ?? ctx.sessionId ?? ctx.caller;
+}
+function controlFor(ctx, explicit) {
+  return {
+    ownerId: ownerOf(ctx, explicit),
+    requireClaim: AUTOMATION_CALLERS.has(ctx.caller)
+  };
 }
 function createBrowserTools(deps) {
   const getTabs = defineTool({
@@ -1111,7 +1184,7 @@ function createBrowserTools(deps) {
       owner: z.string().optional().describe("Automation owner id, if claimed.")
     }),
     execute: (ctx, input) => guardOwnership(
-      () => deps.browserTabs.navigate(input.tabId, input.url, ownerOf(ctx, input.owner))
+      () => deps.browserTabs.navigate(input.tabId, input.url, controlFor(ctx, input.owner))
     )
   });
   const goBack = defineTool({
@@ -1120,7 +1193,7 @@ function createBrowserTools(deps) {
     capabilities: ["controls-browser"],
     inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
     execute: (ctx, input) => guardOwnership(
-      () => deps.browserTabs.goBack(input.tabId, ownerOf(ctx, input.owner))
+      () => deps.browserTabs.goBack(input.tabId, controlFor(ctx, input.owner))
     )
   });
   const goForward = defineTool({
@@ -1129,7 +1202,7 @@ function createBrowserTools(deps) {
     capabilities: ["controls-browser"],
     inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
     execute: (ctx, input) => guardOwnership(
-      () => deps.browserTabs.goForward(input.tabId, ownerOf(ctx, input.owner))
+      () => deps.browserTabs.goForward(input.tabId, controlFor(ctx, input.owner))
     )
   });
   const refresh = defineTool({
@@ -1138,7 +1211,7 @@ function createBrowserTools(deps) {
     capabilities: ["controls-browser"],
     inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
     execute: (ctx, input) => guardOwnership(
-      () => deps.browserTabs.refresh(input.tabId, ownerOf(ctx, input.owner))
+      () => deps.browserTabs.refresh(input.tabId, controlFor(ctx, input.owner))
     )
   });
   const focusBrowserTab = defineTool({
@@ -1156,7 +1229,7 @@ function createBrowserTools(deps) {
     execute: (ctx, input) => guardOwnership(async () => ({
       closed: await deps.browserTabs.closeBrowserTab(
         input.tabId,
-        ownerOf(ctx, input.owner)
+        controlFor(ctx, input.owner)
       )
     }))
   });
@@ -1391,6 +1464,7 @@ async function bootstrap(userDataPath, options = {}) {
   const agents = new AgentService(registry, logger);
   const socket = new ToolSocketService(socketPath, registry, logger);
   await socket.start();
+  await browserTabs.hydrate();
   logger.info("Bootstrap", "service container ready");
   const shutdown = async () => {
     registry.beginShutdown();
@@ -1420,6 +1494,17 @@ class ElectronBrowserViewHost extends EventEmitter {
   }
   views = /* @__PURE__ */ new Map();
   activeTabId = null;
+  /** Last viewport reported by the renderer; takes precedence over fallback. */
+  explicitBounds = null;
+  /**
+   * Set the content region from the renderer's measured layout. This is the
+   * viewport contract: the native view is sized to wherever the renderer says
+   * browser content belongs, instead of a hard-coded inset.
+   */
+  setContentBounds(bounds) {
+    this.explicitBounds = bounds;
+    this.layout();
+  }
   createView(tabId, url) {
     if (this.views.has(tabId)) {
       this.loadURL(tabId, url);
@@ -1459,14 +1544,24 @@ class ElectronBrowserViewHost extends EventEmitter {
     if (this.activeTabId === tabId) this.activeTabId = null;
   }
   focusView(tabId) {
-    const managed = this.views.get(tabId);
+    if (!this.views.has(tabId)) return;
+    this.activeTabId = tabId;
+    this.attachActiveView();
+  }
+  /**
+   * Attach the active view to the window and size it. No-ops if the window
+   * doesn't exist yet; call again from the main process once the window is
+   * created/ready to resolve the startup race.
+   */
+  attachActiveView() {
     const win = this.options.getWindow();
-    if (!managed || !win) return;
+    if (!win || !this.activeTabId) return;
+    const managed = this.views.get(this.activeTabId);
+    if (!managed) return;
     for (const [id, other] of this.views) {
-      if (id !== tabId) win.contentView.removeChildView(other.view);
+      if (id !== this.activeTabId) win.contentView.removeChildView(other.view);
     }
     win.contentView.addChildView(managed.view);
-    this.activeTabId = tabId;
     this.layout();
     managed.view.webContents.focus();
   }
@@ -1499,7 +1594,14 @@ class ElectronBrowserViewHost extends EventEmitter {
     if (!this.activeTabId) return;
     const managed = this.views.get(this.activeTabId);
     if (!managed) return;
-    managed.view.setBounds(this.options.getContentBounds());
+    managed.view.setBounds(this.resolveBounds());
+  }
+  /** Renderer-reported bounds win; otherwise fall back to the option/default. */
+  resolveBounds() {
+    if (this.explicitBounds) return this.explicitBounds;
+    if (this.options.getContentBounds) return this.options.getContentBounds();
+    const [width, height] = this.options.getWindow()?.getContentSize() ?? [1280, 820];
+    return { x: 0, y: 0, width, height };
   }
   wireEvents(tabId, managed) {
     const wc = managed.view.webContents;
@@ -1535,7 +1637,9 @@ const IPC = {
   getState: "meith:state:get",
   stateChanged: "meith:state:changed",
   getLogs: "meith:logs:get",
-  logEntry: "meith:logs:entry"
+  logEntry: "meith:logs:entry",
+  /** Renderer -> main (one-way): measured browser content viewport bounds. */
+  browserViewport: "meith:browser:viewport"
 };
 function registerIpcHandlers(container2, getWindow) {
   ipcMain.handle(IPC.toolsList, () => container2.registry.describe());
@@ -1558,7 +1662,7 @@ function registerIpcHandlers(container2, getWindow) {
     getWindow()?.webContents.send(IPC.logEntry, entry);
   });
 }
-const CHROME_TOP = 96;
+const FALLBACK_CHROME_TOP = 96;
 let mainWindow = null;
 let container = null;
 let viewHost = null;
@@ -1573,7 +1677,10 @@ function createWindow() {
       nodeIntegration: false
     }
   });
-  mainWindow.on("ready-to-show", () => mainWindow?.show());
+  mainWindow.on("ready-to-show", () => {
+    mainWindow?.show();
+    viewHost?.attachActiveView();
+  });
   mainWindow.on("resize", () => viewHost?.layout());
   const devUrl = process.env.ELECTRON_RENDERER_URL;
   if (devUrl) {
@@ -1588,12 +1695,21 @@ app.whenReady().then(async () => {
     preloadPath: join(__dirname, "../preload/webContent.cjs"),
     getContentBounds: () => {
       const [width, height] = mainWindow?.getContentSize() ?? [1280, 820];
-      return { x: 0, y: CHROME_TOP, width, height: Math.max(0, height - CHROME_TOP) };
+      return {
+        x: 0,
+        y: FALLBACK_CHROME_TOP,
+        width,
+        height: Math.max(0, height - FALLBACK_CHROME_TOP)
+      };
     }
   });
+  createWindow();
   container = await bootstrap(app.getPath("userData"), { browserViewHost: viewHost });
   registerIpcHandlers(container, () => mainWindow);
-  createWindow();
+  ipcMain.on(IPC.browserViewport, (_event, raw) => {
+    const parsed = BrowserViewportSchema.safeParse(raw);
+    if (parsed.success) viewHost?.setContentBounds(parsed.data);
+  });
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

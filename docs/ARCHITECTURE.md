@@ -86,9 +86,8 @@ Browser tabs have two halves that stay in sync:
   restart.
 - **Live views** live in a `BrowserViewHost` (`main/browser/`). The interface is
   injected so `bootstrap()` stays Electron-free: the desktop app passes an
-  `ElectronBrowserViewHost` (real `WebContentsView`s, laid out below the chrome
-  region and resized with the window), while tests/CLI/headless use the
-  in-memory `HeadlessBrowserViewHost`.
+  `ElectronBrowserViewHost` (real `WebContentsView`s), while tests/CLI/headless
+  use the in-memory `HeadlessBrowserViewHost`.
 
 `BrowserTabService` owns the lifecycle (open/navigate/back/forward/refresh/
 focus/close), delegates live operations to the host, and merges the host's
@@ -97,12 +96,32 @@ content loads with a minimal `preload/webContent.ts` bridge and **no Node
 integration**. Screenshots go through `webContents.capturePage()` and are
 persisted by `ArtifactStore` under `<userData>/artifacts/`.
 
-For automation, a tab can be claimed with `browser_use_start` and released with
-`browser_use_end`. While owned, control calls from a different owner throw
-`TabOwnershipError`, which surfaces as a `PERMISSION_DENIED` tool error;
-`releaseOwner` frees all of a session's tabs on shutdown/crash. All of this is
-exposed through the same tool registry, so the renderer and `meith` CLI drive
-identical behavior (`meith open`, `navigate`, `back`, `screenshot`, …).
+**Rehydration.** Only tab *records* survive a restart, not live views. On
+startup `bootstrap()` calls `BrowserTabService.hydrate()` to recreate views for
+persisted tabs and focus the active one. As a safety net, `ensureView()` lazily
+recreates a missing view before any navigate/back/forward/refresh/focus/capture,
+so control never fails just because a view was lost.
+
+**Viewport contract.** The renderer measures its browser content region
+(`ResizeObserver` on `<main>`) and reports it to the main process over
+`meith:browser:viewport` (validated by `BrowserViewportSchema`). The host's
+`setContentBounds()` sizes the native view to that measured rectangle;
+`getContentBounds` is only a fallback used before the first report. This avoids
+the hard-coded inset drifting out of sync with the real layout. The window is
+created **before** bootstrap, and `attachActiveView()` runs again on
+`ready-to-show`, resolving the startup race where hydrate focuses a tab before
+the window exists.
+
+**Ownership.** A tab can be claimed with `browser_use_start` and released with
+`browser_use_end`. Control is gated by a `ControlContext { ownerId, requireClaim }`:
+automation callers (`agent`, `plugin`) set `requireClaim`, so they **must** claim
+a tab before mutating it (unclaimed → `TabClaimRequiredError`); interactive
+callers (`renderer`, `cli`) and `internal` may drive unclaimed tabs directly.
+Controlling a tab owned by someone else throws `TabOwnershipError`. Both map to a
+`PERMISSION_DENIED` tool error; `releaseOwner` frees all of a session's tabs on
+shutdown/crash. Everything is exposed through the same tool registry, so the
+renderer and `meith` CLI drive identical behavior (`meith open`, `navigate`,
+`back`, `screenshot`, …).
 
 ## Related docs
 

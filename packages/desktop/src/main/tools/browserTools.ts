@@ -140,7 +140,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
     execute: (ctx, input) =>
       guardOwnership(() =>
-        deps.browserTabs.refresh(input.tabId, ownerOf(ctx, input.owner)),
+        deps.browserTabs.refresh(input.tabId, controlFor(ctx, input.owner)),
       ),
   });
 
@@ -161,7 +161,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
       guardOwnership(async () => ({
         closed: await deps.browserTabs.closeBrowserTab(
           input.tabId,
-          ownerOf(ctx, input.owner),
+          controlFor(ctx, input.owner),
         ),
       })),
   });

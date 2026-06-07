@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppStateService } from "../services/AppStateService.js";
-import { BrowserTabService, TabOwnershipError } from "../services/BrowserTabService.js";
+import {
+  BrowserTabService,
+  TabClaimRequiredError,
+  TabOwnershipError,
+} from "../services/BrowserTabService.js";
 import { Logger } from "../services/Logger.js";
 import { ArtifactStore } from "../storage/ArtifactStore.js";
 
@@ -68,14 +72,47 @@ describe("BrowserTabService lifecycle", () => {
     expect(() => ctx.service.startUse(tab.id, "agent-2")).toThrow(TabOwnershipError);
     // A non-owner cannot navigate the held tab.
     await expect(
-      ctx.service.navigate(tab.id, "https://x.test", "agent-2"),
+      ctx.service.navigate(tab.id, "https://x.test", { ownerId: "agent-2" }),
     ).rejects.toThrow(TabOwnershipError);
     // The owner may, then release.
     await expect(
-      ctx.service.navigate(tab.id, "https://x.test", "agent-1"),
+      ctx.service.navigate(tab.id, "https://x.test", { ownerId: "agent-1" }),
     ).resolves.toBeTruthy();
     ctx.service.endUse(tab.id, "agent-1");
     expect(() => ctx.service.startUse(tab.id, "agent-2")).not.toThrow();
+  });
+
+  it("requires a claim before automation can control an unclaimed tab", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    // Automation (requireClaim) must claim first.
+    await expect(
+      ctx.service.navigate(tab.id, "https://x.test", {
+        ownerId: "agent-1",
+        requireClaim: true,
+      }),
+    ).rejects.toThrow(TabClaimRequiredError);
+    // Interactive callers (no requireClaim) may control unclaimed tabs.
+    await expect(ctx.service.navigate(tab.id, "https://x.test")).resolves.toBeTruthy();
+    // After claiming, automation may control it.
+    ctx.service.startUse(tab.id, "agent-1");
+    await expect(
+      ctx.service.navigate(tab.id, "https://y.test", {
+        ownerId: "agent-1",
+        requireClaim: true,
+      }),
+    ).resolves.toBeTruthy();
+  });
+
+  it("rehydrates a lost view before control/capture", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    // Simulate a restart: only the persisted record survives, the live view
+    // is gone. A fresh service over the same state has no in-memory view.
+    const revived = new BrowserTabService(ctx.appState, new Logger(), {
+      artifacts: ctx.artifacts,
+    });
+    const shot = await revived.captureScreenshot(tab.id);
+    expect(shot.path).toBeTruthy();
+    await expect(revived.refresh(tab.id)).resolves.toBeTruthy();
   });
 
   it("releases all tabs held by an owner", async () => {

@@ -180,7 +180,11 @@ export class BrowserTabService {
     return this.getTab(tab.id) ?? tab;
   }
 
-  async navigate(id: string, url: string, control: ControlContext = {}): Promise<BrowserTab> {
+  async navigate(
+    id: string,
+    url: string,
+    control: ControlContext = {},
+  ): Promise<BrowserTab> {
     const tab = this.requireTab(id);
     this.assertControl(tab, control);
     this.appState.update((draft) => {
