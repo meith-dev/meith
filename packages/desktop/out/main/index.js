@@ -276,17 +276,35 @@ class AppStateService extends EventEmitter {
     this.store.flush();
   }
 }
+class ElementNotFoundError extends Error {
+  constructor(tabId, elementId) {
+    super(`Element ${elementId} not found in tab ${tabId}`);
+    this.tabId = tabId;
+    this.elementId = elementId;
+    this.name = "ElementNotFoundError";
+  }
+}
+const MAX_LOG$1 = 500;
+let networkSeq = 0;
 class HeadlessBrowserViewHost {
   views = /* @__PURE__ */ new Map();
   listeners = [];
   createView(tabId, url) {
-    this.views.set(tabId, {
+    const view = {
       url,
       title: titleFromUrl(url),
       history: [url],
       cursor: 0,
-      loadState: "complete"
-    });
+      loadState: "complete",
+      elements: [],
+      clicks: 0,
+      scrollX: 0,
+      scrollY: 0,
+      console: [],
+      network: []
+    };
+    this.views.set(tabId, view);
+    this.onNavigated(view, url);
     this.emit(tabId);
   }
   loadURL(tabId, url) {
@@ -301,6 +319,7 @@ class HeadlessBrowserViewHost {
     view.url = url;
     view.title = titleFromUrl(url);
     view.loadState = "complete";
+    this.onNavigated(view, url);
     this.emit(tabId);
   }
   destroyView(tabId) {
@@ -312,6 +331,7 @@ class HeadlessBrowserViewHost {
     const view = this.views.get(tabId);
     if (!view) return;
     view.loadState = "complete";
+    this.onNavigated(view, view.url);
     this.emit(tabId);
   }
   goBack(tabId) {
@@ -320,6 +340,7 @@ class HeadlessBrowserViewHost {
     view.cursor -= 1;
     view.url = view.history[view.cursor];
     view.title = titleFromUrl(view.url);
+    this.onNavigated(view, view.url);
     this.emit(tabId);
   }
   goForward(tabId) {
@@ -328,6 +349,7 @@ class HeadlessBrowserViewHost {
     view.cursor += 1;
     view.url = view.history[view.cursor];
     view.title = titleFromUrl(view.url);
+    this.onNavigated(view, view.url);
     this.emit(tabId);
   }
   async capture(tabId) {
@@ -341,6 +363,140 @@ class HeadlessBrowserViewHost {
   }
   onNavStateChanged(cb) {
     this.listeners.push(cb);
+  }
+  // --- Automation & diagnostics ---
+  async getBrowserState(tabId) {
+    const view = this.views.get(tabId);
+    if (!view) return null;
+    return {
+      url: view.url,
+      title: view.title,
+      viewport: { width: 1280, height: 800 },
+      elements: view.elements.map((el, i) => ({
+        id: `el-${i}`,
+        tag: el.tag,
+        role: el.role,
+        label: el.label,
+        text: el.text,
+        value: el.value,
+        bounds: el.bounds,
+        disabled: el.disabled,
+        hidden: el.hidden
+      }))
+    };
+  }
+  async clickElement(tabId, elementId) {
+    const { view, el } = this.resolve(tabId, elementId);
+    if (el.disabled) {
+      this.pushConsole(view, "warn", `click ignored on disabled <${el.tag}>`);
+      return;
+    }
+    if (el.href) {
+      this.pushConsole(view, "info", `navigating via link to ${el.href}`);
+      this.loadURL(tabId, el.href);
+      return;
+    }
+    if (el.tag === "button") {
+      view.clicks += 1;
+      el.text = `Clicked ${view.clicks}`;
+      this.pushConsole(view, "log", `button clicked (count=${view.clicks})`);
+      this.emit(tabId);
+      return;
+    }
+    this.pushConsole(view, "log", `clicked <${el.tag}>`);
+  }
+  async typeText(tabId, elementId, text) {
+    const { view, el } = this.resolve(tabId, elementId);
+    if (el.tag !== "input" && el.tag !== "textarea") {
+      throw new Error(`Cannot type into a <${el.tag}> element`);
+    }
+    if (el.disabled) throw new Error("Cannot type into a disabled element");
+    el.value = text;
+    this.pushConsole(view, "log", `typed ${text.length} chars`);
+    this.emit(tabId);
+  }
+  async scrollPage(tabId, options) {
+    const view = this.requireView(tabId);
+    if (options.toX !== void 0) view.scrollX = Math.max(0, options.toX);
+    else if (options.deltaX) view.scrollX = Math.max(0, view.scrollX + options.deltaX);
+    if (options.toY !== void 0) view.scrollY = Math.max(0, options.toY);
+    else if (options.deltaY) view.scrollY = Math.max(0, view.scrollY + options.deltaY);
+  }
+  async sendKeys(tabId, keys) {
+    const view = this.requireView(tabId);
+    this.pushConsole(view, "log", `keys: ${keys}`);
+  }
+  async sendCdp(tabId, method, params = {}) {
+    const view = this.requireView(tabId);
+    switch (method) {
+      case "Page.navigate": {
+        const url = typeof params.url === "string" ? params.url : view.url;
+        this.loadURL(tabId, url);
+        return { frameId: "headless-frame", loaderId: "headless-loader" };
+      }
+      case "Page.reload":
+        this.reload(tabId);
+        return {};
+      case "Runtime.evaluate": {
+        const expression = typeof params.expression === "string" ? params.expression : "";
+        return { result: { type: "string", value: expression } };
+      }
+      case "Page.getNavigationHistory":
+        return {
+          currentIndex: view.cursor,
+          entries: view.history.map((url, id) => ({ id, url, title: titleFromUrl(url) }))
+        };
+      default:
+        return { simulated: true, method };
+    }
+  }
+  getConsoleLogs(tabId, limit) {
+    const view = this.views.get(tabId);
+    if (!view) return [];
+    return limit ? view.console.slice(-limit) : [...view.console];
+  }
+  getNetworkLogs(tabId, limit) {
+    const view = this.views.get(tabId);
+    if (!view) return [];
+    return limit ? view.network.slice(-limit) : [...view.network];
+  }
+  // --- internals ---
+  /** Rebuild the synthetic DOM and record a navigation in console + network. */
+  onNavigated(view, url) {
+    view.clicks = 0;
+    view.scrollX = 0;
+    view.scrollY = 0;
+    view.elements = buildElements(url);
+    this.pushConsole(view, "info", `navigated to ${url}`);
+    const started = Date.now();
+    view.network.push({
+      id: `net-${++networkSeq}`,
+      method: "GET",
+      url,
+      status: 200,
+      resourceType: "document",
+      startedAt: started,
+      endedAt: started + 1,
+      durationMs: 1,
+      failed: false
+    });
+    if (view.network.length > MAX_LOG$1) view.network.shift();
+  }
+  pushConsole(view, level, text) {
+    view.console.push({ level, text, ts: Date.now() });
+    if (view.console.length > MAX_LOG$1) view.console.shift();
+  }
+  resolve(tabId, elementId) {
+    const view = this.requireView(tabId);
+    const idx = parseElementIndex(elementId);
+    const el = idx === null ? void 0 : view.elements[idx];
+    if (!el) throw new ElementNotFoundError(tabId, elementId);
+    return { view, el };
+  }
+  requireView(tabId) {
+    const view = this.views.get(tabId);
+    if (!view) throw new Error(`No live view for tab ${tabId}`);
+    return view;
   }
   toNavState(view) {
     return {
@@ -356,6 +512,50 @@ class HeadlessBrowserViewHost {
     if (!view) return;
     const state = this.toNavState(view);
     for (const cb of this.listeners) cb(tabId, state);
+  }
+}
+function buildElements(url) {
+  const origin = originOf(url);
+  return [
+    {
+      tag: "a",
+      role: "link",
+      label: "Next page",
+      text: "Next page",
+      href: `${origin}/next`,
+      bounds: { x: 16, y: 16, width: 120, height: 24 },
+      disabled: false,
+      hidden: false
+    },
+    {
+      tag: "button",
+      role: "button",
+      label: "Increment",
+      text: "Increment",
+      bounds: { x: 16, y: 56, width: 120, height: 32 },
+      disabled: false,
+      hidden: false
+    },
+    {
+      tag: "input",
+      role: "textbox",
+      label: "Search",
+      value: "",
+      bounds: { x: 16, y: 104, width: 240, height: 32 },
+      disabled: false,
+      hidden: false
+    }
+  ];
+}
+function parseElementIndex(elementId) {
+  const m = /^el-(\d+)$/.exec(elementId);
+  return m ? Number(m[1]) : null;
+}
+function originOf(url) {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url.replace(/\/+$/, "");
   }
 }
 function titleFromUrl(url) {
@@ -617,6 +817,68 @@ class BrowserTabService {
       path = info.path;
     }
     return { tabId: id, width: capture.width, height: capture.height, path };
+  }
+  // --- Automation & diagnostics (Phase 4) ---
+  /**
+   * Extract the page's interactable/semantic elements (read-only). Recreates
+   * the live view if it was lost so callers don't see spurious failures.
+   */
+  async getBrowserState(id) {
+    const tab = this.requireTab(id);
+    await this.ensureView(tab);
+    const state = await this.host.getBrowserState(id);
+    if (!state) throw new Error(`No live view for tab ${id}`);
+    return { tabId: id, ...state };
+  }
+  /** Click an element by an id from the most recent `getBrowserState`. */
+  async clickElement(id, elementId, control = {}) {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    await this.host.clickElement(id, elementId);
+    this.logger.info("BrowserTabs", `click ${elementId} on tab ${id}`);
+  }
+  /** Type text into an element by id (replaces its existing value). */
+  async typeText(id, elementId, text, control = {}) {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    await this.host.typeText(id, elementId, text);
+    this.logger.info("BrowserTabs", `type into ${elementId} on tab ${id}`);
+  }
+  /** Scroll the page by a delta or to an absolute position. */
+  async scrollPage(id, options, control = {}) {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    await this.host.scrollPage(id, options);
+  }
+  /** Dispatch a key (named) or literal characters to the focused element/page. */
+  async sendKeys(id, keys, control = {}) {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    await this.host.sendKeys(id, keys);
+  }
+  /** Issue a raw CDP command against a tab (treated as a control operation). */
+  async cdpCommand(id, method, params, control = {}) {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    const result = await this.host.sendCdp(id, method, params);
+    return { tabId: id, method, result };
+  }
+  /** Read captured console messages for a tab (read-only). */
+  async getConsoleLogs(id, limit) {
+    const tab = this.requireTab(id);
+    await this.ensureView(tab);
+    return this.host.getConsoleLogs(id, limit);
+  }
+  /** Read observed network requests for a tab (read-only). */
+  async getNetworkLogs(id, limit) {
+    const tab = this.requireTab(id);
+    await this.ensureView(tab);
+    return this.host.getNetworkLogs(id, limit);
   }
   openWorkspaceTab(input) {
     const spaceId = input.spaceId ?? this.activeSpaceId();
@@ -1270,6 +1532,129 @@ function createBrowserTools(deps) {
       )
     )
   });
+  const getBrowserState = defineTool({
+    name: "get_browser_state",
+    description: "Extract a browser tab's interactable elements (with stable ids), plus url/title/viewport. Use the returned element ids with click_element and type_text.",
+    capabilities: ["read-only", "controls-browser"],
+    inputSchema: z.object({ tabId: z.string() }),
+    execute: (_ctx, input) => deps.browserTabs.getBrowserState(input.tabId)
+  });
+  const clickElement = defineTool({
+    name: "click_element",
+    description: "Click an element by an id from the latest get_browser_state.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      elementId: z.string().describe("Element id from get_browser_state, e.g. el-2."),
+      owner: z.string().optional()
+    }),
+    execute: (ctx, input) => guardOwnership(async () => {
+      await deps.browserTabs.clickElement(
+        input.tabId,
+        input.elementId,
+        controlFor(ctx, input.owner)
+      );
+      return { clicked: input.elementId };
+    })
+  });
+  const typeText = defineTool({
+    name: "type_text",
+    description: "Focus an element (by get_browser_state id) and type text, replacing its current value.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      elementId: z.string(),
+      text: z.string(),
+      owner: z.string().optional()
+    }),
+    execute: (ctx, input) => guardOwnership(async () => {
+      await deps.browserTabs.typeText(
+        input.tabId,
+        input.elementId,
+        input.text,
+        controlFor(ctx, input.owner)
+      );
+      return { typed: input.text.length };
+    })
+  });
+  const scrollPage = defineTool({
+    name: "scroll_page",
+    description: "Scroll a browser tab by a relative delta (deltaX/deltaY) or to an absolute position (toX/toY).",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      deltaX: z.number().optional(),
+      deltaY: z.number().optional(),
+      toX: z.number().optional(),
+      toY: z.number().optional(),
+      owner: z.string().optional()
+    }),
+    execute: (ctx, input) => guardOwnership(async () => {
+      await deps.browserTabs.scrollPage(
+        input.tabId,
+        { deltaX: input.deltaX, deltaY: input.deltaY, toX: input.toX, toY: input.toY },
+        controlFor(ctx, input.owner)
+      );
+      return { ok: true };
+    })
+  });
+  const sendKeys = defineTool({
+    name: "send_keys",
+    description: "Dispatch keyboard input to the focused element/page. Use a named key (Enter, Tab, Backspace, ArrowDown, ...) or literal characters.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      keys: z.string(),
+      owner: z.string().optional()
+    }),
+    execute: (ctx, input) => guardOwnership(async () => {
+      await deps.browserTabs.sendKeys(
+        input.tabId,
+        input.keys,
+        controlFor(ctx, input.owner)
+      );
+      return { ok: true };
+    })
+  });
+  const cdpCommand = defineTool({
+    name: "cdp_command",
+    description: "Issue a raw Chrome DevTools Protocol command against a tab (e.g. Page.navigate, Runtime.evaluate). Treated as browser control.",
+    capabilities: ["controls-browser", "accesses-network"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      method: z.string().describe("CDP method, e.g. Runtime.evaluate."),
+      params: z.record(z.unknown()).optional(),
+      owner: z.string().optional()
+    }),
+    execute: (ctx, input) => guardOwnership(
+      () => deps.browserTabs.cdpCommand(
+        input.tabId,
+        input.method,
+        input.params ?? {},
+        controlFor(ctx, input.owner)
+      )
+    )
+  });
+  const getConsoleLogs = defineTool({
+    name: "get_console_logs",
+    description: "Return console messages captured for a browser tab (most recent last).",
+    capabilities: ["read-only"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      limit: z.number().int().positive().optional()
+    }),
+    execute: (_ctx, input) => deps.browserTabs.getConsoleLogs(input.tabId, input.limit)
+  });
+  const getNetworkLogs = defineTool({
+    name: "get_network_logs",
+    description: "Return network requests observed for a browser tab (most recent last).",
+    capabilities: ["read-only", "accesses-network"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      limit: z.number().int().positive().optional()
+    }),
+    execute: (_ctx, input) => deps.browserTabs.getNetworkLogs(input.tabId, input.limit)
+  });
   const takeScreenshot = defineTool({
     name: "take_screenshot",
     description: "Capture a screenshot of a browser tab using the live view. Persists a PNG artifact when storage is available.",
@@ -1298,7 +1683,15 @@ function createBrowserTools(deps) {
     closeBrowserTab,
     browserUseStart,
     browserUseEnd,
-    takeScreenshot
+    takeScreenshot,
+    getBrowserState,
+    clickElement,
+    typeText,
+    scrollPage,
+    sendKeys,
+    cdpCommand,
+    getConsoleLogs,
+    getNetworkLogs
   ];
 }
 class ToolRegistry {
@@ -1495,6 +1888,7 @@ async function bootstrap(userDataPath, options = {}) {
     shutdown
   };
 }
+const MAX_LOG = 1e3;
 class ElectronBrowserViewHost extends EventEmitter {
   constructor(options) {
     super();
@@ -1528,10 +1922,16 @@ class ElectronBrowserViewHost extends EventEmitter {
     });
     const managed = {
       view,
-      nav: { url, loadState: "loading", canGoBack: false, canGoForward: false }
+      nav: { url, loadState: "loading", canGoBack: false, canGoForward: false },
+      debuggerAttached: false,
+      console: [],
+      network: [],
+      netByRequestId: /* @__PURE__ */ new Map(),
+      knownElementIds: /* @__PURE__ */ new Set()
     };
     this.views.set(tabId, managed);
     this.wireEvents(tabId, managed);
+    this.attachDebugger(tabId, managed);
     void view.webContents.loadURL(url).catch(() => this.markFailed(tabId));
   }
   loadURL(tabId, url) {
@@ -1547,6 +1947,12 @@ class ElectronBrowserViewHost extends EventEmitter {
     if (!managed) return;
     const win = this.options.getWindow();
     win?.contentView.removeChildView(managed.view);
+    if (managed.debuggerAttached) {
+      try {
+        managed.view.webContents.debugger.detach();
+      } catch {
+      }
+    }
     managed.view.webContents.close();
     this.views.delete(tabId);
     if (this.activeTabId === tabId) this.activeTabId = null;
@@ -1597,6 +2003,79 @@ class ElectronBrowserViewHost extends EventEmitter {
   onNavStateChanged(cb) {
     this.on("nav", cb);
   }
+  // --- Automation & diagnostics ---
+  async getBrowserState(tabId) {
+    const managed = this.views.get(tabId);
+    if (!managed) return null;
+    const wc = managed.view.webContents;
+    const raw = await wc.executeJavaScript(EXTRACT_SCRIPT, true);
+    managed.knownElementIds = new Set(raw.elements.map((el) => el.id));
+    return raw;
+  }
+  async clickElement(tabId, elementId) {
+    const managed = this.requireKnownElement(tabId, elementId);
+    const wc = managed.view.webContents;
+    const ok = await wc.executeJavaScript(
+      `(${INTERACT_FN})(${JSON.stringify(elementId)}, "click")`,
+      true
+    );
+    if (!ok) throw new ElementNotFoundError(tabId, elementId);
+  }
+  async typeText(tabId, elementId, text) {
+    const managed = this.requireKnownElement(tabId, elementId);
+    const wc = managed.view.webContents;
+    const ok = await wc.executeJavaScript(
+      `(${INTERACT_FN})(${JSON.stringify(elementId)}, "type", ${JSON.stringify(text)})`,
+      true
+    );
+    if (!ok) throw new ElementNotFoundError(tabId, elementId);
+  }
+  async scrollPage(tabId, options) {
+    const managed = this.views.get(tabId);
+    if (!managed) return;
+    const wc = managed.view.webContents;
+    if (options.toX !== void 0 || options.toY !== void 0) {
+      await wc.executeJavaScript(
+        `window.scrollTo(${options.toX ?? 0}, ${options.toY ?? 0})`,
+        true
+      );
+    } else {
+      await wc.executeJavaScript(
+        `window.scrollBy(${options.deltaX ?? 0}, ${options.deltaY ?? 0})`,
+        true
+      );
+    }
+  }
+  async sendKeys(tabId, keys) {
+    const managed = this.views.get(tabId);
+    if (!managed) return;
+    const wc = managed.view.webContents;
+    const named = NAMED_KEYS[keys];
+    if (named) {
+      wc.sendInputEvent({ type: "keyDown", keyCode: named });
+      wc.sendInputEvent({ type: "keyUp", keyCode: named });
+      return;
+    }
+    for (const ch of keys) {
+      wc.sendInputEvent({ type: "char", keyCode: ch });
+    }
+  }
+  async sendCdp(tabId, method, params = {}) {
+    const managed = this.views.get(tabId);
+    if (!managed) throw new Error(`No live view for tab ${tabId}`);
+    this.ensureDebugger(tabId, managed);
+    return managed.view.webContents.debugger.sendCommand(method, params);
+  }
+  getConsoleLogs(tabId, limit) {
+    const managed = this.views.get(tabId);
+    if (!managed) return [];
+    return limit ? managed.console.slice(-limit) : [...managed.console];
+  }
+  getNetworkLogs(tabId, limit) {
+    const managed = this.views.get(tabId);
+    if (!managed) return [];
+    return limit ? managed.network.slice(-limit) : [...managed.network];
+  }
   /** Re-apply the content region to the active view (call on window resize). */
   layout() {
     if (!this.activeTabId) return;
@@ -1629,6 +2108,120 @@ class ElectronBrowserViewHost extends EventEmitter {
     wc.on("page-title-updated", (_e, title) => sync({ title }));
     wc.on("page-favicon-updated", (_e, favicons) => sync({ faviconUrl: favicons[0] }));
   }
+  /** Attach the CDP debugger and enable diagnostics domains for a view. */
+  attachDebugger(tabId, managed) {
+    const wc = managed.view.webContents;
+    try {
+      wc.debugger.attach("1.3");
+    } catch {
+      return;
+    }
+    managed.debuggerAttached = true;
+    wc.debugger.on("detach", () => {
+      managed.debuggerAttached = false;
+    });
+    wc.debugger.on(
+      "message",
+      (_e, method, params) => this.handleCdpMessage(tabId, method, params)
+    );
+    for (const domain of [
+      "Page.enable",
+      "Runtime.enable",
+      "Network.enable",
+      "Log.enable"
+    ]) {
+      void wc.debugger.sendCommand(domain).catch(() => {
+      });
+    }
+  }
+  /** Ensure the debugger is attached before a raw CDP command. */
+  ensureDebugger(tabId, managed) {
+    if (!managed.debuggerAttached) this.attachDebugger(tabId, managed);
+    if (!managed.debuggerAttached) {
+      throw new Error(`CDP debugger unavailable for tab ${tabId}`);
+    }
+  }
+  /** Resolve a view and verify the element id came from a recent extraction. */
+  requireKnownElement(tabId, elementId) {
+    const managed = this.views.get(tabId);
+    if (!managed) throw new Error(`No live view for tab ${tabId}`);
+    if (!managed.knownElementIds.has(elementId)) {
+      throw new ElementNotFoundError(tabId, elementId);
+    }
+    return managed;
+  }
+  /** Translate CDP events into the per-tab console/network buffers. */
+  handleCdpMessage(tabId, method, params) {
+    const managed = this.views.get(tabId);
+    if (!managed) return;
+    switch (method) {
+      case "Runtime.consoleAPICalled": {
+        const type = String(params.type ?? "log");
+        const args = params.args ?? [];
+        const text = args.map((a) => a.value !== void 0 ? String(a.value) : a.description ?? "").join(" ");
+        this.pushConsole(managed, { level: consoleLevel(type), text, ts: Date.now() });
+        break;
+      }
+      case "Log.entryAdded": {
+        const entry = params.entry ?? {};
+        this.pushConsole(managed, {
+          level: consoleLevel(String(entry.level ?? "info")),
+          text: String(entry.text ?? ""),
+          ts: Date.now(),
+          source: entry.url ? String(entry.url) : void 0
+        });
+        break;
+      }
+      case "Network.requestWillBeSent": {
+        const request = params.request ?? {};
+        const entry = {
+          id: String(params.requestId),
+          method: String(request.method ?? "GET"),
+          url: String(request.url ?? ""),
+          resourceType: params.type ? String(params.type) : void 0,
+          startedAt: Date.now(),
+          failed: false
+        };
+        managed.netByRequestId.set(entry.id, entry);
+        this.pushNetwork(managed, entry);
+        break;
+      }
+      case "Network.responseReceived": {
+        const response = params.response ?? {};
+        const entry = managed.netByRequestId.get(String(params.requestId));
+        if (entry) entry.status = Number(response.status ?? 0);
+        break;
+      }
+      case "Network.loadingFinished": {
+        const entry = managed.netByRequestId.get(String(params.requestId));
+        if (entry) {
+          entry.endedAt = Date.now();
+          entry.durationMs = entry.endedAt - entry.startedAt;
+          managed.netByRequestId.delete(entry.id);
+        }
+        break;
+      }
+      case "Network.loadingFailed": {
+        const entry = managed.netByRequestId.get(String(params.requestId));
+        if (entry) {
+          entry.failed = true;
+          entry.errorText = params.errorText ? String(params.errorText) : "failed";
+          entry.endedAt = Date.now();
+          entry.durationMs = entry.endedAt - entry.startedAt;
+          managed.netByRequestId.delete(entry.id);
+        }
+        break;
+      }
+    }
+  }
+  pushConsole(managed, entry) {
+    managed.console.push(entry);
+    if (managed.console.length > MAX_LOG) managed.console.shift();
+  }
+  pushNetwork(managed, entry) {
+    managed.network.push(entry);
+    if (managed.network.length > MAX_LOG) managed.network.shift();
+  }
   markFailed(tabId) {
     const managed = this.views.get(tabId);
     if (!managed) return;
@@ -1639,6 +2232,90 @@ class ElectronBrowserViewHost extends EventEmitter {
     this.emit("nav", tabId, { ...managed.nav });
   }
 }
+function consoleLevel(type) {
+  switch (type) {
+    case "error":
+    case "assert":
+      return "error";
+    case "warning":
+    case "warn":
+      return "warn";
+    case "debug":
+    case "verbose":
+      return "debug";
+    case "info":
+      return "info";
+    default:
+      return "log";
+  }
+}
+const NAMED_KEYS = {
+  Enter: "Return",
+  Tab: "Tab",
+  Backspace: "Backspace",
+  Delete: "Delete",
+  Escape: "Escape",
+  ArrowUp: "Up",
+  ArrowDown: "Down",
+  ArrowLeft: "Left",
+  ArrowRight: "Right",
+  Home: "Home",
+  End: "End",
+  PageUp: "PageUp",
+  PageDown: "PageDown"
+};
+const EXTRACT_SCRIPT = `(() => {
+  const SEL = 'a,button,input,textarea,select,[role="button"],[role="link"],[role="textbox"],[role="checkbox"],[onclick]';
+  const nodes = Array.from(document.querySelectorAll(SEL));
+  const elements = [];
+  let i = 0;
+  for (const node of nodes) {
+    const rect = node.getBoundingClientRect();
+    const style = window.getComputedStyle(node);
+    const hidden = style.display === 'none' || style.visibility === 'hidden' || (rect.width === 0 && rect.height === 0);
+    const id = 'el-' + i++;
+    node.setAttribute('data-meith-id', id);
+    const label = node.getAttribute('aria-label') || node.getAttribute('placeholder') || node.getAttribute('name') || (node.labels && node.labels[0] && node.labels[0].innerText) || '';
+    elements.push({
+      id,
+      tag: node.tagName.toLowerCase(),
+      role: node.getAttribute('role') || undefined,
+      label: label || undefined,
+      text: (node.innerText || node.value || '').trim().slice(0, 200) || undefined,
+      value: typeof node.value === 'string' ? node.value : undefined,
+      bounds: { x: rect.x + window.scrollX, y: rect.y + window.scrollY, width: rect.width, height: rect.height },
+      disabled: !!node.disabled || node.getAttribute('aria-disabled') === 'true',
+      hidden,
+    });
+  }
+  return {
+    url: location.href,
+    title: document.title,
+    viewport: { width: window.innerWidth, height: window.innerHeight },
+    elements,
+  };
+})()`;
+const INTERACT_FN = `function(id, action, text) {
+  const el = document.querySelector('[data-meith-id="' + id + '"]');
+  if (!el) return false;
+  el.scrollIntoView({ block: 'center', inline: 'center' });
+  if (action === 'click') {
+    el.focus && el.focus();
+    el.click();
+    return true;
+  }
+  if (action === 'type') {
+    el.focus && el.focus();
+    const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value');
+    if (setter && setter.set) setter.set.call(el, text);
+    else el.value = text;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+  return false;
+}`;
 const IPC = {
   toolsList: "meith:tools:list",
   toolCall: "meith:tools:call",

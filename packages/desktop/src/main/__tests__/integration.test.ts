@@ -78,6 +78,16 @@ describe("socket integration", () => {
     expect(getTabs?.capabilities).toContain("read-only");
     const openTab = tools.find((t) => t.name === "open_browser_tab");
     expect(openTab?.capabilities).toContain("controls-browser");
+
+    // Phase 4 automation/diagnostics tools are registered.
+    expect(names).toContain("get_browser_state");
+    expect(names).toContain("click_element");
+    expect(names).toContain("type_text");
+    expect(names).toContain("cdp_command");
+    expect(names).toContain("get_console_logs");
+    expect(names).toContain("get_network_logs");
+    const clickEl = tools.find((t) => t.name === "click_element");
+    expect(clickEl?.capabilities).toContain("controls-browser");
   });
 
   it("calls app_get_state and gets a valid AppState in result.content", async () => {
@@ -112,6 +122,78 @@ describe("socket integration", () => {
     const shot = result.content as { tabId: string; path?: string };
     expect(shot.tabId).toBe(tab.id);
     expect(typeof shot.path).toBe("string");
+  });
+
+  it("extracts browser state and interacts via the socket tools", async () => {
+    const opened = await client.callTool("open_browser_tab", {
+      url: "http://localhost:3000/app",
+    });
+    const tab = opened.content as { id: string };
+
+    const state = await client.callTool("get_browser_state", { tabId: tab.id });
+    expect(state.ok).toBe(true);
+    const elements = (state.content as { elements: { id: string; tag: string }[] })
+      .elements;
+    expect(elements.length).toBeGreaterThan(0);
+    const input = elements.find((e) => e.tag === "input");
+    expect(input).toBeTruthy();
+
+    const typed = await client.callTool("type_text", {
+      tabId: tab.id,
+      elementId: input?.id,
+      text: "query",
+    });
+    expect(typed.ok).toBe(true);
+
+    const after = await client.callTool("get_browser_state", { tabId: tab.id });
+    const inputAfter = (
+      after.content as { elements: { tag: string; value?: string }[] }
+    ).elements.find((e) => e.tag === "input");
+    expect(inputAfter?.value).toBe("query");
+  });
+
+  it("surfaces an unknown element id as a TOOL_FAILED error", async () => {
+    const opened = await client.callTool("open_browser_tab", {
+      url: "http://localhost:3000/app2",
+    });
+    const tab = opened.content as { id: string };
+    const result = await client.callTool("click_element", {
+      tabId: tab.id,
+      elementId: "el-9999",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error?.code).toBe("TOOL_FAILED");
+  });
+
+  it("reads console and network diagnostics over the socket", async () => {
+    const opened = await client.callTool("open_browser_tab", {
+      url: "http://localhost:3000/diag",
+    });
+    const tab = opened.content as { id: string };
+
+    const console = await client.callTool("get_console_logs", { tabId: tab.id });
+    expect(console.ok).toBe(true);
+    expect(Array.isArray(console.content)).toBe(true);
+
+    const network = await client.callTool("get_network_logs", { tabId: tab.id });
+    expect(network.ok).toBe(true);
+    const entries = network.content as { url: string }[];
+    expect(entries.some((e) => e.url.includes("/diag"))).toBe(true);
+  });
+
+  it("runs a raw CDP command via cdp_command", async () => {
+    const opened = await client.callTool("open_browser_tab", {
+      url: "http://localhost:3000/cdp",
+    });
+    const tab = opened.content as { id: string };
+    const result = await client.callTool("cdp_command", {
+      tabId: tab.id,
+      method: "Runtime.evaluate",
+      params: { expression: "1+1" },
+    });
+    expect(result.ok).toBe(true);
+    const content = result.content as { method: string };
+    expect(content.method).toBe("Runtime.evaluate");
   });
 
   it("rejects a mismatched protocol version without executing the tool", async () => {

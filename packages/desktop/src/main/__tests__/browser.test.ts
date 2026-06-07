@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
+import { ElementNotFoundError } from "../browser/BrowserViewHost.js";
 import { AppStateService } from "../services/AppStateService.js";
 import {
   BrowserTabService,
@@ -131,5 +132,99 @@ describe("BrowserTabService lifecycle", () => {
     expect(shot.tabId).toBe(tab.id);
     expect(shot.path).toBeTruthy();
     expect(existsSync(shot.path as string)).toBe(true);
+  });
+});
+
+describe("BrowserTabService automation & diagnostics", () => {
+  let ctx: ReturnType<typeof makeService>;
+  beforeEach(() => {
+    ctx = makeService();
+  });
+
+  it("extracts browser state with stable element ids", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    const state = await ctx.service.getBrowserState(tab.id);
+    expect(state.tabId).toBe(tab.id);
+    expect(state.url).toBe("https://a.test");
+    expect(state.elements.map((e) => e.id)).toEqual(["el-0", "el-1", "el-2"]);
+    expect(state.elements.find((e) => e.tag === "input")).toBeTruthy();
+    expect(state.viewport.width).toBeGreaterThan(0);
+  });
+
+  it("clicks a link element and navigates", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    await ctx.service.clickElement(tab.id, "el-0"); // the link
+    const state = await ctx.service.getBrowserState(tab.id);
+    expect(state.url).toBe("https://a.test/next");
+  });
+
+  it("clicks a button and reflects the interaction", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    await ctx.service.clickElement(tab.id, "el-1"); // the button
+    const state = await ctx.service.getBrowserState(tab.id);
+    expect(state.elements[1].text).toContain("Clicked 1");
+  });
+
+  it("types text into an input element", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    await ctx.service.typeText(tab.id, "el-2", "hello world");
+    const state = await ctx.service.getBrowserState(tab.id);
+    expect(state.elements[2].value).toBe("hello world");
+  });
+
+  it("rejects interaction with an unknown element id", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    await expect(ctx.service.clickElement(tab.id, "el-999")).rejects.toThrow(
+      ElementNotFoundError,
+    );
+  });
+
+  it("scrolls and sends keys without error", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    await expect(
+      ctx.service.scrollPage(tab.id, { deltaY: 200 }),
+    ).resolves.toBeUndefined();
+    await expect(ctx.service.sendKeys(tab.id, "Enter")).resolves.toBeUndefined();
+  });
+
+  it("runs simulated CDP commands", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    const nav = await ctx.service.cdpCommand(tab.id, "Page.navigate", {
+      url: "https://b.test",
+    });
+    expect(nav.method).toBe("Page.navigate");
+    const state = await ctx.service.getBrowserState(tab.id);
+    expect(state.url).toBe("https://b.test");
+
+    const evald = await ctx.service.cdpCommand(tab.id, "Runtime.evaluate", {
+      expression: "2 + 2",
+    });
+    expect((evald.result as { result: { value: string } }).result.value).toBe("2 + 2");
+  });
+
+  it("captures console and network diagnostics", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    const logs = await ctx.service.getConsoleLogs(tab.id);
+    expect(logs.some((l) => l.text.includes("navigated to"))).toBe(true);
+    const net = await ctx.service.getNetworkLogs(tab.id);
+    expect(net[0]?.method).toBe("GET");
+    expect(net[0]?.url).toBe("https://a.test");
+  });
+
+  it("requires a claim before automation can interact", async () => {
+    const tab = await ctx.service.openBrowserTab({ url: "https://a.test" });
+    await expect(
+      ctx.service.clickElement(tab.id, "el-1", {
+        ownerId: "agent-1",
+        requireClaim: true,
+      }),
+    ).rejects.toThrow(TabClaimRequiredError);
+    ctx.service.startUse(tab.id, "agent-1");
+    await expect(
+      ctx.service.clickElement(tab.id, "el-1", {
+        ownerId: "agent-1",
+        requireClaim: true,
+      }),
+    ).resolves.toBeUndefined();
   });
 });

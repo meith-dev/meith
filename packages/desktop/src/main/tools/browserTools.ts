@@ -200,6 +200,147 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
       ),
   });
 
+  const getBrowserState = defineTool({
+    name: "get_browser_state",
+    description:
+      "Extract a browser tab's interactable elements (with stable ids), plus url/title/viewport. Use the returned element ids with click_element and type_text.",
+    capabilities: ["read-only", "controls-browser"],
+    inputSchema: z.object({ tabId: z.string() }),
+    execute: (_ctx, input) => deps.browserTabs.getBrowserState(input.tabId),
+  });
+
+  const clickElement = defineTool({
+    name: "click_element",
+    description: "Click an element by an id from the latest get_browser_state.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      elementId: z.string().describe("Element id from get_browser_state, e.g. el-2."),
+      owner: z.string().optional(),
+    }),
+    execute: (ctx, input) =>
+      guardOwnership(async () => {
+        await deps.browserTabs.clickElement(
+          input.tabId,
+          input.elementId,
+          controlFor(ctx, input.owner),
+        );
+        return { clicked: input.elementId };
+      }),
+  });
+
+  const typeText = defineTool({
+    name: "type_text",
+    description:
+      "Focus an element (by get_browser_state id) and type text, replacing its current value.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      elementId: z.string(),
+      text: z.string(),
+      owner: z.string().optional(),
+    }),
+    execute: (ctx, input) =>
+      guardOwnership(async () => {
+        await deps.browserTabs.typeText(
+          input.tabId,
+          input.elementId,
+          input.text,
+          controlFor(ctx, input.owner),
+        );
+        return { typed: input.text.length };
+      }),
+  });
+
+  const scrollPage = defineTool({
+    name: "scroll_page",
+    description:
+      "Scroll a browser tab by a relative delta (deltaX/deltaY) or to an absolute position (toX/toY).",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      deltaX: z.number().optional(),
+      deltaY: z.number().optional(),
+      toX: z.number().optional(),
+      toY: z.number().optional(),
+      owner: z.string().optional(),
+    }),
+    execute: (ctx, input) =>
+      guardOwnership(async () => {
+        await deps.browserTabs.scrollPage(
+          input.tabId,
+          { deltaX: input.deltaX, deltaY: input.deltaY, toX: input.toX, toY: input.toY },
+          controlFor(ctx, input.owner),
+        );
+        return { ok: true };
+      }),
+  });
+
+  const sendKeys = defineTool({
+    name: "send_keys",
+    description:
+      "Dispatch keyboard input to the focused element/page. Use a named key (Enter, Tab, Backspace, ArrowDown, ...) or literal characters.",
+    capabilities: ["controls-browser"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      keys: z.string(),
+      owner: z.string().optional(),
+    }),
+    execute: (ctx, input) =>
+      guardOwnership(async () => {
+        await deps.browserTabs.sendKeys(
+          input.tabId,
+          input.keys,
+          controlFor(ctx, input.owner),
+        );
+        return { ok: true };
+      }),
+  });
+
+  const cdpCommand = defineTool({
+    name: "cdp_command",
+    description:
+      "Issue a raw Chrome DevTools Protocol command against a tab (e.g. Page.navigate, Runtime.evaluate). Treated as browser control.",
+    capabilities: ["controls-browser", "accesses-network"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      method: z.string().describe("CDP method, e.g. Runtime.evaluate."),
+      params: z.record(z.unknown()).optional(),
+      owner: z.string().optional(),
+    }),
+    execute: (ctx, input) =>
+      guardOwnership(() =>
+        deps.browserTabs.cdpCommand(
+          input.tabId,
+          input.method,
+          input.params ?? {},
+          controlFor(ctx, input.owner),
+        ),
+      ),
+  });
+
+  const getConsoleLogs = defineTool({
+    name: "get_console_logs",
+    description: "Return console messages captured for a browser tab (most recent last).",
+    capabilities: ["read-only"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      limit: z.number().int().positive().optional(),
+    }),
+    execute: (_ctx, input) => deps.browserTabs.getConsoleLogs(input.tabId, input.limit),
+  });
+
+  const getNetworkLogs = defineTool({
+    name: "get_network_logs",
+    description: "Return network requests observed for a browser tab (most recent last).",
+    capabilities: ["read-only", "accesses-network"],
+    inputSchema: z.object({
+      tabId: z.string(),
+      limit: z.number().int().positive().optional(),
+    }),
+    execute: (_ctx, input) => deps.browserTabs.getNetworkLogs(input.tabId, input.limit),
+  });
+
   const takeScreenshot = defineTool({
     name: "take_screenshot",
     description:
@@ -231,5 +372,13 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     browserUseStart,
     browserUseEnd,
     takeScreenshot,
+    getBrowserState,
+    clickElement,
+    typeText,
+    scrollPage,
+    sendKeys,
+    cdpCommand,
+    getConsoleLogs,
+    getNetworkLogs,
   ];
 }

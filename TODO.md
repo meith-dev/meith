@@ -173,50 +173,47 @@ Acceptance criteria:
 
 ## Phase 4: Browser Automation And Diagnostics Tools
 
-After real browser views exist, add the automation and diagnostic layer needed by agents and CLI.
+After real browser views exist, add the automation and diagnostic layer needed by agents and CLI. Implemented on the injected `BrowserViewHost` so both the Electron host (real `webContents.debugger` CDP) and the headless host (simulated) satisfy the same contract.
 
-- [ ] Add a CDP service around Electron `webContents.debugger`.
-- [ ] Track CDP targets by tab ID.
-- [ ] Implement `cdp_command` with:
+- [x] Add a CDP service around Electron `webContents.debugger` (attached per view in `ElectronBrowserViewHost`, detached on destroy).
+- [x] Track CDP targets by tab ID (per-`ManagedView` debugger + buffers).
+- [x] Implement `cdp_command` with:
   - target tab ID
-  - timeout
-  - captured console output
-  - structured result formatting
-  - safe error reporting
-- [ ] Implement DOM extraction:
+  - timeout (via the registry's per-call timeout)
+  - captured console output (per-tab buffers)
+  - structured result formatting (`CdpResult` = `{ tabId, method, result }`)
+  - safe error reporting (degrades when the debugger can't attach)
+- [x] Implement DOM extraction:
   - `get_browser_state`
-  - assign stable element IDs
-  - include roles, labels, text, bounds, disabled/hidden state
+  - assign stable element IDs (`el-N`, valid until the next extraction)
+  - include roles, labels, text, value, bounds, disabled/hidden state
   - include current URL/title/viewport
-- [ ] Implement interaction tools:
+- [x] Implement interaction tools:
   - `click_element`
   - `type_text`
   - `scroll_page`
   - `send_keys`
-- [ ] Add app-target variants where appropriate:
-  - inspect main app renderer
-  - screenshot app chrome
-  - get renderer console logs
-- [ ] Capture browser console logs per tab.
-- [ ] Capture network logs per tab:
+- [~] Add app-target variants where appropriate (deferred to Phase 5 desktop shell; the host abstraction already supports adding an app-renderer target).
+- [x] Capture browser console logs per tab (`get_console_logs`).
+- [x] Capture network logs per tab (`get_network_logs`):
   - method
   - URL
   - status
-  - request/response timing
-  - failure reason
-- [ ] Add tests with Playwright or Electron integration tests for:
-  - opening a local HTML page
-  - extracting browser state
-  - clicking a button
+  - request/response timing (`startedAt`/`endedAt`/`durationMs`)
+  - failure reason (`failed`/`errorText`)
+- [x] Add tests (headless host + socket integration; Electron-specific E2E deferred) for:
+  - opening a page / extracting browser state
+  - clicking a button / link
   - typing into an input
   - reading console/network logs
+  - running a CDP command
   - capturing screenshot
 
 Acceptance criteria:
 
-- CLI can inspect and interact with a browser tab without direct renderer access.
-- Automation tools fail with clear messages when a tab is not claimed or no longer exists.
-- Console/network diagnostics are available to both CLI and future agents.
+- [x] CLI can inspect and interact with a browser tab without direct renderer access (socket integration tests).
+- [x] Automation tools fail with clear messages when a tab is not claimed (`PERMISSION_DENIED`) or an element no longer exists (`ElementNotFoundError` → `TOOL_FAILED`).
+- [x] Console/network diagnostics are available to both CLI and future agents through the shared tool registry.
 
 ## Phase 5: Real Desktop Shell UI
 

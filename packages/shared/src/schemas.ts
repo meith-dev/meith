@@ -48,6 +48,83 @@ export const BrowserViewportSchema = z.object({
 });
 export type BrowserViewport = z.infer<typeof BrowserViewportSchema>;
 
+// ---------------------------------------------------------------------------
+// Browser automation & diagnostics (Phase 4).
+// DOM extraction, interaction targets, console/network logs, and raw CDP.
+// These are wire payloads returned by the automation/diagnostics tools.
+// ---------------------------------------------------------------------------
+
+/** A pixel rectangle in page (document) coordinates. */
+export const ElementBoundsSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+});
+export type ElementBounds = z.infer<typeof ElementBoundsSchema>;
+
+/**
+ * A semantic/interactable element extracted from a page's DOM. The `id` is a
+ * stable handle assigned during a single extraction pass; it is valid for
+ * interaction (`click_element`, `type_text`) until the next extraction.
+ */
+export const BrowserElementSchema = z.object({
+  id: z.string(),
+  tag: z.string(),
+  role: z.string().optional(),
+  label: z.string().optional(),
+  text: z.string().optional(),
+  value: z.string().optional(),
+  bounds: ElementBoundsSchema.optional(),
+  disabled: z.boolean().default(false),
+  hidden: z.boolean().default(false),
+});
+export type BrowserElement = z.infer<typeof BrowserElementSchema>;
+
+/** A snapshot of a tab's accessible/interactable state for automation. */
+export const BrowserStateSchema = z.object({
+  tabId: z.string(),
+  url: z.string(),
+  title: z.string(),
+  viewport: z.object({ width: z.number(), height: z.number() }),
+  elements: z.array(BrowserElementSchema),
+});
+export type BrowserState = z.infer<typeof BrowserStateSchema>;
+
+/** A console message captured from a tab's web contents. */
+export const ConsoleLogEntrySchema = z.object({
+  level: z.enum(["log", "info", "warn", "error", "debug"]),
+  text: z.string(),
+  ts: z.number(),
+  /** Origin (source URL/line) when available. */
+  source: z.string().optional(),
+});
+export type ConsoleLogEntry = z.infer<typeof ConsoleLogEntrySchema>;
+
+/** A network request/response observed on a tab. */
+export const NetworkLogEntrySchema = z.object({
+  id: z.string(),
+  method: z.string(),
+  url: z.string(),
+  status: z.number().optional(),
+  resourceType: z.string().optional(),
+  startedAt: z.number(),
+  endedAt: z.number().optional(),
+  durationMs: z.number().optional(),
+  failed: z.boolean().default(false),
+  errorText: z.string().optional(),
+});
+export type NetworkLogEntry = z.infer<typeof NetworkLogEntrySchema>;
+
+/** Result of a raw Chrome DevTools Protocol command issued against a tab. */
+export const CdpResultSchema = z.object({
+  tabId: z.string(),
+  method: z.string(),
+  /** Whatever the CDP method returned (method-specific shape). */
+  result: z.unknown(),
+});
+export type CdpResult = z.infer<typeof CdpResultSchema>;
+
 export const WorkspaceTabSchema = z.object({
   id: z.string(),
   spaceId: z.string(),

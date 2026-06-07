@@ -1,10 +1,17 @@
 import {
+  type BrowserState,
   type BrowserTab,
+  type ConsoleLogEntry,
+  type NetworkLogEntry,
   type WorkspaceTab,
   newBrowserTabId,
   newWorkspaceTabId,
 } from "@meith/shared";
-import type { BrowserViewHost, ViewNavState } from "../browser/BrowserViewHost.js";
+import type {
+  BrowserViewHost,
+  ScrollOptions,
+  ViewNavState,
+} from "../browser/BrowserViewHost.js";
 import { HeadlessBrowserViewHost } from "../browser/HeadlessBrowserViewHost.js";
 import type { ArtifactStore } from "../storage/ArtifactStore.js";
 import type { AppStateService } from "./AppStateService.js";
@@ -340,6 +347,95 @@ export class BrowserTabService {
       path = info.path;
     }
     return { tabId: id, width: capture.width, height: capture.height, path };
+  }
+
+  // --- Automation & diagnostics (Phase 4) ---
+
+  /**
+   * Extract the page's interactable/semantic elements (read-only). Recreates
+   * the live view if it was lost so callers don't see spurious failures.
+   */
+  async getBrowserState(id: string): Promise<BrowserState> {
+    const tab = this.requireTab(id);
+    await this.ensureView(tab);
+    const state = await this.host.getBrowserState(id);
+    if (!state) throw new Error(`No live view for tab ${id}`);
+    return { tabId: id, ...state };
+  }
+
+  /** Click an element by an id from the most recent `getBrowserState`. */
+  async clickElement(
+    id: string,
+    elementId: string,
+    control: ControlContext = {},
+  ): Promise<void> {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    await this.host.clickElement(id, elementId);
+    this.logger.info("BrowserTabs", `click ${elementId} on tab ${id}`);
+  }
+
+  /** Type text into an element by id (replaces its existing value). */
+  async typeText(
+    id: string,
+    elementId: string,
+    text: string,
+    control: ControlContext = {},
+  ): Promise<void> {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    await this.host.typeText(id, elementId, text);
+    this.logger.info("BrowserTabs", `type into ${elementId} on tab ${id}`);
+  }
+
+  /** Scroll the page by a delta or to an absolute position. */
+  async scrollPage(
+    id: string,
+    options: ScrollOptions,
+    control: ControlContext = {},
+  ): Promise<void> {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    await this.host.scrollPage(id, options);
+  }
+
+  /** Dispatch a key (named) or literal characters to the focused element/page. */
+  async sendKeys(id: string, keys: string, control: ControlContext = {}): Promise<void> {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    await this.host.sendKeys(id, keys);
+  }
+
+  /** Issue a raw CDP command against a tab (treated as a control operation). */
+  async cdpCommand(
+    id: string,
+    method: string,
+    params: Record<string, unknown>,
+    control: ControlContext = {},
+  ): Promise<{ tabId: string; method: string; result: unknown }> {
+    const tab = this.requireTab(id);
+    this.assertControl(tab, control);
+    await this.ensureView(tab);
+    const result = await this.host.sendCdp(id, method, params);
+    return { tabId: id, method, result };
+  }
+
+  /** Read captured console messages for a tab (read-only). */
+  async getConsoleLogs(id: string, limit?: number): Promise<ConsoleLogEntry[]> {
+    const tab = this.requireTab(id);
+    await this.ensureView(tab);
+    return this.host.getConsoleLogs(id, limit);
+  }
+
+  /** Read observed network requests for a tab (read-only). */
+  async getNetworkLogs(id: string, limit?: number): Promise<NetworkLogEntry[]> {
+    const tab = this.requireTab(id);
+    await this.ensureView(tab);
+    return this.host.getNetworkLogs(id, limit);
   }
 
   openWorkspaceTab(input: {
