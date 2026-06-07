@@ -1568,7 +1568,7 @@ function createWindow() {
     height: 820,
     show: false,
     webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
+      preload: join(__dirname, "../preload/index.cjs"),
       contextIsolation: true,
       nodeIntegration: false
     }
@@ -1585,7 +1585,7 @@ function createWindow() {
 app.whenReady().then(async () => {
   viewHost = new ElectronBrowserViewHost({
     getWindow: () => mainWindow,
-    preloadPath: join(__dirname, "../preload/webContent.js"),
+    preloadPath: join(__dirname, "../preload/webContent.cjs"),
     getContentBounds: () => {
       const [width, height] = mainWindow?.getContentSize() ?? [1280, 820];
       return { x: 0, y: CHROME_TOP, width, height: Math.max(0, height - CHROME_TOP) };

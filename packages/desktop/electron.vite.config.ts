@@ -21,9 +21,12 @@ export default defineConfig({
         },
       },
       rollupOptions: {
-        // Keep `.js` filenames so main-process require paths stay stable
-        // (multi-entry libs would otherwise emit `.mjs`).
-        output: { entryFileNames: "[name].js" },
+        // Preloads run with `sandbox: true`, which requires CommonJS (ESM
+        // preloads are unsupported in sandboxed contexts). Because the package
+        // is `"type": "module"`, CommonJS output must use the `.cjs` extension
+        // so Electron/Node treat it as CJS. The main process references these
+        // as `index.cjs` / `webContent.cjs`.
+        output: { format: "cjs", entryFileNames: "[name].cjs" },
       },
     },
   },
