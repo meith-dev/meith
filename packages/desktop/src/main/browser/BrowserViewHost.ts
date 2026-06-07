@@ -1,4 +1,9 @@
-import type { BrowserLoadState } from "@meith/shared";
+import type {
+  BrowserElement,
+  BrowserLoadState,
+  ConsoleLogEntry,
+  NetworkLogEntry,
+} from "@meith/shared";
 
 /**
  * A snapshot of live navigation state reported by a browser view back to the
@@ -19,6 +24,39 @@ export interface ViewCapture {
   data: Buffer;
   width: number;
   height: number;
+}
+
+/** Extracted page state returned by a host's `getBrowserState`. */
+export interface ViewBrowserState {
+  url: string;
+  title: string;
+  viewport: { width: number; height: number };
+  elements: BrowserElement[];
+}
+
+/** How to scroll a page: by a relative delta or to an absolute position. */
+export interface ScrollOptions {
+  /** Relative vertical scroll in CSS pixels (positive = down). */
+  deltaY?: number;
+  /** Relative horizontal scroll in CSS pixels (positive = right). */
+  deltaX?: number;
+  /** Absolute target (overrides deltas when provided). */
+  toX?: number;
+  toY?: number;
+}
+
+/**
+ * Raised by a host when an interaction targets an element id that is not part
+ * of the most recent extraction (stale handle or unknown id).
+ */
+export class ElementNotFoundError extends Error {
+  constructor(
+    public readonly tabId: string,
+    public readonly elementId: string,
+  ) {
+    super(`Element ${elementId} not found in tab ${tabId}`);
+    this.name = "ElementNotFoundError";
+  }
 }
 
 /**
@@ -52,4 +90,35 @@ export interface BrowserViewHost {
   getNavState(tabId: string): ViewNavState | null;
   /** Register a callback invoked whenever a view's nav state changes. */
   onNavStateChanged(cb: (tabId: string, state: ViewNavState) => void): void;
+
+  // --- Automation & diagnostics (Phase 4) ---
+
+  /**
+   * Extract the page's interactable/semantic elements plus url/title/viewport.
+   * Assigns stable element ids usable by `clickElement`/`typeText` until the
+   * next extraction. Returns null when the view doesn't exist.
+   */
+  getBrowserState(tabId: string): Promise<ViewBrowserState | null>;
+  /** Click an element by an id from the most recent `getBrowserState`. */
+  clickElement(tabId: string, elementId: string): Promise<void>;
+  /** Focus an element and type text into it (replaces existing value). */
+  typeText(tabId: string, elementId: string, text: string): Promise<void>;
+  /** Scroll the page by a delta or to an absolute position. */
+  scrollPage(tabId: string, options: ScrollOptions): Promise<void>;
+  /** Dispatch a sequence of keyboard keys to the focused element/page. */
+  sendKeys(tabId: string, keys: string): Promise<void>;
+  /**
+   * Issue a raw Chrome DevTools Protocol command against the tab's target.
+   * Returns the method-specific result. Hosts without a real CDP backend
+   * implement a small simulated subset.
+   */
+  sendCdp(
+    tabId: string,
+    method: string,
+    params?: Record<string, unknown>,
+  ): Promise<unknown>;
+  /** Console messages captured for a tab (most recent last). */
+  getConsoleLogs(tabId: string, limit?: number): ConsoleLogEntry[];
+  /** Network requests observed for a tab (most recent last). */
+  getNetworkLogs(tabId: string, limit?: number): NetworkLogEntry[];
 }

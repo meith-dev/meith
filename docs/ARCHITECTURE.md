@@ -123,6 +123,31 @@ shutdown/crash. Everything is exposed through the same tool registry, so the
 renderer and `meith` CLI drive identical behavior (`meith open`, `navigate`,
 `back`, `screenshot`, …).
 
+**Automation & diagnostics.** The `BrowserViewHost` contract also covers the
+agent-facing automation layer, again split between the Electron and headless
+implementations:
+
+- **DOM extraction** — `get_browser_state` returns the page's interactable
+  elements with **stable ids** (`el-0`, `el-1`, …) plus role, label, text,
+  value, bounds, and disabled/hidden flags, along with url/title/viewport. In
+  Electron this is an injected page script that tags nodes with
+  `data-meith-id`; the headless host models a small synthetic DOM so the
+  contract is testable without a renderer. Ids are valid until the next
+  extraction.
+- **Interaction** — `click_element`, `type_text`, `scroll_page`, and
+  `send_keys` operate on those ids. Electron drives them through injected JS and
+  `sendInputEvent`; the headless host mutates its synthetic DOM. A stale/unknown
+  id raises `ElementNotFoundError` → `TOOL_FAILED`. Interactions are control
+  operations, so they honor the same claim/ownership rules as navigation.
+- **Raw CDP** — `cdp_command` issues a Chrome DevTools Protocol command against
+  the tab via `webContents.debugger` (attached per view on creation, detached on
+  destroy). The headless host simulates a small CDP subset (`Page.navigate`,
+  `Runtime.evaluate`, …).
+- **Console & network** — the Electron host mines `Runtime.consoleAPICalled`,
+  `Log.entryAdded`, and the `Network.*` events into per-tab ring buffers read by
+  `get_console_logs` / `get_network_logs` (read-only). The headless host
+  records synthetic entries on navigation/interaction.
+
 ## Related docs
 
 - [TOOL_PROTOCOL.md](./TOOL_PROTOCOL.md) — the wire protocol and `ToolResult` envelope.
