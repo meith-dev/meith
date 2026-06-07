@@ -101,11 +101,22 @@ export class ToolSocketService {
 
     const msg = parsed.data;
 
+    // Reject mismatched protocol versions before doing any work, so an
+    // incompatible client can never execute a (possibly mutating) tool after a
+    // breaking protocol change. Echo back the requestId when the frame has one.
     if (msg.protocol != null && msg.protocol !== PROTOCOL_VERSION) {
       this.logger.warn(
         "Socket",
-        `client protocol ${msg.protocol} != server ${PROTOCOL_VERSION}`,
+        `rejecting client protocol ${msg.protocol} != server ${PROTOCOL_VERSION}`,
       );
+      const requestId = "requestId" in msg ? msg.requestId : undefined;
+      send({
+        type: "error",
+        ...(requestId ? { requestId } : {}),
+        code: "PROTOCOL_ERROR",
+        message: `Unsupported protocol version ${msg.protocol}; server requires ${PROTOCOL_VERSION}`,
+      });
+      return;
     }
 
     if (msg.type === "list_tools") {

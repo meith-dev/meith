@@ -1,9 +1,41 @@
 import { mkdtempSync, rmSync } from "node:fs";
+import net from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ToolClient } from "@meith/cli/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { type ServiceContainer, bootstrap } from "../bootstrap.js";
+
+/**
+ * Send a single raw ndjson frame and resolve with the first server frame.
+ * Bypasses ToolClient so we can craft an out-of-range `protocol` value.
+ */
+function sendRawFrame(
+  socketPath: string,
+  frame: Record<string, unknown>,
+): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection(socketPath, () => {
+      socket.write(`${JSON.stringify(frame)}\n`);
+    });
+    let buffer = "";
+    socket.setEncoding("utf8");
+    socket.on("data", (chunk) => {
+      buffer += chunk;
+      const nl = buffer.indexOf("\n");
+      if (nl >= 0) {
+        const line = buffer.slice(0, nl).trim();
+        socket.end();
+        try {
+          resolve(JSON.parse(line));
+        } catch (err) {
+          reject(err);
+        }
+      }
+    });
+    socket.on("error", reject);
+  });
+}
 
 /**
  * Full integration path WITHOUT Electron:
@@ -80,6 +112,29 @@ describe("socket integration", () => {
     const shot = result.content as { tabId: string; path?: string };
     expect(shot.tabId).toBe(tab.id);
     expect(typeof shot.path).toBe("string");
+  });
+
+  it("rejects a mismatched protocol version without executing the tool", async () => {
+    // A unique marker URL: if the tool ran, it would appear in get_tabs.
+    const markerUrl = "http://localhost:3000/__proto999__";
+    const response = (await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      protocol: 999,
+      requestId: "req_proto_mismatch",
+      toolName: "open_browser_tab",
+      arguments: { url: markerUrl },
+      clientInfo: { caller: "cli" },
+    })) as { type: string; code?: string; requestId?: string };
+
+    // The server must answer with a transport-level PROTOCOL_ERROR...
+    expect(response.type).toBe("error");
+    expect(response.code).toBe("PROTOCOL_ERROR");
+    expect(response.requestId).toBe("req_proto_mismatch");
+
+    // ...and the tool must NOT have executed: no tab with the marker URL.
+    const tabs = await client.callTool("get_tabs", {});
+    const list = (tabs.content as { browserTabs: { url: string }[] }).browserTabs;
+    expect(list.some((t) => t.url === markerUrl)).toBe(false);
   });
 
   it("reports an unknown tool as a structured error (not a throw)", async () => {
