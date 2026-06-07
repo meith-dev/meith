@@ -977,8 +977,16 @@ class ToolSocketService {
     if (msg.protocol != null && msg.protocol !== PROTOCOL_VERSION) {
       this.logger.warn(
         "Socket",
-        `client protocol ${msg.protocol} != server ${PROTOCOL_VERSION}`
+        `rejecting client protocol ${msg.protocol} != server ${PROTOCOL_VERSION}`
       );
+      const requestId = "requestId" in msg ? msg.requestId : void 0;
+      send({
+        type: "error",
+        ...requestId ? { requestId } : {},
+        code: "PROTOCOL_ERROR",
+        message: `Unsupported protocol version ${msg.protocol}; server requires ${PROTOCOL_VERSION}`
+      });
+      return;
     }
     if (msg.type === "list_tools") {
       send({ type: "tools_list", tools: this.registry.describe() });
