@@ -1,8 +1,4 @@
-import type {
-  ConsoleLogEntry,
-  ElementBounds,
-  NetworkLogEntry,
-} from "@meith/shared";
+import type { ConsoleLogEntry, ElementBounds, NetworkLogEntry } from "@meith/shared";
 import {
   type BrowserViewHost,
   ElementNotFoundError,
@@ -295,7 +291,10 @@ export class HeadlessBrowserViewHost implements BrowserViewHost {
     if (view.console.length > MAX_LOG) view.console.shift();
   }
 
-  private resolve(tabId: string, elementId: string): { view: HeadlessView; el: SimElement } {
+  private resolve(
+    tabId: string,
+    elementId: string,
+  ): { view: HeadlessView; el: SimElement } {
     const view = this.requireView(tabId);
     const idx = parseElementIndex(elementId);
     const el = idx === null ? undefined : view.elements[idx];

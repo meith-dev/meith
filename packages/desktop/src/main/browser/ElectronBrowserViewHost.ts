@@ -1,8 +1,5 @@
 import { EventEmitter } from "node:events";
-import type {
-  ConsoleLogEntry,
-  NetworkLogEntry,
-} from "@meith/shared";
+import type { ConsoleLogEntry, NetworkLogEntry } from "@meith/shared";
 import type { BrowserWindow, WebContentsView as WebContentsViewType } from "electron";
 import { WebContentsView } from "electron";
 import {
@@ -339,7 +336,12 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
       this.handleCdpMessage(tabId, method, params as Record<string, unknown>),
     );
     // Enable the domains we mine for diagnostics. Ignore failures per-domain.
-    for (const domain of ["Page.enable", "Runtime.enable", "Network.enable", "Log.enable"]) {
+    for (const domain of [
+      "Page.enable",
+      "Runtime.enable",
+      "Network.enable",
+      "Log.enable",
+    ]) {
       void wc.debugger.sendCommand(domain).catch(() => {});
     }
   }

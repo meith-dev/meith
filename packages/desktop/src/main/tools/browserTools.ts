@@ -327,8 +327,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
       tabId: z.string(),
       limit: z.number().int().positive().optional(),
     }),
-    execute: (_ctx, input) =>
-      deps.browserTabs.getConsoleLogs(input.tabId, input.limit),
+    execute: (_ctx, input) => deps.browserTabs.getConsoleLogs(input.tabId, input.limit),
   });
 
   const getNetworkLogs = defineTool({
@@ -339,8 +338,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
       tabId: z.string(),
       limit: z.number().int().positive().optional(),
     }),
-    execute: (_ctx, input) =>
-      deps.browserTabs.getNetworkLogs(input.tabId, input.limit),
+    execute: (_ctx, input) => deps.browserTabs.getNetworkLogs(input.tabId, input.limit),
   });
 
   const takeScreenshot = defineTool({
