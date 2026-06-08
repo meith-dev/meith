@@ -267,6 +267,57 @@ describe("socket integration", () => {
     expect(claimedPlugin.result?.content?.caller).toBe("plugin");
   });
 
+  it("prevents a socket peer from hijacking another owner's claimed tab", async () => {
+    // The persistent `client` connection opens and claims a tab. Its owner id
+    // is the server-assigned connection id, surfaced on the tab record.
+    const opened = await client.callTool("open_browser_tab", {
+      url: "https://owner.test",
+    });
+    const tabId = (opened.content as { id: string }).id;
+    const claim = await client.callTool("browser_use_start", { tabId });
+    expect(claim.ok).toBe(true);
+    const realOwnerId = (claim.content as { ownerId: string | null }).ownerId;
+    expect(realOwnerId).toBeTruthy();
+
+    // A DIFFERENT socket connection (each sendRawFrame opens its own) tries to
+    // navigate the claimed tab while spoofing every client-controlled value it
+    // could: the victim's exact owner id (in args), a matching sessionId, and a
+    // privileged caller. All are ignored; ownership is bound to the trusted
+    // per-connection id, so this is denied.
+    const hijackNav = (await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      requestId: "req_hijack_nav",
+      toolName: "navigate",
+      arguments: { tabId, url: "https://evil.test", owner: realOwnerId },
+      clientInfo: { caller: "agent", sessionId: realOwnerId },
+    })) as { result?: { ok: boolean; error?: { code: string } } };
+    expect(hijackNav.result?.ok).toBe(false);
+    expect(hijackNav.result?.error?.code).toBe("PERMISSION_DENIED");
+
+    // Forcing a release of someone else's tab is reserved for internal cleanup;
+    // a socket peer (downgraded to `cli`) cannot use `force` even with the
+    // victim's owner id.
+    const hijackEnd = (await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      requestId: "req_hijack_end",
+      toolName: "browser_use_end",
+      arguments: { tabId, owner: realOwnerId, force: true },
+      clientInfo: { caller: "agent", sessionId: realOwnerId },
+    })) as { result?: { ok: boolean; error?: { code: string } } };
+    expect(hijackEnd.result?.ok).toBe(false);
+    expect(hijackEnd.result?.error?.code).toBe("PERMISSION_DENIED");
+
+    // The tab is still claimed by the original owner — neither attack mutated it.
+    const tabs = await client.callTool("get_tabs", {});
+    const tab = (
+      tabs.content as {
+        browserTabs: { id: string; ownerId: string | null; url: string }[];
+      }
+    ).browserTabs.find((t) => t.id === tabId);
+    expect(tab?.ownerId).toBe(realOwnerId);
+    expect(tab?.url).toBe("https://owner.test");
+  });
+
   it("reports an unknown tool as a structured error (not a throw)", async () => {
     const result = await client.callTool("does_not_exist", {});
     expect(result.ok).toBe(false);

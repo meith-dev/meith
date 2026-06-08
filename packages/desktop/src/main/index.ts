@@ -87,8 +87,24 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-app.on("before-quit", async () => {
-  // Full, idempotent teardown: registry stops accepting calls, the socket
-  // server closes, and pending app state is flushed.
-  await container?.shutdown();
+// Electron does NOT wait for async `before-quit` listeners, so we must hold the
+// quit ourselves: cancel the first quit, run the full async teardown, then quit
+// again. The guard makes the handler idempotent (the second quit re-enters it).
+let isQuitting = false;
+app.on("before-quit", (event) => {
+  if (isQuitting) return;
+  event.preventDefault();
+  isQuitting = true;
+  void (async () => {
+    try {
+      // Full, idempotent teardown: registry stops accepting calls, the socket
+      // server closes, all live browser views/debuggers are destroyed, and
+      // pending app state is flushed.
+      await container?.shutdown();
+    } catch (err) {
+      console.error("[v0] shutdown failed during quit:", err);
+    } finally {
+      app.quit();
+    }
+  })();
 });

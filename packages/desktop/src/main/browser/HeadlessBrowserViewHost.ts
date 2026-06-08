@@ -100,6 +100,10 @@ export class HeadlessBrowserViewHost implements BrowserViewHost {
     this.views.delete(tabId);
   }
 
+  destroyAllViews(): void {
+    this.views.clear();
+  }
+
   focusView(_tabId: string): void {
     // No-op in headless mode (no visual stacking).
   }

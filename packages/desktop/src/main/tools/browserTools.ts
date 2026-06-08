@@ -40,18 +40,22 @@ async function guardOwnership<T>(fn: () => T | Promise<T>): Promise<T> {
   }
 }
 
-/** Resolve the automation owner for a control call. */
-function ownerOf(ctx: { sessionId?: string; caller: string }, explicit?: string): string {
-  return explicit ?? ctx.sessionId ?? ctx.caller;
+/**
+ * Resolve the automation owner for a control call from TRUSTED SERVER CONTEXT
+ * ONLY. `sessionId` is assigned by the host — the socket server stamps a
+ * per-connection id and `AgentService` stamps the agent session id — so it can
+ * never be forged by a socket peer. We intentionally do NOT accept a
+ * client-supplied `owner`, which would let one caller impersonate another and
+ * hijack a claimed tab.
+ */
+function ownerOf(ctx: { sessionId?: string; caller: string }): string {
+  return ctx.sessionId ?? ctx.caller;
 }
 
 /** Build the control context (owner + whether a prior claim is enforced). */
-function controlFor(
-  ctx: { sessionId?: string; caller: string },
-  explicit?: string,
-): ControlContext {
+function controlFor(ctx: { sessionId?: string; caller: string }): ControlContext {
   return {
-    ownerId: ownerOf(ctx, explicit),
+    ownerId: ownerOf(ctx),
     requireClaim: AUTOMATION_CALLERS.has(ctx.caller),
   };
 }
@@ -103,11 +107,10 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     inputSchema: z.object({
       tabId: z.string(),
       url: z.string(),
-      owner: z.string().optional().describe("Automation owner id, if claimed."),
     }),
     execute: (ctx, input) =>
       guardOwnership(() =>
-        deps.browserTabs.navigate(input.tabId, input.url, controlFor(ctx, input.owner)),
+        deps.browserTabs.navigate(input.tabId, input.url, controlFor(ctx)),
       ),
   });
 
@@ -115,33 +118,27 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     name: "go_back",
     description: "Navigate a browser tab back in its history.",
     capabilities: ["controls-browser"],
-    inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
+    inputSchema: z.object({ tabId: z.string() }),
     execute: (ctx, input) =>
-      guardOwnership(() =>
-        deps.browserTabs.goBack(input.tabId, controlFor(ctx, input.owner)),
-      ),
+      guardOwnership(() => deps.browserTabs.goBack(input.tabId, controlFor(ctx))),
   });
 
   const goForward = defineTool({
     name: "go_forward",
     description: "Navigate a browser tab forward in its history.",
     capabilities: ["controls-browser"],
-    inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
+    inputSchema: z.object({ tabId: z.string() }),
     execute: (ctx, input) =>
-      guardOwnership(() =>
-        deps.browserTabs.goForward(input.tabId, controlFor(ctx, input.owner)),
-      ),
+      guardOwnership(() => deps.browserTabs.goForward(input.tabId, controlFor(ctx))),
   });
 
   const refresh = defineTool({
     name: "refresh",
     description: "Reload a browser tab.",
     capabilities: ["controls-browser"],
-    inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
+    inputSchema: z.object({ tabId: z.string() }),
     execute: (ctx, input) =>
-      guardOwnership(() =>
-        deps.browserTabs.refresh(input.tabId, controlFor(ctx, input.owner)),
-      ),
+      guardOwnership(() => deps.browserTabs.refresh(input.tabId, controlFor(ctx))),
   });
 
   const focusBrowserTab = defineTool({
@@ -156,13 +153,10 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     name: "close_browser_tab",
     description: "Close a browser tab and destroy its live view.",
     capabilities: ["controls-browser"],
-    inputSchema: z.object({ tabId: z.string(), owner: z.string().optional() }),
+    inputSchema: z.object({ tabId: z.string() }),
     execute: (ctx, input) =>
       guardOwnership(async () => ({
-        closed: await deps.browserTabs.closeBrowserTab(
-          input.tabId,
-          controlFor(ctx, input.owner),
-        ),
+        closed: await deps.browserTabs.closeBrowserTab(input.tabId, controlFor(ctx)),
       })),
   });
 
@@ -171,32 +165,22 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     description:
       "Claim exclusive automation control of a browser tab. Prevents other agents/tools from controlling it concurrently.",
     capabilities: ["controls-browser"],
-    inputSchema: z.object({
-      tabId: z.string(),
-      owner: z.string().optional().describe("Owner id; defaults to the session id."),
-    }),
+    inputSchema: z.object({ tabId: z.string() }),
     execute: (ctx, input) =>
-      guardOwnership(() =>
-        deps.browserTabs.startUse(input.tabId, ownerOf(ctx, input.owner)),
-      ),
+      guardOwnership(() => deps.browserTabs.startUse(input.tabId, ownerOf(ctx))),
   });
 
   const browserUseEnd = defineTool({
     name: "browser_use_end",
     description: "Release automation control of a browser tab.",
     capabilities: ["controls-browser"],
-    inputSchema: z.object({
-      tabId: z.string(),
-      owner: z.string().optional(),
-      force: z.boolean().optional().describe("Release even if owned by another id."),
-    }),
+    inputSchema: z.object({ tabId: z.string() }),
     execute: (ctx, input) =>
       guardOwnership(() =>
-        deps.browserTabs.endUse(
-          input.tabId,
-          ownerOf(ctx, input.owner),
-          input.force ?? false,
-        ),
+        // `force` (release a tab owned by someone else) is reserved for
+        // first-party `internal` cleanup. External callers can only release
+        // tabs they themselves own.
+        deps.browserTabs.endUse(input.tabId, ownerOf(ctx), ctx.caller === "internal"),
       ),
   });
 
@@ -216,14 +200,13 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     inputSchema: z.object({
       tabId: z.string(),
       elementId: z.string().describe("Element id from get_browser_state, e.g. el-2."),
-      owner: z.string().optional(),
     }),
     execute: (ctx, input) =>
       guardOwnership(async () => {
         await deps.browserTabs.clickElement(
           input.tabId,
           input.elementId,
-          controlFor(ctx, input.owner),
+          controlFor(ctx),
         );
         return { clicked: input.elementId };
       }),
@@ -238,7 +221,6 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
       tabId: z.string(),
       elementId: z.string(),
       text: z.string(),
-      owner: z.string().optional(),
     }),
     execute: (ctx, input) =>
       guardOwnership(async () => {
@@ -246,7 +228,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
           input.tabId,
           input.elementId,
           input.text,
-          controlFor(ctx, input.owner),
+          controlFor(ctx),
         );
         return { typed: input.text.length };
       }),
@@ -263,14 +245,13 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
       deltaY: z.number().optional(),
       toX: z.number().optional(),
       toY: z.number().optional(),
-      owner: z.string().optional(),
     }),
     execute: (ctx, input) =>
       guardOwnership(async () => {
         await deps.browserTabs.scrollPage(
           input.tabId,
           { deltaX: input.deltaX, deltaY: input.deltaY, toX: input.toX, toY: input.toY },
-          controlFor(ctx, input.owner),
+          controlFor(ctx),
         );
         return { ok: true };
       }),
@@ -284,15 +265,10 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     inputSchema: z.object({
       tabId: z.string(),
       keys: z.string(),
-      owner: z.string().optional(),
     }),
     execute: (ctx, input) =>
       guardOwnership(async () => {
-        await deps.browserTabs.sendKeys(
-          input.tabId,
-          input.keys,
-          controlFor(ctx, input.owner),
-        );
+        await deps.browserTabs.sendKeys(input.tabId, input.keys, controlFor(ctx));
         return { ok: true };
       }),
   });
@@ -306,7 +282,6 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
       tabId: z.string(),
       method: z.string().describe("CDP method, e.g. Runtime.evaluate."),
       params: z.record(z.unknown()).optional(),
-      owner: z.string().optional(),
     }),
     execute: (ctx, input) =>
       guardOwnership(() =>
@@ -314,7 +289,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
           input.tabId,
           input.method,
           input.params ?? {},
-          controlFor(ctx, input.owner),
+          controlFor(ctx),
         ),
       ),
   });

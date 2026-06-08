@@ -283,6 +283,16 @@ export class BrowserTabService {
   }
 
   /**
+   * Tear down every live browser view this service owns. Called during app
+   * shutdown so no `WebContentsView` / CDP debugger attachment leaks when the
+   * process exits. Persisted tab records are intentionally left intact so they
+   * rehydrate on the next launch.
+   */
+  async disposeViews(): Promise<void> {
+    await this.host.destroyAllViews();
+  }
+
+  /**
    * Destroy all live browser views belonging to a space. Used when a space is
    * archived: the persisted tab records are removed by `SpaceService`, but the
    * underlying `WebContentsView` / debugger attachments must be torn down here

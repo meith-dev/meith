@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { existsSync, unlinkSync } from "node:fs";
 import net from "node:net";
 import {
@@ -66,6 +67,10 @@ export class ToolSocketService {
 
   private handleConnection(socket: net.Socket): void {
     const inflight = new Map<string, AbortController>();
+    // Trusted, server-assigned identity for this connection. Used as the tool
+    // context `sessionId` so browser ownership is scoped to the connection and
+    // cannot be forged via a client-supplied `sessionId`.
+    const connectionId = `socket:${randomUUID()}`;
     const send = (msg: ServerMessage) => {
       if (!socket.writableEnded) socket.write(encodeMessage(msg));
     };
@@ -82,7 +87,7 @@ export class ToolSocketService {
 
     socket.on("data", (chunk) => {
       for (const frame of parser.push(chunk)) {
-        void this.handleFrame(frame, send, inflight);
+        void this.handleFrame(frame, send, inflight, connectionId);
       }
     });
 
@@ -101,6 +106,7 @@ export class ToolSocketService {
     frame: unknown,
     send: (msg: ServerMessage) => void,
     inflight: Map<string, AbortController>,
+    connectionId: string,
   ): Promise<void> {
     const parsed = ClientMessageSchema.safeParse(frame);
     if (!parsed.success) {
@@ -152,7 +158,10 @@ export class ToolSocketService {
     const ctx: Omit<ToolContext, "signal" | "emit"> = {
       cwd: info.cwd ?? process.cwd(),
       caller,
-      sessionId: info.sessionId,
+      // Ignore any client-supplied sessionId: ownership/identity is bound to the
+      // trusted, server-assigned connection id so a peer cannot impersonate
+      // another owner (e.g. to hijack a claimed browser tab).
+      sessionId: connectionId,
       spaceId: info.spaceId,
       tabId: info.tabId,
     };

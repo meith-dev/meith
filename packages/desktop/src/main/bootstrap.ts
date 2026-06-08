@@ -117,6 +117,9 @@ export async function bootstrap(
     shutdownPromise = (async () => {
       registry.beginShutdown();
       await socket.stop();
+      // Tear down all live browser views/debuggers so nothing is leaked when
+      // the process exits.
+      await browserTabs.disposeViews();
       // Flush any debounced state write so nothing is lost on exit.
       appState.flush();
       logger.info("Bootstrap", "shutdown complete");
