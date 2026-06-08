@@ -56,7 +56,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
     description: "Close (archive) a space and its tabs. The last space cannot be closed.",
     capabilities: ["destructive"],
     inputSchema: z.object({ spaceId: z.string() }),
-    execute: (_ctx, input) => ({ closed: deps.spaces.close(input.spaceId) }),
+    execute: async (_ctx, input) => ({ closed: await deps.spaces.close(input.spaceId) }),
   });
 
   const openWorkspaceTab = defineTool({

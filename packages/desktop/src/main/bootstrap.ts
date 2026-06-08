@@ -83,7 +83,7 @@ export async function bootstrap(
     host: options.browserViewHost,
     artifacts,
   });
-  const spaces = new SpaceService(appState, logger);
+  const spaces = new SpaceService(appState, browserTabs, logger);
   const devServers = new DevServerService(logger);
   const terminals = new TerminalService(logger);
   const projects = new ProjectService(logger);
@@ -107,12 +107,19 @@ export async function bootstrap(
 
   logger.info("Bootstrap", "service container ready");
 
-  const shutdown = async (): Promise<void> => {
-    registry.beginShutdown();
-    await socket.stop();
-    // Flush any debounced state write so nothing is lost on exit.
-    appState.flush();
-    logger.info("Bootstrap", "shutdown complete");
+  // Idempotent: `before-quit` can fire more than once and other paths may also
+  // request shutdown, so the teardown work must run at most once.
+  let shutdownPromise: Promise<void> | null = null;
+  const shutdown = (): Promise<void> => {
+    if (shutdownPromise) return shutdownPromise;
+    shutdownPromise = (async () => {
+      registry.beginShutdown();
+      await socket.stop();
+      // Flush any debounced state write so nothing is lost on exit.
+      appState.flush();
+      logger.info("Bootstrap", "shutdown complete");
+    })();
+    return shutdownPromise;
   };
 
   return {

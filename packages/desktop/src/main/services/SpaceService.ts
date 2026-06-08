@@ -1,5 +1,6 @@
 import { type Space, newSpaceId } from "@meith/shared";
 import type { AppStateService } from "./AppStateService.js";
+import type { BrowserTabService } from "./BrowserTabService.js";
 import type { Logger } from "./Logger.js";
 
 /**
@@ -11,6 +12,7 @@ import type { Logger } from "./Logger.js";
 export class SpaceService {
   constructor(
     private readonly appState: AppStateService,
+    private readonly browserTabs: BrowserTabService,
     private readonly logger: Logger,
   ) {}
 
@@ -69,12 +71,15 @@ export class SpaceService {
    * closed so there is always a valid active space. If the active space is
    * closed, the most recent remaining space becomes active.
    */
-  close(id: string): boolean {
+  async close(id: string): Promise<boolean> {
     const state = this.appState.getState();
     if (state.spaces.length <= 1) {
       throw new Error("Cannot close the last remaining space");
     }
     if (!state.spaces.some((s) => s.id === id)) return false;
+    // Tear down live browser views BEFORE dropping their records, otherwise the
+    // backing WebContentsView / debugger attachments would be orphaned.
+    await this.browserTabs.destroyViewsForSpace(id);
     this.appState.update((draft) => {
       draft.spaces = draft.spaces.filter((s) => s.id !== id);
       draft.browserTabs = draft.browserTabs.filter((t) => t.spaceId !== id);

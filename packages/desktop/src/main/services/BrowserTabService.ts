@@ -283,6 +283,22 @@ export class BrowserTabService {
   }
 
   /**
+   * Destroy all live browser views belonging to a space. Used when a space is
+   * archived: the persisted tab records are removed by `SpaceService`, but the
+   * underlying `WebContentsView` / debugger attachments must be torn down here
+   * so they are not leaked. Ownership is intentionally NOT checked — archiving a
+   * space forcibly reclaims every view inside it.
+   */
+  async destroyViewsForSpace(spaceId: string): Promise<void> {
+    const tabs = this.appState
+      .getState()
+      .browserTabs.filter((t) => t.spaceId === spaceId);
+    for (const tab of tabs) {
+      await this.host.destroyView(tab.id);
+    }
+  }
+
+  /**
    * Claim exclusive automation control of a tab. Returns the session owner id.
    * Throws `TabOwnershipError` if another owner already holds it.
    */

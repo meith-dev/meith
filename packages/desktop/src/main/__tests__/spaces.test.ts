@@ -2,17 +2,28 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
+import { HeadlessBrowserViewHost } from "../browser/HeadlessBrowserViewHost.js";
 import { AppStateService } from "../services/AppStateService.js";
 import { BrowserTabService } from "../services/BrowserTabService.js";
 import { Logger } from "../services/Logger.js";
 import { SpaceService } from "../services/SpaceService.js";
 
+/** Headless host that records which tab views were destroyed. */
+class RecordingViewHost extends HeadlessBrowserViewHost {
+  readonly destroyed: string[] = [];
+  override destroyView(tabId: string): void {
+    this.destroyed.push(tabId);
+    super.destroyView(tabId);
+  }
+}
+
 function makeCtx() {
   const dir = mkdtempSync(join(tmpdir(), "meith-spaces-"));
   const appState = new AppStateService(join(dir, "state.json"), new Logger(), 0);
-  const spaces = new SpaceService(appState, new Logger());
-  const tabs = new BrowserTabService(appState, new Logger());
-  return { appState, spaces, tabs };
+  const host = new RecordingViewHost();
+  const tabs = new BrowserTabService(appState, new Logger(), { host });
+  const spaces = new SpaceService(appState, tabs, new Logger());
+  return { appState, spaces, tabs, host };
 }
 
 describe("SpaceService", () => {
@@ -55,7 +66,7 @@ describe("SpaceService", () => {
     await ctx.tabs.openBrowserTab({ url: "https://x.test", spaceId: second.id });
     expect(ctx.tabs.listBrowserTabs(second.id)).toHaveLength(1);
 
-    const closed = ctx.spaces.close(second.id);
+    const closed = await ctx.spaces.close(second.id);
     expect(closed).toBe(true);
     expect(ctx.spaces.list()).toHaveLength(1);
     expect(ctx.spaces.getActiveSpaceId()).toBe(first.id);
@@ -63,9 +74,25 @@ describe("SpaceService", () => {
     expect(ctx.tabs.listBrowserTabs(second.id)).toHaveLength(0);
   });
 
-  it("refuses to close the last remaining space", () => {
+  it("destroys live browser views when a space is closed", async () => {
+    const second = ctx.spaces.create({ name: "Second" });
+    const a = await ctx.tabs.openBrowserTab({ url: "https://a.test", spaceId: second.id });
+    const b = await ctx.tabs.openBrowserTab({ url: "https://b.test", spaceId: second.id });
+    // openBrowserTab does not destroy anything yet.
+    expect(ctx.host.destroyed).not.toContain(a.id);
+
+    await ctx.spaces.close(second.id);
+
+    // Both views in the closed space were torn down via the host, not just
+    // dropped from state.
+    expect(ctx.host.destroyed).toContain(a.id);
+    expect(ctx.host.destroyed).toContain(b.id);
+    expect(ctx.tabs.listBrowserTabs(second.id)).toHaveLength(0);
+  });
+
+  it("refuses to close the last remaining space", async () => {
     const only = ctx.spaces.list()[0];
-    expect(() => ctx.spaces.close(only.id)).toThrow(/last remaining/);
+    await expect(ctx.spaces.close(only.id)).rejects.toThrow(/last remaining/);
   });
 });
 

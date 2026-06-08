@@ -88,5 +88,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", async () => {
-  await container?.socket.stop();
+  // Full, idempotent teardown: registry stops accepting calls, the socket
+  // server closes, and pending app state is flushed.
+  await container?.shutdown();
 });
