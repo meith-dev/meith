@@ -230,6 +230,43 @@ describe("socket integration", () => {
     expect(list.some((t) => t.url === markerUrl)).toBe(false);
   });
 
+  it("downgrades a client-claimed privileged caller to cli", async () => {
+    // Register a tool on the live container registry that echoes the caller the
+    // registry actually saw (i.e. after the socket identity policy ran).
+    const { defineTool } = await import("@meith/protocol");
+    const { z } = await import("zod");
+    container.registry.register(
+      defineTool({
+        name: "__echo_caller",
+        description: "test-only: returns the resolved caller",
+        inputSchema: z.object({}),
+        execute: (ctx) => ({ caller: ctx.caller }),
+      }),
+    );
+
+    // A socket peer that lies and claims the privileged in-process `agent`
+    // identity must be downgraded to `cli`.
+    const claimedAgent = (await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      requestId: "req_caller_agent",
+      toolName: "__echo_caller",
+      arguments: {},
+      clientInfo: { caller: "agent" },
+    })) as { type: string; result?: { ok: boolean; content?: { caller: string } } };
+    expect(claimedAgent.type).toBe("tool_result");
+    expect(claimedAgent.result?.content?.caller).toBe("cli");
+
+    // A legitimately allowed caller (`plugin`) is preserved.
+    const claimedPlugin = (await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      requestId: "req_caller_plugin",
+      toolName: "__echo_caller",
+      arguments: {},
+      clientInfo: { caller: "plugin" },
+    })) as { type: string; result?: { ok: boolean; content?: { caller: string } } };
+    expect(claimedPlugin.result?.content?.caller).toBe("plugin");
+  });
+
   it("reports an unknown tool as a structured error (not a throw)", async () => {
     const result = await client.callTool("does_not_exist", {});
     expect(result.ok).toBe(false);

@@ -78,7 +78,9 @@ export async function bootstrap(
   logger.info("Bootstrap", `wrote config to ${configPath}`);
 
   const appState = new AppStateService(join(userDataPath, "state.json"), logger);
-  const artifacts = new ArtifactStore(join(userDataPath, "artifacts"));
+  // ArtifactStore appends "artifacts" itself, so pass the userData root to land
+  // files in <userData>/artifacts (not <userData>/artifacts/artifacts).
+  const artifacts = new ArtifactStore(userDataPath);
   const browserTabs = new BrowserTabService(appState, logger, {
     host: options.browserViewHost,
     artifacts,

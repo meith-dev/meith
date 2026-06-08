@@ -76,8 +76,14 @@ describe("SpaceService", () => {
 
   it("destroys live browser views when a space is closed", async () => {
     const second = ctx.spaces.create({ name: "Second" });
-    const a = await ctx.tabs.openBrowserTab({ url: "https://a.test", spaceId: second.id });
-    const b = await ctx.tabs.openBrowserTab({ url: "https://b.test", spaceId: second.id });
+    const a = await ctx.tabs.openBrowserTab({
+      url: "https://a.test",
+      spaceId: second.id,
+    });
+    const b = await ctx.tabs.openBrowserTab({
+      url: "https://b.test",
+      spaceId: second.id,
+    });
     // openBrowserTab does not destroy anything yet.
     expect(ctx.host.destroyed).not.toContain(a.id);
 

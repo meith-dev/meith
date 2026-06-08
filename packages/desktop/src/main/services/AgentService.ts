@@ -1,5 +1,6 @@
 import type { ToolDescriptor } from "@meith/protocol";
 import { newMessageId, newSessionId } from "@meith/shared";
+import { buildSystemPrompt } from "../agent/systemPrompt.js";
 import type {
   AgentAdapter,
   AgentHostContext,
@@ -80,6 +81,7 @@ export class AgentService {
           name,
           args,
         ),
+      systemPrompt: () => buildSystemPrompt(this.registry.describe()),
       log: (message) => this.logger.info("Agent", message),
     };
   }
@@ -98,7 +100,7 @@ export class AgentService {
     }
     session.status = "running";
     try {
-      yield* this.adapter.run(session, this.hostContext());
+      yield* this.adapter.run(session, this.hostContext(session));
       session.status = "idle";
     } catch (err) {
       session.status = "error";
