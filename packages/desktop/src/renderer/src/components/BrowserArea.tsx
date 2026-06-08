@@ -1,18 +1,12 @@
-import type { BrowserTab } from "@meith/shared";
-import {
-  GlobeIcon,
-  LockIcon,
-  PlusIcon,
-  RotateCwIcon,
-  XIcon,
-} from "lucide-react";
-import { type FormEvent, type RefObject, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { hostname } from "@/lib/workspace";
+import type { BrowserTab } from "@meith/shared";
+import { GlobeIcon, LockIcon, PlusIcon, RotateCwIcon, XIcon } from "lucide-react";
+import { type FormEvent, type RefObject, useEffect, useState } from "react";
 
 interface BrowserAreaProps {
   tabs: BrowserTab[];
@@ -81,7 +75,9 @@ export function BrowserArea({
                   title={tab.url}
                 >
                   <GlobeIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate">{tab.title || hostname(tab.url)}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {tab.title || hostname(tab.url)}
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -110,7 +106,10 @@ export function BrowserArea({
 
       {/* Address bar */}
       {active && (
-        <form onSubmit={submit} className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <form
+          onSubmit={submit}
+          className="flex items-center gap-2 border-b border-border px-3 py-2"
+        >
           <Button
             type="button"
             variant="ghost"
@@ -143,7 +142,9 @@ export function BrowserArea({
           <div className="flex h-full items-center justify-center p-6">
             <Empty>
               <EmptyHeader>
-                <EmptyTitle>{active ? "Preview unavailable" : "No browser tab"}</EmptyTitle>
+                <EmptyTitle>
+                  {active ? "Preview unavailable" : "No browser tab"}
+                </EmptyTitle>
                 <EmptyDescription>
                   {active
                     ? "Browser content renders in the native view inside the desktop app. This is the in-browser preview, so the page itself isn't shown here."

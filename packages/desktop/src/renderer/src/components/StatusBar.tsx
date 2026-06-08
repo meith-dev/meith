@@ -1,5 +1,5 @@
-import { Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Circle } from "lucide-react";
 
 export function StatusBar({
   isMock,

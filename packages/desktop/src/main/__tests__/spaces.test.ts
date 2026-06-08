@@ -77,7 +77,11 @@ describe("BrowserTabService workspace tabs", () => {
 
   it("opens, focuses, and closes workspace tabs", () => {
     const a = ctx.tabs.openWorkspaceTab({ title: "Editor", cwd: "/tmp/a" });
-    const b = ctx.tabs.openWorkspaceTab({ title: "Terminal", cwd: "/tmp/b", kind: "terminal" });
+    const b = ctx.tabs.openWorkspaceTab({
+      title: "Terminal",
+      cwd: "/tmp/b",
+      kind: "terminal",
+    });
     expect(ctx.tabs.listWorkspaceTabs()).toHaveLength(2);
     // Newest is active.
     expect(ctx.tabs.listWorkspaceTabs().find((t) => t.id === b.id)?.active).toBe(true);

@@ -1,12 +1,12 @@
-import type { AppState, LogEntry } from "@meith/shared";
-import type { ToolDescriptor } from "@meith/protocol";
-import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 import type { Workbench } from "@/hooks/useWorkbench";
+import { cn } from "@/lib/utils";
+import type { ToolDescriptor } from "@meith/protocol";
+import type { AppState, LogEntry } from "@meith/shared";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface DebugPanelProps {
   workbench: Workbench;
@@ -127,7 +127,9 @@ function ToolRunner({ workbench }: { workbench: Workbench }) {
             </li>
           ))}
           {tools.length === 0 && (
-            <li className="px-2 py-3 text-xs text-muted-foreground">No tools registered.</li>
+            <li className="px-2 py-3 text-xs text-muted-foreground">
+              No tools registered.
+            </li>
           )}
         </ul>
       </ScrollArea>
@@ -225,7 +227,6 @@ function LogView({ workbench }: { workbench: Workbench }) {
     };
   }, [workbench]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on new entries.
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [entries]);
@@ -242,13 +243,19 @@ function LogView({ workbench }: { workbench: Workbench }) {
 
   return (
     <ScrollArea className="h-full">
-      <div className="flex flex-col gap-0.5 p-3 font-mono text-xs" role="log" aria-live="polite">
+      <div
+        className="flex flex-col gap-0.5 p-3 font-mono text-xs"
+        role="log"
+        aria-live="polite"
+      >
         {entries.length === 0 ? (
           <p className="text-muted-foreground">No log entries yet.</p>
         ) : (
           entries.map((entry) => (
             <div key={entry.id} className="flex gap-2">
-              <span className="shrink-0 text-muted-foreground/70">{formatTime(entry.ts)}</span>
+              <span className="shrink-0 text-muted-foreground/70">
+                {formatTime(entry.ts)}
+              </span>
               <span className={cn("shrink-0 w-12 uppercase", levelClass[entry.level])}>
                 {entry.level}
               </span>

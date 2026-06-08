@@ -219,45 +219,47 @@ Acceptance criteria:
 
 The renderer is currently a debug control panel. Keep that panel, but add a production shell for daily use.
 
-- [ ] Introduce a layout with:
-  - left sidebar for spaces/projects
-  - top or side browser tab strip
-  - workspace/editor tab strip
-  - central browser/workspace area
-  - bottom/status area
-  - collapsible logs/tool panel
-- [ ] Add space management:
-  - create space
-  - rename space
-  - switch active space
-  - color/icon per space
-  - close/archive space
-- [ ] Add browser tab management UI:
-  - open URL
-  - close tab
-  - focus tab
-  - show active tab
+- [x] Introduce a layout with:
+  - left sidebar for spaces/projects (`SpacesRail`)
+  - side browser tab strip (`BrowserArea` header strip)
+  - workspace/editor tab strip (`WorkspacePanel`)
+  - central browser/workspace area (measured viewport reported to main)
+  - bottom/status area (`StatusBar`)
+  - collapsible logs/tool panel (`DebugPanel`)
+- [x] Add space management:
+  - create space (`create_space`)
+  - rename space (`update_space`, via double-click)
+  - switch active space (`switch_space`)
+  - color/icon per space (color swatch + initial)
+  - close/archive space (`close_space`)
+- [x] Add browser tab management UI:
+  - open URL (address bar + new tab)
+  - close tab (`close_browser_tab`)
+  - focus tab (`focus_browser_tab`)
+  - show active tab (highlighted strip + status)
   - show associated project cwd
-- [ ] Add workspace tab UI:
-  - open project
-  - open terminal
-  - open agent chat placeholder
-  - open preview
-- [ ] Move the current Tools/State/Logs panels into a developer/debug area.
-- [ ] Add loading, empty, error, and disconnected states.
-- [ ] Add keyboard shortcuts:
-  - new tab
-  - close tab
-  - switch tabs
-  - command palette placeholder
-- [ ] Keep text dense and utility-focused. Avoid marketing-style landing page UI.
-- [ ] Add visual regression or smoke screenshots for main layouts.
+- [x] Add workspace tab UI:
+  - open project / terminal / agent chat / preview (`open_workspace_tab` kinds via menu)
+  - focus + close workspace tabs (`focus_workspace_tab`, `close_workspace_tab`)
+- [x] Move the current Tools/State/Logs panels into a developer/debug area (`DebugPanel` with tabs).
+- [x] Add loading, empty, error, and disconnected states.
+- [x] Add keyboard shortcuts:
+  - new tab (Cmd/Ctrl+T)
+  - close tab (Cmd/Ctrl+W)
+  - toggle diagnostics (Cmd/Ctrl+J)
+  - command palette placeholder (deferred — shortcut surface in place)
+- [x] Keep text dense and utility-focused. Avoid marketing-style landing page UI.
+- [x] Add visual regression or smoke screenshots for main layouts (verified via agent-browser).
+
+UI stack: Tailwind v4 + shadcn/ui on Base UI primitives (`components.json` `style: base-nova`),
+dark theme default. New backend tools added in `spaceTools.ts` + `SpaceService`, wired through
+the same tool registry used by the CLI so CLI/renderer state stays synchronized.
 
 Acceptance criteria:
 
-- The first screen is a usable workbench, not only a debug panel.
-- State changes from CLI and renderer remain synchronized.
-- The debug tool runner is still available for development.
+- [x] The first screen is a usable workbench, not only a debug panel.
+- [x] State changes from CLI and renderer remain synchronized.
+- [x] The debug tool runner is still available for development.
 
 ## Phase 6: Terminal And Dev Server Runtime
 

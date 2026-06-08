@@ -143,7 +143,7 @@ function createMockBridge(): MeithBridge {
           }
           case "update_space": {
             const space = state.spaces.find((s) => s.id === args.spaceId);
-            if (!space) return errorResult("NOT_FOUND", "Unknown space");
+            if (!space) return errorResult("VALIDATION_ERROR", "Unknown space");
             if (typeof args.name === "string") space.name = args.name;
             if (typeof args.color === "string") space.color = args.color;
             emitState();
@@ -151,7 +151,7 @@ function createMockBridge(): MeithBridge {
           }
           case "switch_space": {
             if (!state.spaces.some((s) => s.id === args.spaceId)) {
-              return errorResult("NOT_FOUND", "Unknown space");
+              return errorResult("VALIDATION_ERROR", "Unknown space");
             }
             state.activeSpaceId = String(args.spaceId);
             emitState();
@@ -160,7 +160,7 @@ function createMockBridge(): MeithBridge {
           case "close_space": {
             const id = String(args.spaceId);
             if (state.spaces.length <= 1) {
-              return errorResult("INVALID", "Cannot close the last space");
+              return errorResult("VALIDATION_ERROR", "Cannot close the last space");
             }
             state.spaces = state.spaces.filter((s) => s.id !== id);
             state.browserTabs = state.browserTabs.filter((t) => t.spaceId !== id);
@@ -194,7 +194,7 @@ function createMockBridge(): MeithBridge {
           }
           case "focus_browser_tab": {
             const tab = state.browserTabs.find((t) => t.id === args.tabId);
-            if (!tab) return errorResult("NOT_FOUND", "Unknown tab");
+            if (!tab) return errorResult("VALIDATION_ERROR", "Unknown tab");
             for (const t of state.browserTabs) {
               if (t.spaceId === tab.spaceId) t.active = t.id === tab.id;
             }
@@ -234,7 +234,7 @@ function createMockBridge(): MeithBridge {
           }
           case "focus_workspace_tab": {
             const tab = state.workspaceTabs.find((t) => t.id === args.tabId);
-            if (!tab) return errorResult("NOT_FOUND", "Unknown tab");
+            if (!tab) return errorResult("VALIDATION_ERROR", "Unknown tab");
             for (const t of state.workspaceTabs) {
               if (t.spaceId === tab.spaceId) t.active = t.id === tab.id;
             }

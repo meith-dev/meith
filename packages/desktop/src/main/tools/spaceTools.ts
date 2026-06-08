@@ -61,7 +61,8 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
 
   const openWorkspaceTab = defineTool({
     name: "open_workspace_tab",
-    description: "Open a workspace tab (editor/terminal/agent/preview) in the active space.",
+    description:
+      "Open a workspace tab (editor/terminal/agent/preview) in the active space.",
     capabilities: [],
     inputSchema: z.object({
       title: z.string().min(1),

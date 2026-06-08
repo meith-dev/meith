@@ -88,6 +88,17 @@ describe("socket integration", () => {
     expect(names).toContain("get_network_logs");
     const clickEl = tools.find((t) => t.name === "click_element");
     expect(clickEl?.capabilities).toContain("controls-browser");
+
+    // Phase 5 space + workspace-tab management tools are registered.
+    expect(names).toContain("create_space");
+    expect(names).toContain("switch_space");
+    expect(names).toContain("update_space");
+    expect(names).toContain("close_space");
+    expect(names).toContain("open_workspace_tab");
+    expect(names).toContain("focus_workspace_tab");
+    expect(names).toContain("close_workspace_tab");
+    const closeSpace = tools.find((t) => t.name === "close_space");
+    expect(closeSpace?.capabilities).toContain("destructive");
   });
 
   it("calls app_get_state and gets a valid AppState in result.content", async () => {

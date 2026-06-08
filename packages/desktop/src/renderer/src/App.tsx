@@ -6,19 +6,12 @@ import { DebugPanel } from "./components/DebugPanel";
 import { SpacesRail } from "./components/SpacesRail";
 import { StatusBar } from "./components/StatusBar";
 import { TitleBar } from "./components/TitleBar";
+import { WorkspacePanel } from "./components/WorkspacePanel";
 import { Toaster } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
-import { WorkspacePanel } from "./components/WorkspacePanel";
 import { useWorkbench } from "./hooks/useWorkbench";
 
-const SPACE_PALETTE = [
-  "#6366f1",
-  "#0ea5e9",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#ec4899",
-];
+const SPACE_PALETTE = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#ec4899"];
 
 export function App() {
   const workbench = useWorkbench();
@@ -87,12 +80,15 @@ export function App() {
     });
   }, [run, state]);
 
-  const switchSpace = useCallback((spaceId: string) => void run("switch_space", { spaceId }), [run]);
+  const switchSpace = useCallback(
+    (spaceId: string) => void run("switch_space", { spaceId }),
+    [run],
+  );
 
   const manageSpace = useCallback(
     (space: Space) => {
       const name = window.prompt("Rename space", space.name);
-      if (name && name.trim() && name !== space.name) {
+      if (name?.trim() && name !== space.name) {
         void run("update_space", { spaceId: space.id, name: name.trim() });
       }
     },
@@ -109,14 +105,32 @@ export function App() {
       }),
     [run, activeSpace],
   );
-  const focusWorkspaceTab = useCallback((tabId: string) => void run("focus_workspace_tab", { tabId }), [run]);
-  const closeWorkspaceTab = useCallback((tabId: string) => void run("close_workspace_tab", { tabId }), [run]);
+  const focusWorkspaceTab = useCallback(
+    (tabId: string) => void run("focus_workspace_tab", { tabId }),
+    [run],
+  );
+  const closeWorkspaceTab = useCallback(
+    (tabId: string) => void run("close_workspace_tab", { tabId }),
+    [run],
+  );
 
   // --- Browser tab actions -------------------------------------------------
-  const openBrowserTab = useCallback((url: string) => void run("open_browser_tab", { url }), [run]);
-  const focusBrowserTab = useCallback((tabId: string) => void run("focus_browser_tab", { tabId }), [run]);
-  const closeBrowserTab = useCallback((tabId: string) => void run("close_browser_tab", { tabId }), [run]);
-  const refreshBrowserTab = useCallback((tabId: string) => void run("refresh", { tabId }), [run]);
+  const openBrowserTab = useCallback(
+    (url: string) => void run("open_browser_tab", { url }),
+    [run],
+  );
+  const focusBrowserTab = useCallback(
+    (tabId: string) => void run("focus_browser_tab", { tabId }),
+    [run],
+  );
+  const closeBrowserTab = useCallback(
+    (tabId: string) => void run("close_browser_tab", { tabId }),
+    [run],
+  );
+  const refreshBrowserTab = useCallback(
+    (tabId: string) => void run("refresh", { tabId }),
+    [run],
+  );
   const navigateBrowserTab = useCallback(
     (url: string) => {
       if (activeBrowserTab) void run("navigate", { tabId: activeBrowserTab.id, url });
@@ -124,7 +138,10 @@ export function App() {
     [run, activeBrowserTab],
   );
 
-  const newBrowserTab = useCallback(() => openBrowserTab("https://example.com"), [openBrowserTab]);
+  const newBrowserTab = useCallback(
+    () => openBrowserTab("https://example.com"),
+    [openBrowserTab],
+  );
 
   // --- Keyboard shortcuts --------------------------------------------------
   useEffect(() => {
@@ -147,7 +164,7 @@ export function App() {
   }, [newBrowserTab, closeBrowserTab, activeBrowserTab]);
 
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delay={300}>
       <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
         <TitleBar
           spaceName={activeSpace?.name ?? null}
@@ -185,7 +202,11 @@ export function App() {
         </div>
 
         {debugOpen && (
-          <DebugPanel workbench={workbench} state={state} onClose={() => setDebugOpen(false)} />
+          <DebugPanel
+            workbench={workbench}
+            state={state}
+            onClose={() => setDebugOpen(false)}
+          />
         )}
 
         <StatusBar

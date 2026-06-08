@@ -1,5 +1,3 @@
-import type { WorkspaceTab } from "@meith/shared";
-import { PlusIcon, XIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +8,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { WORKSPACE_KINDS, basename } from "@/lib/workspace";
+import type { WorkspaceTab } from "@meith/shared";
+import { PlusIcon, XIcon } from "lucide-react";
 
 interface WorkspacePanelProps {
   tabs: WorkspaceTab[];
@@ -45,9 +45,7 @@ export function WorkspacePanel({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuGroup>
-              {(
-                Object.keys(WORKSPACE_KINDS) as WorkspaceTab["kind"][]
-              ).map((kind) => {
+              {(Object.keys(WORKSPACE_KINDS) as WorkspaceTab["kind"][]).map((kind) => {
                 const { icon: Icon, label } = WORKSPACE_KINDS[kind];
                 return (
                   <DropdownMenuItem key={kind} onClick={() => onOpen(kind)}>
@@ -104,8 +102,8 @@ export function WorkspacePanel({
 
           {tabs.length === 0 && (
             <li className="px-2 py-6 text-center text-xs text-muted-foreground">
-              No workspace tabs. Use{" "}
-              <span className="text-foreground">+</span> to open one.
+              No workspace tabs. Use <span className="text-foreground">+</span> to open
+              one.
             </li>
           )}
         </ul>

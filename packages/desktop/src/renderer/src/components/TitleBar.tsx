@@ -1,12 +1,8 @@
-import { PanelsTopLeft, Plus, TerminalSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { PanelsTopLeft, Plus, TerminalSquare } from "lucide-react";
 
 export function TitleBar({
   spaceName,

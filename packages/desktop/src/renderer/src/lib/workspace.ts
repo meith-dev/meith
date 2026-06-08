@@ -1,3 +1,4 @@
+import type { WorkspaceTab } from "@meith/shared";
 import {
   BotIcon,
   FileCodeIcon,
@@ -5,7 +6,6 @@ import {
   MonitorIcon,
   TerminalIcon,
 } from "lucide-react";
-import type { WorkspaceTab } from "@meith/shared";
 
 /** Icon + human label for each workspace-tab kind. */
 export const WORKSPACE_KINDS: Record<
