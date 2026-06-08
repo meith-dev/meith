@@ -1,0 +1,34 @@
+import {
+  BotIcon,
+  FileCodeIcon,
+  type LucideIcon,
+  MonitorIcon,
+  TerminalIcon,
+} from "lucide-react";
+import type { WorkspaceTab } from "@meith/shared";
+
+/** Icon + human label for each workspace-tab kind. */
+export const WORKSPACE_KINDS: Record<
+  WorkspaceTab["kind"],
+  { icon: LucideIcon; label: string }
+> = {
+  editor: { icon: FileCodeIcon, label: "Editor" },
+  terminal: { icon: TerminalIcon, label: "Terminal" },
+  agent: { icon: BotIcon, label: "Agent" },
+  preview: { icon: MonitorIcon, label: "Preview" },
+};
+
+/** Strip a filesystem path down to its last segment for compact display. */
+export function basename(path: string): string {
+  const parts = path.replace(/[/\\]+$/, "").split(/[/\\]/);
+  return parts[parts.length - 1] || path;
+}
+
+/** Best-effort hostname for a URL, falling back to the raw string. */
+export function hostname(url: string): string {
+  try {
+    return new URL(url).hostname || url;
+  } catch {
+    return url;
+  }
+}
