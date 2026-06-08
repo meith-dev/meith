@@ -12,7 +12,7 @@ meith is a pnpm monorepo for an extensible desktop AI IDE. The guiding principle
 | ------------------ | ----------------------------------------------------------------------------- |
 | `@meith/shared`    | Zod schemas + inferred types, IDs, app config/state, the `ToolResult` envelope, capability/error-code enums, and the `ToolContext`. |
 | `@meith/protocol`  | The `ToolDefinition` contract, `defineTool`, serializable `ToolDescriptor`, the newline-delimited JSON (ndjson) wire messages, and naming helpers. |
-| `@meith/desktop`   | Electron main/preload/renderer, the service container, the single `ToolRegistry`, the local Unix-socket server, IPC handlers, and a React debug UI. |
+| `@meith/desktop`   | Electron main/preload/renderer, the service container, the single `ToolRegistry`, the local Unix-socket server, IPC handlers, and the React workbench UI (Tailwind v4 + shadcn/ui on Base UI) with a built-in developer debug panel. |
 | `@meith/cli`       | The `meith` terminal command. Connects to the running runtime's socket and calls registered tools. |
 
 ## The single tool registry
@@ -147,6 +147,31 @@ implementations:
   `Log.entryAdded`, and the `Network.*` events into per-tab ring buffers read by
   `get_console_logs` / `get_network_logs` (read-only). The headless host
   records synthetic entries on navigation/interaction.
+
+## Renderer (workbench UI)
+
+The renderer is a React + Vite app styled with Tailwind v4 and shadcn/ui built on
+**Base UI** primitives (`components.json` → `style: "base-nova"`, dark theme default).
+It is a workbench, not a debug console:
+
+- **`SpacesRail`** — left vertical rail of spaces (color swatch + initial). Click to
+  `switch_space`, double-click to `update_space` (rename), `+` to `create_space`.
+- **`WorkspacePanel`** — workspace-tab strip for the active space with an "open"
+  menu mapping to `open_workspace_tab` kinds (project / terminal / agent / preview),
+  plus `focus_workspace_tab` / `close_workspace_tab`.
+- **`BrowserArea`** — browser tab strip + address bar (`open_browser_tab`,
+  `navigate`, `focus_browser_tab`, `close_browser_tab`). The central region is the
+  measured browser content area reported to main via the viewport contract.
+- **`StatusBar`** — connection state plus space/tab counts.
+- **`DebugPanel`** — collapsible bottom drawer (toggle: `Cmd/Ctrl+J`) with Tools /
+  State / Logs tabs. The Tools tab is the original arbitrary tool runner, preserved
+  for development.
+
+State flows one way: components call tools through `useWorkbench`, the main process
+mutates authoritative state, and the renderer re-renders from pushed `AppState`.
+The same registry backs the CLI, so `meith` commands and the UI stay synchronized.
+In browser/dev mode (`pnpm dev:renderer`) a mock bridge in `bridge.ts` provides an
+in-memory implementation of the full tool set so the UI is testable without Electron.
 
 ## Related docs
 

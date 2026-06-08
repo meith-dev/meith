@@ -79,6 +79,12 @@ export interface BrowserViewHost {
   loadURL(tabId: string, url: string): void | Promise<void>;
   /** Destroy the view bound to a tab. */
   destroyView(tabId: string): void | Promise<void>;
+  /**
+   * Destroy every live view this host owns. Used during app shutdown so no
+   * `WebContentsView` / CDP debugger attachment is leaked when the process
+   * exits. Idempotent and safe to call when no views exist.
+   */
+  destroyAllViews(): void | Promise<void>;
   /** Show this tab's view and hide the others (active tab switching). */
   focusView(tabId: string): void | Promise<void>;
   reload(tabId: string): void | Promise<void>;

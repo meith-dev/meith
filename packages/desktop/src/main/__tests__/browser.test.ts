@@ -15,7 +15,8 @@ import { ArtifactStore } from "../storage/ArtifactStore.js";
 function makeService() {
   const dir = mkdtempSync(join(tmpdir(), "meith-browser-"));
   const appState = new AppStateService(join(dir, "state.json"), new Logger(), 0);
-  const artifacts = new ArtifactStore(join(dir, "artifacts"));
+  // ArtifactStore appends "artifacts" itself; pass the data root.
+  const artifacts = new ArtifactStore(dir);
   const service = new BrowserTabService(appState, new Logger(), { artifacts });
   return { dir, appState, artifacts, service };
 }
@@ -132,6 +133,10 @@ describe("BrowserTabService lifecycle", () => {
     expect(shot.tabId).toBe(tab.id);
     expect(shot.path).toBeTruthy();
     expect(existsSync(shot.path as string)).toBe(true);
+    // Lands in <dataRoot>/artifacts, not a doubly-nested artifacts/artifacts.
+    expect(ctx.artifacts.directory).toBe(join(ctx.dir, "artifacts"));
+    expect(shot.path as string).toContain(join(ctx.dir, "artifacts"));
+    expect(shot.path as string).not.toContain(join("artifacts", "artifacts"));
   });
 });
 

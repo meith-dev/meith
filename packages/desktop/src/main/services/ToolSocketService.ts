@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { existsSync, unlinkSync } from "node:fs";
 import net from "node:net";
 import {
@@ -7,9 +8,22 @@ import {
   type ServerMessage,
   encodeMessage,
 } from "@meith/protocol";
-import type { ToolContext, ToolEvent } from "@meith/shared";
+import type { ToolCaller, ToolContext, ToolEvent } from "@meith/shared";
 import type { ToolRegistry } from "../tools/registry.js";
 import type { Logger } from "./Logger.js";
+
+/**
+ * Callers a local socket client is allowed to assert. `renderer`, `agent`, and
+ * `internal` are privileged *in-process* identities (they originate inside the
+ * main process and are trusted for capability decisions); a remote socket peer
+ * must never be able to impersonate them. Anything outside this set is
+ * downgraded to the least-privileged `cli` identity.
+ */
+const SOCKET_ALLOWED_CALLERS: ReadonlySet<ToolCaller> = new Set<ToolCaller>([
+  "cli",
+  "plugin",
+]);
+const SOCKET_DEFAULT_CALLER: ToolCaller = "cli";
 
 /**
  * Local Unix-socket server speaking newline-delimited JSON. This is how the CLI
@@ -53,6 +67,10 @@ export class ToolSocketService {
 
   private handleConnection(socket: net.Socket): void {
     const inflight = new Map<string, AbortController>();
+    // Trusted, server-assigned identity for this connection. Used as the tool
+    // context `sessionId` so browser ownership is scoped to the connection and
+    // cannot be forged via a client-supplied `sessionId`.
+    const connectionId = `socket:${randomUUID()}`;
     const send = (msg: ServerMessage) => {
       if (!socket.writableEnded) socket.write(encodeMessage(msg));
     };
@@ -69,7 +87,7 @@ export class ToolSocketService {
 
     socket.on("data", (chunk) => {
       for (const frame of parser.push(chunk)) {
-        void this.handleFrame(frame, send, inflight);
+        void this.handleFrame(frame, send, inflight, connectionId);
       }
     });
 
@@ -88,6 +106,7 @@ export class ToolSocketService {
     frame: unknown,
     send: (msg: ServerMessage) => void,
     inflight: Map<string, AbortController>,
+    connectionId: string,
   ): Promise<void> {
     const parsed = ClientMessageSchema.safeParse(frame);
     if (!parsed.success) {
@@ -131,10 +150,18 @@ export class ToolSocketService {
 
     // tool_call
     const info = msg.clientInfo;
+    // Server-side identity policy: the socket is the local *untrusted* boundary,
+    // so we never let a peer self-assert a privileged caller. A claimed caller
+    // outside the allow-list is downgraded to `cli` (and logged), rather than
+    // trusting `clientInfo.caller` for capability decisions downstream.
+    const caller = this.resolveCaller(info.caller);
     const ctx: Omit<ToolContext, "signal" | "emit"> = {
       cwd: info.cwd ?? process.cwd(),
-      caller: info.caller,
-      sessionId: info.sessionId,
+      caller,
+      // Ignore any client-supplied sessionId: ownership/identity is bound to the
+      // trusted, server-assigned connection id so a peer cannot impersonate
+      // another owner (e.g. to hijack a claimed browser tab).
+      sessionId: connectionId,
       spaceId: info.spaceId,
       tabId: info.tabId,
     };
@@ -155,6 +182,19 @@ export class ToolSocketService {
     } finally {
       inflight.delete(msg.requestId);
     }
+  }
+
+  /**
+   * Map a client-claimed caller to one the socket boundary is willing to honor.
+   * Privileged in-process identities are downgraded to `cli`.
+   */
+  private resolveCaller(claimed: ToolCaller): ToolCaller {
+    if (SOCKET_ALLOWED_CALLERS.has(claimed)) return claimed;
+    this.logger.warn(
+      "Socket",
+      `client claimed privileged caller "${claimed}"; downgrading to "${SOCKET_DEFAULT_CALLER}"`,
+    );
+    return SOCKET_DEFAULT_CALLER;
   }
 
   async stop(): Promise<void> {

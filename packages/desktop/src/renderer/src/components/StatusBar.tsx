@@ -1,25 +1,33 @@
-import type { View } from "../App";
+import { cn } from "@/lib/utils";
+import { Circle } from "lucide-react";
 
 export function StatusBar({
   isMock,
   browserTabs,
   workspaceTabs,
-  view,
+  spaces,
 }: {
   isMock: boolean;
   browserTabs: number;
   workspaceTabs: number;
-  view: View;
+  spaces: number;
 }) {
   return (
-    <footer className="statusbar">
-      <span className={`status-pill${isMock ? "" : " is-online"}`}>
+    <footer className="flex h-7 shrink-0 items-center gap-4 border-t bg-card px-3 text-xs text-muted-foreground">
+      <span className="flex items-center gap-1.5">
+        <Circle
+          className={cn(
+            "size-2 fill-current",
+            isMock ? "text-muted-foreground" : "text-primary",
+          )}
+        />
         {isMock ? "Mock bridge" : "Runtime connected"}
       </span>
-      <span className="status-item">{browserTabs} browser tabs</span>
-      <span className="status-item">{workspaceTabs} workspace tabs</span>
-      <span className="status-spacer" />
-      <span className="status-item">{view}</span>
+      <span>{spaces} spaces</span>
+      <span>{workspaceTabs} workspace tabs</span>
+      <span>{browserTabs} browser tabs</span>
+      <div className="flex-1" />
+      <span className="font-mono">meith workbench</span>
     </footer>
   );
 }

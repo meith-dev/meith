@@ -36,6 +36,12 @@ export interface AgentHostContext {
   /** Tools the agent is allowed to call (same registry as CLI/renderer). */
   listTools: () => ToolDescriptor[];
   callTool: (name: string, args: Record<string, unknown>) => Promise<ToolResult>;
+  /**
+   * The composed system prompt for this session. The tool catalog inside it is
+   * generated from the live registry, so adapters should use this verbatim
+   * instead of maintaining their own hardcoded tool list.
+   */
+  systemPrompt: () => string;
   log: (message: string) => void;
 }
 

@@ -61,25 +61,29 @@ async function main(): Promise<void> {
       "go_back did not restore the previous URL",
     );
 
-    // Ownership: claim, block a different owner, then release.
-    const claim = await client.callTool("browser_use_start", {
-      tabId,
-      owner: "smoke-agent",
-    });
+    // Ownership: claim on THIS connection, then prove a *different* connection
+    // cannot drive the claimed tab. Ownership is server-assigned per socket
+    // connection, so the attacker must be a separate ToolClient — client-
+    // supplied owner ids are ignored by design and must not be reintroduced.
+    const claim = await client.callTool("browser_use_start", { tabId });
     assert(claim.ok, "browser_use_start failed");
-    const blocked = await client.callTool("navigate", {
-      tabId,
-      url: "http://localhost:3000/x",
-      owner: "other-agent",
-    });
-    assert(
-      !blocked.ok && blocked.error?.code === "PERMISSION_DENIED",
-      "ownership not enforced",
-    );
-    const release = await client.callTool("browser_use_end", {
-      tabId,
-      owner: "smoke-agent",
-    });
+
+    const attacker = new ToolClient({ socketPath: container.config.socketPath });
+    try {
+      await attacker.connect();
+      const blocked = await attacker.callTool("navigate", {
+        tabId,
+        url: "http://localhost:3000/x",
+      });
+      assert(
+        !blocked.ok && blocked.error?.code === "PERMISSION_DENIED",
+        "ownership not enforced: a second connection drove a claimed tab",
+      );
+    } finally {
+      attacker.close();
+    }
+
+    const release = await client.callTool("browser_use_end", { tabId });
     assert(release.ok, "browser_use_end failed");
 
     // Screenshot artifact.

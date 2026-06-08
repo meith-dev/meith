@@ -36,9 +36,34 @@ message whose `protocol` is present and does not match, with a `PROTOCOL_ERROR`.
 { "type": "cancel_tool_call", "protocol": 1, "requestId": "req_ab12cd34" }
 ```
 
-`clientInfo` identifies the caller (`cli` | `renderer` | `agent` | `plugin` |
-`internal`) plus optional `cwd`, `sessionId`, `spaceId`, and `tabId`. It becomes
-the tool's `ToolContext`.
+`clientInfo` carries the caller's *requested* identity (`cli` | `renderer` |
+`agent` | `plugin` | `internal`) plus optional `cwd`, `sessionId`, `spaceId`,
+and `tabId`. It does **not** become the tool's `ToolContext` verbatim.
+
+### Server-side identity policy (Unix socket)
+
+The Unix socket is an untrusted local boundary, so the server **does not trust**
+client-asserted identity for security-relevant fields. Before a `tool_call`
+runs, the socket server rewrites the context:
+
+- **`caller`** — only `cli` and `plugin` may be asserted by a socket peer. A
+  claimed privileged in-process caller (`renderer`, `agent`, `internal`) is
+  **downgraded to `cli`** and logged. Those privileged identities are reserved
+  for in-process callers (the renderer over IPC, the agent loop) and can never
+  be obtained over the socket.
+- **`sessionId`** — the client-supplied value is **ignored and replaced** with a
+  trusted, server-assigned per-connection id (`socket:<uuid>`). This id is what
+  browser-tab automation ownership is bound to, so one connection cannot
+  impersonate another to hijack a claimed tab.
+- `cwd`, `spaceId`, and `tabId` are passed through as provided.
+
+Implication for clients: do **not** try to control browser ownership by sending
+a chosen `sessionId` or an `owner` argument — both are ignored. Each socket
+connection is its own automation owner; use a separate connection for an
+independent owner.
+
+The Electron IPC path is in-process and trusted, so the renderer's `renderer`
+caller is honored there.
 
 ## Server → client messages
 

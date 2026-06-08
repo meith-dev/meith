@@ -283,6 +283,32 @@ export class BrowserTabService {
   }
 
   /**
+   * Tear down every live browser view this service owns. Called during app
+   * shutdown so no `WebContentsView` / CDP debugger attachment leaks when the
+   * process exits. Persisted tab records are intentionally left intact so they
+   * rehydrate on the next launch.
+   */
+  async disposeViews(): Promise<void> {
+    await this.host.destroyAllViews();
+  }
+
+  /**
+   * Destroy all live browser views belonging to a space. Used when a space is
+   * archived: the persisted tab records are removed by `SpaceService`, but the
+   * underlying `WebContentsView` / debugger attachments must be torn down here
+   * so they are not leaked. Ownership is intentionally NOT checked — archiving a
+   * space forcibly reclaims every view inside it.
+   */
+  async destroyViewsForSpace(spaceId: string): Promise<void> {
+    const tabs = this.appState
+      .getState()
+      .browserTabs.filter((t) => t.spaceId === spaceId);
+    for (const tab of tabs) {
+      await this.host.destroyView(tab.id);
+    }
+  }
+
+  /**
    * Claim exclusive automation control of a tab. Returns the session owner id.
    * Throws `TabOwnershipError` if another owner already holds it.
    */
@@ -462,6 +488,39 @@ export class BrowserTabService {
     }, "open_workspace_tab");
     this.logger.info("WorkspaceTabs", `opened workspace tab ${tab.id} (${tab.cwd})`);
     return tab;
+  }
+
+  /** Make a workspace tab the active one within its space. */
+  focusWorkspaceTab(id: string): WorkspaceTab {
+    const tab = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!tab) throw new Error(`Unknown workspace tab: ${id}`);
+    this.appState.update((draft) => {
+      for (const t of draft.workspaceTabs) {
+        if (t.spaceId === tab.spaceId) t.active = t.id === id;
+      }
+    }, "focus_workspace_tab");
+    const next = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!next) throw new Error(`Unknown workspace tab: ${id}`);
+    return next;
+  }
+
+  /** Close a workspace tab; activates the most recent remaining tab in-space. */
+  closeWorkspaceTab(id: string): boolean {
+    const tab = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!tab) return false;
+    let removed = false;
+    this.appState.update((draft) => {
+      const before = draft.workspaceTabs.length;
+      draft.workspaceTabs = draft.workspaceTabs.filter((t) => t.id !== id);
+      removed = draft.workspaceTabs.length < before;
+      if (removed && tab.active) {
+        const sameSpace = draft.workspaceTabs.filter((t) => t.spaceId === tab.spaceId);
+        const last = sameSpace[sameSpace.length - 1];
+        if (last) last.active = true;
+      }
+    }, "close_workspace_tab");
+    if (removed) this.logger.info("WorkspaceTabs", `closed workspace tab ${id}`);
+    return removed;
   }
 
   private requireTab(id: string): BrowserTab {

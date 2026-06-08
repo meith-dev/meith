@@ -136,6 +136,12 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
     if (this.activeTabId === tabId) this.activeTabId = null;
   }
 
+  destroyAllViews(): void {
+    // Snapshot keys first: destroyView mutates the map as it goes.
+    for (const tabId of [...this.views.keys()]) this.destroyView(tabId);
+    this.activeTabId = null;
+  }
+
   focusView(tabId: string): void {
     if (!this.views.has(tabId)) return;
     // Record intent even if the window isn't ready yet; attachActiveView()

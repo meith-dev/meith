@@ -1,5 +1,6 @@
 import type { ToolDescriptor } from "@meith/protocol";
 import { newMessageId, newSessionId } from "@meith/shared";
+import { buildSystemPrompt } from "../agent/systemPrompt.js";
 import type {
   AgentAdapter,
   AgentHostContext,
@@ -64,12 +65,23 @@ export class AgentService {
     return message;
   }
 
-  /** Builds the host context an adapter uses to call app tools. */
-  private hostContext(): AgentHostContext {
+  /**
+   * Builds the host context an adapter uses to call app tools, scoped to the
+   * specific session. Tool calls run with the session's working directory and
+   * identity (`caller: "agent"`, `sessionId`) so browser ownership and any
+   * cwd-relative behavior are attributed correctly instead of defaulting to the
+   * main process cwd.
+   */
+  private hostContext(session: AgentSession): AgentHostContext {
     return {
       listTools: (): ToolDescriptor[] => this.registry.describe(),
       callTool: (name, args) =>
-        this.registry.call({ cwd: process.cwd(), caller: "agent" }, name, args),
+        this.registry.call(
+          { cwd: session.cwd, caller: "agent", sessionId: session.id },
+          name,
+          args,
+        ),
+      systemPrompt: () => buildSystemPrompt(this.registry.describe()),
       log: (message) => this.logger.info("Agent", message),
     };
   }
@@ -88,7 +100,7 @@ export class AgentService {
     }
     session.status = "running";
     try {
-      yield* this.adapter.run(session, this.hostContext());
+      yield* this.adapter.run(session, this.hostContext(session));
       session.status = "idle";
     } catch (err) {
       session.status = "error";

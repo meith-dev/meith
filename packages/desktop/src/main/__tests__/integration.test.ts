@@ -88,6 +88,17 @@ describe("socket integration", () => {
     expect(names).toContain("get_network_logs");
     const clickEl = tools.find((t) => t.name === "click_element");
     expect(clickEl?.capabilities).toContain("controls-browser");
+
+    // Phase 5 space + workspace-tab management tools are registered.
+    expect(names).toContain("create_space");
+    expect(names).toContain("switch_space");
+    expect(names).toContain("update_space");
+    expect(names).toContain("close_space");
+    expect(names).toContain("open_workspace_tab");
+    expect(names).toContain("focus_workspace_tab");
+    expect(names).toContain("close_workspace_tab");
+    const closeSpace = tools.find((t) => t.name === "close_space");
+    expect(closeSpace?.capabilities).toContain("destructive");
   });
 
   it("calls app_get_state and gets a valid AppState in result.content", async () => {
@@ -217,6 +228,94 @@ describe("socket integration", () => {
     const tabs = await client.callTool("get_tabs", {});
     const list = (tabs.content as { browserTabs: { url: string }[] }).browserTabs;
     expect(list.some((t) => t.url === markerUrl)).toBe(false);
+  });
+
+  it("downgrades a client-claimed privileged caller to cli", async () => {
+    // Register a tool on the live container registry that echoes the caller the
+    // registry actually saw (i.e. after the socket identity policy ran).
+    const { defineTool } = await import("@meith/protocol");
+    const { z } = await import("zod");
+    container.registry.register(
+      defineTool({
+        name: "__echo_caller",
+        description: "test-only: returns the resolved caller",
+        inputSchema: z.object({}),
+        execute: (ctx) => ({ caller: ctx.caller }),
+      }),
+    );
+
+    // A socket peer that lies and claims the privileged in-process `agent`
+    // identity must be downgraded to `cli`.
+    const claimedAgent = (await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      requestId: "req_caller_agent",
+      toolName: "__echo_caller",
+      arguments: {},
+      clientInfo: { caller: "agent" },
+    })) as { type: string; result?: { ok: boolean; content?: { caller: string } } };
+    expect(claimedAgent.type).toBe("tool_result");
+    expect(claimedAgent.result?.content?.caller).toBe("cli");
+
+    // A legitimately allowed caller (`plugin`) is preserved.
+    const claimedPlugin = (await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      requestId: "req_caller_plugin",
+      toolName: "__echo_caller",
+      arguments: {},
+      clientInfo: { caller: "plugin" },
+    })) as { type: string; result?: { ok: boolean; content?: { caller: string } } };
+    expect(claimedPlugin.result?.content?.caller).toBe("plugin");
+  });
+
+  it("prevents a socket peer from hijacking another owner's claimed tab", async () => {
+    // The persistent `client` connection opens and claims a tab. Its owner id
+    // is the server-assigned connection id, surfaced on the tab record.
+    const opened = await client.callTool("open_browser_tab", {
+      url: "https://owner.test",
+    });
+    const tabId = (opened.content as { id: string }).id;
+    const claim = await client.callTool("browser_use_start", { tabId });
+    expect(claim.ok).toBe(true);
+    const realOwnerId = (claim.content as { ownerId: string | null }).ownerId;
+    expect(realOwnerId).toBeTruthy();
+
+    // A DIFFERENT socket connection (each sendRawFrame opens its own) tries to
+    // navigate the claimed tab while spoofing every client-controlled value it
+    // could: the victim's exact owner id (in args), a matching sessionId, and a
+    // privileged caller. All are ignored; ownership is bound to the trusted
+    // per-connection id, so this is denied.
+    const hijackNav = (await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      requestId: "req_hijack_nav",
+      toolName: "navigate",
+      arguments: { tabId, url: "https://evil.test", owner: realOwnerId },
+      clientInfo: { caller: "agent", sessionId: realOwnerId },
+    })) as { result?: { ok: boolean; error?: { code: string } } };
+    expect(hijackNav.result?.ok).toBe(false);
+    expect(hijackNav.result?.error?.code).toBe("PERMISSION_DENIED");
+
+    // Forcing a release of someone else's tab is reserved for internal cleanup;
+    // a socket peer (downgraded to `cli`) cannot use `force` even with the
+    // victim's owner id.
+    const hijackEnd = (await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      requestId: "req_hijack_end",
+      toolName: "browser_use_end",
+      arguments: { tabId, owner: realOwnerId, force: true },
+      clientInfo: { caller: "agent", sessionId: realOwnerId },
+    })) as { result?: { ok: boolean; error?: { code: string } } };
+    expect(hijackEnd.result?.ok).toBe(false);
+    expect(hijackEnd.result?.error?.code).toBe("PERMISSION_DENIED");
+
+    // The tab is still claimed by the original owner — neither attack mutated it.
+    const tabs = await client.callTool("get_tabs", {});
+    const tab = (
+      tabs.content as {
+        browserTabs: { id: string; ownerId: string | null; url: string }[];
+      }
+    ).browserTabs.find((t) => t.id === tabId);
+    expect(tab?.ownerId).toBe(realOwnerId);
+    expect(tab?.url).toBe("https://owner.test");
   });
 
   it("reports an unknown tool as a structured error (not a throw)", async () => {
