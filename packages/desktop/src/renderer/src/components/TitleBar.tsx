@@ -45,26 +45,30 @@ export function TitleBar({
       )}
 
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="sm" onClick={onNewTab}>
-            <Plus data-icon="inline-start" />
-            New tab
-          </Button>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <Button variant="ghost" size="sm" onClick={onNewTab}>
+              <Plus data-icon="inline-start" />
+              New tab
+            </Button>
+          }
+        />
         <TooltipContent>Open a browser tab ({"\u2318"}T)</TooltipContent>
       </Tooltip>
 
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={debugOpen ? "secondary" : "ghost"}
-            size="icon"
-            onClick={onToggleDebug}
-            aria-label="Toggle debug panel"
-          >
-            <TerminalSquare />
-          </Button>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <Button
+              variant={debugOpen ? "secondary" : "ghost"}
+              size="icon"
+              onClick={onToggleDebug}
+              aria-label="Toggle debug panel"
+            >
+              <TerminalSquare />
+            </Button>
+          }
+        />
         <TooltipContent>Toggle diagnostics ({"\u2318"}J)</TooltipContent>
       </Tooltip>
     </header>

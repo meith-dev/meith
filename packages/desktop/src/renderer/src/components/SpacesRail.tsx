@@ -43,26 +43,28 @@ export function SpacesRail({
           const active = space.id === activeSpaceId;
           return (
             <Tooltip key={space.id}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={`Switch to ${space.name}`}
-                  aria-current={active}
-                  onClick={() => onSwitch(space.id)}
-                  onDoubleClick={() => onManage(space)}
-                  className={cn(
-                    "relative flex size-9 items-center justify-center rounded-md text-sm font-semibold text-white transition-transform",
-                    "hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    active && "ring-2 ring-offset-2 ring-offset-sidebar",
-                  )}
-                  style={{
-                    backgroundColor: space.color ?? "var(--primary)",
-                    ...ringColor(space, active),
-                  }}
-                >
-                  {space.name.slice(0, 1).toUpperCase()}
-                </button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label={`Switch to ${space.name}`}
+                    aria-current={active}
+                    onClick={() => onSwitch(space.id)}
+                    onDoubleClick={() => onManage(space)}
+                    className={cn(
+                      "relative flex size-9 items-center justify-center rounded-md text-sm font-semibold text-white transition-transform",
+                      "hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      active && "ring-2 ring-offset-2 ring-offset-sidebar",
+                    )}
+                    style={{
+                      backgroundColor: space.color ?? "var(--primary)",
+                      ...ringColor(space, active),
+                    }}
+                  >
+                    {space.name.slice(0, 1).toUpperCase()}
+                  </button>
+                }
+              />
               <TooltipContent side="right">
                 {space.name}
                 <span className="ml-1 text-muted-foreground">(double-click to edit)</span>
@@ -72,18 +74,20 @@ export function SpacesRail({
         })}
 
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-9 text-muted-foreground"
-              onClick={onCreate}
-              aria-label="Create space"
-            >
-              <PlusIcon />
-            </Button>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-9 text-muted-foreground"
+                onClick={onCreate}
+                aria-label="Create space"
+              >
+                <PlusIcon />
+              </Button>
+            }
+          />
           <TooltipContent side="right">New space</TooltipContent>
         </Tooltip>
       </div>

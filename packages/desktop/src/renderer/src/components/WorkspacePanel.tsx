@@ -50,7 +50,7 @@ export function WorkspacePanel({
               ).map((kind) => {
                 const { icon: Icon, label } = WORKSPACE_KINDS[kind];
                 return (
-                  <DropdownMenuItem key={kind} onSelect={() => onOpen(kind)}>
+                  <DropdownMenuItem key={kind} onClick={() => onOpen(kind)}>
                     <Icon className="size-4" />
                     {label}
                   </DropdownMenuItem>
