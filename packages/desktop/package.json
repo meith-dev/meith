@@ -5,8 +5,8 @@
   "type": "module",
   "main": "./out/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev",
-    "dev:renderer": "vite --config vite.renderer.config.ts",
+    "dev": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite dev",
+    "dev:renderer": "pnpm --filter @meith/shared --filter @meith/protocol build && vite --config vite.renderer.config.ts",
     "dev:headless": "tsx src/main/harness.ts",
     "build": "electron-vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",

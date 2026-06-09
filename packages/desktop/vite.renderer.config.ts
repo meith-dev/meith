@@ -13,7 +13,11 @@ export default defineConfig({
   root: resolve(__dirname, "src/renderer"),
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "@": resolve(__dirname, "src/renderer/src") },
+    alias: {
+      "@": resolve(__dirname, "src/renderer/src"),
+      "@meith/protocol": resolve(__dirname, "../protocol/src/index.ts"),
+      "@meith/shared": resolve(__dirname, "../shared/src/index.ts"),
+    },
   },
   server: {
     host: true,
