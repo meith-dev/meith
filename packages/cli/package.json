@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "bin": {
-    "meith": "./dist/index.js"
+    "meith": "./bin/meith.mjs"
   },
   "main": "./dist/index.js",
   "exports": {
