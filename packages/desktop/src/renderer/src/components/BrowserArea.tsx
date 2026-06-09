@@ -74,7 +74,12 @@ export function BrowserArea({
                   className="flex min-w-0 flex-1 items-center gap-2 text-left focus-visible:outline-none"
                   title={tab.url}
                 >
-                  <GlobeIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                  <GlobeIcon
+                    className={cn(
+                      "size-3.5 shrink-0",
+                      tab.active ? "text-primary" : "text-muted-foreground",
+                    )}
+                  />
                   <span className="min-w-0 flex-1 truncate">
                     {tab.title || hostname(tab.url)}
                   </span>

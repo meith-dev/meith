@@ -11,7 +11,9 @@ import { Toaster } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { useWorkbench } from "./hooks/useWorkbench";
 
-const SPACE_PALETTE = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#ec4899"];
+// Warm "harvest"-friendly space colors: amber/gold lead, then earthy accents
+// that sit comfortably against the warm near-black chrome.
+const SPACE_PALETTE = ["#e0a82e", "#d98032", "#c2503f", "#5fa67f", "#3f8fa6", "#a86fb0"];
 
 export function App() {
   const workbench = useWorkbench();

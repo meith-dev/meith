@@ -2,7 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PanelsTopLeft, Plus, TerminalSquare } from "lucide-react";
+import { Plus, TerminalSquare } from "lucide-react";
+import { MeithMark } from "./MeithMark";
 
 export function TitleBar({
   spaceName,
@@ -19,10 +20,8 @@ export function TitleBar({
 }) {
   return (
     <header className="flex h-11 shrink-0 items-center gap-3 border-b bg-card px-3">
-      <div className="flex items-center gap-2">
-        <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <PanelsTopLeft className="size-3.5" />
-        </div>
+      <div className="flex items-center gap-2 no-drag">
+        <MeithMark className="size-5 text-foreground" />
         <span className="font-semibold tracking-tight">meith</span>
       </div>
 
