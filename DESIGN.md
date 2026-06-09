@@ -1,9 +1,13 @@
 # meith — UI Design System
 
 This document defines the visual language for the **meith** desktop workbench
-(the Electron renderer in `packages/desktop/src/renderer`). Follow it whenever
-you add or change UI so the app stays cohesive. It is self-contained — you do
-not need any prior context to apply it.
+(the Electron renderer). Follow it whenever you add or change UI so the app
+stays cohesive. It is self-contained — you do not need any prior context to
+apply it.
+
+All renderer UI lives under `packages/desktop/src/renderer/`. File paths below
+are written relative to that directory (e.g. `src/styles.css` →
+`packages/desktop/src/renderer/src/styles.css`).
 
 ## 1. Brand & personality
 
