@@ -23,7 +23,7 @@ export function DebugPanel({ workbench, state, onClose }: DebugPanelProps) {
   return (
     <section
       aria-label="Diagnostics"
-      className="flex h-72 shrink-0 flex-col border-t border-border bg-card"
+      className="flex h-72 shrink-0 flex-col overflow-hidden border-t border-border bg-card"
     >
       <Tabs defaultValue="tools" className="flex min-h-0 flex-1 flex-col gap-0">
         <div className="flex items-center justify-between border-b border-border px-2">
@@ -104,8 +104,8 @@ function ToolRunner({ workbench }: { workbench: Workbench }) {
   }
 
   return (
-    <div className="grid h-full grid-cols-[220px_1fr]">
-      <ScrollArea className="border-r border-border">
+    <div className="grid h-full min-h-0 grid-cols-[220px_1fr] grid-rows-1">
+      <ScrollArea className="h-full min-h-0 border-r border-border">
         <ul className="flex flex-col gap-0.5 p-2">
           {tools.map((tool) => (
             <li key={tool.name}>
@@ -134,7 +134,7 @@ function ToolRunner({ workbench }: { workbench: Workbench }) {
         </ul>
       </ScrollArea>
 
-      <ScrollArea className="min-h-0">
+      <ScrollArea className="h-full min-h-0">
         {current ? (
           <div className="flex flex-col gap-3 p-3">
             <div>
