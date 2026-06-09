@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Space } from "@meith/shared";
-import { PlusIcon, TerminalSquareIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
+import { MeithMark } from "./MeithMark";
 
 interface SpacesRailProps {
   spaces: Space[];
@@ -29,8 +30,8 @@ export function SpacesRail({
       aria-label="Spaces"
       className="flex w-14 shrink-0 flex-col items-center gap-2 border-r border-sidebar-border bg-sidebar py-3"
     >
-      <div className="flex size-9 items-center justify-center rounded-md bg-primary/15 text-primary">
-        <TerminalSquareIcon className="size-5" />
+      <div className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-foreground ring-1 ring-border">
+        <MeithMark className="size-5" />
       </div>
       <div className="my-1 h-px w-6 bg-sidebar-border" />
 

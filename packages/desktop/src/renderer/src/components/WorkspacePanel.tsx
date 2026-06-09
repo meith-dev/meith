@@ -79,7 +79,9 @@ export function WorkspacePanel({
                     onClick={() => onFocus(tab.id)}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left focus-visible:outline-none"
                   >
-                    <Icon className="size-4 shrink-0" />
+                    <Icon
+                      className={cn("size-4 shrink-0", active && "text-primary")}
+                    />
                     <span className="min-w-0 flex-1 truncate" title={tab.cwd}>
                       {tab.title}
                     </span>
