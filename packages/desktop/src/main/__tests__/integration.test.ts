@@ -99,6 +99,43 @@ describe("socket integration", () => {
     expect(names).toContain("close_workspace_tab");
     const closeSpace = tools.find((t) => t.name === "close_space");
     expect(closeSpace?.capabilities).toContain("destructive");
+
+    // Phase 6 terminal + dev-server + process-inspection tools are registered.
+    expect(names).toContain("create_terminal");
+    expect(names).toContain("write_terminal");
+    expect(names).toContain("kill_terminal");
+    expect(names).toContain("list_terminals");
+    expect(names).toContain("start_dev_server");
+    expect(names).toContain("stop_dev_server");
+    expect(names).toContain("list_dev_servers");
+    expect(names).toContain("get_process_tree");
+    expect(names).toContain("get_process_logs");
+    expect(names).toContain("attach_process_logs");
+    const createTerminal = tools.find((t) => t.name === "create_terminal");
+    expect(createTerminal?.capabilities).toContain("starts-process");
+  });
+
+  it("creates a terminal and lists it over the socket", async () => {
+    const created = await client.callTool("create_terminal", { cwd: "/tmp" });
+    expect(created.ok).toBe(true);
+    const term = created.content as { id: string; status: string };
+    expect(term.id).toMatch(/^term_/);
+    expect(term.status).toBe("running");
+
+    const list = await client.callTool("list_terminals", {});
+    const sessions = list.content as { id: string }[];
+    expect(sessions.some((t) => t.id === term.id)).toBe(true);
+
+    // Clean up so the session doesn't outlive the test.
+    const killed = await client.callTool("kill_terminal", { terminalId: term.id });
+    expect(killed.ok).toBe(true);
+  });
+
+  it("reports get_process_tree as a structured (non-stub) list", async () => {
+    const result = await client.callTool("get_process_tree", {});
+    expect(result.ok).toBe(true);
+    const content = result.content as { processes: unknown[] };
+    expect(Array.isArray(content.processes)).toBe(true);
   });
 
   it("calls app_get_state and gets a valid AppState in result.content", async () => {
@@ -371,6 +408,55 @@ describe("socket integration", () => {
   });
 });
 
+describe("socket shutdown", () => {
+  it("aborts attached log streams and closes sockets during shutdown", async () => {
+    const home = mkdtempSync(join(tmpdir(), "meith-home-"));
+    const userData = mkdtempSync(join(tmpdir(), "meith-data-"));
+    process.env.MEITH_HOME = home;
+
+    const container = await bootstrap(userData);
+    const client = new ToolClient({ socketPath: container.config.socketPath });
+    await client.connect();
+
+    try {
+      const started = await client.callTool("start_dev_server", {
+        cwd: process.cwd(),
+        command: process.execPath,
+        args: ["-e", "console.log('ready'); setInterval(() => {}, 1000)"],
+      });
+      expect(started.ok).toBe(true);
+      const devServerId = (started.content as { id: string }).id;
+
+      const events: string[] = [];
+      const attached = client.callTool(
+        "attach_process_logs",
+        { devServerId, replay: true },
+        {
+          timeoutMs: 0,
+          onEvent: (event) => {
+            if (event.kind === "log" && event.message) events.push(event.message);
+          },
+        },
+      );
+      attached.catch(() => undefined);
+      await waitFor(() => events.some((line) => line.includes("ready")));
+
+      await Promise.race([
+        container.shutdown(),
+        new Promise((_resolve, reject) =>
+          setTimeout(() => reject(new Error("shutdown timed out")), 1000),
+        ),
+      ]);
+    } finally {
+      client.close();
+      await container.shutdown();
+      rmSync(home, { recursive: true, force: true });
+      rmSync(userData, { recursive: true, force: true });
+      process.env.MEITH_HOME = undefined;
+    }
+  });
+});
+
 describe("registry cross-cutting behavior", () => {
   it("enforces a per-call timeout", async () => {
     const { ToolRegistry } = await import("../tools/registry.js");
@@ -441,3 +527,11 @@ describe("registry cross-cutting behavior", () => {
     expect(result.error?.code).toBe("RUNTIME_SHUTTING_DOWN");
   });
 });
+
+async function waitFor(predicate: () => boolean, timeoutMs = 4000): Promise<void> {
+  const start = Date.now();
+  while (!predicate()) {
+    if (Date.now() - start > timeoutMs) throw new Error("waitFor timed out");
+    await new Promise((resolve) => setTimeout(resolve, 15));
+  }
+}

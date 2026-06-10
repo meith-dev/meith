@@ -4,6 +4,8 @@ import { BrowserWindow, app, ipcMain } from "electron";
 import { type ServiceContainer, bootstrap } from "./bootstrap.js";
 import { ElectronBrowserViewHost } from "./browser/ElectronBrowserViewHost.js";
 import { IPC, registerIpcHandlers } from "./ipc/handlers.js";
+import { NodePtyHost } from "./process/NodePtyHost.js";
+import type { PtyHost } from "./process/PtyHost.js";
 
 /**
  * Fallback inset (px) used only until the renderer reports its measured
@@ -67,8 +69,27 @@ app.whenReady().then(async () => {
   // window exists and views can attach immediately.
   createWindow();
 
+  // Back terminals with a real node-pty process. If the native module is not
+  // usable, keep the app bootable but make terminal creation fail clearly
+  // instead of silently opening the headless/mock shell.
+  let ptyHost: PtyHost;
+  try {
+    ptyHost = await NodePtyHost.create();
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error("[v0] node-pty unavailable, terminals cannot start:", err);
+    ptyHost = {
+      spawn() {
+        throw new Error(`node-pty is unavailable; cannot start terminal: ${reason}`);
+      },
+    };
+  }
+
   // The Electron-provided per-user data directory is our userDataPath.
-  container = await bootstrap(app.getPath("userData"), { browserViewHost: viewHost });
+  container = await bootstrap(app.getPath("userData"), {
+    browserViewHost: viewHost,
+    ptyHost,
+  });
   registerIpcHandlers(container, () => mainWindow);
 
   // Viewport contract: the renderer reports the measured browser content

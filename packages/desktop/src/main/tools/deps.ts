@@ -4,6 +4,7 @@ import type { DevServerService } from "../services/DevServerService.js";
 import type { Logger } from "../services/Logger.js";
 import type { SpaceService } from "../services/SpaceService.js";
 import type { StorageService } from "../services/StorageService.js";
+import type { TerminalService } from "../services/TerminalService.js";
 
 /**
  * Dependencies injected into tool factories. Keeping this explicit (rather than
@@ -15,6 +16,7 @@ export interface ToolDeps {
   browserTabs: BrowserTabService;
   spaces: SpaceService;
   devServers: DevServerService;
+  terminals: TerminalService;
   logger: Logger;
   storage: StorageService;
 }

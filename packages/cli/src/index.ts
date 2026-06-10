@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import type { ToolResult } from "@meith/shared";
-import { buildParams, parseArgs } from "./args.js";
+import { type ParsedArgs, buildParams, parseArgs } from "./args.js";
 import { ToolClient, resolveSocketPath } from "./client.js";
 import { commands, listCommands } from "./commands.js";
 
@@ -17,6 +17,7 @@ ${listCommands()}
 Built-in:
   tools             List every tool the runtime exposes
   call <toolName>   Invoke any registered tool by its exact name
+  devlogs           Stream a dev server's logs (attach by --cwd or --id)
 
 Options:
   --socket <path>   Override the runtime socket path
@@ -59,6 +60,11 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (parsed.command === "devlogs") {
+      await runDevlogs(client, parsed, asJson);
+      return;
+    }
+
     let toolName: string;
     let params: Record<string, unknown>;
 
@@ -78,6 +84,10 @@ async function main(): Promise<void> {
       }
       toolName = spec.tool;
       params = buildParams(parsed, spec.positionals, RESERVED_FLAGS);
+      if (parsed.command === "start-dev") {
+        const args = params.args ?? parsed.passthrough;
+        if (Array.isArray(args) && args.length > 0) params.args = args;
+      }
     }
 
     const result = await client.callTool(toolName, params, {
@@ -100,6 +110,64 @@ async function main(): Promise<void> {
     fail(err instanceof Error ? err.message : String(err));
   } finally {
     client.close();
+  }
+}
+
+/**
+ * `meith devlogs` — attach to a dev server's log stream and follow it.
+ *
+ * Targets are resolved by `--id <devServerId>` or `--cwd <path>` (defaulting to
+ * the current working directory). It replays the captured history, then streams
+ * new lines as they arrive via the runtime's `attach_process_logs` tool, which
+ * emits each line as a `log` event. The call is intentionally open-ended: it
+ * runs until the user presses Ctrl+C, which closes the socket and ends it.
+ */
+async function runDevlogs(
+  client: ToolClient,
+  parsed: ParsedArgs,
+  asJson: boolean,
+): Promise<void> {
+  const id = typeof parsed.flags.id === "string" ? parsed.flags.id : undefined;
+  const cwd =
+    typeof parsed.flags.cwd === "string"
+      ? parsed.flags.cwd
+      : id
+        ? undefined
+        : process.cwd();
+  const replay = parsed.flags.replay !== false && parsed.flags["no-replay"] !== true;
+
+  const params: Record<string, unknown> = { replay };
+  if (id) params.devServerId = id;
+  if (cwd) params.cwd = cwd;
+
+  process.stderr.write(
+    `attaching to dev server logs (${id ? `id ${id}` : `cwd ${cwd}`})… Ctrl+C to stop\n`,
+  );
+
+  // Close cleanly on Ctrl+C so the runtime cancels the attach.
+  const onSigint = () => {
+    client.close();
+    process.exit(0);
+  };
+  process.on("SIGINT", onSigint);
+
+  const result = await client.callTool("attach_process_logs", params, {
+    // Open-ended stream: disable the per-call timeout (Ctrl+C ends it).
+    timeoutMs: 0,
+    onEvent: (event) => {
+      if (event.kind === "log") {
+        if (asJson) process.stdout.write(`${JSON.stringify(event)}\n`);
+        else process.stdout.write(`${event.message}\n`);
+      }
+    },
+  });
+
+  // We only reach here if the attach resolved on its own (e.g. server gone).
+  if (!result.ok) {
+    process.stderr.write(
+      `error (${result.error?.code ?? "TOOL_FAILED"}): ${result.error?.message ?? "failed"}\n`,
+    );
+    process.exitCode = 1;
   }
 }
 

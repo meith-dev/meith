@@ -5,6 +5,7 @@ import { BrowserArea } from "./components/BrowserArea";
 import { DebugPanel } from "./components/DebugPanel";
 import { SpacesRail } from "./components/SpacesRail";
 import { StatusBar } from "./components/StatusBar";
+import { TerminalView } from "./components/TerminalView";
 import { TitleBar } from "./components/TitleBar";
 import { WorkspacePanel } from "./components/WorkspacePanel";
 import { Toaster } from "./components/ui/sonner";
@@ -21,12 +22,28 @@ export function App() {
   const [debugOpen, setDebugOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
+  const activeSpaceForTabs =
+    state?.spaces.find((s) => s.id === state.activeSpaceId) ?? state?.spaces[0] ?? null;
+  const activeWorkspaceTab =
+    state?.workspaceTabs.find(
+      (t) => t.spaceId === (activeSpaceForTabs?.id ?? null) && t.active,
+    ) ?? null;
+  // A terminal tab takes over the content region (and supersedes the native
+  // browser view, which is collapsed while a terminal is focused).
+  const showTerminal = activeWorkspaceTab?.kind === "terminal";
+
   // Report the measured browser content region to the main process so the
   // native browser view is sized to the real layout (not a hard-coded inset).
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
     const report = () => {
+      // When a terminal tab is focused it covers the content region, so collapse
+      // the native browser view off-screen to keep it from painting on top.
+      if (showTerminal) {
+        bridge.browser.setViewport({ x: 0, y: 0, width: 0, height: 0 });
+        return;
+      }
       const r = el.getBoundingClientRect();
       bridge.browser.setViewport({
         x: Math.round(r.left),
@@ -43,7 +60,7 @@ export function App() {
       observer.disconnect();
       window.removeEventListener("resize", report);
     };
-  }, [bridge, debugOpen]);
+  }, [bridge, debugOpen, showTerminal]);
 
   const activeSpace =
     state?.spaces.find((s) => s.id === state.activeSpaceId) ?? state?.spaces[0] ?? null;
@@ -191,16 +208,30 @@ export function App() {
             onClose={closeWorkspaceTab}
             onOpen={openWorkspaceTab}
           />
-          <BrowserArea
-            tabs={browserTabs}
-            isMock={isMock}
-            contentRef={contentRef}
-            onOpen={openBrowserTab}
-            onFocus={focusBrowserTab}
-            onClose={closeBrowserTab}
-            onNavigate={navigateBrowserTab}
-            onRefresh={refreshBrowserTab}
-          />
+          <div className="relative flex min-w-0 flex-1">
+            <BrowserArea
+              tabs={browserTabs}
+              isMock={isMock}
+              contentRef={contentRef}
+              onOpen={openBrowserTab}
+              onFocus={focusBrowserTab}
+              onClose={closeBrowserTab}
+              onNavigate={navigateBrowserTab}
+              onRefresh={refreshBrowserTab}
+            />
+            {showTerminal && activeWorkspaceTab && (
+              // Overlay the terminal above the browser column; the native
+              // browser view is collapsed while this is shown.
+              <div className="absolute inset-0 z-10 bg-background">
+                <TerminalView
+                  key={activeWorkspaceTab.id}
+                  tabId={activeWorkspaceTab.id}
+                  bridge={bridge}
+                  call={call}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {debugOpen && (

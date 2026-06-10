@@ -13,6 +13,8 @@ const IPC = {
   getLogs: "meith:logs:get",
   logEntry: "meith:logs:entry",
   browserViewport: "meith:browser:viewport",
+  terminalData: "meith:terminal:data",
+  terminalExit: "meith:terminal:exit",
 } as const;
 
 const api: MeithBridge = {
@@ -39,6 +41,21 @@ const api: MeithBridge = {
   browser: {
     setViewport: (bounds: BrowserViewport) =>
       ipcRenderer.send(IPC.browserViewport, bounds),
+  },
+  terminal: {
+    onData: (cb) => {
+      const listener = (_e: unknown, evt: { id: string; chunk: string }) => cb(evt);
+      ipcRenderer.on(IPC.terminalData, listener);
+      return () => ipcRenderer.removeListener(IPC.terminalData, listener);
+    },
+    onExit: (cb) => {
+      const listener = (
+        _e: unknown,
+        evt: { id: string; exitCode: number; signal?: number },
+      ) => cb(evt);
+      ipcRenderer.on(IPC.terminalExit, listener);
+      return () => ipcRenderer.removeListener(IPC.terminalExit, listener);
+    },
   },
 };
 

@@ -173,6 +173,111 @@ export const LogEntrySchema = z.object({
 export type LogEntry = z.infer<typeof LogEntrySchema>;
 
 // ---------------------------------------------------------------------------
+// Process runtime (Phase 6): terminals, dev servers, process tree, and logs.
+// These are wire payloads returned by the terminal/dev-server/process tools and
+// streamed to the renderer/CLI. Live PTY/child-process handles live in memory in
+// the main process; only this serializable metadata crosses the wire.
+// ---------------------------------------------------------------------------
+
+/** Which output stream a captured process log line came from. */
+export const ProcessStreamSchema = z.enum(["stdout", "stderr", "pty", "system"]);
+export type ProcessStream = z.infer<typeof ProcessStreamSchema>;
+
+/** A single captured line of process output (terminal or dev server). */
+export const ProcessLogEntrySchema = z.object({
+  /** Monotonic per-process sequence number, so clients can resume after replay. */
+  seq: z.number(),
+  stream: ProcessStreamSchema,
+  text: z.string(),
+  ts: z.number(),
+});
+export type ProcessLogEntry = z.infer<typeof ProcessLogEntrySchema>;
+
+/** Lifecycle status of an interactive terminal session. */
+export const TerminalStatusSchema = z.enum(["running", "exited"]);
+export type TerminalStatus = z.infer<typeof TerminalStatusSchema>;
+
+/** Serializable record of a terminal session (live PTY handle kept in memory). */
+export const TerminalSessionSchema = z.object({
+  id: z.string(),
+  cwd: z.string(),
+  shell: z.string(),
+  pid: z.number().nullable().default(null),
+  cols: z.number().int().positive().default(80),
+  rows: z.number().int().positive().default(24),
+  status: TerminalStatusSchema.default("running"),
+  createdAt: z.number(),
+  exitCode: z.number().nullable().default(null),
+});
+export type TerminalSession = z.infer<typeof TerminalSessionSchema>;
+
+/** Lifecycle status of a managed dev-server process. */
+export const DevServerStatusSchema = z.enum([
+  "starting",
+  "running",
+  "exited",
+  "errored",
+  "stopped",
+]);
+export type DevServerStatus = z.infer<typeof DevServerStatusSchema>;
+
+/** Serializable record of a managed dev server (live child process in memory). */
+export const DevServerSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  cwd: z.string(),
+  command: z.string(),
+  args: z.array(z.string()).default([]),
+  status: DevServerStatusSchema.default("starting"),
+  pid: z.number().nullable().default(null),
+  /** Listening port parsed from the server's output, when detected. */
+  port: z.number().nullable().default(null),
+  exitCode: z.number().nullable().default(null),
+  signal: z.string().nullable().default(null),
+  startedAt: z.number(),
+});
+export type DevServer = z.infer<typeof DevServerSchema>;
+
+/** A node in an OS process tree, with any listening ports it owns. */
+export interface ProcessNode {
+  pid: number;
+  ppid?: number;
+  command?: string;
+  ports: number[];
+  children: ProcessNode[];
+}
+export const ProcessNodeSchema: z.ZodType<ProcessNode, z.ZodTypeDef, unknown> = z.lazy(
+  () =>
+    z.object({
+      pid: z.number(),
+      ppid: z.number().optional(),
+      command: z.string().optional(),
+      ports: z.array(z.number()).default([]),
+      children: z.array(ProcessNodeSchema).default([]),
+    }),
+);
+
+/** A managed process (dev server or terminal) plus its detected OS subtree. */
+export const ManagedProcessSchema = z.object({
+  kind: z.enum(["dev-server", "terminal"]),
+  id: z.string(),
+  pid: z.number().nullable(),
+  cwd: z.string(),
+  command: z.string().optional(),
+  status: z.string(),
+  /** Listening ports associated with this process (including its children). */
+  ports: z.array(z.number()).default([]),
+  /** Best-effort OS process subtree rooted at `pid` (null if undetectable). */
+  tree: ProcessNodeSchema.nullable().default(null),
+});
+export type ManagedProcess = z.infer<typeof ManagedProcessSchema>;
+
+export const ProcessTreeSchema = z.object({
+  processes: z.array(ManagedProcessSchema),
+});
+export type ProcessTree = z.infer<typeof ProcessTreeSchema>;
+
+// ---------------------------------------------------------------------------
 // Tool result envelope, error codes, capabilities, and streaming events.
 // These are the contract every caller (CLI, renderer, agent, plugin) sees.
 // ---------------------------------------------------------------------------

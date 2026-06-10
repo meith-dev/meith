@@ -263,21 +263,26 @@ Acceptance criteria:
 
 ## Phase 6: Terminal And Dev Server Runtime
 
-`TerminalService` and `DevServerService` are stubs. Implement real process management next.
+`TerminalService` and `DevServerService` are now real process managers backed by a
+swappable `PtyHost` (node-pty in Electron, an in-memory simulated shell for
+headless/test/preview) and `child_process` process groups.
 
-- [ ] Add `node-pty` or an equivalent PTY package for terminals.
-- [ ] Implement terminal lifecycle:
+- [x] Add `node-pty` or an equivalent PTY package for terminals.
+  - Declared as an `optionalDependency` so headless installs/CI stay green; the
+    Electron main process loads it via `NodePtyHost`, otherwise falls back to
+    `HeadlessPtyHost`.
+- [x] Implement terminal lifecycle:
   - create terminal
   - write input
   - resize
   - kill
   - reconnect snapshot/buffer
   - stream data to renderer
-- [ ] Inject runtime environment into terminals:
+- [x] Inject runtime environment into terminals:
   - prepend the app CLI bin path when packaged
-  - set a socket env var for dev log attachment
-  - set app-specific environment variables for plugins/tools
-- [ ] Implement dev server process spawning:
+  - set a socket env var for dev log attachment (`MEITH_SOCKET`)
+  - set app-specific environment variables for plugins/tools (`MEITH_HOME`, `MEITH_USER_DATA`)
+- [x] Implement dev server process spawning:
   - command
   - cwd
   - env
@@ -285,22 +290,22 @@ Acceptance criteria:
   - stdout/stderr capture
   - exit status
   - kill tree
-- [ ] Add process tree detection:
+- [x] Add process tree detection:
   - include child processes
   - include listening ports
   - associate processes with cwd/project
-- [ ] Implement `get_process_tree` for real processes.
-- [ ] Implement `get_process_logs` for dev servers and terminals.
-- [ ] Add log streaming protocol for CLI:
+- [x] Implement `get_process_tree` for real processes.
+- [x] Implement `get_process_logs` for dev servers and terminals.
+- [x] Add log streaming protocol for CLI:
   - attach by cwd
   - replay existing logs
   - stream new logs
   - forward stdin/signals
-- [ ] Add CLI command:
+- [x] Add CLI command:
   - `meith devlogs`
   - `meith devlogs --cwd <path>`
-- [ ] Add renderer terminal component, likely using xterm.js.
-- [ ] Add process cleanup on app quit.
+- [x] Add renderer terminal component, likely using xterm.js.
+- [x] Add process cleanup on app quit.
 
 Acceptance criteria:
 

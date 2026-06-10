@@ -73,12 +73,32 @@ export const commands: Record<string, CommandSpec> = {
   processes: {
     tool: "get_process_tree",
     positionals: [],
-    summary: "List managed child processes (placeholder)",
+    summary: "List managed child processes with ports and OS subtree",
   },
   "process-logs": {
     tool: "get_process_logs",
     positionals: ["processId"],
-    summary: "Print captured logs for a managed process",
+    summary: "Print captured logs for a managed process (--limit N)",
+  },
+  terminals: {
+    tool: "list_terminals",
+    positionals: [],
+    summary: "List active terminal sessions",
+  },
+  "dev-servers": {
+    tool: "list_dev_servers",
+    positionals: [],
+    summary: "List managed dev servers and their status/port",
+  },
+  "start-dev": {
+    tool: "start_dev_server",
+    positionals: ["cwd", "command"],
+    summary: "Start a dev server: start-dev <cwd> <command> [--args ...]",
+  },
+  "stop-dev": {
+    tool: "stop_dev_server",
+    positionals: ["devServerId"],
+    summary: "Stop a managed dev server by id",
   },
 };
 

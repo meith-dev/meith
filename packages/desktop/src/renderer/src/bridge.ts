@@ -76,6 +76,18 @@ function createMockBridge(): MeithBridge {
 
   const stateSubs = new Set<(s: AppState) => void>();
   const logSubs = new Set<(e: LogEntry) => void>();
+  const termDataSubs = new Set<(e: { id: string; chunk: string }) => void>();
+  const termExitSubs = new Set<
+    (e: { id: string; exitCode: number; signal?: number }) => void
+  >();
+
+  // In-memory simulated terminals for browser preview. Each tracks a tiny line
+  // buffer so writes can echo and a couple of commands "work".
+  const mockTerms = new Map<string, { cwd: string; line: string }>();
+  const emitTermData = (id: string, chunk: string) => {
+    for (const cb of termDataSubs) cb({ id, chunk });
+  };
+  const PROMPT = "\x1b[1;32m$\x1b[0m ";
 
   const emitState = () => {
     for (const cb of stateSubs) cb(structuredClone(state));
@@ -109,6 +121,14 @@ function createMockBridge(): MeithBridge {
     desc("close_workspace_tab", "Close a workspace tab.", []),
     desc("app_get_state", "Return full app state.", ["read-only"]),
     desc("app_get_logs", "Return recent logs.", ["read-only"]),
+    desc("create_terminal", "Start a terminal session.", ["starts-process"]),
+    desc("write_terminal", "Write input to a terminal.", ["starts-process"]),
+    desc("resize_terminal", "Resize a terminal.", ["starts-process"]),
+    desc("kill_terminal", "Kill a terminal session.", ["starts-process"]),
+    desc("list_terminals", "List terminal sessions.", ["read-only"]),
+    desc("list_dev_servers", "List managed dev servers.", ["read-only"]),
+    desc("get_process_tree", "List managed processes.", ["read-only"]),
+    desc("get_process_logs", "Read captured process logs.", ["read-only"]),
   ];
 
   return {
@@ -255,6 +275,69 @@ function createMockBridge(): MeithBridge {
             return okResult({ closed: true });
           }
 
+          case "create_terminal": {
+            const id = `term_${Math.random().toString(16).slice(2, 10)}`;
+            const cwd = String(args.cwd ?? "/Users/dev/projects/web-app");
+            mockTerms.set(id, { cwd, line: "" });
+            // Greet + initial prompt on next tick so subscribers attach first.
+            setTimeout(() => {
+              emitTermData(
+                id,
+                `\x1b[2mmeith simulated shell — preview mode\x1b[0m\r\n${PROMPT}`,
+              );
+            }, 10);
+            return okResult({
+              id,
+              cwd,
+              shell: "/bin/mock",
+              pid: null,
+              cols: typeof args.cols === "number" ? args.cols : 80,
+              rows: typeof args.rows === "number" ? args.rows : 24,
+              status: "running",
+              createdAt: Date.now(),
+              exitCode: null,
+            });
+          }
+          case "write_terminal": {
+            const id = String(args.terminalId ?? args.id);
+            const term = mockTerms.get(id);
+            if (!term) return errorResult("TOOL_FAILED", "Unknown terminal");
+            const data = String(args.data ?? "");
+            handleMockInput(id, term, data, emitTermData, (tid) => {
+              mockTerms.delete(tid);
+              for (const cb of termExitSubs) cb({ id: tid, exitCode: 0 });
+            });
+            return okResult({ ok: true });
+          }
+          case "resize_terminal":
+            return okResult({ ok: true });
+          case "kill_terminal": {
+            const id = String(args.terminalId ?? args.id);
+            mockTerms.delete(id);
+            for (const cb of termExitSubs) cb({ id, exitCode: 0 });
+            return okResult({ ok: true });
+          }
+          case "list_terminals":
+            return okResult({
+              terminals: [...mockTerms.entries()].map(([id, t]) => ({
+                id,
+                cwd: t.cwd,
+                shell: "/bin/mock",
+                pid: null,
+                cols: 80,
+                rows: 24,
+                status: "running",
+                createdAt: Date.now(),
+                exitCode: null,
+              })),
+            });
+          case "list_dev_servers":
+            return okResult({ devServers: [] });
+          case "get_process_tree":
+            return okResult({ processes: [] });
+          case "get_process_logs":
+            return okResult({ processId: String(args.processId ?? ""), logs: [] });
+
           default:
             return errorResult("UNKNOWN_TOOL", `Unknown tool: ${name}`);
         }
@@ -276,7 +359,72 @@ function createMockBridge(): MeithBridge {
     },
     // No native browser views in preview mode; viewport reports are ignored.
     browser: { setViewport: () => undefined },
+    terminal: {
+      onData: (cb) => {
+        termDataSubs.add(cb);
+        return () => termDataSubs.delete(cb);
+      },
+      onExit: (cb) => {
+        termExitSubs.add(cb);
+        return () => termExitSubs.delete(cb);
+      },
+    },
   };
+}
+
+/**
+ * Minimal line-editing + command emulation for the preview-mode mock terminal.
+ * Echoes typed characters, handles Enter/Backspace, and recognizes a couple of
+ * commands (`clear`, `exit`, `pwd`, `echo`, `help`) so the UI feels alive
+ * without a real PTY.
+ */
+function handleMockInput(
+  id: string,
+  term: { cwd: string; line: string },
+  data: string,
+  emit: (id: string, chunk: string) => void,
+  onExit: (id: string) => void,
+): void {
+  const PROMPT = "\x1b[1;32m$\x1b[0m ";
+  for (const ch of data) {
+    if (ch === "\r" || ch === "\n") {
+      const cmd = term.line.trim();
+      term.line = "";
+      emit(id, "\r\n");
+      const [name, ...rest] = cmd.split(/\s+/);
+      switch (name) {
+        case "":
+          break;
+        case "clear":
+          emit(id, "\x1b[2J\x1b[H");
+          break;
+        case "pwd":
+          emit(id, `${term.cwd}\r\n`);
+          break;
+        case "echo":
+          emit(id, `${rest.join(" ")}\r\n`);
+          break;
+        case "help":
+          emit(id, "available: clear, pwd, echo, help, exit\r\n");
+          break;
+        case "exit":
+          emit(id, "logout\r\n");
+          onExit(id);
+          return;
+        default:
+          emit(id, `mock: command not found: ${name}\r\n`);
+      }
+      emit(id, PROMPT);
+    } else if (ch === "\x7f" || ch === "\b") {
+      if (term.line.length > 0) {
+        term.line = term.line.slice(0, -1);
+        emit(id, "\b \b");
+      }
+    } else if (ch >= " ") {
+      term.line += ch;
+      emit(id, ch);
+    }
+  }
 }
 
 function desc(

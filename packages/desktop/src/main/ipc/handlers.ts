@@ -15,6 +15,10 @@ export const IPC = {
   logEntry: "meith:logs:entry",
   /** Renderer -> main (one-way): measured browser content viewport bounds. */
   browserViewport: "meith:browser:viewport",
+  /** Main -> renderer: a chunk of terminal output `{ id, chunk }`. */
+  terminalData: "meith:terminal:data",
+  /** Main -> renderer: a terminal exited `{ id, exitCode, signal }`. */
+  terminalExit: "meith:terminal:exit",
 } as const;
 
 /**
@@ -48,5 +52,16 @@ export function registerIpcHandlers(
   });
   container.logger.on("entry", (entry) => {
     getWindow()?.webContents.send(IPC.logEntry, entry);
+  });
+
+  // Stream live terminal output/exit to the renderer so the xterm.js component
+  // can render PTY data in real time. Lifecycle (create/write/resize/kill) goes
+  // through the normal tool-call path; only the high-rate output stream needs a
+  // dedicated push channel.
+  container.terminals.on("data", (evt) => {
+    getWindow()?.webContents.send(IPC.terminalData, evt);
+  });
+  container.terminals.on("exit", (evt) => {
+    getWindow()?.webContents.send(IPC.terminalExit, evt);
   });
 }

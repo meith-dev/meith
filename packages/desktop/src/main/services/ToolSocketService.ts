@@ -35,6 +35,10 @@ const SOCKET_DEFAULT_CALLER: ToolCaller = "cli";
  */
 export class ToolSocketService {
   private server: net.Server | null = null;
+  private readonly connections = new Set<{
+    socket: net.Socket;
+    inflight: Map<string, AbortController>;
+  }>();
 
   constructor(
     private readonly socketPath: string,
@@ -67,12 +71,14 @@ export class ToolSocketService {
 
   private handleConnection(socket: net.Socket): void {
     const inflight = new Map<string, AbortController>();
+    const connection = { socket, inflight };
+    this.connections.add(connection);
     // Trusted, server-assigned identity for this connection. Used as the tool
     // context `sessionId` so browser ownership is scoped to the connection and
     // cannot be forged via a client-supplied `sessionId`.
     const connectionId = `socket:${randomUUID()}`;
     const send = (msg: ServerMessage) => {
-      if (!socket.writableEnded) socket.write(encodeMessage(msg));
+      if (!socket.destroyed && !socket.writableEnded) socket.write(encodeMessage(msg));
     };
     const parser = new NdjsonParser((err, line) => {
       this.logger.warn("Socket", `dropping malformed frame: ${err.message}`);
@@ -99,6 +105,7 @@ export class ToolSocketService {
       // Cancel anything still running for this dropped client.
       for (const controller of inflight.values()) controller.abort();
       inflight.clear();
+      this.connections.delete(connection);
     });
   }
 
@@ -199,6 +206,13 @@ export class ToolSocketService {
 
   async stop(): Promise<void> {
     if (!this.server) return;
+    for (const connection of this.connections) {
+      for (const controller of connection.inflight.values()) controller.abort();
+      connection.inflight.clear();
+      connection.socket.end();
+      connection.socket.destroy();
+    }
+    this.connections.clear();
     await new Promise<void>((resolve) => this.server!.close(() => resolve()));
     this.server = null;
     if (existsSync(this.socketPath)) {

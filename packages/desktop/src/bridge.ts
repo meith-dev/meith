@@ -23,6 +23,15 @@ export interface MeithBridge {
     /** Report the measured content region where browser views should render. */
     setViewport: (bounds: BrowserViewport) => void;
   };
+  /** Live terminal output streaming (main -> renderer). */
+  terminal: {
+    /** Subscribe to output chunks for any terminal. Returns an unsubscribe fn. */
+    onData: (cb: (evt: { id: string; chunk: string }) => void) => () => void;
+    /** Subscribe to terminal exit events. Returns an unsubscribe fn. */
+    onExit: (
+      cb: (evt: { id: string; exitCode: number; signal?: number }) => void,
+    ) => () => void;
+  };
 }
 
 declare global {

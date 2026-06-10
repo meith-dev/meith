@@ -176,11 +176,18 @@ export class ToolClient {
   ): Promise<ToolResult> {
     if (!this.socket) return Promise.reject(new Error("Client is not connected"));
     const requestId = newRequestId();
+    // Honor a per-call timeout for the local timer too (not just the runtime),
+    // so long-lived streaming calls (e.g. `devlogs`) aren't cut off after the
+    // default window. A non-positive value disables the local timeout entirely.
+    const localTimeoutMs = opts.timeoutMs ?? this.timeoutMs;
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pending.delete(requestId);
-        reject(new Error(`Tool "${toolName}" timed out after ${this.timeoutMs}ms`));
-      }, this.timeoutMs);
+      const timer =
+        localTimeoutMs > 0
+          ? setTimeout(() => {
+              this.pending.delete(requestId);
+              reject(new Error(`Tool "${toolName}" timed out after ${localTimeoutMs}ms`));
+            }, localTimeoutMs)
+          : setTimeout(() => undefined, 0);
       this.pending.set(requestId, {
         timer,
         onEvent: opts.onEvent,

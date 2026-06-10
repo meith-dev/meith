@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { MeithConfig } from "@meith/shared";
 import type { BrowserViewHost } from "./browser/BrowserViewHost.js";
+import type { PtyHost } from "./process/PtyHost.js";
 import { AgentService } from "./services/AgentService.js";
 import { AppStateService } from "./services/AppStateService.js";
 import { BrowserTabService } from "./services/BrowserTabService.js";
@@ -16,6 +17,7 @@ import { ToolSocketService } from "./services/ToolSocketService.js";
 import { ArtifactStore } from "./storage/ArtifactStore.js";
 import { createAppTools } from "./tools/appTools.js";
 import { createBrowserTools } from "./tools/browserTools.js";
+import { createProcessTools } from "./tools/processTools.js";
 import { ToolRegistry } from "./tools/registry.js";
 import { createSpaceTools } from "./tools/spaceTools.js";
 import { createStorageTools } from "./tools/storageTools.js";
@@ -46,6 +48,12 @@ export interface BootstrapOptions {
    * CLI runtime) omit it and get the in-memory default.
    */
   browserViewHost?: BrowserViewHost;
+  /**
+   * Live PTY backend for terminals. The Electron main process passes a
+   * `node-pty`-backed host; headless callers (tests, harness, CLI runtime) omit
+   * it and get the in-memory simulated shell.
+   */
+  ptyHost?: PtyHost;
 }
 
 /** The `~/.meith` directory and the config file path inside it. */
@@ -86,16 +94,28 @@ export async function bootstrap(
     artifacts,
   });
   const spaces = new SpaceService(appState, browserTabs, logger);
-  const devServers = new DevServerService(logger);
-  const terminals = new TerminalService(logger);
+  // Runtime environment injected into every spawned terminal / dev server so
+  // tools and plugins launched inside them can reach this running app: the
+  // socket path for dev-log attachment plus app-scoped identifiers.
+  const runtimeEnv: Record<string, string> = {
+    MEITH_SOCKET: socketPath,
+    MEITH_HOME: home,
+    MEITH_USER_DATA: userDataPath,
+  };
+  const devServers = new DevServerService(logger, runtimeEnv);
+  const terminals = new TerminalService(logger, {
+    host: options.ptyHost,
+    runtimeEnv,
+  });
   const projects = new ProjectService(logger);
   const storage = new StorageService({ dataDir: userDataPath, appState, logPath });
 
   const registry = new ToolRegistry();
-  const deps = { appState, browserTabs, spaces, devServers, logger, storage };
+  const deps = { appState, browserTabs, spaces, devServers, terminals, logger, storage };
   registry.registerAll(createBrowserTools(deps));
   registry.registerAll(createSpaceTools(deps));
   registry.registerAll(createAppTools(deps));
+  registry.registerAll(createProcessTools(deps));
   registry.registerAll(createStorageTools(deps));
 
   const agents = new AgentService(registry, logger);
@@ -117,6 +137,10 @@ export async function bootstrap(
     shutdownPromise = (async () => {
       registry.beginShutdown();
       await socket.stop();
+      // Reliably reap every spawned process before exit: kill dev-server
+      // process groups (and their child trees) and all live terminals.
+      devServers.stopAll();
+      terminals.killAll();
       // Tear down all live browser views/debuggers so nothing is leaked when
       // the process exits.
       await browserTabs.disposeViews();

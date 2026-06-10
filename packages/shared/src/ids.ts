@@ -27,3 +27,5 @@ export const newSpaceId = () => createId("space");
 export const newRequestId = () => createId("req");
 export const newSessionId = () => createId("sess");
 export const newMessageId = () => createId("msg");
+export const newTerminalId = () => createId("term");
+export const newDevServerId = () => createId("dev");

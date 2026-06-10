@@ -1,5 +1,4 @@
 import { type ToolDefinition, defineTool } from "@meith/protocol";
-import { okResult } from "@meith/shared";
 import { z } from "zod";
 import type { ToolDeps } from "./deps.js";
 
@@ -26,53 +25,5 @@ export function createAppTools(deps: ToolDeps): ToolDefinition[] {
     execute: (_ctx, input) => deps.logger.list(input.limit),
   });
 
-  const getProcessTree = defineTool({
-    name: "get_process_tree",
-    description:
-      "[placeholder] Return the tree of managed child processes (dev servers, terminals).",
-    capabilities: ["read-only"],
-    inputSchema: z.object({}),
-    execute: () =>
-      okResult(
-        {
-          placeholder: true,
-          devServers: deps.devServers.list().map((s) => ({
-            id: s.id,
-            command: s.command,
-            cwd: s.cwd,
-            status: s.status,
-            pid: s.pid ?? null,
-          })),
-        },
-        {
-          diagnostics: [
-            {
-              level: "warn",
-              message:
-                "get_process_tree is partial: reflects DevServerService/TerminalService PIDs only.",
-            },
-          ],
-        },
-      ),
-  });
-
-  const getProcessLogs = defineTool({
-    name: "get_process_logs",
-    description:
-      "[placeholder] Return captured logs for a managed process (dev server / terminal).",
-    capabilities: ["read-only"],
-    inputSchema: z.object({
-      processId: z.string().describe("Dev server or terminal id."),
-    }),
-    execute: (_ctx, input) => {
-      const server = deps.devServers.get(input.processId);
-      return okResult({
-        placeholder: true,
-        processId: input.processId,
-        logs: server?.logs ?? [],
-      });
-    },
-  });
-
-  return [appGetState, appGetLogs, getProcessTree, getProcessLogs];
+  return [appGetState, appGetLogs];
 }
