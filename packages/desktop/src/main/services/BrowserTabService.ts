@@ -469,6 +469,7 @@ export class BrowserTabService {
     cwd: string;
     kind?: WorkspaceTab["kind"];
     spaceId?: string;
+    terminalId?: string;
   }): WorkspaceTab {
     const spaceId = input.spaceId ?? this.activeSpaceId();
     const tab: WorkspaceTab = {
@@ -477,6 +478,7 @@ export class BrowserTabService {
       title: input.title,
       cwd: input.cwd,
       kind: input.kind ?? "editor",
+      terminalId: input.terminalId,
       active: true,
       createdAt: Date.now(),
     };
@@ -488,6 +490,24 @@ export class BrowserTabService {
     }, "open_workspace_tab");
     this.logger.info("WorkspaceTabs", `opened workspace tab ${tab.id} (${tab.cwd})`);
     return tab;
+  }
+
+  /** Persist the live terminal session backing a terminal workspace tab. */
+  setWorkspaceTabTerminal(id: string, terminalId: string | null): WorkspaceTab {
+    const tab = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!tab) throw new Error(`Unknown workspace tab: ${id}`);
+    if (tab.kind !== "terminal") {
+      throw new Error(`Workspace tab is not a terminal: ${id}`);
+    }
+    this.appState.update((draft) => {
+      const t = draft.workspaceTabs.find((w) => w.id === id);
+      if (!t) return;
+      if (terminalId) t.terminalId = terminalId;
+      else t.terminalId = undefined;
+    }, "set_workspace_tab_terminal");
+    const next = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!next) throw new Error(`Unknown workspace tab: ${id}`);
+    return next;
   }
 
   /** Make a workspace tab the active one within its space. */

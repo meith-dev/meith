@@ -20,9 +20,9 @@ export function TitleBar({
 }) {
   return (
     <header className="flex h-11 shrink-0 items-center gap-3 border-b bg-card px-3">
-      <div className="flex items-center gap-2 no-drag">
+      <div className="flex items-center gap-2 leading-none no-drag">
         <MeithMark className="size-5 text-foreground" />
-        <span className="font-semibold tracking-tight">meith</span>
+        <span className="leading-none font-semibold tracking-tight">meith</span>
       </div>
 
       <Separator orientation="vertical" className="h-5" />

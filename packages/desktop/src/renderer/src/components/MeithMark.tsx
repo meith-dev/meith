@@ -18,19 +18,19 @@ export function MeithMark({ className }: { className?: string }) {
     >
       {/* spokes from outer nodes to the central hub */}
       <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.55">
-        <line x1="16" y1="16" x2="16" y2="5" />
-        <line x1="16" y1="16" x2="6.5" y2="22" />
-        <line x1="16" y1="16" x2="25.5" y2="22" />
+        <line x1="16" y1="18.5" x2="16" y2="7.5" />
+        <line x1="16" y1="18.5" x2="6.5" y2="24.5" />
+        <line x1="16" y1="18.5" x2="25.5" y2="24.5" />
       </g>
       {/* outer cooperating nodes */}
       <g fill="currentColor" opacity="0.85">
-        <circle cx="16" cy="5" r="2.6" />
-        <circle cx="6.5" cy="22" r="2.6" />
-        <circle cx="25.5" cy="22" r="2.6" />
+        <circle cx="16" cy="7.5" r="2.6" />
+        <circle cx="6.5" cy="24.5" r="2.6" />
+        <circle cx="25.5" cy="24.5" r="2.6" />
       </g>
       {/* central registry hub */}
-      <circle cx="16" cy="16" r="4.4" className="fill-primary" />
-      <circle cx="16" cy="16" r="1.7" className="fill-primary-foreground" />
+      <circle cx="16" cy="18.5" r="4.4" className="fill-primary" />
+      <circle cx="16" cy="18.5" r="1.7" className="fill-primary-foreground" />
     </svg>
   );
 }

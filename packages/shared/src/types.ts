@@ -94,10 +94,11 @@ export type { ToolCapability };
 
 export function defaultAppState(): AppState {
   return {
-    version: 2,
+    version: 3,
     spaces: [],
     activeSpaceId: null,
     browserTabs: [],
     workspaceTabs: [],
+    projects: [],
   };
 }

@@ -15,6 +15,7 @@ const IPC = {
   browserViewport: "meith:browser:viewport",
   terminalData: "meith:terminal:data",
   terminalExit: "meith:terminal:exit",
+  dialogOpenFolder: "meith:dialog:openFolder",
 } as const;
 
 const api: MeithBridge = {
@@ -41,6 +42,9 @@ const api: MeithBridge = {
   browser: {
     setViewport: (bounds: BrowserViewport) =>
       ipcRenderer.send(IPC.browserViewport, bounds),
+  },
+  dialog: {
+    openFolder: () => ipcRenderer.invoke(IPC.dialogOpenFolder) as Promise<string | null>,
   },
   terminal: {
     onData: (cb) => {

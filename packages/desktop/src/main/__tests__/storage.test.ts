@@ -38,16 +38,17 @@ describe("migrations", () => {
 
   it("passes through a valid current-version state", () => {
     const valid = {
-      version: 2,
+      version: 3,
       spaces: [{ id: "s1", name: "S", createdAt: 1 }],
       activeSpaceId: "s1",
       browserTabs: [],
       workspaceTabs: [],
+      projects: [],
     };
     expect(migrateAppState(valid).activeSpaceId).toBe("s1");
   });
 
-  it("migrates v1 -> v2 by backfilling browser tab runtime fields", () => {
+  it("migrates v1 -> current by backfilling browser tab runtime fields", () => {
     const v1 = {
       version: 1,
       spaces: [{ id: "s1", name: "S", createdAt: 1 }],
@@ -58,12 +59,25 @@ describe("migrations", () => {
       workspaceTabs: [],
     };
     const migrated = migrateAppState(v1);
-    expect(migrated.version).toBe(2);
+    expect(migrated.version).toBe(CURRENT_STATE_VERSION);
     const tab = migrated.browserTabs[0];
     expect(tab.loadState).toBe("idle");
     expect(tab.canGoBack).toBe(false);
     expect(tab.canGoForward).toBe(false);
     expect(tab.ownerId).toBeNull();
+  });
+
+  it("migrates v2 -> v3 by adding an empty projects collection", () => {
+    const v2 = {
+      version: 2,
+      spaces: [{ id: "s1", name: "S", createdAt: 1 }],
+      activeSpaceId: "s1",
+      browserTabs: [],
+      workspaceTabs: [],
+    };
+    const migrated = migrateAppState(v2);
+    expect(migrated.version).toBe(3);
+    expect(migrated.projects).toEqual([]);
   });
 
   it("throws on a newer-than-supported version", () => {

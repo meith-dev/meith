@@ -1,5 +1,5 @@
 import type { ToolContext } from "@meith/shared";
-import { type BrowserWindow, ipcMain } from "electron";
+import { type BrowserWindow, dialog, ipcMain } from "electron";
 import type { ServiceContainer } from "../bootstrap.js";
 
 /**
@@ -19,6 +19,8 @@ export const IPC = {
   terminalData: "meith:terminal:data",
   /** Main -> renderer: a terminal exited `{ id, exitCode, signal }`. */
   terminalExit: "meith:terminal:exit",
+  /** Renderer -> main (invoke): show a native "open folder" picker. */
+  dialogOpenFolder: "meith:dialog:openFolder",
 } as const;
 
 /**
@@ -45,6 +47,17 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC.getState, () => container.appState.getState());
   ipcMain.handle(IPC.getLogs, (_event, limit?: number) => container.logger.list(limit));
+
+  // Native "open folder" picker. The renderer uses the returned path to open a
+  // project (which creates a space named after the folder).
+  ipcMain.handle(IPC.dialogOpenFolder, async () => {
+    const win = getWindow();
+    const result = win
+      ? await dialog.showOpenDialog(win, { properties: ["openDirectory"] })
+      : await dialog.showOpenDialog({ properties: ["openDirectory"] });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
 
   // Push state changes and new log entries to the renderer.
   container.appState.on("change", (state) => {

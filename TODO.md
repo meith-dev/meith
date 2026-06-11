@@ -317,7 +317,7 @@ Acceptance criteria:
 
 `ProjectService` currently only records paths. Build project discovery and generated project support.
 
-- [ ] Expand project schema:
+- [x] Expand project schema:
   - id
   - name
   - cwd
@@ -327,36 +327,54 @@ Acceptance criteria:
   - last opened
   - associated browser tabs
   - associated workspace tabs
-- [ ] Implement project open flow:
+  - hosting space (`spaceId`, 1:1 with a space)
+- [x] Link spaces and projects 1:1 (a space *is* a project):
+  - `Space.projectId` <-> `Project.spaceId`
+  - state migration backfills `projectId: null` on existing spaces
+  - `SpaceService` binds/looks up projects and, on close, drops the hosted
+    project record and stops its dev servers
+- [x] Implement project open flow:
   - validate cwd
   - detect package manager
   - detect scripts from package.json
   - detect common frameworks
-  - create workspace tab
+  - create/reuse a dedicated space named after the project, switch to it
+  - create workspace tab in that space
   - optionally start dev server
-- [ ] Add tools:
+- [x] Open an existing folder as a project (generates a space from the folder name):
+  - native "open folder" OS dialog (IPC + preload + bridge)
+  - `project_open` with a chosen directory
+- [x] Create a new project (scaffolds under `~/Documents/meith/<name>`):
+  - prompt for a name, generate from a template, open into a new space
+- [x] Add tools:
   - `project_open`
   - `project_list`
   - `project_detect`
   - `project_start_dev_server`
   - `project_stop_dev_server`
-- [ ] Add templates:
+  - (also: `project_list_templates`, `project_create`, `project_create_plugin`,
+    `project_prewarm`, `project_prewarm_status`, `project_allocate`)
+- [x] Add templates:
   - `templates/app-basic`
   - `templates/plugin-basic`
   - ensure templates are valid package workspaces or standalone apps
-- [ ] Add generated project root under the configured user data or workspace directory.
-- [ ] Add project buffer/prewarm service:
+- [x] Add generated project root under the user's Documents directory (`~/Documents/meith`).
+- [x] Add project buffer/prewarm service:
   - maintain N ready app projects
   - allocate one on demand
   - start dev server
   - open preview tab
-- [ ] Add plugin project creation flow separately from normal app projects.
-- [ ] Add README files inside each template explaining expected scripts and contracts.
+- [x] Add plugin project creation flow separately from normal app projects.
+- [x] Add README files inside each template explaining expected scripts and contracts.
+- [x] Wire the renderer spaces rail to project flows (new project, open folder, close).
 
 Acceptance criteria:
 
-- A user can open an existing project and start its dev server.
-- A user can create a new generated app project from a template.
+- Each space corresponds to a single project (1:1).
+- A user can open an existing folder; a space is created from that folder's name.
+- A user can create a new generated app project (scaffolded under Documents/meith)
+  which opens into its own space, and can start its dev server.
+- Closing a space closes its project (files remain on disk) and stops its processes.
 - Project metadata is available to tools, renderer, CLI, and future agents.
 
 ## Phase 8: Code Editor / IDE Integration

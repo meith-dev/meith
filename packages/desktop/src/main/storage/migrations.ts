@@ -1,7 +1,7 @@
 import { type AppState, AppStateSchema } from "@meith/shared";
 
 /** The state version this build writes and migrates up to. */
-export const CURRENT_STATE_VERSION = 2;
+export const CURRENT_STATE_VERSION = 3;
 
 type RawState = Record<string, unknown>;
 
@@ -37,6 +37,19 @@ const migrations: Record<number, (raw: RawState) => RawState> = {
         canGoForward: t.canGoForward ?? false,
         ownerId: t.ownerId ?? null,
       };
+    }),
+  }),
+
+  // 2 -> 3: project management (Phase 7) introduces a persisted `projects`
+  // collection in app state and links spaces 1:1 to projects. Older state
+  // starts with an empty project list and project-less spaces (projectId null).
+  2: (raw) => ({
+    ...raw,
+    version: 3,
+    projects: Array.isArray(raw.projects) ? raw.projects : [],
+    spaces: (Array.isArray(raw.spaces) ? raw.spaces : []).map((space) => {
+      const s = (space ?? {}) as RawState;
+      return { ...s, projectId: s.projectId ?? null };
     }),
   }),
 };

@@ -29,3 +29,4 @@ export const newSessionId = () => createId("sess");
 export const newMessageId = () => createId("msg");
 export const newTerminalId = () => createId("term");
 export const newDevServerId = () => createId("dev");
+export const newProjectId = () => createId("proj");

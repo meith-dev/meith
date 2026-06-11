@@ -167,6 +167,14 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@24.10.4)(lightningcss@1.32.0)(msw@2.14.6(@types/node@24.10.4)(typescript@5.7.3))
 
+  templates/app-basic: {}
+
+  templates/plugin-basic:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.7.3
+
 packages:
 
   '@babel/code-frame@7.29.7':

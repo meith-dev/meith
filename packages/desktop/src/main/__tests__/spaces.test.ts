@@ -128,4 +128,26 @@ describe("BrowserTabService workspace tabs", () => {
     // Closing the active tab reactivates the remaining one.
     expect(ctx.tabs.listWorkspaceTabs()[0].active).toBe(true);
   });
+
+  it("persists a terminal session id on terminal workspace tabs", () => {
+    const tab = ctx.tabs.openWorkspaceTab({
+      title: "Terminal",
+      cwd: "/tmp/project",
+      kind: "terminal",
+    });
+
+    const updated = ctx.tabs.setWorkspaceTabTerminal(tab.id, "term_123");
+    expect(updated.terminalId).toBe("term_123");
+    expect(ctx.tabs.listWorkspaceTabs()[0].terminalId).toBe("term_123");
+
+    const cleared = ctx.tabs.setWorkspaceTabTerminal(tab.id, null);
+    expect(cleared.terminalId).toBeUndefined();
+  });
+
+  it("rejects terminal session ids on non-terminal workspace tabs", () => {
+    const tab = ctx.tabs.openWorkspaceTab({ title: "Editor", cwd: "/tmp/project" });
+    expect(() => ctx.tabs.setWorkspaceTabTerminal(tab.id, "term_123")).toThrow(
+      /not a terminal/,
+    );
+  });
 });

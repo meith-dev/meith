@@ -125,11 +125,10 @@ any future agent — no extra plumbing.
 
 ## Status
 
-This is a **scaffold**. The browser automation surface — including `take_screenshot`,
-which persists real PNG artifacts — is implemented and tested. The remaining
-process/dev-server/terminal tools (`get_process_tree`, `get_process_logs`) still
-return structured placeholder results so callers can integrate against the final
-shape before the implementations land. `AgentService` exposes the runtime interface
-for a future model-driven loop. See `packages/desktop/prompts/system.md`.
+This is a working local runtime scaffold. The browser automation surface,
+terminal sessions, dev-server lifecycle tools, and process/log inspection tools
+are implemented and tested, including screenshot artifacts and streaming process
+log attachment. `AgentService` exposes the runtime interface for a future
+model-driven loop. See `packages/desktop/prompts/system.md`.
 The protocol layer (versioning, `ToolResult` envelope, capabilities, streaming,
 cancellation) is implemented — see [docs/TOOL_PROTOCOL.md](./docs/TOOL_PROTOCOL.md).

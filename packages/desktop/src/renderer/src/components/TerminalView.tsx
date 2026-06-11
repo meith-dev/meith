@@ -1,13 +1,13 @@
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import type { ToolResult } from "@meith/shared";
+import type { ToolResult, WorkspaceTab } from "@meith/shared";
 import { useEffect, useRef, useState } from "react";
 import type { MeithBridge } from "../../../bridge.js";
 
 interface TerminalViewProps {
-  /** Stable key for this terminal tab; a fresh PTY is created per workspace tab. */
-  tabId: string;
+  /** Persisted workspace tab metadata, including any attached terminal id. */
+  tab: WorkspaceTab;
   bridge: MeithBridge;
   call: (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
 }
@@ -36,7 +36,7 @@ const THEME = {
  * (`create_terminal` / `write_terminal` / `resize_terminal` / `kill_terminal`)
  * while live output arrives on the `bridge.terminal` push channel.
  */
-export function TerminalView({ tabId, bridge, call }: TerminalViewProps) {
+export function TerminalView({ tab, bridge, call }: TerminalViewProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<"starting" | "running" | "exited" | "error">(
     "starting",
@@ -59,7 +59,7 @@ export function TerminalView({ tabId, bridge, call }: TerminalViewProps) {
     term.loadAddon(fit);
     term.open(host);
 
-    let terminalId: string | null = null;
+    let terminalId: string | null = tab.terminalId ?? null;
     let disposed = false;
     const offFns: Array<() => void> = [];
 
@@ -108,10 +108,35 @@ export function TerminalView({ tabId, bridge, call }: TerminalViewProps) {
     const observer = new ResizeObserver(onResize);
     observer.observe(host);
 
-    // Create the PTY sized to the initial viewport.
+    // Attach to the persisted PTY if it exists, otherwise create a PTY rooted
+    // in the workspace tab cwd and persist the terminal id onto the tab.
     (async () => {
       safeFit();
+      if (terminalId) {
+        const snapshot = await call("get_terminal_snapshot", { terminalId });
+        if (disposed) return;
+        if (snapshot.ok) {
+          const content = snapshot.content as {
+            buffer?: string;
+            session?: { status?: string };
+          };
+          if (content.buffer) term.write(content.buffer);
+          setStatus(content.session?.status === "exited" ? "exited" : "running");
+          term.focus();
+          return;
+        }
+
+        // The app was probably restarted and the live PTY no longer exists.
+        // Clear the stale binding and create a fresh terminal below.
+        terminalId = null;
+        await call("set_workspace_tab_terminal", {
+          tabId: tab.id,
+          terminalId: null,
+        });
+      }
+
       const result = await call("create_terminal", {
+        cwd: tab.cwd,
         cols: term.cols,
         rows: term.rows,
       });
@@ -123,8 +148,14 @@ export function TerminalView({ tabId, bridge, call }: TerminalViewProps) {
         );
         return;
       }
-      const session = result.content as { id?: string } | undefined;
+      const session = result.content as { id?: string; cwd?: string } | undefined;
       terminalId = session?.id ?? null;
+      if (terminalId) {
+        void call("set_workspace_tab_terminal", {
+          tabId: tab.id,
+          terminalId,
+        });
+      }
       setStatus("running");
       term.focus();
     })();
@@ -135,10 +166,9 @@ export function TerminalView({ tabId, bridge, call }: TerminalViewProps) {
       observer.disconnect();
       dataDisposable.dispose();
       for (const off of offFns) off();
-      if (terminalId) void call("close_terminal", { terminalId });
       term.dispose();
     };
-  }, [tabId, bridge, call]);
+  }, [tab.id, bridge, call]);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#1a1714]">

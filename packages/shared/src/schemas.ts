@@ -132,6 +132,8 @@ export const WorkspaceTabSchema = z.object({
   /** Working directory / project root for this workspace tab. */
   cwd: z.string(),
   kind: z.enum(["editor", "terminal", "agent", "preview"]).default("editor"),
+  /** Backing live terminal session id for terminal tabs. */
+  terminalId: z.string().optional(),
   active: z.boolean().default(false),
   createdAt: z.number(),
 });
@@ -141,16 +143,79 @@ export const SpaceSchema = z.object({
   id: z.string(),
   name: z.string(),
   color: z.string().optional(),
+  /**
+   * The project this space hosts. Spaces and projects are 1:1 — opening a
+   * project binds it to a (new or existing) space. Null only for a transient
+   * space before its project record is attached.
+   */
+  projectId: z.string().nullable().default(null),
   createdAt: z.number(),
 });
 export type Space = z.infer<typeof SpaceSchema>;
 
+// ---------------------------------------------------------------------------
+// Projects (Phase 7): discovered/opened project roots and generated templates.
+// Project records are persisted in app state so the metadata is available to
+// tools, the renderer, the CLI, and future agents. Live processes (dev servers)
+// are still owned by `DevServerService` and associated by cwd.
+// ---------------------------------------------------------------------------
+
+/** How a project was provisioned: a normal app vs. a meith plugin project. */
+export const ProjectKindSchema = z.enum(["app", "plugin"]);
+export type ProjectKind = z.infer<typeof ProjectKindSchema>;
+
+/** Detected JavaScript package manager for a project. */
+export const PackageManagerSchema = z.enum(["pnpm", "npm", "yarn", "bun", "unknown"]);
+export type PackageManager = z.infer<typeof PackageManagerSchema>;
+
+/** Best-effort detected framework for a project. */
+export const ProjectFrameworkSchema = z.enum([
+  "nextjs",
+  "vite",
+  "react",
+  "vue",
+  "svelte",
+  "astro",
+  "remix",
+  "node",
+  "unknown",
+]);
+export type ProjectFramework = z.infer<typeof ProjectFrameworkSchema>;
+
+/** A runnable script discovered from a project's package.json. */
+export const ProjectScriptSchema = z.object({
+  name: z.string(),
+  command: z.string(),
+});
+export type ProjectScript = z.infer<typeof ProjectScriptSchema>;
+
+export const ProjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Absolute working directory / project root. Unique per project record. */
+  cwd: z.string(),
+  kind: ProjectKindSchema.default("app"),
+  /** The space (1:1) that hosts this project. */
+  spaceId: z.string().nullable().default(null),
+  framework: ProjectFrameworkSchema.default("unknown"),
+  packageManager: PackageManagerSchema.default("unknown"),
+  scripts: z.array(ProjectScriptSchema).default([]),
+  /** Browser tabs associated with this project (by id). */
+  browserTabIds: z.array(z.string()).default([]),
+  /** Workspace tabs (editor/terminal/agent/preview) associated by id. */
+  workspaceTabIds: z.array(z.string()).default([]),
+  createdAt: z.number(),
+  lastOpenedAt: z.number(),
+});
+export type Project = z.infer<typeof ProjectSchema>;
+
 export const AppStateSchema = z.object({
-  version: z.literal(2),
+  version: z.literal(3),
   spaces: z.array(SpaceSchema),
   activeSpaceId: z.string().nullable(),
   browserTabs: z.array(BrowserTabSchema),
   workspaceTabs: z.array(WorkspaceTabSchema),
+  projects: z.array(ProjectSchema).default([]),
 });
 export type AppState = z.infer<typeof AppStateSchema>;
 

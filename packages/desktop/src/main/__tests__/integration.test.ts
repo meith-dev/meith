@@ -47,13 +47,15 @@ describe("socket integration", () => {
   let container: ServiceContainer;
   let home: string;
   let userData: string;
+  let generatedRoot: string;
   let client: ToolClient;
 
   beforeAll(async () => {
     home = mkdtempSync(join(tmpdir(), "meith-home-"));
     userData = mkdtempSync(join(tmpdir(), "meith-data-"));
+    generatedRoot = mkdtempSync(join(tmpdir(), "meith-generated-"));
     process.env.MEITH_HOME = home;
-    container = await bootstrap(userData);
+    container = await bootstrap(userData, { generatedProjectsRoot: generatedRoot });
     client = new ToolClient({ socketPath: container.config.socketPath });
     await client.connect();
   });
@@ -63,6 +65,7 @@ describe("socket integration", () => {
     await container.shutdown();
     rmSync(home, { recursive: true, force: true });
     rmSync(userData, { recursive: true, force: true });
+    rmSync(generatedRoot, { recursive: true, force: true });
     process.env.MEITH_HOME = undefined;
   });
 
@@ -95,6 +98,7 @@ describe("socket integration", () => {
     expect(names).toContain("update_space");
     expect(names).toContain("close_space");
     expect(names).toContain("open_workspace_tab");
+    expect(names).toContain("set_workspace_tab_terminal");
     expect(names).toContain("focus_workspace_tab");
     expect(names).toContain("close_workspace_tab");
     const closeSpace = tools.find((t) => t.name === "close_space");
@@ -113,6 +117,63 @@ describe("socket integration", () => {
     expect(names).toContain("attach_process_logs");
     const createTerminal = tools.find((t) => t.name === "create_terminal");
     expect(createTerminal?.capabilities).toContain("starts-process");
+
+    // Phase 7 project management tools are registered.
+    expect(names).toContain("project_list");
+    expect(names).toContain("project_detect");
+    expect(names).toContain("project_open");
+    expect(names).toContain("project_start_dev_server");
+    expect(names).toContain("project_stop_dev_server");
+    expect(names).toContain("project_list_templates");
+    expect(names).toContain("project_create");
+    expect(names).toContain("project_create_plugin");
+    expect(names).toContain("project_allocate");
+    const projectOpen = tools.find((t) => t.name === "project_open");
+    expect(projectOpen?.capabilities).toContain("writes-files");
+  });
+
+  it("detects and opens a project over the socket", async () => {
+    // Detect this package directory: has a package.json with scripts, no throw.
+    const detected = await client.callTool("project_detect", { cwd: process.cwd() });
+    expect(detected.ok).toBe(true);
+    const detection = detected.content as {
+      hasPackageJson: boolean;
+      scripts: { name: string }[];
+    };
+    expect(detection.hasPackageJson).toBe(true);
+
+    const opened = await client.callTool("project_open", { cwd: process.cwd() });
+    expect(opened.ok).toBe(true);
+    const project = (opened.content as { project: { id: string; cwd: string } }).project;
+    expect(project.id).toMatch(/^proj_/);
+
+    const list = await client.callTool("project_list", {});
+    const projects = (list.content as { projects: { id: string }[] }).projects;
+    expect(projects.some((p) => p.id === project.id)).toBe(true);
+  });
+
+  it("lists templates including the app and plugin scaffolds", async () => {
+    const result = await client.callTool("project_list_templates", {});
+    expect(result.ok).toBe(true);
+    const templates = (result.content as { templates: { name: string; kind: string }[] })
+      .templates;
+    expect(templates.some((t) => t.name === "app-basic" && t.kind === "app")).toBe(true);
+    expect(templates.some((t) => t.name === "plugin-basic" && t.kind === "plugin")).toBe(
+      true,
+    );
+  });
+
+  it("creates a new project from a template without opening it", async () => {
+    const result = await client.callTool("project_create", {
+      template: "app-basic",
+      name: "socket-created-app",
+      open: false,
+    });
+    expect(result.ok).toBe(true);
+    const created = result.content as { cwd: string; project: unknown };
+    expect(created.cwd.startsWith(generatedRoot)).toBe(true);
+    expect(created.cwd).toContain("socket-created-app");
+    expect(created.project).toBeNull();
   });
 
   it("creates a terminal and lists it over the socket", async () => {
@@ -131,6 +192,30 @@ describe("socket integration", () => {
     expect(killed.ok).toBe(true);
   });
 
+  it("closes the backing terminal when a terminal workspace tab is closed", async () => {
+    const created = await client.callTool("create_terminal", { cwd: process.cwd() });
+    expect(created.ok).toBe(true);
+    const terminalId = (created.content as { id: string }).id;
+
+    const opened = await client.callTool("open_workspace_tab", {
+      title: "Terminal",
+      cwd: process.cwd(),
+      kind: "terminal",
+      terminalId,
+    });
+    expect(opened.ok).toBe(true);
+    const tabId = (opened.content as { id: string }).id;
+
+    const closed = await client.callTool("close_workspace_tab", { tabId });
+    expect(closed.ok).toBe(true);
+
+    const terminals = await client.callTool("list_terminals", {});
+    expect(terminals.ok).toBe(true);
+    expect((terminals.content as { id: string }[]).some((t) => t.id === terminalId)).toBe(
+      false,
+    );
+  });
+
   it("reports get_process_tree as a structured (non-stub) list", async () => {
     const result = await client.callTool("get_process_tree", {});
     expect(result.ok).toBe(true);
@@ -142,7 +227,7 @@ describe("socket integration", () => {
     const result = await client.callTool("app_get_state", {});
     expect(result.ok).toBe(true);
     const state = result.content as { version: number; browserTabs: unknown[] };
-    expect(state.version).toBe(2);
+    expect(state.version).toBe(3);
     expect(Array.isArray(state.browserTabs)).toBe(true);
   });
 
@@ -403,8 +488,8 @@ describe("socket integration", () => {
       dataDirectory: string;
       state: { version: number };
     };
-    expect(snapshot.stateVersion).toBe(2);
-    expect(snapshot.state.version).toBe(2);
+    expect(snapshot.stateVersion).toBe(3);
+    expect(snapshot.state.version).toBe(3);
   });
 });
 
@@ -412,9 +497,10 @@ describe("socket shutdown", () => {
   it("aborts attached log streams and closes sockets during shutdown", async () => {
     const home = mkdtempSync(join(tmpdir(), "meith-home-"));
     const userData = mkdtempSync(join(tmpdir(), "meith-data-"));
+    const generatedRoot = mkdtempSync(join(tmpdir(), "meith-generated-"));
     process.env.MEITH_HOME = home;
 
-    const container = await bootstrap(userData);
+    const container = await bootstrap(userData, { generatedProjectsRoot: generatedRoot });
     const client = new ToolClient({ socketPath: container.config.socketPath });
     await client.connect();
 
@@ -452,6 +538,7 @@ describe("socket shutdown", () => {
       await container.shutdown();
       rmSync(home, { recursive: true, force: true });
       rmSync(userData, { recursive: true, force: true });
+      rmSync(generatedRoot, { recursive: true, force: true });
       process.env.MEITH_HOME = undefined;
     }
   });

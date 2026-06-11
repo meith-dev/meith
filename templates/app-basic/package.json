@@ -1,0 +1,12 @@
+{
+  "name": "meith-app-basic",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A minimal, zero-dependency meith app project (static server).",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "build": "node -e \"console.log('app-basic has no build step')\""
+  }
+}

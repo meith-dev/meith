@@ -1,6 +1,7 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { MeithConfig } from "@meith/shared";
 import type { BrowserViewHost } from "./browser/BrowserViewHost.js";
 import type { PtyHost } from "./process/PtyHost.js";
@@ -18,6 +19,7 @@ import { ArtifactStore } from "./storage/ArtifactStore.js";
 import { createAppTools } from "./tools/appTools.js";
 import { createBrowserTools } from "./tools/browserTools.js";
 import { createProcessTools } from "./tools/processTools.js";
+import { createProjectTools } from "./tools/projectTools.js";
 import { ToolRegistry } from "./tools/registry.js";
 import { createSpaceTools } from "./tools/spaceTools.js";
 import { createStorageTools } from "./tools/storageTools.js";
@@ -54,12 +56,43 @@ export interface BootstrapOptions {
    * it and get the in-memory simulated shell.
    */
   ptyHost?: PtyHost;
+  /** Override the directory containing project templates. */
+  templatesDir?: string;
+  /** Override the root directory generated projects are created under. */
+  generatedProjectsRoot?: string;
 }
 
 /** The `~/.meith` directory and the config file path inside it. */
 export function meithPaths() {
   const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
   return { home, configPath: join(home, "config.json") };
+}
+
+/**
+ * Locate the `templates/` directory that ships project templates. Honors
+ * `MEITH_TEMPLATES_DIR`, otherwise walks up from this module to find a
+ * `templates` folder containing `app-basic` (works in dev, tests, and the
+ * packaged app). Returns a best-effort cwd-relative path if nothing is found.
+ */
+export function findTemplatesDir(): string {
+  if (process.env.MEITH_TEMPLATES_DIR) return process.env.MEITH_TEMPLATES_DIR;
+  let dir: string;
+  try {
+    dir = dirname(fileURLToPath(import.meta.url));
+  } catch {
+    dir = process.cwd();
+  }
+  for (const start of [dir, process.cwd()]) {
+    let cur = start;
+    for (let i = 0; i < 8; i++) {
+      const candidate = join(cur, "templates");
+      if (existsSync(join(candidate, "app-basic"))) return candidate;
+      const parent = dirname(cur);
+      if (parent === cur) break;
+      cur = parent;
+    }
+  }
+  return join(process.cwd(), "templates");
 }
 
 /**
@@ -93,7 +126,6 @@ export async function bootstrap(
     host: options.browserViewHost,
     artifacts,
   });
-  const spaces = new SpaceService(appState, browserTabs, logger);
   // Runtime environment injected into every spawned terminal / dev server so
   // tools and plugins launched inside them can reach this running app: the
   // socket path for dev-log attachment plus app-scoped identifiers.
@@ -107,15 +139,37 @@ export async function bootstrap(
     host: options.ptyHost,
     runtimeEnv,
   });
-  const projects = new ProjectService(logger);
+  // SpaceService can stop a hosted project's dev servers when its space closes,
+  // so it receives the DevServerService. ProjectService depends on SpaceService
+  // (to create/bind a project's 1:1 space); the dependency runs one way.
+  const spaces = new SpaceService(appState, browserTabs, logger, devServers, terminals);
+  // Generated projects live under ~/Documents/meith by default so users can
+  // find them in a familiar location (overridable for tests/headless).
+  const generatedRoot =
+    options.generatedProjectsRoot ?? join(homedir(), "Documents", "meith");
+  const templatesDir = options.templatesDir ?? findTemplatesDir();
+  const projects = new ProjectService(appState, spaces, browserTabs, devServers, logger, {
+    generatedRoot,
+    templatesDir,
+  });
   const storage = new StorageService({ dataDir: userDataPath, appState, logPath });
 
   const registry = new ToolRegistry();
-  const deps = { appState, browserTabs, spaces, devServers, terminals, logger, storage };
+  const deps = {
+    appState,
+    browserTabs,
+    spaces,
+    devServers,
+    terminals,
+    projects,
+    logger,
+    storage,
+  };
   registry.registerAll(createBrowserTools(deps));
   registry.registerAll(createSpaceTools(deps));
   registry.registerAll(createAppTools(deps));
   registry.registerAll(createProcessTools(deps));
+  registry.registerAll(createProjectTools(deps));
   registry.registerAll(createStorageTools(deps));
 
   const agents = new AgentService(registry, logger);

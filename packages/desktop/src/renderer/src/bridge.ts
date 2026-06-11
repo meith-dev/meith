@@ -2,11 +2,14 @@ import type { ToolDescriptor } from "@meith/protocol";
 import {
   type AppState,
   type BrowserTab,
+  type DevServer,
   type LogEntry,
+  type Project,
   type WorkspaceTab,
   defaultAppState,
   errorResult,
   newBrowserTabId,
+  newProjectId,
   newSpaceId,
   newWorkspaceTabId,
   okResult,
@@ -32,11 +35,31 @@ const SPACE_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#e
 
 function createMockBridge(): MeithBridge {
   const spaceId = newSpaceId();
+  const projectId = newProjectId();
   const now = Date.now();
+  const projectCwd = "/Users/dev/projects/web-app";
   const state: AppState = {
     ...defaultAppState(),
-    spaces: [{ id: spaceId, name: "Default", color: SPACE_COLORS[0], createdAt: now }],
+    spaces: [
+      { id: spaceId, name: "web-app", color: SPACE_COLORS[0], projectId, createdAt: now },
+    ],
     activeSpaceId: spaceId,
+    projects: [
+      {
+        id: projectId,
+        name: "web-app",
+        cwd: projectCwd,
+        kind: "app",
+        spaceId,
+        framework: "nextjs",
+        packageManager: "pnpm",
+        scripts: [{ name: "dev", command: "next dev" }],
+        browserTabIds: [],
+        workspaceTabIds: [],
+        createdAt: now,
+        lastOpenedAt: now,
+      },
+    ],
     browserTabs: [
       {
         id: newBrowserTabId(),
@@ -83,7 +106,10 @@ function createMockBridge(): MeithBridge {
 
   // In-memory simulated terminals for browser preview. Each tracks a tiny line
   // buffer so writes can echo and a couple of commands "work".
-  const mockTerms = new Map<string, { cwd: string; line: string }>();
+  const mockTerms = new Map<string, { cwd: string; line: string; buffer: string }>();
+  // Simulated dev servers (preview mode) so the workspace Run/Stop control and
+  // status reflect a project's dev server without a real process.
+  const mockDevServers: DevServer[] = [];
   const emitTermData = (id: string, chunk: string) => {
     for (const cb of termDataSubs) cb({ id, chunk });
   };
@@ -117,6 +143,7 @@ function createMockBridge(): MeithBridge {
     desc("focus_browser_tab", "Focus a browser tab.", ["controls-browser"]),
     desc("close_browser_tab", "Close a browser tab.", ["controls-browser"]),
     desc("open_workspace_tab", "Open a workspace tab.", []),
+    desc("set_workspace_tab_terminal", "Bind a terminal session to a workspace tab.", []),
     desc("focus_workspace_tab", "Focus a workspace tab.", []),
     desc("close_workspace_tab", "Close a workspace tab.", []),
     desc("app_get_state", "Return full app state.", ["read-only"]),
@@ -129,7 +156,70 @@ function createMockBridge(): MeithBridge {
     desc("list_dev_servers", "List managed dev servers.", ["read-only"]),
     desc("get_process_tree", "List managed processes.", ["read-only"]),
     desc("get_process_logs", "Read captured process logs.", ["read-only"]),
+    desc("project_list", "List opened projects.", ["read-only"]),
+    desc("project_detect", "Detect project metadata for a directory.", ["read-only"]),
+    desc("project_open", "Open a folder as a project in a dedicated space.", [
+      "writes-files",
+    ]),
+    desc("project_create", "Scaffold a new project from a template.", ["writes-files"]),
+    desc("project_create_plugin", "Scaffold a new meith plugin project.", [
+      "writes-files",
+    ]),
+    desc("project_list_templates", "List available project templates.", ["read-only"]),
+    desc("project_start_dev_server", "Start a project's dev server.", ["starts-process"]),
+    desc("project_stop_dev_server", "Stop a project's dev server.", ["starts-process"]),
   ];
+
+  // Create a project record + its 1:1 space, switch to it, and open an editor
+  // workspace tab. Shared by project_open / project_create / project_create_plugin.
+  const openProjectInSpace = (opts: {
+    name: string;
+    cwd: string;
+    kind?: Project["kind"];
+    framework?: Project["framework"];
+  }) => {
+    const sid = newSpaceId();
+    const pid = newProjectId();
+    const ts = Date.now();
+    const project: Project = {
+      id: pid,
+      name: opts.name,
+      cwd: opts.cwd,
+      kind: opts.kind ?? "app",
+      spaceId: sid,
+      framework: opts.framework ?? "unknown",
+      packageManager: "pnpm",
+      scripts: [{ name: "dev", command: "pnpm dev" }],
+      browserTabIds: [],
+      workspaceTabIds: [],
+      createdAt: ts,
+      lastOpenedAt: ts,
+    };
+    const space = {
+      id: sid,
+      name: opts.name,
+      color: SPACE_COLORS[state.spaces.length % SPACE_COLORS.length],
+      projectId: pid,
+      createdAt: ts,
+    };
+    const tab: WorkspaceTab = {
+      id: newWorkspaceTabId(),
+      spaceId: sid,
+      title: opts.name,
+      cwd: opts.cwd,
+      kind: "editor",
+      active: true,
+      createdAt: ts,
+    };
+    project.workspaceTabIds = [tab.id];
+    state.projects.push(project);
+    state.spaces.push(space);
+    state.workspaceTabs.push(tab);
+    state.activeSpaceId = sid;
+    pushLog("info", "Mock", `opened project ${opts.name} in space ${sid}`);
+    emitState();
+    return { project, space };
+  };
 
   return {
     tools: {
@@ -153,6 +243,7 @@ function createMockBridge(): MeithBridge {
               id: newSpaceId(),
               name: String(args.name ?? "New Space"),
               color: SPACE_COLORS[state.spaces.length % SPACE_COLORS.length],
+              projectId: null,
               createdAt: Date.now(),
             };
             state.spaces.push(space);
@@ -183,6 +274,7 @@ function createMockBridge(): MeithBridge {
               return errorResult("VALIDATION_ERROR", "Cannot close the last space");
             }
             state.spaces = state.spaces.filter((s) => s.id !== id);
+            state.projects = state.projects.filter((p) => p.spaceId !== id);
             state.browserTabs = state.browserTabs.filter((t) => t.spaceId !== id);
             state.workspaceTabs = state.workspaceTabs.filter((t) => t.spaceId !== id);
             if (state.activeSpaceId === id) state.activeSpaceId = state.spaces[0].id;
@@ -244,6 +336,8 @@ function createMockBridge(): MeithBridge {
               title: String(args.title ?? "untitled"),
               cwd: String(args.cwd ?? "/"),
               kind: (args.kind as WorkspaceTab["kind"]) ?? "editor",
+              terminalId:
+                typeof args.terminalId === "string" ? args.terminalId : undefined,
               active: true,
               createdAt: Date.now(),
             };
@@ -261,9 +355,21 @@ function createMockBridge(): MeithBridge {
             emitState();
             return okResult(tab);
           }
+          case "set_workspace_tab_terminal": {
+            const tab = state.workspaceTabs.find((t) => t.id === args.tabId);
+            if (!tab) return errorResult("VALIDATION_ERROR", "Unknown tab");
+            if (typeof args.terminalId === "string") tab.terminalId = args.terminalId;
+            else tab.terminalId = undefined;
+            emitState();
+            return okResult(tab);
+          }
           case "close_workspace_tab": {
             const tab = state.workspaceTabs.find((t) => t.id === args.tabId);
             if (!tab) return okResult({ closed: false });
+            if (tab.kind === "terminal" && tab.terminalId) {
+              mockTerms.delete(tab.terminalId);
+              for (const cb of termExitSubs) cb({ id: tab.terminalId, exitCode: 0 });
+            }
             const wasActive = tab.active;
             state.workspaceTabs = state.workspaceTabs.filter((t) => t.id !== tab.id);
             if (wasActive) {
@@ -278,13 +384,13 @@ function createMockBridge(): MeithBridge {
           case "create_terminal": {
             const id = `term_${Math.random().toString(16).slice(2, 10)}`;
             const cwd = String(args.cwd ?? "/Users/dev/projects/web-app");
-            mockTerms.set(id, { cwd, line: "" });
+            mockTerms.set(id, { cwd, line: "", buffer: "" });
             // Greet + initial prompt on next tick so subscribers attach first.
             setTimeout(() => {
-              emitTermData(
-                id,
-                `\x1b[2mmeith simulated shell — preview mode\x1b[0m\r\n${PROMPT}`,
-              );
+              const chunk = `\x1b[2mmeith simulated shell — ${cwd}\x1b[0m\r\n${PROMPT}`;
+              const term = mockTerms.get(id);
+              if (term) term.buffer += chunk;
+              emitTermData(id, chunk);
             }, 10);
             return okResult({
               id,
@@ -309,6 +415,26 @@ function createMockBridge(): MeithBridge {
             });
             return okResult({ ok: true });
           }
+          case "get_terminal_snapshot": {
+            const id = String(args.terminalId ?? args.id);
+            const term = mockTerms.get(id);
+            if (!term) return errorResult("TOOL_FAILED", "Unknown terminal");
+            return okResult({
+              session: {
+                id,
+                cwd: term.cwd,
+                shell: "/bin/mock",
+                pid: null,
+                cols: 80,
+                rows: 24,
+                status: "running",
+                createdAt: Date.now(),
+                exitCode: null,
+              },
+              buffer: term.buffer,
+              nextSeq: 0,
+            });
+          }
           case "resize_terminal":
             return okResult({ ok: true });
           case "kill_terminal": {
@@ -316,6 +442,12 @@ function createMockBridge(): MeithBridge {
             mockTerms.delete(id);
             for (const cb of termExitSubs) cb({ id, exitCode: 0 });
             return okResult({ ok: true });
+          }
+          case "close_terminal": {
+            const id = String(args.terminalId ?? args.id);
+            const closed = mockTerms.delete(id);
+            if (closed) for (const cb of termExitSubs) cb({ id, exitCode: 0 });
+            return okResult({ terminalId: id, closed });
           }
           case "list_terminals":
             return okResult({
@@ -332,11 +464,91 @@ function createMockBridge(): MeithBridge {
               })),
             });
           case "list_dev_servers":
-            return okResult({ devServers: [] });
+            return okResult({ devServers: structuredClone(mockDevServers) });
           case "get_process_tree":
             return okResult({ processes: [] });
           case "get_process_logs":
             return okResult({ processId: String(args.processId ?? ""), logs: [] });
+
+          case "project_list":
+            return okResult({ projects: structuredClone(state.projects) });
+          case "project_detect": {
+            const cwd = String(args.cwd ?? "/");
+            const base = cwd.split("/").filter(Boolean).pop() ?? "project";
+            return okResult({
+              cwd,
+              name: base,
+              hasPackageJson: true,
+              packageManager: "pnpm",
+              framework: "unknown",
+              scripts: [{ name: "dev", command: "pnpm dev" }],
+            });
+          }
+          case "project_list_templates":
+            return okResult({
+              templates: [
+                {
+                  name: "app-basic",
+                  kind: "app",
+                  description: "Minimal standalone app.",
+                },
+                {
+                  name: "plugin-basic",
+                  kind: "plugin",
+                  description: "Minimal meith plugin.",
+                },
+              ],
+            });
+          case "project_open": {
+            const cwd = String(args.cwd ?? "/");
+            const base = cwd.split("/").filter(Boolean).pop() ?? "project";
+            const { project } = openProjectInSpace({ name: base, cwd });
+            return okResult({ project });
+          }
+          case "project_create": {
+            const base = String(args.name ?? "new-project");
+            const cwd = `/Users/dev/Documents/meith/${base}`;
+            const { project } = openProjectInSpace({ name: base, cwd, kind: "app" });
+            return okResult({ cwd, project });
+          }
+          case "project_create_plugin": {
+            const base = String(args.name ?? "new-plugin");
+            const cwd = `/Users/dev/Documents/meith/${base}`;
+            const { project } = openProjectInSpace({ name: base, cwd, kind: "plugin" });
+            return okResult({ cwd, project });
+          }
+          case "project_start_dev_server": {
+            const project = state.projects.find((p) => p.id === args.projectId);
+            if (!project) return errorResult("TOOL_FAILED", "Unknown project");
+            const server: DevServer = {
+              id: `dev_${Math.random().toString(16).slice(2, 10)}`,
+              name: `${project.name}:dev`,
+              cwd: project.cwd,
+              command: "pnpm",
+              args: ["run", "dev"],
+              status: "running",
+              pid: 1234,
+              port: 3000,
+              exitCode: null,
+              signal: null,
+              startedAt: Date.now(),
+            };
+            mockDevServers.push(server);
+            pushLog("info", "Mock", `started dev server for ${project.name}`);
+            return okResult(server);
+          }
+          case "project_stop_dev_server": {
+            const project = state.projects.find((p) => p.id === args.projectId);
+            if (!project) return errorResult("TOOL_FAILED", "Unknown project");
+            let stopped = 0;
+            for (let i = mockDevServers.length - 1; i >= 0; i--) {
+              if (mockDevServers[i].cwd === project.cwd) {
+                mockDevServers.splice(i, 1);
+                stopped += 1;
+              }
+            }
+            return okResult({ stopped });
+          }
 
           default:
             return errorResult("UNKNOWN_TOOL", `Unknown tool: ${name}`);
@@ -359,6 +571,13 @@ function createMockBridge(): MeithBridge {
     },
     // No native browser views in preview mode; viewport reports are ignored.
     browser: { setViewport: () => undefined },
+    // No native OS dialog in preview mode; prompt for a path instead.
+    dialog: {
+      openFolder: async () => {
+        const dir = window.prompt("Folder path to open as a project", "/Users/dev/demo");
+        return dir?.trim() ? dir.trim() : null;
+      },
+    },
     terminal: {
       onData: (cb) => {
         termDataSubs.add(cb);
@@ -380,49 +599,54 @@ function createMockBridge(): MeithBridge {
  */
 function handleMockInput(
   id: string,
-  term: { cwd: string; line: string },
+  term: { cwd: string; line: string; buffer: string },
   data: string,
   emit: (id: string, chunk: string) => void,
   onExit: (id: string) => void,
 ): void {
   const PROMPT = "\x1b[1;32m$\x1b[0m ";
+  const write = (chunk: string) => {
+    term.buffer += chunk;
+    emit(id, chunk);
+  };
   for (const ch of data) {
     if (ch === "\r" || ch === "\n") {
       const cmd = term.line.trim();
       term.line = "";
-      emit(id, "\r\n");
+      write("\r\n");
       const [name, ...rest] = cmd.split(/\s+/);
       switch (name) {
         case "":
           break;
         case "clear":
-          emit(id, "\x1b[2J\x1b[H");
+          term.buffer = "";
+          write("\x1b[2J\x1b[H");
           break;
         case "pwd":
-          emit(id, `${term.cwd}\r\n`);
+          write(`${term.cwd}\r\n`);
           break;
         case "echo":
-          emit(id, `${rest.join(" ")}\r\n`);
+          write(`${rest.join(" ")}\r\n`);
           break;
         case "help":
-          emit(id, "available: clear, pwd, echo, help, exit\r\n");
+          write("available: clear, pwd, echo, help, exit\r\n");
           break;
         case "exit":
-          emit(id, "logout\r\n");
+          write("logout\r\n");
           onExit(id);
           return;
         default:
-          emit(id, `mock: command not found: ${name}\r\n`);
+          write(`mock: command not found: ${name}\r\n`);
       }
-      emit(id, PROMPT);
+      write(PROMPT);
     } else if (ch === "\x7f" || ch === "\b") {
       if (term.line.length > 0) {
         term.line = term.line.slice(0, -1);
-        emit(id, "\b \b");
+        write("\b \b");
       }
     } else if (ch >= " ") {
       term.line += ch;
-      emit(id, ch);
+      write(ch);
     }
   }
 }

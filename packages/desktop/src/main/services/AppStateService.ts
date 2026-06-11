@@ -53,6 +53,7 @@ export class AppStateService extends EventEmitter {
           id,
           name: "Default",
           color: "#6366f1",
+          projectId: null,
           createdAt: Date.now(),
         });
         draft.activeSpaceId = id;

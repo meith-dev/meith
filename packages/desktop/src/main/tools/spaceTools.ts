@@ -69,8 +69,21 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
       cwd: z.string().min(1),
       kind: z.enum(["editor", "terminal", "agent", "preview"]).optional(),
       spaceId: z.string().optional(),
+      terminalId: z.string().optional(),
     }),
     execute: (_ctx, input) => deps.browserTabs.openWorkspaceTab(input),
+  });
+
+  const setWorkspaceTabTerminal = defineTool({
+    name: "set_workspace_tab_terminal",
+    description: "Associate a terminal workspace tab with its live terminal session.",
+    capabilities: [],
+    inputSchema: z.object({
+      tabId: z.string(),
+      terminalId: z.string().nullable(),
+    }),
+    execute: (_ctx, input) =>
+      deps.browserTabs.setWorkspaceTabTerminal(input.tabId, input.terminalId),
   });
 
   const focusWorkspaceTab = defineTool({
@@ -86,9 +99,15 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
     description: "Close a workspace tab.",
     capabilities: [],
     inputSchema: z.object({ tabId: z.string() }),
-    execute: (_ctx, input) => ({
-      closed: deps.browserTabs.closeWorkspaceTab(input.tabId),
-    }),
+    execute: (_ctx, input) => {
+      const tab = deps.browserTabs
+        .listWorkspaceTabs()
+        .find((candidate) => candidate.id === input.tabId);
+      if (tab?.kind === "terminal" && tab.terminalId) {
+        deps.terminals.close(tab.terminalId);
+      }
+      return { closed: deps.browserTabs.closeWorkspaceTab(input.tabId) };
+    },
   });
 
   return [
@@ -98,6 +117,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
     switchSpace,
     closeSpace,
     openWorkspaceTab,
+    setWorkspaceTabTerminal,
     focusWorkspaceTab,
     closeWorkspaceTab,
   ];

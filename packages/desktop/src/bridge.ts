@@ -23,6 +23,14 @@ export interface MeithBridge {
     /** Report the measured content region where browser views should render. */
     setViewport: (bounds: BrowserViewport) => void;
   };
+  /** Native OS dialogs (renderer -> main). */
+  dialog: {
+    /**
+     * Show a native "open folder" picker. Resolves to the selected absolute
+     * directory path, or null if the user cancelled.
+     */
+    openFolder: () => Promise<string | null>;
+  };
   /** Live terminal output streaming (main -> renderer). */
   terminal: {
     /** Subscribe to output chunks for any terminal. Returns an unsubscribe fn. */
