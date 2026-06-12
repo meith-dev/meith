@@ -510,6 +510,39 @@ export class BrowserTabService {
     return next;
   }
 
+  /**
+   * Persist the editor session state of an editor workspace tab: the focused
+   * file and the list of open files (paths are relative to the tab's cwd). This
+   * lets the renderer editor, CLI, and agents agree on what is open via state.
+   */
+  setWorkspaceTabFile(
+    id: string,
+    input: { activeFilePath?: string | null; openFilePaths?: string[] },
+  ): WorkspaceTab {
+    const tab = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!tab) throw new Error(`Unknown workspace tab: ${id}`);
+    if (tab.kind !== "editor") {
+      throw new Error(`Workspace tab is not an editor: ${id}`);
+    }
+    this.appState.update((draft) => {
+      const t = draft.workspaceTabs.find((w) => w.id === id);
+      if (!t) return;
+      if (input.activeFilePath !== undefined) {
+        t.activeFilePath = input.activeFilePath ?? undefined;
+      }
+      if (input.openFilePaths !== undefined) {
+        t.openFilePaths = input.openFilePaths;
+        // Keep the active file consistent with the open set.
+        if (t.activeFilePath && !input.openFilePaths.includes(t.activeFilePath)) {
+          t.activeFilePath = input.openFilePaths[input.openFilePaths.length - 1];
+        }
+      }
+    }, "set_workspace_tab_file");
+    const next = this.appState.getState().workspaceTabs.find((t) => t.id === id);
+    if (!next) throw new Error(`Unknown workspace tab: ${id}`);
+    return next;
+  }
+
   /** Make a workspace tab the active one within its space. */
   focusWorkspaceTab(id: string): WorkspaceTab {
     const tab = this.appState.getState().workspaceTabs.find((t) => t.id === id);

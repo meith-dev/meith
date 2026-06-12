@@ -164,3 +164,17 @@
 .no-drag {
   -webkit-app-region: no-drag;
 }
+
+/*
+ * Inline diff highlight for edits applied to a file by a tool/agent. Lines that
+ * changed get a subtle amber wash plus a gutter marker so the user can see what
+ * was just rewritten and undo it.
+ */
+.meith-diff-line {
+  background: rgba(224, 168, 46, 0.12);
+}
+.meith-diff-gutter {
+  background: var(--primary);
+  width: 3px !important;
+  margin-left: 2px;
+}

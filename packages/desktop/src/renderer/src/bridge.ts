@@ -129,8 +129,48 @@ function createMockBridge(): MeithBridge {
     logs.push(entry);
     for (const cb of logSubs) cb(entry);
   };
+  const pushFileEvent = (
+    op: "write" | "patch" | "undo",
+    cwd: string,
+    path: string,
+    before: string | null,
+    after: string | null,
+  ) => {
+    state.workspaceFileEvents = [
+      ...(state.workspaceFileEvents ?? []),
+      {
+        id: `fevt_${Date.now().toString(36)}_${Math.random().toString(16).slice(2)}`,
+        ts: Date.now(),
+        op,
+        cwd,
+        path,
+        before,
+        after,
+      },
+    ].slice(-100);
+  };
 
   const activeSpace = () => state.activeSpaceId ?? state.spaces[0]?.id ?? spaceId;
+
+  // In-memory file system for preview mode, keyed by "<cwd>::<relPath>". Seeded
+  // with a tiny project so the editor renders meaningful content without disk.
+  const mockFiles = new Map<string, string>();
+  const fileKey = (dir: string, rel: string) => `${dir}::${rel.replace(/^\/+/, "")}`;
+  const seedFile = (rel: string, content: string) =>
+    mockFiles.set(fileKey(projectCwd, rel), content);
+  seedFile(
+    "package.json",
+    `{\n  "name": "web-app",\n  "version": "0.1.0",\n  "private": true,\n  "scripts": { "dev": "next dev" }\n}\n`,
+  );
+  seedFile(
+    "app/page.tsx",
+    "export default function Page() {\n  return <h1>Hello from web-app</h1>;\n}\n",
+  );
+  seedFile(
+    "app/layout.tsx",
+    `export default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <html lang="en">\n      <body>{children}</body>\n    </html>\n  );\n}\n`,
+  );
+  seedFile("README.md", "# web-app\n\nA mock project for preview mode.\n");
 
   const tools: ToolDescriptor[] = [
     desc("get_tabs", "List browser and workspace tabs.", ["read-only"]),
@@ -144,8 +184,22 @@ function createMockBridge(): MeithBridge {
     desc("close_browser_tab", "Close a browser tab.", ["controls-browser"]),
     desc("open_workspace_tab", "Open a workspace tab.", []),
     desc("set_workspace_tab_terminal", "Bind a terminal session to a workspace tab.", []),
+    desc("set_workspace_tab_file", "Set the focused/open files of an editor tab.", []),
     desc("focus_workspace_tab", "Focus a workspace tab.", []),
     desc("close_workspace_tab", "Close a workspace tab.", []),
+    desc("workspace_read_file", "Read a file from a project workspace.", ["read-only"]),
+    desc("workspace_write_file", "Write a file into a project workspace.", [
+      "writes-files",
+    ]),
+    desc("workspace_apply_patch", "Apply structured range edits to a file.", [
+      "writes-files",
+    ]),
+    desc("workspace_undo", "Revert the most recent write/patch to a file.", [
+      "writes-files",
+    ]),
+    desc("workspace_list_files", "List files in a project workspace.", ["read-only"]),
+    desc("workspace_search", "Search file contents in a workspace.", ["read-only"]),
+    desc("get_diagnostics", "Return TypeScript diagnostics for a file.", ["read-only"]),
     desc("app_get_state", "Return full app state.", ["read-only"]),
     desc("app_get_logs", "Return recent logs.", ["read-only"]),
     desc("create_terminal", "Start a terminal session.", ["starts-process"]),
@@ -548,6 +602,139 @@ function createMockBridge(): MeithBridge {
               }
             }
             return okResult({ stopped });
+          }
+          case "set_workspace_tab_file": {
+            const tab = state.workspaceTabs.find((t) => t.id === args.tabId);
+            if (!tab) return errorResult("TOOL_FAILED", "Unknown workspace tab");
+            if (tab.kind !== "editor") {
+              return errorResult("TOOL_FAILED", "Workspace tab is not an editor");
+            }
+            if (args.activeFilePath !== undefined) {
+              tab.activeFilePath = (args.activeFilePath as string | null) ?? undefined;
+            }
+            if (Array.isArray(args.openFilePaths)) {
+              tab.openFilePaths = args.openFilePaths as string[];
+            }
+            emitState();
+            return okResult(structuredClone(tab));
+          }
+          case "workspace_read_file": {
+            const dir = String(args.cwd ?? projectCwd);
+            const rel = String(args.path ?? "");
+            const key = fileKey(dir, rel);
+            if (!mockFiles.has(key)) {
+              return errorResult("TOOL_FAILED", `File not found: ${rel}`);
+            }
+            const content = mockFiles.get(key) ?? "";
+            return okResult({
+              path: rel,
+              content,
+              encoding: "utf8",
+              bytes: content.length,
+              truncated: false,
+            });
+          }
+          case "workspace_write_file": {
+            const dir = String(args.cwd ?? projectCwd);
+            const rel = String(args.path ?? "");
+            const content = String(args.content ?? "");
+            const key = fileKey(dir, rel);
+            const existed = mockFiles.has(key);
+            const previousContent = existed ? (mockFiles.get(key) ?? "") : null;
+            mockFiles.set(key, content);
+            pushLog("info", "Mock", `wrote ${rel}`);
+            pushFileEvent("write", dir, rel, previousContent, content);
+            emitState();
+            return okResult({
+              path: rel,
+              bytes: content.length,
+              created: !existed,
+              undo: {
+                path: rel,
+                previousContent,
+                newContent: content,
+                timestamp: Date.now(),
+              },
+            });
+          }
+          case "workspace_apply_patch": {
+            const dir = String(args.cwd ?? projectCwd);
+            const rel = String(args.path ?? "");
+            const key = fileKey(dir, rel);
+            const before = mockFiles.get(key) ?? "";
+            const edits = (Array.isArray(args.edits) ? args.edits : []) as Array<{
+              start: number;
+              end: number;
+              newText: string;
+            }>;
+            // Apply non-overlapping edits from the end to keep offsets stable.
+            const sorted = [...edits].sort((a, b) => b.start - a.start);
+            let after = before;
+            for (const e of sorted) {
+              after = after.slice(0, e.start) + e.newText + after.slice(e.end);
+            }
+            mockFiles.set(key, after);
+            pushLog("info", "Mock", `patched ${rel} (${edits.length} edits)`);
+            pushFileEvent("patch", dir, rel, before, after);
+            emitState();
+            return okResult({
+              path: rel,
+              before,
+              after,
+              edits: edits.length,
+              undo: {
+                path: rel,
+                previousContent: before,
+                newContent: after,
+                timestamp: Date.now(),
+              },
+            });
+          }
+          case "workspace_undo": {
+            // The mock keeps no undo stack; report nothing to revert.
+            return okResult({ undone: null });
+          }
+          case "workspace_list_files": {
+            const dir = String(args.cwd ?? projectCwd);
+            const prefix = `${dir}::`;
+            const entries = [...mockFiles.keys()]
+              .filter((k) => k.startsWith(prefix))
+              .map((k) => k.slice(prefix.length))
+              .sort()
+              .map((rel) => ({
+                path: rel,
+                name: rel.split("/").pop() ?? rel,
+                type: "file" as const,
+              }));
+            return okResult({ cwd: dir, entries, truncated: false });
+          }
+          case "workspace_search": {
+            const dir = String(args.cwd ?? projectCwd);
+            const query = String(args.query ?? "");
+            const prefix = `${dir}::`;
+            const matches: Array<{
+              path: string;
+              line: number;
+              column: number;
+              text: string;
+            }> = [];
+            if (query) {
+              for (const [k, content] of mockFiles) {
+                if (!k.startsWith(prefix)) continue;
+                const rel = k.slice(prefix.length);
+                content.split("\n").forEach((text, i) => {
+                  const col = text.indexOf(query);
+                  if (col >= 0) {
+                    matches.push({ path: rel, line: i + 1, column: col + 1, text });
+                  }
+                });
+              }
+            }
+            return okResult({ matches, truncated: false });
+          }
+          case "get_diagnostics": {
+            // The mock has no TypeScript program; report a clean, supported file.
+            return okResult({ diagnostics: [], unsupported: false });
           }
 
           default:

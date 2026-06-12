@@ -134,6 +134,10 @@ export const WorkspaceTabSchema = z.object({
   kind: z.enum(["editor", "terminal", "agent", "preview"]).default("editor"),
   /** Backing live terminal session id for terminal tabs. */
   terminalId: z.string().optional(),
+  /** For editor tabs: the file (relative to cwd) currently focused in the editor. */
+  activeFilePath: z.string().optional(),
+  /** For editor tabs: files open in the editor (relative to cwd), in tab order. */
+  openFilePaths: z.array(z.string()).optional(),
   active: z.boolean().default(false),
   createdAt: z.number(),
 });
@@ -209,6 +213,21 @@ export const ProjectSchema = z.object({
 });
 export type Project = z.infer<typeof ProjectSchema>;
 
+export const WorkspaceFileEventSchema = z.object({
+  id: z.string(),
+  ts: z.number(),
+  op: z.enum(["write", "patch", "undo"]),
+  /** Trusted workspace root that produced the event. */
+  cwd: z.string(),
+  /** POSIX-normalized path relative to cwd. */
+  path: z.string(),
+  /** Content before the edit; null when the file did not exist. */
+  before: z.string().nullable(),
+  /** Content after the edit; null when the file was deleted. */
+  after: z.string().nullable(),
+});
+export type WorkspaceFileEvent = z.infer<typeof WorkspaceFileEventSchema>;
+
 export const AppStateSchema = z.object({
   version: z.literal(3),
   spaces: z.array(SpaceSchema),
@@ -216,6 +235,7 @@ export const AppStateSchema = z.object({
   browserTabs: z.array(BrowserTabSchema),
   workspaceTabs: z.array(WorkspaceTabSchema),
   projects: z.array(ProjectSchema).default([]),
+  workspaceFileEvents: z.array(WorkspaceFileEventSchema).default([]),
 });
 export type AppState = z.infer<typeof AppStateSchema>;
 

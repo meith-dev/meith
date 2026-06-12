@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BrowserArea } from "./components/BrowserArea";
 import { DebugPanel } from "./components/DebugPanel";
+import { EditorView } from "./components/EditorView";
 import { SpacesRail } from "./components/SpacesRail";
 import { StatusBar } from "./components/StatusBar";
 import { TerminalView } from "./components/TerminalView";
@@ -43,9 +44,13 @@ export function App() {
     state?.workspaceTabs.find(
       (t) => t.spaceId === (activeSpaceForTabs?.id ?? null) && t.active,
     ) ?? null;
-  // A terminal tab takes over the content region (and supersedes the native
-  // browser view, which is collapsed while a terminal is focused).
+  // A terminal or editor tab takes over the content region (and supersedes the
+  // native browser view, which is collapsed while one is focused).
   const showTerminal = activeWorkspaceTab?.kind === "terminal";
+  const showEditor = activeWorkspaceTab?.kind === "editor";
+  // Either overlay covers the browser column, so the native browser view must
+  // be collapsed off-screen to keep it from painting on top.
+  const coversBrowser = showTerminal || showEditor;
 
   // Report the measured browser content region to the main process so the
   // native browser view is sized to the real layout (not a hard-coded inset).
@@ -53,9 +58,10 @@ export function App() {
     const el = contentRef.current;
     if (!el) return;
     const report = () => {
-      // When a terminal tab is focused it covers the content region, so collapse
-      // the native browser view off-screen to keep it from painting on top.
-      if (showTerminal) {
+      // When a terminal/editor tab is focused it covers the content region, so
+      // collapse the native browser view off-screen to keep it from painting
+      // on top.
+      if (coversBrowser) {
         bridge.browser.setViewport({ x: 0, y: 0, width: 0, height: 0 });
         return;
       }
@@ -75,7 +81,7 @@ export function App() {
       observer.disconnect();
       window.removeEventListener("resize", report);
     };
-  }, [bridge, debugOpen, showTerminal]);
+  }, [bridge, debugOpen, coversBrowser]);
 
   const activeSpace =
     state?.spaces.find((s) => s.id === state.activeSpaceId) ?? state?.spaces[0] ?? null;
@@ -305,6 +311,18 @@ export function App() {
                   tab={activeWorkspaceTab}
                   bridge={bridge}
                   call={call}
+                />
+              </div>
+            )}
+            {showEditor && activeWorkspaceTab && (
+              // Overlay the code editor above the browser column; the native
+              // browser view is collapsed while this is shown.
+              <div className="absolute inset-0 z-10 bg-background">
+                <EditorView
+                  key={activeWorkspaceTab.id}
+                  tab={activeWorkspaceTab}
+                  call={call}
+                  fileEvents={state?.workspaceFileEvents ?? []}
                 />
               </div>
             )}

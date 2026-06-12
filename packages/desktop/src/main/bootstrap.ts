@@ -15,9 +15,11 @@ import { SpaceService } from "./services/SpaceService.js";
 import { StorageService } from "./services/StorageService.js";
 import { TerminalService } from "./services/TerminalService.js";
 import { ToolSocketService } from "./services/ToolSocketService.js";
+import { WorkspaceFileService } from "./services/WorkspaceFileService.js";
 import { ArtifactStore } from "./storage/ArtifactStore.js";
 import { createAppTools } from "./tools/appTools.js";
 import { createBrowserTools } from "./tools/browserTools.js";
+import { createFileTools } from "./tools/fileTools.js";
 import { createProcessTools } from "./tools/processTools.js";
 import { createProjectTools } from "./tools/projectTools.js";
 import { ToolRegistry } from "./tools/registry.js";
@@ -33,6 +35,7 @@ export interface ServiceContainer {
   devServers: DevServerService;
   terminals: TerminalService;
   projects: ProjectService;
+  files: WorkspaceFileService;
   agents: AgentService;
   storage: StorageService;
   registry: ToolRegistry;
@@ -153,6 +156,9 @@ export async function bootstrap(
     templatesDir,
   });
   const storage = new StorageService({ dataDir: userDataPath, appState, logPath });
+  // Editor/IDE file authority (Phase 8). Boundary-checks every read/write
+  // against known project roots and provides TypeScript diagnostics.
+  const files = new WorkspaceFileService(projects, logger, appState);
 
   const registry = new ToolRegistry();
   const deps = {
@@ -162,6 +168,7 @@ export async function bootstrap(
     devServers,
     terminals,
     projects,
+    files,
     logger,
     storage,
   };
@@ -170,6 +177,7 @@ export async function bootstrap(
   registry.registerAll(createAppTools(deps));
   registry.registerAll(createProcessTools(deps));
   registry.registerAll(createProjectTools(deps));
+  registry.registerAll(createFileTools(deps));
   registry.registerAll(createStorageTools(deps));
 
   const agents = new AgentService(registry, logger);
@@ -213,6 +221,7 @@ export async function bootstrap(
     devServers,
     terminals,
     projects,
+    files,
     agents,
     storage,
     registry,

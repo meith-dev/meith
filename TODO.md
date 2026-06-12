@@ -381,35 +381,40 @@ Acceptance criteria:
 
 Choose an editor strategy before implementing agent editing workflows.
 
-- [ ] Decide between:
+- [x] Decide between:
   - embedded code-server
-  - Monaco editor for simpler local editing
+  - **Monaco editor for simpler local editing** (chosen — renderer-side editor;
+    all file I/O stays in a main-process service so CLI/agents work headless)
   - launching external VS Code with an extension bridge
   - hybrid approach
-- [ ] Define editor service contract:
-  - open workspace
-  - open file
-  - read file
-  - write file
-  - apply diff
-  - get diagnostics
-  - focus symbol/range
-  - save all
-- [ ] Add workspace tab kind for editor sessions.
-- [ ] Implement `get_diagnostics` against the chosen editor/language-server path.
-- [ ] Implement file tools:
+- [x] Define editor service contract (`WorkspaceFileService`):
+  - open workspace (cwd boundary resolution against known project roots)
+  - open file / read file (`readFile`)
+  - write file (`writeFile`)
+  - apply diff (`applyPatch` — structured range edits)
+  - get diagnostics (`getDiagnostics` via TypeScript LanguageService)
+  - focus symbol/range (editor selects/opens files; symbol nav deferred)
+  - save all (editor save per buffer; Cmd/Ctrl+S)
+- [x] Add workspace tab kind for editor sessions (renderer `EditorView` wired to
+      the existing `editor` tab kind; tab persists active/open files).
+- [x] Implement `get_diagnostics` against the chosen editor/language-server path
+      (main-process TypeScript `LanguageService`; non-TS/JS returns unsupported).
+- [x] Implement file tools:
   - `workspace_read_file`
   - `workspace_write_file`
   - `workspace_apply_patch`
   - `workspace_list_files`
   - `workspace_search`
-- [ ] Add guardrails for file writes:
+  - (plus `workspace_undo` for revert)
+- [x] Add guardrails for file writes:
   - require cwd/workspace
-  - prevent writing outside workspace unless explicitly allowed
-  - log all writes
+  - prevent writing outside workspace unless explicitly allowed (`allowOutside`)
+  - log all writes (with in/out-of-workspace boundary decision)
   - expose undo metadata
-- [ ] Add inline diff UI for agent edits.
-- [ ] Add tests for read/write/apply patch behavior.
+- [x] Add inline diff UI for agent edits (changed-line decorations + one-click
+      undo in `EditorView`).
+- [x] Add tests for read/write/apply patch behavior
+      (`workspaceFiles.test.ts`, 15 tests).
 
 Acceptance criteria:
 

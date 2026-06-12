@@ -86,6 +86,23 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
       deps.browserTabs.setWorkspaceTabTerminal(input.tabId, input.terminalId),
   });
 
+  const setWorkspaceTabFile = defineTool({
+    name: "set_workspace_tab_file",
+    description:
+      "Set the focused file and/or open files of an editor workspace tab (paths relative to its cwd).",
+    capabilities: [],
+    inputSchema: z.object({
+      tabId: z.string(),
+      activeFilePath: z.string().nullable().optional(),
+      openFilePaths: z.array(z.string()).optional(),
+    }),
+    execute: (_ctx, input) =>
+      deps.browserTabs.setWorkspaceTabFile(input.tabId, {
+        activeFilePath: input.activeFilePath,
+        openFilePaths: input.openFilePaths,
+      }),
+  });
+
   const focusWorkspaceTab = defineTool({
     name: "focus_workspace_tab",
     description: "Make a workspace tab the active one in its space.",
@@ -118,6 +135,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
     closeSpace,
     openWorkspaceTab,
     setWorkspaceTabTerminal,
+    setWorkspaceTabFile,
     focusWorkspaceTab,
     closeWorkspaceTab,
   ];

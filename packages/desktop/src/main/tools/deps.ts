@@ -6,6 +6,7 @@ import type { ProjectService } from "../services/ProjectService.js";
 import type { SpaceService } from "../services/SpaceService.js";
 import type { StorageService } from "../services/StorageService.js";
 import type { TerminalService } from "../services/TerminalService.js";
+import type { WorkspaceFileService } from "../services/WorkspaceFileService.js";
 
 /**
  * Dependencies injected into tool factories. Keeping this explicit (rather than
@@ -19,6 +20,7 @@ export interface ToolDeps {
   devServers: DevServerService;
   terminals: TerminalService;
   projects: ProjectService;
+  files: WorkspaceFileService;
   logger: Logger;
   storage: StorageService;
 }
