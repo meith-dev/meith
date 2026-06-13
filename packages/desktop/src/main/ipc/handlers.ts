@@ -1,6 +1,8 @@
-import type { ToolContext } from "@meith/shared";
+import type { MeithPluginIdentity } from "@meith/protocol";
+import { type ToolContext, errorResult } from "@meith/shared";
 import { type BrowserWindow, dialog, ipcMain } from "electron";
 import type { ServiceContainer } from "../bootstrap.js";
+import { PluginError } from "../services/PluginHostService.js";
 
 /**
  * IPC channel names shared with the preload bridge. Keep in sync with
@@ -46,6 +48,28 @@ export const IPC = {
   agentSession: "meith:agent:session",
   /** Main -> renderer: a pending permission request to render a card for. */
   agentPermission: "meith:agent:permission",
+  // --- Plugin bridge (Phase 11) -----------------------------------------
+  // These channels back `window.meithPlugin` in plugin tabs. Every handler
+  // resolves the calling plugin AUTHORITATIVELY from `event.sender.id` via
+  // PluginHostService — renderer-supplied identity is never trusted.
+  /** Plugin -> main (sendSync): resolve this webContents' approved identity (or null). */
+  pluginIdentity: "meith:plugin:identity",
+  /** Plugin -> main (invoke): list registry tools. */
+  pluginToolsList: "meith:plugin:tools:list",
+  /** Plugin -> main (invoke): call a registry tool (capability-gated). */
+  pluginToolsCall: "meith:plugin:tools:call",
+  /** Plugin -> main (invoke): read browser tabs (plugin tabs excluded). */
+  pluginStorageBrowserTabs: "meith:plugin:storage:browserTabs",
+  /** Plugin -> main (invoke): read workspace tabs. */
+  pluginStorageWorkspaceTabs: "meith:plugin:storage:workspaceTabs",
+  /** Plugin -> main (invoke): raw CDP command (requires `cdp` API). */
+  pluginCdp: "meith:plugin:cdp",
+  /** Plugin -> main (send): start an `ai.streamText` call `{ callId, prompt }`. */
+  pluginAiStart: "meith:plugin:ai:start",
+  /** Plugin -> main (send): cancel an in-flight `ai.streamText` call `{ callId }`. */
+  pluginAiCancel: "meith:plugin:ai:cancel",
+  /** Main -> plugin: a streamed AI chunk for a call (text/done/error). */
+  pluginAiChunk: "meith:plugin:ai:chunk",
 } as const;
 
 /**
@@ -148,6 +172,13 @@ export function registerIpcHandlers(
     getWindow()?.webContents.send(IPC.agentPermission, req);
   });
 
+  // --- Plugin bridge -----------------------------------------------------
+  // The security boundary: identity is resolved from the SENDER webContents id
+  // (`event.sender.id`) via PluginHostService, never from anything the plugin
+  // page sends. Unknown senders / unapproved APIs / disallowed tool
+  // capabilities are rejected before any service is touched.
+  registerPluginHandlers(container, getWindow);
+
   // Push state changes and new log entries to the renderer.
   container.appState.on("change", (state) => {
     getWindow()?.webContents.send(IPC.stateChanged, state);
@@ -166,4 +197,182 @@ export function registerIpcHandlers(
   container.terminals.on("exit", (evt) => {
     getWindow()?.webContents.send(IPC.terminalExit, evt);
   });
+}
+
+/**
+ * Register the `window.meithPlugin` bridge handlers. Split out so the security
+ * boundary lives in one place. EVERY handler derives the calling plugin from
+ * `event.sender.id` via `container.plugins`; nothing the page sends is trusted
+ * for identity or grants.
+ */
+function registerPluginHandlers(
+  container: ServiceContainer,
+  getWindow: () => BrowserWindow | null,
+): void {
+  const { plugins, registry } = container;
+
+  // Synchronous identity resolution at preload init. Returns ONLY approved
+  // grants, or null for any webContents that is not an enabled plugin (normal
+  // tabs, disabled/uninstalled plugins). The preload exposes nothing on null.
+  ipcMain.on(IPC.pluginIdentity, (event) => {
+    const resolved = plugins.resolveByWebContents(event.sender.id);
+    if (!resolved) {
+      event.returnValue = null;
+      return;
+    }
+    const plugin = plugins.get(resolved.pluginId);
+    const identity: MeithPluginIdentity = {
+      pluginId: resolved.pluginId,
+      name: plugin?.name ?? resolved.pluginId,
+      version: plugin?.version ?? "0.0.0",
+      apis: resolved.approvedApis,
+      capabilities: resolved.approvedCapabilities,
+    };
+    event.returnValue = identity;
+  });
+
+  ipcMain.handle(IPC.pluginToolsList, (event) => {
+    // Listing requires the `tools` API but no capability; it never runs a tool.
+    try {
+      plugins.assertApiAllowed(event.sender.id, "tools");
+    } catch {
+      return [];
+    }
+    return registry.describe();
+  });
+
+  ipcMain.handle(
+    IPC.pluginToolsCall,
+    async (event, name: string, args: Record<string, unknown>) => {
+      let identity: MeithPluginIdentity | null = null;
+      try {
+        // Identity + per-tool capability gate, both resolved from the sender.
+        const resolved = plugins.assertToolAllowed(event.sender.id, name);
+        identity = {
+          pluginId: resolved.pluginId,
+          name: resolved.pluginId,
+          version: "",
+          apis: resolved.approvedApis,
+          capabilities: resolved.approvedCapabilities,
+        };
+      } catch (err) {
+        return pluginErrorResult(err);
+      }
+      const tabId = plugins.tabIdForWebContents(event.sender.id);
+      return registry.call(
+        {
+          cwd: process.cwd(),
+          caller: "plugin",
+          // Identity comes from the sender mapping, never from the payload.
+          sessionId: `plugin:${identity.pluginId}`,
+          tabId,
+        },
+        name,
+        args ?? {},
+      );
+    },
+  );
+
+  ipcMain.handle(IPC.pluginStorageBrowserTabs, (event) => {
+    try {
+      plugins.assertApiAllowed(event.sender.id, "storage");
+    } catch {
+      return [];
+    }
+    // Plugin-mode tabs are hidden from plugins by default.
+    return container.browserTabs.listBrowserTabs();
+  });
+
+  ipcMain.handle(IPC.pluginStorageWorkspaceTabs, (event) => {
+    try {
+      plugins.assertApiAllowed(event.sender.id, "storage");
+    } catch {
+      return [];
+    }
+    return container.browserTabs.listWorkspaceTabs();
+  });
+
+  ipcMain.handle(
+    IPC.pluginCdp,
+    (event, tabId: string, method: string, params: Record<string, unknown>) => {
+      try {
+        // CDP is browser control; require both the `cdp` API and the matching
+        // capability on the underlying tool.
+        plugins.assertApiAllowed(event.sender.id, "cdp");
+        plugins.assertToolAllowed(event.sender.id, "cdp_command");
+      } catch (err) {
+        return pluginErrorResult(err);
+      }
+      return registry.call(
+        { cwd: process.cwd(), caller: "plugin", tabId },
+        "cdp_command",
+        { tabId, method, params },
+      );
+    },
+  );
+
+  // --- ai.streamText ------------------------------------------------------
+  // Each call spins up an ephemeral, plugin-attributed agent session and drives
+  // `agents.run` (which enforces the agent permission model — plugins cannot
+  // bypass it). Text AND error chunks are forwarded; the session is always
+  // cleaned up. Cancellation aborts the run via the agent's cancel().
+  const aiSessions = new Map<string, string>(); // callId -> sessionId
+
+  ipcMain.on(
+    IPC.pluginAiStart,
+    async (event, payload: { callId: string; prompt: string }) => {
+      const callId = payload?.callId;
+      const sender = event.sender;
+      const send = (chunk: Record<string, unknown>) => {
+        if (!sender.isDestroyed()) sender.send(IPC.pluginAiChunk, { callId, ...chunk });
+      };
+      let identity: ReturnType<typeof plugins.resolveByWebContents>;
+      try {
+        identity = plugins.assertApiAllowed(sender.id, "ai");
+      } catch (err) {
+        send({ type: "error", message: pluginErrorMessage(err) });
+        return;
+      }
+      try {
+        const session = container.agents.createSession({
+          cwd: process.cwd(),
+          title: `plugin:${identity.pluginId}`,
+        });
+        aiSessions.set(callId, session.id);
+        for await (const chunk of container.agents.run(session.id, payload.prompt)) {
+          if (chunk.type === "text") send({ type: "text", delta: chunk.text });
+          else if (chunk.type === "error")
+            send({ type: "error", message: chunk.message });
+        }
+        send({ type: "done" });
+      } catch (err) {
+        send({ type: "error", message: pluginErrorMessage(err) });
+      } finally {
+        const sessionId = aiSessions.get(callId);
+        if (sessionId) {
+          container.agents.deleteSession(sessionId);
+          aiSessions.delete(callId);
+        }
+      }
+    },
+  );
+
+  ipcMain.on(IPC.pluginAiCancel, (_event, payload: { callId: string }) => {
+    const sessionId = aiSessions.get(payload?.callId);
+    if (sessionId) container.agents.cancel(sessionId);
+  });
+}
+
+/** Convert a thrown plugin/permission error into a structured ToolResult. */
+function pluginErrorResult(err: unknown): ReturnType<typeof errorResult> {
+  if (err instanceof PluginError) {
+    const code = err.code === "PERMISSION_DENIED" ? "PERMISSION_DENIED" : "TOOL_FAILED";
+    return errorResult(code, err.message);
+  }
+  return errorResult("TOOL_FAILED", err instanceof Error ? err.message : String(err));
+}
+
+/** Extract a human-readable message from a thrown plugin/permission error. */
+function pluginErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
