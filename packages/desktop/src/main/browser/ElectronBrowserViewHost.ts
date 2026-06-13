@@ -4,6 +4,7 @@ import type { BrowserWindow, WebContentsView as WebContentsViewType } from "elec
 import { WebContentsView } from "electron";
 import {
   type BrowserViewHost,
+  type CreateViewOptions,
   ElementNotFoundError,
   type ScrollOptions,
   type ViewBrowserState,
@@ -25,8 +26,29 @@ export interface ContentBounds {
 export interface ElectronBrowserViewHostOptions {
   /** Returns the window that hosts the browser content views. */
   getWindow: () => BrowserWindow | null;
-  /** Preload script applied to all web-content views (safe message bridge). */
+  /** Preload script applied to ordinary web-content views (safe message bridge). */
   preloadPath?: string;
+  /**
+   * Preload script applied to PLUGIN views. Exposes the permission-gated
+   * `window.meithPlugin` bridge instead of the plain web-content bridge.
+   */
+  pluginPreloadPath?: string;
+  /**
+   * Called when a plugin view's webContents is created, so the main process can
+   * authoritatively map that webContents id to the plugin. Fired before the
+   * page's preload requests its identity.
+   */
+  onPluginWebContents?: (info: {
+    tabId: string;
+    pluginId: string;
+    webContentsId: number;
+  }) => void;
+  /**
+   * Called when a plugin view's webContents loses plugin authority: it was
+   * destroyed, or it navigated away from the plugin's entry origin. The main
+   * process revokes the webContents -> plugin mapping in response.
+   */
+  onPluginWebContentsGone?: (info: { tabId: string; webContentsId: number }) => void;
   /**
    * Fallback content region used until the renderer reports a measured
    * viewport via `setContentBounds()`. Optional; defaults to filling the
@@ -48,6 +70,8 @@ interface ManagedView {
   netByRequestId: Map<string, NetworkLogEntry>;
   /** Element ids assigned during the last `getBrowserState` extraction. */
   knownElementIds: Set<string>;
+  /** For plugin views: the plugin id and the origin its authority is bound to. */
+  plugin?: { pluginId: string; origin: string; webContentsId: number; live: boolean };
 }
 
 /**
@@ -80,17 +104,25 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
     this.layout();
   }
 
-  createView(tabId: string, url: string): void {
+  createView(tabId: string, url: string, opts?: CreateViewOptions): void {
     if (this.views.has(tabId)) {
       this.loadURL(tabId, url);
       return;
     }
+    const isPlugin = opts?.mode === "plugin" && !!opts.pluginId;
     const view = new WebContentsView({
       webPreferences: {
+        // Plugin tabs keep the SAME hardened sandbox as web tabs; the only
+        // difference is which preload (and thus which bridge) is attached.
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
-        preload: this.options.preloadPath,
+        preload: isPlugin ? this.options.pluginPreloadPath : this.options.preloadPath,
+        // A hint for the preload only; the main process never trusts these for
+        // identity/grants — it maps by webContents id below.
+        additionalArguments: isPlugin
+          ? [`--meith-plugin-id=${opts!.pluginId}`, `--meith-tab-id=${tabId}`]
+          : undefined,
       },
     });
     const managed: ManagedView = {
@@ -102,10 +134,35 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
       netByRequestId: new Map(),
       knownElementIds: new Set(),
     };
+    if (isPlugin) {
+      const webContentsId = view.webContents.id;
+      managed.plugin = {
+        pluginId: opts!.pluginId!,
+        origin: originOf(url),
+        webContentsId,
+        live: true,
+      };
+      // Map this webContents to the plugin BEFORE the preload requests identity.
+      this.options.onPluginWebContents?.({
+        tabId,
+        pluginId: opts!.pluginId!,
+        webContentsId,
+      });
+    }
     this.views.set(tabId, managed);
     this.wireEvents(tabId, managed);
     this.attachDebugger(tabId, managed);
     void view.webContents.loadURL(url).catch(() => this.markFailed(tabId));
+  }
+
+  /** Revoke a plugin view's authority (idempotent). */
+  private revokePluginAuthority(tabId: string, managed: ManagedView): void {
+    if (!managed.plugin || !managed.plugin.live) return;
+    managed.plugin.live = false;
+    this.options.onPluginWebContentsGone?.({
+      tabId,
+      webContentsId: managed.plugin.webContentsId,
+    });
   }
 
   loadURL(tabId: string, url: string): void {
@@ -120,6 +177,8 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
   destroyView(tabId: string): void {
     const managed = this.views.get(tabId);
     if (!managed) return;
+    // Drop any plugin authority bound to this view before tearing it down.
+    this.revokePluginAuthority(tabId, managed);
     const win = this.options.getWindow();
     win?.contentView.removeChildView(managed.view);
     // Detach the debugger before closing so Electron doesn't warn.
@@ -316,6 +375,16 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
     };
     wc.on("did-start-loading", () => sync({ loadState: "loading" }));
     wc.on("did-stop-loading", () => sync({ loadState: "complete" }));
+    // Plugin authority is bound to the entry origin. If the view navigates to a
+    // different origin, revoke it so the plugin bridge can't follow the page
+    // off-origin. (The preload only attaches on initial load, but revoking keeps
+    // the main-process mapping accurate for any IPC the old context may attempt.)
+    wc.on("did-navigate", (_e, navUrl) => {
+      if (managed.plugin?.live && originOf(navUrl) !== managed.plugin.origin) {
+        this.revokePluginAuthority(tabId, managed);
+      }
+    });
+    wc.on("render-process-gone", () => this.revokePluginAuthority(tabId, managed));
     wc.on("did-fail-load", (_e, code) => {
       // Ignore aborts (-3) caused by normal in-page navigation.
       if (code !== -3) sync({ loadState: "failed" });
@@ -462,6 +531,15 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
 
   private emitNav(tabId: string, managed: ManagedView): void {
     this.emit("nav", tabId, { ...managed.nav });
+  }
+}
+
+/** Best-effort origin of a URL; falls back to the trimmed string. */
+function originOf(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url.replace(/\/+$/, "");
   }
 }
 

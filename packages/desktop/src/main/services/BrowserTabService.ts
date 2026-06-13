@@ -119,7 +119,10 @@ export class BrowserTabService {
    */
   private async ensureView(tab: BrowserTab): Promise<void> {
     if (this.host.getNavState(tab.id) === null) {
-      await this.host.createView(tab.id, tab.url);
+      await this.host.createView(tab.id, tab.url, {
+        mode: tab.mode,
+        pluginId: tab.pluginId,
+      });
     }
   }
 
@@ -159,8 +162,13 @@ export class BrowserTabService {
     title?: string;
     spaceId?: string;
     cwd?: string;
+    /** Tab mode. `plugin` tabs host a meith plugin and get the plugin preload. */
+    mode?: "web" | "plugin";
+    /** For `plugin` tabs: the installed plugin id this tab hosts. */
+    pluginId?: string;
   }): Promise<BrowserTab> {
     const spaceId = input.spaceId ?? this.activeSpaceId();
+    const mode = input.mode ?? "web";
     const tab: BrowserTab = {
       id: newBrowserTabId(),
       spaceId,
@@ -173,6 +181,8 @@ export class BrowserTabService {
       canGoBack: false,
       canGoForward: false,
       ownerId: null,
+      mode,
+      pluginId: mode === "plugin" ? input.pluginId : undefined,
     };
     this.appState.update((draft) => {
       for (const t of draft.browserTabs) {
@@ -181,9 +191,15 @@ export class BrowserTabService {
       draft.browserTabs.push(tab);
     }, "open_browser_tab");
 
-    await this.host.createView(tab.id, tab.url);
+    await this.host.createView(tab.id, tab.url, {
+      mode,
+      pluginId: tab.pluginId,
+    });
     await this.host.focusView(tab.id);
-    this.logger.info("BrowserTabs", `opened browser tab ${tab.id} -> ${tab.url}`);
+    this.logger.info(
+      "BrowserTabs",
+      `opened ${mode} tab ${tab.id} -> ${tab.url}${tab.pluginId ? ` (plugin ${tab.pluginId})` : ""}`,
+    );
     return this.getTab(tab.id) ?? tab;
   }
 

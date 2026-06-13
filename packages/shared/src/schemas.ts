@@ -31,6 +31,14 @@ export const BrowserTabSchema = z.object({
    * tab; concurrent control attempts by other owners are rejected.
    */
   ownerId: z.string().nullable().default(null),
+  /**
+   * Tab mode. `web` is a normal browser tab (default). `plugin` tabs host a
+   * meith plugin web app and receive the privileged (but permission-gated)
+   * `window.meithPlugin` preload bridge instead of the standard web preload.
+   */
+  mode: z.enum(["web", "plugin"]).default("web"),
+  /** For `plugin` tabs: the installed plugin id this tab hosts. */
+  pluginId: z.string().optional(),
 });
 export type BrowserTab = z.infer<typeof BrowserTabSchema>;
 
@@ -228,16 +236,9 @@ export const WorkspaceFileEventSchema = z.object({
 });
 export type WorkspaceFileEvent = z.infer<typeof WorkspaceFileEventSchema>;
 
-export const AppStateSchema = z.object({
-  version: z.literal(3),
-  spaces: z.array(SpaceSchema),
-  activeSpaceId: z.string().nullable(),
-  browserTabs: z.array(BrowserTabSchema),
-  workspaceTabs: z.array(WorkspaceTabSchema),
-  projects: z.array(ProjectSchema).default([]),
-  workspaceFileEvents: z.array(WorkspaceFileEventSchema).default([]),
-});
-export type AppState = z.infer<typeof AppStateSchema>;
+// NOTE: AppStateSchema and the Plugins (Phase 11) schemas are defined near the
+// end of this file, after ToolCapabilitySchema (which the plugin grant schemas
+// reference) has been declared.
 
 /** The on-disk `~/.meith/config.json` shape written by the desktop app. */
 export const MeithConfigSchema = z.object({
@@ -726,3 +727,106 @@ export function defaultAgentConfig(): AgentConfig {
     autoAccept: false,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Plugins (Phase 11): third-party web apps that run inside a controlled
+// "plugin" browser tab and reach the app only through a narrow, permission-
+// gated `window.meithPlugin` preload bridge. Every privileged action a plugin
+// performs is routed through the central ToolRegistry in the main process.
+//
+// Security model: a manifest declares the capabilities + API namespaces a
+// plugin REQUESTS. Those requests are stored separately from what the user has
+// APPROVED. Runtime enforcement reads ONLY the approved grants — never the
+// requested ones. See PluginHostService for enforcement. (Defined here, after
+// ToolCapabilitySchema, which the grant schemas reference.)
+// ---------------------------------------------------------------------------
+
+/**
+ * High-level API namespaces a plugin can be granted on the `window.meithPlugin`
+ * bridge. `tools` lets the plugin call registry tools (still gated by the
+ * granted capabilities), `storage` exposes read-only tab listings, `cdp` allows
+ * raw DevTools commands against tabs it owns, and `ai` enables `ai.streamText`.
+ */
+export const PluginApiNameSchema = z.enum(["tools", "storage", "cdp", "ai"]);
+export type PluginApiName = z.infer<typeof PluginApiNameSchema>;
+
+/** A reverse-DNS-ish plugin id, e.g. `com.example.hello`. */
+export const PluginIdSchema = z
+  .string()
+  .min(3)
+  .regex(/^[a-z0-9]+(?:[._-][a-z0-9]+)+$/i, "must be a dotted identifier like com.example.plugin");
+
+/**
+ * The plugin's manifest, declared either as the `meith` field of its
+ * package.json or as a standalone `plugin.json`. Declares identity and the
+ * permissions/APIs the plugin REQUESTS (not what is granted).
+ */
+export const PluginManifestSchema = z.object({
+  /** Marks this as a meith plugin manifest (vs. a normal app project). */
+  kind: z.literal("plugin"),
+  id: PluginIdSchema,
+  name: z.string().min(1),
+  version: z.string().min(1).default("0.0.0"),
+  /** Optional human-readable description shown in the permissions review UI. */
+  description: z.string().optional(),
+  /**
+   * Entry point for the plugin web app. For a `local-dir` source this is a path
+   * RELATIVE to the plugin root (validated to stay inside the root). For a
+   * `dev-url` source the entry comes from the source URL instead.
+   */
+  entry: z.string().default("index.html"),
+  /** Tool capabilities the plugin requests (basis for the approval prompt). */
+  permissions: z.array(ToolCapabilitySchema).default([]),
+  /** API namespaces the plugin requests on the bridge. */
+  requestedApis: z.array(PluginApiNameSchema).default([]),
+});
+export type PluginManifest = z.infer<typeof PluginManifestSchema>;
+
+/** Where an installed plugin's code is loaded from. */
+export const PluginSourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("local-dir"), path: z.string().min(1) }),
+  z.object({ kind: z.literal("dev-url"), url: z.string().url() }),
+]);
+export type PluginSource = z.infer<typeof PluginSourceSchema>;
+
+/** A set of capabilities + API namespaces (used for both requested & approved). */
+export const PluginGrantsSchema = z.object({
+  capabilities: z.array(ToolCapabilitySchema).default([]),
+  apis: z.array(PluginApiNameSchema).default([]),
+});
+export type PluginGrants = z.infer<typeof PluginGrantsSchema>;
+
+/**
+ * A plugin installed into the app. `requestedGrants` mirror the manifest and
+ * are informational; `approvedGrants` are what the user explicitly allowed and
+ * are the ONLY thing consulted for runtime enforcement. A plugin cannot be
+ * `enabled` until its grants have been approved.
+ */
+export const InstalledPluginSchema = z.object({
+  id: PluginIdSchema,
+  name: z.string(),
+  version: z.string().default("0.0.0"),
+  source: PluginSourceSchema,
+  manifest: PluginManifestSchema,
+  /** What the manifest asked for (never used for enforcement). */
+  requestedGrants: PluginGrantsSchema,
+  /** What the user approved (the sole basis for enforcement). */
+  approvedGrants: PluginGrantsSchema.default({ capabilities: [], apis: [] }),
+  /** Only true once grants are approved; gates loading/opening the plugin. */
+  enabled: z.boolean().default(false),
+  installedAt: z.number(),
+});
+export type InstalledPlugin = z.infer<typeof InstalledPluginSchema>;
+
+export const AppStateSchema = z.object({
+  version: z.literal(3),
+  spaces: z.array(SpaceSchema),
+  activeSpaceId: z.string().nullable(),
+  browserTabs: z.array(BrowserTabSchema),
+  workspaceTabs: z.array(WorkspaceTabSchema),
+  projects: z.array(ProjectSchema).default([]),
+  workspaceFileEvents: z.array(WorkspaceFileEventSchema).default([]),
+  /** Installed plugins (Phase 11). */
+  plugins: z.array(InstalledPluginSchema).default([]),
+});
+export type AppState = z.infer<typeof AppStateSchema>;
