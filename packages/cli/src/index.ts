@@ -52,6 +52,18 @@ async function main(): Promise<void> {
     return;
   }
 
+  // `--timeout` must be a positive integer of milliseconds. The protocol can't
+  // express "no timeout" (it requires a positive value), so we reject 0/negative
+  // rather than silently disabling only the CLI-side timer while the runtime
+  // keeps its own default — which would be an inconsistent contract.
+  if (
+    timeoutMs !== undefined &&
+    (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || !Number.isInteger(timeoutMs))
+  ) {
+    fail("--timeout must be a positive integer (milliseconds).");
+    return;
+  }
+
   // Resolve which runtime we'd talk to (instance-aware). Only throws when an
   // explicit --instance matches nothing; commands that don't need a runtime
   // still work because the fallback socket path is always returned.
@@ -86,7 +98,12 @@ async function main(): Promise<void> {
   // Launch intents: `meith`, `meith .`, `meith <path>`, `meith new [name]`.
   const intent = detectLaunchIntent(parsed, isKnownCommand);
   if (intent) {
-    await runLaunch(intent, { timeoutMs, mode });
+    await runLaunch(intent, {
+      timeoutMs,
+      mode,
+      socketPath,
+      explicitTarget: socket !== undefined || instance !== undefined,
+    });
     return;
   }
 

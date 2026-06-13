@@ -6,7 +6,7 @@ import type { InstanceRecord } from "@meith/shared";
 import type { ParsedArgs } from "./args.js";
 import { ToolClient } from "./client.js";
 import { listLiveInstances } from "./instances.js";
-import { type OutputMode, info, printResult } from "./output.js";
+import { type OutputMode, fail, info, printResult } from "./output.js";
 
 /** What the user asked the launcher to do. */
 export type LaunchIntent =
@@ -17,6 +17,18 @@ export type LaunchIntent =
 export interface LaunchOptions {
   timeoutMs?: number;
   mode: OutputMode;
+  /**
+   * Resolved socket path of the runtime the user is targeting (instance-aware).
+   * When {@link explicitTarget} is set, this is honored before any newest-live
+   * fallback or spawning a new app.
+   */
+  socketPath?: string;
+  /**
+   * True when the user explicitly selected a target via `--socket`/`--instance`.
+   * In that case we route to {@link socketPath} and never silently open/create
+   * in a different running app.
+   */
+  explicitTarget?: boolean;
 }
 
 /**
@@ -50,6 +62,14 @@ export async function runLaunch(
   intent: LaunchIntent,
   opts: LaunchOptions,
 ): Promise<void> {
+  // An explicit `--socket`/`--instance` target wins: route straight to it and
+  // never fall back to the newest instance or spawn a new app. This prevents
+  // `meith --instance X .` from opening in the wrong running app.
+  if (opts.explicitTarget && opts.socketPath) {
+    await routeIntent(intent, opts.socketPath, opts, /* alreadyRunning */ true);
+    return;
+  }
+
   const live = listLiveInstances();
 
   if (live.length > 0) {
@@ -107,6 +127,8 @@ async function routeIntent(
       });
       printResult(result, opts.mode);
     }
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err), socketPath);
   } finally {
     client.close();
   }

@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { ParsedArgs } from "./args.js";
@@ -11,14 +11,15 @@ import { type OutputMode, out } from "./output.js";
  */
 export function runSetup(parsed: ParsedArgs, mode: OutputMode): void {
   const binDir = resolveBinDir();
-  const exportLine = `export PATH="${binDir}:$PATH"`;
+  const { rc, exportLine } = shellTarget(binDir);
 
   if (parsed.flags.write === true) {
-    const rc = shellRcPath();
     if (rcContains(rc, binDir)) {
       if (!mode.quiet) out(`Already configured in ${rc}.`);
       return;
     }
+    // Ensure the parent directory exists (notably `~/.config/fish`).
+    mkdirSync(dirname(rc), { recursive: true });
     appendFileSync(rc, `\n# Added by "meith setup"\n${exportLine}\n`, "utf8");
     out(`Added meith to PATH in ${rc}.`);
     out("Restart your shell or run:");
@@ -30,7 +31,7 @@ export function runSetup(parsed: ParsedArgs, mode: OutputMode): void {
   out("");
   out(`  ${exportLine}`);
   out("");
-  out(`Add that line to ${shellRcPath()}, or re-run with --write to do it for you:`);
+  out(`Add that line to ${rc}, or re-run with --write to do it for you:`);
   out("  meith setup --write");
 }
 
@@ -41,13 +42,23 @@ function resolveBinDir(): string {
   return process.cwd();
 }
 
-/** Best-effort shell rc path based on the user's shell. */
-function shellRcPath(): string {
+/**
+ * Best-effort shell rc path and the syntactically-correct line to add `binDir`
+ * to PATH for that shell. fish uses `fish_add_path` (idempotent) rather than the
+ * POSIX `export PATH=...` form, which it cannot parse.
+ */
+function shellTarget(binDir: string): { rc: string; exportLine: string } {
   const shell = process.env.SHELL ?? "";
-  if (shell.includes("zsh")) return join(homedir(), ".zshrc");
-  if (shell.includes("bash")) return join(homedir(), ".bashrc");
-  if (shell.includes("fish")) return join(homedir(), ".config", "fish", "config.fish");
-  return join(homedir(), ".profile");
+  if (shell.includes("fish")) {
+    return {
+      rc: join(homedir(), ".config", "fish", "config.fish"),
+      exportLine: `fish_add_path ${binDir}`,
+    };
+  }
+  const exportLine = `export PATH="${binDir}:$PATH"`;
+  if (shell.includes("zsh")) return { rc: join(homedir(), ".zshrc"), exportLine };
+  if (shell.includes("bash")) return { rc: join(homedir(), ".bashrc"), exportLine };
+  return { rc: join(homedir(), ".profile"), exportLine };
 }
 
 /** True if the rc file already references the bin directory. */
