@@ -139,9 +139,16 @@ export class BrowserTabService {
     if (active) await this.host.focusView(active.id);
   }
 
-  listBrowserTabs(spaceId?: string): BrowserTab[] {
+  /**
+   * List browser tabs. Plugin-mode tabs are EXCLUDED by default so that agents
+   * and plugins don't see (or try to automate) the plugin host surfaces of
+   * other plugins. Pass `includePlugins: true` for diagnostics/UI that needs
+   * the full set.
+   */
+  listBrowserTabs(spaceId?: string, opts?: { includePlugins?: boolean }): BrowserTab[] {
     const tabs = this.appState.getState().browserTabs;
-    return spaceId ? tabs.filter((t) => t.spaceId === spaceId) : tabs;
+    const inSpace = spaceId ? tabs.filter((t) => t.spaceId === spaceId) : tabs;
+    return opts?.includePlugins ? inSpace : inSpace.filter((t) => t.mode !== "plugin");
   }
 
   listWorkspaceTabs(spaceId?: string): WorkspaceTab[] {

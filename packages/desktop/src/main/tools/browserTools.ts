@@ -68,13 +68,20 @@ function controlFor(ctx: { sessionId?: string; caller: string }): ControlContext
 export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
   const getTabs = defineTool({
     name: "get_tabs",
-    description: "List browser tabs and workspace tabs, optionally filtered by space.",
+    description:
+      "List browser tabs and workspace tabs, optionally filtered by space. Plugin host tabs are hidden unless includePlugins is set.",
     capabilities: ["read-only"],
     inputSchema: z.object({
       spaceId: z.string().optional().describe("Filter to a single space id."),
+      includePlugins: z
+        .boolean()
+        .optional()
+        .describe("Include plugin host tabs (hidden by default). For diagnostics."),
     }),
     execute: (_ctx, input) => ({
-      browserTabs: deps.browserTabs.listBrowserTabs(input.spaceId),
+      browserTabs: deps.browserTabs.listBrowserTabs(input.spaceId, {
+        includePlugins: input.includePlugins,
+      }),
       workspaceTabs: deps.browserTabs.listWorkspaceTabs(input.spaceId),
     }),
   });

@@ -87,6 +87,17 @@ app.whenReady().then(async () => {
   viewHost = new ElectronBrowserViewHost({
     getWindow: () => mainWindow,
     preloadPath: join(__dirname, "../preload/webContent.cjs"),
+    // Plugin tabs (Phase 11) get the permission-gated plugin bridge instead.
+    pluginPreloadPath: join(__dirname, "../preload/plugin.cjs"),
+    // The host reports plugin webContents lifecycle so the plugin service can
+    // AUTHORITATIVELY map (and revoke) webContents -> plugin identity. The
+    // plugin page never supplies its own identity.
+    onPluginWebContents: ({ tabId, pluginId, webContentsId }) => {
+      container?.plugins.registerPluginTab(webContentsId, pluginId, tabId);
+    },
+    onPluginWebContentsGone: ({ webContentsId }) => {
+      container?.plugins.revokeWebContents(webContentsId);
+    },
     getContentBounds: () => {
       const [width, height] = mainWindow?.getContentSize() ?? [1280, 820];
       return {
