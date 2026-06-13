@@ -247,6 +247,31 @@ export const MeithConfigSchema = z.object({
 });
 export type MeithConfig = z.infer<typeof MeithConfigSchema>;
 
+/**
+ * A per-running-instance registration file written under
+ * `~/.meith/instances/<pid>.json`. Lets the CLI discover and target one of
+ * several concurrently running runtimes, list them, and reap stale entries
+ * whose process is gone. The most-recently-started live instance is the
+ * default target when none is specified.
+ */
+export const InstanceRecordSchema = z.object({
+  /** OS process id of the runtime that owns this instance. */
+  pid: z.number().int().positive(),
+  /** Absolute path to this instance's tool socket. */
+  socketPath: z.string(),
+  /** Per-user data directory backing this instance. */
+  userDataPath: z.string(),
+  /** App version string (e.g. "0.1.0"), best-effort. */
+  appVersion: z.string().default("0.0.0"),
+  /** Epoch ms when the instance started. */
+  startedAt: z.number(),
+  /** Working directory the runtime was launched from, when known. */
+  cwd: z.string().optional(),
+  /** Human-friendly label (defaults to the userData dir basename). */
+  label: z.string().optional(),
+});
+export type InstanceRecord = z.infer<typeof InstanceRecordSchema>;
+
 /** A structured log line shared by services, CLI, and the renderer log panel. */
 export const LogEntrySchema = z.object({
   id: z.string(),

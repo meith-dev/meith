@@ -81,6 +81,12 @@ export function coerce(value: string | boolean | string[]): unknown {
 /**
  * Build a tool params object from parsed flags + positionals, using a
  * declarative mapping of positional slots to param names.
+ *
+ * Beyond plain flags, two JSON conveniences are supported for nested/typed
+ * params that the flat `--key value` form can't express:
+ *   - `--arg-json '{"a":1}'` merges a JSON object into the params.
+ *   - `--<key>-json '<json>'` parses a single flag value as JSON (e.g.
+ *     `--params-json '{"x":1}'` sets `params.params = { x: 1 }`).
  */
 export function buildParams(
   parsed: ParsedArgs,
@@ -96,7 +102,46 @@ export function buildParams(
   });
   for (const [key, value] of Object.entries(parsed.flags)) {
     if (reserved.has(key)) continue;
+    if (key === "arg-json") {
+      const merged = parseJsonFlag(value);
+      if (merged && typeof merged === "object" && !Array.isArray(merged)) {
+        Object.assign(params, merged);
+      } else {
+        throw new Error("--arg-json must be a JSON object");
+      }
+      continue;
+    }
+    if (key.endsWith("-json")) {
+      params[key.slice(0, -"-json".length)] = parseJsonFlag(value);
+      continue;
+    }
     params[key] = coerce(value);
   }
   return params;
+}
+
+/** Parse a flag value (or the last of repeated values) as JSON. */
+function parseJsonFlag(value: string | boolean | string[]): unknown {
+  const raw = Array.isArray(value) ? value[value.length - 1] : value;
+  if (typeof raw !== "string") return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error(`Invalid JSON in flag value: ${raw}`);
+  }
+}
+
+/** Read and parse a JSON object from stdin (for `--stdin`). Empty input → {}. */
+export async function readStdinJson(): Promise<Record<string, unknown>> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.from(chunk));
+  }
+  const text = Buffer.concat(chunks).toString("utf8").trim();
+  if (!text) return {};
+  const parsed = JSON.parse(text);
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    return parsed as Record<string, unknown>;
+  }
+  throw new Error("Expected a JSON object on stdin");
 }

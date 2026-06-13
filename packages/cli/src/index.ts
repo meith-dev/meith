@@ -1,69 +1,138 @@
 #!/usr/bin/env node
-import type { ToolResult } from "@meith/shared";
-import { type ParsedArgs, buildParams, parseArgs } from "./args.js";
-import { ToolClient, resolveSocketPath } from "./client.js";
-import { commands, listCommands } from "./commands.js";
+import { type ParsedArgs, buildParams, parseArgs, readStdinJson } from "./args.js";
+import { runApp } from "./app.js";
+import { ToolClient } from "./client.js";
+import { commands } from "./commands.js";
+import { cliVersion, commandHelp, toolHelp, topLevelHelp } from "./help.js";
+import { detectLaunchIntent, runLaunch } from "./launch.js";
+import { type OutputMode, fail, out, printArtifact, printResult } from "./output.js";
+import { resolveTarget } from "./instances.js";
+import { runSetup } from "./setup.js";
 
-const HELP = `meith — control the meith desktop runtime from your terminal
+/** Commands handled by the CLI itself rather than the mapped tool table. */
+const BUILTINS = new Set(["tools", "call", "devlogs", "app", "setup", "help"]);
 
-Usage:
-  meith <command> [args] [--flags]
-  meith call <toolName> [--key value ...]
-  meith tools
+/** Flags the CLI consumes itself; never forwarded as tool params. */
+const RESERVED_FLAGS = [
+  "socket",
+  "instance",
+  "json",
+  "quiet",
+  "verbose",
+  "v",
+  "timeout",
+  "help",
+  "h",
+  "stdin",
+] as const;
 
-Commands:
-${listCommands()}
-
-Built-in:
-  tools             List every tool the runtime exposes
-  call <toolName>   Invoke any registered tool by its exact name
-  devlogs           Stream a dev server's logs (attach by --cwd or --id)
-
-Options:
-  --socket <path>   Override the runtime socket path
-  --timeout <ms>    Per-call timeout override
-  --json            Print the raw ToolResult envelope as JSON
-  -v, --verbose     Print streamed tool log events
-  -h, --help        Show this help
-`;
+function isKnownCommand(name: string): boolean {
+  return name in commands || BUILTINS.has(name);
+}
 
 async function main(): Promise<void> {
   const parsed = parseArgs(process.argv.slice(2));
 
-  if (!parsed.command || parsed.flags.help === true || parsed.flags.h === true) {
-    process.stdout.write(`${HELP}\n`);
+  const wantsHelp = parsed.flags.help === true || parsed.flags.h === true;
+  const wantsVersion = parsed.flags.version === true || parsed.flags.V === true;
+  const mode: OutputMode = {
+    json: parsed.flags.json === true,
+    quiet: parsed.flags.quiet === true,
+  };
+  const verbose = parsed.flags.verbose === true || parsed.flags.v === true;
+  const socket = typeof parsed.flags.socket === "string" ? parsed.flags.socket : undefined;
+  const instance =
+    typeof parsed.flags.instance === "string" ? parsed.flags.instance : undefined;
+  const timeoutMs =
+    typeof parsed.flags.timeout === "string" ? Number(parsed.flags.timeout) : undefined;
+
+  if (wantsVersion) {
+    out(cliVersion());
     return;
   }
 
-  const socketPath =
-    typeof parsed.flags.socket === "string" ? parsed.flags.socket : undefined;
-  const asJson = parsed.flags.json === true;
-  const verbose = parsed.flags.verbose === true || parsed.flags.v === true;
-  const timeoutMs =
-    typeof parsed.flags.timeout === "string" ? Number(parsed.flags.timeout) : undefined;
-  // Flags consumed by the CLI itself, never forwarded as tool params.
-  const RESERVED_FLAGS = ["socket", "json", "verbose", "v", "timeout"] as const;
+  // Resolve which runtime we'd talk to (instance-aware). Only throws when an
+  // explicit --instance matches nothing; commands that don't need a runtime
+  // still work because the fallback socket path is always returned.
+  let socketPath: string;
+  try {
+    socketPath = resolveTarget({ socket, instance }).socketPath;
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err));
+    return;
+  }
 
-  const client = new ToolClient({ socketPath });
+  // Help: top-level, command-specific (static + dynamic), or tool-specific.
+  if (parsed.command === "help") {
+    out(topLevelHelp());
+    return;
+  }
+  if (wantsHelp) {
+    if (!parsed.command) {
+      out(topLevelHelp());
+      return;
+    }
+    if (parsed.command === "call") {
+      const tool = parsed.positionals[0];
+      if (tool) await toolHelp(tool, socketPath, timeoutMs);
+      else await commandHelp("call", socketPath, timeoutMs);
+      return;
+    }
+    await commandHelp(parsed.command, socketPath, timeoutMs);
+    return;
+  }
+
+  // Launch intents: `meith`, `meith .`, `meith <path>`, `meith new [name]`.
+  const intent = detectLaunchIntent(parsed, isKnownCommand);
+  if (intent) {
+    await runLaunch(intent, { timeoutMs, mode });
+    return;
+  }
+
+  // CLI-only namespaces that may not need a live runtime.
+  if (parsed.command === "app") {
+    await runApp(parsed, { socketPath, timeoutMs, mode });
+    return;
+  }
+  if (parsed.command === "setup") {
+    runSetup(parsed, mode);
+    return;
+  }
+
+  await runRuntimeCommand(parsed, { socketPath, timeoutMs, mode, verbose });
+}
+
+interface RuntimeOptions {
+  socketPath: string;
+  timeoutMs?: number;
+  mode: OutputMode;
+  verbose: boolean;
+}
+
+/** Connect to the runtime and dispatch tools/devlogs/call/mapped commands. */
+async function runRuntimeCommand(parsed: ParsedArgs, opts: RuntimeOptions): Promise<void> {
+  const { socketPath, timeoutMs, mode, verbose } = opts;
+  const client = new ToolClient({ socketPath, timeoutMs });
   try {
     await client.connect();
 
     if (parsed.command === "tools") {
       const tools = await client.listTools();
-      if (asJson) {
-        process.stdout.write(`${JSON.stringify(tools, null, 2)}\n`);
+      if (mode.json) {
+        out(JSON.stringify(tools, null, 2));
       } else {
-        for (const t of tools) {
-          process.stdout.write(`${t.name}\n    ${t.description}\n`);
-        }
+        for (const t of tools) out(`${t.name}\n    ${t.description}`);
       }
       return;
     }
 
     if (parsed.command === "devlogs") {
-      await runDevlogs(client, parsed, asJson);
+      await runDevlogs(client, parsed, mode);
       return;
     }
+
+    // Optional stdin params object, overridden by explicit flags/positionals.
+    const stdinBase = parsed.flags.stdin === true ? await readStdinJson() : {};
 
     let toolName: string;
     let params: Record<string, unknown>;
@@ -71,19 +140,19 @@ async function main(): Promise<void> {
     if (parsed.command === "call") {
       const name = parsed.positionals.shift();
       if (!name) {
-        fail("Usage: meith call <toolName> [--key value ...]");
+        fail("Usage: meith call <toolName> [--key value ...]", socketPath);
         return;
       }
       toolName = name;
-      params = buildParams(parsed, [], RESERVED_FLAGS);
+      params = { ...stdinBase, ...buildParams(parsed, [], RESERVED_FLAGS) };
     } else {
-      const spec = commands[parsed.command];
+      const spec = parsed.command ? commands[parsed.command] : undefined;
       if (!spec) {
-        fail(`Unknown command "${parsed.command}". Run "meith --help".`);
+        fail(`Unknown command "${parsed.command}". Run "meith --help".`, socketPath);
         return;
       }
       toolName = spec.tool;
-      params = buildParams(parsed, spec.positionals, RESERVED_FLAGS);
+      params = { ...stdinBase, ...buildParams(parsed, spec.positionals, RESERVED_FLAGS) };
       if (parsed.command === "start-dev") {
         const args = params.args ?? parsed.passthrough;
         if (Array.isArray(args) && args.length > 0) params.args = args;
@@ -93,7 +162,7 @@ async function main(): Promise<void> {
     const result = await client.callTool(toolName, params, {
       timeoutMs,
       onEvent: (event) => {
-        if (asJson) return;
+        if (mode.json || mode.quiet) return;
         if (event.kind === "progress") {
           const pct =
             event.fraction != null ? ` ${Math.round(event.fraction * 100)}%` : "";
@@ -105,9 +174,12 @@ async function main(): Promise<void> {
         }
       },
     });
-    printResult(result, asJson);
+
+    // Screenshot commands print just the artifact path in text mode.
+    if (parsed.command === "screenshot") printArtifact(result, mode);
+    else printResult(result, mode);
   } catch (err) {
-    fail(err instanceof Error ? err.message : String(err));
+    fail(err instanceof Error ? err.message : String(err), socketPath);
   } finally {
     client.close();
   }
@@ -118,14 +190,13 @@ async function main(): Promise<void> {
  *
  * Targets are resolved by `--id <devServerId>` or `--cwd <path>` (defaulting to
  * the current working directory). It replays the captured history, then streams
- * new lines as they arrive via the runtime's `attach_process_logs` tool, which
- * emits each line as a `log` event. The call is intentionally open-ended: it
- * runs until the user presses Ctrl+C, which closes the socket and ends it.
+ * new lines via the runtime's `attach_process_logs` tool. The call is
+ * open-ended: it runs until the user presses Ctrl+C, which closes the socket.
  */
 async function runDevlogs(
   client: ToolClient,
   parsed: ParsedArgs,
-  asJson: boolean,
+  mode: OutputMode,
 ): Promise<void> {
   const id = typeof parsed.flags.id === "string" ? parsed.flags.id : undefined;
   const cwd =
@@ -140,9 +211,11 @@ async function runDevlogs(
   if (id) params.devServerId = id;
   if (cwd) params.cwd = cwd;
 
-  process.stderr.write(
-    `attaching to dev server logs (${id ? `id ${id}` : `cwd ${cwd}`})… Ctrl+C to stop\n`,
-  );
+  if (!mode.quiet) {
+    process.stderr.write(
+      `attaching to dev server logs (${id ? `id ${id}` : `cwd ${cwd}`})… Ctrl+C to stop\n`,
+    );
+  }
 
   // Close cleanly on Ctrl+C so the runtime cancels the attach.
   const onSigint = () => {
@@ -156,8 +229,8 @@ async function runDevlogs(
     timeoutMs: 0,
     onEvent: (event) => {
       if (event.kind === "log") {
-        if (asJson) process.stdout.write(`${JSON.stringify(event)}\n`);
-        else process.stdout.write(`${event.message}\n`);
+        if (mode.json) out(JSON.stringify(event));
+        else out(event.message);
       }
     },
   });
@@ -169,43 +242,6 @@ async function runDevlogs(
     );
     process.exitCode = 1;
   }
-}
-
-function printResult(result: ToolResult, asJson: boolean): void {
-  if (asJson) {
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-    if (!result.ok) process.exitCode = 1;
-    return;
-  }
-
-  if (result.diagnostics?.length) {
-    for (const d of result.diagnostics) {
-      process.stderr.write(`  [${d.level}] ${d.message}\n`);
-    }
-  }
-
-  if (!result.ok) {
-    const err = result.error;
-    process.stderr.write(
-      `error (${err?.code ?? "TOOL_FAILED"}): ${err?.message ?? "failed"}\n`,
-    );
-    if (err?.details !== undefined) {
-      process.stderr.write(`${JSON.stringify(err.details, null, 2)}\n`);
-    }
-    process.exitCode = 1;
-    return;
-  }
-
-  const content = result.content;
-  if (content == null) process.stdout.write("ok\n");
-  else if (typeof content === "string") process.stdout.write(`${content}\n`);
-  else process.stdout.write(`${JSON.stringify(content, null, 2)}\n`);
-}
-
-function fail(message: string): void {
-  process.stderr.write(`error: ${message}\n`);
-  process.stderr.write(`socket: ${resolveSocketPath()}\n`);
-  process.exitCode = 1;
 }
 
 void main();

@@ -1,7 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
 import net from "node:net";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import {
   NdjsonParser,
   PROTOCOL_VERSION,
@@ -10,12 +7,8 @@ import {
   type ToolDescriptor,
   encodeMessage,
 } from "@meith/protocol";
-import {
-  MeithConfigSchema,
-  type ToolEvent,
-  type ToolResult,
-  newRequestId,
-} from "@meith/shared";
+import { type ToolEvent, type ToolResult, newRequestId } from "@meith/shared";
+import { resolveTarget } from "./instances.js";
 
 export interface ClientOptions {
   socketPath?: string;
@@ -30,27 +23,12 @@ export interface CallToolOptions {
 }
 
 /**
- * Resolve the runtime socket path. Priority:
- *   1. explicit override (`--socket`)
- *   2. `~/.meith/config.json` written by the desktop/headless bootstrap
- *   3. `$MEITH_USER_DATA/tool.sock` fallback
+ * Resolve the runtime socket path. Delegates to the instance-aware
+ * {@link resolveTarget}, which prefers an explicit override, then the
+ * newest live instance, then the legacy config file.
  */
 export function resolveSocketPath(override?: string): string {
-  if (override) return override;
-
-  const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
-  const configPath = join(home, "config.json");
-  if (existsSync(configPath)) {
-    try {
-      const cfg = MeithConfigSchema.parse(JSON.parse(readFileSync(configPath, "utf8")));
-      return cfg.socketPath;
-    } catch {
-      /* fall through */
-    }
-  }
-
-  const userData = process.env.MEITH_USER_DATA ?? join(home, "userData");
-  return join(userData, "tool.sock");
+  return resolveTarget({ socket: override }).socketPath;
 }
 
 /**
