@@ -123,6 +123,14 @@ app.whenReady().then(async () => {
   container = await bootstrap(app.getPath("userData"), {
     browserViewHost: viewHost,
     ptyHost,
+    appVersion: app.getVersion(),
+    // Capture the main window for `meith app screenshot` / the app_screenshot
+    // tool. Returns the PNG bytes from the live web contents.
+    captureAppWindow: async () => {
+      if (!mainWindow) throw new Error("Main window is not available");
+      const image = await mainWindow.webContents.capturePage();
+      return image.toPNG();
+    },
   });
   registerArtifactProtocol(container.config.userDataPath);
   registerIpcHandlers(container, () => mainWindow);

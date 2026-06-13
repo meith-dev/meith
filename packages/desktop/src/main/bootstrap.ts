@@ -1,8 +1,19 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { MeithConfig } from "@meith/shared";
+import {
+  type InstanceRecord,
+  InstanceRecordSchema,
+  type MeithConfig,
+} from "@meith/shared";
 import { AcpAdapter } from "./agent/adapters/AcpAdapter.js";
 import { MockAdapter } from "./agent/adapters/MockAdapter.js";
 import type { BrowserViewHost } from "./browser/BrowserViewHost.js";
@@ -69,12 +80,70 @@ export interface BootstrapOptions {
   templatesDir?: string;
   /** Override the root directory generated projects are created under. */
   generatedProjectsRoot?: string;
+  /**
+   * App version recorded in this instance's registry file. The Electron main
+   * process passes `app.getVersion()`; headless callers may omit it.
+   */
+  appVersion?: string;
+  /** Friendly label for the instance registry (defaults to userData basename). */
+  instanceLabel?: string;
+  /**
+   * Capture the main application window as a PNG. The Electron main process
+   * passes a `webContents.capturePage()`-backed implementation; headless callers
+   * omit it and the `app_screenshot` tool reports that no window is available.
+   */
+  captureAppWindow?: () => Promise<Buffer>;
 }
 
-/** The `~/.meith` directory and the config file path inside it. */
+/** The `~/.meith` directory and the config + instances paths inside it. */
 export function meithPaths() {
   const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
-  return { home, configPath: join(home, "config.json") };
+  return {
+    home,
+    configPath: join(home, "config.json"),
+    instancesDir: join(home, "instances"),
+  };
+}
+
+/**
+ * Remove instance records whose owning process is no longer alive (or whose
+ * socket file has vanished). Returns the records that are still live. Used at
+ * boot so the registry self-heals after crashes / hard kills.
+ */
+export function cleanupStaleInstances(
+  instancesDir: string,
+  logger?: Logger,
+): InstanceRecord[] {
+  if (!existsSync(instancesDir)) return [];
+  const live: InstanceRecord[] = [];
+  for (const file of readdirSync(instancesDir)) {
+    if (!file.endsWith(".json")) continue;
+    const full = join(instancesDir, file);
+    try {
+      const record = InstanceRecordSchema.parse(JSON.parse(readFileSync(full, "utf8")));
+      if (isProcessAlive(record.pid) && existsSync(record.socketPath)) {
+        live.push(record);
+      } else {
+        rmSync(full, { force: true });
+        logger?.info("Bootstrap", `reaped stale instance ${file}`);
+      }
+    } catch {
+      // Corrupt/unreadable record: drop it.
+      rmSync(full, { force: true });
+    }
+  }
+  return live;
+}
+
+/** True if a process with `pid` exists and we may signal it. */
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    // EPERM means the process exists but is owned by another user.
+    return (err as NodeJS.ErrnoException).code === "EPERM";
+  }
 }
 
 /**
@@ -180,7 +249,12 @@ export async function bootstrap(
   };
   registry.registerAll(createBrowserTools(deps));
   registry.registerAll(createSpaceTools(deps));
-  registry.registerAll(createAppTools(deps));
+  registry.registerAll(
+    createAppTools(deps, {
+      artifacts,
+      captureAppWindow: options.captureAppWindow,
+    }),
+  );
   registry.registerAll(createProcessTools(deps));
   registry.registerAll(createProjectTools(deps));
   registry.registerAll(createFileTools(deps));
@@ -216,6 +290,25 @@ export async function bootstrap(
   const socket = new ToolSocketService(socketPath, registry, logger);
   await socket.start();
 
+  // Instance registry (Phase 10): publish this runtime so the CLI can discover,
+  // list, and target it among several concurrently running instances. Reap any
+  // stale records left behind by crashed/killed instances first.
+  const { instancesDir } = meithPaths();
+  mkdirSync(instancesDir, { recursive: true });
+  cleanupStaleInstances(instancesDir, logger);
+  const instanceFile = join(instancesDir, `${process.pid}.json`);
+  const instanceRecord: InstanceRecord = {
+    pid: process.pid,
+    socketPath,
+    userDataPath,
+    appVersion: options.appVersion ?? "0.0.0",
+    startedAt: Date.now(),
+    cwd: process.cwd(),
+    label: options.instanceLabel ?? basename(userDataPath),
+  };
+  writeFileSync(instanceFile, JSON.stringify(instanceRecord, null, 2), "utf8");
+  logger.info("Bootstrap", `registered instance ${instanceFile}`);
+
   // Recreate live browser views for any tabs restored from persisted state so
   // focus/navigation/screenshots operate on real views after a restart.
   await browserTabs.hydrate();
@@ -229,6 +322,8 @@ export async function bootstrap(
     if (shutdownPromise) return shutdownPromise;
     shutdownPromise = (async () => {
       registry.beginShutdown();
+      // Deregister this instance so the CLI stops offering it as a target.
+      rmSync(instanceFile, { force: true });
       await socket.stop();
       // Tear down agent runs (abort live adapters), the MCP bridge, and flush
       // the session index/config to disk.
