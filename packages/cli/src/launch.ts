@@ -46,7 +46,10 @@ export function detectLaunchIntent(
 }
 
 /** Run a launch intent: route to a live runtime, else spawn the app or guide. */
-export async function runLaunch(intent: LaunchIntent, opts: LaunchOptions): Promise<void> {
+export async function runLaunch(
+  intent: LaunchIntent,
+  opts: LaunchOptions,
+): Promise<void> {
   const live = listLiveInstances();
 
   if (live.length > 0) {
@@ -165,7 +168,8 @@ function printGuidance(intent: LaunchIntent): void {
     "Then re-run:",
   ];
   if (intent.kind === "open") lines.push(`  meith ${intent.path}`);
-  else if (intent.kind === "new") lines.push(`  meith new${intent.name ? ` ${intent.name}` : ""}`);
+  else if (intent.kind === "new")
+    lines.push(`  meith new${intent.name ? ` ${intent.name}` : ""}`);
   else lines.push("  meith");
   process.stderr.write(`${lines.join("\n")}\n`);
   process.exitCode = 1;

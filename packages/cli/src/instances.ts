@@ -1,7 +1,11 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { type InstanceRecord, InstanceRecordSchema, MeithConfigSchema } from "@meith/shared";
+import {
+  type InstanceRecord,
+  InstanceRecordSchema,
+  MeithConfigSchema,
+} from "@meith/shared";
 
 /** The `~/.meith` root, honoring the `MEITH_HOME` override. */
 export function meithHome(): string {
@@ -86,8 +90,7 @@ export function resolveTarget(opts: TargetOptions = {}): ResolvedTarget {
     );
     if (!match) {
       throw new Error(
-        `No live instance matches "${opts.instance}". ` +
-          `Run "meith app list" to see running instances.`,
+        `No live instance matches "${opts.instance}". Run "meith app list" to see running instances.`,
       );
     }
     return { socketPath: match.socketPath, instance: match, source: "instance" };

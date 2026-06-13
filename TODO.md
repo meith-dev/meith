@@ -486,39 +486,39 @@ Acceptance criteria:
 
 The CLI already has a working socket client and command mapping. Extend it into a daily-use interface.
 
-- [ ] Add `meith --version` and ensure it works without connecting to the runtime.
-- [ ] Add `meith --help` that shows built-in commands even if the app is not running.
-- [ ] Add command-specific help:
+- [x] Add `meith --version` and ensure it works without connecting to the runtime.
+- [x] Add `meith --help` that shows built-in commands even if the app is not running.
+- [x] Add command-specific help:
   - `meith open --help`
   - `meith call <tool> --help`
   - generated from tool descriptors when runtime is available
-- [ ] Add app launch commands:
+- [x] Add app launch commands:
   - `meith`
   - `meith .`
   - `meith /path/to/project`
   - `meith new`
-- [ ] Add runtime discovery:
+- [x] Add runtime discovery:
   - support multiple running instances
   - list instances
   - choose instance
   - fallback to config socket
-- [ ] Add `meith app` namespace:
+- [x] Add `meith app` namespace:
   - `meith app list`
   - `meith app kill`
   - `meith app logs`
   - `meith app screenshot`
-- [ ] Add output modes:
+- [x] Add output modes:
   - human readable
   - JSON
   - quiet
   - artifact path only for screenshots
-- [ ] Add better flag parsing:
+- [x] Add better flag parsing:
   - support nested JSON values
   - support `--arg-json`
   - support repeated flags
   - support stdin payloads
-- [ ] Package/install the CLI during desktop startup or installer flow.
-- [ ] Add shell PATH setup guidance, but avoid silently modifying shell rc files unless user opts in.
+- [ ] Package/install the CLI during desktop startup or installer flow. _(Deferred to Phase 13 packaging: launch commands resolve `MEITH_APP_BIN`/packaged paths today and print guidance otherwise.)_
+- [x] Add shell PATH setup guidance, but avoid silently modifying shell rc files unless user opts in. _(`meith setup` prints instructions; only writes to the shell rc with the explicit `--write` opt-in.)_
 
 Acceptance criteria:
 

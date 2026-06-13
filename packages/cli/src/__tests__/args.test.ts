@@ -66,6 +66,35 @@ describe("buildParams", () => {
     const params = buildParams(parsed, commands["start-dev"].positionals);
     expect(params).toEqual({ cwd: "/tmp", command: "node", args: ["-e", "0"] });
   });
+
+  it("merges --arg-json objects into params", () => {
+    const parsed = parseArgs([
+      "call",
+      "tool",
+      "--arg-json",
+      '{"a":1,"b":"x"}',
+      "--c",
+      "2",
+    ]);
+    const params = buildParams(parsed, [], ["socket"]);
+    expect(params).toEqual({ a: 1, b: "x", c: 2 });
+  });
+
+  it("parses --<key>-json as a single nested JSON value", () => {
+    const parsed = parseArgs(["call", "tool", "--payload-json", '{"nested":[1,2]}']);
+    const params = buildParams(parsed, []);
+    expect(params).toEqual({ payload: { nested: [1, 2] } });
+  });
+
+  it("throws on invalid JSON in a -json flag", () => {
+    const parsed = parseArgs(["call", "tool", "--payload-json", "{not json}"]);
+    expect(() => buildParams(parsed, [])).toThrow(/Invalid JSON/);
+  });
+
+  it("throws when --arg-json is not an object", () => {
+    const parsed = parseArgs(["call", "tool", "--arg-json", "[1,2]"]);
+    expect(() => buildParams(parsed, [])).toThrow(/must be a JSON object/);
+  });
 });
 
 describe("command map", () => {

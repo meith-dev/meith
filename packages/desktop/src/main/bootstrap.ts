@@ -120,9 +120,7 @@ export function cleanupStaleInstances(
     if (!file.endsWith(".json")) continue;
     const full = join(instancesDir, file);
     try {
-      const record = InstanceRecordSchema.parse(
-        JSON.parse(readFileSync(full, "utf8")),
-      );
+      const record = InstanceRecordSchema.parse(JSON.parse(readFileSync(full, "utf8")));
       if (isProcessAlive(record.pid) && existsSync(record.socketPath)) {
         live.push(record);
       } else {

@@ -66,7 +66,9 @@ function appList(mode: OutputMode): void {
   if (!mode.quiet) out(`${pad("PID", 8)}${pad("STARTED", 21)}${pad("VERSION", 10)}LABEL`);
   for (const r of live) {
     const started = new Date(r.startedAt).toISOString().replace("T", " ").slice(0, 19);
-    out(`${pad(String(r.pid), 8)}${pad(started, 21)}${pad(r.appVersion, 10)}${r.label ?? ""}`);
+    out(
+      `${pad(String(r.pid), 8)}${pad(started, 21)}${pad(r.appVersion, 10)}${r.label ?? ""}`,
+    );
   }
 }
 
@@ -90,7 +92,9 @@ function appKill(parsed: ParsedArgs, mode: OutputMode): void {
         return;
       }
     } else if (live.length > 1) {
-      fail('Multiple instances running; pass a pid/label or --all. Run "meith app list".');
+      fail(
+        'Multiple instances running; pass a pid/label or --all. Run "meith app list".',
+      );
       return;
     }
   }
@@ -120,13 +124,18 @@ async function appLogs(parsed: ParsedArgs, opts: AppCommandOptions): Promise<voi
   const params: Record<string, unknown> = {};
   if (limit !== undefined && Number.isFinite(limit)) params.limit = limit;
 
-  const client = new ToolClient({ socketPath: opts.socketPath, timeoutMs: opts.timeoutMs });
+  const client = new ToolClient({
+    socketPath: opts.socketPath,
+    timeoutMs: opts.timeoutMs,
+  });
   try {
     await client.connect();
     const result = await client.callTool("app_get_logs", params, {
       timeoutMs: opts.timeoutMs,
     });
     printResult(result, opts.mode);
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err), opts.socketPath);
   } finally {
     client.close();
   }
@@ -134,11 +143,20 @@ async function appLogs(parsed: ParsedArgs, opts: AppCommandOptions): Promise<voi
 
 /** `meith app screenshot` — capture the main window; prints the PNG path. */
 async function appScreenshot(opts: AppCommandOptions): Promise<void> {
-  const client = new ToolClient({ socketPath: opts.socketPath, timeoutMs: opts.timeoutMs });
+  const client = new ToolClient({
+    socketPath: opts.socketPath,
+    timeoutMs: opts.timeoutMs,
+  });
   try {
     await client.connect();
-    const result = await client.callTool("app_screenshot", {}, { timeoutMs: opts.timeoutMs });
+    const result = await client.callTool(
+      "app_screenshot",
+      {},
+      { timeoutMs: opts.timeoutMs },
+    );
     printArtifact(result, opts.mode);
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err), opts.socketPath);
   } finally {
     client.close();
   }

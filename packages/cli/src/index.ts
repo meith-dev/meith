@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-import { type ParsedArgs, buildParams, parseArgs, readStdinJson } from "./args.js";
 import { runApp } from "./app.js";
+import { type ParsedArgs, buildParams, parseArgs, readStdinJson } from "./args.js";
 import { ToolClient } from "./client.js";
 import { commands } from "./commands.js";
 import { cliVersion, commandHelp, toolHelp, topLevelHelp } from "./help.js";
+import { resolveTarget } from "./instances.js";
 import { detectLaunchIntent, runLaunch } from "./launch.js";
 import { type OutputMode, fail, out, printArtifact, printResult } from "./output.js";
-import { resolveTarget } from "./instances.js";
 import { runSetup } from "./setup.js";
 
 /** Commands handled by the CLI itself rather than the mapped tool table. */
@@ -40,7 +40,8 @@ async function main(): Promise<void> {
     quiet: parsed.flags.quiet === true,
   };
   const verbose = parsed.flags.verbose === true || parsed.flags.v === true;
-  const socket = typeof parsed.flags.socket === "string" ? parsed.flags.socket : undefined;
+  const socket =
+    typeof parsed.flags.socket === "string" ? parsed.flags.socket : undefined;
   const instance =
     typeof parsed.flags.instance === "string" ? parsed.flags.instance : undefined;
   const timeoutMs =
@@ -110,7 +111,10 @@ interface RuntimeOptions {
 }
 
 /** Connect to the runtime and dispatch tools/devlogs/call/mapped commands. */
-async function runRuntimeCommand(parsed: ParsedArgs, opts: RuntimeOptions): Promise<void> {
+async function runRuntimeCommand(
+  parsed: ParsedArgs,
+  opts: RuntimeOptions,
+): Promise<void> {
   const { socketPath, timeoutMs, mode, verbose } = opts;
   const client = new ToolClient({ socketPath, timeoutMs });
   try {

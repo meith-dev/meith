@@ -91,7 +91,7 @@ export async function commandHelp(
     printDescriptor(descriptor);
   } else {
     out(`No static help for "${command}".`);
-    out("Start the app and run \"meith call <toolName> --help\" for tool details.");
+    out('Start the app and run "meith call <toolName> --help" for tool details.');
   }
 }
 
@@ -104,7 +104,7 @@ export async function toolHelp(
   const descriptor = await tryDescribe(toolName, socketPath, timeoutMs);
   if (!descriptor) {
     out(`Cannot describe "${toolName}": the runtime is not reachable.`);
-    out("Start the desktop app (or \"pnpm dev:headless\") and try again.");
+    out('Start the desktop app (or "pnpm dev:headless") and try again.');
     process.exitCode = 1;
     return;
   }
