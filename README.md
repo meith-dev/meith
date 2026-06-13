@@ -129,6 +129,6 @@ This is a working local runtime scaffold. The browser automation surface,
 terminal sessions, dev-server lifecycle tools, and process/log inspection tools
 are implemented and tested, including screenshot artifacts and streaming process
 log attachment. `AgentService` exposes the runtime interface for a future
-model-driven loop. See `packages/desktop/prompts/system.md`.
+model-driven loop. See `packages/desktop/src/main/agent/systemPrompt.ts`.
 The protocol layer (versioning, `ToolResult` envelope, capabilities, streaming,
 cancellation) is implemented — see [docs/TOOL_PROTOCOL.md](./docs/TOOL_PROTOCOL.md).

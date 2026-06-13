@@ -258,4 +258,32 @@ describe("file tools", () => {
     rmSync(dataDir, { recursive: true, force: true });
     rmSync(projectDir, { recursive: true, force: true });
   });
+
+  it("confines agent file tools to the session cwd, not caller-supplied cwd", async () => {
+    const { tools, projects, devServers, dataDir, projectDir } = makeTools();
+    const otherDir = mkdtempSync(join(tmpdir(), "meith-other-ws-"));
+    writeFileSync(join(otherDir, "package.json"), JSON.stringify({ name: "other" }));
+    writeFileSync(join(otherDir, "secret.txt"), "not this session");
+    projects.open({ cwd: otherDir });
+
+    let code: string | undefined;
+    try {
+      await tools.workspace_read_file.execute(
+        { cwd: projectDir, caller: "agent" as const },
+        {
+          cwd: otherDir,
+          path: join(otherDir, "secret.txt"),
+          allowOutside: true,
+        },
+      );
+    } catch (err) {
+      code = (err as { code?: string }).code;
+    }
+
+    expect(code).toBe("VALIDATION_ERROR");
+    devServers.stopAll();
+    rmSync(dataDir, { recursive: true, force: true });
+    rmSync(projectDir, { recursive: true, force: true });
+    rmSync(otherDir, { recursive: true, force: true });
+  });
 });

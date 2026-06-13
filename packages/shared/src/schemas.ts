@@ -444,3 +444,260 @@ export const ToolResultSchema = z.object({
   diagnostics: z.array(ToolDiagnosticSchema).optional(),
   error: ToolErrorInfoSchema.optional(),
 });
+
+// ---------------------------------------------------------------------------
+// Agent runtime (Phase 9): sessions, transcript messages, tool calls,
+// permission requests/decisions, usage, streamed chunks, and config.
+//
+// These are the serializable wire/persistence shapes shared by the main
+// process (AgentService + AgentStore), the renderer chat UI, and the CLI. The
+// non-serializable runtime interfaces (AgentAdapter, AgentHostContext) live in
+// the desktop package since they carry functions.
+// ---------------------------------------------------------------------------
+
+export const AgentRoleSchema = z.enum(["system", "user", "assistant", "tool"]);
+export type AgentRole = z.infer<typeof AgentRoleSchema>;
+
+/** Lifecycle of a single tool call the agent issues during a turn. */
+export const AgentToolCallStatusSchema = z.enum([
+  "pending",
+  "awaiting_approval",
+  "running",
+  "ok",
+  "error",
+  "denied",
+  "cancelled",
+]);
+export type AgentToolCallStatus = z.infer<typeof AgentToolCallStatusSchema>;
+
+export const AgentToolCallSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  args: z.record(z.unknown()).default({}),
+  status: AgentToolCallStatusSchema.default("pending"),
+  /** Structured tool result once the call resolves. */
+  result: ToolResultSchema.optional(),
+  /** Human-readable error when the call failed before producing a result. */
+  error: z.string().optional(),
+  /** The capability that classified this call for permission gating. */
+  capability: ToolCapabilitySchema.optional(),
+  /** Assistant content length when the call was issued; used for inline transcript rendering. */
+  contentOffset: z.number().nonnegative().optional(),
+  startedAt: z.number(),
+  endedAt: z.number().optional(),
+});
+export type AgentToolCall = z.infer<typeof AgentToolCallSchema>;
+
+/** Best-effort token accounting reported by an adapter. */
+export const AgentUsageSchema = z.object({
+  inputTokens: z.number().optional(),
+  outputTokens: z.number().optional(),
+  totalTokens: z.number().optional(),
+});
+export type AgentUsage = z.infer<typeof AgentUsageSchema>;
+
+export const AgentTextSegmentSchema = z.object({
+  start: z.number().nonnegative(),
+  end: z.number().nonnegative(),
+  text: z.string(),
+});
+export type AgentTextSegment = z.infer<typeof AgentTextSegmentSchema>;
+
+export const AgentMessageSchema = z.object({
+  id: z.string(),
+  role: AgentRoleSchema,
+  content: z.string().default(""),
+  /** Assistant text chunks grouped by chronology around tool calls. */
+  textSegments: z.array(AgentTextSegmentSchema).optional(),
+  /** For tool messages: which tool produced/consumed this. */
+  toolName: z.string().optional(),
+  /** Tool calls issued by an assistant turn. */
+  toolCalls: z.array(AgentToolCallSchema).optional(),
+  usage: AgentUsageSchema.optional(),
+  /** Set when an assistant turn failed. */
+  error: z.string().optional(),
+  createdAt: z.number(),
+});
+export type AgentMessage = z.infer<typeof AgentMessageSchema>;
+
+export const AgentSessionStatusSchema = z.enum(["idle", "running", "error", "cancelled"]);
+export type AgentSessionStatus = z.infer<typeof AgentSessionStatusSchema>;
+
+/**
+ * Session metadata persisted in the index (`agent/sessions.json`). The full
+ * transcript lives in a per-session append-only JSONL file so the index stays
+ * small and cheap to rewrite.
+ */
+export const AgentSessionMetaSchema = z.object({
+  id: z.string(),
+  title: z.string().default("New session"),
+  /** Working directory the agent operates in. */
+  cwd: z.string(),
+  /** The space this chat is associated with (null for an unscoped session). */
+  spaceId: z.string().nullable().default(null),
+  /** Model identifier passed to the adapter, when configured. */
+  model: z.string().optional(),
+  /** Which adapter ran/owns this session (e.g. "mock", "acp"). */
+  adapterId: z.string().default("mock"),
+  status: AgentSessionStatusSchema.default("idle"),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  usage: AgentUsageSchema.optional(),
+});
+export type AgentSessionMeta = z.infer<typeof AgentSessionMetaSchema>;
+
+/** A full session including its transcript (the shape sent to the renderer). */
+export const AgentSessionSchema = AgentSessionMetaSchema.extend({
+  messages: z.array(AgentMessageSchema).default([]),
+});
+export type AgentSession = z.infer<typeof AgentSessionSchema>;
+
+/**
+ * A pending permission request emitted when the agent attempts a gated tool
+ * (writes-files / starts-process / controls-browser / destructive). The
+ * renderer renders an Approve/Deny card and replies with a decision.
+ */
+export const AgentPermissionRequestSchema = z.object({
+  sessionId: z.string(),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  capability: ToolCapabilitySchema,
+  args: z.record(z.unknown()).default({}),
+});
+export type AgentPermissionRequest = z.infer<typeof AgentPermissionRequestSchema>;
+
+export const AgentPermissionDecisionSchema = z.object({
+  sessionId: z.string(),
+  toolCallId: z.string(),
+  decision: z.enum(["allow", "deny"]),
+  /** Remember this decision for the same tool for the rest of the session. */
+  remember: z.boolean().default(false),
+});
+export type AgentPermissionDecision = z.infer<typeof AgentPermissionDecisionSchema>;
+
+/** A streamed event produced while an adapter generates a turn. */
+export const AgentStreamChunkSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("text"), text: z.string() }),
+  z.object({ type: z.literal("tool_call"), toolCall: AgentToolCallSchema }),
+  z.object({
+    type: z.literal("tool_result"),
+    toolCallId: z.string(),
+    result: ToolResultSchema,
+  }),
+  z.object({
+    type: z.literal("permission_request"),
+    request: AgentPermissionRequestSchema,
+  }),
+  z.object({ type: z.literal("usage"), usage: AgentUsageSchema }),
+  z.object({ type: z.literal("done") }),
+  z.object({ type: z.literal("error"), message: z.string() }),
+]);
+export type AgentStreamChunk = z.infer<typeof AgentStreamChunkSchema>;
+
+/** Which concrete adapter backs the runtime. */
+export const AgentAdapterKindSchema = z.enum(["mock", "acp"]);
+export type AgentAdapterKind = z.infer<typeof AgentAdapterKindSchema>;
+
+/**
+ * Which ACP agent backs the subprocess adapter. Built-in presets ship a known
+ * command/args so users don't have to hand-configure popular agents; `custom`
+ * falls back to the user-provided `command`/`args`.
+ */
+export const AcpPresetSchema = z.enum(["custom", "claude", "codex"]);
+export type AcpPreset = z.infer<typeof AcpPresetSchema>;
+
+/** A launchable ACP agent definition. */
+export interface AcpPresetDef {
+  id: AcpPreset;
+  label: string;
+  /** Short description shown in the settings UI. */
+  description: string;
+  /** Executable to spawn (empty for `custom`, which uses user config). */
+  command: string;
+  /** Arguments passed to the command. */
+  args: string[];
+}
+
+/**
+ * Built-in ACP agent presets. Both ship as npm packages runnable via `npx`, so
+ * no global install is required as long as Node/npx is on PATH.
+ *
+ * - Claude: https://github.com/agentclientprotocol/claude-agent-acp
+ * - Codex:  https://github.com/agentclientprotocol/codex-acp
+ */
+export const ACP_PRESETS: Record<AcpPreset, AcpPresetDef> = {
+  custom: {
+    id: "custom",
+    label: "Custom",
+    description: "Use a command and arguments you provide.",
+    command: "",
+    args: [],
+  },
+  claude: {
+    id: "claude",
+    label: "Claude Code",
+    description: "Anthropic Claude via @agentclientprotocol/claude-agent-acp.",
+    command: "npx",
+    args: ["-y", "@agentclientprotocol/claude-agent-acp"],
+  },
+  codex: {
+    id: "codex",
+    label: "Codex",
+    description: "OpenAI Codex via @agentclientprotocol/codex-acp.",
+    command: "npx",
+    args: ["-y", "@agentclientprotocol/codex-acp"],
+  },
+};
+
+/**
+ * Resolve the concrete command/args to spawn for a given config. Built-in
+ * presets take precedence; `custom` uses the user-provided command/args.
+ */
+export function resolveAcpLaunch(config: {
+  acpPreset?: AcpPreset;
+  command: string;
+  args: string[];
+}): { command: string; args: string[] } {
+  const preset = config.acpPreset ?? "custom";
+  if (preset !== "custom") {
+    const def = ACP_PRESETS[preset];
+    return { command: def.command, args: def.args };
+  }
+  return { command: config.command, args: config.args };
+}
+
+/**
+ * User-configurable agent settings persisted under `<userData>/agent/config.json`.
+ * Defaults keep the app working out of the box with the deterministic mock
+ * adapter; configuring an ACP preset (or `command`) switches to the subprocess
+ * adapter.
+ */
+export const AgentConfigSchema = z.object({
+  adapter: AgentAdapterKindSchema.default("mock"),
+  /** Which ACP agent to launch when `adapter` is "acp". */
+  acpPreset: AcpPresetSchema.default("custom"),
+  /** Executable to spawn for a `custom` ACP agent (e.g. an agent CLI). */
+  command: z.string().default(""),
+  /** Arguments passed to a `custom` ACP command. */
+  args: z.array(z.string()).default([]),
+  /** Model identifier handed to the adapter/agent. */
+  model: z.string().default(""),
+  /**
+   * Auto-approve gated tool calls (writes/process/browser) without prompting.
+   * Off by default; enabling it is a deliberate, clearly-warned choice.
+   */
+  autoAccept: z.boolean().default(false),
+});
+export type AgentConfig = z.infer<typeof AgentConfigSchema>;
+
+/** A fresh default agent config. */
+export function defaultAgentConfig(): AgentConfig {
+  return {
+    adapter: "mock",
+    acpPreset: "custom",
+    command: "",
+    args: [],
+    model: "",
+    autoAccept: false,
+  };
+}

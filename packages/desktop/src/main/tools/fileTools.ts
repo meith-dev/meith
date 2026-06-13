@@ -1,4 +1,5 @@
 import { type ToolDefinition, defineTool } from "@meith/protocol";
+import type { ToolContext } from "@meith/shared";
 import { ToolError, okResult } from "@meith/shared";
 import { z } from "zod";
 import { WorkspaceFileError } from "../services/WorkspaceFileService.js";
@@ -33,8 +34,11 @@ export function createFileTools(deps: ToolDeps): ToolDefinition[] {
       path: z.string().min(1).describe("File path, absolute or relative to cwd."),
       allowOutside,
     }),
-    execute: (_ctx, input) =>
-      withFileErrors(() => okResult(files.readFile(input.cwd, input.path, input))),
+    execute: (ctx, input) =>
+      withFileErrors(() => {
+        const scope = fileScope(ctx, input);
+        return okResult(files.readFile(scope.cwd, input.path, scope));
+      }),
   });
 
   const writeFile = defineTool({
@@ -52,15 +56,17 @@ export function createFileTools(deps: ToolDeps): ToolDefinition[] {
         .describe("Create missing parent directories (default true for new files)."),
       allowOutside,
     }),
-    execute: (_ctx, input) =>
-      withFileErrors(() =>
-        okResult(
-          files.writeFile(input.cwd, input.path, input.content, {
-            allowOutside: input.allowOutside,
+    execute: (ctx, input) =>
+      withFileErrors(() => {
+        const scope = fileScope(ctx, input);
+        return okResult(
+          files.writeFile(scope.cwd, input.path, input.content, {
+            allowOutside: scope.allowOutside,
+            restrictToCwd: scope.restrictToCwd,
             createDirs: input.createDirs,
           }),
-        ),
-      ),
+        );
+      }),
   });
 
   const applyPatch = defineTool({
@@ -83,14 +89,16 @@ export function createFileTools(deps: ToolDeps): ToolDefinition[] {
         .describe("Range edits; must be in-bounds and non-overlapping."),
       allowOutside,
     }),
-    execute: (_ctx, input) =>
-      withFileErrors(() =>
-        okResult(
-          files.applyPatch(input.cwd, input.path, input.edits, {
-            allowOutside: input.allowOutside,
+    execute: (ctx, input) =>
+      withFileErrors(() => {
+        const scope = fileScope(ctx, input);
+        return okResult(
+          files.applyPatch(scope.cwd, input.path, input.edits, {
+            allowOutside: scope.allowOutside,
+            restrictToCwd: scope.restrictToCwd,
           }),
-        ),
-      ),
+        );
+      }),
   });
 
   const undoWrite = defineTool({
@@ -99,10 +107,11 @@ export function createFileTools(deps: ToolDeps): ToolDefinition[] {
       "Revert the most recent write/patch to a file, restoring its previous content.",
     capabilities: ["writes-files"],
     inputSchema: z.object({ cwd, path: z.string().min(1), allowOutside }),
-    execute: (_ctx, input) =>
-      withFileErrors(() =>
-        okResult({ undone: files.undoLast(input.cwd, input.path, input) }),
-      ),
+    execute: (ctx, input) =>
+      withFileErrors(() => {
+        const scope = fileScope(ctx, input);
+        return okResult({ undone: files.undoLast(scope.cwd, input.path, scope) });
+      }),
   });
 
   const listFiles = defineTool({
@@ -117,17 +126,19 @@ export function createFileTools(deps: ToolDeps): ToolDefinition[] {
       maxEntries: z.number().int().positive().max(20000).optional(),
       allowOutside,
     }),
-    execute: (_ctx, input) =>
-      withFileErrors(() =>
-        okResult(
-          files.listFiles(input.cwd, {
+    execute: (ctx, input) =>
+      withFileErrors(() => {
+        const scope = fileScope(ctx, input);
+        return okResult(
+          files.listFiles(scope.cwd, {
             path: input.path,
             recursive: input.recursive,
             maxEntries: input.maxEntries,
-            allowOutside: input.allowOutside,
+            allowOutside: scope.allowOutside,
+            restrictToCwd: scope.restrictToCwd,
           }),
-        ),
-      ),
+        );
+      }),
   });
 
   const search = defineTool({
@@ -143,18 +154,20 @@ export function createFileTools(deps: ToolDeps): ToolDefinition[] {
       maxResults: z.number().int().positive().max(5000).optional(),
       allowOutside,
     }),
-    execute: (_ctx, input) =>
-      withFileErrors(() =>
-        okResult(
-          files.search(input.cwd, {
+    execute: (ctx, input) =>
+      withFileErrors(() => {
+        const scope = fileScope(ctx, input);
+        return okResult(
+          files.search(scope.cwd, {
             query: input.query,
             isRegex: input.isRegex,
             caseSensitive: input.caseSensitive,
             maxResults: input.maxResults,
-            allowOutside: input.allowOutside,
+            allowOutside: scope.allowOutside,
+            restrictToCwd: scope.restrictToCwd,
           }),
-        ),
-      ),
+        );
+      }),
   });
 
   const getDiagnostics = defineTool({
@@ -170,11 +183,24 @@ export function createFileTools(deps: ToolDeps): ToolDefinition[] {
         .describe("File to diagnose; omit for the workspace's opened files."),
       allowOutside,
     }),
-    execute: (_ctx, input) =>
-      withFileErrors(() => okResult(files.getDiagnostics(input.cwd, input.path, input))),
+    execute: (ctx, input) =>
+      withFileErrors(() => {
+        const scope = fileScope(ctx, input);
+        return okResult(files.getDiagnostics(scope.cwd, input.path, scope));
+      }),
   });
 
   return [readFile, writeFile, applyPatch, undoWrite, listFiles, search, getDiagnostics];
+}
+
+function fileScope(
+  ctx: ToolContext,
+  input: { cwd: string; allowOutside?: boolean },
+): { cwd: string; allowOutside?: boolean; restrictToCwd?: boolean } {
+  if (ctx.caller === "agent" || ctx.caller === "plugin") {
+    return { cwd: ctx.cwd, allowOutside: false, restrictToCwd: true };
+  }
+  return { cwd: input.cwd, allowOutside: input.allowOutside };
 }
 
 /** Map `WorkspaceFileError` to a typed tool error; let everything else bubble. */

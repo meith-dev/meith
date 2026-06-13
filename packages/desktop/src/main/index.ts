@@ -1,6 +1,7 @@
-import { join } from "node:path";
+import { basename, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { BrowserViewportSchema } from "@meith/shared";
-import { BrowserWindow, app, ipcMain } from "electron";
+import { net, BrowserWindow, app, ipcMain, protocol } from "electron";
 import { type ServiceContainer, bootstrap } from "./bootstrap.js";
 import { ElectronBrowserViewHost } from "./browser/ElectronBrowserViewHost.js";
 import { IPC, registerIpcHandlers } from "./ipc/handlers.js";
@@ -12,10 +13,43 @@ import type { PtyHost } from "./process/PtyHost.js";
  * browser viewport via the `meith:browser:viewport` channel.
  */
 const FALLBACK_CHROME_TOP = 96;
+const ARTIFACT_PROTOCOL = "meith-artifact";
 
 let mainWindow: BrowserWindow | null = null;
 let container: ServiceContainer | null = null;
 let viewHost: ElectronBrowserViewHost | null = null;
+let artifactProtocolRegistered = false;
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: ARTIFACT_PROTOCOL,
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: false,
+    },
+  },
+]);
+
+function registerArtifactProtocol(userDataPath: string): void {
+  if (artifactProtocolRegistered) return;
+  artifactProtocolRegistered = true;
+  const artifactRoot = resolve(userDataPath, "artifacts");
+  protocol.handle(ARTIFACT_PROTOCOL, async (request) => {
+    try {
+      const url = new URL(request.url);
+      const name = basename(decodeURIComponent(url.pathname.replace(/^\/+/, "")));
+      if (!name || name !== decodeURIComponent(url.pathname.replace(/^\/+/, ""))) {
+        return new Response("Not found", { status: 404 });
+      }
+      const filePath = resolve(artifactRoot, name);
+      return await net.fetch(pathToFileURL(filePath).toString());
+    } catch {
+      return new Response("Not found", { status: 404 });
+    }
+  });
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -90,6 +124,7 @@ app.whenReady().then(async () => {
     browserViewHost: viewHost,
     ptyHost,
   });
+  registerArtifactProtocol(container.config.userDataPath);
   registerIpcHandlers(container, () => mainWindow);
 
   // Viewport contract: the renderer reports the measured browser content

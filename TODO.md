@@ -426,7 +426,7 @@ Acceptance criteria:
 
 `AgentService` currently exposes the adapter seam but no real adapter. Implement the runtime in layers.
 
-- [ ] Finalize agent data model:
+- [x] Finalize agent data model:
   - agent definitions
   - sessions
   - messages
@@ -436,42 +436,45 @@ Acceptance criteria:
   - status
   - errors
   - permissions
-- [ ] Persist agent sessions and messages outside the small app state file.
-- [ ] Add renderer chat UI:
+- [x] Persist agent sessions and messages outside the small app state file.
+  - Session index as atomic JSON, per-session transcripts as append-only JSONL (`AgentStore`).
+- [x] Add renderer chat UI:
   - session list
   - message transcript
   - streaming response
   - tool call cards
   - errors/retry
   - stop/cancel
-- [ ] Add agent adapter interface support for:
+- [x] Add agent adapter interface support for:
   - streaming text
   - tool calls
   - cancellation
   - session resume
   - model selection
   - cwd/space context
-- [ ] Implement a first provider adapter:
-  - either a direct SDK adapter
-  - or an ACP-style subprocess adapter
-  - keep provider-specific code isolated from core services
-- [ ] Build an MCP bridge over the existing tool registry:
+- [x] Implement a first provider adapter:
+  - ACP-style subprocess adapter (`AcpAdapter`) with a hand-rolled JSON-RPC client.
+  - Deterministic `MockAdapter` as the default fallback so the app works with no setup.
+  - Provider-specific code isolated under `agent/adapters` and `agent/acp`.
+- [x] Build an MCP bridge over the existing tool registry:
   - expose registered tools
   - validate inputs
   - call `registry.call`
   - stream results where supported
-- [ ] Add permission model:
+  - In-process server with per-session tokens so agent calls keep `caller: "agent"` scoping.
+- [x] Add permission model:
   - read-only tools allowed by default
   - browser control requires tab claim
   - file writes require explicit mode/permission
   - process start/kill may require approval
-- [ ] Add system prompt generation:
+  - Interactive Approve/Deny cards in chat, plus an opt-in auto-accept setting (warned).
+- [x] Add system prompt generation:
   - include current workspace
   - include active browser tabs
   - include available tools
   - include safety/permission rules
-- [ ] Add chat-to-space association.
-- [ ] Add session cleanup and idle process GC.
+- [x] Add chat-to-space association.
+- [x] Add session cleanup and idle process GC.
 
 Acceptance criteria:
 

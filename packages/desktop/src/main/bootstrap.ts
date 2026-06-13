@@ -3,13 +3,18 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { MeithConfig } from "@meith/shared";
+import { AcpAdapter } from "./agent/adapters/AcpAdapter.js";
+import { MockAdapter } from "./agent/adapters/MockAdapter.js";
 import type { BrowserViewHost } from "./browser/BrowserViewHost.js";
 import type { PtyHost } from "./process/PtyHost.js";
+import { AgentConfigStore } from "./services/AgentConfigStore.js";
 import { AgentService } from "./services/AgentService.js";
+import { AgentStore } from "./services/AgentStore.js";
 import { AppStateService } from "./services/AppStateService.js";
 import { BrowserTabService } from "./services/BrowserTabService.js";
 import { DevServerService } from "./services/DevServerService.js";
 import { Logger } from "./services/Logger.js";
+import { McpBridgeService } from "./services/McpBridgeService.js";
 import { ProjectService } from "./services/ProjectService.js";
 import { SpaceService } from "./services/SpaceService.js";
 import { StorageService } from "./services/StorageService.js";
@@ -37,6 +42,7 @@ export interface ServiceContainer {
   projects: ProjectService;
   files: WorkspaceFileService;
   agents: AgentService;
+  mcpBridge: McpBridgeService;
   storage: StorageService;
   registry: ToolRegistry;
   socket: ToolSocketService;
@@ -180,7 +186,32 @@ export async function bootstrap(
   registry.registerAll(createFileTools(deps));
   registry.registerAll(createStorageTools(deps));
 
-  const agents = new AgentService(registry, logger);
+  // Agent runtime (Phase 9). Durable session/transcript store + user config,
+  // an in-process MCP bridge that exposes the SAME registry to an external ACP
+  // agent with `caller: "agent"` scoping, and a pluggable adapter selected by
+  // config (deterministic mock by default; ACP subprocess when configured).
+  const agentStore = new AgentStore(userDataPath);
+  const agentConfig = new AgentConfigStore(userDataPath);
+  const mcpBridge = new McpBridgeService(logger);
+  const agents = new AgentService(registry, logger, {
+    store: agentStore,
+    configStore: agentConfig,
+    appState,
+    mcpBridge,
+  });
+  agents.registerAdapter(
+    agentConfig.get().adapter === "acp"
+      ? new AcpAdapter(agentConfig, logger)
+      : new MockAdapter(),
+  );
+  // Re-select the adapter whenever the configured kind changes.
+  agents.on("config", (cfg: { adapter: string }) => {
+    agents.registerAdapter(
+      cfg.adapter === "acp" ? new AcpAdapter(agentConfig, logger) : new MockAdapter(),
+    );
+  });
+  agents.hydrate();
+  agents.startIdleGc();
 
   const socket = new ToolSocketService(socketPath, registry, logger);
   await socket.start();
@@ -199,6 +230,10 @@ export async function bootstrap(
     shutdownPromise = (async () => {
       registry.beginShutdown();
       await socket.stop();
+      // Tear down agent runs (abort live adapters), the MCP bridge, and flush
+      // the session index/config to disk.
+      await agents.dispose();
+      await mcpBridge.stop();
       // Reliably reap every spawned process before exit: kill dev-server
       // process groups (and their child trees) and all live terminals.
       devServers.stopAll();
@@ -223,6 +258,7 @@ export async function bootstrap(
     projects,
     files,
     agents,
+    mcpBridge,
     storage,
     registry,
     socket,

@@ -1,15 +1,23 @@
 import type { ToolDescriptor } from "@meith/protocol";
 import {
+  type AgentConfig,
+  type AgentMessage,
+  type AgentSession,
+  type AgentSessionMeta,
+  type AgentStreamChunk,
   type AppState,
   type BrowserTab,
   type DevServer,
   type LogEntry,
   type Project,
   type WorkspaceTab,
+  defaultAgentConfig,
   defaultAppState,
   errorResult,
   newBrowserTabId,
+  newMessageId,
   newProjectId,
+  newSessionId,
   newSpaceId,
   newWorkspaceTabId,
   okResult,
@@ -103,6 +111,14 @@ function createMockBridge(): MeithBridge {
   const termExitSubs = new Set<
     (e: { id: string; exitCode: number; signal?: number }) => void
   >();
+  // In-memory agent runtime for preview mode: sessions + a deterministic mock
+  // run loop so the chat UI is fully exercisable without Electron.
+  const agentSessions = new Map<string, AgentSession>();
+  let agentConfig: AgentConfig = defaultAgentConfig();
+  const agentChunkSubs = new Set<
+    (e: { sessionId: string; chunk: AgentStreamChunk }) => void
+  >();
+  const agentSessionSubs = new Set<(m: AgentSessionMeta) => void>();
 
   // In-memory simulated terminals for browser preview. Each tracks a tiny line
   // buffer so writes can echo and a couple of commands "work".
@@ -774,6 +790,97 @@ function createMockBridge(): MeithBridge {
         termExitSubs.add(cb);
         return () => termExitSubs.delete(cb);
       },
+    },
+    agent: {
+      listSessions: async () =>
+        [...agentSessions.values()]
+          .map(({ messages: _m, ...meta }) => meta)
+          .sort((a, b) => b.updatedAt - a.updatedAt),
+      getSession: async (id) => agentSessions.get(id) ?? null,
+      createSession: async (input) => {
+        const ts = Date.now();
+        const session: AgentSession = {
+          id: newSessionId(),
+          title: input.title?.trim() || "New session",
+          cwd: input.cwd,
+          spaceId: input.spaceId ?? null,
+          model: input.model || agentConfig.model || undefined,
+          adapterId: "mock",
+          status: "idle",
+          createdAt: ts,
+          updatedAt: ts,
+          messages: [],
+        };
+        agentSessions.set(session.id, session);
+        return structuredClone(session);
+      },
+      deleteSession: async (id) => agentSessions.delete(id),
+      sendMessage: async (sessionId, text) => {
+        const session = agentSessions.get(sessionId);
+        if (!session) return null;
+        const emitChunk = (chunk: AgentStreamChunk) => {
+          for (const cb of agentChunkSubs) cb({ sessionId, chunk });
+        };
+        const emitMeta = () => {
+          const { messages: _m, ...meta } = session;
+          for (const cb of agentSessionSubs) cb(structuredClone(meta));
+        };
+        if (text !== undefined) {
+          const userMsg: AgentMessage = {
+            id: newMessageId(),
+            role: "user",
+            content: text,
+            createdAt: Date.now(),
+          };
+          session.messages.push(userMsg);
+        }
+        session.status = "running";
+        emitMeta();
+        const reply = `You said: "${text ?? ""}". This is a preview-mode mock agent response.`;
+        const assistant: AgentMessage = {
+          id: newMessageId(),
+          role: "assistant",
+          content: "",
+          toolCalls: [],
+          createdAt: Date.now(),
+        };
+        session.messages.push(assistant);
+        // Stream the reply word-by-word to mimic token streaming.
+        for (const word of reply.split(" ")) {
+          await new Promise((r) => setTimeout(r, 30));
+          assistant.content += (assistant.content ? " " : "") + word;
+          emitChunk({ type: "text", text: (assistant.content ? " " : "") + word });
+        }
+        emitChunk({ type: "done" });
+        session.status = "idle";
+        session.updatedAt = Date.now();
+        emitMeta();
+        return structuredClone(session);
+      },
+      cancel: async (sessionId) => {
+        const session = agentSessions.get(sessionId);
+        if (session) {
+          session.status = "cancelled";
+          const { messages: _m, ...meta } = session;
+          for (const cb of agentSessionSubs) cb(structuredClone(meta));
+        }
+        return true;
+      },
+      decide: async () => true,
+      getConfig: async () => structuredClone(agentConfig),
+      setConfig: async (patch) => {
+        agentConfig = { ...agentConfig, ...patch };
+        return structuredClone(agentConfig);
+      },
+      onChunk: (cb) => {
+        agentChunkSubs.add(cb);
+        return () => agentChunkSubs.delete(cb);
+      },
+      onSession: (cb) => {
+        agentSessionSubs.add(cb);
+        return () => agentSessionSubs.delete(cb);
+      },
+      onPermission: () => () => undefined,
     },
   };
 }

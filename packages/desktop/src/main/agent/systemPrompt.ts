@@ -1,4 +1,5 @@
 import type { ToolDescriptor } from "@meith/protocol";
+import type { AgentPromptContext } from "./types.js";
 
 /**
  * Builds the agent system prompt. The tool catalog is generated from the live
@@ -17,6 +18,26 @@ The host (the Electron main process) is the authority for all state and actions.
 
 - You can only affect the app by calling the tools listed below. Do not invent
   tools. Call \`app_get_state\` if you are unsure about the current state.
+- The \`Available tools\` section below is authoritative for this session. Do
+  not say you are unsure which Meith tools are available, do not search for
+  tools elsewhere, and do not use non-Meith tool discovery when a listed Meith
+  tool fits the task.
+- Treat the tools in this Meith catalog as your primary interface. If a Meith
+  tool can do the job, use it instead of a generic shell command, external
+  browser CLI, or provider-specific helper.
+- For browser work, prefer Meith browser tools such as \`get_tabs\`,
+  \`get_active_tab\`, \`get_browser_state\`, \`take_screenshot\`, \`navigate\`,
+  and related tab/interaction tools before any external browser automation.
+- Never pass placeholder values such as \`PLACEHOLDER\`, \`TODO\`, \`unknown\`, or
+  guessed IDs to tools. If a browser tool needs a \`tabId\`, first call
+  \`get_active_tab\` or \`get_tabs\` and use the returned concrete ID.
+- When \`take_screenshot\` succeeds, treat that tool result as the screenshot
+  artifact shown to the user. Do not call a separate image viewer/inspection
+  tool just to look at or link the same screenshot, and do not print local
+  screenshot file paths in the final answer.
+- When the user asks what tools you have, answer from the Meith tool catalog
+  below. Mention concrete Meith tool names and capabilities; do not answer with
+  generic host/runtime tools unless the user explicitly asks about the adapter.
 - Prefer small, verifiable steps. After a mutating action, read state back.
 - Never assume a browser tab, workspace tab, or process exists — list it first.
 
@@ -53,16 +74,55 @@ export function renderToolCatalog(tools: readonly ToolDescriptor[]): string {
   return `## Available tools\n\n${lines.join("\n")}`;
 }
 
+/** Render the live workspace/session context section. */
+export function renderContext(context: AgentPromptContext): string {
+  const lines: string[] = ["## Current context", ""];
+  lines.push(`- Working directory: \`${context.cwd}\``);
+  if (context.spaceName) lines.push(`- Space: ${context.spaceName}`);
+  if (context.openTabs && context.openTabs.length > 0) {
+    lines.push("- Open browser tabs:");
+    for (const tab of context.openTabs) {
+      lines.push(`  - ${tab.title || "(untitled)"} — ${tab.url}`);
+    }
+  } else {
+    lines.push("- Open browser tabs: none");
+  }
+  return lines.join("\n");
+}
+
+/** Render the safety / permission rules section. */
+export function renderSafety(context: AgentPromptContext): string {
+  const auto = context.autoAccept
+    ? "Auto-accept is ON: gated tools run without a prompt, so be especially careful."
+    : "Gated tools (writing files, starting processes, controlling the browser, destructive actions) require explicit user approval before they run. Expect some calls to be denied and adapt.";
+  return [
+    "## Safety & permissions",
+    "",
+    `- Read-only tools run freely. ${auto}`,
+    "- Never attempt to bypass the permission system or fabricate tool output.",
+    "- Prefer the smallest change that accomplishes the user's goal, and read",
+    "  state back after mutations to confirm the effect.",
+  ].join("\n");
+}
+
 /**
  * Compose the full system prompt: static guidance + a registry-derived tool
- * catalog. Pass `registry.describe()` for `tools`.
+ * catalog + optional live workspace context and safety rules. Pass
+ * `registry.describe()` for `tools`.
  */
-export function buildSystemPrompt(tools: readonly ToolDescriptor[]): string {
+export function buildSystemPrompt(
+  tools: readonly ToolDescriptor[],
+  context?: AgentPromptContext,
+): string {
   const catalog = renderToolCatalog(tools);
   // Insert the catalog right after the "How you act" section, before the
   // "Tool call contract" heading.
   const marker = "## Tool call contract";
   const idx = SYSTEM_PROMPT_BASE.indexOf(marker);
-  if (idx === -1) return `${SYSTEM_PROMPT_BASE}\n\n${catalog}`;
-  return `${SYSTEM_PROMPT_BASE.slice(0, idx)}${catalog}\n\n${SYSTEM_PROMPT_BASE.slice(idx)}`;
+  const base =
+    idx === -1
+      ? `${SYSTEM_PROMPT_BASE}\n\n${catalog}`
+      : `${SYSTEM_PROMPT_BASE.slice(0, idx)}${catalog}\n\n${SYSTEM_PROMPT_BASE.slice(idx)}`;
+  if (!context) return base;
+  return `${base}\n\n${renderContext(context)}\n\n${renderSafety(context)}`;
 }

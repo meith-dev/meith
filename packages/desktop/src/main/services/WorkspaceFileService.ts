@@ -37,6 +37,8 @@ export interface BoundaryOptions {
    * arbitrary locations on disk.
    */
   allowOutside?: boolean;
+  /** Restrict target paths to the supplied cwd root, not any known workspace. */
+  restrictToCwd?: boolean;
 }
 
 /** Undo record captured before a mutating write so an edit can be reversed. */
@@ -204,7 +206,7 @@ export class WorkspaceFileService {
     }
     const root = this.trustedCwd(cwd, options.allowOutside);
     const absPath = isAbsolute(target) ? resolve(target) : resolve(root, target);
-    const roots = this.knownRoots();
+    const roots = options.restrictToCwd ? [root] : this.knownRoots();
     const matched = roots.find((r) => isInside(absPath, r)) ?? null;
     const inside = matched !== null;
     if (!inside && !options.allowOutside) {

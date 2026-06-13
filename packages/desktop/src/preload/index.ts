@@ -16,6 +16,18 @@ const IPC = {
   terminalData: "meith:terminal:data",
   terminalExit: "meith:terminal:exit",
   dialogOpenFolder: "meith:dialog:openFolder",
+  agentListSessions: "meith:agent:sessions:list",
+  agentGetSession: "meith:agent:session:get",
+  agentCreateSession: "meith:agent:session:create",
+  agentDeleteSession: "meith:agent:session:delete",
+  agentSendMessage: "meith:agent:message:send",
+  agentCancel: "meith:agent:cancel",
+  agentPermissionDecision: "meith:agent:permission:decision",
+  agentGetConfig: "meith:agent:config:get",
+  agentSetConfig: "meith:agent:config:set",
+  agentChunk: "meith:agent:chunk",
+  agentSession: "meith:agent:session",
+  agentPermission: "meith:agent:permission",
 } as const;
 
 const api: MeithBridge = {
@@ -59,6 +71,34 @@ const api: MeithBridge = {
       ) => cb(evt);
       ipcRenderer.on(IPC.terminalExit, listener);
       return () => ipcRenderer.removeListener(IPC.terminalExit, listener);
+    },
+  },
+  agent: {
+    listSessions: () => ipcRenderer.invoke(IPC.agentListSessions),
+    getSession: (id) => ipcRenderer.invoke(IPC.agentGetSession, id),
+    createSession: (input) => ipcRenderer.invoke(IPC.agentCreateSession, input),
+    deleteSession: (id) => ipcRenderer.invoke(IPC.agentDeleteSession, id),
+    sendMessage: (sessionId, text) =>
+      ipcRenderer.invoke(IPC.agentSendMessage, sessionId, text),
+    cancel: (sessionId) => ipcRenderer.invoke(IPC.agentCancel, sessionId),
+    decide: (decision) => ipcRenderer.invoke(IPC.agentPermissionDecision, decision),
+    getConfig: () => ipcRenderer.invoke(IPC.agentGetConfig),
+    setConfig: (patch) => ipcRenderer.invoke(IPC.agentSetConfig, patch),
+    onChunk: (cb) => {
+      const listener = (_e: unknown, evt: { sessionId: string; chunk: unknown }) =>
+        cb(evt as never);
+      ipcRenderer.on(IPC.agentChunk, listener);
+      return () => ipcRenderer.removeListener(IPC.agentChunk, listener);
+    },
+    onSession: (cb) => {
+      const listener = (_e: unknown, meta: unknown) => cb(meta as never);
+      ipcRenderer.on(IPC.agentSession, listener);
+      return () => ipcRenderer.removeListener(IPC.agentSession, listener);
+    },
+    onPermission: (cb) => {
+      const listener = (_e: unknown, req: unknown) => cb(req as never);
+      ipcRenderer.on(IPC.agentPermission, listener);
+      return () => ipcRenderer.removeListener(IPC.agentPermission, listener);
     },
   },
 };

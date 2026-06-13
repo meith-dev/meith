@@ -1,6 +1,7 @@
 import type { Space, WorkspaceTab } from "@meith/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { AgentView } from "./components/AgentView";
 import { BrowserArea } from "./components/BrowserArea";
 import { DebugPanel } from "./components/DebugPanel";
 import { EditorView } from "./components/EditorView";
@@ -48,9 +49,10 @@ export function App() {
   // native browser view, which is collapsed while one is focused).
   const showTerminal = activeWorkspaceTab?.kind === "terminal";
   const showEditor = activeWorkspaceTab?.kind === "editor";
-  // Either overlay covers the browser column, so the native browser view must
+  const showAgent = activeWorkspaceTab?.kind === "agent";
+  // Any overlay covers the browser column, so the native browser view must
   // be collapsed off-screen to keep it from painting on top.
-  const coversBrowser = showTerminal || showEditor;
+  const coversBrowser = showTerminal || showEditor || showAgent;
 
   // Report the measured browser content region to the main process so the
   // native browser view is sized to the real layout (not a hard-coded inset).
@@ -323,6 +325,17 @@ export function App() {
                   tab={activeWorkspaceTab}
                   call={call}
                   fileEvents={state?.workspaceFileEvents ?? []}
+                />
+              </div>
+            )}
+            {showAgent && activeWorkspaceTab && (
+              // Overlay the agent chat above the browser column; the native
+              // browser view is collapsed while this is shown.
+              <div className="absolute inset-0 z-10 bg-background">
+                <AgentView
+                  key={activeWorkspaceTab.id}
+                  tab={activeWorkspaceTab}
+                  bridge={bridge}
                 />
               </div>
             )}
