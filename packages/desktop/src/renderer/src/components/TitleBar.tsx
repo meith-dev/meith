@@ -2,21 +2,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, TerminalSquare } from "lucide-react";
+import { Plug, Plus, TerminalSquare } from "lucide-react";
 import { MeithMark } from "./MeithMark";
 
 export function TitleBar({
   spaceName,
   isMock,
   debugOpen,
+  pluginCount,
   onToggleDebug,
   onNewTab,
+  onOpenPlugins,
 }: {
   spaceName: string | null;
   isMock: boolean;
   debugOpen: boolean;
+  pluginCount: number;
   onToggleDebug: () => void;
   onNewTab: () => void;
+  onOpenPlugins: () => void;
 }) {
   return (
     <header className="flex h-11 shrink-0 items-center gap-3 border-b bg-card px-3">
@@ -49,6 +53,28 @@ export function TitleBar({
           }
         />
         <TooltipContent>Open a browser tab ({"\u2318"}T)</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onOpenPlugins}
+              aria-label="Manage plugins"
+              className="relative"
+            >
+              <Plug />
+              {pluginCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground">
+                  {pluginCount}
+                </span>
+              )}
+            </Button>
+          }
+        />
+        <TooltipContent>Manage plugins</TooltipContent>
       </Tooltip>
 
       <Tooltip>

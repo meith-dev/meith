@@ -94,6 +94,56 @@ function createMockBridge(): MeithBridge {
         createdAt: now,
       },
     ],
+    // Seed one approved+enabled plugin and one freshly-installed (pending
+    // review) plugin so the Plugins dialog is fully exercisable in preview.
+    plugins: [
+      {
+        id: "com.meith.devtools",
+        name: "Dev Tools",
+        version: "1.2.0",
+        source: { kind: "local-dir", path: "/Users/dev/plugins/devtools" },
+        manifest: {
+          kind: "plugin",
+          id: "com.meith.devtools",
+          name: "Dev Tools",
+          version: "1.2.0",
+          description: "Inspect tabs and run read-only tools.",
+          entry: "index.html",
+          permissions: ["read-only", "controls-browser"],
+          requestedApis: ["tools", "storage"],
+        },
+        requestedGrants: {
+          capabilities: ["read-only", "controls-browser"],
+          apis: ["tools", "storage"],
+        },
+        approvedGrants: {
+          capabilities: ["read-only", "controls-browser"],
+          apis: ["tools", "storage"],
+        },
+        enabled: true,
+        installedAt: now - 86_400_000,
+      },
+      {
+        id: "com.example.notes",
+        name: "Notes",
+        version: "0.3.1",
+        source: { kind: "local-dir", path: "/Users/dev/plugins/notes" },
+        manifest: {
+          kind: "plugin",
+          id: "com.example.notes",
+          name: "Notes",
+          version: "0.3.1",
+          description: "A scratchpad that can call AI to summarize pages.",
+          entry: "index.html",
+          permissions: ["read-only"],
+          requestedApis: ["tools", "ai"],
+        },
+        requestedGrants: { capabilities: ["read-only"], apis: ["tools", "ai"] },
+        approvedGrants: { capabilities: [], apis: [] },
+        enabled: false,
+        installedAt: now - 3_600_000,
+      },
+    ],
   };
 
   const logs: LogEntry[] = [
@@ -239,6 +289,12 @@ function createMockBridge(): MeithBridge {
     desc("project_list_templates", "List available project templates.", ["read-only"]),
     desc("project_start_dev_server", "Start a project's dev server.", ["starts-process"]),
     desc("project_stop_dev_server", "Stop a project's dev server.", ["starts-process"]),
+    desc("list_plugins", "List installed plugins and their grants.", ["read-only"]),
+    desc("install_plugin", "Install a plugin from a local directory.", ["destructive"]),
+    desc("approve_plugin_grants", "Approve a subset of a plugin's grants.", ["destructive"]),
+    desc("set_plugin_enabled", "Enable or disable a plugin.", ["destructive"]),
+    desc("uninstall_plugin", "Uninstall a plugin.", ["destructive"]),
+    desc("open_plugin_tab", "Open a tab hosting an enabled plugin.", ["controls-browser"]),
   ];
 
   // Create a project record + its 1:1 space, switch to it, and open an editor
@@ -754,6 +810,90 @@ function createMockBridge(): MeithBridge {
             // The mock has no TypeScript program; report a clean, supported file.
             return okResult({ diagnostics: [], unsupported: false });
           }
+
+          case "list_plugins":
+            return okResult({ plugins: structuredClone(state.plugins) });
+          case "approve_plugin_grants": {
+            const plugin = state.plugins.find((p) => p.id === args.pluginId);
+            if (!plugin) return errorResult("VALIDATION_ERROR", "Unknown plugin");
+            const caps = Array.isArray(args.capabilities)
+              ? (args.capabilities as string[])
+              : [];
+            const apis = Array.isArray(args.apis) ? (args.apis as string[]) : [];
+            // Mirror the host: approval can never exceed the requested grants.
+            plugin.approvedGrants = {
+              capabilities: plugin.requestedGrants.capabilities.filter((c) =>
+                caps.includes(c),
+              ),
+              apis: plugin.requestedGrants.apis.filter((a) => apis.includes(a)),
+            };
+            pushLog("info", "Mock", `approved grants for ${plugin.id}`);
+            emitState();
+            return okResult({ plugin: structuredClone(plugin) });
+          }
+          case "set_plugin_enabled": {
+            const plugin = state.plugins.find((p) => p.id === args.pluginId);
+            if (!plugin) return errorResult("VALIDATION_ERROR", "Unknown plugin");
+            const enabled = Boolean(args.enabled);
+            if (enabled) {
+              const missing = plugin.requestedGrants.apis.filter(
+                (a) => !plugin.approvedGrants.apis.includes(a),
+              );
+              if (missing.length > 0) {
+                return errorResult(
+                  "PERMISSION_DENIED",
+                  `Approve API scopes [${missing.join(", ")}] before enabling.`,
+                );
+              }
+            }
+            plugin.enabled = enabled;
+            pushLog("info", "Mock", `${enabled ? "enabled" : "disabled"} ${plugin.id}`);
+            emitState();
+            return okResult({ plugin: structuredClone(plugin) });
+          }
+          case "uninstall_plugin": {
+            const id = String(args.pluginId);
+            state.plugins = state.plugins.filter((p) => p.id !== id);
+            // Plugin tabs hosting it stop existing in preview too.
+            state.browserTabs = state.browserTabs.filter((t) => t.pluginId !== id);
+            pushLog("info", "Mock", `uninstalled ${id}`);
+            emitState();
+            return okResult({ uninstalled: id });
+          }
+          case "open_plugin_tab": {
+            const plugin = state.plugins.find((p) => p.id === args.pluginId);
+            if (!plugin) return errorResult("VALIDATION_ERROR", "Unknown plugin");
+            if (!plugin.enabled) {
+              return errorResult("VALIDATION_ERROR", `${plugin.id} is not enabled.`);
+            }
+            const sid = activeSpace();
+            for (const t of state.browserTabs) if (t.spaceId === sid) t.active = false;
+            const tab: BrowserTab = {
+              id: newBrowserTabId(),
+              spaceId: sid,
+              url: `plugin://${plugin.id}`,
+              title: plugin.name,
+              active: true,
+              createdAt: Date.now(),
+              loadState: "complete",
+              mode: "plugin",
+              pluginId: plugin.id,
+              canGoBack: false,
+              canGoForward: false,
+              ownerId: null,
+            };
+            state.browserTabs.push(tab);
+            pushLog("info", "Mock", `opened plugin tab for ${plugin.id}`);
+            emitState();
+            return okResult({ tab });
+          }
+          case "install_plugin":
+            // Installing from a real directory requires the Electron file system;
+            // surface a clear message in preview rather than pretending.
+            return errorResult(
+              "TOOL_FAILED",
+              "Installing plugins from disk requires the desktop app.",
+            );
 
           default:
             return errorResult("UNKNOWN_TOOL", `Unknown tool: ${name}`);

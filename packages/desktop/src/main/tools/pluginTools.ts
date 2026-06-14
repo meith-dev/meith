@@ -24,8 +24,9 @@ function rethrowAsToolError(err: unknown): never {
 /**
  * Plugin management tools (Phase 11). These run the plugin lifecycle through
  * the central registry so the renderer, CLI, and agents all manage plugins the
- * same way. They are control-plane tools: installing and approving grants are
- * privileged actions, so they require the `manages-app` capability.
+ * same way. They are control-plane tools: installing, approving grants, and
+ * enabling are privileged mutations, so they require the `destructive`
+ * capability (the strongest gate in the capability model).
  */
 export function createPluginTools(deps: ToolDeps): ToolDefinition[] {
   const { plugins, browserTabs, logger } = deps;

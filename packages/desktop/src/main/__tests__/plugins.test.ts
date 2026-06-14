@@ -2,6 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ToolDescriptor } from "@meith/protocol";
+import type { PluginApiName, ToolCapability } from "@meith/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildPluginApiShape } from "../../preload/pluginApiShape.js";
 import { AppStateService } from "../services/AppStateService.js";
@@ -166,8 +167,8 @@ describe("grant approval + enable gating", () => {
 describe("authoritative identity", () => {
   async function installEnabled(
     id: string,
-    apis: string[],
-    capabilities: string[] = [],
+    apis: PluginApiName[],
+    capabilities: ToolCapability[] = [],
   ): Promise<void> {
     const root = writePlugin(id, { apis, permissions: capabilities });
     await host.installFromDirectory(root);
