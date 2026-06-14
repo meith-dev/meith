@@ -1,6 +1,7 @@
 import { createReadStream } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { ToolDescriptor } from "@meith/protocol";
 import {
   type InstalledPlugin,
@@ -216,7 +217,10 @@ export class PluginHostService {
     if (plugin.source.kind === "dev-url") return plugin.source.url;
     const root = await this.realpathOrThrow(plugin.source.path, "plugin directory");
     const entry = await this.assertContainedFile(root, plugin.manifest.entry);
-    return `file://${entry}`;
+    // Encode the filesystem path properly: paths containing `#`, `?`, `%`, or
+    // spaces would be mis-parsed by a hand-built `file://${entry}` string, which
+    // now also feeds the URL-derived authority scope.
+    return pathToFileURL(entry).toString();
   }
 
   // --- Identity (authoritative, main-process only) -----------------------

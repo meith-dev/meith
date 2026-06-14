@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -46,7 +46,10 @@ describe("plugin authority scope (containment policy)", () => {
 
     it("binds to the realpath of the entry file", () => {
       const scope = pluginScopeFor(entryUrl);
-      expect(scope).toEqual({ kind: "file", filePath: entry });
+      // pluginScopeFor stores realpathSync(entry); on macOS the temp dir
+      // resolves through a symlink (/var -> /private/var), so compare against
+      // the realpath rather than the raw mkdtemp path.
+      expect(scope).toEqual({ kind: "file", filePath: realpathSync(entry) });
     });
 
     it("stays in scope for hash/query routing on the same file", () => {
