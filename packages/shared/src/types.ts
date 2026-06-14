@@ -101,5 +101,6 @@ export function defaultAppState(): AppState {
     workspaceTabs: [],
     projects: [],
     workspaceFileEvents: [],
+    plugins: [],
   };
 }

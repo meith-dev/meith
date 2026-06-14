@@ -14,11 +14,13 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       lib: {
-        // Two preload bundles: the app renderer bridge (index) and the safe
-        // bridge applied to ordinary browser-tab web content (webContent).
+        // Three preload bundles: the app renderer bridge (index), the safe
+        // bridge applied to ordinary browser-tab web content (webContent), and
+        // the permission-gated bridge applied to plugin tabs (plugin).
         entry: {
           index: resolve(__dirname, "src/preload/index.ts"),
           webContent: resolve(__dirname, "src/preload/webContent.ts"),
+          plugin: resolve(__dirname, "src/preload/plugin.ts"),
         },
       },
       rollupOptions: {

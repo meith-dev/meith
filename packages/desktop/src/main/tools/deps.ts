@@ -2,6 +2,7 @@ import type { AppStateService } from "../services/AppStateService.js";
 import type { BrowserTabService } from "../services/BrowserTabService.js";
 import type { DevServerService } from "../services/DevServerService.js";
 import type { Logger } from "../services/Logger.js";
+import type { PluginHostService } from "../services/PluginHostService.js";
 import type { ProjectService } from "../services/ProjectService.js";
 import type { SpaceService } from "../services/SpaceService.js";
 import type { StorageService } from "../services/StorageService.js";
@@ -23,4 +24,5 @@ export interface ToolDeps {
   files: WorkspaceFileService;
   logger: Logger;
   storage: StorageService;
+  plugins: PluginHostService;
 }

@@ -26,6 +26,7 @@ import { BrowserTabService } from "./services/BrowserTabService.js";
 import { DevServerService } from "./services/DevServerService.js";
 import { Logger } from "./services/Logger.js";
 import { McpBridgeService } from "./services/McpBridgeService.js";
+import { PluginHostService } from "./services/PluginHostService.js";
 import { ProjectService } from "./services/ProjectService.js";
 import { SpaceService } from "./services/SpaceService.js";
 import { StorageService } from "./services/StorageService.js";
@@ -36,6 +37,7 @@ import { ArtifactStore } from "./storage/ArtifactStore.js";
 import { createAppTools } from "./tools/appTools.js";
 import { createBrowserTools } from "./tools/browserTools.js";
 import { createFileTools } from "./tools/fileTools.js";
+import { createPluginTools } from "./tools/pluginTools.js";
 import { createProcessTools } from "./tools/processTools.js";
 import { createProjectTools } from "./tools/projectTools.js";
 import { ToolRegistry } from "./tools/registry.js";
@@ -55,6 +57,7 @@ export interface ServiceContainer {
   agents: AgentService;
   mcpBridge: McpBridgeService;
   storage: StorageService;
+  plugins: PluginHostService;
   registry: ToolRegistry;
   socket: ToolSocketService;
   config: MeithConfig;
@@ -93,6 +96,17 @@ export interface BootstrapOptions {
    * omit it and the `app_screenshot` tool reports that no window is available.
    */
   captureAppWindow?: () => Promise<Buffer>;
+  /**
+   * When true, `bootstrap()` does NOT hydrate live browser views before
+   * returning; the caller must call `container.browserTabs.hydrate()` itself.
+   * The Electron main process sets this so hydration runs only AFTER the
+   * container is assigned and IPC handlers are registered — otherwise a
+   * rehydrated plugin tab would create its webContents while the plugin
+   * authority wiring (`container.plugins`) and the identity IPC handler are not
+   * yet available, leaving the plugin without its bridge. Headless callers omit
+   * it and keep the convenient hydrate-on-bootstrap behavior.
+   */
+  deferHydration?: boolean;
 }
 
 /** The `~/.meith` directory and the config + instances paths inside it. */
@@ -236,6 +250,12 @@ export async function bootstrap(
   const files = new WorkspaceFileService(projects, logger, appState);
 
   const registry = new ToolRegistry();
+  // Plugin host (Phase 11). Owns the plugin lifecycle and the security boundary
+  // for the `window.meithPlugin` bridge. It reads tool capabilities lazily from
+  // the registry so capability gating reflects whatever tools are registered.
+  const plugins = new PluginHostService(appState, logger, {
+    describeTools: () => registry.describe(),
+  });
   const deps = {
     appState,
     browserTabs,
@@ -246,6 +266,7 @@ export async function bootstrap(
     files,
     logger,
     storage,
+    plugins,
   };
   registry.registerAll(createBrowserTools(deps));
   registry.registerAll(createSpaceTools(deps));
@@ -259,6 +280,7 @@ export async function bootstrap(
   registry.registerAll(createProjectTools(deps));
   registry.registerAll(createFileTools(deps));
   registry.registerAll(createStorageTools(deps));
+  registry.registerAll(createPluginTools(deps));
 
   // Agent runtime (Phase 9). Durable session/transcript store + user config,
   // an in-process MCP bridge that exposes the SAME registry to an external ACP
@@ -310,8 +332,10 @@ export async function bootstrap(
   logger.info("Bootstrap", `registered instance ${instanceFile}`);
 
   // Recreate live browser views for any tabs restored from persisted state so
-  // focus/navigation/screenshots operate on real views after a restart.
-  await browserTabs.hydrate();
+  // focus/navigation/screenshots operate on real views after a restart. The
+  // Electron entry defers this (see `deferHydration`) so plugin-tab rehydration
+  // happens only after the container + IPC handlers are wired.
+  if (!options.deferHydration) await browserTabs.hydrate();
 
   logger.info("Bootstrap", "service container ready");
 
@@ -355,6 +379,7 @@ export async function bootstrap(
     agents,
     mcpBridge,
     storage,
+    plugins,
     registry,
     socket,
     config,

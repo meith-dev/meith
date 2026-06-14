@@ -1,6 +1,7 @@
 import type { ConsoleLogEntry, ElementBounds, NetworkLogEntry } from "@meith/shared";
 import {
   type BrowserViewHost,
+  type CreateViewOptions,
   ElementNotFoundError,
   type ScrollOptions,
   type ViewBrowserState,
@@ -60,7 +61,7 @@ export class HeadlessBrowserViewHost implements BrowserViewHost {
   private readonly views = new Map<string, HeadlessView>();
   private readonly listeners: ((tabId: string, state: ViewNavState) => void)[] = [];
 
-  createView(tabId: string, url: string): void {
+  createView(tabId: string, url: string, _opts?: CreateViewOptions): void {
     const view: HeadlessView = {
       url,
       title: titleFromUrl(url),

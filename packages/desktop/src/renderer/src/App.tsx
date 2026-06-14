@@ -5,6 +5,7 @@ import { AgentView } from "./components/AgentView";
 import { BrowserArea } from "./components/BrowserArea";
 import { DebugPanel } from "./components/DebugPanel";
 import { EditorView } from "./components/EditorView";
+import { PluginsDialog } from "./components/PluginsDialog";
 import { SpacesRail } from "./components/SpacesRail";
 import { StatusBar } from "./components/StatusBar";
 import { TerminalView } from "./components/TerminalView";
@@ -36,6 +37,7 @@ export function App() {
   const workbench = useWorkbench();
   const { isMock, state, conn, call, bridge } = workbench;
   const [debugOpen, setDebugOpen] = useState(false);
+  const [pluginsOpen, setPluginsOpen] = useState(false);
   const [infoSpaceId, setInfoSpaceId] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -271,8 +273,10 @@ export function App() {
           spaceName={activeSpace?.name ?? null}
           isMock={isMock}
           debugOpen={debugOpen}
+          pluginCount={state?.plugins.filter((p) => p.enabled).length ?? 0}
           onToggleDebug={() => setDebugOpen((v) => !v)}
           onNewTab={newBrowserTab}
+          onOpenPlugins={() => setPluginsOpen(true)}
         />
 
         <div className="flex min-h-0 flex-1">
@@ -349,6 +353,14 @@ export function App() {
             onClose={() => setDebugOpen(false)}
           />
         )}
+
+        <PluginsDialog
+          open={pluginsOpen}
+          onOpenChange={setPluginsOpen}
+          plugins={state?.plugins ?? []}
+          run={run}
+          isMock={isMock}
+        />
 
         <Dialog
           open={Boolean(infoSpace)}

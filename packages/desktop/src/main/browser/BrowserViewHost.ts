@@ -72,9 +72,22 @@ export class ElementNotFoundError extends Error {
  * `BrowserTabService` depends on this interface, never on Electron directly, so
  * `bootstrap()` stays headless-safe.
  */
+/** Options controlling how a view is created. */
+export interface CreateViewOptions {
+  /**
+   * Tab mode. `plugin` tabs receive the permission-gated plugin preload bridge
+   * instead of the standard web-content preload, and report their webContents
+   * id back to the main process so it can authoritatively map the view to a
+   * plugin. Defaults to `web`.
+   */
+  mode?: "web" | "plugin";
+  /** For `plugin` views: the installed plugin id this view hosts. */
+  pluginId?: string;
+}
+
 export interface BrowserViewHost {
   /** Create a live view for a tab and begin loading `url`. */
-  createView(tabId: string, url: string): void | Promise<void>;
+  createView(tabId: string, url: string, opts?: CreateViewOptions): void | Promise<void>;
   /** Navigate an existing view to a new URL. */
   loadURL(tabId: string, url: string): void | Promise<void>;
   /** Destroy the view bound to a tab. */
