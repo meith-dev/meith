@@ -1,6 +1,7 @@
 import { createReadStream } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import path from "node:path";
+import type { ToolDescriptor } from "@meith/protocol";
 import {
   type InstalledPlugin,
   type PluginApiName,
@@ -9,7 +10,6 @@ import {
   PluginManifestSchema,
   type ToolCapability,
 } from "@meith/shared";
-import type { ToolDescriptor } from "@meith/protocol";
 import type { AppStateService } from "./AppStateService.js";
 import type { Logger } from "./Logger.js";
 
@@ -294,7 +294,8 @@ export class PluginHostService {
 
   private requirePlugin(pluginId: string): InstalledPlugin {
     const plugin = this.get(pluginId);
-    if (!plugin) throw new PluginError("NOT_FOUND", `Plugin ${pluginId} is not installed.`);
+    if (!plugin)
+      throw new PluginError("NOT_FOUND", `Plugin ${pluginId} is not installed.`);
     return plugin;
   }
 
@@ -310,7 +311,8 @@ export class PluginHostService {
         result = p;
       }
     }, "plugin_update");
-    if (!result) throw new PluginError("NOT_FOUND", `Plugin ${pluginId} is not installed.`);
+    if (!result)
+      throw new PluginError("NOT_FOUND", `Plugin ${pluginId} is not installed.`);
     return result;
   }
 
@@ -396,7 +398,10 @@ export class PluginHostService {
     // Cheap textual check before touching the filesystem.
     const rel = path.relative(root, joined);
     if (rel.startsWith("..") || path.isAbsolute(rel)) {
-      throw new PluginError("INVALID", `Entry path escapes the plugin directory: ${relPath}`);
+      throw new PluginError(
+        "INVALID",
+        `Entry path escapes the plugin directory: ${relPath}`,
+      );
     }
     const real = await this.realpathOrThrow(joined, "plugin entry");
     // After following symlinks, the target must STILL be inside the root.

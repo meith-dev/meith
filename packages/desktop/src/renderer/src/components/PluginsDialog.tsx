@@ -1,12 +1,3 @@
-import type {
-  InstalledPlugin,
-  PluginApiName,
-  ToolCapability,
-  ToolResult,
-} from "@meith/shared";
-import { Check, ExternalLink, ShieldAlert, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +9,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type {
+  InstalledPlugin,
+  PluginApiName,
+  ToolCapability,
+  ToolResult,
+} from "@meith/shared";
+import { Check, ExternalLink, ShieldAlert, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 /**
  * Plugins manager. Lets the user review the permissions a plugin REQUESTED,
@@ -185,7 +185,9 @@ function PluginDetail({ plugin, run }: { plugin: InstalledPlugin; run: Run }) {
   };
 
   const uninstall = async () => {
-    if (!window.confirm(`Uninstall "${plugin.name}"? Open plugin tabs will stop working.`)) {
+    if (
+      !window.confirm(`Uninstall "${plugin.name}"? Open plugin tabs will stop working.`)
+    ) {
       return;
     }
     setBusy(true);
@@ -207,7 +209,10 @@ function PluginDetail({ plugin, run }: { plugin: InstalledPlugin; run: Run }) {
               {plugin.manifest.description}
             </p>
           )}
-          <p className="mt-1 truncate text-xs text-muted-foreground" title={sourceLabel(plugin)}>
+          <p
+            className="mt-1 truncate text-xs text-muted-foreground"
+            title={sourceLabel(plugin)}
+          >
             {sourceLabel(plugin)}
           </p>
         </div>
@@ -235,9 +240,7 @@ function PluginDetail({ plugin, run }: { plugin: InstalledPlugin; run: Run }) {
                 label={api}
                 description={API_COPY[api]}
                 checked={apis.has(api)}
-                onToggle={() =>
-                  setApis((prev) => toggle(prev, api as PluginApiName))
-                }
+                onToggle={() => setApis((prev) => toggle(prev, api as PluginApiName))}
               />
             ))
           )}
@@ -248,7 +251,9 @@ function PluginDetail({ plugin, run }: { plugin: InstalledPlugin; run: Run }) {
             Tool capabilities
           </h4>
           {requestedCaps.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No tool capabilities requested.</p>
+            <p className="text-sm text-muted-foreground">
+              No tool capabilities requested.
+            </p>
           ) : (
             requestedCaps.map((cap) => (
               <PermissionRow

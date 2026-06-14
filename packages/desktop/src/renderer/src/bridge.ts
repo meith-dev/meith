@@ -291,10 +291,14 @@ function createMockBridge(): MeithBridge {
     desc("project_stop_dev_server", "Stop a project's dev server.", ["starts-process"]),
     desc("list_plugins", "List installed plugins and their grants.", ["read-only"]),
     desc("install_plugin", "Install a plugin from a local directory.", ["destructive"]),
-    desc("approve_plugin_grants", "Approve a subset of a plugin's grants.", ["destructive"]),
+    desc("approve_plugin_grants", "Approve a subset of a plugin's grants.", [
+      "destructive",
+    ]),
     desc("set_plugin_enabled", "Enable or disable a plugin.", ["destructive"]),
     desc("uninstall_plugin", "Uninstall a plugin.", ["destructive"]),
-    desc("open_plugin_tab", "Open a tab hosting an enabled plugin.", ["controls-browser"]),
+    desc("open_plugin_tab", "Open a tab hosting an enabled plugin.", [
+      "controls-browser",
+    ]),
   ];
 
   // Create a project record + its 1:1 space, switch to it, and open an editor

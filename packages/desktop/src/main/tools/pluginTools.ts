@@ -1,11 +1,7 @@
-import {
-  PluginApiNameSchema,
-  ToolCapabilitySchema,
-  ToolError,
-} from "@meith/shared";
+import type { ToolDefinition } from "@meith/protocol";
+import { PluginApiNameSchema, ToolCapabilitySchema, ToolError } from "@meith/shared";
 import { z } from "zod";
 import { PluginError } from "../services/PluginHostService.js";
-import type { ToolDefinition } from "@meith/protocol";
 import type { ToolDeps } from "./deps.js";
 
 /** Map a thrown PluginError onto the registry's error codes. */
@@ -122,7 +118,10 @@ export function createPluginTools(deps: ToolDeps): ToolDefinition[] {
         try {
           const plugin = plugins.get(input.pluginId);
           if (!plugin) {
-            throw new PluginError("NOT_FOUND", `Plugin ${input.pluginId} is not installed.`);
+            throw new PluginError(
+              "NOT_FOUND",
+              `Plugin ${input.pluginId} is not installed.`,
+            );
           }
           if (!plugin.enabled) {
             throw new PluginError(
