@@ -140,6 +140,70 @@ describe("install + manifest validation", () => {
   });
 });
 
+describe("dev-url install", () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  function stubFetch(handler: (url: string) => Response | Promise<Response>): void {
+    globalThis.fetch = ((input: RequestInfo | URL) =>
+      Promise.resolve(handler(String(input)))) as typeof fetch;
+  }
+
+  it("fetches /plugin.json from the dev origin and records a dev-url source", async () => {
+    let requested = "";
+    stubFetch((url) => {
+      requested = url;
+      return new Response(
+        JSON.stringify({
+          kind: "plugin",
+          id: "com.example.dev",
+          name: "Dev",
+          version: "2.0.0",
+          entry: "index.html",
+          permissions: ["read-only"],
+          requestedApis: ["tools"],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    const rec = await host.installFromDevUrl("http://localhost:5180/app");
+    expect(requested).toBe("http://localhost:5180/plugin.json");
+    expect(rec.source).toEqual({ kind: "dev-url", url: "http://localhost:5180/app" });
+    expect(rec.approvedGrants).toEqual({ capabilities: [], apis: [] });
+    expect(rec.enabled).toBe(false);
+    // An enabled dev-url plugin loads its source URL verbatim (no filesystem).
+    host.approveGrants("com.example.dev", { capabilities: [], apis: ["tools"] });
+    host.setEnabled("com.example.dev", true);
+    expect(await host.resolveEntryUrl("com.example.dev")).toBe(
+      "http://localhost:5180/app",
+    );
+  });
+
+  it("rejects a non-http(s) dev URL", async () => {
+    await expect(host.installFromDevUrl("file:///etc/passwd")).rejects.toMatchObject({
+      code: "INVALID",
+    });
+  });
+
+  it("surfaces an unreachable dev server as NOT_FOUND", async () => {
+    stubFetch(() => {
+      throw new Error("ECONNREFUSED");
+    });
+    await expect(host.installFromDevUrl("http://localhost:9/app")).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+  });
+
+  it("rejects an invalid manifest from the dev server", async () => {
+    stubFetch(() => new Response(JSON.stringify({ not: "a manifest" }), { status: 200 }));
+    await expect(host.installFromDevUrl("http://localhost:5180")).rejects.toMatchObject({
+      code: "INVALID",
+    });
+  });
+});
+
 describe("grant approval + enable gating", () => {
   it("never approves more than the manifest requested", async () => {
     const root = writePlugin("com.example.scope", {

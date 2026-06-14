@@ -530,30 +530,30 @@ Acceptance criteria:
 
 Plugins should be web apps running in controlled browser tabs with a privileged preload API.
 
-- [ ] Define plugin manifest:
+- [x] Define plugin manifest:
   - id
   - name
   - version
   - entry URL
   - permissions
   - requested APIs
-- [ ] Add plugin tab mode to browser tab schema.
-- [ ] Create plugin preload exposing a narrow API:
+- [x] Add plugin tab mode to browser tab schema.
+- [x] Create plugin preload exposing a narrow API:
   - `plugin.tools.call(name, input)`
   - `plugin.tools.list()`
   - `plugin.storage.getBrowserTabs()`
   - `plugin.storage.getWorkspaceTabs()`
   - `plugin.cdp.*` only if permissioned
   - `plugin.ai.streamText()` only after agent/model runtime exists
-- [ ] Ensure plugin tabs do not accidentally target themselves in browser automation lists unless explicitly requested.
-- [ ] Add permission checks for plugin tool calls.
-- [ ] Add plugin dev template under `templates/plugin-basic`.
-- [ ] Add plugin installation/loading flow:
-  - local directory
-  - dev server URL
-  - packaged plugin
-- [ ] Add plugin management UI.
-- [ ] Add tests proving normal browser tabs do not receive plugin APIs.
+- [x] Ensure plugin tabs do not accidentally target themselves in browser automation lists unless explicitly requested.
+- [x] Add permission checks for plugin tool calls.
+- [x] Add plugin dev template under `templates/plugin-basic`.
+- [~] Add plugin installation/loading flow:
+  - [x] local directory
+  - [x] dev server URL
+  - [ ] packaged plugin (deferred to packaging phase)
+- [x] Add plugin management UI.
+- [x] Add tests proving normal browser tabs do not receive plugin APIs.
 
 Acceptance criteria:
 

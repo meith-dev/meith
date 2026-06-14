@@ -84,25 +84,52 @@ export class PluginHostService {
     const manifest = await this.readManifest(root);
     // Containment: the entry must resolve to a real file inside the root.
     await this.assertContainedFile(root, manifest.entry);
+    return this.upsertRecord(manifest, { kind: "local-dir", path: root }, root);
+  }
 
+  /**
+   * Install (or re-install) a plugin served by a dev server. The manifest is
+   * fetched from `<url>/plugin.json`; the dev URL itself is what a plugin tab
+   * loads (no filesystem containment applies). Like directory installs, the
+   * plugin starts disabled with no approved grants.
+   */
+  async installFromDevUrl(url: string): Promise<InstalledPlugin> {
+    let base: URL;
+    try {
+      base = new URL(url);
+    } catch {
+      throw new PluginError("INVALID", `Invalid dev server URL: ${url}`);
+    }
+    if (base.protocol !== "http:" && base.protocol !== "https:") {
+      throw new PluginError("INVALID", "Dev server URL must be http(s).");
+    }
+    const manifest = await this.fetchManifest(new URL("plugin.json", base).toString());
+    // Persist the normalized origin+path so resolveEntryUrl loads it verbatim.
+    return this.upsertRecord(manifest, { kind: "dev-url", url: base.toString() }, url);
+  }
+
+  /** Build + persist an installed-plugin record, preserving compatible approvals. */
+  private upsertRecord(
+    manifest: PluginManifest,
+    source: InstalledPlugin["source"],
+    origin: string,
+  ): InstalledPlugin {
     const existing = this.get(manifest.id);
+    const requestedGrants = {
+      capabilities: manifest.permissions,
+      apis: manifest.requestedApis,
+    };
     const record: InstalledPlugin = {
       id: manifest.id,
       name: manifest.name,
       version: manifest.version,
-      source: { kind: "local-dir", path: root },
+      source,
       manifest,
-      requestedGrants: {
-        capabilities: manifest.permissions,
-        apis: manifest.requestedApis,
-      },
-      // Re-installing preserves prior approvals only if the request is a subset;
-      // otherwise approvals reset so newly-requested scopes are re-reviewed.
+      requestedGrants,
+      // Re-installing preserves prior approvals only if still a subset of the
+      // (possibly changed) request; otherwise approvals reset for re-review.
       approvedGrants: existing
-        ? this.intersectGrants(existing.approvedGrants, {
-            capabilities: manifest.permissions,
-            apis: manifest.requestedApis,
-          })
+        ? this.intersectGrants(existing.approvedGrants, requestedGrants)
         : { capabilities: [], apis: [] },
       enabled: false,
       installedAt: existing?.installedAt ?? Date.now(),
@@ -113,7 +140,7 @@ export class PluginHostService {
       if (idx >= 0) draft.plugins[idx] = record;
       else draft.plugins.push(record);
     }, "plugin_install");
-    this.logger.info("Plugins", `installed ${record.id} from ${root}`);
+    this.logger.info("Plugins", `installed ${record.id} from ${origin}`);
     return record;
   }
 
@@ -351,6 +378,39 @@ export class PluginHostService {
       "INVALID",
       "No plugin manifest found (expected plugin.json or a `meith` field in package.json).",
     );
+  }
+
+  /** Fetch + validate a manifest from a dev server URL. */
+  private async fetchManifest(manifestUrl: string): Promise<PluginManifest> {
+    let res: Response;
+    try {
+      res = await fetch(manifestUrl, { headers: { accept: "application/json" } });
+    } catch (err) {
+      throw new PluginError(
+        "NOT_FOUND",
+        `Could not reach dev server manifest at ${manifestUrl}: ${(err as Error).message}`,
+      );
+    }
+    if (!res.ok) {
+      throw new PluginError(
+        "NOT_FOUND",
+        `Dev server returned ${res.status} for ${manifestUrl} (expected plugin.json).`,
+      );
+    }
+    let json: unknown;
+    try {
+      json = await res.json();
+    } catch {
+      throw new PluginError("INVALID", `Malformed JSON manifest at ${manifestUrl}.`);
+    }
+    const parsed = PluginManifestSchema.safeParse(json);
+    if (!parsed.success) {
+      throw new PluginError(
+        "INVALID",
+        `Invalid plugin manifest at ${manifestUrl}: ${parsed.error.message}`,
+      );
+    }
+    return parsed.data;
   }
 
   private async readJsonIfExists(file: string): Promise<unknown | undefined> {

@@ -38,14 +38,31 @@ export function createPluginTools(deps: ToolDeps): ToolDefinition[] {
     {
       name: "install_plugin",
       description:
-        "Install (or re-install) a plugin from a local directory containing a plugin manifest. The plugin starts disabled with no approved grants.",
+        "Install (or re-install) a plugin from a local directory OR a running dev server URL. Provide exactly one of `directory` or `devUrl`. The plugin starts disabled with no approved grants.",
       capabilities: ["destructive"],
-      inputSchema: z.object({
-        directory: z.string().describe("Absolute path to the plugin directory."),
-      }),
+      inputSchema: z
+        .object({
+          directory: z
+            .string()
+            .optional()
+            .describe("Absolute path to a directory containing the plugin manifest."),
+          devUrl: z
+            .string()
+            .url()
+            .optional()
+            .describe(
+              "Dev server origin serving the plugin (manifest read from /plugin.json).",
+            ),
+        })
+        .refine((v) => Boolean(v.directory) !== Boolean(v.devUrl), {
+          message: "Provide exactly one of `directory` or `devUrl`.",
+        }),
       execute: async (_ctx, input) => {
         try {
-          return { plugin: await plugins.installFromDirectory(input.directory) };
+          const plugin = input.devUrl
+            ? await plugins.installFromDevUrl(input.devUrl)
+            : await plugins.installFromDirectory(input.directory as string);
+          return { plugin };
         } catch (err) {
           rethrowAsToolError(err);
         }
