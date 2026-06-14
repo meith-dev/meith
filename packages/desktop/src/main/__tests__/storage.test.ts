@@ -195,6 +195,7 @@ describe("AppStateService persistence", () => {
         active: true,
         createdAt: Date.now(),
         loadState: "idle",
+        mode: "web",
         canGoBack: false,
         canGoForward: false,
         ownerId: null,

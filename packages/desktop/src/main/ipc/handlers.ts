@@ -177,7 +177,7 @@ export function registerIpcHandlers(
   // (`event.sender.id`) via PluginHostService, never from anything the plugin
   // page sends. Unknown senders / unapproved APIs / disallowed tool
   // capabilities are rejected before any service is touched.
-  registerPluginHandlers(container, getWindow);
+  registerPluginHandlers(container);
 
   // Push state changes and new log entries to the renderer.
   container.appState.on("change", (state) => {
@@ -205,10 +205,7 @@ export function registerIpcHandlers(
  * `event.sender.id` via `container.plugins`; nothing the page sends is trusted
  * for identity or grants.
  */
-function registerPluginHandlers(
-  container: ServiceContainer,
-  getWindow: () => BrowserWindow | null,
-): void {
+function registerPluginHandlers(container: ServiceContainer): void {
   const { plugins, registry } = container;
 
   // Synchronous identity resolution at preload init. Returns ONLY approved
