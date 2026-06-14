@@ -754,7 +754,10 @@ export type PluginApiName = z.infer<typeof PluginApiNameSchema>;
 export const PluginIdSchema = z
   .string()
   .min(3)
-  .regex(/^[a-z0-9]+(?:[._-][a-z0-9]+)+$/i, "must be a dotted identifier like com.example.plugin");
+  .regex(
+    /^[a-z0-9]+(?:[._-][a-z0-9]+)+$/i,
+    "must be a dotted identifier like com.example.plugin",
+  );
 
 /**
  * The plugin's manifest, declared either as the `meith` field of its

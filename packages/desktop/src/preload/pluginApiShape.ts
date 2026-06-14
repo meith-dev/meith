@@ -1,7 +1,7 @@
 import type {
-  MeithPluginApi,
   MeithPluginAiStreamOptions,
   MeithPluginAiStreamResult,
+  MeithPluginApi,
   MeithPluginIdentity,
   ToolDescriptor,
 } from "@meith/protocol";

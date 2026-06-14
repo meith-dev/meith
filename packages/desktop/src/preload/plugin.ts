@@ -6,7 +6,7 @@ import type {
 } from "@meith/protocol";
 import type { BrowserTab, ToolResult, WorkspaceTab } from "@meith/shared";
 import { contextBridge, ipcRenderer } from "electron";
-import { buildPluginApiShape, type PluginApiTransport } from "./pluginApiShape.js";
+import { type PluginApiTransport, buildPluginApiShape } from "./pluginApiShape.js";
 
 /**
  * Preload for meith PLUGIN tabs (mode: "plugin").
@@ -52,8 +52,7 @@ const transport: PluginApiTransport = {
     ipcRenderer.invoke(IPC.storageWorkspaceTabs) as Promise<WorkspaceTab[]>,
   cdpSend: (tabId, method, params) =>
     ipcRenderer.invoke(IPC.cdp, tabId, method, params) as Promise<ToolResult>,
-  aiStreamText: (options: MeithPluginAiStreamOptions) =>
-    streamText(options),
+  aiStreamText: (options: MeithPluginAiStreamOptions) => streamText(options),
 };
 
 /**
@@ -111,7 +110,8 @@ function streamText(
 
 // Resolve identity synchronously at preload init. Main returns null for any
 // webContents it does not recognize as an enabled plugin.
-const identity = (ipcRenderer.sendSync(IPC.identity) ?? null) as MeithPluginIdentity | null;
+const identity = (ipcRenderer.sendSync(IPC.identity) ??
+  null) as MeithPluginIdentity | null;
 
 const api = buildPluginApiShape(identity, transport);
 

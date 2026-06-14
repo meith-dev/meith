@@ -134,6 +134,12 @@ app.whenReady().then(async () => {
   container = await bootstrap(app.getPath("userData"), {
     browserViewHost: viewHost,
     ptyHost,
+    // Defer browser-tab hydration until AFTER the container is assigned and IPC
+    // handlers are registered (below). A rehydrated plugin tab synchronously
+    // creates its webContents and fires `onPluginWebContents`, which needs a
+    // non-null `container.plugins`; its preload also needs the identity IPC
+    // handler to exist. Hydrating inside bootstrap would race both.
+    deferHydration: true,
     appVersion: app.getVersion(),
     // Capture the main window for `meith app screenshot` / the app_screenshot
     // tool. Returns the PNG bytes from the live web contents.
@@ -145,6 +151,11 @@ app.whenReady().then(async () => {
   });
   registerArtifactProtocol(container.config.userDataPath);
   registerIpcHandlers(container, () => mainWindow);
+
+  // Now that the container is assigned and IPC handlers (including the plugin
+  // identity channel) are registered, recreate live views for persisted tabs.
+  // Plugin tabs registered here resolve their authority and bridge correctly.
+  await container.browserTabs.hydrate();
 
   // Viewport contract: the renderer reports the measured browser content
   // region; resize the native view to match instead of using a fixed inset.

@@ -96,6 +96,17 @@ export interface BootstrapOptions {
    * omit it and the `app_screenshot` tool reports that no window is available.
    */
   captureAppWindow?: () => Promise<Buffer>;
+  /**
+   * When true, `bootstrap()` does NOT hydrate live browser views before
+   * returning; the caller must call `container.browserTabs.hydrate()` itself.
+   * The Electron main process sets this so hydration runs only AFTER the
+   * container is assigned and IPC handlers are registered — otherwise a
+   * rehydrated plugin tab would create its webContents while the plugin
+   * authority wiring (`container.plugins`) and the identity IPC handler are not
+   * yet available, leaving the plugin without its bridge. Headless callers omit
+   * it and keep the convenient hydrate-on-bootstrap behavior.
+   */
+  deferHydration?: boolean;
 }
 
 /** The `~/.meith` directory and the config + instances paths inside it. */
@@ -321,8 +332,10 @@ export async function bootstrap(
   logger.info("Bootstrap", `registered instance ${instanceFile}`);
 
   // Recreate live browser views for any tabs restored from persisted state so
-  // focus/navigation/screenshots operate on real views after a restart.
-  await browserTabs.hydrate();
+  // focus/navigation/screenshots operate on real views after a restart. The
+  // Electron entry defers this (see `deferHydration`) so plugin-tab rehydration
+  // happens only after the container + IPC handlers are wired.
+  if (!options.deferHydration) await browserTabs.hydrate();
 
   logger.info("Bootstrap", "service container ready");
 

@@ -11,6 +11,7 @@ import {
   type ViewCapture,
   type ViewNavState,
 } from "./BrowserViewHost.js";
+import { type PluginScope, navInPluginScope, pluginScopeFor } from "./pluginScope.js";
 
 /** Cap per-tab diagnostics buffers so long-lived tabs don't grow unbounded. */
 const MAX_LOG = 1000;
@@ -70,8 +71,8 @@ interface ManagedView {
   netByRequestId: Map<string, NetworkLogEntry>;
   /** Element ids assigned during the last `getBrowserState` extraction. */
   knownElementIds: Set<string>;
-  /** For plugin views: the plugin id and the origin its authority is bound to. */
-  plugin?: { pluginId: string; origin: string; webContentsId: number; live: boolean };
+  /** For plugin views: the plugin id and the scope its authority is bound to. */
+  plugin?: { pluginId: string; scope: PluginScope; webContentsId: number; live: boolean };
 }
 
 /**
@@ -138,7 +139,7 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
       const webContentsId = view.webContents.id;
       managed.plugin = {
         pluginId: opts!.pluginId!,
-        origin: originOf(url),
+        scope: pluginScopeFor(url),
         webContentsId,
         live: true,
       };
@@ -375,15 +376,23 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
     };
     wc.on("did-start-loading", () => sync({ loadState: "loading" }));
     wc.on("did-stop-loading", () => sync({ loadState: "complete" }));
-    // Plugin authority is bound to the entry origin. If the view navigates to a
-    // different origin, revoke it so the plugin bridge can't follow the page
-    // off-origin. (The preload only attaches on initial load, but revoking keeps
-    // the main-process mapping accurate for any IPC the old context may attempt.)
-    wc.on("did-navigate", (_e, navUrl) => {
-      if (managed.plugin?.live && originOf(navUrl) !== managed.plugin.origin) {
+    // Plugin authority is bound to a scope (entry origin, or entry file realpath
+    // for file:// plugins). If the view navigates out of scope, revoke authority
+    // so the plugin bridge can't follow the page elsewhere. `will-navigate` fires
+    // BEFORE the new document commits, so the webContents->plugin mapping is gone
+    // before the new context could request identity; `did-navigate` is a
+    // post-commit backstop for navigations that skip `will-navigate` (e.g.
+    // redirects). Revocation is permanent for the view (never re-granted), which
+    // is the conservative posture. `loadURL` (the initial load) does not fire
+    // `will-navigate`, and the initial `did-navigate` is in-scope, so neither
+    // spuriously revokes.
+    const revokeIfOutOfScope = (navUrl: string) => {
+      if (managed.plugin?.live && !navInPluginScope(managed.plugin.scope, navUrl)) {
         this.revokePluginAuthority(tabId, managed);
       }
-    });
+    };
+    wc.on("will-navigate", (_e, navUrl) => revokeIfOutOfScope(navUrl));
+    wc.on("did-navigate", (_e, navUrl) => revokeIfOutOfScope(navUrl));
     wc.on("render-process-gone", () => this.revokePluginAuthority(tabId, managed));
     wc.on("did-fail-load", (_e, code) => {
       // Ignore aborts (-3) caused by normal in-page navigation.
@@ -531,15 +540,6 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
 
   private emitNav(tabId: string, managed: ManagedView): void {
     this.emit("nav", tabId, { ...managed.nav });
-  }
-}
-
-/** Best-effort origin of a URL; falls back to the trimmed string. */
-function originOf(url: string): string {
-  try {
-    return new URL(url).origin;
-  } catch {
-    return url.replace(/\/+$/, "");
   }
 }
 

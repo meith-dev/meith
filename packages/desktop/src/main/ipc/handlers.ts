@@ -292,16 +292,26 @@ function registerPluginHandlers(container: ServiceContainer): void {
   ipcMain.handle(
     IPC.pluginCdp,
     (event, tabId: string, method: string, params: Record<string, unknown>) => {
+      let resolved: ReturnType<typeof plugins.assertToolAllowed>;
       try {
         // CDP is browser control; require both the `cdp` API and the matching
         // capability on the underlying tool.
         plugins.assertApiAllowed(event.sender.id, "cdp");
-        plugins.assertToolAllowed(event.sender.id, "cdp_command");
+        resolved = plugins.assertToolAllowed(event.sender.id, "cdp_command");
       } catch (err) {
         return pluginErrorResult(err);
       }
+      // Stamp the SAME authoritative owner the `tools.call` path uses
+      // (`plugin:<id>`). Without it the owner would default to the bare caller
+      // ("plugin"), so a tab the plugin claimed via `browser_use_start` (owned
+      // by `plugin:<id>`) would reject a direct CDP command as a different owner.
       return registry.call(
-        { cwd: process.cwd(), caller: "plugin", tabId },
+        {
+          cwd: process.cwd(),
+          caller: "plugin",
+          sessionId: `plugin:${resolved.pluginId}`,
+          tabId,
+        },
         "cdp_command",
         { tabId, method, params },
       );

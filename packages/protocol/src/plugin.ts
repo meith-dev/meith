@@ -71,7 +71,11 @@ export interface MeithPluginStorageApi {
 
 /** The `cdp` namespace: raw Chrome DevTools Protocol against a tab. */
 export interface MeithPluginCdpApi {
-  send(tabId: string, method: string, params?: Record<string, unknown>): Promise<ToolResult>;
+  send(
+    tabId: string,
+    method: string,
+    params?: Record<string, unknown>,
+  ): Promise<ToolResult>;
 }
 
 /** The `ai` namespace: stream text through the agent runtime. */
