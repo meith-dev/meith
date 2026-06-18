@@ -83,12 +83,15 @@ export function useAgent(
         bridge.agent.getConfig(),
       ]);
       if (cancelled) return;
-      setSessions(metas);
+      // Filter sessions to only show those belonging to the current workspace
+      const { spaceId } = defaultsRef.current;
+      const filteredMetas = metas.filter((meta) => meta.spaceId === spaceId);
+      setSessions(filteredMetas);
       setConfig(cfg);
-      if (metas.length > 0) {
-        const full = await bridge.agent.getSession(metas[0].id);
+      if (filteredMetas.length > 0) {
+        const full = await bridge.agent.getSession(filteredMetas[0].id);
         if (cancelled) return;
-        setActiveId(metas[0].id);
+        setActiveId(filteredMetas[0].id);
         setSession(full);
       } else {
         const { cwd, spaceId } = defaultsRef.current;
@@ -138,9 +141,12 @@ export function useAgent(
       }
     });
     const offSession = bridge.agent.onSession((meta) => {
-      setSessions((prev) => upsertMeta(prev, meta));
-      if (meta.id === activeIdRef.current) {
-        setSession((prev) => (prev ? { ...prev, ...meta } : prev));
+      // Only update sessions that belong to the current workspace
+      if (meta.spaceId === defaultsRef.current.spaceId) {
+        setSessions((prev) => upsertMeta(prev, meta));
+        if (meta.id === activeIdRef.current) {
+          setSession((prev) => (prev ? { ...prev, ...meta } : prev));
+        }
       }
     });
     const offPermission = bridge.agent.onPermission((req) => {
