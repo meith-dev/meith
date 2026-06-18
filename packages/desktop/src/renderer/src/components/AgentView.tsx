@@ -1,19 +1,21 @@
 import type { WorkspaceTab } from "@meith/shared";
 import {
   BotIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   PlusIcon,
   SendIcon,
-  Settings2Icon,
   SquareIcon,
   Trash2Icon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { MeithBridge } from "../../../bridge.js";
 import { useAgent } from "../hooks/useAgent";
-import { AgentConfigDialog } from "./AgentConfigDialog";
+import { useResizable } from "../hooks/useResizable";
 import { AgentMessageList } from "./AgentMessageList";
 import { AgentPermissionCard } from "./AgentPermissionCard";
 import { Button } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface AgentViewProps {
   tab: WorkspaceTab;
@@ -28,7 +30,14 @@ export function AgentView({ tab, bridge }: AgentViewProps) {
   );
   const agent = useAgent(bridge, defaults);
   const [draft, setDraft] = useState("");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sessionsCollapsed, setSessionsCollapsed] = useState(false);
+  const sidebar = useResizable({
+    initial: 224,
+    min: 180,
+    max: 360,
+    axis: "x",
+    storageKey: "meith.agentSessionsWidth",
+  });
 
   const running = agent.session?.status === "running";
 
@@ -40,91 +49,135 @@ export function AgentView({ tab, bridge }: AgentViewProps) {
   };
 
   return (
-    <div className="flex h-full w-full bg-background">
-      {/* Session sidebar */}
-      <aside className="flex w-56 shrink-0 flex-col border-r border-border">
-        <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Sessions
-          </span>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="size-7"
-            onClick={() => void agent.createSession()}
-            aria-label="New session"
-          >
-            <PlusIcon className="size-4" aria-hidden />
-          </Button>
+    <div className="flex h-full w-full min-w-0 overflow-hidden bg-background">
+      {/* Session sidebar (collapsible + resizable) */}
+      {sessionsCollapsed ? (
+        <div className="flex shrink-0 flex-col items-center gap-1 border-r border-border py-2">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-7"
+                  onClick={() => setSessionsCollapsed(false)}
+                  aria-label="Show sessions"
+                >
+                  <PanelLeftOpenIcon className="size-4" aria-hidden />
+                </Button>
+              }
+            />
+            <TooltipContent side="right">Show sessions</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-7"
+                  onClick={() => void agent.createSession()}
+                  aria-label="New session"
+                >
+                  <PlusIcon className="size-4" aria-hidden />
+                </Button>
+              }
+            />
+            <TooltipContent side="right">New session</TooltipContent>
+          </Tooltip>
         </div>
-        <div className="flex-1 overflow-y-auto px-2 pb-2">
-          {agent.sessions.length === 0 && (
-            <p className="px-2 py-4 text-xs text-muted-foreground">No sessions yet.</p>
-          )}
-          {agent.sessions.map((s) => {
-            const active = s.id === agent.activeId;
-            return (
-              <div
-                key={s.id}
-                className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
-                  active
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground hover:bg-accent/50"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => void agent.selectSession(s.id)}
-                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+      ) : (
+        <>
+          <aside className="flex shrink-0 flex-col" style={{ width: sidebar.size }}>
+            <div className="flex items-center justify-between gap-1 px-3 py-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Sessions
+              </span>
+              <div className="flex items-center gap-0.5">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-7"
+                  onClick={() => void agent.createSession()}
+                  aria-label="New session"
                 >
-                  <BotIcon
-                    className="size-3.5 shrink-0 text-muted-foreground"
-                    aria-hidden
+                  <PlusIcon className="size-4" aria-hidden />
+                </Button>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-7"
+                        onClick={() => setSessionsCollapsed(true)}
+                        aria-label="Collapse sessions"
+                      >
+                        <PanelLeftCloseIcon className="size-4" aria-hidden />
+                      </Button>
+                    }
                   />
-                  <span className="flex-1 truncate">{s.title}</span>
-                </button>
-                <button
-                  type="button"
-                  aria-label="Delete session"
-                  onClick={() => void agent.deleteSession(s.id)}
-                  className="opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <Trash2Icon
-                    className="size-3.5 text-muted-foreground hover:text-destructive"
-                    aria-hidden
-                  />
-                </button>
+                  <TooltipContent>Collapse sessions</TooltipContent>
+                </Tooltip>
               </div>
-            );
-          })}
-        </div>
-      </aside>
+            </div>
+            <div className="flex-1 overflow-y-auto px-2 pb-2">
+              {agent.sessions.length === 0 && (
+                <p className="px-2 py-4 text-xs text-muted-foreground">
+                  No sessions yet.
+                </p>
+              )}
+              {agent.sessions.map((s) => {
+                const active = s.id === agent.activeId;
+                return (
+                  <div
+                    key={s.id}
+                    className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
+                      active
+                        ? "bg-accent text-accent-foreground"
+                        : "text-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => void agent.selectSession(s.id)}
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    >
+                      <BotIcon
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
+                      <span className="flex-1 truncate">{s.title}</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Delete session"
+                      onClick={() => void agent.deleteSession(s.id)}
+                      className="opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <Trash2Icon
+                        className="size-3.5 text-muted-foreground hover:text-destructive"
+                        aria-hidden
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+          {/* Resize handle */}
+          <button
+            type="button"
+            aria-label="Resize sessions sidebar"
+            onPointerDown={sidebar.onPointerDown}
+            className="w-1 shrink-0 cursor-col-resize border-r border-border bg-transparent transition-colors hover:bg-primary/40 focus-visible:bg-primary/40 focus-visible:outline-none"
+          />
+        </>
+      )}
 
       {/* Chat column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 border-b border-border px-4 py-2">
-          <BotIcon className="size-4 text-muted-foreground" aria-hidden />
-          <span className="truncate text-sm font-medium">
-            {agent.session?.title ?? "Agent"}
-          </span>
-          {agent.config && (
-            <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-              {agent.config.adapter}
-              {agent.config.autoAccept ? " · auto-accept" : ""}
-            </span>
-          )}
-          <Button
-            size="icon"
-            variant="ghost"
-            className="ml-auto size-7"
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Agent settings"
-          >
-            <Settings2Icon className="size-4" aria-hidden />
-          </Button>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
           {agent.session ? (
             <AgentMessageList session={agent.session} streaming={agent.streaming} />
           ) : (
@@ -189,15 +242,6 @@ export function AgentView({ tab, bridge }: AgentViewProps) {
           </div>
         </div>
       </div>
-
-      {agent.config && (
-        <AgentConfigDialog
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-          config={agent.config}
-          onSave={(patch) => agent.saveConfig(patch)}
-        />
-      )}
     </div>
   );
 }

@@ -227,7 +227,7 @@ describe("socket integration", () => {
     const result = await client.callTool("app_get_state", {});
     expect(result.ok).toBe(true);
     const state = result.content as { version: number; browserTabs: unknown[] };
-    expect(state.version).toBe(3);
+    expect(state.version).toBe(4);
     expect(Array.isArray(state.browserTabs)).toBe(true);
   });
 
@@ -488,8 +488,8 @@ describe("socket integration", () => {
       dataDirectory: string;
       state: { version: number };
     };
-    expect(snapshot.stateVersion).toBe(3);
-    expect(snapshot.state.version).toBe(3);
+    expect(snapshot.stateVersion).toBe(4);
+    expect(snapshot.state.version).toBe(4);
   });
 });
 

@@ -18,6 +18,18 @@ export const WORKSPACE_KINDS: Record<
   preview: { icon: MonitorIcon, label: "Preview" },
 };
 
+/**
+ * Maps each workspace kind to a stable overlay icon name (see
+ * `overlay/icons.ts`). Used when a menu must cross the IPC boundary to the
+ * overlay window, which can't carry React component references.
+ */
+export const WORKSPACE_ICON_NAME: Record<WorkspaceTab["kind"], string> = {
+  editor: "editor",
+  terminal: "terminal",
+  agent: "agent",
+  preview: "preview",
+};
+
 /** Strip a filesystem path down to its last segment for compact display. */
 export function basename(path: string): string {
   const parts = path.replace(/[/\\]+$/, "").split(/[/\\]/);

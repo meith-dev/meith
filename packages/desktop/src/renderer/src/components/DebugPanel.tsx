@@ -2,46 +2,81 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { DevServers } from "@/hooks/useDevServers";
 import type { Workbench } from "@/hooks/useWorkbench";
 import { cn } from "@/lib/utils";
 import type { ToolDescriptor } from "@meith/protocol";
-import type { AppState, LogEntry } from "@meith/shared";
+import type { AppState, DevServer, LogEntry } from "@meith/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+export type DebugTab = "output" | "tools" | "state" | "logs";
 
 interface DebugPanelProps {
   workbench: Workbench;
   state: AppState | null;
   onClose: () => void;
+  /** Live dev-server state for the Output tab. */
+  devServers: DevServers;
+  /** cwd of the active project, to default the Output filter. */
+  activeProjectCwd?: string;
+  /** Controlled active tab. */
+  tab: DebugTab;
+  onTabChange: (tab: DebugTab) => void;
 }
 
 /**
- * Bottom diagnostics drawer. Consolidates the developer surfaces from the
- * scaffold (tool runner, raw state, logs) into a single tabbed panel that sits
- * under the workbench and can be toggled with Cmd/Ctrl+J.
+ * Bottom diagnostics drawer. Consolidates run output, the tool runner, raw
+ * state, and logs into a single tabbed panel that sits under the workbench and
+ * can be toggled with Cmd/Ctrl+J.
  */
-export function DebugPanel({ workbench, state, onClose }: DebugPanelProps) {
+export function DebugPanel({
+  workbench,
+  state,
+  onClose,
+  devServers,
+  activeProjectCwd,
+  tab,
+  onTabChange,
+}: DebugPanelProps) {
+  const runningCount = devServers.runningServers.length;
+
   return (
     <section
       aria-label="Diagnostics"
-      className="flex h-72 shrink-0 flex-col overflow-hidden border-t border-border bg-card"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-card"
     >
-      <Tabs defaultValue="tools" className="flex min-h-0 flex-1 flex-col gap-0">
-        <div className="flex items-center justify-between border-b border-border px-2">
-          <TabsList className="bg-transparent">
-            <TabsTrigger value="tools">Tools</TabsTrigger>
-            <TabsTrigger value="state">State</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => onTabChange(v as DebugTab)}
+        className="flex min-h-0 min-w-0 flex-1 flex-col gap-0"
+      >
+        <div className="flex h-10 min-w-0 shrink-0 items-stretch justify-between border-b border-border">
+          <TabsList className="h-full min-w-0 gap-0 rounded-none bg-transparent p-0 group-data-horizontal/tabs:h-full">
+            <DiagTab value="output">
+              Output
+              {runningCount > 0 && (
+                <span className="flex size-1.5 rounded-full bg-primary" aria-hidden />
+              )}
+            </DiagTab>
+            <DiagTab value="tools">Tools</DiagTab>
+            <DiagTab value="state">State</DiagTab>
+            <DiagTab value="logs">Logs</DiagTab>
           </TabsList>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="text-muted-foreground"
-          >
-            Close
-          </Button>
+          <div className="flex shrink-0 items-center px-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="shrink-0 text-muted-foreground"
+            >
+              Close
+            </Button>
+          </div>
         </div>
 
+        <TabsContent value="output" className="min-h-0 flex-1">
+          <OutputView devServers={devServers} activeProjectCwd={activeProjectCwd} />
+        </TabsContent>
         <TabsContent value="tools" className="min-h-0 flex-1">
           <ToolRunner workbench={workbench} />
         </TabsContent>
@@ -53,6 +88,158 @@ export function DebugPanel({ workbench, state, onClose }: DebugPanelProps) {
         </TabsContent>
       </Tabs>
     </section>
+  );
+}
+
+/**
+ * Diagnostics tab trigger styled to match the workbench TabStrip: a flat,
+ * full-height cell with a right divider, a `bg-background` fill when active, and
+ * a top accent strip — instead of the default rounded pill.
+ */
+function DiagTab({ value, children }: { value: string; children: React.ReactNode }) {
+  return (
+    <TabsTrigger
+      value={value}
+      className={cn(
+        "relative h-full flex-none gap-1.5 rounded-none border-0 border-r border-border px-4 text-sm font-normal text-muted-foreground transition-colors",
+        "hover:bg-accent/40 hover:text-foreground",
+        "data-active:bg-background data-active:text-foreground data-active:shadow-none",
+        "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-transparent data-active:before:bg-primary",
+      )}
+    >
+      {children}
+    </TabsTrigger>
+  );
+}
+
+// --- Output (run logs) -----------------------------------------------------
+
+function OutputView({
+  devServers,
+  activeProjectCwd,
+}: {
+  devServers: DevServers;
+  activeProjectCwd?: string;
+}) {
+  const { servers, logsForServer } = devServers;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  // Default the selection to a server in the active project, else the first.
+  const resolvedId = useMemo(() => {
+    if (selectedId && servers.some((s) => s.id === selectedId)) return selectedId;
+    const inProject = servers.find((s) => s.cwd === activeProjectCwd);
+    return inProject?.id ?? servers[0]?.id ?? null;
+  }, [selectedId, servers, activeProjectCwd]);
+
+  const current = servers.find((s) => s.id === resolvedId) ?? null;
+  const entries = resolvedId ? logsForServer(resolvedId) : [];
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "end" });
+  }, [entries.length, resolvedId]);
+
+  if (servers.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
+        Nothing running. Use the Run button in the workspace panel to start a command.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid h-full min-h-0 grid-cols-[200px_minmax(0,1fr)] grid-rows-1">
+      <ScrollArea className="h-full min-h-0 border-r border-border">
+        <ul className="flex flex-col gap-0.5 p-2">
+          {servers.map((s) => {
+            const live = s.status === "running" || s.status === "starting";
+            return (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(s.id)}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs",
+                    s.id === resolvedId
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "size-1.5 shrink-0 rounded-full",
+                      live ? "bg-primary" : "bg-muted-foreground/40",
+                    )}
+                  />
+                  <span className="min-w-0 flex-1 truncate font-mono">{s.name}</span>
+                  {s.port != null && (
+                    <span className="shrink-0 font-mono text-[10px] text-primary">
+                      :{s.port}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </ScrollArea>
+
+      <div className="flex min-h-0 min-w-0 flex-col">
+        {current && (
+          <div className="flex min-w-0 items-center gap-2 border-b border-border px-3 py-1.5 text-xs">
+            <StatusBadge server={current} />
+            <span className="min-w-0 truncate font-mono text-muted-foreground">
+              {current.command}
+              {current.args.length > 0 ? ` ${current.args.join(" ")}` : ""}
+            </span>
+          </div>
+        )}
+        <ScrollArea className="h-full min-h-0">
+          <div className="flex flex-col gap-0.5 p-3 font-mono text-xs" role="log">
+            {entries.length === 0 ? (
+              <p className="text-muted-foreground">Waiting for output…</p>
+            ) : (
+              entries.map((e) => (
+                <div key={e.seq} className="flex gap-2">
+                  <span className="shrink-0 text-muted-foreground/60">
+                    {formatTime(e.ts)}
+                  </span>
+                  <span
+                    className={cn(
+                      "min-w-0 whitespace-pre-wrap break-words",
+                      e.stream === "stderr" ? "text-destructive" : "text-foreground",
+                      e.stream === "system" && "text-muted-foreground italic",
+                    )}
+                  >
+                    {e.text}
+                  </span>
+                </div>
+              ))
+            )}
+            <div ref={endRef} />
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ server }: { server: DevServer }) {
+  const map: Record<
+    DevServer["status"],
+    { label: string; variant: "default" | "secondary" | "destructive" }
+  > = {
+    starting: { label: "starting", variant: "secondary" },
+    running: { label: "running", variant: "default" },
+    exited: { label: "exited", variant: "secondary" },
+    errored: { label: "errored", variant: "destructive" },
+    stopped: { label: "stopped", variant: "secondary" },
+  };
+  const { label, variant } = map[server.status] ?? map.stopped;
+  return (
+    <Badge variant={variant} className="shrink-0 text-[10px]">
+      {label}
+    </Badge>
   );
 }
 
@@ -104,7 +291,7 @@ function ToolRunner({ workbench }: { workbench: Workbench }) {
   }
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-[220px_1fr] grid-rows-1">
+    <div className="grid h-full min-h-0 grid-cols-[220px_minmax(0,1fr)] grid-rows-1">
       <ScrollArea className="h-full min-h-0 border-r border-border">
         <ul className="flex flex-col gap-0.5 p-2">
           {tools.map((tool) => (

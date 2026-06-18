@@ -1,7 +1,12 @@
 import type { ToolDescriptor } from "@meith/protocol";
 import type { AppState, BrowserViewport, LogEntry } from "@meith/shared";
 import { contextBridge, ipcRenderer } from "electron";
-import type { MeithBridge } from "../bridge.js";
+import type {
+  MeithBridge,
+  OverlayMenuDescriptor,
+  OverlayMenuResult,
+  OverlayTooltipDescriptor,
+} from "../bridge.js";
 
 // Channel names duplicated as literals to avoid importing main-process code
 // into the sandboxed preload bundle. Keep in sync with main/ipc/handlers.ts.
@@ -13,8 +18,21 @@ const IPC = {
   getLogs: "meith:logs:get",
   logEntry: "meith:logs:entry",
   browserViewport: "meith:browser:viewport",
+  browserCapture: "meith:browser:capture",
+  // --- Overlay window (floating menus/tooltips above the native browser) ---
+  overlayMenuShow: "meith:overlay:menu:show",
+  overlayTooltipShow: "meith:overlay:tooltip:show",
+  overlayTooltipHide: "meith:overlay:tooltip:hide",
+  overlayMenuResolve: "meith:overlay:menu:resolve",
+  overlayRenderMenu: "meith:overlay:render:menu",
+  overlayRenderTooltip: "meith:overlay:render:tooltip",
+  overlayHideTooltip: "meith:overlay:render:hideTooltip",
+  overlayMenuResult: "meith:overlay:menu:result",
   terminalData: "meith:terminal:data",
   terminalExit: "meith:terminal:exit",
+  devServersGet: "meith:devServers:get",
+  devServersChanged: "meith:devServers:changed",
+  devServerLog: "meith:devServer:log",
   dialogOpenFolder: "meith:dialog:openFolder",
   agentListSessions: "meith:agent:sessions:list",
   agentGetSession: "meith:agent:session:get",
@@ -54,6 +72,40 @@ const api: MeithBridge = {
   browser: {
     setViewport: (bounds: BrowserViewport) =>
       ipcRenderer.send(IPC.browserViewport, bounds),
+    capture: (tabId: string) =>
+      ipcRenderer.invoke(IPC.browserCapture, tabId) as Promise<string | null>,
+  },
+  overlay: {
+    // From the main window:
+    showMenu: (descriptor: OverlayMenuDescriptor) =>
+      ipcRenderer.send(IPC.overlayMenuShow, descriptor),
+    showTooltip: (descriptor: OverlayTooltipDescriptor) =>
+      ipcRenderer.send(IPC.overlayTooltipShow, descriptor),
+    hideTooltip: () => ipcRenderer.send(IPC.overlayTooltipHide),
+    onMenuResult: (cb) => {
+      const listener = (_e: unknown, result: OverlayMenuResult) => cb(result);
+      ipcRenderer.on(IPC.overlayMenuResult, listener);
+      return () => ipcRenderer.removeListener(IPC.overlayMenuResult, listener);
+    },
+    // From the overlay window/document:
+    onShowMenu: (cb) => {
+      const listener = (_e: unknown, descriptor: OverlayMenuDescriptor) => cb(descriptor);
+      ipcRenderer.on(IPC.overlayRenderMenu, listener);
+      return () => ipcRenderer.removeListener(IPC.overlayRenderMenu, listener);
+    },
+    onShowTooltip: (cb) => {
+      const listener = (_e: unknown, descriptor: OverlayTooltipDescriptor) =>
+        cb(descriptor);
+      ipcRenderer.on(IPC.overlayRenderTooltip, listener);
+      return () => ipcRenderer.removeListener(IPC.overlayRenderTooltip, listener);
+    },
+    onHideTooltip: (cb) => {
+      const listener = () => cb();
+      ipcRenderer.on(IPC.overlayHideTooltip, listener);
+      return () => ipcRenderer.removeListener(IPC.overlayHideTooltip, listener);
+    },
+    resolveMenu: (result: OverlayMenuResult) =>
+      ipcRenderer.send(IPC.overlayMenuResolve, result),
   },
   dialog: {
     openFolder: () => ipcRenderer.invoke(IPC.dialogOpenFolder) as Promise<string | null>,
@@ -71,6 +123,19 @@ const api: MeithBridge = {
       ) => cb(evt);
       ipcRenderer.on(IPC.terminalExit, listener);
       return () => ipcRenderer.removeListener(IPC.terminalExit, listener);
+    },
+  },
+  devServers: {
+    get: () => ipcRenderer.invoke(IPC.devServersGet),
+    onChange: (cb) => {
+      const listener = (_e: unknown, servers: unknown) => cb(servers as never);
+      ipcRenderer.on(IPC.devServersChanged, listener);
+      return () => ipcRenderer.removeListener(IPC.devServersChanged, listener);
+    },
+    onLog: (cb) => {
+      const listener = (_e: unknown, evt: unknown) => cb(evt as never);
+      ipcRenderer.on(IPC.devServerLog, listener);
+      return () => ipcRenderer.removeListener(IPC.devServerLog, listener);
     },
   },
   agent: {

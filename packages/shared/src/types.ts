@@ -1,3 +1,4 @@
+import { defaultAppSettings } from "./schemas.js";
 import type {
   AppState,
   ToolCapability,
@@ -94,7 +95,7 @@ export type { ToolCapability };
 
 export function defaultAppState(): AppState {
   return {
-    version: 3,
+    version: 4,
     spaces: [],
     activeSpaceId: null,
     browserTabs: [],
@@ -102,5 +103,6 @@ export function defaultAppState(): AppState {
     projects: [],
     workspaceFileEvents: [],
     plugins: [],
+    settings: defaultAppSettings(),
   };
 }

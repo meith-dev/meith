@@ -9,6 +9,8 @@ import {
   type BrowserTab,
   type DevServer,
   type LogEntry,
+  type ProcessLogEntry,
+  type ProcessStream,
   type Project,
   type WorkspaceTab,
   defaultAgentConfig,
@@ -62,6 +64,19 @@ function createMockBridge(): MeithBridge {
         framework: "nextjs",
         packageManager: "pnpm",
         scripts: [{ name: "dev", command: "next dev" }],
+        runConfig: {
+          commands: [
+            { id: "run_dev", label: "Dev", command: "pnpm dev", isDevServer: true },
+            {
+              id: "run_build",
+              label: "Build",
+              command: "pnpm build",
+              isDevServer: false,
+            },
+          ],
+          defaultCommandId: "run_dev",
+          env: {},
+        },
         browserTabIds: [],
         workspaceTabIds: [],
         createdAt: now,
@@ -162,6 +177,8 @@ function createMockBridge(): MeithBridge {
   const termExitSubs = new Set<
     (e: { id: string; exitCode: number; signal?: number }) => void
   >();
+  const devServerChangeSubs = new Set<(servers: DevServer[]) => void>();
+  const devServerLogSubs = new Set<(e: { id: string; entry: ProcessLogEntry }) => void>();
   // In-memory agent runtime for preview mode: sessions + a deterministic mock
   // run loop so the chat UI is fully exercisable without Electron.
   const agentSessions = new Map<string, AgentSession>();
@@ -179,6 +196,17 @@ function createMockBridge(): MeithBridge {
   const mockDevServers: DevServer[] = [];
   const emitTermData = (id: string, chunk: string) => {
     for (const cb of termDataSubs) cb({ id, chunk });
+  };
+  const emitDevServers = () => {
+    const snapshot = structuredClone(mockDevServers);
+    for (const cb of devServerChangeSubs) cb(snapshot);
+  };
+  const devServerSeq = new Map<string, number>();
+  const pushDevLog = (id: string, text: string, stream: ProcessStream = "stdout") => {
+    const seq = (devServerSeq.get(id) ?? 0) + 1;
+    devServerSeq.set(id, seq);
+    const entry: ProcessLogEntry = { seq, stream, text, ts: Date.now() };
+    for (const cb of devServerLogSubs) cb({ id, entry });
   };
   const PROMPT = "\x1b[1;32m$\x1b[0m ";
 
@@ -289,6 +317,15 @@ function createMockBridge(): MeithBridge {
     desc("project_list_templates", "List available project templates.", ["read-only"]),
     desc("project_start_dev_server", "Start a project's dev server.", ["starts-process"]),
     desc("project_stop_dev_server", "Stop a project's dev server.", ["starts-process"]),
+    desc("project_run", "Run a workspace's configured run command.", [
+      "starts-process",
+      "accesses-network",
+    ]),
+    desc("project_set_run_config", "Set a workspace's run configuration.", [
+      "writes-files",
+    ]),
+    desc("get_app_settings", "Read global app settings.", ["read-only"]),
+    desc("set_app_settings", "Patch global app settings.", ["writes-files"]),
     desc("list_plugins", "List installed plugins and their grants.", ["read-only"]),
     desc("install_plugin", "Install a plugin from a local directory.", ["destructive"]),
     desc("approve_plugin_grants", "Approve a subset of a plugin's grants.", [
@@ -321,6 +358,13 @@ function createMockBridge(): MeithBridge {
       framework: opts.framework ?? "unknown",
       packageManager: "pnpm",
       scripts: [{ name: "dev", command: "pnpm dev" }],
+      runConfig: {
+        commands: [
+          { id: "run_dev", label: "Dev", command: "pnpm dev", isDevServer: true },
+        ],
+        defaultCommandId: "run_dev",
+        env: {},
+      },
       browserTabIds: [],
       workspaceTabIds: [],
       createdAt: ts,
@@ -649,24 +693,52 @@ function createMockBridge(): MeithBridge {
             const { project } = openProjectInSpace({ name: base, cwd, kind: "plugin" });
             return okResult({ cwd, project });
           }
-          case "project_start_dev_server": {
+          case "project_start_dev_server":
+          case "project_run": {
             const project = state.projects.find((p) => p.id === args.projectId);
             if (!project) return errorResult("TOOL_FAILED", "Unknown project");
+            // Resolve the run command label/command (custom config or detected).
+            const runCmd =
+              (typeof args.commandId === "string"
+                ? project.runConfig?.commands.find((c) => c.id === args.commandId)
+                : null) ??
+              (project.runConfig?.defaultCommandId
+                ? project.runConfig.commands.find(
+                    (c) => c.id === project.runConfig.defaultCommandId,
+                  )
+                : null) ??
+              project.runConfig?.commands[0] ??
+              null;
+            const label = runCmd?.label ?? "dev";
+            const command = runCmd?.command ?? "pnpm run dev";
+            const id = `dev_${Math.random().toString(16).slice(2, 10)}`;
             const server: DevServer = {
-              id: `dev_${Math.random().toString(16).slice(2, 10)}`,
-              name: `${project.name}:dev`,
+              id,
+              name: `${project.name}:${label}`,
               cwd: project.cwd,
-              command: "pnpm",
-              args: ["run", "dev"],
+              command,
+              args: [],
               status: "running",
               pid: 1234,
-              port: 3000,
+              port: null,
               exitCode: null,
               signal: null,
               startedAt: Date.now(),
             };
             mockDevServers.push(server);
-            pushLog("info", "Mock", `started dev server for ${project.name}`);
+            pushLog("info", "Mock", `ran "${label}" for ${project.name}`);
+            emitDevServers();
+            // Synthesize a little startup output, then "detect" a port.
+            pushDevLog(id, `$ ${command}`, "system");
+            pushDevLog(id, "Starting development server...");
+            setTimeout(() => {
+              pushDevLog(id, "ready - started server on http://localhost:3000");
+              const found = mockDevServers.find((s) => s.id === id);
+              if (found) {
+                found.port = 3000;
+                emitDevServers();
+              }
+            }, 400);
             return okResult(server);
           }
           case "project_stop_dev_server": {
@@ -675,11 +747,29 @@ function createMockBridge(): MeithBridge {
             let stopped = 0;
             for (let i = mockDevServers.length - 1; i >= 0; i--) {
               if (mockDevServers[i].cwd === project.cwd) {
+                pushDevLog(mockDevServers[i].id, "received stop signal", "system");
                 mockDevServers.splice(i, 1);
                 stopped += 1;
               }
             }
+            if (stopped > 0) emitDevServers();
             return okResult({ stopped });
+          }
+          case "project_set_run_config": {
+            const project = state.projects.find((p) => p.id === args.projectId);
+            if (!project) return errorResult("TOOL_FAILED", "Unknown project");
+            project.runConfig = args.runConfig as Project["runConfig"];
+            pushLog("info", "Mock", `updated run config for ${project.name}`);
+            emitState();
+            return okResult(structuredClone(project));
+          }
+          case "get_app_settings":
+            return okResult({ settings: structuredClone(state.settings) });
+          case "set_app_settings": {
+            const patch = (args.settings ?? {}) as Partial<AppState["settings"]>;
+            state.settings = { ...state.settings, ...patch };
+            emitState();
+            return okResult({ settings: structuredClone(state.settings) });
           }
           case "set_workspace_tab_file": {
             const tab = state.workspaceTabs.find((t) => t.id === args.tabId);
@@ -918,8 +1008,20 @@ function createMockBridge(): MeithBridge {
         return () => logSubs.delete(cb);
       },
     },
-    // No native browser views in preview mode; viewport reports are ignored.
-    browser: { setViewport: () => undefined },
+    // No native browser views in preview mode; viewport reports are ignored and
+    // there is no live frame to capture.
+    browser: { setViewport: () => undefined, capture: async () => null },
+    // No overlay window in preview mode; tooltips/menus render locally instead.
+    overlay: {
+      showMenu: () => undefined,
+      showTooltip: () => undefined,
+      hideTooltip: () => undefined,
+      onMenuResult: () => () => undefined,
+      onShowMenu: () => () => undefined,
+      onShowTooltip: () => () => undefined,
+      onHideTooltip: () => () => undefined,
+      resolveMenu: () => undefined,
+    },
     // No native OS dialog in preview mode; prompt for a path instead.
     dialog: {
       openFolder: async () => {
@@ -935,6 +1037,17 @@ function createMockBridge(): MeithBridge {
       onExit: (cb) => {
         termExitSubs.add(cb);
         return () => termExitSubs.delete(cb);
+      },
+    },
+    devServers: {
+      get: async () => structuredClone(mockDevServers),
+      onChange: (cb) => {
+        devServerChangeSubs.add(cb);
+        return () => devServerChangeSubs.delete(cb);
+      },
+      onLog: (cb) => {
+        devServerLogSubs.add(cb);
+        return () => devServerLogSubs.delete(cb);
       },
     },
     agent: {

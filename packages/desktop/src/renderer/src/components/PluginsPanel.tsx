@@ -1,13 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type {
   InstalledPlugin,
@@ -20,12 +12,13 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 /**
- * Plugins manager. Lets the user review the permissions a plugin REQUESTED,
- * choose which to APPROVE, enable/disable, open the plugin, and uninstall it.
+ * Plugins manager panel. Lets the user review the permissions a plugin
+ * REQUESTED, choose which to APPROVE, enable/disable, open the plugin, and
+ * uninstall it. Rendered inside the Settings view's "Plugins" tab.
  *
  * The renderer never enforces anything — every mutation flows through plugin
  * tools (`approve_plugin_grants`, `set_plugin_enabled`, ...) whose results the
- * main process authoritatively decides. This dialog only mirrors state and
+ * main process authoritatively decides. This panel only mirrors state and
  * makes the split between "requested" and "approved" grants visible, which is
  * the whole point of the review step.
  */
@@ -49,15 +42,11 @@ const API_COPY: Record<PluginApiName, string> = {
 
 type Run = (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
 
-export function PluginsDialog({
-  open,
-  onOpenChange,
+export function PluginsPanel({
   plugins,
   run,
   isMock,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   plugins: InstalledPlugin[];
   run: Run;
   isMock: boolean;
@@ -70,69 +59,61 @@ export function PluginsDialog({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Plugins</DialogTitle>
-          <DialogDescription>
-            Review and approve the permissions each plugin requests. A plugin only
-            receives the scopes you approve, and can only run once enabled.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted-foreground">
+        Review and approve the permissions each plugin requests. A plugin only receives
+        the scopes you approve, and can only run once enabled.
+      </p>
 
-        {plugins.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No plugins installed yet.
-          </p>
-        ) : (
-          <div className="grid min-h-0 grid-cols-[200px_1fr] gap-4">
-            <ScrollArea className="h-80 rounded-lg border">
-              <ul className="flex flex-col gap-0.5 p-1">
-                {plugins.map((plugin) => {
-                  const active = selected?.id === plugin.id;
-                  return (
-                    <li key={plugin.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(plugin.id)}
-                        className={`flex w-full flex-col items-start gap-1 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                          active ? "bg-muted" : "hover:bg-muted/60"
-                        }`}
-                      >
-                        <span className="flex w-full items-center justify-between gap-2">
-                          <span className="truncate font-medium">{plugin.name}</span>
-                          <Badge variant={plugin.enabled ? "default" : "secondary"}>
-                            {plugin.enabled ? "On" : "Off"}
-                          </Badge>
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {plugin.id}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </ScrollArea>
+      {plugins.length === 0 ? (
+        <p className="rounded-md border border-dashed border-border px-3 py-8 text-center text-sm text-muted-foreground">
+          No plugins installed yet.
+        </p>
+      ) : (
+        <div className="grid min-h-0 grid-cols-[200px_1fr] gap-4">
+          <ScrollArea className="h-80 rounded-lg border">
+            <ul className="flex flex-col gap-0.5 p-1">
+              {plugins.map((plugin) => {
+                const active = selected?.id === plugin.id;
+                return (
+                  <li key={plugin.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(plugin.id)}
+                      className={`flex w-full flex-col items-start gap-1 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                        active ? "bg-muted" : "hover:bg-muted/60"
+                      }`}
+                    >
+                      <span className="flex w-full items-center justify-between gap-2">
+                        <span className="truncate font-medium">{plugin.name}</span>
+                        <Badge variant={plugin.enabled ? "default" : "secondary"}>
+                          {plugin.enabled ? "On" : "Off"}
+                        </Badge>
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {plugin.id}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </ScrollArea>
 
-            {selected ? (
-              <PluginDetail key={selected.id} plugin={selected} run={run} />
-            ) : (
-              <div className="text-sm text-muted-foreground">Select a plugin.</div>
-            )}
-          </div>
-        )}
+          {selected ? (
+            <PluginDetail key={selected.id} plugin={selected} run={run} />
+          ) : (
+            <div className="text-sm text-muted-foreground">Select a plugin.</div>
+          )}
+        </div>
+      )}
 
-        <DialogFooter className="sm:justify-between">
-          <span className="self-center text-xs text-muted-foreground">
-            {isMock
-              ? "Preview mode: changes are in-memory only."
-              : "Plugins run in a sandboxed tab with only the APIs you approve."}
-          </span>
-          <DialogFooter showCloseButton className="m-0 border-0 bg-transparent p-0" />
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <p className="text-xs text-muted-foreground">
+        {isMock
+          ? "Preview mode: changes are in-memory only."
+          : "Plugins run in a sandboxed tab with only the APIs you approve."}
+      </p>
+    </div>
   );
 }
 

@@ -1,0 +1,736 @@
+import {
+  ACP_PRESETS,
+  type AcpPreset,
+  type AgentConfig,
+  type AppSettings,
+  type InstalledPlugin,
+  type PackageManager,
+  type Project,
+  type ProjectRunConfig,
+  type RunCommand,
+  type ToolResult,
+  newRunCommandId,
+} from "@meith/shared";
+import {
+  AlertTriangleIcon,
+  PlusIcon,
+  SettingsIcon,
+  TerminalIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
+import { useEffect, useId, useState } from "react";
+import { toast } from "sonner";
+import type { MeithBridge } from "../../../bridge";
+import { cn } from "../lib/utils";
+import { PluginsPanel } from "./PluginsPanel";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { ScrollArea } from "./ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+
+export type SettingsTab = "general" | "run" | "agent" | "plugins" | "about";
+
+type Run = (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
+
+/**
+ * Full-height tab matching the workbench TabStrip / diagnostics tabs: a flat,
+ * content-width cell with a right divider, a `bg-background` fill when active,
+ * and a top accent strip rendered via a `before` pseudo-element.
+ */
+const settingsTabClass = cn(
+  "relative h-full flex-none gap-1.5 rounded-none border-0 border-r border-border px-4 text-sm font-normal text-muted-foreground shadow-none transition-colors",
+  "hover:bg-accent/40 hover:text-foreground",
+  "data-active:bg-background data-active:text-foreground data-active:shadow-none",
+  "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-transparent data-active:before:bg-primary",
+);
+
+interface SettingsViewProps {
+  /** Tab to focus when the view opens. */
+  initialTab?: SettingsTab;
+  /** Global app settings (from AppState). */
+  settings: AppSettings | null;
+  /** The active workspace's project, if any (drives the Run tab). */
+  project: Project | null;
+  /** Persist a patch to global settings via the `set_app_settings` tool. */
+  onSaveSettings: (patch: Partial<AppSettings>) => unknown;
+  /** Persist a workspace's run configuration via `project_set_run_config`. */
+  onSaveRunConfig: (projectId: string, runConfig: ProjectRunConfig) => unknown;
+  /** Bridge for reading/writing the (global) agent config. */
+  bridge: MeithBridge;
+  isMock: boolean;
+  /** Installed plugins (drives the Plugins tab). */
+  plugins: InstalledPlugin[];
+  /** Run a plugin tool (approve grants, enable/disable, uninstall, ...). */
+  run: Run;
+  /** Close the settings view and return to the workbench. */
+  onClose: () => void;
+}
+
+const PACKAGE_MANAGERS: PackageManager[] = ["unknown", "npm", "pnpm", "yarn", "bun"];
+
+/**
+ * The single global settings surface. Consolidates app-wide preferences, the
+ * active workspace's run configuration, and the agent runtime config into one
+ * tabbed dialog so there is one place to configure meith.
+ */
+export function SettingsView({
+  initialTab = "general",
+  settings,
+  project,
+  onSaveSettings,
+  onSaveRunConfig,
+  bridge,
+  isMock,
+  plugins,
+  run,
+  onClose,
+}: SettingsViewProps) {
+  const [tab, setTab] = useState<SettingsTab>(initialTab);
+
+  // Focus the requested tab whenever the view (re)mounts with a new target.
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
+
+  // Close on Escape, matching the previous dialog behaviour.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <section aria-label="Settings" className="flex min-h-0 flex-1 flex-col bg-background">
+      <header className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-3.5">
+        <SettingsIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <div className="flex min-w-0 flex-col">
+          <h1 className="text-sm font-semibold tracking-tight">Settings</h1>
+          <p className="truncate text-xs text-muted-foreground">
+            App preferences, the active workspace&apos;s run commands, and the agent
+            runtime.
+          </p>
+        </div>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                size="icon"
+                variant="ghost"
+                className="ml-auto size-7 shrink-0"
+                onClick={onClose}
+                aria-label="Close settings"
+              >
+                <XIcon className="size-4" aria-hidden />
+              </Button>
+            }
+          />
+          <TooltipContent>Close settings (Esc)</TooltipContent>
+        </Tooltip>
+      </header>
+
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as SettingsTab)}
+        className="flex min-h-0 flex-1 flex-col gap-0"
+      >
+        <TabsList className="flex h-10 w-full shrink-0 items-stretch justify-start gap-0 rounded-none border-b border-border bg-card/40 p-0">
+          <TabsTrigger value="general" className={settingsTabClass}>
+            General
+          </TabsTrigger>
+          <TabsTrigger value="run" className={settingsTabClass}>
+            Run
+          </TabsTrigger>
+          <TabsTrigger value="agent" className={settingsTabClass}>
+            Agent
+          </TabsTrigger>
+          <TabsTrigger value="plugins" className={settingsTabClass}>
+            Plugins
+          </TabsTrigger>
+          <TabsTrigger value="about" className={settingsTabClass}>
+            About
+          </TabsTrigger>
+        </TabsList>
+
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="mx-auto w-full max-w-2xl p-6">
+            <TabsContent value="general" className="mt-0">
+              <GeneralTab settings={settings} onSave={onSaveSettings} />
+            </TabsContent>
+            <TabsContent value="run" className="mt-0">
+              <RunTab project={project} onSave={onSaveRunConfig} />
+            </TabsContent>
+            <TabsContent value="agent" className="mt-0">
+              <AgentTab bridge={bridge} open={tab === "agent"} />
+            </TabsContent>
+            <TabsContent value="plugins" className="mt-0">
+              <PluginsPanel plugins={plugins} run={run} isMock={isMock} />
+            </TabsContent>
+            <TabsContent value="about" className="mt-0">
+              <AboutTab isMock={isMock} />
+            </TabsContent>
+          </div>
+        </ScrollArea>
+      </Tabs>
+    </section>
+  );
+}
+
+// --- General ---------------------------------------------------------------
+
+function GeneralTab({
+  settings,
+  onSave,
+}: {
+  settings: AppSettings | null;
+  onSave: (patch: Partial<AppSettings>) => unknown;
+}) {
+  if (!settings) {
+    return <p className="text-sm text-muted-foreground">Loading settings…</p>;
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <SectionLabel>Workspaces</SectionLabel>
+      <ToggleRow
+        label="Auto-run on open"
+        description="Start the workspace's default run command when it becomes active."
+        checked={settings.autoRunOnOpen}
+        onChange={(v) => void onSave({ autoRunOnOpen: v })}
+      />
+      <ToggleRow
+        label="Confirm before closing"
+        description="Ask for confirmation before closing a workspace and its tabs."
+        checked={settings.confirmOnClose}
+        onChange={(v) => void onSave({ confirmOnClose: v })}
+      />
+      <ToggleRow
+        label="Stop servers on close"
+        description="Stop a workspace's running processes when it is closed."
+        checked={settings.stopServersOnClose}
+        onChange={(v) => void onSave({ stopServersOnClose: v })}
+      />
+
+      <SectionLabel className="mt-4">Run</SectionLabel>
+      <ToggleRow
+        label="Show output on run"
+        description="Open the Output panel automatically when a run starts."
+        checked={settings.showOutputOnRun}
+        onChange={(v) => void onSave({ showOutputOnRun: v })}
+      />
+      <div className="flex items-center justify-between gap-4 rounded-md px-1 py-2.5">
+        <div className="flex min-w-0 flex-col">
+          <span className="text-sm font-medium text-foreground">
+            Default package manager
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Used when suggesting run commands for new workspaces.
+          </span>
+        </div>
+        <select
+          aria-label="Default package manager"
+          value={settings.defaultPackageManager}
+          onChange={(e) =>
+            void onSave({ defaultPackageManager: e.target.value as PackageManager })
+          }
+          className="h-9 shrink-0 rounded-md border border-input bg-transparent px-3 text-sm capitalize shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          {PACKAGE_MANAGERS.map((pm) => (
+            <option key={pm} value={pm} className="capitalize">
+              {pm === "unknown" ? "Auto-detect" : pm}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+// --- Run -------------------------------------------------------------------
+
+function RunTab({
+  project,
+  onSave,
+}: {
+  project: Project | null;
+  onSave: (projectId: string, runConfig: ProjectRunConfig) => unknown;
+}) {
+  const [draft, setDraft] = useState<ProjectRunConfig>(
+    project?.runConfig ?? { commands: [], defaultCommandId: null, env: {} },
+  );
+  const [dirty, setDirty] = useState(false);
+
+  // Reseed the editor whenever the active workspace changes.
+  useEffect(() => {
+    setDraft(project?.runConfig ?? { commands: [], defaultCommandId: null, env: {} });
+    setDirty(false);
+  }, [project?.id, project?.runConfig]);
+
+  if (!project) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-10 text-center">
+        <TerminalIcon className="size-6 text-muted-foreground" aria-hidden />
+        <p className="text-sm text-muted-foreground">
+          Open a workspace with a project to configure run commands.
+        </p>
+      </div>
+    );
+  }
+
+  const patch = (next: Partial<ProjectRunConfig>) => {
+    setDraft((d) => ({ ...d, ...next }));
+    setDirty(true);
+  };
+
+  const updateCommand = (id: string, next: Partial<RunCommand>) => {
+    patch({
+      commands: draft.commands.map((c) => (c.id === id ? { ...c, ...next } : c)),
+    });
+  };
+
+  const addCommand = () => {
+    const cmd: RunCommand = {
+      id: newRunCommandId(),
+      label: "Run",
+      command: "",
+      isDevServer: true,
+    };
+    patch({
+      commands: [...draft.commands, cmd],
+      defaultCommandId: draft.defaultCommandId ?? cmd.id,
+    });
+  };
+
+  const removeCommand = (id: string) => {
+    const commands = draft.commands.filter((c) => c.id !== id);
+    patch({
+      commands,
+      defaultCommandId:
+        draft.defaultCommandId === id
+          ? (commands[0]?.id ?? null)
+          : draft.defaultCommandId,
+    });
+  };
+
+  const envRows = Object.entries(draft.env);
+
+  const setEnv = (entries: [string, string][]) => {
+    patch({ env: Object.fromEntries(entries.filter(([k]) => k.trim())) });
+  };
+
+  const save = async () => {
+    // Drop empty commands so we never persist a blank run target.
+    const cleaned: ProjectRunConfig = {
+      ...draft,
+      commands: draft.commands.filter((c) => c.command.trim()),
+    };
+    await onSave(project.id, cleaned);
+    setDraft(cleaned);
+    setDirty(false);
+    toast.success("Run configuration saved");
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-2">
+        <SectionLabel className="mt-0">
+          Run commands · <span className="text-foreground">{project.name}</span>
+        </SectionLabel>
+        <Button variant="outline" size="sm" onClick={addCommand}>
+          <PlusIcon data-icon="inline-start" />
+          Add command
+        </Button>
+      </div>
+
+      {draft.commands.length === 0 ? (
+        <div className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+          No run commands yet. The detected dev/start script is used until you add one.
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {draft.commands.map((cmd) => {
+            const isDefault = draft.defaultCommandId === cmd.id;
+            return (
+              <li
+                key={cmd.id}
+                className="flex flex-col gap-2 rounded-md border border-border bg-card/50 p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <Input
+                    aria-label="Command label"
+                    value={cmd.label}
+                    placeholder="Label"
+                    className="h-8 w-32 shrink-0"
+                    onChange={(e) => updateCommand(cmd.id, { label: e.target.value })}
+                  />
+                  <Input
+                    aria-label="Shell command"
+                    value={cmd.command}
+                    placeholder="pnpm dev"
+                    className="h-8 flex-1 font-mono text-xs"
+                    onChange={(e) => updateCommand(cmd.id, { command: e.target.value })}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Delete ${cmd.label}`}
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeCommand(cmd.id)}
+                  >
+                    <Trash2Icon className="size-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-4 pl-0.5">
+                  <button
+                    type="button"
+                    onClick={() => patch({ defaultCommandId: cmd.id })}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <span
+                      className={cn(
+                        "flex size-3.5 items-center justify-center rounded-full border",
+                        isDefault ? "border-primary" : "border-border",
+                      )}
+                    >
+                      {isDefault && <span className="size-1.5 rounded-full bg-primary" />}
+                    </span>
+                    Default
+                  </button>
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={cmd.isDevServer}
+                      onChange={(e) =>
+                        updateCommand(cmd.id, { isDevServer: e.target.checked })
+                      }
+                      className="size-3.5 accent-primary"
+                    />
+                    Dev server (watch for a port)
+                  </label>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <SectionLabel>Environment variables</SectionLabel>
+      <EnvEditor rows={envRows} onChange={setEnv} />
+
+      <div className="flex justify-end gap-2 border-t border-border pt-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={!dirty}
+          onClick={() => {
+            setDraft(project.runConfig);
+            setDirty(false);
+          }}
+        >
+          Reset
+        </Button>
+        <Button size="sm" disabled={!dirty} onClick={() => void save()}>
+          Save changes
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function EnvEditor({
+  rows,
+  onChange,
+}: {
+  rows: [string, string][];
+  onChange: (entries: [string, string][]) => void;
+}) {
+  const display = rows.length > 0 ? rows : [];
+  return (
+    <div className="flex flex-col gap-2">
+      {display.map(([key, value], i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: env rows are edited positionally and may share empty/duplicate keys while typing
+        <div key={`${key}-${i}`} className="flex items-center gap-2">
+          <Input
+            aria-label="Variable name"
+            value={key}
+            placeholder="KEY"
+            className="h-8 w-44 font-mono text-xs"
+            onChange={(e) => {
+              const next = [...display];
+              next[i] = [e.target.value, value];
+              onChange(next);
+            }}
+          />
+          <span className="text-muted-foreground">=</span>
+          <Input
+            aria-label="Variable value"
+            value={value}
+            placeholder="value"
+            className="h-8 flex-1 font-mono text-xs"
+            onChange={(e) => {
+              const next = [...display];
+              next[i] = [key, e.target.value];
+              onChange(next);
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Remove variable"
+            className="shrink-0 text-muted-foreground hover:text-destructive"
+            onClick={() => onChange(display.filter((_, j) => j !== i))}
+          >
+            <Trash2Icon className="size-4" />
+          </Button>
+        </div>
+      ))}
+      <Button
+        variant="outline"
+        size="sm"
+        className="self-start"
+        onClick={() => onChange([...display, ["", ""]])}
+      >
+        <PlusIcon data-icon="inline-start" />
+        Add variable
+      </Button>
+    </div>
+  );
+}
+
+// --- Agent -----------------------------------------------------------------
+
+function AgentTab({ bridge, open }: { bridge: MeithBridge; open: boolean }) {
+  const [draft, setDraft] = useState<AgentConfig | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void bridge.agent.getConfig().then((cfg) => {
+      if (!cancelled) setDraft(cfg);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, bridge]);
+
+  if (!draft) {
+    return <p className="text-sm text-muted-foreground">Loading agent config…</p>;
+  }
+
+  const isAcp = draft.adapter === "acp";
+  const preset = draft.acpPreset ?? "custom";
+  const isCustomPreset = preset === "custom";
+
+  const save = async (next: AgentConfig) => {
+    setDraft(next);
+    await bridge.agent.setConfig(next);
+    // Let any live agent view refresh its cached config.
+    window.dispatchEvent(new CustomEvent("meith:agent-config-changed"));
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <label htmlFor="agent-adapter" className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium text-muted-foreground">Adapter</span>
+        <select
+          id="agent-adapter"
+          value={draft.adapter}
+          onChange={(e) =>
+            void save({ ...draft, adapter: e.target.value as AgentConfig["adapter"] })
+          }
+          className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <option value="mock">Mock (built-in, no setup)</option>
+          <option value="acp">ACP subprocess (external agent)</option>
+        </select>
+      </label>
+
+      {isAcp && (
+        <>
+          <label htmlFor="agent-preset" className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">Agent</span>
+            <select
+              id="agent-preset"
+              value={preset}
+              onChange={(e) =>
+                void save({ ...draft, acpPreset: e.target.value as AcpPreset })
+              }
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="claude">{ACP_PRESETS.claude.label}</option>
+              <option value="codex">{ACP_PRESETS.codex.label}</option>
+              <option value="custom">{ACP_PRESETS.custom.label}</option>
+            </select>
+            <span className="text-xs text-muted-foreground">
+              {ACP_PRESETS[preset].description}
+            </span>
+          </label>
+
+          {!isCustomPreset && (
+            <p className="rounded-md bg-muted px-3 py-2 font-mono text-xs text-muted-foreground">
+              {ACP_PRESETS[preset].command} {ACP_PRESETS[preset].args.join(" ")}
+            </p>
+          )}
+
+          {isCustomPreset && (
+            <>
+              <label htmlFor="agent-command" className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Command</span>
+                <Input
+                  id="agent-command"
+                  value={draft.command}
+                  placeholder="e.g. my-agent-acp"
+                  onChange={(e) => void save({ ...draft, command: e.target.value })}
+                />
+              </label>
+              <label htmlFor="agent-args" className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Arguments (space-separated)
+                </span>
+                <Input
+                  id="agent-args"
+                  value={draft.args.join(" ")}
+                  placeholder="--acp"
+                  onChange={(e) =>
+                    void save({
+                      ...draft,
+                      args: e.target.value.split(/\s+/).filter(Boolean),
+                    })
+                  }
+                />
+              </label>
+            </>
+          )}
+        </>
+      )}
+
+      <label htmlFor="agent-model" className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium text-muted-foreground">
+          Model (optional)
+        </span>
+        <Input
+          id="agent-model"
+          value={draft.model}
+          placeholder="provider/model"
+          onChange={(e) => void save({ ...draft, model: e.target.value })}
+        />
+      </label>
+
+      <div className="rounded-md border border-border p-3">
+        <label htmlFor="agent-auto" className="flex items-start gap-2">
+          <input
+            id="agent-auto"
+            type="checkbox"
+            checked={draft.autoAccept}
+            onChange={(e) => void save({ ...draft, autoAccept: e.target.checked })}
+            className="mt-0.5 size-4 accent-primary"
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium text-foreground">
+              Auto-accept tool permissions
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Gated tools (write files, run processes, control the browser) run without
+              prompting.
+            </span>
+          </span>
+        </label>
+        {draft.autoAccept && (
+          <div className="mt-2 flex items-start gap-2 rounded bg-primary/10 p-2 text-xs text-primary">
+            <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <span>
+              The agent can modify files and run commands without asking. Only enable this
+              if you trust the agent and the workspace.
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- About -----------------------------------------------------------------
+
+function AboutTab({ isMock }: { isMock: boolean }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <SectionLabel className="mt-0">About</SectionLabel>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        <span className="font-semibold text-foreground">meith</span> is a warm, focused
+        developer workbench where the renderer, CLI, and agent cooperate around one shared
+        tool registry.
+      </p>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Runtime</span>
+        <Badge variant={isMock ? "secondary" : "default"}>
+          {isMock ? "Mock bridge" : "Connected"}
+        </Badge>
+      </div>
+    </div>
+  );
+}
+
+// --- Shared bits -----------------------------------------------------------
+
+function SectionLabel({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <h3
+      className={cn(
+        "mt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+        className,
+      )}
+    >
+      {children}
+    </h3>
+  );
+}
+
+function ToggleRow({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-md px-1 py-2.5">
+      <label htmlFor={id} className="flex min-w-0 cursor-pointer flex-col">
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        <span className="text-xs text-muted-foreground">{description}</span>
+      </label>
+      <button
+        id={id}
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          checked ? "bg-primary" : "bg-input",
+        )}
+      >
+        <span
+          className={cn(
+            "inline-block size-4 rounded-full bg-background shadow transition-transform",
+            checked ? "translate-x-4" : "translate-x-0.5",
+          )}
+        />
+      </button>
+    </div>
+  );
+}

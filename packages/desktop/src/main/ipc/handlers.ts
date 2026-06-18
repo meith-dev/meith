@@ -17,10 +17,19 @@ export const IPC = {
   logEntry: "meith:logs:entry",
   /** Renderer -> main (one-way): measured browser content viewport bounds. */
   browserViewport: "meith:browser:viewport",
+  /** Renderer -> main (invoke): capture a tab's current frame as a PNG data URL. */
+  browserCapture: "meith:browser:capture",
   /** Main -> renderer: a chunk of terminal output `{ id, chunk }`. */
   terminalData: "meith:terminal:data",
   /** Main -> renderer: a terminal exited `{ id, exitCode, signal }`. */
   terminalExit: "meith:terminal:exit",
+  // --- Dev servers / Run -------------------------------------------------
+  /** Renderer -> main (invoke): list live dev servers. */
+  devServersGet: "meith:devServers:get",
+  /** Main -> renderer: dev-server list changed (status/port/lifecycle). */
+  devServersChanged: "meith:devServers:changed",
+  /** Main -> renderer: a captured dev-server log line `{ id, entry }`. */
+  devServerLog: "meith:devServer:log",
   /** Renderer -> main (invoke): show a native "open folder" picker. */
   dialogOpenFolder: "meith:dialog:openFolder",
   // --- Agent runtime (Phase 9) ------------------------------------------
@@ -81,6 +90,18 @@ export function registerIpcHandlers(
   container: ServiceContainer,
   getWindow: () => BrowserWindow | null,
 ): void {
+  // Push events to the renderer, but only if the window AND its webContents are
+  // still alive. During app shutdown the window object can outlive its
+  // webContents, and high-rate streams (dev-server logs, terminal output) keep
+  // firing as child processes flush — calling `.send` on a destroyed
+  // webContents throws an uncaught "Object has been destroyed". Guarding here
+  // keeps quit graceful.
+  const sendToRenderer = (channel: string, ...args: unknown[]): void => {
+    const win = getWindow();
+    if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return;
+    win.webContents.send(channel, ...args);
+  };
+
   ipcMain.handle(IPC.toolsList, () => container.registry.describe());
 
   ipcMain.handle(
@@ -96,6 +117,19 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC.getState, () => container.appState.getState());
   ipcMain.handle(IPC.getLogs, (_event, limit?: number) => container.logger.list(limit));
+  ipcMain.handle(IPC.devServersGet, () => container.devServers.list());
+
+  // Freeze the live browser frame for a transient DOM overlay (e.g. top-bar
+  // dropdowns). Best-effort: any failure resolves to null and the renderer
+  // falls back to simply collapsing the view.
+  ipcMain.handle(IPC.browserCapture, async (_event, tabId: string) => {
+    try {
+      const buffer = await container.browserTabs.captureFrame(tabId);
+      return buffer ? `data:image/png;base64,${buffer.toString("base64")}` : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Native "open folder" picker. The renderer uses the returned path to open a
   // project (which creates a space named after the folder).
@@ -163,13 +197,13 @@ export function registerIpcHandlers(
 
   // Push agent run output, session metadata changes, and permission prompts.
   container.agents.on("chunk", (evt) => {
-    getWindow()?.webContents.send(IPC.agentChunk, evt);
+    sendToRenderer(IPC.agentChunk, evt);
   });
   container.agents.on("session", (meta) => {
-    getWindow()?.webContents.send(IPC.agentSession, meta);
+    sendToRenderer(IPC.agentSession, meta);
   });
   container.agents.on("permission", (req) => {
-    getWindow()?.webContents.send(IPC.agentPermission, req);
+    sendToRenderer(IPC.agentPermission, req);
   });
 
   // --- Plugin bridge -----------------------------------------------------
@@ -181,10 +215,10 @@ export function registerIpcHandlers(
 
   // Push state changes and new log entries to the renderer.
   container.appState.on("change", (state) => {
-    getWindow()?.webContents.send(IPC.stateChanged, state);
+    sendToRenderer(IPC.stateChanged, state);
   });
   container.logger.on("entry", (entry) => {
-    getWindow()?.webContents.send(IPC.logEntry, entry);
+    sendToRenderer(IPC.logEntry, entry);
   });
 
   // Stream live terminal output/exit to the renderer so the xterm.js component
@@ -192,10 +226,20 @@ export function registerIpcHandlers(
   // through the normal tool-call path; only the high-rate output stream needs a
   // dedicated push channel.
   container.terminals.on("data", (evt) => {
-    getWindow()?.webContents.send(IPC.terminalData, evt);
+    sendToRenderer(IPC.terminalData, evt);
   });
   container.terminals.on("exit", (evt) => {
-    getWindow()?.webContents.send(IPC.terminalExit, evt);
+    sendToRenderer(IPC.terminalExit, evt);
+  });
+
+  // Stream live dev-server state + output to the renderer's Run/Output panel.
+  // Like terminals, lifecycle goes through the tool-call path; only the live
+  // list changes and the high-rate log stream need dedicated push channels.
+  container.devServers.on("change", (servers) => {
+    sendToRenderer(IPC.devServersChanged, servers);
+  });
+  container.devServers.on("log", (evt) => {
+    sendToRenderer(IPC.devServerLog, evt);
   });
 }
 

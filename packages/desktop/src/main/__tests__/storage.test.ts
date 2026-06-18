@@ -67,7 +67,7 @@ describe("migrations", () => {
     expect(tab.ownerId).toBeNull();
   });
 
-  it("migrates v2 -> v3 by adding an empty projects collection", () => {
+  it("migrates v2 -> current by adding an empty projects collection", () => {
     const v2 = {
       version: 2,
       spaces: [{ id: "s1", name: "S", createdAt: 1 }],
@@ -76,8 +76,43 @@ describe("migrations", () => {
       workspaceTabs: [],
     };
     const migrated = migrateAppState(v2);
-    expect(migrated.version).toBe(3);
+    expect(migrated.version).toBe(CURRENT_STATE_VERSION);
     expect(migrated.projects).toEqual([]);
+  });
+
+  it("migrates v3 -> v4 by adding global settings and per-project runConfig", () => {
+    const v3 = {
+      version: 3,
+      spaces: [{ id: "s1", name: "S", createdAt: 1, projectId: "p1" }],
+      activeSpaceId: "s1",
+      browserTabs: [],
+      workspaceTabs: [],
+      projects: [
+        {
+          id: "p1",
+          name: "Proj",
+          cwd: "/tmp/proj",
+          framework: "unknown",
+          packageManager: "unknown",
+          scripts: [],
+          browserTabIds: [],
+          workspaceTabIds: [],
+          createdAt: 1,
+          lastOpenedAt: 1,
+        },
+      ],
+    };
+    const migrated = migrateAppState(v3);
+    expect(migrated.version).toBe(CURRENT_STATE_VERSION);
+    // Global settings exist with sensible defaults.
+    expect(migrated.settings.confirmOnClose).toBe(true);
+    expect(migrated.settings.showOutputOnRun).toBe(true);
+    // Every project gains an empty run configuration.
+    expect(migrated.projects[0].runConfig).toEqual({
+      commands: [],
+      defaultCommandId: null,
+      env: {},
+    });
   });
 
   it("throws on a newer-than-supported version", () => {

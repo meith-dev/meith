@@ -201,6 +201,36 @@ export const ProjectScriptSchema = z.object({
 });
 export type ProjectScript = z.infer<typeof ProjectScriptSchema>;
 
+/**
+ * A user-defined run command for a workspace. Unlike detected `scripts` (which
+ * mirror package.json), these are arbitrary shell commands the user configures
+ * per workspace and can launch from the Run control.
+ */
+export const RunCommandSchema = z.object({
+  id: z.string(),
+  /** Short label shown on the Run control / dropdown, e.g. "Dev", "Build". */
+  label: z.string().min(1).default("Run"),
+  /** Raw shell command, e.g. "pnpm dev" or "make serve". */
+  command: z.string().min(1),
+  /**
+   * Whether this command starts a long-running dev server. When true the run
+   * surface sniffs for a listening port and shows a live "running" pill.
+   */
+  isDevServer: z.boolean().default(true),
+});
+export type RunCommand = z.infer<typeof RunCommandSchema>;
+
+/** Per-workspace run configuration persisted on the Project record. */
+export const ProjectRunConfigSchema = z.object({
+  /** User-defined run commands for this workspace. */
+  commands: z.array(RunCommandSchema).default([]),
+  /** The command bound to the primary Run button (falls back to detected dev script). */
+  defaultCommandId: z.string().nullable().default(null),
+  /** Extra environment variables injected when running a command. */
+  env: z.record(z.string(), z.string()).default({}),
+});
+export type ProjectRunConfig = z.infer<typeof ProjectRunConfigSchema>;
+
 export const ProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -212,6 +242,12 @@ export const ProjectSchema = z.object({
   framework: ProjectFrameworkSchema.default("unknown"),
   packageManager: PackageManagerSchema.default("unknown"),
   scripts: z.array(ProjectScriptSchema).default([]),
+  /** Per-workspace run configuration (custom run commands + env). */
+  runConfig: ProjectRunConfigSchema.default({
+    commands: [],
+    defaultCommandId: null,
+    env: {},
+  }),
   /** Browser tabs associated with this project (by id). */
   browserTabIds: z.array(z.string()).default([]),
   /** Workspace tabs (editor/terminal/agent/preview) associated by id. */
@@ -821,8 +857,38 @@ export const InstalledPluginSchema = z.object({
 });
 export type InstalledPlugin = z.infer<typeof InstalledPluginSchema>;
 
+/**
+ * Global, app-wide user preferences. Persisted as part of AppState so they ride
+ * the existing reactive broadcast to every renderer/CLI client. Per-workspace
+ * settings (run commands) live on the Project record instead.
+ */
+export const AppSettingsSchema = z.object({
+  /** Start the workspace's default run command automatically when it opens. */
+  autoRunOnOpen: z.boolean().default(false),
+  /** Ask for confirmation before closing a workspace. */
+  confirmOnClose: z.boolean().default(true),
+  /** Stop a workspace's running dev servers when it is closed. */
+  stopServersOnClose: z.boolean().default(true),
+  /** Auto-open the Output panel when a run starts. */
+  showOutputOnRun: z.boolean().default(true),
+  /** Preferred package manager used when generating default run commands. */
+  defaultPackageManager: PackageManagerSchema.default("unknown"),
+});
+export type AppSettings = z.infer<typeof AppSettingsSchema>;
+
+/** A fresh default global settings object. */
+export function defaultAppSettings(): AppSettings {
+  return {
+    autoRunOnOpen: false,
+    confirmOnClose: true,
+    stopServersOnClose: true,
+    showOutputOnRun: true,
+    defaultPackageManager: "unknown",
+  };
+}
+
 export const AppStateSchema = z.object({
-  version: z.literal(3),
+  version: z.literal(4),
   spaces: z.array(SpaceSchema),
   activeSpaceId: z.string().nullable(),
   browserTabs: z.array(BrowserTabSchema),
@@ -831,5 +897,7 @@ export const AppStateSchema = z.object({
   workspaceFileEvents: z.array(WorkspaceFileEventSchema).default([]),
   /** Installed plugins (Phase 11). */
   plugins: z.array(InstalledPluginSchema).default([]),
+  /** Global app-wide user preferences. */
+  settings: AppSettingsSchema.default(defaultAppSettings()),
 });
 export type AppState = z.infer<typeof AppStateSchema>;

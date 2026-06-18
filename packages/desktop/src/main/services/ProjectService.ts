@@ -207,6 +207,7 @@ export class ProjectService {
       framework: detection.framework,
       packageManager: detection.packageManager,
       scripts: detection.scripts,
+      runConfig: existing?.runConfig ?? { commands: [], defaultCommandId: null, env: {} },
       browserTabIds: existing?.browserTabIds ?? [],
       workspaceTabIds: dedupe([...(existing?.workspaceTabIds ?? []), workspaceTab.id]),
       createdAt: existing?.createdAt ?? now,
@@ -283,7 +284,66 @@ export class ProjectService {
     return SPACE_PALETTE[n % SPACE_PALETTE.length];
   }
 
-  // ---- Dev server control ------------------------------------------------
+  // ---- Run / dev server control ------------------------------------------
+
+  /**
+   * Run a workspace's configured run command (or its default). When the project
+   * has no matching custom command, falls back to the detected dev/start script
+   * so the Run control always does something sensible. Custom commands run as a
+   * single shell string so arbitrary commands ("pnpm dev", "make serve") work.
+   */
+  runCommand(projectId: string, commandId?: string): DevServer {
+    const project = this.get(projectId);
+    if (!project) throw new ProjectError(`Unknown project: ${projectId}`);
+
+    const runConfig = project.runConfig;
+    const targetId = commandId ?? runConfig.defaultCommandId ?? null;
+    const cmd =
+      (targetId ? runConfig.commands.find((c) => c.id === targetId) : null) ??
+      // No explicit id: prefer the single default, else the first configured one.
+      (commandId ? null : (runConfig.commands[0] ?? null));
+
+    // If an id was requested but not found, that's an error the caller should see.
+    if (commandId && !cmd) {
+      throw new ProjectError(
+        `Project "${project.name}" has no run command "${commandId}"`,
+      );
+    }
+
+    if (cmd) {
+      const server = this.devServers.start({
+        cwd: project.cwd,
+        command: cmd.command,
+        // Single shell string so arbitrary commands work as typed.
+        shell: true,
+        env: runConfig.env,
+        name: `${project.name}:${cmd.label}`,
+      });
+      this.logger.info(
+        "Project",
+        `ran "${cmd.label}" for ${project.name} (${cmd.command})`,
+      );
+      return server;
+    }
+
+    // No custom commands configured — fall back to the detected dev script.
+    return this.startDevServer(projectId);
+  }
+
+  /** Replace a project's run configuration (validated by the caller/schema). */
+  setRunConfig(projectId: string, runConfig: Project["runConfig"]): Project {
+    const project = this.get(projectId);
+    if (!project) throw new ProjectError(`Unknown project: ${projectId}`);
+    let updated: Project = project;
+    this.appState.update((draft) => {
+      const found = draft.projects.find((p) => p.id === projectId);
+      if (found) {
+        found.runConfig = runConfig;
+        updated = found;
+      }
+    }, "project_set_run_config");
+    return updated;
+  }
 
   /** Start the dev server for a project, using the package manager + script. */
   startDevServer(projectId: string, scriptName?: string): DevServer {

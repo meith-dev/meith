@@ -1,7 +1,7 @@
 import { type AppState, AppStateSchema } from "@meith/shared";
 
 /** The state version this build writes and migrates up to. */
-export const CURRENT_STATE_VERSION = 3;
+export const CURRENT_STATE_VERSION = 4;
 
 type RawState = Record<string, unknown>;
 
@@ -50,6 +50,22 @@ const migrations: Record<number, (raw: RawState) => RawState> = {
     spaces: (Array.isArray(raw.spaces) ? raw.spaces : []).map((space) => {
       const s = (space ?? {}) as RawState;
       return { ...s, projectId: s.projectId ?? null };
+    }),
+  }),
+
+  // 3 -> 4: add global app `settings` and a per-workspace `runConfig` on every
+  // project (customizable Run commands). Zod fills the concrete defaults; here
+  // we just ensure the keys exist so older state validates cleanly.
+  3: (raw) => ({
+    ...raw,
+    version: 4,
+    settings: (raw.settings ?? {}) as RawState,
+    projects: (Array.isArray(raw.projects) ? raw.projects : []).map((project) => {
+      const p = (project ?? {}) as RawState;
+      return {
+        ...p,
+        runConfig: p.runConfig ?? { commands: [], defaultCommandId: null, env: {} },
+      };
     }),
   }),
 };

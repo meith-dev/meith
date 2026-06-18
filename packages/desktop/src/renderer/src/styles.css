@@ -126,10 +126,18 @@
     @apply border-border outline-ring/50;
   }
 
+  /*
+   * The app shell is a fixed-size desktop window. Pin the document layers to
+   * the viewport and clip overflow on all of them, so that no inner content
+   * (e.g. a wide agent transcript or diagnostics log) can ever scroll the
+   * whole document and push the rail / top bar off-screen.
+   */
   html,
   body,
   #root {
     height: 100%;
+    width: 100%;
+    overflow: hidden;
   }
 
   body {
@@ -137,7 +145,6 @@
     margin: 0;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    overflow: hidden;
   }
 
   /* Compact, dev-tool scrollbars. */

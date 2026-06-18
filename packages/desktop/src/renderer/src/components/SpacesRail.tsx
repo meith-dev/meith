@@ -2,7 +2,15 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Space } from "@meith/shared";
-import { FolderOpenIcon, InfoIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  FolderOpenIcon,
+  InfoIcon,
+  PencilIcon,
+  PlusIcon,
+  SettingsIcon,
+  TerminalSquare,
+  Trash2Icon,
+} from "lucide-react";
 import { type MouseEvent, useEffect, useState } from "react";
 
 interface SpacesRailProps {
@@ -14,6 +22,12 @@ interface SpacesRailProps {
   onRename: (space: Space) => void;
   onDelete: (space: Space) => void;
   onInfo: (space: Space) => void;
+  onOpenSettings: () => void;
+  /** Whether the settings view is open (highlights the button). */
+  settingsOpen: boolean;
+  /** Whether the diagnostics drawer is open (highlights the button). */
+  debugOpen: boolean;
+  onToggleDebug: () => void;
 }
 
 type SpaceMenuState = {
@@ -37,6 +51,10 @@ export function SpacesRail({
   onRename,
   onDelete,
   onInfo,
+  onOpenSettings,
+  settingsOpen,
+  debugOpen,
+  onToggleDebug,
 }: SpacesRailProps) {
   const [menu, setMenu] = useState<SpaceMenuState | null>(null);
 
@@ -77,9 +95,14 @@ export function SpacesRail({
   return (
     <nav
       aria-label="Spaces"
-      className="flex w-14 shrink-0 flex-col items-center gap-2 border-r border-sidebar-border bg-sidebar py-3"
+      className="flex w-14 shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar py-3"
     >
-      <div className="flex flex-1 flex-col items-center gap-2">
+      {/* Scrollable spaces list, bounded so it never overflows the rail.
+          `w-full` spans the full rail width: the nav's `items-center` would
+          otherwise shrink-wrap this column to the avatar width, so the active
+          ring (`ring-offset-2`) and `hover:scale-105` would spill past the
+          scrollport edge and get clipped by the forced `overflow-x`. */}
+      <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {spaces.map((space) => {
           const active = space.id === activeSpaceId;
           return (
@@ -94,7 +117,7 @@ export function SpacesRail({
                     onDoubleClick={() => onRename(space)}
                     onContextMenu={(e) => openMenu(e, space)}
                     className={cn(
-                      "relative flex size-9 items-center justify-center rounded-md text-sm font-semibold text-white transition-transform",
+                      "relative flex size-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold text-white transition-transform",
                       "hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       active && "ring-2 ring-offset-2 ring-offset-sidebar",
                     )}
@@ -111,6 +134,9 @@ export function SpacesRail({
             </Tooltip>
           );
         })}
+
+        {/* Directly under the open workspaces: create / open folder. */}
+        <div className="h-px w-7 bg-sidebar-border" />
 
         <Tooltip>
           <TooltipTrigger
@@ -146,6 +172,49 @@ export function SpacesRail({
             }
           />
           <TooltipContent side="right">Open folder…</TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* Pinned bottom cluster: diagnostics / global settings. */}
+      <div className="flex shrink-0 flex-col items-center gap-2 pt-2">
+        <div className="h-px w-7 bg-sidebar-border" />
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant={debugOpen ? "secondary" : "ghost"}
+                size="icon"
+                className="size-9 text-muted-foreground"
+                onClick={onToggleDebug}
+                aria-label="Toggle diagnostics"
+              >
+                <TerminalSquare />
+              </Button>
+            }
+          />
+          <TooltipContent side="right">Toggle diagnostics ({"\u2318"}J)</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant={settingsOpen ? "secondary" : "ghost"}
+                size="icon"
+                className="size-9 text-muted-foreground"
+                onClick={onOpenSettings}
+                aria-label={settingsOpen ? "Close settings" : "Open settings"}
+                aria-pressed={settingsOpen}
+              >
+                <SettingsIcon />
+              </Button>
+            }
+          />
+          <TooltipContent side="right">
+            {settingsOpen ? "Close settings" : "Settings"}
+          </TooltipContent>
         </Tooltip>
       </div>
 

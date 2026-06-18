@@ -104,6 +104,16 @@ export function useAgent(
     };
   }, [bridge]);
 
+  // Refetch the agent config when it's changed elsewhere (e.g. the global
+  // Settings dialog) so the header badge stays in sync.
+  useEffect(() => {
+    const onChanged = () => {
+      void bridge.agent.getConfig().then(setConfig);
+    };
+    window.addEventListener("meith:agent-config-changed", onChanged);
+    return () => window.removeEventListener("meith:agent-config-changed", onChanged);
+  }, [bridge]);
+
   // Single, stable subscription set for the lifetime of the hook.
   useEffect(() => {
     const offChunk = bridge.agent.onChunk(({ sessionId, chunk }) => {

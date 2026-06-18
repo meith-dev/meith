@@ -1,0 +1,96 @@
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { WORKSPACE_KINDS } from "@/lib/workspace";
+import type { WorkspaceTab } from "@meith/shared";
+import { Columns2Icon, Settings2Icon, XIcon } from "lucide-react";
+
+interface PaneToolbarProps {
+  kind: WorkspaceTab["kind"];
+  title: string;
+  /** Whether the workspace surface is currently split beside the browser. */
+  split: boolean;
+  onToggleSplit: () => void;
+  onClose: () => void;
+  /** Provided only for agent surfaces — opens Settings on the Agent tab. */
+  onOpenAgentSettings?: () => void;
+}
+
+/**
+ * A slim, shared header for whichever workspace surface fills the workspace
+ * pane. It centralizes the Split toggle (open the browser side-by-side) and the
+ * agent settings entry so every surface kind gets a consistent control bar.
+ */
+export function PaneToolbar({
+  kind,
+  title,
+  split,
+  onToggleSplit,
+  onClose,
+  onOpenAgentSettings,
+}: PaneToolbarProps) {
+  const { icon: Icon, label } = WORKSPACE_KINDS[kind];
+  return (
+    <header className="flex h-9 shrink-0 items-center gap-2 border-b border-border bg-card/40 px-3">
+      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      <span className="min-w-0 flex-1 truncate text-sm font-medium" title={title}>
+        {title}
+      </span>
+      <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+        {label}
+      </span>
+
+      {kind === "agent" && onOpenAgentSettings && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-7"
+                onClick={onOpenAgentSettings}
+                aria-label="Agent settings"
+              >
+                <Settings2Icon className="size-4" aria-hidden />
+              </Button>
+            }
+          />
+          <TooltipContent>Agent settings</TooltipContent>
+        </Tooltip>
+      )}
+
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              size="icon"
+              variant={split ? "secondary" : "ghost"}
+              className="size-7"
+              onClick={onToggleSplit}
+              aria-label={split ? "Close split view" : "Split with browser"}
+            >
+              <Columns2Icon className="size-4" aria-hidden />
+            </Button>
+          }
+        />
+        <TooltipContent>{split ? "Close split" : "Split with browser"}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7"
+              onClick={onClose}
+              aria-label={`Close ${label.toLowerCase()}`}
+            >
+              <XIcon className="size-4" aria-hidden />
+            </Button>
+          }
+        />
+        <TooltipContent>Close tab</TooltipContent>
+      </Tooltip>
+    </header>
+  );
+}

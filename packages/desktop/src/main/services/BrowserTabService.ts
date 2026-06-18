@@ -398,6 +398,18 @@ export class BrowserTabService {
     return { tabId: id, width: capture.width, height: capture.height, path };
   }
 
+  /**
+   * Capture a tab's current frame in memory (no artifact written). Returns the
+   * raw PNG buffer, or null if there is no live view. Used by the renderer to
+   * freeze the browser behind a transient DOM overlay.
+   */
+  async captureFrame(id: string): Promise<Buffer | null> {
+    const tab = this.requireTab(id);
+    await this.ensureView(tab);
+    const capture = await this.host.capture(id);
+    return capture ? Buffer.from(capture.data) : null;
+  }
+
   // --- Automation & diagnostics (Phase 4) ---
 
   /**

@@ -1,5 +1,5 @@
 import { type ToolDefinition, defineTool } from "@meith/protocol";
-import { ToolError, okResult } from "@meith/shared";
+import { ProjectRunConfigSchema, ToolError, okResult } from "@meith/shared";
 import { z } from "zod";
 import { ProjectError } from "../services/ProjectService.js";
 import type { ToolDeps } from "./deps.js";
@@ -83,6 +83,39 @@ export function createProjectTools(deps: ToolDeps): ToolDefinition[] {
       ),
   });
 
+  const projectRun = defineTool({
+    name: "project_run",
+    description:
+      "Run a workspace's configured run command (by id, or its default). Falls back to the detected dev/start script when no custom command is configured.",
+    capabilities: ["starts-process", "accesses-network"],
+    inputSchema: z.object({
+      projectId: z.string(),
+      commandId: z
+        .string()
+        .optional()
+        .describe("Run command id; defaults to the workspace's default run command."),
+    }),
+    execute: (_ctx, input) =>
+      withProjectErrors(() =>
+        okResult(projects.runCommand(input.projectId, input.commandId)),
+      ),
+  });
+
+  const projectSetRunConfig = defineTool({
+    name: "project_set_run_config",
+    description:
+      "Replace a workspace's run configuration: its custom run commands, the default command, and run-time environment variables.",
+    capabilities: ["writes-files"],
+    inputSchema: z.object({
+      projectId: z.string(),
+      runConfig: ProjectRunConfigSchema,
+    }),
+    execute: (_ctx, input) =>
+      withProjectErrors(() =>
+        okResult(projects.setRunConfig(input.projectId, input.runConfig)),
+      ),
+  });
+
   const projectListTemplates = defineTool({
     name: "project_list_templates",
     description: "List the available project templates (app and plugin).",
@@ -158,6 +191,8 @@ export function createProjectTools(deps: ToolDeps): ToolDefinition[] {
     projectOpen,
     projectStartDevServer,
     projectStopDevServer,
+    projectRun,
+    projectSetRunConfig,
     projectListTemplates,
     projectCreate,
     projectCreatePlugin,

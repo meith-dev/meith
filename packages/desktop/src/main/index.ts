@@ -5,6 +5,8 @@ import { net, BrowserWindow, app, ipcMain, protocol } from "electron";
 import { type ServiceContainer, bootstrap } from "./bootstrap.js";
 import { ElectronBrowserViewHost } from "./browser/ElectronBrowserViewHost.js";
 import { IPC, registerIpcHandlers } from "./ipc/handlers.js";
+import { OverlayWindow } from "./overlay/OverlayWindow.js";
+import { registerOverlayIpc } from "./overlay/registerOverlayIpc.js";
 import { NodePtyHost } from "./process/NodePtyHost.js";
 import type { PtyHost } from "./process/PtyHost.js";
 
@@ -16,6 +18,7 @@ const FALLBACK_CHROME_TOP = 96;
 const ARTIFACT_PROTOCOL = "meith-artifact";
 
 let mainWindow: BrowserWindow | null = null;
+let overlayWindow: OverlayWindow | null = null;
 let container: ServiceContainer | null = null;
 let viewHost: ElectronBrowserViewHost | null = null;
 let artifactProtocolRegistered = false;
@@ -79,6 +82,13 @@ function createWindow(): void {
   } else {
     void mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
+
+  // The overlay window floats above the main window's native browser view to
+  // render tooltips/menus that would otherwise be hidden behind it. Recreate it
+  // alongside the (possibly re-created) main window.
+  overlayWindow?.destroy();
+  overlayWindow = new OverlayWindow(() => mainWindow);
+  overlayWindow.create();
 }
 
 app.whenReady().then(async () => {
@@ -151,6 +161,11 @@ app.whenReady().then(async () => {
   });
   registerArtifactProtocol(container.config.userDataPath);
   registerIpcHandlers(container, () => mainWindow);
+  // Relay tooltip/menu requests between the main window and the overlay window.
+  registerOverlayIpc(
+    () => overlayWindow,
+    () => mainWindow,
+  );
 
   // Now that the container is assigned and IPC handlers (including the plugin
   // identity channel) are registered, recreate live views for persisted tabs.

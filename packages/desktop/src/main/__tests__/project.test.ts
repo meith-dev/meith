@@ -198,6 +198,76 @@ describe("ProjectService", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
+  it("persists a run configuration on the project record", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-runcfg-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "cfg" }));
+    const project = ctx.projects.open({ cwd: dir }).project;
+    const updated = ctx.projects.setRunConfig(project.id, {
+      commands: [{ id: "run_1", label: "Dev", command: "pnpm dev", isDevServer: true }],
+      defaultCommandId: "run_1",
+      env: { NODE_ENV: "development" },
+    });
+    expect(updated.runConfig.commands).toHaveLength(1);
+    expect(updated.runConfig.defaultCommandId).toBe("run_1");
+    // The change is reflected in the live AppState.
+    expect(ctx.projects.get(project.id)?.runConfig.env.NODE_ENV).toBe("development");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("runs a custom configured command as a single shell string", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-run-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "run" }));
+    const project = ctx.projects.open({ cwd: dir }).project;
+    ctx.projects.setRunConfig(project.id, {
+      commands: [
+        { id: "run_1", label: "Serve", command: "make serve", isDevServer: true },
+      ],
+      defaultCommandId: "run_1",
+      env: { PORT: "4000" },
+    });
+    const spy = vi
+      .spyOn(ctx.devServers, "start")
+      .mockReturnValue({ id: "dev_fake" } as never);
+    ctx.projects.runCommand(project.id);
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cwd: dir,
+        command: "make serve",
+        shell: true,
+        env: { PORT: "4000" },
+      }),
+    );
+    spy.mockRestore();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("falls back to the detected dev script when no custom command exists", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-run-fallback-"));
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "fb", scripts: { dev: "node server.mjs" } }),
+    );
+    writeFileSync(join(dir, "yarn.lock"), "");
+    const project = ctx.projects.open({ cwd: dir }).project;
+    const spy = vi
+      .spyOn(ctx.devServers, "start")
+      .mockReturnValue({ id: "dev_fake" } as never);
+    ctx.projects.runCommand(project.id);
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ cwd: dir, command: "yarn", args: ["dev"] }),
+    );
+    spy.mockRestore();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("throws when running an unknown command id", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-run-unknown-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "u" }));
+    const project = ctx.projects.open({ cwd: dir }).project;
+    expect(() => ctx.projects.runCommand(project.id, "nope")).toThrow(ProjectError);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
   it("lists the app and plugin templates from disk", () => {
     const templates = ctx.projects.listTemplates();
     const byName = Object.fromEntries(templates.map((t) => [t.name, t]));
@@ -278,6 +348,8 @@ describe("project tools", () => {
       "project_open",
       "project_start_dev_server",
       "project_stop_dev_server",
+      "project_run",
+      "project_set_run_config",
       "project_list_templates",
       "project_create",
       "project_create_plugin",

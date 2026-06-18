@@ -41,6 +41,7 @@ import { createPluginTools } from "./tools/pluginTools.js";
 import { createProcessTools } from "./tools/processTools.js";
 import { createProjectTools } from "./tools/projectTools.js";
 import { ToolRegistry } from "./tools/registry.js";
+import { createSettingsTools } from "./tools/settingsTools.js";
 import { createSpaceTools } from "./tools/spaceTools.js";
 import { createStorageTools } from "./tools/storageTools.js";
 
@@ -281,6 +282,7 @@ export async function bootstrap(
   registry.registerAll(createFileTools(deps));
   registry.registerAll(createStorageTools(deps));
   registry.registerAll(createPluginTools(deps));
+  registry.registerAll(createSettingsTools(deps));
 
   // Agent runtime (Phase 9). Durable session/transcript store + user config,
   // an in-process MCP bridge that exposes the SAME registry to an external ACP

@@ -1,0 +1,142 @@
+import {
+  type ReactElement,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useRef,
+} from "react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { type OverlayActionItem, getOverlayApi, nextOverlayMenuId } from "@/lib/overlay";
+import { OVERLAY_ICONS } from "@/overlay/icons";
+
+interface OverlayDropdownProps {
+  /** The trigger element (a button). Receives an onClick that opens the menu. */
+  trigger: ReactElement;
+  items: OverlayActionItem[];
+  align?: "start" | "end";
+  /** Minimum menu width in px (overlay path); also applied to the fallback. */
+  minWidth?: number;
+  /** Notified when the menu opens/closes (e.g. to freeze the browser view). */
+  onOpenChange?: (open: boolean) => void;
+}
+
+/**
+ * A dropdown menu that, inside the desktop app, renders in the always-on-top
+ * overlay window so it floats ABOVE the native browser `WebContentsView`
+ * instead of being clipped behind it. Outside Electron (preview / tests) it
+ * falls back to a normal in-DOM base-ui `DropdownMenu` so those environments
+ * keep working unchanged.
+ */
+export function OverlayDropdown({
+  trigger,
+  items,
+  align = "start",
+  minWidth = 200,
+  onOpenChange,
+}: OverlayDropdownProps) {
+  const overlay = getOverlayApi();
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // Keep the latest items for the (async) result callback without re-subscribing.
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const openIdRef = useRef<string | null>(null);
+
+  // Subscribe once to menu results from the overlay window (overlay path only).
+  useEffect(() => {
+    if (!overlay) return;
+    return overlay.onMenuResult((result) => {
+      if (result.id !== openIdRef.current) return;
+      openIdRef.current = null;
+      onOpenChange?.(false);
+      if (result.itemId == null) return;
+      itemsRef.current.find((it) => it.id === result.itemId)?.onSelect();
+    });
+  }, [overlay, onOpenChange]);
+
+  // --- Fallback: normal in-DOM dropdown (preview / tests / non-Electron) ---
+  if (!overlay) {
+    return (
+      <DropdownMenu onOpenChange={onOpenChange}>
+        <DropdownMenuTrigger render={trigger} />
+        <DropdownMenuContent align={align} style={{ minWidth }}>
+          {items.map((item, i) => {
+            const Icon = item.iconName ? OVERLAY_ICONS[item.iconName] : undefined;
+            return (
+              <div key={item.id}>
+                {item.separatorBefore && i > 0 && <DropdownMenuSeparator />}
+                {item.groupLabel && (
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    {item.groupLabel}
+                  </DropdownMenuLabel>
+                )}
+                <DropdownMenuItem
+                  variant={item.variant}
+                  disabled={item.disabled}
+                  onClick={() => item.onSelect()}
+                >
+                  {Icon && <Icon className="size-4" />}
+                  <span className="flex-1">{item.label}</span>
+                  {item.hint && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {item.hint}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              </div>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  // --- Overlay path: open a menu in the floating overlay window -------------
+  if (!isValidElement(trigger)) return trigger;
+  const triggerProps = trigger.props as Record<string, unknown> & {
+    onClick?: (e: React.MouseEvent) => void;
+    ref?: React.Ref<HTMLButtonElement>;
+  };
+
+  const open = () => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const id = nextOverlayMenuId();
+    openIdRef.current = id;
+    onOpenChange?.(true);
+    overlay.showMenu({
+      id,
+      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+      // Strip the local `onSelect` handler; only serializable fields cross IPC.
+      items: items.map(({ onSelect: _onSelect, ...rest }) => rest),
+      align,
+      minWidth,
+    });
+  };
+
+  return cloneElement(trigger, {
+    ref: composeRefs(triggerRef, triggerProps.ref),
+    onClick: (e: React.MouseEvent) => {
+      triggerProps.onClick?.(e);
+      open();
+    },
+  } as Partial<typeof triggerProps> & { className?: string });
+}
+
+function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
+  return (node: T | null) => {
+    for (const ref of refs) {
+      if (typeof ref === "function") ref(node);
+      else if (ref && typeof ref === "object")
+        (ref as { current: T | null }).current = node;
+    }
+  };
+}

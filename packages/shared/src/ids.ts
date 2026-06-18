@@ -31,3 +31,4 @@ export const newToolCallId = () => createId("call");
 export const newTerminalId = () => createId("term");
 export const newDevServerId = () => createId("dev");
 export const newProjectId = () => createId("proj");
+export const newRunCommandId = () => createId("run");
