@@ -175,14 +175,14 @@ export class WorkspaceFileService {
   /** Known workspace roots: tracked project cwd values and open workspace-tab cwd values. */
   private knownRoots(): string[] {
     const roots = [
-      ...this.projects.list().map((p) => resolve(p.cwd)),
-      ...(this.appState?.getState().workspaceTabs.map((t) => resolve(t.cwd)) ?? []),
+      ...this.projects.list().map((p) => canonicalize(p.cwd)),
+      ...(this.appState?.getState().workspaceTabs.map((t) => canonicalize(t.cwd)) ?? []),
     ];
     return [...new Set(roots)];
   }
 
   private trustedCwd(cwd: string, allowOutside?: boolean): string {
-    const root = resolve(cwd);
+    const root = canonicalize(cwd);
     if (this.knownRoots().includes(root)) return root;
     if (allowOutside) return root;
     throw new WorkspaceFileError(
@@ -279,7 +279,7 @@ export class WorkspaceFileService {
     if (!existsSync(rootAbs) || !statSync(rootAbs).isDirectory()) {
       throw new WorkspaceFileError(`Not a directory: ${rootAbs}`, "validation");
     }
-    const base = resolve(cwd);
+    const base = canonicalize(cwd);
     const entries: FileEntry[] = [];
     let truncated = false;
 
@@ -341,7 +341,7 @@ export class WorkspaceFileService {
   ): SearchResult {
     const { absPath: rootAbs } = this.resolveInWorkspace(cwd, ".", options);
     const cap = options.maxResults ?? DEFAULT_MAX_SEARCH_RESULTS;
-    const base = resolve(cwd);
+    const base = canonicalize(cwd);
     const matcher = buildMatcher(options.query, options.isRegex, options.caseSensitive);
     const matches: SearchMatch[] = [];
     let truncated = false;

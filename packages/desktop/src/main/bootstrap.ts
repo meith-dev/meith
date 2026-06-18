@@ -26,6 +26,7 @@ import { BrowserTabService } from "./services/BrowserTabService.js";
 import { DevServerService } from "./services/DevServerService.js";
 import { Logger } from "./services/Logger.js";
 import { McpBridgeService } from "./services/McpBridgeService.js";
+import { PermissionService } from "./services/PermissionService.js";
 import { PluginHostService } from "./services/PluginHostService.js";
 import { ProjectService } from "./services/ProjectService.js";
 import { SpaceService } from "./services/SpaceService.js";
@@ -59,6 +60,7 @@ export interface ServiceContainer {
   mcpBridge: McpBridgeService;
   storage: StorageService;
   plugins: PluginHostService;
+  permissions: PermissionService;
   registry: ToolRegistry;
   socket: ToolSocketService;
   config: MeithConfig;
@@ -201,6 +203,7 @@ export async function bootstrap(
 ): Promise<ServiceContainer> {
   mkdirSync(userDataPath, { recursive: true });
   const logPath = join(userDataPath, "logs.jsonl");
+  const auditPath = join(userDataPath, "audit.jsonl");
   const logger = new Logger({ logPath });
 
   const { home, configPath } = meithPaths();
@@ -245,18 +248,32 @@ export async function bootstrap(
     generatedRoot,
     templatesDir,
   });
-  const storage = new StorageService({ dataDir: userDataPath, appState, logPath });
+  const storage = new StorageService({
+    dataDir: userDataPath,
+    appState,
+    logPath,
+    auditPath,
+  });
   // Editor/IDE file authority (Phase 8). Boundary-checks every read/write
   // against known project roots and provides TypeScript diagnostics.
   const files = new WorkspaceFileService(projects, logger, appState);
 
-  const registry = new ToolRegistry();
+  const pluginRef: { current?: PluginHostService } = {};
+  const permissions = new PermissionService({
+    auditPath,
+    logger,
+    getPluginGrants: (pluginId) =>
+      pluginRef.current?.get(pluginId)?.approvedGrants.capabilities,
+  });
+
+  const registry = new ToolRegistry(permissions);
   // Plugin host (Phase 11). Owns the plugin lifecycle and the security boundary
   // for the `window.meithPlugin` bridge. It reads tool capabilities lazily from
   // the registry so capability gating reflects whatever tools are registered.
   const plugins = new PluginHostService(appState, logger, {
     describeTools: () => registry.describe(),
   });
+  pluginRef.current = plugins;
   const deps = {
     appState,
     browserTabs,
@@ -268,6 +285,7 @@ export async function bootstrap(
     logger,
     storage,
     plugins,
+    permissions,
   };
   registry.registerAll(createBrowserTools(deps));
   registry.registerAll(createSpaceTools(deps));
@@ -296,6 +314,7 @@ export async function bootstrap(
     configStore: agentConfig,
     appState,
     mcpBridge,
+    permissions,
   });
   agents.registerAdapter(
     agentConfig.get().adapter === "acp"
@@ -382,6 +401,7 @@ export async function bootstrap(
     mcpBridge,
     storage,
     plugins,
+    permissions,
     registry,
     socket,
     config,

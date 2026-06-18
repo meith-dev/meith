@@ -22,6 +22,22 @@ export interface CallOptions {
   emit?: (event: ToolEvent) => void;
 }
 
+export interface ToolPermissionService {
+  authorize: (
+    ctx: Omit<ToolContext, "signal" | "emit">,
+    tool: ToolDefinition,
+    args: unknown,
+  ) => ToolResult | null;
+  auditToolCall: (input: {
+    ctx: Omit<ToolContext, "signal" | "emit">;
+    toolName: string;
+    capabilities?: ToolDefinition["capabilities"];
+    args: unknown;
+    result: ToolResult;
+    durationMs: number;
+  }) => void;
+}
+
 /**
  * The single tool registry. Every caller — CLI (via socket), renderer/debug UI
  * (via IPC), future MCP server, and future AI agent runtime — goes through this
@@ -32,6 +48,8 @@ export interface CallOptions {
 export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>();
   private shuttingDown = false;
+
+  constructor(private readonly permissions?: ToolPermissionService) {}
 
   register(tool: ToolDefinition): void {
     if (this.tools.has(tool.name)) {
@@ -77,22 +95,43 @@ export class ToolRegistry {
     args: Record<string, unknown>,
     opts: CallOptions = {},
   ): Promise<ToolResult> {
+    const startedAt = Date.now();
+    const audit = (result: ToolResult, tool?: ToolDefinition, auditArgs = args) => {
+      this.permissions?.auditToolCall({
+        ctx,
+        toolName: name,
+        capabilities: tool?.capabilities ?? [],
+        args: auditArgs,
+        result,
+        durationMs: Date.now() - startedAt,
+      });
+      return result;
+    };
+
     if (this.shuttingDown) {
-      return errorResult("RUNTIME_SHUTTING_DOWN", "Runtime is shutting down");
+      return audit(errorResult("RUNTIME_SHUTTING_DOWN", "Runtime is shutting down"));
     }
 
     const tool = this.tools.get(name);
     if (!tool) {
-      return errorResult("UNKNOWN_TOOL", `Unknown tool: ${name}`);
+      return audit(errorResult("UNKNOWN_TOOL", `Unknown tool: ${name}`));
     }
 
     const parsed = tool.inputSchema.safeParse(args ?? {});
     if (!parsed.success) {
-      return errorResult(
-        "VALIDATION_ERROR",
-        `Invalid arguments for "${name}"`,
-        parsed.error.flatten(),
+      return audit(
+        errorResult(
+          "VALIDATION_ERROR",
+          `Invalid arguments for "${name}"`,
+          parsed.error.flatten(),
+        ),
+        tool,
       );
+    }
+
+    const denied = this.permissions?.authorize(ctx, tool, parsed.data);
+    if (denied) {
+      return audit(denied, tool, parsed.data);
     }
 
     const timeoutMs = opts.timeoutMs ?? tool.timeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS;
@@ -109,18 +148,34 @@ export class ToolRegistry {
         Promise.resolve(tool.execute(fullCtx, parsed.data)),
         abortPromise(signal),
       ]);
-      return isToolResult(raw) ? raw : okResult(raw);
+      return audit(isToolResult(raw) ? raw : okResult(raw), tool, parsed.data);
     } catch (err) {
       if (timeoutController.signal.aborted) {
-        return errorResult("TIMEOUT", `Tool "${name}" timed out after ${timeoutMs}ms`);
+        return audit(
+          errorResult("TIMEOUT", `Tool "${name}" timed out after ${timeoutMs}ms`),
+          tool,
+          parsed.data,
+        );
       }
       if (opts.signal?.aborted) {
-        return errorResult("CANCELLED", `Tool "${name}" was cancelled`);
+        return audit(
+          errorResult("CANCELLED", `Tool "${name}" was cancelled`),
+          tool,
+          parsed.data,
+        );
       }
       if (err instanceof ToolError) {
-        return errorResult(err.code as ToolErrorCode, err.message, err.details);
+        return audit(
+          errorResult(err.code as ToolErrorCode, err.message, err.details),
+          tool,
+          parsed.data,
+        );
       }
-      return errorResult("TOOL_FAILED", err instanceof Error ? err.message : String(err));
+      return audit(
+        errorResult("TOOL_FAILED", err instanceof Error ? err.message : String(err)),
+        tool,
+        parsed.data,
+      );
     } finally {
       clearTimeout(timer);
     }

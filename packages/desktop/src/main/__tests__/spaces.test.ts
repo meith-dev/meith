@@ -8,8 +8,8 @@ import { AppStateService } from "../services/AppStateService.js";
 import { BrowserTabService } from "../services/BrowserTabService.js";
 import { Logger } from "../services/Logger.js";
 import { SpaceService } from "../services/SpaceService.js";
-import { createSpaceTools } from "../tools/spaceTools.js";
 import type { ToolDeps } from "../tools/deps.js";
+import { createSpaceTools } from "../tools/spaceTools.js";
 
 /** Headless host that records which tab views were destroyed. */
 class RecordingViewHost extends HeadlessBrowserViewHost {

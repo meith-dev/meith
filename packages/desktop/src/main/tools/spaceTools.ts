@@ -22,7 +22,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
   const createSpace = defineTool({
     name: "create_space",
     description: "Create a new space and make it active.",
-    capabilities: [],
+    capabilities: ["writes-files"],
     inputSchema: z.object({
       name: z.string().min(1),
       color: z.string().optional(),
@@ -33,7 +33,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
   const updateSpace = defineTool({
     name: "update_space",
     description: "Rename and/or recolor a space.",
-    capabilities: [],
+    capabilities: ["writes-files"],
     inputSchema: z.object({
       spaceId: z.string(),
       name: z.string().min(1).optional(),
@@ -46,7 +46,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
   const switchSpace = defineTool({
     name: "switch_space",
     description: "Switch the active space.",
-    capabilities: [],
+    capabilities: ["writes-files"],
     inputSchema: z.object({ spaceId: z.string() }),
     execute: (_ctx, input) => deps.spaces.switchTo(input.spaceId),
   });
@@ -63,7 +63,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
     name: "open_workspace_tab",
     description:
       "Open a workspace tab (editor/terminal/agent/preview) in the active space.",
-    capabilities: [],
+    capabilities: ["writes-files"],
     inputSchema: z.object({
       title: z.string().min(1),
       cwd: z.string().min(1),
@@ -77,7 +77,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
   const setWorkspaceTabTerminal = defineTool({
     name: "set_workspace_tab_terminal",
     description: "Associate a terminal workspace tab with its live terminal session.",
-    capabilities: [],
+    capabilities: ["writes-files"],
     inputSchema: z.object({
       tabId: z.string(),
       terminalId: z.string().nullable(),
@@ -90,7 +90,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
     name: "set_workspace_tab_file",
     description:
       "Set the focused file and/or open files of an editor workspace tab (paths relative to its cwd).",
-    capabilities: [],
+    capabilities: ["writes-files"],
     inputSchema: z.object({
       tabId: z.string(),
       activeFilePath: z.string().nullable().optional(),
@@ -106,7 +106,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
   const focusWorkspaceTab = defineTool({
     name: "focus_workspace_tab",
     description: "Make a workspace tab the active one in its space.",
-    capabilities: [],
+    capabilities: ["writes-files"],
     inputSchema: z.object({ tabId: z.string() }),
     execute: (_ctx, input) => deps.browserTabs.focusWorkspaceTab(input.tabId),
   });

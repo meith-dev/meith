@@ -177,9 +177,9 @@ describe("WorkspaceFileService", () => {
 
     try {
       // The nested file does not exist yet, but its parent dereferences outside.
-      expect(() =>
-        ctx.files.writeFile(ctx.projectDir, "linked/new.txt", "nope"),
-      ).toThrow(WorkspaceFileError);
+      expect(() => ctx.files.writeFile(ctx.projectDir, "linked/new.txt", "nope")).toThrow(
+        WorkspaceFileError,
+      );
       expect(existsSync(join(outsideDir, "new.txt"))).toBe(false);
     } finally {
       rmSync(outsideDir, { recursive: true, force: true });

@@ -29,12 +29,14 @@ import type { AgentStore } from "./AgentStore.js";
 import type { AppStateService } from "./AppStateService.js";
 import type { Logger } from "./Logger.js";
 import type { McpBridgeService } from "./McpBridgeService.js";
+import type { PermissionService } from "./PermissionService.js";
 
 export interface AgentServiceOptions {
   store?: AgentStore;
   configStore?: AgentConfigStore;
   appState?: AppStateService;
   mcpBridge?: McpBridgeService;
+  permissions?: PermissionService;
 }
 
 /** Input accepted by `createSession`: a bare cwd or a full options object. */
@@ -43,7 +45,7 @@ export type CreateSessionInput =
   | { cwd: string; spaceId?: string | null; title?: string; model?: string };
 
 interface PendingPermission {
-  resolve: (decision: "allow" | "deny") => void;
+  resolve: (decision: AgentPermissionDecision) => void;
 }
 
 /**
@@ -157,6 +159,7 @@ export class AgentService extends EventEmitter {
     this.cancel(id);
     void this.adapter?.dispose?.(id);
     this.options.mcpBridge?.unregisterSession(id);
+    this.options.permissions?.revokeSession("agent", id);
     this.sessions.delete(id);
     this.remembered.delete(id);
     this.lastActivity.delete(id);
@@ -203,7 +206,7 @@ export class AgentService extends EventEmitter {
       }
     }
     this.pendingMeta.delete(key);
-    pending.resolve(decision.decision);
+    pending.resolve(decision);
   }
 
   private readonly pendingMeta = new Map<string, AgentPermissionRequest>();
@@ -211,10 +214,10 @@ export class AgentService extends EventEmitter {
   private async requestPermission(
     session: AgentSession,
     request: AgentPermissionRequest,
-  ): Promise<"allow" | "deny"> {
+  ): Promise<AgentPermissionDecision> {
     const key = `${request.sessionId}:${request.toolCallId}`;
     this.pendingMeta.set(key, request);
-    return new Promise<"allow" | "deny">((resolve) => {
+    return new Promise<AgentPermissionDecision>((resolve) => {
       // Register the resolver BEFORE emitting so a synchronous decision (tests,
       // auto-responders) can resolve it immediately.
       this.pending.set(key, { resolve });
@@ -223,7 +226,14 @@ export class AgentService extends EventEmitter {
       controller?.signal.addEventListener(
         "abort",
         () => {
-          if (this.pending.delete(key)) resolve("deny");
+          if (this.pending.delete(key)) {
+            resolve({
+              sessionId: request.sessionId,
+              toolCallId: request.toolCallId,
+              decision: "deny",
+              remember: false,
+            });
+          }
         },
         { once: true },
       );
@@ -282,11 +292,18 @@ export class AgentService extends EventEmitter {
           capability: cap,
           args: toolCall.args,
         });
-        allowed = decision === "allow";
+        allowed = decision.decision === "allow";
       }
       if (!allowed) {
         return errorResult("PERMISSION_DENIED", `User denied "${toolCall.name}".`);
       }
+      this.options.permissions?.grant({
+        caller: "agent",
+        sessionId: session.id,
+        toolName: toolCall.name,
+        capabilities: caps,
+        uses: 1,
+      });
     }
 
     return this.registry.call(

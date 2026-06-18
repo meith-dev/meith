@@ -22,6 +22,7 @@ export interface StorageServiceOptions {
   dataDir: string;
   appState: AppStateService;
   logPath: string;
+  auditPath: string;
 }
 
 /**
@@ -35,6 +36,10 @@ export class StorageService {
   constructor(private readonly opts: StorageServiceOptions) {
     const logStore = new JsonlStore<unknown>({
       path: opts.logPath,
+      parse: (raw) => raw,
+    });
+    const auditStore = new JsonlStore<unknown>({
+      path: opts.auditPath,
       parse: (raw) => raw,
     });
 
@@ -51,6 +56,13 @@ export class StorageService {
       path: opts.logPath,
       description: "Append-only structured log history.",
       read: (limit) => logStore.tail(limit ?? 200),
+    });
+    this.define({
+      name: "audit",
+      kind: "jsonl",
+      path: opts.auditPath,
+      description: "Append-only redacted tool-call audit history.",
+      read: (limit) => auditStore.tail(limit ?? 200),
     });
   }
 

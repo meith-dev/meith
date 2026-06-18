@@ -565,34 +565,34 @@ Acceptance criteria:
 
 Before real agents can write files, drive browsers, or start processes, permissions need to be explicit.
 
-- [ ] Add a centralized permission service.
-- [ ] Classify every tool with capability metadata.
-- [ ] Enforce permission checks inside `ToolRegistry.call` or a wrapper around it.
-- [ ] Add per-caller policies:
+- [x] Add a centralized permission service.
+- [x] Classify every tool with capability metadata.
+- [x] Enforce permission checks inside `ToolRegistry.call` or a wrapper around it.
+- [x] Add per-caller policies:
   - renderer
   - CLI
   - agent
   - plugin
   - internal
-- [ ] Add per-session grants:
+- [x] Add per-session grants:
   - browser tab claim
   - workspace write permission
   - process start permission
   - network/tool access
-- [ ] Add audit log:
+- [x] Add audit log:
   - who called tool
   - args summary
   - result summary
   - timestamp
   - cwd/session/space
-- [ ] Redact secrets in logs and tool arguments.
-- [ ] Harden Electron security:
+- [x] Redact secrets in logs and tool arguments.
+- [x] Harden Electron security:
   - no Node integration in untrusted web tabs
   - context isolation on
   - sandbox untrusted views
   - strict preload API
   - validate all IPC inputs
-- [ ] Add tests for denied tool calls.
+- [x] Add tests for denied tool calls.
 
 Acceptance criteria:
 
@@ -751,4 +751,3 @@ The codebase is ready for a serious agent adapter when all of these are true:
 - Tool results and errors have stable structured envelopes.
 - Permissions distinguish read-only, browser-control, process, and file-write capabilities.
 - Agent messages and tool calls are persisted outside the small app state file.
-

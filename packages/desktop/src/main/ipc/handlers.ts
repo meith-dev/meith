@@ -285,17 +285,11 @@ function registerPluginHandlers(container: ServiceContainer): void {
   ipcMain.handle(
     IPC.pluginToolsCall,
     async (event, name: string, args: Record<string, unknown>) => {
-      let identity: MeithPluginIdentity | null = null;
+      let identity: ReturnType<typeof plugins.assertApiAllowed>;
       try {
-        // Identity + per-tool capability gate, both resolved from the sender.
-        const resolved = plugins.assertToolAllowed(event.sender.id, name);
-        identity = {
-          pluginId: resolved.pluginId,
-          name: resolved.pluginId,
-          version: "",
-          apis: resolved.approvedApis,
-          capabilities: resolved.approvedCapabilities,
-        };
+        // Resolve identity from the sender. The registry's centralized
+        // PermissionService enforces per-tool capability grants.
+        identity = plugins.assertApiAllowed(event.sender.id, "tools");
       } catch (err) {
         return pluginErrorResult(err);
       }
@@ -336,12 +330,12 @@ function registerPluginHandlers(container: ServiceContainer): void {
   ipcMain.handle(
     IPC.pluginCdp,
     (event, tabId: string, method: string, params: Record<string, unknown>) => {
-      let resolved: ReturnType<typeof plugins.assertToolAllowed>;
+      let resolved: ReturnType<typeof plugins.assertApiAllowed>;
       try {
         // CDP is browser control; require both the `cdp` API and the matching
-        // capability on the underlying tool.
-        plugins.assertApiAllowed(event.sender.id, "cdp");
-        resolved = plugins.assertToolAllowed(event.sender.id, "cdp_command");
+        // capability on the underlying tool. Capability enforcement happens in
+        // the registry's centralized PermissionService.
+        resolved = plugins.assertApiAllowed(event.sender.id, "cdp");
       } catch (err) {
         return pluginErrorResult(err);
       }
