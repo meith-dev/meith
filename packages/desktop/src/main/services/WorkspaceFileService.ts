@@ -4,11 +4,12 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { AppStateService } from "./AppStateService.js";
 import { DiagnosticsService, type FileDiagnostics } from "./DiagnosticsService.js";
 import type { Logger } from "./Logger.js";
@@ -195,6 +196,15 @@ export class WorkspaceFileService {
    * enforce the workspace boundary. Returns the resolved absolute path plus the
    * matched root. Throws `WorkspaceFileError` (validation) on escape unless
    * `allowOutside` is set.
+   *
+   * Boundary enforcement is done against *canonical* (symlink-resolved) paths:
+   * both the target and the candidate roots are passed through
+   * {@link canonicalize}, which realpaths the deepest existing ancestor before
+   * re-appending any not-yet-created segments. This closes the symlink-escape
+   * hole where a link inside the workspace points outside it — a lexical check
+   * would pass, but the dereferenced read/write would land out of bounds. The
+   * returned `absPath` is the canonical path, so every downstream fs call
+   * operates on the same location the boundary was checked against.
    */
   resolveInWorkspace(
     cwd: string,
@@ -205,8 +215,9 @@ export class WorkspaceFileService {
       throw new WorkspaceFileError("A workspace cwd is required", "validation");
     }
     const root = this.trustedCwd(cwd, options.allowOutside);
-    const absPath = isAbsolute(target) ? resolve(target) : resolve(root, target);
-    const roots = options.restrictToCwd ? [root] : this.knownRoots();
+    const lexicalPath = isAbsolute(target) ? resolve(target) : resolve(root, target);
+    const absPath = canonicalize(lexicalPath);
+    const roots = (options.restrictToCwd ? [root] : this.knownRoots()).map(canonicalize);
     const matched = roots.find((r) => isInside(absPath, r)) ?? null;
     const inside = matched !== null;
     if (!inside && !options.allowOutside) {
@@ -564,6 +575,37 @@ export class WorkspaceFileService {
 // ---------------------------------------------------------------------------
 // Pure helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Resolve `p` to a canonical, symlink-free absolute path so boundary checks
+ * cannot be fooled by symlinks. Because the target may not exist yet (new file
+ * writes), we realpath the deepest *existing* ancestor and then re-append the
+ * remaining, not-yet-created segments. This means a symlinked directory in the
+ * middle of the path is fully dereferenced before the workspace boundary is
+ * evaluated. Falls back to a lexical `resolve` if realpath fails.
+ */
+function canonicalize(p: string): string {
+  let current = resolve(p);
+  const trailing: string[] = [];
+  // Walk up until we find a path that exists on disk.
+  while (!existsSync(current)) {
+    const parent = dirname(current);
+    if (parent === current) {
+      // Reached the filesystem root without finding anything that exists.
+      return resolve(p);
+    }
+    trailing.push(basename(current));
+    current = parent;
+  }
+  let real: string;
+  try {
+    real = realpathSync.native(current);
+  } catch {
+    real = current;
+  }
+  // trailing was collected deepest-first; reverse to descend from the ancestor.
+  return trailing.length > 0 ? resolve(real, ...trailing.reverse()) : real;
+}
 
 /** True when `child` is the same as, or nested under, `parent`. */
 function isInside(child: string, parent: string): boolean {

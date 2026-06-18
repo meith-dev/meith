@@ -2,11 +2,14 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
+import { requiresApproval } from "../agent/permissions.js";
 import { HeadlessBrowserViewHost } from "../browser/HeadlessBrowserViewHost.js";
 import { AppStateService } from "../services/AppStateService.js";
 import { BrowserTabService } from "../services/BrowserTabService.js";
 import { Logger } from "../services/Logger.js";
 import { SpaceService } from "../services/SpaceService.js";
+import { createSpaceTools } from "../tools/spaceTools.js";
+import type { ToolDeps } from "../tools/deps.js";
 
 /** Headless host that records which tab views were destroyed. */
 class RecordingViewHost extends HeadlessBrowserViewHost {
@@ -149,5 +152,29 @@ describe("BrowserTabService workspace tabs", () => {
     expect(() => ctx.tabs.setWorkspaceTabTerminal(tab.id, "term_123")).toThrow(
       /not a terminal/,
     );
+  });
+});
+
+describe("space tool capabilities", () => {
+  function toolMap() {
+    // Capabilities are static metadata, so a stub deps object is sufficient.
+    const tools = createSpaceTools({} as unknown as ToolDeps);
+    return Object.fromEntries(tools.map((t) => [t.name, t]));
+  }
+
+  it("gates close_workspace_tab so an agent is prompted before it kills a terminal", () => {
+    const tools = toolMap();
+    expect(tools.close_workspace_tab.capabilities).toContain("destructive");
+    expect(requiresApproval(tools.close_workspace_tab.capabilities)).toBe(true);
+  });
+
+  it("gates close_space as destructive", () => {
+    const tools = toolMap();
+    expect(requiresApproval(tools.close_space.capabilities)).toBe(true);
+  });
+
+  it("auto-allows read-only space listing", () => {
+    const tools = toolMap();
+    expect(requiresApproval(tools.list_spaces.capabilities)).toBe(false);
   });
 });

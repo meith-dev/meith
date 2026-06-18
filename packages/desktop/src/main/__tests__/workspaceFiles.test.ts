@@ -1,4 +1,11 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -128,6 +135,52 @@ describe("WorkspaceFileService", () => {
         allowOutside: true,
       });
       expect(explicit.content).toBe("secret");
+    } finally {
+      rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks reads/writes/patches through a symlink that escapes the workspace", () => {
+    // A secret file living entirely outside any known workspace root.
+    const outsideDir = mkdtempSync(join(tmpdir(), "meith-outside-"));
+    const secret = join(outsideDir, "secret.txt");
+    writeFileSync(secret, "top secret");
+    // A symlink *inside* the workspace that points at the outside secret. A
+    // purely lexical boundary check would treat "link.txt" as in-bounds.
+    const link = join(ctx.projectDir, "link.txt");
+    symlinkSync(secret, link);
+
+    try {
+      expect(() => ctx.files.readFile(ctx.projectDir, "link.txt")).toThrow(
+        WorkspaceFileError,
+      );
+      expect(() => ctx.files.writeFile(ctx.projectDir, "link.txt", "pwned")).toThrow(
+        WorkspaceFileError,
+      );
+      expect(() =>
+        ctx.files.applyPatch(ctx.projectDir, "link.txt", [
+          { start: 0, end: 0, newText: "x" },
+        ]),
+      ).toThrow(WorkspaceFileError);
+      // The secret was never touched.
+      expect(readFileSync(secret, "utf8")).toBe("top secret");
+    } finally {
+      rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks creating new files through a symlinked directory that escapes", () => {
+    // A directory outside the workspace, linked to from inside it.
+    const outsideDir = mkdtempSync(join(tmpdir(), "meith-outdir-"));
+    const linkDir = join(ctx.projectDir, "linked");
+    symlinkSync(outsideDir, linkDir);
+
+    try {
+      // The nested file does not exist yet, but its parent dereferences outside.
+      expect(() =>
+        ctx.files.writeFile(ctx.projectDir, "linked/new.txt", "nope"),
+      ).toThrow(WorkspaceFileError);
+      expect(existsSync(join(outsideDir, "new.txt"))).toBe(false);
     } finally {
       rmSync(outsideDir, { recursive: true, force: true });
     }

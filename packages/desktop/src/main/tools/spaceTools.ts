@@ -114,7 +114,11 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
   const closeWorkspaceTab = defineTool({
     name: "close_workspace_tab",
     description: "Close a workspace tab.",
-    capabilities: [],
+    // Destructive: closing a terminal tab also tears down its live terminal
+    // session (deps.terminals.close below), killing any running process. This
+    // must be gated so an agent/plugin is prompted for approval first rather
+    // than silently killing a terminal.
+    capabilities: ["destructive"],
     inputSchema: z.object({ tabId: z.string() }),
     execute: (_ctx, input) => {
       const tab = deps.browserTabs
