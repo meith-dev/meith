@@ -99,7 +99,7 @@ function ensureDarwinSpawnHelperExecutable(): void {
     join(packageRoot, "build", "Release", "spawn-helper"),
     join(packageRoot, "build", "Debug", "spawn-helper"),
     join(packageRoot, "prebuilds", `${process.platform}-${process.arch}`, "spawn-helper"),
-  ].flatMap((path) => [path, unpackedAsarPath(path)]);
+  ].map(physicalAsarPath);
 
   let found = false;
   for (const helperPath of new Set(candidates)) {
@@ -116,7 +116,9 @@ function ensureDarwinSpawnHelperExecutable(): void {
   }
 }
 
-function unpackedAsarPath(path: string): string {
+function physicalAsarPath(path: string): string {
+  // Electron's asar filesystem makes app.asar paths look readable, but chmod()
+  // requires a real file on disk. Native executables must live in *.unpacked.
   return path
     .replace("app.asar", "app.asar.unpacked")
     .replace("node_modules.asar", "node_modules.asar.unpacked");
