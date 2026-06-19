@@ -9,6 +9,7 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PROTOCOL_VERSION } from "@meith/protocol";
 import {
   type InstanceRecord,
   InstanceRecordSchema,
@@ -18,6 +19,7 @@ import { AcpAdapter } from "./agent/adapters/AcpAdapter.js";
 import { MockAdapter } from "./agent/adapters/MockAdapter.js";
 import type { BrowserViewHost } from "./browser/BrowserViewHost.js";
 import type { PtyHost } from "./process/PtyHost.js";
+import { type RuntimeInstallInfo, installRuntimeCli } from "./runtime/install.js";
 import { AgentConfigStore } from "./services/AgentConfigStore.js";
 import { AgentService } from "./services/AgentService.js";
 import { AgentStore } from "./services/AgentStore.js";
@@ -93,6 +95,10 @@ export interface BootstrapOptions {
   appVersion?: string;
   /** Friendly label for the instance registry (defaults to userData basename). */
   instanceLabel?: string;
+  /** Native app executable path. In packaged Electron this is `process.execPath`. */
+  appPath?: string;
+  /** Override CLI entrypoint used by the generated `~/.meith/bin/meith` shim. */
+  cliEntryPath?: string;
   /**
    * Capture the main application window as a PNG. The Electron main process
    * passes a `webContents.capturePage()`-backed implementation; headless callers
@@ -141,6 +147,13 @@ export function cleanupStaleInstances(
       if (isProcessAlive(record.pid) && existsSync(record.socketPath)) {
         live.push(record);
       } else {
+        if (!isProcessAlive(record.pid) && existsSync(record.socketPath)) {
+          try {
+            rmSync(record.socketPath, { force: true });
+          } catch {
+            /* ignore */
+          }
+        }
         rmSync(full, { force: true });
         logger?.info("Bootstrap", `reaped stale instance ${file}`);
       }
@@ -206,13 +219,38 @@ export async function bootstrap(
   const auditPath = join(userDataPath, "audit.jsonl");
   const logger = new Logger({ logPath });
 
-  const { home, configPath } = meithPaths();
+  const { home, configPath, instancesDir } = meithPaths();
   const socketPath = join(userDataPath, "tool.sock");
+  const startedAt = Date.now();
+  const appVersion = options.appVersion ?? "0.0.0";
 
-  const config: MeithConfig = { userDataPath, socketPath, version: 1 };
   mkdirSync(home, { recursive: true });
+  mkdirSync(instancesDir, { recursive: true });
+  const runtimeInstall: RuntimeInstallInfo | undefined = installRuntimeCli({
+    home,
+    appVersion,
+    appPath: options.appPath,
+    cliEntryPath: options.cliEntryPath,
+  });
+  const instanceFile = join(instancesDir, `${process.pid}.json`);
+  const config: MeithConfig = {
+    userDataPath,
+    socketPath,
+    version: 1,
+    appVersion,
+    protocolVersion: PROTOCOL_VERSION,
+    pid: process.pid,
+    startedAt,
+    instancesDir,
+    instancePath: instanceFile,
+    cliBinPath: runtimeInstall?.cliBinPath,
+    appPath: options.appPath,
+  };
   writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
   logger.info("Bootstrap", `wrote config to ${configPath}`);
+  if (runtimeInstall) {
+    logger.info("Bootstrap", `exposed CLI at ${runtimeInstall.cliBinPath}`);
+  }
 
   const appState = new AppStateService(join(userDataPath, "state.json"), logger);
   // ArtifactStore appends "artifacts" itself, so pass the userData root to land
@@ -229,6 +267,12 @@ export async function bootstrap(
     MEITH_SOCKET: socketPath,
     MEITH_HOME: home,
     MEITH_USER_DATA: userDataPath,
+    ...(runtimeInstall
+      ? {
+          MEITH_CLI_BIN: runtimeInstall.cliBinPath,
+          PATH: withPrependedPath(runtimeInstall.binDir),
+        }
+      : {}),
   };
   const devServers = new DevServerService(logger, runtimeEnv);
   const terminals = new TerminalService(logger, {
@@ -272,6 +316,7 @@ export async function bootstrap(
   // the registry so capability gating reflects whatever tools are registered.
   const plugins = new PluginHostService(appState, logger, {
     describeTools: () => registry.describe(),
+    managedPluginsDir: join(userDataPath, "plugins"),
   });
   pluginRef.current = plugins;
   const deps = {
@@ -336,18 +381,18 @@ export async function bootstrap(
   // Instance registry (Phase 10): publish this runtime so the CLI can discover,
   // list, and target it among several concurrently running instances. Reap any
   // stale records left behind by crashed/killed instances first.
-  const { instancesDir } = meithPaths();
-  mkdirSync(instancesDir, { recursive: true });
   cleanupStaleInstances(instancesDir, logger);
-  const instanceFile = join(instancesDir, `${process.pid}.json`);
   const instanceRecord: InstanceRecord = {
     pid: process.pid,
     socketPath,
     userDataPath,
-    appVersion: options.appVersion ?? "0.0.0",
-    startedAt: Date.now(),
+    appVersion,
+    protocolVersion: PROTOCOL_VERSION,
+    startedAt,
     cwd: process.cwd(),
     label: options.instanceLabel ?? basename(userDataPath),
+    cliBinPath: runtimeInstall?.cliBinPath,
+    appPath: options.appPath,
   };
   writeFileSync(instanceFile, JSON.stringify(instanceRecord, null, 2), "utf8");
   logger.info("Bootstrap", `registered instance ${instanceFile}`);
@@ -407,4 +452,9 @@ export async function bootstrap(
     config,
     shutdown,
   };
+}
+
+function withPrependedPath(binDir: string): string {
+  const delimiter = process.platform === "win32" ? ";" : ":";
+  return process.env.PATH ? `${binDir}${delimiter}${process.env.PATH}` : binDir;
 }

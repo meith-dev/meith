@@ -1,11 +1,11 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, resolve } from "node:path";
-import type { InstanceRecord } from "@meith/shared";
+import { isAbsolute, join, resolve } from "node:path";
+import { type InstanceRecord, MeithConfigSchema } from "@meith/shared";
 import type { ParsedArgs } from "./args.js";
 import { ToolClient } from "./client.js";
-import { listLiveInstances } from "./instances.js";
+import { listLiveInstances, meithHome } from "./instances.js";
 import { type OutputMode, fail, info, printResult } from "./output.js";
 
 /** What the user asked the launcher to do. */
@@ -142,6 +142,16 @@ async function routeIntent(
 export function locateAppBinary(): string | undefined {
   const fromEnv = process.env.MEITH_APP_BIN;
   if (fromEnv && existsSync(fromEnv)) return fromEnv;
+
+  const configPath = join(meithHome(), "config.json");
+  if (existsSync(configPath)) {
+    try {
+      const cfg = MeithConfigSchema.parse(JSON.parse(readFileSync(configPath, "utf8")));
+      if (cfg.appPath && existsSync(cfg.appPath)) return cfg.appPath;
+    } catch {
+      // Fall through to platform defaults.
+    }
+  }
 
   const candidates: string[] = [];
   if (process.platform === "darwin") {

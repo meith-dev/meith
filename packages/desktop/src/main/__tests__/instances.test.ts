@@ -9,7 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ToolClient } from "@meith/cli/client";
-import { InstanceRecordSchema } from "@meith/shared";
+import { InstanceRecordSchema, MeithConfigSchema } from "@meith/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { bootstrap, cleanupStaleInstances } from "../bootstrap.js";
 
@@ -44,8 +44,20 @@ describe("instance registry", () => {
     const record = InstanceRecordSchema.parse(JSON.parse(readFileSync(file, "utf8")));
     expect(record.pid).toBe(process.pid);
     expect(record.appVersion).toBe("4.5.6");
+    expect(record.protocolVersion).toBeGreaterThan(0);
     expect(record.label).toBe("test-instance");
     expect(record.socketPath).toBe(container.config.socketPath);
+    expect(record.cliBinPath).toBe(
+      join(home, "bin", process.platform === "win32" ? "meith.cmd" : "meith"),
+    );
+    expect(existsSync(record.cliBinPath as string)).toBe(true);
+
+    const config = MeithConfigSchema.parse(
+      JSON.parse(readFileSync(join(home, "config.json"), "utf8")),
+    );
+    expect(config.appVersion).toBe("4.5.6");
+    expect(config.instancePath).toBe(file);
+    expect(config.cliBinPath).toBe(record.cliBinPath);
 
     await container.shutdown();
     expect(existsSync(file)).toBe(false);

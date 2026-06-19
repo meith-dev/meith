@@ -1,6 +1,14 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 import type { ToolDescriptor } from "@meith/protocol";
 import type { PluginApiName, ToolCapability } from "@meith/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -36,6 +44,7 @@ const TOOLS: ToolDescriptor[] = [
 function makeHost(): PluginHostService {
   return new PluginHostService(appState, new Logger(), {
     describeTools: () => TOOLS,
+    managedPluginsDir: join(dir, "managed"),
   });
 }
 
@@ -64,6 +73,35 @@ function writePlugin(
     }),
   );
   return root;
+}
+
+function writeTarGz(file: string, entries: Record<string, string>): void {
+  const blocks: Buffer[] = [];
+  for (const [name, text] of Object.entries(entries)) {
+    const data = Buffer.from(text, "utf8");
+    const header = Buffer.alloc(512, 0);
+    header.write(name, 0, 100, "utf8");
+    header.write("0000777\0", 100, 8, "ascii");
+    header.write("0000000\0", 108, 8, "ascii");
+    header.write("0000000\0", 116, 8, "ascii");
+    header.write(octal(data.byteLength, 12), 124, 12, "ascii");
+    header.write(octal(Math.floor(Date.now() / 1000), 12), 136, 12, "ascii");
+    header.fill(" ", 148, 156);
+    header.write("0", 156, 1, "ascii");
+    header.write("ustar\0", 257, 6, "ascii");
+    header.write("00", 263, 2, "ascii");
+    let sum = 0;
+    for (const byte of header) sum += byte;
+    header.write(octal(sum, 8), 148, 8, "ascii");
+    blocks.push(header, data, Buffer.alloc((512 - (data.byteLength % 512)) % 512, 0));
+  }
+  blocks.push(Buffer.alloc(1024, 0));
+  writeFileSync(file, gzipSync(Buffer.concat(blocks)));
+}
+
+function octal(value: number, width: number): string {
+  const text = value.toString(8);
+  return `${"0".repeat(Math.max(0, width - text.length - 1))}${text}\0`;
 }
 
 beforeEach(() => {
@@ -137,6 +175,48 @@ describe("install + manifest validation", () => {
     await expect(host.installFromDirectory(root)).rejects.toMatchObject({
       code: "INVALID",
     });
+  });
+
+  it("installs a packaged plugin archive into the managed store", async () => {
+    const archive = join(dir, "plugin.tgz");
+    writeTarGz(archive, {
+      "package/plugin.json": JSON.stringify({
+        kind: "plugin",
+        id: "com.example.pkg",
+        name: "Packaged",
+        version: "1.0.0",
+        entry: "index.html",
+        permissions: ["read-only"],
+        requestedApis: ["tools"],
+      }),
+      "package/index.html": "<!doctype html><title>packaged</title>",
+    });
+
+    const rec = await host.installFromArchive(archive);
+    if (rec.source.kind !== "package") throw new Error("expected package source");
+    expect(rec.source.path).toBe(join(dir, "managed", "com.example.pkg"));
+    expect(existsSync(join(rec.source.path, "index.html"))).toBe(true);
+    expect(rec.approvedGrants).toEqual({ capabilities: [], apis: [] });
+    expect(rec.enabled).toBe(false);
+
+    host.approveGrants("com.example.pkg", {
+      capabilities: ["read-only"],
+      apis: ["tools"],
+    });
+    host.setEnabled("com.example.pkg", true);
+    expect(await host.resolveEntryUrl("com.example.pkg")).toContain("index.html");
+  });
+
+  it("rejects packaged plugin archives with escaping paths", async () => {
+    const archive = join(dir, "bad.tgz");
+    writeTarGz(archive, {
+      "../escape.html": "nope",
+      "package/plugin.json": "{}",
+    });
+    await expect(host.installFromArchive(archive)).rejects.toMatchObject({
+      code: "INVALID",
+    });
+    expect(existsSync(join(dir, "escape.html"))).toBe(false);
   });
 });
 

@@ -78,6 +78,18 @@ pnpm cli call get_tabs --json          # generic escape hatch to any tool
 The CLI discovers the socket from `~/.meith/config.json` (written on boot), or
 honors `--socket <path>` / `$MEITH_HOME`.
 
+### Package the desktop app
+
+```bash
+pnpm pack:desktop    # unpacked app for local packaging smoke tests
+pnpm dist:mac        # macOS dmg + zip via electron-builder
+```
+
+On startup the desktop app writes `~/.meith/config.json`, registers the running
+instance under `~/.meith/instances/`, cleans stale instance/socket files, and
+refreshes a predictable CLI launcher at `~/.meith/bin/meith`. Add that directory
+to `PATH` with `meith setup --write` or by following `meith setup`.
+
 ## How it fits together
 
 1. **`bootstrap(userDataPath)`** (in `@meith/desktop`) wires every service, builds

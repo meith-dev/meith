@@ -327,7 +327,9 @@ function createMockBridge(): MeithBridge {
     desc("get_app_settings", "Read global app settings.", ["read-only"]),
     desc("set_app_settings", "Patch global app settings.", ["writes-files"]),
     desc("list_plugins", "List installed plugins and their grants.", ["read-only"]),
-    desc("install_plugin", "Install a plugin from a local directory.", ["destructive"]),
+    desc("install_plugin", "Install a plugin from a folder, archive, or dev URL.", [
+      "destructive",
+    ]),
     desc("approve_plugin_grants", "Approve a subset of a plugin's grants.", [
       "destructive",
     ]),

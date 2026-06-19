@@ -38,7 +38,7 @@ export function createPluginTools(deps: ToolDeps): ToolDefinition[] {
     {
       name: "install_plugin",
       description:
-        "Install (or re-install) a plugin from a local directory OR a running dev server URL. Provide exactly one of `directory` or `devUrl`. The plugin starts disabled with no approved grants.",
+        "Install (or re-install) a plugin from a local directory, packaged archive, OR a running dev server URL. Provide exactly one of `directory`, `archive`, or `devUrl`. The plugin starts disabled with no approved grants.",
       capabilities: ["destructive"],
       inputSchema: z
         .object({
@@ -46,6 +46,12 @@ export function createPluginTools(deps: ToolDeps): ToolDefinition[] {
             .string()
             .optional()
             .describe("Absolute path to a directory containing the plugin manifest."),
+          archive: z
+            .string()
+            .optional()
+            .describe(
+              "Absolute path to a packaged plugin archive (.tgz, .tar.gz, .tar).",
+            ),
           devUrl: z
             .string()
             .url()
@@ -54,14 +60,21 @@ export function createPluginTools(deps: ToolDeps): ToolDefinition[] {
               "Dev server origin serving the plugin (manifest read from /plugin.json).",
             ),
         })
-        .refine((v) => Boolean(v.directory) !== Boolean(v.devUrl), {
-          message: "Provide exactly one of `directory` or `devUrl`.",
-        }),
+        .refine(
+          (v) =>
+            [Boolean(v.directory), Boolean(v.archive), Boolean(v.devUrl)].filter(Boolean)
+              .length === 1,
+          {
+            message: "Provide exactly one of `directory`, `archive`, or `devUrl`.",
+          },
+        ),
       execute: async (_ctx, input) => {
         try {
           const plugin = input.devUrl
             ? await plugins.installFromDevUrl(input.devUrl)
-            : await plugins.installFromDirectory(input.directory as string);
+            : input.archive
+              ? await plugins.installFromArchive(input.archive)
+              : await plugins.installFromDirectory(input.directory as string);
           return { plugin };
         } catch (err) {
           rethrowAsToolError(err);

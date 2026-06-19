@@ -10,7 +10,8 @@
 A plugin does **not** run with Node access and does **not** register code into
 the main process. Instead:
 
-1. A plugin is a directory (or dev URL) containing a **manifest** and a web app.
+1. A plugin is a directory, packaged archive, or dev URL containing a
+   **manifest** and a web app.
 2. The user installs it, then **reviews and approves** the permissions it
    requested.
 3. When enabled and opened, the host loads the plugin's `entry` in a sandboxed
@@ -48,7 +49,7 @@ field of `package.json`. Schema (`PluginManifestSchema` in `@meith/shared`):
 | `id`            | Reverse-DNS-style dotted id (`PluginIdSchema`). Unique per install.                 |
 | `name`          | Display name.                                                                       |
 | `version`       | Semver-ish string. Defaults to `0.0.0`.                                             |
-| `entry`         | Web entry. For `local-dir` sources it is **relative to the plugin root** and validated to stay inside it. For `dev-url` sources the entry comes from the URL. |
+| `entry`         | Web entry. For `local-dir` and packaged sources it is **relative to the plugin root** and validated to stay inside it. For `dev-url` sources the entry comes from the URL. |
 | `permissions`   | Tool **capabilities** the plugin requests (`ToolCapability[]`).                     |
 | `requestedApis` | Bridge **API namespaces** the plugin requests (`PluginApiName[]`).                  |
 
@@ -60,8 +61,15 @@ field of `package.json`. Schema (`PluginManifestSchema` in `@meith/shared`):
 ```ts
 type PluginSource =
   | { kind: "local-dir"; path: string } // a folder on disk
+  | { kind: "package"; path: string; archivePath?: string } // managed extracted package
   | { kind: "dev-url"; url: string };   // a running dev server (for development)
 ```
+
+Packaged plugins are `.tgz`, `.tar.gz`, or `.tar` archives. The host extracts
+them into `<userData>/plugins/<pluginId>` with a safe tar reader that rejects
+absolute paths, `..` traversal, and links before writing files. Archive installs
+follow the same permission review flow as local-dir and dev-url installs:
+newly installed plugins start disabled with empty approved grants.
 
 ## Grants & enforcement
 
@@ -186,7 +194,7 @@ manager dialog:
 | Tool                    | Purpose                                              |
 | ----------------------- | ---------------------------------------------------- |
 | `list_plugins`          | List installed plugins and their grants.             |
-| `install_plugin`        | Install from a `local-dir` (or `dev-url`).           |
+| `install_plugin`        | Install from a `local-dir`, packaged archive, or `dev-url`. |
 | `approve_plugin_grants` | Approve a subset of the requested grants.            |
 | `set_plugin_enabled`    | Enable/disable a plugin (enable requires approval).  |
 | `uninstall_plugin`      | Remove a plugin and close its tabs.                  |
@@ -198,3 +206,11 @@ Start from [`templates/plugin-basic`](../templates/plugin-basic): edit the
 manifest, build your web app against `window.meithPlugin`, then install it via
 the Plugins manager (the plug icon in the title bar). Import the bridge types
 from `@meith/protocol` for type-safety.
+
+For a distributable plugin package, place the built web app and `plugin.json`
+under one root directory and create a tarball, for example:
+
+```bash
+tar -czf hello-plugin.tgz -C dist .
+meith call install_plugin --archive /absolute/path/hello-plugin.tgz
+```

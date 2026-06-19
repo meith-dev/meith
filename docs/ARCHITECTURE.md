@@ -74,8 +74,12 @@ resets to defaults rather than crashing.
 `StorageService` catalogs these collections and backs the read-only
 `storage_list_collections`, `storage_read_collection`, and
 `storage_export_state` tools so the CLI and agents can introspect persisted data.
-`~/.meith/config.json` records the resolved `socketPath` so the CLI can find a
-running runtime.
+`~/.meith/config.json` records the resolved `socketPath`, `userDataPath`, app
+version, protocol version, instance file, native app path, and managed CLI
+launcher path so the CLI can find a running runtime and relaunch the packaged
+app. Running instances are also registered under `~/.meith/instances/<pid>.json`;
+startup removes records for dead processes and stale socket files before
+publishing the current instance.
 
 ## Browser runtime
 

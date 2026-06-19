@@ -9,8 +9,76 @@
     "dev:renderer": "pnpm --filter @meith/shared --filter @meith/protocol build && vite --config vite.renderer.config.ts",
     "dev:headless": "tsx src/main/harness.ts",
     "build": "electron-vite build",
+    "pack": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite build && electron-builder --dir",
+    "dist": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite build && electron-builder",
+    "dist:mac": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite build && electron-builder --mac",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
+  },
+  "build": {
+    "appId": "dev.meith.app",
+    "productName": "meith",
+    "icon": "build/icon.png",
+    "electronVersion": "33.2.1",
+    "npmRebuild": false,
+    "artifactName": "meith-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "release",
+      "buildResources": "../../public"
+    },
+    "files": [
+      "out/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../cli/bin",
+        "to": "cli/bin",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../cli/dist",
+        "to": "cli/dist",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../../templates",
+        "to": "templates",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "mac": {
+      "bundleVersion": "0.1.0",
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "dmg": {
+      "sign": false
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development"
+    }
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -47,6 +115,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
     "tsx": "^4.19.2",
     "vite": "^5.4.11",

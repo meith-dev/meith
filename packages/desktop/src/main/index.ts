@@ -132,7 +132,7 @@ app.whenReady().then(async () => {
     ptyHost = await NodePtyHost.create();
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
-    console.error("[v0] node-pty unavailable, terminals cannot start:", err);
+    console.error("[meith] node-pty unavailable, terminals cannot start:", err);
     ptyHost = {
       spawn() {
         throw new Error(`node-pty is unavailable; cannot start terminal: ${reason}`);
@@ -151,6 +151,7 @@ app.whenReady().then(async () => {
     // handler to exist. Hydrating inside bootstrap would race both.
     deferHydration: true,
     appVersion: app.getVersion(),
+    appPath: process.execPath,
     // Capture the main window for `meith app screenshot` / the app_screenshot
     // tool. Returns the PNG bytes from the live web contents.
     captureAppWindow: async () => {
@@ -203,7 +204,7 @@ app.on("before-quit", (event) => {
       // pending app state is flushed.
       await container?.shutdown();
     } catch (err) {
-      console.error("[v0] shutdown failed during quit:", err);
+      console.error("[meith] shutdown failed during quit:", err);
     } finally {
       app.quit();
     }

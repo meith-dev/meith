@@ -281,6 +281,22 @@ export const MeithConfigSchema = z.object({
   userDataPath: z.string(),
   socketPath: z.string(),
   version: z.number().default(1),
+  /** App/runtime version that wrote this config. */
+  appVersion: z.string().default("0.0.0"),
+  /** Wire protocol version spoken by the runtime socket. */
+  protocolVersion: z.number().optional(),
+  /** Process id of the runtime that wrote this config. */
+  pid: z.number().int().positive().optional(),
+  /** Epoch ms when the runtime started. */
+  startedAt: z.number().optional(),
+  /** Directory containing per-instance registry files. */
+  instancesDir: z.string().optional(),
+  /** Current instance registry file, when registered. */
+  instancePath: z.string().optional(),
+  /** Predictable CLI launcher path exposed by the desktop app. */
+  cliBinPath: z.string().optional(),
+  /** Native desktop executable path used by the CLI launcher. */
+  appPath: z.string().optional(),
 });
 export type MeithConfig = z.infer<typeof MeithConfigSchema>;
 
@@ -300,12 +316,18 @@ export const InstanceRecordSchema = z.object({
   userDataPath: z.string(),
   /** App version string (e.g. "0.1.0"), best-effort. */
   appVersion: z.string().default("0.0.0"),
+  /** Wire protocol version spoken by this instance. */
+  protocolVersion: z.number().optional(),
   /** Epoch ms when the instance started. */
   startedAt: z.number(),
   /** Working directory the runtime was launched from, when known. */
   cwd: z.string().optional(),
   /** Human-friendly label (defaults to the userData dir basename). */
   label: z.string().optional(),
+  /** Predictable CLI launcher path exposed by this instance. */
+  cliBinPath: z.string().optional(),
+  /** Native desktop executable path used by the CLI launcher. */
+  appPath: z.string().optional(),
 });
 export type InstanceRecord = z.infer<typeof InstanceRecordSchema>;
 
@@ -825,6 +847,13 @@ export type PluginManifest = z.infer<typeof PluginManifestSchema>;
 export const PluginSourceSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("local-dir"), path: z.string().min(1) }),
   z.object({ kind: z.literal("dev-url"), url: z.string().url() }),
+  z.object({
+    kind: z.literal("package"),
+    /** Managed, extracted plugin root under the app user-data directory. */
+    path: z.string().min(1),
+    /** Original package path, retained for display/debugging only. */
+    archivePath: z.string().min(1).optional(),
+  }),
 ]);
 export type PluginSource = z.infer<typeof PluginSourceSchema>;
 

@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type {
   InstalledPlugin,
@@ -7,7 +8,7 @@ import type {
   ToolCapability,
   ToolResult,
 } from "@meith/shared";
-import { Check, ExternalLink, ShieldAlert, Trash2 } from "lucide-react";
+import { Check, ExternalLink, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -65,6 +66,8 @@ export function PluginsPanel({
         the scopes you approve, and can only run once enabled.
       </p>
 
+      <InstallPluginForm run={run} disabled={isMock} />
+
       {plugins.length === 0 ? (
         <p className="rounded-md border border-dashed border-border px-3 py-8 text-center text-sm text-muted-foreground">
           No plugins installed yet.
@@ -113,6 +116,57 @@ export function PluginsPanel({
           ? "Preview mode: changes are in-memory only."
           : "Plugins run in a sandboxed tab with only the APIs you approve."}
       </p>
+    </div>
+  );
+}
+
+type InstallKind = "directory" | "archive" | "devUrl";
+
+function InstallPluginForm({ run, disabled }: { run: Run; disabled: boolean }) {
+  const [kind, setKind] = useState<InstallKind>("archive");
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const install = async () => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    const result = await run("install_plugin", { [kind]: trimmed });
+    setBusy(false);
+    if (result.ok) {
+      setValue("");
+      toast.success("Plugin installed");
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
+      <div className="flex rounded-md border p-0.5">
+        {(["archive", "directory", "devUrl"] as const).map((option) => (
+          <Button
+            key={option}
+            type="button"
+            size="sm"
+            variant={kind === option ? "secondary" : "ghost"}
+            className="h-7 px-2"
+            onClick={() => setKind(option)}
+            disabled={disabled || busy}
+          >
+            {optionLabel(option)}
+          </Button>
+        ))}
+      </div>
+      <Input
+        value={value}
+        onChange={(event) => setValue(event.currentTarget.value)}
+        placeholder={placeholder(kind)}
+        className="h-8 min-w-60 flex-1"
+        disabled={disabled || busy}
+      />
+      <Button size="sm" onClick={install} disabled={disabled || busy || !value.trim()}>
+        <Plus data-icon="inline-start" />
+        Install
+      </Button>
     </div>
   );
 }
@@ -308,10 +362,21 @@ function PermissionRow({
   );
 }
 
+function optionLabel(kind: InstallKind): string {
+  if (kind === "devUrl") return "Dev URL";
+  return kind === "archive" ? "Archive" : "Folder";
+}
+
+function placeholder(kind: InstallKind): string {
+  if (kind === "devUrl") return "http://localhost:5173/";
+  if (kind === "archive") return "/path/to/plugin.tgz";
+  return "/path/to/plugin-folder";
+}
+
 function sourceLabel(plugin: InstalledPlugin): string {
-  return plugin.source.kind === "local-dir"
-    ? `Local: ${plugin.source.path}`
-    : `Dev URL: ${plugin.source.url}`;
+  if (plugin.source.kind === "dev-url") return `Dev URL: ${plugin.source.url}`;
+  if (plugin.source.kind === "package") return `Package: ${plugin.source.path}`;
+  return `Local: ${plugin.source.path}`;
 }
 
 function toggle<T>(set: Set<T>, value: T): Set<T> {

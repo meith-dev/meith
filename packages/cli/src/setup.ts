@@ -1,7 +1,9 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { MeithConfigSchema } from "@meith/shared";
 import type { ParsedArgs } from "./args.js";
+import { meithHome } from "./instances.js";
 import { type OutputMode, out } from "./output.js";
 
 /**
@@ -37,6 +39,15 @@ export function runSetup(parsed: ParsedArgs, mode: OutputMode): void {
 
 /** Directory containing the running `meith` executable. */
 function resolveBinDir(): string {
+  const configPath = join(meithHome(), "config.json");
+  if (existsSync(configPath)) {
+    try {
+      const cfg = MeithConfigSchema.parse(JSON.parse(readFileSync(configPath, "utf8")));
+      if (cfg.cliBinPath) return dirname(cfg.cliBinPath);
+    } catch {
+      // Fall back to the invoked executable.
+    }
+  }
   const invoked = process.argv[1];
   if (invoked) return dirname(invoked);
   return process.cwd();

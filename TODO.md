@@ -105,7 +105,7 @@ Acceptance criteria:
 
 - [x] Add a state migration system:
   - `version: 1` (`CURRENT_STATE_VERSION` in `storage/migrations.ts`)
-  - migration functions from old versions to new versions (legacy v0 -> v1)
+  - migration functions from old versions to new versions (legacy unversioned -> v1)
   - tests for loading older state shapes (`storage.test.ts`)
 - [x] Split durable storage into categories:
   - small app preferences/state (`state.json` via `JsonStore`)
@@ -517,7 +517,7 @@ The CLI already has a working socket client and command mapping. Extend it into 
   - support `--arg-json`
   - support repeated flags
   - support stdin payloads
-- [ ] Package/install the CLI during desktop startup or installer flow. _(Deferred to Phase 13 packaging: launch commands resolve `MEITH_APP_BIN`/packaged paths today and print guidance otherwise.)_
+- [x] Package/install the CLI during desktop startup or installer flow. _(`bootstrap()` refreshes `~/.meith/bin/meith`; the launcher points at the bundled CLI and exports `MEITH_APP_BIN` for relaunch.)_
 - [x] Add shell PATH setup guidance, but avoid silently modifying shell rc files unless user opts in. _(`meith setup` prints instructions; only writes to the shell rc with the explicit `--write` opt-in.)_
 
 Acceptance criteria:
@@ -551,7 +551,7 @@ Plugins should be web apps running in controlled browser tabs with a privileged 
 - [~] Add plugin installation/loading flow:
   - [x] local directory
   - [x] dev server URL
-  - [ ] packaged plugin (deferred to packaging phase)
+  - [x] packaged plugin (deferred to packaging phase)
 - [x] Add plugin management UI.
 - [x] Add tests proving normal browser tabs do not receive plugin APIs.
 
@@ -602,23 +602,23 @@ Acceptance criteria:
 
 ## Phase 13: Packaging, Distribution, And Runtime Installation
 
-- [ ] Add packaging config for macOS first, then Windows/Linux if needed.
-- [ ] Ensure the desktop app writes runtime config on startup:
+- [x] Add packaging config for macOS first, then Windows/Linux if needed.
+- [x] Ensure the desktop app writes runtime config on startup:
   - user data path
   - socket path
   - version
   - instance metadata
-- [ ] Add running instance registration:
+- [x] Add running instance registration:
   - PID
   - socket path
   - started at
   - app version
   - user data path
-- [ ] Add cleanup of stale instance files and stale sockets.
-- [ ] Install or expose CLI binary in a predictable location.
-- [ ] Add update path for CLI when desktop app updates.
-- [ ] Add icons, app name, bundle ID, and signing/notarization config.
-- [ ] Add crash recovery:
+- [x] Add cleanup of stale instance files and stale sockets.
+- [x] Install or expose CLI binary in a predictable location.
+- [x] Add update path for CLI when desktop app updates.
+- [x] Add icons, app name, bundle ID, and signing/notarization config.
+- [x] Add crash recovery:
   - stale socket cleanup
   - unsaved state flush
   - orphan process cleanup

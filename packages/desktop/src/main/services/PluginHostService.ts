@@ -1,7 +1,19 @@
 import { createReadStream } from "node:fs";
-import { realpath, stat } from "node:fs/promises";
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { gunzipSync } from "node:zlib";
 import type { ToolDescriptor } from "@meith/protocol";
 import {
   type InstalledPlugin,
@@ -34,6 +46,8 @@ export interface ResolvedPluginIdentity {
 export interface PluginHostOptions {
   /** Lazily read the registry's tool descriptors for capability gating. */
   describeTools: () => ToolDescriptor[];
+  /** Managed store for extracted packaged plugins. */
+  managedPluginsDir?: string;
 }
 
 /**
@@ -86,6 +100,45 @@ export class PluginHostService {
     // Containment: the entry must resolve to a real file inside the root.
     await this.assertContainedFile(root, manifest.entry);
     return this.upsertRecord(manifest, { kind: "local-dir", path: root }, root);
+  }
+
+  /**
+   * Install a packaged plugin archive (`.tgz`, `.tar.gz`, or `.tar`) into the
+   * managed user-data plugin store. The archive is extracted by a tiny safe tar
+   * reader that rejects absolute paths, `..` traversal, and links before writing.
+   */
+  async installFromArchive(archivePath: string): Promise<InstalledPlugin> {
+    const archive = await this.realpathOrThrow(archivePath, "plugin package");
+    await this.assertArchiveFile(archive);
+    const storeRoot = this.options.managedPluginsDir;
+    if (!storeRoot) {
+      throw new PluginError("INVALID", "No managed plugin store is configured.");
+    }
+    await mkdir(storeRoot, { recursive: true });
+
+    const staging = await mkdtemp(path.join(storeRoot, ".staging-"));
+    let installRoot: string | undefined;
+    try {
+      await extractTarArchive(archive, staging);
+      const { root, manifest } = await this.findExtractedPluginRoot(staging);
+      await this.assertContainedFile(root, manifest.entry);
+
+      installRoot = await mkdtemp(path.join(storeRoot, `.install-${manifest.id}-`));
+      await cp(root, installRoot, { recursive: true });
+      const finalRoot = path.join(storeRoot, manifest.id);
+      await rm(finalRoot, { recursive: true, force: true });
+      await rename(installRoot, finalRoot);
+      installRoot = undefined;
+
+      return this.upsertRecord(
+        manifest,
+        { kind: "package", path: finalRoot, archivePath: archive },
+        archive,
+      );
+    } finally {
+      await rm(staging, { recursive: true, force: true });
+      if (installRoot) await rm(installRoot, { recursive: true, force: true });
+    }
   }
 
   /**
@@ -384,6 +437,53 @@ export class PluginHostService {
     );
   }
 
+  private async findExtractedPluginRoot(
+    staging: string,
+  ): Promise<{ root: string; manifest: PluginManifest }> {
+    const candidates = [staging];
+    for (const entry of await readdir(staging, { withFileTypes: true })) {
+      if (entry.isDirectory()) candidates.push(path.join(staging, entry.name));
+    }
+
+    for (const candidate of candidates) {
+      try {
+        const root = await realpath(candidate);
+        return { root, manifest: await this.readManifest(root) };
+      } catch (err) {
+        if (
+          err instanceof PluginError &&
+          err.code === "INVALID" &&
+          err.message.startsWith("No plugin manifest found")
+        ) {
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new PluginError(
+      "INVALID",
+      "Packaged plugin does not contain plugin.json or a package.json `meith` manifest.",
+    );
+  }
+
+  private async assertArchiveFile(archive: string): Promise<void> {
+    const lower = archive.toLowerCase();
+    if (
+      !lower.endsWith(".tgz") &&
+      !lower.endsWith(".tar.gz") &&
+      !lower.endsWith(".tar")
+    ) {
+      throw new PluginError(
+        "INVALID",
+        "Packaged plugins must be .tgz, .tar.gz, or .tar archives.",
+      );
+    }
+    const info = await stat(archive);
+    if (!info.isFile()) {
+      throw new PluginError("INVALID", `Plugin package is not a file: ${archive}`);
+    }
+  }
+
   /** Fetch + validate a manifest from a dev server URL. */
   private async fetchManifest(manifestUrl: string): Promise<PluginManifest> {
     let res: Response;
@@ -482,4 +582,80 @@ export class PluginHostService {
     }
     return real;
   }
+}
+
+async function extractTarArchive(archive: string, dest: string): Promise<void> {
+  const lower = archive.toLowerCase();
+  const raw = await readFile(archive);
+  const tar = lower.endsWith(".tgz") || lower.endsWith(".tar.gz") ? gunzipSync(raw) : raw;
+  let offset = 0;
+
+  while (offset + 512 <= tar.length) {
+    const header = tar.subarray(offset, offset + 512);
+    if (isZeroBlock(header)) break;
+
+    const name = tarString(header, 0, 100);
+    const prefix = tarString(header, 345, 155);
+    const fullName = prefix ? `${prefix}/${name}` : name;
+    const size = tarOctal(header, 124, 12);
+    const type = String.fromCharCode(header[156] || 0);
+    offset += 512;
+
+    const body = tar.subarray(offset, offset + size);
+    const target = safeArchiveTarget(dest, fullName);
+
+    if (type === "5") {
+      await mkdir(target, { recursive: true });
+    } else if (type === "0" || type === "\0" || type === "") {
+      await mkdir(path.dirname(target), { recursive: true });
+      await writeFile(target, body);
+    } else if (type === "x" || type === "g") {
+      // PAX metadata is safe to ignore for the simple package format we accept.
+    } else if (type === "1" || type === "2") {
+      throw new PluginError("INVALID", "Packaged plugins may not contain links.");
+    } else {
+      throw new PluginError(
+        "INVALID",
+        `Unsupported tar entry type "${type}" in packaged plugin.`,
+      );
+    }
+
+    offset += Math.ceil(size / 512) * 512;
+  }
+}
+
+function safeArchiveTarget(root: string, entryName: string): string {
+  if (!entryName || path.isAbsolute(entryName)) {
+    throw new PluginError("INVALID", `Unsafe archive entry path: ${entryName}`);
+  }
+  const target = path.resolve(root, entryName);
+  const rel = path.relative(root, target);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new PluginError("INVALID", `Archive entry escapes package root: ${entryName}`);
+  }
+  return target;
+}
+
+function tarString(block: Buffer, start: number, length: number): string {
+  const slice = block.subarray(start, start + length);
+  const zero = slice.indexOf(0);
+  return slice
+    .subarray(0, zero >= 0 ? zero : slice.length)
+    .toString("utf8")
+    .trim();
+}
+
+function tarOctal(block: Buffer, start: number, length: number): number {
+  const text = tarString(block, start, length).replace(/\0/g, "").trim();
+  if (!text) return 0;
+  const value = Number.parseInt(text, 8);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new PluginError("INVALID", `Invalid tar size field: ${text}`);
+  }
+  return value;
+}
+
+function isZeroBlock(block: Buffer): boolean {
+  for (const byte of block) if (byte !== 0) return false;
+  return true;
 }
