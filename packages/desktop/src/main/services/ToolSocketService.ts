@@ -46,6 +46,10 @@ export class ToolSocketService {
     private readonly logger: Logger,
   ) {}
 
+  isRunning(): boolean {
+    return this.server?.listening ?? false;
+  }
+
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
       // Clean up a stale socket file from a previous crash.
@@ -171,6 +175,8 @@ export class ToolSocketService {
       sessionId: connectionId,
       spaceId: info.spaceId,
       tabId: info.tabId,
+      requestId: msg.requestId,
+      correlationId: msg.requestId,
     };
 
     const controller = new AbortController();

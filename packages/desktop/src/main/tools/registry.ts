@@ -6,11 +6,13 @@ import {
   type ToolErrorCode,
   type ToolEvent,
   type ToolResult,
+  createId,
   errorResult,
   isToolResult,
   okResult,
 } from "@meith/shared";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import type { Logger } from "../services/Logger.js";
 
 /** Options accepted per call so transports can pass timeout/cancellation/streaming. */
 export interface CallOptions {
@@ -49,7 +51,10 @@ export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>();
   private shuttingDown = false;
 
-  constructor(private readonly permissions?: ToolPermissionService) {}
+  constructor(
+    private readonly permissions?: ToolPermissionService,
+    private readonly logger?: Logger,
+  ) {}
 
   register(tool: ToolDefinition): void {
     if (this.tools.has(tool.name)) {
@@ -96,17 +101,36 @@ export class ToolRegistry {
     opts: CallOptions = {},
   ): Promise<ToolResult> {
     const startedAt = Date.now();
+    const correlationId = ctx.correlationId ?? ctx.requestId ?? createId("corr");
+    const logContext = {
+      correlationId,
+      requestId: ctx.requestId,
+      caller: ctx.caller,
+      sessionId: ctx.sessionId,
+      toolName: name,
+      spaceId: ctx.spaceId,
+      tabId: ctx.tabId,
+    };
     const audit = (result: ToolResult, tool?: ToolDefinition, auditArgs = args) => {
+      const durationMs = Date.now() - startedAt;
+      this.logger?.log(
+        result.ok ? "debug" : "warn",
+        "ToolRegistry",
+        `${name} ${result.ok ? "ok" : (result.error?.code ?? "failed")} (${durationMs}ms)`,
+        logContext,
+      );
       this.permissions?.auditToolCall({
         ctx,
         toolName: name,
         capabilities: tool?.capabilities ?? [],
         args: auditArgs,
         result,
-        durationMs: Date.now() - startedAt,
+        durationMs,
       });
       return result;
     };
+
+    this.logger?.debug("ToolRegistry", `${name} start`, logContext);
 
     if (this.shuttingDown) {
       return audit(errorResult("RUNTIME_SHUTTING_DOWN", "Runtime is shutting down"));

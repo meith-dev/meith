@@ -70,6 +70,16 @@ export const commands: Record<string, CommandSpec> = {
     positionals: [],
     summary: "Print recent app log entries (--limit N)",
   },
+  health: {
+    tool: "app_health",
+    positionals: [],
+    summary: "Print runtime service health",
+  },
+  "bug-report": {
+    tool: "app_export_bug_report",
+    positionals: [],
+    summary: "Export a reproducible bug report artifact",
+  },
   processes: {
     tool: "get_process_tree",
     positionals: [],

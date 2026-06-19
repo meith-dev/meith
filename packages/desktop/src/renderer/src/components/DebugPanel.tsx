@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DevServers } from "@/hooks/useDevServers";
@@ -397,6 +398,9 @@ function StateView({ state }: { state: AppState | null }) {
 
 function LogView({ workbench }: { workbench: Workbench }) {
   const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [level, setLevel] = useState<"all" | LogEntry["level"]>("all");
+  const [source, setSource] = useState("all");
+  const [query, setQuery] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -414,9 +418,29 @@ function LogView({ workbench }: { workbench: Workbench }) {
     };
   }, [workbench]);
 
+  const sources = useMemo(
+    () => ["all", ...Array.from(new Set(entries.map((entry) => entry.source))).sort()],
+    [entries],
+  );
+
+  const visibleEntries = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return entries.filter((entry) => {
+      if (level !== "all" && entry.level !== level) return false;
+      if (source !== "all" && entry.source !== source) return false;
+      if (!q) return true;
+      return (
+        entry.message.toLowerCase().includes(q) ||
+        entry.source.toLowerCase().includes(q) ||
+        entry.toolName?.toLowerCase().includes(q) ||
+        entry.sessionId?.toLowerCase().includes(q)
+      );
+    });
+  }, [entries, level, source, query]);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
-  }, [entries]);
+  }, [visibleEntries.length]);
 
   const levelClass = useMemo(
     () => ({
@@ -429,31 +453,86 @@ function LogView({ workbench }: { workbench: Workbench }) {
   );
 
   return (
-    <ScrollArea className="h-full">
-      <div
-        className="flex flex-col gap-0.5 p-3 font-mono text-xs"
-        role="log"
-        aria-live="polite"
-      >
-        {entries.length === 0 ? (
-          <p className="text-muted-foreground">No log entries yet.</p>
-        ) : (
-          entries.map((entry) => (
-            <div key={entry.id} className="flex gap-2">
-              <span className="shrink-0 text-muted-foreground/70">
-                {formatTime(entry.ts)}
-              </span>
-              <span className={cn("shrink-0 w-12 uppercase", levelClass[entry.level])}>
-                {entry.level}
-              </span>
-              <span className="shrink-0 text-muted-foreground">{entry.source}</span>
-              <span className="min-w-0 break-words text-foreground">{entry.message}</span>
-            </div>
-          ))
-        )}
-        <div ref={endRef} />
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+        <select
+          aria-label="Log level"
+          value={level}
+          onChange={(e) => setLevel(e.target.value as "all" | LogEntry["level"])}
+          className="h-8 w-28 rounded-md border border-input bg-transparent px-2 text-xs uppercase text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          {["all", "debug", "info", "warn", "error"].map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Log source"
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          className="h-8 w-40 rounded-md border border-input bg-transparent px-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          {sources.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+        <Input
+          aria-label="Search logs"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search"
+          className="h-8 min-w-0 flex-1 text-xs"
+        />
+        <Badge variant="outline" className="shrink-0 font-mono text-[11px]">
+          {visibleEntries.length}/{entries.length}
+        </Badge>
       </div>
-    </ScrollArea>
+      <ScrollArea className="min-h-0 flex-1">
+        <div
+          className="flex flex-col gap-0.5 p-3 font-mono text-xs"
+          role="log"
+          aria-live="polite"
+        >
+          {entries.length === 0 ? (
+            <p className="text-muted-foreground">No log entries yet.</p>
+          ) : visibleEntries.length === 0 ? (
+            <p className="text-muted-foreground">No matching log entries.</p>
+          ) : (
+            visibleEntries.map((entry) => (
+              <div
+                key={entry.id}
+                className="grid grid-cols-[70px_48px_110px_minmax(0,1fr)] gap-2"
+              >
+                <span className="shrink-0 text-muted-foreground/70">
+                  {formatTime(entry.ts)}
+                </span>
+                <span className={cn("shrink-0 uppercase", levelClass[entry.level])}>
+                  {entry.level}
+                </span>
+                <span className="truncate text-muted-foreground">{entry.source}</span>
+                <span className="min-w-0 break-words text-foreground">
+                  {entry.message}
+                  {entry.toolName && (
+                    <span className="ml-2 text-muted-foreground">
+                      tool={entry.toolName}
+                    </span>
+                  )}
+                  {entry.correlationId && (
+                    <span className="ml-2 text-muted-foreground">
+                      corr={entry.correlationId}
+                    </span>
+                  )}
+                </span>
+              </div>
+            ))
+          )}
+          <div ref={endRef} />
+        </div>
+      </ScrollArea>
+    </div>
   );
 }
 

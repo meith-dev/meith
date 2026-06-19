@@ -26,13 +26,13 @@ Usage:
   meith new [name]              Create and open a new project
   meith <command> [args] [--flags]
   meith call <toolName> [--key value ...]
-  meith app <list|logs|kill|screenshot>
+  meith app <list|logs|health|bug-report|kill|screenshot>
 
 Commands:
 ${listCommands()}
 
 Built-in:
-  app               Inspect/control running instances (list, logs, kill, screenshot)
+  app               Inspect/control running instances (list, logs, health, bug-report, kill, screenshot)
   setup             Print shell PATH setup instructions (--write to apply)
   tools             List every tool the runtime exposes
   call <toolName>   Invoke any registered tool by its exact name

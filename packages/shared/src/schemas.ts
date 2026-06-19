@@ -338,6 +338,19 @@ export const LogEntrySchema = z.object({
   level: z.enum(["debug", "info", "warn", "error"]),
   source: z.string(),
   message: z.string(),
+  /** End-to-end call/request correlation. */
+  correlationId: z.string().optional(),
+  /** Transport request id when available. */
+  requestId: z.string().optional(),
+  /** Caller identity that caused the log entry. */
+  caller: z.enum(["renderer", "cli", "agent", "plugin", "internal"]).optional(),
+  /** Logical session id (CLI connection, agent session, plugin id, etc.). */
+  sessionId: z.string().optional(),
+  /** Tool name associated with this log entry. */
+  toolName: z.string().optional(),
+  /** Optional app space/tab scope. */
+  spaceId: z.string().optional(),
+  tabId: z.string().optional(),
 });
 export type LogEntry = z.infer<typeof LogEntrySchema>;
 
@@ -902,6 +915,8 @@ export const AppSettingsSchema = z.object({
   showOutputOnRun: z.boolean().default(true),
   /** Preferred package manager used when generating default run commands. */
   defaultPackageManager: PackageManagerSchema.default("unknown"),
+  /** Enables extra app-target diagnostics tools and verbose debugging surfaces. */
+  debugMode: z.boolean().default(false),
 });
 export type AppSettings = z.infer<typeof AppSettingsSchema>;
 
@@ -913,6 +928,7 @@ export function defaultAppSettings(): AppSettings {
     stopServersOnClose: true,
     showOutputOnRun: true,
     defaultPackageManager: "unknown",
+    debugMode: false,
   };
 }
 

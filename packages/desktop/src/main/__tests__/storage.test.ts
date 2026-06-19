@@ -107,6 +107,7 @@ describe("migrations", () => {
     // Global settings exist with sensible defaults.
     expect(migrated.settings.confirmOnClose).toBe(true);
     expect(migrated.settings.showOutputOnRun).toBe(true);
+    expect(migrated.settings.debugMode).toBe(false);
     // Every project gains an empty run configuration.
     expect(migrated.projects[0].runConfig).toEqual({
       commands: [],

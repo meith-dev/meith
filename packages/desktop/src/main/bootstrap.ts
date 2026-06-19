@@ -311,7 +311,8 @@ export async function bootstrap(
       pluginRef.current?.get(pluginId)?.approvedGrants.capabilities,
   });
 
-  const registry = new ToolRegistry(permissions);
+  const registry = new ToolRegistry(permissions, logger);
+  const socket = new ToolSocketService(socketPath, registry, logger);
   // Plugin host (Phase 11). Owns the plugin lifecycle and the security boundary
   // for the `window.meithPlugin` bridge. It reads tool capabilities lazily from
   // the registry so capability gating reflects whatever tools are registered.
@@ -335,12 +336,6 @@ export async function bootstrap(
   };
   registry.registerAll(createBrowserTools(deps));
   registry.registerAll(createSpaceTools(deps));
-  registry.registerAll(
-    createAppTools(deps, {
-      artifacts,
-      captureAppWindow: options.captureAppWindow,
-    }),
-  );
   registry.registerAll(createProcessTools(deps));
   registry.registerAll(createProjectTools(deps));
   registry.registerAll(createFileTools(deps));
@@ -376,7 +371,25 @@ export async function bootstrap(
   agents.hydrate();
   agents.startIdleGc();
 
-  const socket = new ToolSocketService(socketPath, registry, logger);
+  registry.registerAll(
+    createAppTools(deps, {
+      artifacts,
+      captureAppWindow: options.captureAppWindow,
+      config,
+      registry,
+      socketStatus: () => ({
+        running: socket.isRunning(),
+        path: socketPath,
+      }),
+      agentStatus: () => ({
+        sessions: agents.listSessions().length,
+        running: agents.listSessions().filter((s) => s.status === "running").length,
+        adapter: agents.getConfig().adapter,
+      }),
+      listInstances: () => cleanupStaleInstances(instancesDir, logger),
+    }),
+  );
+
   await socket.start();
 
   // Instance registry (Phase 10): publish this runtime so the CLI can discover,

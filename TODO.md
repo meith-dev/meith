@@ -630,7 +630,7 @@ Acceptance criteria:
 
 ## Phase 14: Observability And Debugging
 
-- [ ] Expand `Logger` into a structured logging pipeline:
+- [x] Expand `Logger` into a structured logging pipeline:
   - source
   - level
   - timestamp
@@ -638,23 +638,23 @@ Acceptance criteria:
   - caller
   - session
   - tool name
-- [ ] Persist logs separately from in-memory ring buffer.
-- [ ] Add renderer log viewer filters.
-- [ ] Add app diagnostic tools:
+- [x] Persist logs separately from in-memory ring buffer.
+- [x] Add renderer log viewer filters.
+- [x] Add app diagnostic tools:
   - `app_get_logs`
   - `app_get_state`
   - `app_screenshot`
   - `app_list_instances`
   - `app_health`
-- [ ] Add health status for:
+- [x] Add health status for:
   - socket server
   - browser view service
   - dev server service
   - terminal service
   - agent runtime
   - storage
-- [ ] Add debug mode that enables app-target tools.
-- [ ] Add a reproducible bug report export:
+- [x] Add debug mode that enables app-target tools.
+- [x] Add a reproducible bug report export:
   - app state summary
   - logs
   - tool registry

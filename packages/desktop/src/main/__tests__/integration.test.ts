@@ -67,6 +67,8 @@ describe("socket integration", () => {
     expect(names).toContain("create_terminal");
     expect(names).toContain("project_create");
     expect(names).toContain("storage_read_collection");
+    expect(names).toContain("app_health");
+    expect(names).toContain("app_export_bug_report");
     expect(tools.find((t) => t.name === "get_tabs")?.capabilities).toContain("read-only");
     expect(tools.find((t) => t.name === "open_browser_tab")?.capabilities).toContain(
       "controls-browser",
@@ -322,6 +324,73 @@ describe("socket integration", () => {
     };
     expect(snapshot.stateVersion).toBe(4);
     expect(snapshot.state.version).toBe(4);
+  });
+
+  it("returns app health and live instances over the socket", async () => {
+    const health = await client.callTool("app_health", {});
+    expect(health.ok).toBe(true);
+    const healthContent = health.content as {
+      status: string;
+      checks: { name: string; status: string }[];
+    };
+    expect(healthContent.status).toBe("ok");
+    expect(healthContent.checks.map((c) => c.name)).toEqual(
+      expect.arrayContaining([
+        "socket",
+        "browser_view_service",
+        "dev_server_service",
+        "terminal_service",
+        "agent_runtime",
+        "storage",
+      ]),
+    );
+
+    const instances = await client.callTool("app_list_instances", {});
+    expect(instances.ok).toBe(true);
+    expect(
+      (instances.content as { instances: { pid: number }[] }).instances.some(
+        (i) => i.pid === process.pid,
+      ),
+    ).toBe(true);
+  });
+
+  it("filters structured app logs by tool metadata", async () => {
+    const requestId = "req_log_filter";
+    await sendRawFrame(container.config.socketPath, {
+      type: "tool_call",
+      requestId,
+      toolName: "app_health",
+      arguments: {},
+      clientInfo: { caller: "cli" },
+    });
+
+    const result = await client.callTool("app_get_logs", {
+      toolName: "app_health",
+      search: requestId,
+      limit: 20,
+    });
+    expect(result.ok).toBe(true);
+    const entries = result.content as { toolName?: string; correlationId?: string }[];
+    expect(entries.some((e) => e.toolName === "app_health")).toBe(true);
+    expect(entries.some((e) => e.correlationId === requestId)).toBe(true);
+  });
+
+  it("exports a reproducible bug report artifact", async () => {
+    const result = await client.callTool("app_export_bug_report", { logsLimit: 20 });
+    expect(result.ok).toBe(true);
+    const content = result.content as {
+      path?: string;
+      report: {
+        schema: string;
+        stateSummary: { version: number };
+        logs: unknown[];
+        toolRegistry: { name: string }[];
+      };
+    };
+    expect(content.path).toBeTruthy();
+    expect(content.report.schema).toBe("meith-bug-report/v1");
+    expect(content.report.stateSummary.version).toBe(4);
+    expect(content.report.toolRegistry.some((t) => t.name === "app_health")).toBe(true);
   });
 });
 

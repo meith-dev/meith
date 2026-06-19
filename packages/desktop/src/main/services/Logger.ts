@@ -11,6 +11,26 @@ export interface LoggerOptions {
   maxRecords?: number;
 }
 
+export interface LogContext {
+  correlationId?: string;
+  requestId?: string;
+  caller?: LogEntry["caller"];
+  sessionId?: string;
+  toolName?: string;
+  spaceId?: string;
+  tabId?: string;
+}
+
+export interface LogListFilter {
+  limit?: number;
+  level?: LogEntry["level"];
+  source?: string;
+  caller?: LogEntry["caller"];
+  sessionId?: string;
+  toolName?: string;
+  search?: string;
+}
+
 /**
  * Structured logger backed by an in-memory ring buffer for fast reads, plus an
  * optional append-only JSONL file for durability. Appends are single-line
@@ -38,13 +58,19 @@ export class Logger extends EventEmitter {
     }
   }
 
-  log(level: LogEntry["level"], source: string, message: string): LogEntry {
+  log(
+    level: LogEntry["level"],
+    source: string,
+    message: string,
+    context: LogContext = {},
+  ): LogEntry {
     const entry: LogEntry = {
       id: createId("log"),
       ts: Date.now(),
       level,
       source,
       message,
+      ...definedContext(context),
     };
     this.entries.push(entry);
     if (this.entries.length > this.max) this.entries.shift();
@@ -58,13 +84,47 @@ export class Logger extends EventEmitter {
     return entry;
   }
 
-  debug = (source: string, message: string) => this.log("debug", source, message);
-  info = (source: string, message: string) => this.log("info", source, message);
-  warn = (source: string, message: string) => this.log("warn", source, message);
-  error = (source: string, message: string) => this.log("error", source, message);
+  debug = (source: string, message: string, context?: LogContext) =>
+    this.log("debug", source, message, context);
+  info = (source: string, message: string, context?: LogContext) =>
+    this.log("info", source, message, context);
+  warn = (source: string, message: string, context?: LogContext) =>
+    this.log("warn", source, message, context);
+  error = (source: string, message: string, context?: LogContext) =>
+    this.log("error", source, message, context);
 
-  list(limit?: number): LogEntry[] {
-    if (!limit) return [...this.entries];
-    return this.entries.slice(-limit);
+  list(filter?: number | LogListFilter): LogEntry[] {
+    const opts: LogListFilter =
+      typeof filter === "number" ? { limit: filter } : (filter ?? {});
+    let entries = this.entries;
+    if (opts.level) entries = entries.filter((e) => e.level === opts.level);
+    if (opts.source) entries = entries.filter((e) => e.source === opts.source);
+    if (opts.caller) entries = entries.filter((e) => e.caller === opts.caller);
+    if (opts.sessionId) entries = entries.filter((e) => e.sessionId === opts.sessionId);
+    if (opts.toolName) entries = entries.filter((e) => e.toolName === opts.toolName);
+    if (opts.search) {
+      const q = opts.search.toLowerCase();
+      entries = entries.filter(
+        (e) =>
+          e.message.toLowerCase().includes(q) ||
+          e.source.toLowerCase().includes(q) ||
+          e.toolName?.toLowerCase().includes(q) ||
+          e.sessionId?.toLowerCase().includes(q) ||
+          e.requestId?.toLowerCase().includes(q) ||
+          e.correlationId?.toLowerCase().includes(q),
+      );
+    }
+    return opts.limit ? entries.slice(-opts.limit) : [...entries];
   }
+}
+
+function definedContext(context: LogContext): Partial<LogEntry> {
+  const out: Partial<LogEntry> = {};
+  for (const [key, value] of Object.entries(context) as [
+    keyof LogContext,
+    string | undefined,
+  ][]) {
+    if (value !== undefined) out[key] = value as never;
+  }
+  return out;
 }

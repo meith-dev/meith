@@ -23,6 +23,8 @@ const APP_HELP = `meith app — inspect and control running runtime instances
 Usage:
   meith app list                 List running instances (pid, version, label)
   meith app logs [--limit N]     Print recent app log entries
+  meith app health               Print runtime service health
+  meith app bug-report           Export a reproducible bug report JSON artifact
   meith app kill [pid|label]     Stop an instance (SIGTERM); --all for every one
   meith app screenshot           Capture the main window (prints the PNG path)
 `;
@@ -40,6 +42,12 @@ export async function runApp(parsed: ParsedArgs, opts: AppCommandOptions): Promi
     case "logs":
       await appLogs(parsed, opts);
       return;
+    case "health":
+      await appTool("app_health", {}, opts);
+      return;
+    case "bug-report":
+      await appTool("app_export_bug_report", appBugReportParams(parsed), opts, true);
+      return;
     case "screenshot":
       await appScreenshot(opts);
       return;
@@ -48,7 +56,9 @@ export async function runApp(parsed: ParsedArgs, opts: AppCommandOptions): Promi
       process.stdout.write(APP_HELP);
       return;
     default:
-      fail(`Unknown "app" subcommand "${sub}". Try: list, logs, kill, screenshot.`);
+      fail(
+        `Unknown "app" subcommand "${sub}". Try: list, logs, health, bug-report, kill, screenshot.`,
+      );
   }
 }
 
@@ -143,23 +153,37 @@ async function appLogs(parsed: ParsedArgs, opts: AppCommandOptions): Promise<voi
 
 /** `meith app screenshot` — capture the main window; prints the PNG path. */
 async function appScreenshot(opts: AppCommandOptions): Promise<void> {
+  await appTool("app_screenshot", {}, opts, true);
+}
+
+async function appTool(
+  toolName: string,
+  params: Record<string, unknown>,
+  opts: AppCommandOptions,
+  artifact = false,
+): Promise<void> {
   const client = new ToolClient({
     socketPath: opts.socketPath,
     timeoutMs: opts.timeoutMs,
   });
   try {
     await client.connect();
-    const result = await client.callTool(
-      "app_screenshot",
-      {},
-      { timeoutMs: opts.timeoutMs },
-    );
-    printArtifact(result, opts.mode);
+    const result = await client.callTool(toolName, params, {
+      timeoutMs: opts.timeoutMs,
+    });
+    if (artifact) printArtifact(result, opts.mode);
+    else printResult(result, opts.mode);
   } catch (err) {
     fail(err instanceof Error ? err.message : String(err), opts.socketPath);
   } finally {
     client.close();
   }
+}
+
+function appBugReportParams(parsed: ParsedArgs): Record<string, unknown> {
+  const raw = parsed.flags["logs-limit"] ?? parsed.flags.limit;
+  const logsLimit = raw !== undefined ? Number(raw) : undefined;
+  return logsLimit !== undefined && Number.isFinite(logsLimit) ? { logsLimit } : {};
 }
 
 function pad(text: string, width: number): string {

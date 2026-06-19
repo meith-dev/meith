@@ -221,6 +221,12 @@ function GeneralTab({
         checked={settings.showOutputOnRun}
         onChange={(v) => void onSave({ showOutputOnRun: v })}
       />
+      <ToggleRow
+        label="Debug mode"
+        description="Expose app-target diagnostics and verbose debugging surfaces."
+        checked={settings.debugMode}
+        onChange={(v) => void onSave({ debugMode: v })}
+      />
       <div className="flex items-center justify-between gap-4 rounded-md px-1 py-2.5">
         <div className="flex min-w-0 flex-col">
           <span className="text-sm font-medium text-foreground">

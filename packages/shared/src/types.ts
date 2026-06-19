@@ -27,6 +27,10 @@ export interface ToolContext {
   spaceId?: string;
   /** Optional browser/workspace tab the call is scoped to. */
   tabId?: string;
+  /** Optional end-to-end correlation id for logs/audit/debugging. */
+  correlationId?: string;
+  /** Optional transport request id, when the caller has one. */
+  requestId?: string;
   /** Aborts when the caller cancels or the per-call timeout fires. */
   signal?: AbortSignal;
   /** Emit a streaming event (progress/log/partial_text/artifact) to the caller. */
