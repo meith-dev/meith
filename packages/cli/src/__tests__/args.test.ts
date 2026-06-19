@@ -35,6 +35,18 @@ describe("parseArgs", () => {
     expect(parsed.positionals).toEqual(["/tmp", "node"]);
     expect(parsed.passthrough).toEqual(["-e", "0"]);
   });
+
+  it("keeps repeated flags in argv order", () => {
+    const parsed = parseArgs(["call", "tool", "--tag", "one", "--tag=two"]);
+    expect(parsed.flags).toEqual({ tag: ["one", "two"] });
+  });
+
+  it("preserves unknown commands for the dispatcher to reject", () => {
+    const parsed = parseArgs(["not-a-command", "--json"]);
+    expect(parsed.command).toBe("not-a-command");
+    expect(parsed.flags).toEqual({ json: true });
+    expect(commands[parsed.command ?? ""]).toBeUndefined();
+  });
 });
 
 describe("coerce", () => {
@@ -45,6 +57,11 @@ describe("coerce", () => {
     expect(coerce("hello")).toBe("hello");
     expect(coerce(true)).toBe(true);
     expect(coerce(["1", "x"])).toEqual(["1", "x"]);
+  });
+
+  it("coerces negative and decimal numbers", () => {
+    expect(coerce("-2")).toBe(-2);
+    expect(coerce("3.14")).toBe(3.14);
   });
 });
 

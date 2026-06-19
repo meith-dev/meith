@@ -29,7 +29,13 @@ async function main(): Promise<void> {
     console.log(`[smoke] tools: ${names.join(", ")}`);
     assert(names.includes("app_get_state"), "expected app_get_state to be registered");
 
-    const opened = await client.callTool("open_browser_tab", {
+    const internal = { cwd: process.cwd(), caller: "internal" as const };
+
+    // Privileged browser control is intentionally denied to raw CLI socket
+    // clients unless they hold a per-session grant. The smoke path uses the
+    // trusted in-process caller for setup/control, then verifies socket-visible
+    // state through the CLI client.
+    const opened = await container.registry.call(internal, "open_browser_tab", {
       url: "http://localhost:3000",
       title: "Smoke",
     });
@@ -45,7 +51,7 @@ async function main(): Promise<void> {
     );
 
     // Navigate forward then back; verify history flags track correctly.
-    const nav = await client.callTool("navigate", {
+    const nav = await container.registry.call(internal, "navigate", {
       tabId,
       url: "http://localhost:3000/about",
     });
@@ -54,40 +60,46 @@ async function main(): Promise<void> {
       (nav.content as { canGoBack: boolean }).canGoBack,
       "expected canGoBack after navigate",
     );
-    const back = await client.callTool("go_back", { tabId });
+    const back = await container.registry.call(internal, "go_back", { tabId });
     assert(back.ok, "go_back failed");
     assert(
       (back.content as { url: string }).url === "http://localhost:3000",
       "go_back did not restore the previous URL",
     );
 
-    // Ownership: claim on THIS connection, then prove a *different* connection
-    // cannot drive the claimed tab. Ownership is server-assigned per socket
-    // connection, so the attacker must be a separate ToolClient — client-
-    // supplied owner ids are ignored by design and must not be reintroduced.
-    const claim = await client.callTool("browser_use_start", { tabId });
+    // Ownership: claim with one trusted owner, then prove another owner cannot
+    // drive the claimed tab. Tool callers receive server-side session ids in
+    // production; the smoke test supplies explicit internal sessions to verify
+    // the same ownership guard without depending on raw socket permissions.
+    const claim = await container.registry.call(
+      { cwd: process.cwd(), caller: "internal", sessionId: "smoke-owner" },
+      "browser_use_start",
+      { tabId },
+    );
     assert(claim.ok, "browser_use_start failed");
 
-    const attacker = new ToolClient({ socketPath: container.config.socketPath });
-    try {
-      await attacker.connect();
-      const blocked = await attacker.callTool("navigate", {
+    const blocked = await container.registry.call(
+      { cwd: process.cwd(), caller: "internal", sessionId: "smoke-attacker" },
+      "navigate",
+      {
         tabId,
         url: "http://localhost:3000/x",
-      });
-      assert(
-        !blocked.ok && blocked.error?.code === "PERMISSION_DENIED",
-        "ownership not enforced: a second connection drove a claimed tab",
-      );
-    } finally {
-      attacker.close();
-    }
+      },
+    );
+    assert(
+      !blocked.ok && blocked.error?.code === "PERMISSION_DENIED",
+      "ownership not enforced: a second owner drove a claimed tab",
+    );
 
-    const release = await client.callTool("browser_use_end", { tabId });
+    const release = await container.registry.call(
+      { cwd: process.cwd(), caller: "internal", sessionId: "smoke-owner" },
+      "browser_use_end",
+      { tabId },
+    );
     assert(release.ok, "browser_use_end failed");
 
     // Screenshot artifact.
-    const shot = await client.callTool("take_screenshot", { tabId });
+    const shot = await container.registry.call(internal, "take_screenshot", { tabId });
     assert(shot.ok, `take_screenshot failed: ${shot.error?.message}`);
     assert(
       typeof (shot.content as { path?: string }).path === "string",
@@ -97,7 +109,7 @@ async function main(): Promise<void> {
     console.log("[smoke] OK");
   } finally {
     client.close();
-    await container.socket.stop();
+    await container.shutdown();
     rmSync(home, { recursive: true, force: true });
     rmSync(userData, { recursive: true, force: true });
     process.env.MEITH_HOME = undefined;
