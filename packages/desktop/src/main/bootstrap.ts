@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -267,10 +268,10 @@ export async function bootstrap(
     MEITH_SOCKET: socketPath,
     MEITH_HOME: home,
     MEITH_USER_DATA: userDataPath,
+    PATH: runtimePath(runtimeInstall?.binDir ?? join(home, "bin")),
     ...(runtimeInstall
       ? {
           MEITH_CLI_BIN: runtimeInstall.cliBinPath,
-          PATH: withPrependedPath(runtimeInstall.binDir),
         }
       : {}),
   };
@@ -454,7 +455,70 @@ export async function bootstrap(
   };
 }
 
-function withPrependedPath(binDir: string): string {
+function runtimePath(binDir: string): string {
   const delimiter = process.platform === "win32" ? ";" : ":";
-  return process.env.PATH ? `${binDir}${delimiter}${process.env.PATH}` : binDir;
+  const parts = [
+    binDir,
+    ...splitPath(process.env.PATH, delimiter),
+    ...splitPath(readLoginShellPath(), delimiter),
+    ...commonToolPaths(),
+  ];
+  return uniqueNonEmpty(parts).join(delimiter);
+}
+
+function splitPath(value: string | undefined, delimiter: string): string[] {
+  return value ? value.split(delimiter) : [];
+}
+
+function uniqueNonEmpty(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of values) {
+    const value = raw.trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
+
+/**
+ * macOS GUI apps do not inherit the user's interactive shell environment, so a
+ * packaged app can otherwise miss `npm`, `pnpm`, `node`, etc. Ask the user's
+ * login shell for PATH and tolerate noisy rc files by reading after a marker.
+ */
+function readLoginShellPath(): string | undefined {
+  if (process.platform === "win32") return undefined;
+  const shell = process.env.SHELL || "/bin/zsh";
+  try {
+    const result = spawnSync(shell, ["-ilc", 'printf "__MEITH_PATH__%s" "$PATH"'], {
+      encoding: "utf8",
+      timeout: 3_000,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    if (result.error || result.status !== 0) return undefined;
+    const marker = "__MEITH_PATH__";
+    const idx = result.stdout.lastIndexOf(marker);
+    return idx >= 0 ? result.stdout.slice(idx + marker.length).trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function commonToolPaths(): string[] {
+  if (process.platform === "win32") return [];
+  const home = homedir();
+  return [
+    "/opt/homebrew/bin",
+    "/opt/homebrew/sbin",
+    "/usr/local/bin",
+    "/usr/local/sbin",
+    "/usr/bin",
+    "/bin",
+    "/usr/sbin",
+    "/sbin",
+    join(home, ".local", "bin"),
+    join(home, ".bun", "bin"),
+    join(home, ".cargo", "bin"),
+  ];
 }

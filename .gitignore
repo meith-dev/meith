@@ -26,3 +26,6 @@ out/
 
 # meith runtime config/socket
 .meith/
+
+# built package
+packages/desktop/release
