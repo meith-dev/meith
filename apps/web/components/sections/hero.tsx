@@ -13,14 +13,13 @@ export function Hero() {
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3.5 py-1.5 text-sm text-muted-foreground">
             <span className="size-1.5 rounded-full bg-primary" />
-            From the Irish{" "}
-            <span className="font-medium text-foreground">meitheal</span> — everyone
-            pitches in
+            Open source ·{" "}
+            <span className="font-medium text-foreground">Your AI desktop workspace</span>
           </span>
 
           <h1 className="mt-7 text-balance text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
-            The desktop workspace where{" "}
-            <span className="text-primary">AI gets real work done.</span>
+            Where AI stops chatting and{" "}
+            <span className="text-primary">starts doing.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
