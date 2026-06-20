@@ -1,185 +1,240 @@
 # Architecture
 
-meith is a pnpm monorepo for an extensible desktop AI IDE. The guiding principle:
+meith is an Electron desktop workbench backed by a local tool runtime. The main
+process is the authority for state and side effects. The renderer, CLI, plugins,
+and agent runtime all reach application capabilities through the same validated
+`ToolRegistry`.
 
-> The desktop main process is the authority. The renderer UI, the CLI, plugins,
-> and future AI agents all call the **same validated tool registry** instead of
-> reaching into services directly.
+That design keeps the app consistent: opening a tab from the UI, running
+`meith open`, or letting an agent control a browser tab all go through the same
+tool definition, validation, permission, logging, and persistence path.
 
 ## Packages
 
-| Package            | Role                                                                          |
-| ------------------ | ----------------------------------------------------------------------------- |
-| `@meith/shared`    | Zod schemas + inferred types, IDs, app config/state, the `ToolResult` envelope, capability/error-code enums, and the `ToolContext`. |
-| `@meith/protocol`  | The `ToolDefinition` contract, `defineTool`, serializable `ToolDescriptor`, the newline-delimited JSON (ndjson) wire messages, and naming helpers. |
-| `@meith/desktop`   | Electron main/preload/renderer, the service container, the single `ToolRegistry`, the local Unix-socket server, IPC handlers, and the React workbench UI (Tailwind v4 + shadcn/ui on Base UI) with a built-in developer debug panel. |
-| `@meith/cli`       | The `meith` terminal command. Connects to the running runtime's socket and calls registered tools. |
+| Package | Role |
+| --- | --- |
+| `@meith/shared` | Zod schemas and inferred types for app state, tabs, projects, tools, agents, plugins, logs, settings, IDs, and result helpers. |
+| `@meith/protocol` | Tool contracts, tool descriptors, NDJSON protocol messages, naming helpers, and public plugin bridge types. |
+| `@meith/desktop` | Electron main/preload/renderer, services, tool registration, socket server, IPC, browser/terminal hosts, agents, plugins, storage, and packaging. |
+| `@meith/cli` | Terminal client that discovers a running runtime and calls tools over the local socket. |
 
-## The single tool registry
+## Authority Model
 
-Tools are defined under `packages/desktop/src/main/tools/` and registered in
-`bootstrap.ts`. Every caller reaches them through the same `ToolRegistry.call()`:
+The runtime is centered on `packages/desktop/src/main/bootstrap.ts`.
+`bootstrap(userDataPath, options)` wires the services, registers tools, starts
+the local socket server, writes config, publishes an instance record, hydrates
+state, and returns the service container.
 
 ```
-            ┌─────────────────────────────────────────────┐
-            │            main process (authority)          │
-            │                                              │
-  CLI  ───▶ │  ToolSocketService ─┐                        │
-            │                     ├─▶  ToolRegistry  ─▶ services
- renderer ─▶│  IPC handlers ──────┘        ▲               │
-            │                              │               │
- agent  ───▶│  (future) AgentRuntime ──────┘               │
- plugin ───▶│  (future) PluginHost  ───────┘               │
-            └─────────────────────────────────────────────┘
+Renderer IPC ─────┐
+CLI socket ───────┤
+Plugin bridge ────┤
+Agent MCP bridge ─┼── ToolRegistry ── services ── app state / files / browser / processes
+Internal calls ───┘
 ```
 
-`ToolRegistry.call()` validates input against the tool's Zod schema, enforces a
-timeout, supports cooperative cancellation (`AbortSignal`), lets tools stream
-events, and always returns a structured `ToolResult` envelope.
+`ToolRegistry.call()` is the common choke point. It:
 
-## Boot path (no Electron required)
+- rejects unknown tools,
+- validates arguments with each tool's Zod schema,
+- asks `PermissionService` to authorize privileged calls,
+- applies timeout and cancellation handling,
+- passes an abort signal and optional event emitter to the tool,
+- normalizes returned values into a `ToolResult`,
+- logs and audits every call.
 
-`bootstrap(userDataPath)` wires every service, registers tools, writes
-`~/.meith/config.json`, and starts the socket server. It deliberately does **not**
-import Electron, so:
+## Services
 
-- the real Electron `main` process calls it after `app.whenReady()`,
-- the **headless harness** (`pnpm dev:headless`) calls it directly, and
-- **tests** and the **CI smoke test** call it directly.
+The main services are created in `bootstrap.ts`:
 
-This is why the integration test and `scripts/smoke.mts` can exercise the full
-socket + CLI path without a display.
+- `AppStateService` owns persisted app state and emits reactive state changes.
+- `BrowserTabService` owns browser/workspace tab records and delegates live web
+  contents to a `BrowserViewHost`.
+- `SpaceService` creates, updates, switches, and closes workspaces.
+- `ProjectService` detects folders, opens projects into spaces, generates
+  templates, prewarms generated projects, and starts project run commands.
+- `WorkspaceFileService` reads, writes, patches, searches, and diagnoses files
+  inside trusted workspace boundaries.
+- `DevServerService` starts and tracks managed dev-server processes and logs.
+- `TerminalService` starts and tracks terminal sessions.
+- `PluginHostService` installs plugins, stores requested and approved grants,
+  resolves plugin tab identity, and gates plugin bridge APIs.
+- `AgentService` stores sessions and messages, runs the configured adapter, and
+  gates agent tool calls.
+- `McpBridgeService` exposes per-agent-session tools over a localhost MCP-style
+  HTTP endpoint for external ACP agents.
+- `PermissionService` authorizes non-renderer privileged calls and writes audit
+  entries.
+- `StorageService` exposes read-only storage introspection tools.
+- `ToolSocketService` exposes the registry over a local NDJSON socket.
 
 ## Persistence
 
-Storage lives under `packages/desktop/src/main/storage/` and is split by access
-pattern:
+Runtime data lives under the user data path passed to `bootstrap()`. In normal
+use, discovery data lives under `~/.meith`:
 
-- **Small, bounded state** — `AppState` (spaces + tabs) is held by
-  `AppStateService` and persisted to `state.json` through `JsonStore`, which
-  writes **atomically** (temp file → `fsync` → rename) and **debounces** writes
-  so rapid mutations don't thrash the disk.
-- **Append-only history** — `Logger` appends structured entries to `logs.jsonl`
-  through `JsonlStore`. Appends are single-line writes (never a full-file
-  rewrite), and the file is **compacted** automatically once it grows past a
-  threshold. The in-memory ring buffer is hydrated from disk on startup so logs
-  survive a restart.
+- `~/.meith/config.json` records the active runtime socket, app version,
+  protocol version, user data path, instance path, and managed CLI launcher.
+- `~/.meith/instances/<pid>.json` records live runtime instances so the CLI can
+  list, target, or kill them.
+- `<userData>/state.json` stores spaces, projects, browser tabs, workspace tabs,
+  file edit events, plugins, and app settings.
+- `<userData>/logs.jsonl` stores app logs.
+- `<userData>/audit.jsonl` stores tool authorization/audit records.
+- `<userData>/artifacts/` stores screenshot and bug-report artifacts.
+- `<userData>/plugins/` stores extracted packaged plugins.
+- agent metadata, transcripts, and config are managed by `AgentStore` and
+  `AgentConfigStore`.
 
-On load, raw JSON is run through a **migration system**
-(`storage/migrations.ts`, `CURRENT_STATE_VERSION`) that upgrades older shapes to
-the current version before Zod validation. A file that fails to parse/validate
-is **backed up** to a `.corrupt-<ts>` sibling, a warning is logged, and the store
-resets to defaults rather than crashing.
+`JsonStore` writes bounded JSON atomically and uses migrations before schema
+validation. Corrupt state is backed up and reset to defaults instead of crashing
+the app. `JsonlStore` stores append-only logs and audit records.
 
-`StorageService` catalogs these collections and backs the read-only
-`storage_list_collections`, `storage_read_collection`, and
-`storage_export_state` tools so the CLI and agents can introspect persisted data.
-`~/.meith/config.json` records the resolved `socketPath`, `userDataPath`, app
-version, protocol version, instance file, native app path, and managed CLI
-launcher path so the CLI can find a running runtime and relaunch the packaged
-app. Running instances are also registered under `~/.meith/instances/<pid>.json`;
-startup removes records for dead processes and stale socket files before
-publishing the current instance.
+## Workspaces and Projects
 
-## Browser runtime
+A space is the visible workspace in the left rail. A project is a folder on disk.
+Opening a folder with `project_open` detects package metadata, creates or reuses
+a dedicated space, records a project, and opens an editor tab rooted at the
+folder.
 
-Browser tabs have two halves that stay in sync:
+`ProjectService` detects:
 
-- **Tab records** (id, url, title, favicon, `loadState`, `canGoBack/Forward`,
-  `ownerId`) live in persistent `AppState`, so the last-known state survives a
-  restart.
-- **Live views** live in a `BrowserViewHost` (`main/browser/`). The interface is
-  injected so `bootstrap()` stays Electron-free: the desktop app passes an
-  `ElectronBrowserViewHost` (real `WebContentsView`s), while tests/CLI/headless
-  use the in-memory `HeadlessBrowserViewHost`.
+- project name,
+- package manager (`pnpm`, `npm`, `yarn`, `bun`, or `unknown`),
+- framework hints such as Next.js, Vite, React, Vue, Svelte, Astro, Remix, Node,
+  or `unknown`,
+- package scripts.
 
-`BrowserTabService` owns the lifecycle (open/navigate/back/forward/refresh/
-focus/close), delegates live operations to the host, and merges the host's
-`onNavStateChanged` callbacks back into the persisted record. Ordinary web
-content loads with a minimal `preload/webContent.ts` bridge and **no Node
-integration**. Screenshots go through `webContents.capturePage()` and are
-persisted by `ArtifactStore` under `<userData>/artifacts/`.
+Run commands live on the project record. The top bar's Run button calls
+`project_run`, which uses the configured command or falls back to a detected
+`dev`/`start`-style script. Dev servers are associated by cwd, their output is
+captured, and detected ports can be opened in browser tabs.
 
-**Rehydration.** Only tab *records* survive a restart, not live views. On
-startup `bootstrap()` calls `BrowserTabService.hydrate()` to recreate views for
-persisted tabs and focus the active one. As a safety net, `ensureView()` lazily
-recreates a missing view before any navigate/back/forward/refresh/focus/capture,
-so control never fails just because a view was lost.
+Generated projects are copied from `templates/` into `~/Documents/meith` by
+default. `project_prewarm` can keep generated app copies ready so creating a new
+workspace is fast.
 
-**Viewport contract.** The renderer measures its browser content region
-(`ResizeObserver` on `<main>`) and reports it to the main process over
-`meith:browser:viewport` (validated by `BrowserViewportSchema`). The host's
-`setContentBounds()` sizes the native view to that measured rectangle;
-`getContentBounds` is only a fallback used before the first report. This avoids
-the hard-coded inset drifting out of sync with the real layout. The window is
-created **before** bootstrap, and `attachActiveView()` runs again on
-`ready-to-show`, resolving the startup race where hydrate focuses a tab before
-the window exists.
+## Browser Runtime
 
-**Ownership.** A tab can be claimed with `browser_use_start` and released with
-`browser_use_end`. Control is gated by a `ControlContext { ownerId, requireClaim }`:
-automation callers (`agent`, `plugin`) set `requireClaim`, so they **must** claim
-a tab before mutating it (unclaimed → `TabClaimRequiredError`); interactive
-callers (`renderer`, `cli`) and `internal` may drive unclaimed tabs directly.
-Controlling a tab owned by someone else throws `TabOwnershipError`. Both map to a
-`PERMISSION_DENIED` tool error; `releaseOwner` frees all of a session's tabs on
-shutdown/crash. Everything is exposed through the same tool registry, so the
-renderer and `meith` CLI drive identical behavior (`meith open`, `navigate`,
-`back`, `screenshot`, …).
+Browser tab metadata is persisted in app state. Live browser views are supplied
+by a `BrowserViewHost`:
 
-**Automation & diagnostics.** The `BrowserViewHost` contract also covers the
-agent-facing automation layer, again split between the Electron and headless
-implementations:
+- Electron uses `ElectronBrowserViewHost` backed by native `WebContentsView`s.
+- Headless tests and harness runs use `HeadlessBrowserViewHost`.
 
-- **DOM extraction** — `get_browser_state` returns the page's interactable
-  elements with **stable ids** (`el-0`, `el-1`, …) plus role, label, text,
-  value, bounds, and disabled/hidden flags, along with url/title/viewport. In
-  Electron this is an injected page script that tags nodes with
-  `data-meith-id`; the headless host models a small synthetic DOM so the
-  contract is testable without a renderer. Ids are valid until the next
-  extraction.
-- **Interaction** — `click_element`, `type_text`, `scroll_page`, and
-  `send_keys` operate on those ids. Electron drives them through injected JS and
-  `sendInputEvent`; the headless host mutates its synthetic DOM. A stale/unknown
-  id raises `ElementNotFoundError` → `TOOL_FAILED`. Interactions are control
-  operations, so they honor the same claim/ownership rules as navigation.
-- **Raw CDP** — `cdp_command` issues a Chrome DevTools Protocol command against
-  the tab via `webContents.debugger` (attached per view on creation, detached on
-  destroy). The headless host simulates a small CDP subset (`Page.navigate`,
-  `Runtime.evaluate`, …).
-- **Console & network** — the Electron host mines `Runtime.consoleAPICalled`,
-  `Log.entryAdded`, and the `Network.*` events into per-tab ring buffers read by
-  `get_console_logs` / `get_network_logs` (read-only). The headless host
-  records synthetic entries on navigation/interaction.
+The renderer measures the actual content area and reports it over
+`meith:browser:viewport`; the main process sizes the native view to that region.
+When settings, overlays, or split-drag drop zones need DOM interaction above the
+native view, the renderer temporarily collapses the view.
 
-## Renderer (workbench UI)
+Browser tools include tab listing, open/navigate/back/forward/refresh/focus/close,
+screenshot capture, DOM state extraction, element clicks, typing, scrolling,
+keyboard input, CDP commands, console logs, and network logs.
 
-The renderer is a React + Vite app styled with Tailwind v4 and shadcn/ui built on
-**Base UI** primitives (`components.json` → `style: "base-nova"`, dark theme default).
-It is a workbench, not a debug console:
+Automation callers (`agent` and `plugin`) must claim a tab with
+`browser_use_start` before mutating it. Interactive callers (`renderer`, `cli`)
+can control unclaimed tabs directly. Ownership conflicts return
+`PERMISSION_DENIED`.
 
-- **`SpacesRail`** — left vertical rail of spaces (color swatch + initial). Click to
-  `switch_space`, double-click to `update_space` (rename), `+` to `create_space`.
-- **`WorkspacePanel`** — workspace-tab strip for the active space with an "open"
-  menu mapping to `open_workspace_tab` kinds (project / terminal / agent / preview),
-  plus `focus_workspace_tab` / `close_workspace_tab`.
-- **`BrowserArea`** — browser tab strip + address bar (`open_browser_tab`,
-  `navigate`, `focus_browser_tab`, `close_browser_tab`). The central region is the
-  measured browser content area reported to main via the viewport contract.
-- **`StatusBar`** — connection state plus space/tab counts.
-- **`DebugPanel`** — collapsible bottom drawer (toggle: `Cmd/Ctrl+J`) with Tools /
-  State / Logs tabs. The Tools tab is the original arbitrary tool runner, preserved
-  for development.
+## Renderer
 
-State flows one way: components call tools through `useWorkbench`, the main process
-mutates authoritative state, and the renderer re-renders from pushed `AppState`.
-The same registry backs the CLI, so `meith` commands and the UI stay synchronized.
-In browser/dev mode (`pnpm dev:renderer`) a mock bridge in `bridge.ts` provides an
-in-memory implementation of the full tool set so the UI is testable without Electron.
+The renderer is a React and Vite workbench in
+`packages/desktop/src/renderer/src`. It uses the preload bridge exposed as
+`window.meith`; in browser-only preview mode it falls back to an in-memory mock
+bridge.
 
-## Related docs
+Major surfaces:
 
-- [TOOL_PROTOCOL.md](./TOOL_PROTOCOL.md) — the wire protocol and `ToolResult` envelope.
-- [ADDING_TOOLS.md](./ADDING_TOOLS.md) — how to author a new tool.
-- [AGENT_RUNTIME.md](./AGENT_RUNTIME.md) — how a future agent runtime plugs in.
-- [PLUGIN_API.md](./PLUGIN_API.md) — the intended plugin surface.
+- `SpacesRail` for switching, creating, opening, closing, and inspecting spaces.
+- `TabStrip` and `PaneToolbar` for browser/workspace tab management.
+- `BrowserArea` for the embedded browser tab controls and native view target.
+- `EditorView` for Monaco-backed file editing through `workspace_*` tools.
+- `TerminalView` for PTY sessions.
+- `AgentView` for session list, transcript, composer, stop button, and
+  permission cards.
+- `SettingsView` for app preferences, per-project run commands, agent config,
+  plugin management, and about info.
+- `DebugPanel` for tool runner, state, logs, and output diagnostics.
+- `StatusBar` for connection, tab counts, running process count, and active port.
+
+The renderer does not mutate services directly. It calls tools or dedicated IPC
+stream channels, then re-renders from pushed app state.
+
+## CLI
+
+The CLI resolves a target runtime from `--socket`, `--instance`, live instance
+records, or `~/.meith/config.json`. It sends NDJSON frames to the runtime socket.
+
+Common surfaces:
+
+- `meith [path]` launches the app and optionally opens a project path.
+- `meith new [name]` creates and opens a generated project.
+- mapped commands such as `open`, `tabs`, `navigate`, `screenshot`, `processes`,
+  `dev-servers`, and `start-dev` call specific tools.
+- `meith call <toolName>` can invoke any registered tool.
+- `meith tools` lists runtime tools.
+- `meith devlogs` attaches to a managed dev server's log stream.
+- `meith app <list|logs|health|bug-report|kill|screenshot>` inspects or controls
+  runtime instances.
+- `meith setup` prints or writes shell PATH setup for the managed launcher.
+
+## Agents
+
+`AgentService` is implemented. It manages durable sessions, transcripts,
+configuration, permission prompts, and adapter execution.
+
+The default adapter is `MockAdapter`, which keeps the UI usable without an
+external agent. When configured for `acp`, `AcpAdapter` spawns an external ACP
+subprocess, initializes it, creates an ACP session, and passes a localhost MCP
+endpoint so the external agent can call meith tools.
+
+Agent tool calls use `caller: "agent"` and the agent session id. Read-only tools
+run directly. Privileged tools require an explicit permission decision unless
+auto-accept is enabled. Approved one-use grants are written into
+`PermissionService` before the registry call.
+
+## Plugins
+
+A plugin is a web app loaded in a controlled plugin browser tab. It does not
+register code into the main process and does not receive Node access. Instead,
+the plugin preload exposes `window.meithPlugin` only when the main process
+recognizes the tab as an enabled plugin.
+
+Plugin manifests declare requested capabilities and API namespaces. The user
+approves a subset of those requests. Runtime enforcement uses only approved
+grants.
+
+Approved API namespaces:
+
+- `tools` lists and calls registry tools, still gated by approved capabilities.
+- `storage` reads browser and workspace tab lists.
+- `cdp` sends Chrome DevTools Protocol commands.
+- `ai` streams text through the app's agent runtime.
+
+See [PLUGIN_API.md](./PLUGIN_API.md) for author-facing details.
+
+## Development Modes
+
+Desktop app:
+
+```bash
+pnpm dev
+```
+
+Renderer-only mock mode:
+
+```bash
+pnpm dev:renderer
+```
+
+Headless main-process runtime:
+
+```bash
+pnpm --filter @meith/desktop dev:headless
+```
+
+Full verification:
+
+```bash
+pnpm check
+```

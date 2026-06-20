@@ -1,34 +1,37 @@
 # Plugin API
 
-> Status: implemented. A meith plugin is a **web app** that runs inside a
-> controlled browser tab and communicates with the host only through
-> `window.meithPlugin`, a permission-gated bridge. See
-> [`templates/plugin-basic`](../templates/plugin-basic) for a runnable starter.
+A meith plugin is a web app that runs inside a controlled plugin browser tab.
+It does not load code into the main process, does not get Node access, and does
+not register tools into the host.
 
-## Model
+Instead, the host may expose `window.meithPlugin` in that plugin tab. The bridge
+contains only the API namespaces the user approved for that plugin, and every
+privileged action routes back through the main-process tool registry.
 
-A plugin does **not** run with Node access and does **not** register code into
-the main process. Instead:
+See `templates/plugin-basic/main.js` for a starter web plugin.
 
-1. A plugin is a directory, packaged archive, or dev URL containing a
-   **manifest** and a web app.
-2. The user installs it, then **reviews and approves** the permissions it
-   requested.
-3. When enabled and opened, the host loads the plugin's `entry` in a sandboxed
-   "plugin" browser tab and attaches `window.meithPlugin` — exposing **only the
-   approved API namespaces**.
-4. Every call routes through the main-process `ToolRegistry` with caller
-   metadata `{ caller: "plugin", pluginId, tabId }` that the host resolves
-   **authoritatively from the sending webContents** — never from anything the
-   plugin sends.
+## Lifecycle
 
-This means a plugin is exactly as powerful as a normal web page, plus the
-narrow, user-approved bridge — and no more.
+1. A plugin is installed from a local directory, packaged archive, or development
+   URL.
+2. The host reads the plugin manifest and stores its requested grants.
+3. The plugin starts disabled with empty approved grants.
+4. The user reviews and approves a subset of the requested API namespaces and
+   tool capabilities.
+5. The plugin can be enabled only after its requested API namespaces are
+   approved.
+6. Opening the plugin creates a plugin-mode browser tab.
+7. The main process maps that tab's `webContents.id` to the plugin id.
+8. The plugin preload asks the main process for approved identity. If approved,
+   it exposes `window.meithPlugin`; otherwise it exposes nothing.
+
+Identity is always resolved from the sender webContents. The plugin page cannot
+forge another plugin id or grant itself extra permissions.
 
 ## Manifest
 
-The manifest lives in `plugin.json` at the plugin root, or under the `meith`
-field of `package.json`. Schema (`PluginManifestSchema` in `@meith/shared`):
+The manifest can be in `plugin.json` at the plugin root or in the `meith` field
+of `package.json`.
 
 ```json
 {
@@ -39,82 +42,116 @@ field of `package.json`. Schema (`PluginManifestSchema` in `@meith/shared`):
   "description": "Shown in the permissions review UI.",
   "entry": "index.html",
   "permissions": ["read-only"],
-  "requestedApis": ["tools", "storage", "ai"]
+  "requestedApis": ["tools", "storage"]
 }
 ```
 
-| Field           | Meaning                                                                             |
-| --------------- | ----------------------------------------------------------------------------------- |
-| `kind`          | Must be `"plugin"`. Distinguishes a plugin from a normal app project.                |
-| `id`            | Reverse-DNS-style dotted id (`PluginIdSchema`). Unique per install.                 |
-| `name`          | Display name.                                                                       |
-| `version`       | Semver-ish string. Defaults to `0.0.0`.                                             |
-| `entry`         | Web entry. For `local-dir` and packaged sources it is **relative to the plugin root** and validated to stay inside it. For `dev-url` sources the entry comes from the URL. |
-| `permissions`   | Tool **capabilities** the plugin requests (`ToolCapability[]`).                     |
-| `requestedApis` | Bridge **API namespaces** the plugin requests (`PluginApiName[]`).                  |
+| Field | Meaning |
+| --- | --- |
+| `kind` | Must be `"plugin"`. |
+| `id` | Reverse-DNS-style dotted identifier, such as `com.example.hello`. |
+| `name` | Display name. |
+| `version` | Version string. Defaults to `0.0.0` when omitted. |
+| `description` | Optional review text shown in the UI. |
+| `entry` | Web entry file for local/package plugins. Defaults to `index.html`. |
+| `permissions` | Tool capabilities requested by the plugin. |
+| `requestedApis` | Bridge namespaces requested by the plugin. |
 
-> `permissions` and `requestedApis` are *requests*, not grants. They seed the
-> approval prompt; enforcement is based solely on what the user approved.
+`permissions` and `requestedApis` are requests, not grants. Runtime enforcement
+uses only `approvedGrants`, never the requested values.
 
 ## Sources
 
+Plugins can be installed from three source kinds:
+
 ```ts
 type PluginSource =
-  | { kind: "local-dir"; path: string } // a folder on disk
-  | { kind: "package"; path: string; archivePath?: string } // managed extracted package
-  | { kind: "dev-url"; url: string };   // a running dev server (for development)
+  | { kind: "local-dir"; path: string }
+  | { kind: "package"; path: string; archivePath?: string }
+  | { kind: "dev-url"; url: string };
 ```
 
-Packaged plugins are `.tgz`, `.tar.gz`, or `.tar` archives. The host extracts
-them into `<userData>/plugins/<pluginId>` with a safe tar reader that rejects
-absolute paths, `..` traversal, and links before writing files. Archive installs
-follow the same permission review flow as local-dir and dev-url installs:
-newly installed plugins start disabled with empty approved grants.
+### Local Directory
 
-## Grants & enforcement
+The host resolves the directory with `realpath`, reads the manifest, and checks
+that the entry file stays inside the plugin root.
+
+### Package Archive
+
+Supported archives:
+
+- `.tgz`
+- `.tar.gz`
+- `.tar`
+
+The host extracts archives into the managed plugin store under user data. The
+safe tar reader rejects absolute paths, `..` traversal, and links before writing
+files.
+
+### Dev URL
+
+The host fetches the manifest from:
+
+```text
+<devUrl>/plugin.json
+```
+
+The plugin tab loads the dev URL itself.
+
+## Grants
+
+Installed plugins store both requested and approved grants:
 
 ```ts
 interface PluginGrants {
-  capabilities: ToolCapability[]; // which tool capabilities may be invoked
-  apis: PluginApiName[];          // which window.meithPlugin namespaces appear
+  capabilities: ToolCapability[];
+  apis: PluginApiName[];
 }
 ```
 
-- `requestedGrants` — what the manifest asked for. **Never** used for enforcement.
-- `approvedGrants` — what the user approved. **The sole basis for enforcement.**
+- `requestedGrants` mirrors the manifest and is informational.
+- `approvedGrants` is the sole basis for runtime enforcement.
 
-The host guarantees that `approvedGrants ⊆ requestedGrants` (you cannot approve
-something the plugin never asked for), and a plugin can only be **enabled** once
-its grants are approved.
+Approving grants always intersects the supplied grants with the requested
+grants, so approval cannot exceed what the manifest requested.
 
-## The `window.meithPlugin` bridge
+Reinstalling a plugin preserves existing approvals only when they are still a
+subset of the new requested grants. Otherwise they are dropped for review.
 
-Exposed type: `MeithPluginApi` (importable from `@meith/protocol`). Namespaces
-are present **only when approved**, so always feature-detect.
+## API Namespaces
+
+The bridge shape is exported from `@meith/protocol` as `MeithPluginApi`.
+Namespaces are optional and should always be feature-detected.
 
 ```ts
 interface MeithPluginApi {
-  readonly identity: MeithPluginIdentity; // always present
-  tools?: MeithPluginToolsApi;            // when `tools` approved
-  storage?: MeithPluginStorageApi;        // when `storage` approved
-  cdp?: MeithPluginCdpApi;                // when `cdp` approved
-  ai?: MeithPluginAiApi;                  // when `ai` approved
+  readonly identity: MeithPluginIdentity;
+  tools?: MeithPluginToolsApi;
+  storage?: MeithPluginStorageApi;
+  cdp?: MeithPluginCdpApi;
+  ai?: MeithPluginAiApi;
 }
 ```
 
-### `identity` (always present)
+### `identity`
+
+Always present when `window.meithPlugin` exists.
 
 ```ts
 interface MeithPluginIdentity {
   pluginId: string;
   name: string;
   version: string;
-  apis: PluginApiName[];        // approved namespaces
-  capabilities: ToolCapability[]; // approved capabilities
+  apis: PluginApiName[];
+  capabilities: ToolCapability[];
 }
 ```
 
-### `tools` — call registry tools
+The values are the approved identity and grants, not the raw manifest requests.
+
+### `tools`
+
+Requires the `tools` API namespace.
 
 ```ts
 interface MeithPluginToolsApi {
@@ -123,94 +160,170 @@ interface MeithPluginToolsApi {
 }
 ```
 
-`call` is still gated by capabilities: invoking a tool whose capabilities are
-not in your `approvedGrants.capabilities` returns
-`{ ok: false, error: { code: "PERMISSION_DENIED", ... } }`.
+Tool calls are still gated by approved capabilities. For example, a plugin with
+the `tools` API but without `controls-browser` cannot call a browser-control
+tool. The result is a normal `ToolResult` failure:
 
-### `storage` — read the user's tabs
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "PERMISSION_DENIED",
+    "message": "Plugin com.example.hello lacks capabilities ..."
+  }
+}
+```
+
+### `storage`
+
+Requires the `storage` API namespace.
 
 ```ts
 interface MeithPluginStorageApi {
-  getBrowserTabs(): Promise<BrowserTab[]>;   // plugin-mode tabs excluded
+  getBrowserTabs(): Promise<BrowserTab[]>;
   getWorkspaceTabs(): Promise<WorkspaceTab[]>;
 }
 ```
 
-### `cdp` — raw Chrome DevTools Protocol
+Plugin-mode browser tabs are excluded from browser tab listings by default.
+
+### `cdp`
+
+Requires the `cdp` API namespace and the relevant browser-control capability.
 
 ```ts
 interface MeithPluginCdpApi {
-  send(tabId: string, method: string, params?: Record<string, unknown>): Promise<ToolResult>;
+  send(
+    tabId: string,
+    method: string,
+    params?: Record<string, unknown>
+  ): Promise<ToolResult>;
 }
 ```
 
-### `ai` — stream text through the agent runtime
+The host stamps the plugin's authoritative owner id before calling the registry
+tool, so CDP commands follow the same tab-ownership model as ordinary plugin
+tool calls.
+
+### `ai`
+
+Requires the `ai` API namespace.
 
 ```ts
-interface MeithPluginAiApi {
-  streamText(options: MeithPluginAiStreamOptions): Promise<MeithPluginAiStreamResult>;
-}
-
 interface MeithPluginAiStreamOptions {
   prompt: string;
   onText?: (delta: string) => void;
   onStart?: (controls: { cancel: () => void }) => void;
 }
+
+interface MeithPluginAiStreamResult {
+  text: string;
+}
+
+interface MeithPluginAiApi {
+  streamText(
+    options: MeithPluginAiStreamOptions
+  ): Promise<MeithPluginAiStreamResult>;
+}
 ```
 
-Cancellation is delivered via `onStart` (which hands you a `cancel()` function)
-rather than an `AbortSignal`, because `AbortSignal` is not cloneable across
-Electron's context-isolation boundary.
+`AbortSignal` is not used across the context bridge because it is not cloneable.
+The plugin receives cancellation through `onStart`.
 
 ```js
-await window.meithPlugin.ai.streamText({
+const result = await window.meithPlugin.ai.streamText({
   prompt: "Summarize my open tabs.",
-  onStart: (c) => (cancelHandle = c.cancel),
-  onText: (delta) => (output.textContent += delta),
+  onStart: (controls) => {
+    cancel = controls.cancel;
+  },
+  onText: (delta) => {
+    output.textContent += delta;
+  },
 });
 ```
 
-## Security model
+The host creates an ephemeral agent session and deletes it after completion.
+Plugin AI calls cannot bypass agent/tool permissions.
 
-- **Sandboxed tab**: plugin tabs run with `contextIsolation` and no Node
-  integration. The bridge is injected by a dedicated preload, not by the page.
-- **Authoritative identity**: the host maps a tab's `webContents` → plugin id
-  when it creates the plugin tab. The plugin cannot spoof another plugin's id or
-  elevate its own grants by passing different metadata.
-- **Capability gating**: tool calls are re-checked against `approvedGrants` in
-  the main process on every call.
-- **Bridge revocation**: if a plugin tab navigates away from its entry origin,
-  the host revokes the `webContents` → plugin mapping, so the bridge stops
-  working for that tab.
-- **No ambient discovery**: `get_tabs` / `storage.getBrowserTabs()` exclude
-  other plugins' tabs by default, so plugins don't see or automate each other.
+## Security Model
 
-## Lifecycle (control-plane tools)
+Important invariants:
 
-These privileged tools (capability `destructive`, except `list_plugins` which is
-`read-only`) manage plugins and are also surfaced by the renderer's Plugins
-manager dialog:
+- Plugin tabs run with context isolation and no Node integration.
+- `window.meithPlugin` is injected only by the plugin preload.
+- The main process resolves plugin identity from `webContents.id`.
+- The plugin page cannot pass a trusted plugin id.
+- API namespaces are present only when approved.
+- Tool calls are checked against approved capabilities on every call.
+- A disabled or uninstalled plugin loses live tab authority.
+- Navigating away from a plugin entry revokes the webContents-to-plugin mapping.
+- Plugin tabs are hidden from normal plugin storage listings.
+- Local/package entries are realpath-contained inside the plugin root.
+- Packaged archives are extracted with path traversal and link checks.
 
-| Tool                    | Purpose                                              |
-| ----------------------- | ---------------------------------------------------- |
-| `list_plugins`          | List installed plugins and their grants.             |
-| `install_plugin`        | Install from a `local-dir`, packaged archive, or `dev-url`. |
-| `approve_plugin_grants` | Approve a subset of the requested grants.            |
-| `set_plugin_enabled`    | Enable/disable a plugin (enable requires approval).  |
-| `uninstall_plugin`      | Remove a plugin and close its tabs.                  |
-| `open_plugin_tab`       | Open an enabled plugin in a plugin tab.              |
+## Control-Plane Tools
 
-## Building a plugin
+Plugin management is itself exposed through normal tools:
 
-Start from [`templates/plugin-basic`](../templates/plugin-basic): edit the
-manifest, build your web app against `window.meithPlugin`, then install it via
-the Plugins manager (the plug icon in the title bar). Import the bridge types
-from `@meith/protocol` for type-safety.
+| Tool | Purpose |
+| --- | --- |
+| `list_plugins` | List installed plugins, requested grants, approved grants, and enabled state. |
+| `install_plugin` | Install from `directory`, `archive`, or `devUrl`. Exactly one source must be provided. |
+| `approve_plugin_grants` | Approve a subset of requested capabilities and APIs. |
+| `set_plugin_enabled` | Enable or disable an installed plugin. |
+| `uninstall_plugin` | Remove the plugin record and revoke open plugin tabs. |
+| `open_plugin_tab` | Open an enabled plugin in a plugin-mode browser tab. |
 
-For a distributable plugin package, place the built web app and `plugin.json`
-under one root directory and create a tarball, for example:
+These tools are surfaced by the Settings Plugins panel and are also callable
+from the CLI.
+
+## CLI Examples
+
+Install from a local folder:
+
+```bash
+meith call install_plugin --directory /absolute/path/to/plugin
+```
+
+Install from a dev server:
+
+```bash
+meith call install_plugin --devUrl http://localhost:5173/
+```
+
+Approve grants:
+
+```bash
+meith call approve_plugin_grants \
+  --pluginId com.example.hello \
+  --capabilities-json '["read-only"]' \
+  --apis-json '["tools","storage"]'
+```
+
+Enable:
+
+```bash
+meith call set_plugin_enabled --pluginId com.example.hello --enabled true
+```
+
+Open:
+
+```bash
+meith call open_plugin_tab --pluginId com.example.hello
+```
+
+Package a plugin folder:
 
 ```bash
 tar -czf hello-plugin.tgz -C dist .
 meith call install_plugin --archive /absolute/path/hello-plugin.tgz
 ```
+
+## Authoring Notes
+
+- Build a normal web app.
+- Include `plugin.json` or a `meith` field in `package.json`.
+- Request the smallest API/capability set you need.
+- Feature-detect every namespace before using it.
+- Treat every `ToolResult` as fallible.
+- Use `@meith/protocol` types for `MeithPluginApi` when TypeScript is available.

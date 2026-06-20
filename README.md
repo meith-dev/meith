@@ -1,146 +1,127 @@
-# meith — Agentic Desktop IDE (scaffold)
+# meith
 
-> **meith** (from the Irish _meitheal_ — a gathering of neighbors who pool their
-> labor to bring in a harvest or raise a structure together). The name fits the
-> architecture: the Electron main process, the local CLI, the UI, and future AI
-> agents all cooperate around one shared tool registry to do the heavy lifting.
+Meith is a desktop workspace that puts an AI assistant right next to your code.
 
-A pnpm monorepo scaffold for an extensible desktop AI IDE. The core idea: every
-capability is a **Tool** in a single registry, and that registry is reachable
-identically from the renderer (Electron IPC), the CLI (local Unix socket), and —
-later — an MCP server or an AI agent runtime.
+It collects the pieces developers usually scatter across multiple windows and puts them in one place: project folders, code files, terminal sessions, browser previews, run commands, logs, plugins, and agent chat sessions. A shared tool system connects everything. The visual interface, the terminal command, a plugin, and an AI agent all interact with the exact same project state, rather than maintaining their own isolated views.
 
-```
-┌─────────────┐   IPC    ┌────────────────────────┐
-│  Renderer   │ ───────► │      Main process      │
-│ (React UI)  │          │  ┌──────────────────┐  │
-└─────────────┘          │  │  ToolRegistry    │  │
-                         │  └──────────────────┘  │
-┌─────────────┐  socket  │   ▲ services: state,   │
-│     CLI     │ ───────► │   │ tabs, dev servers, │
-│  (meith ...) │  ndjson  │   │ terminals, agents  │
-└─────────────┘          └────────────────────────┘
-```
+Meith doesn't lock you into one AI provider. The agent runtime uses an adapter interface and connects to external agents via ACP (Agent Client Protocol), keeping the desktop app independent of any specific model vendor or SDK.
 
-## Packages
+The name comes from the Irish *meitheal*: a group of people coming together to work on a common task. In meith, the app, command line, plugins, and agents gather around a single workspace.
 
-| Package           | What it is                                                        |
-| ----------------- | ----------------------------------------------------------------- |
-| `@meith/shared`    | Zod schemas, domain types (`AppState`, tabs, config), id helpers. |
-| `@meith/protocol`  | Tool contract (`defineTool`), ndjson wire protocol, naming utils. |
-| `@meith/desktop`   | Electron main + preload + React renderer, services, tool registry.|
-| `@meith/cli`       | `meith` command — connects to the runtime socket and calls tools.  |
+## What you can do with it
 
-## Requirements
+* Open a project folder in its own workspace.
+* Browse and edit code in the integrated editor.
+* Start and stop your project's run command from the top bar.
+* Preview the running local app in an embedded browser tab.
+* View terminal and dev-server logs without leaving the window.
+* Split panes to arrange your browser, editor, terminal, or agent side by side.
+* Ask an agent to work within the context of your current project.
+* Install web-app plugins and explicitly approve the APIs they can use.
+* Use the `meith` terminal command to inspect and control a running app instance.
 
-- **Node** >= 20
-- **pnpm** >= 9 (this repo pins `pnpm@9.12.0` via `packageManager`)
+## How the app is organized
 
-## Getting started
+Workspaces are the core of meith. One workspace generally maps to one project folder on your disk. Within each workspace, you can have:
+
+* browser tabs for local testing or research,
+* editor tabs for project files,
+* terminal tabs,
+* agent chat tabs,
+* run commands and environment configurations,
+* plugin tabs.
+
+The app persists your spaces, tabs, projects, settings, logs, and agent sessions across restarts.
+
+## Agent and plugin safety
+
+Agents and plugins do not get unrestricted access by default.
+
+Every major action routes through a shared tool registry in the desktop main process. Tools declare their capabilities upfront, like reading state, writing files, controlling the browser, starting processes, making network requests, or performing destructive actions.
+
+The renderer is fully trusted as part of the core app, but agents and plugins face strict limits:
+
+* read-only actions execute without interruption,
+* file writes, browser control, process starts, and destructive actions require explicit permission or an approved grant,
+* the host resolves plugin identity directly from the plugin tab itself, ignoring data the plugin sends,
+* plugin tabs only access the `window.meithPlugin` APIs you specifically approve.
+
+For agents, meith currently includes a built-in mock adapter for local testing and an ACP subprocess adapter for actual external agents. The ACP path allows an agent to use meith's tools without forcing the app to depend on a particular AI provider.
+
+## Technical documentation
+
+* [Architecture](https://www.google.com/search?q=./docs/ARCHITECTURE.md) covers the packages, boot path, services, persistence, renderer, CLI, agents, and plugins.
+* [Tool protocol](https://www.google.com/search?q=./docs/TOOL_PROTOCOL.md) details the local socket protocol, tool result envelopes, capabilities, timeouts, cancellation, and caller policies.
+* [Adding tools](https://www.google.com/search?q=./docs/ADDING_TOOLS.md) walks through adding a new tool to the shared registry.
+* [Agent runtime](https://www.google.com/search?q=./docs/AGENT_RUNTIME.md) breaks down sessions, adapters, permissions, MCP bridging, and ACP subprocess integration.
+* [Plugin API](https://www.google.com/search?q=./docs/PLUGIN_API.md) covers plugin manifests, installation, approved grants, `window.meithPlugin`, and the security model.
+
+## Developer information
+
+This repository is a pnpm monorepo containing four packages:
+
+| Package | Purpose |
+| --- | --- |
+| `@meith/shared` | Shared Zod schemas, domain types, IDs, settings, app state, and `ToolResult` helpers. |
+| `@meith/protocol` | Tool definitions, tool descriptors, NDJSON wire messages, naming helpers, and plugin API types. |
+| `@meith/desktop` | Electron main process, preload bridges, React renderer, services, tools, socket server, plugins, provider-agnostic agent adapters, and packaging. |
+| `@meith/cli` | The `meith` terminal command that talks to the running runtime socket. |
+
+Requirements:
+
+* Node.js 20 or newer
+* pnpm 9 or newer
+
+Common commands:
 
 ```bash
 pnpm install
-pnpm build           # builds libs, then desktop + cli
-pnpm test            # runs every package's vitest suite
+pnpm build
+pnpm test
 pnpm typecheck
-pnpm lint            # Biome lint + format check
-pnpm check           # lint + typecheck + build + test (run this before pushing)
+pnpm lint
+pnpm check
+
 ```
 
-### Run the desktop app
+Run the desktop app in development:
 
 ```bash
-pnpm dev             # electron-vite dev (main + preload + renderer)
-pnpm dev:renderer    # renderer only, in a plain browser (mock bridge)
+pnpm dev
+
 ```
 
-The renderer ships a **debug control panel** (Tools / State / Logs) so you can
-exercise every registered tool by hand. Outside Electron it falls back to an
-in-memory mock bridge so the UI still runs in a normal browser.
-
-### Run headless (no Electron) + drive it with the CLI
+Run the renderer only, with an in-memory mock bridge:
 
 ```bash
-pnpm dev:headless    # boots services + socket server (no Electron)
+pnpm dev:renderer
+
 ```
 
-In another terminal:
+Run the main-process services without Electron:
 
 ```bash
-pnpm cli tools                         # list every tool
-pnpm cli open http://localhost:3000    # open a browser tab
-pnpm cli tabs                          # list tabs
-pnpm cli state                         # dump persistent app state
-pnpm cli logs --limit 50               # recent log lines
-pnpm cli call get_tabs --json          # generic escape hatch to any tool
+pnpm --filter @meith/desktop dev:headless
+
 ```
 
-The CLI discovers the socket from `~/.meith/config.json` (written on boot), or
-honors `--socket <path>` / `$MEITH_HOME`.
-
-### Package the desktop app
+Use the CLI through the monorepo:
 
 ```bash
-pnpm pack:desktop    # unpacked app for local packaging smoke tests
-pnpm dist:mac        # macOS dmg + zip via electron-builder
+pnpm cli tools
+pnpm cli app list
+pnpm cli open http://localhost:3000
+pnpm cli tabs
+pnpm cli call app_health
+
 ```
 
-On startup the desktop app writes `~/.meith/config.json`, registers the running
-instance under `~/.meith/instances/`, cleans stale instance/socket files, and
-refreshes a predictable CLI launcher at `~/.meith/bin/meith`. Add that directory
-to `PATH` with `meith setup --write` or by following `meith setup`.
+Package the desktop app:
 
-## How it fits together
+```bash
+pnpm pack:desktop
+pnpm dist:mac
 
-1. **`bootstrap(userDataPath)`** (in `@meith/desktop`) wires every service, builds
-   the `ToolRegistry`, writes `~/.meith/config.json`, and starts the socket server.
-   It imports **no Electron**, so the same path runs in the headless harness and
-   in tests.
-2. **Tools** are defined with `defineTool({ name, description, inputSchema, execute })`.
-   The Zod `inputSchema` gives runtime validation, static types, and JSON Schema
-   for future agent function-calling / MCP.
-3. **Callers** (CLI socket, renderer IPC) never touch services directly — they go
-   through `registry.call(ctx, name, args)`, which validates input first.
-
-## Adding a tool
-
-```ts
-// packages/desktop/src/main/tools/myTools.ts
-import { z } from "zod";
-import { defineTool } from "@meith/protocol";
-import type { ToolDeps } from "./deps.js";
-
-export function createMyTools(deps: ToolDeps) {
-  return [
-    defineTool({
-      name: "say_hello",
-      description: "Return a greeting.",
-      inputSchema: z.object({ name: z.string() }),
-      execute: (_ctx, input) => ({ message: `Hello, ${input.name}!` }),
-    }),
-  ];
-}
 ```
 
-Register it in `bootstrap.ts` (`registry.registerAll(createMyTools(deps))`). It is
-now callable from the renderer, from `meith call say_hello --name World`, and from
-any future agent — no extra plumbing.
-
-## Documentation
-
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — packages, the single registry, boot path.
-- [docs/TOOL_PROTOCOL.md](./docs/TOOL_PROTOCOL.md) — ndjson wire protocol + `ToolResult` envelope.
-- [docs/ADDING_TOOLS.md](./docs/ADDING_TOOLS.md) — authoring a new tool.
-- [docs/AGENT_RUNTIME.md](./docs/AGENT_RUNTIME.md) — how an agent runtime plugs in.
-- [docs/PLUGIN_API.md](./docs/PLUGIN_API.md) — intended plugin surface.
-- [TODO.md](./TODO.md) — the full phased roadmap.
-
-## Status
-
-This is a working local runtime scaffold. The browser automation surface,
-terminal sessions, dev-server lifecycle tools, and process/log inspection tools
-are implemented and tested, including screenshot artifacts and streaming process
-log attachment. `AgentService` exposes the runtime interface for a future
-model-driven loop. See `packages/desktop/src/main/agent/systemPrompt.ts`.
-The protocol layer (versioning, `ToolResult` envelope, capabilities, streaming,
-cancellation) is implemented — see [docs/TOOL_PROTOCOL.md](./docs/TOOL_PROTOCOL.md).
+On startup, the runtime writes `~/.meith/config.json`, registers the running instance under `~/.meith/instances/`, and exposes a managed launcher at `~/.meith/bin/meith`. Run `meith setup` for shell instructions, or `meith setup --write` to add that launcher directory to your shell config.

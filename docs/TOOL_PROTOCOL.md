@@ -1,24 +1,56 @@
 # Tool Protocol
 
-The runtime speaks **newline-delimited JSON (ndjson)** over a local Unix socket.
-Each line is one complete JSON message. The same contract is mirrored over
-Electron IPC for the renderer. Schemas live in `@meith/protocol` (wire messages)
-and `@meith/shared` (the `ToolResult` envelope + enums).
+meith exposes its tool registry over a local newline-delimited JSON socket. The
+renderer uses Electron IPC, but it calls the same `ToolRegistry` and receives the
+same `ToolResult` shape.
 
-## Versioning
+The protocol types live in:
 
-Every message may carry a numeric `protocol` field. The current value is
-`PROTOCOL_VERSION = 1` (exported from `@meith/protocol`). The server rejects a
-message whose `protocol` is present and does not match, with a `PROTOCOL_ERROR`.
+- `packages/protocol/src/messages.ts`
+- `packages/protocol/src/tools.ts`
+- `packages/shared/src/schemas.ts`
+- `packages/shared/src/types.ts`
 
-## Client → server messages
+## Transport
 
-### `list_tools`
-```json
-{ "type": "list_tools", "protocol": 1, "clientInfo": { "caller": "cli" } }
+The socket protocol is NDJSON: each line is one complete JSON frame.
+
+The runtime writes its socket path to `~/.meith/config.json` and also publishes
+live instance records in `~/.meith/instances/`. The CLI uses those files to find
+the target runtime unless `--socket` or `--instance` is provided.
+
+Every message may include `protocol`. The current value is:
+
+```ts
+PROTOCOL_VERSION = 1
 ```
 
+If a client sends a mismatched protocol version, the server returns a transport
+`error` with `PROTOCOL_ERROR`.
+
+Frames are capped by `MAX_FRAME_BYTES` in the NDJSON parser. Malformed frames are
+reported and skipped rather than crashing the connection.
+
+## Client Messages
+
+### `list_tools`
+
+Lists serializable tool descriptors.
+
+```json
+{
+  "type": "list_tools",
+  "protocol": 1,
+  "clientInfo": { "caller": "cli" }
+}
+```
+
+Response: `tools_list`.
+
 ### `tool_call`
+
+Calls a registered tool.
+
 ```json
 {
   "type": "tool_call",
@@ -26,104 +58,237 @@ message whose `protocol` is present and does not match, with a `PROTOCOL_ERROR`.
   "requestId": "req_ab12cd34",
   "toolName": "open_browser_tab",
   "arguments": { "url": "http://localhost:3000" },
-  "clientInfo": { "caller": "cli", "cwd": "/work", "sessionId": "sess_1" },
+  "clientInfo": {
+    "caller": "cli",
+    "cwd": "/work/project",
+    "spaceId": "space_1",
+    "tabId": "btab_1"
+  },
   "timeoutMs": 30000
 }
 ```
 
+Response stream:
+
+- zero or more `tool_event` frames,
+- one final `tool_result` frame.
+
 ### `cancel_tool_call`
+
+Cancels an in-flight call by request id.
+
 ```json
-{ "type": "cancel_tool_call", "protocol": 1, "requestId": "req_ab12cd34" }
+{
+  "type": "cancel_tool_call",
+  "protocol": 1,
+  "requestId": "req_ab12cd34"
+}
 ```
 
-`clientInfo` carries the caller's *requested* identity (`cli` | `renderer` |
-`agent` | `plugin` | `internal`) plus optional `cwd`, `sessionId`, `spaceId`,
-and `tabId`. It does **not** become the tool's `ToolContext` verbatim.
+Cancellation is cooperative. The registry aborts the call signal, and tools are
+expected to observe `ctx.signal`. The registry still races execution against the
+abort signal so a cancelled or timed-out call resolves with a structured failure
+even if a tool does not observe the signal promptly.
 
-### Server-side identity policy (Unix socket)
-
-The Unix socket is an untrusted local boundary, so the server **does not trust**
-client-asserted identity for security-relevant fields. Before a `tool_call`
-runs, the socket server rewrites the context:
-
-- **`caller`** — only `cli` and `plugin` may be asserted by a socket peer. A
-  claimed privileged in-process caller (`renderer`, `agent`, `internal`) is
-  **downgraded to `cli`** and logged. Those privileged identities are reserved
-  for in-process callers (the renderer over IPC, the agent loop) and can never
-  be obtained over the socket.
-- **`sessionId`** — the client-supplied value is **ignored and replaced** with a
-  trusted, server-assigned per-connection id (`socket:<uuid>`). This id is what
-  browser-tab automation ownership is bound to, so one connection cannot
-  impersonate another to hijack a claimed tab.
-- `cwd`, `spaceId`, and `tabId` are passed through as provided.
-
-Implication for clients: do **not** try to control browser ownership by sending
-a chosen `sessionId` or an `owner` argument — both are ignored. Each socket
-connection is its own automation owner; use a separate connection for an
-independent owner.
-
-The Electron IPC path is in-process and trusted, so the renderer's `renderer`
-caller is honored there.
-
-## Server → client messages
+## Server Messages
 
 ### `tools_list`
+
 ```json
-{ "type": "tools_list", "protocol": 1, "tools": [ { "name": "...", "description": "...", "inputSchema": {}, "capabilities": ["read-only"] } ] }
+{
+  "type": "tools_list",
+  "protocol": 1,
+  "tools": [
+    {
+      "name": "open_browser_tab",
+      "description": "Open a new browser tab pointing at a URL and focus it.",
+      "inputSchema": {},
+      "capabilities": ["controls-browser"]
+    }
+  ]
+}
 ```
 
-### `tool_event` (streaming, correlated by `requestId`)
+Tool descriptors are generated from registered `ToolDefinition`s. The
+`inputSchema` is derived from each tool's Zod schema with `zod-to-json-schema`.
+
+### `tool_event`
+
 ```json
-{ "type": "tool_event", "protocol": 1, "requestId": "req_ab12cd34", "event": { "kind": "progress", "fraction": 0.5, "message": "halfway" } }
+{
+  "type": "tool_event",
+  "protocol": 1,
+  "requestId": "req_ab12cd34",
+  "event": {
+    "kind": "progress",
+    "message": "starting",
+    "fraction": 0.1
+  }
+}
 ```
-Event kinds: `progress`, `log`, `partial_text`, `artifact`.
 
-### `tool_result` (final, correlated by `requestId`)
+Event kinds:
+
+- `progress`
+- `log`
+- `partial_text`
+- `artifact`
+
+The CLI prints progress and partial text in human-readable mode. `meith devlogs`
+uses streamed `log` events from `attach_process_logs`.
+
+### `tool_result`
+
+Tool success and tool failure both use `tool_result`.
+
 ```json
-{ "type": "tool_result", "protocol": 1, "requestId": "req_ab12cd34", "result": { "ok": true, "content": { "id": "btab_..." } } }
+{
+  "type": "tool_result",
+  "protocol": 1,
+  "requestId": "req_ab12cd34",
+  "result": {
+    "ok": true,
+    "content": { "id": "btab_123" }
+  }
+}
 ```
 
-### `error` (transport/protocol-level only)
+### `error`
+
+Transport/protocol-level errors only.
+
 ```json
-{ "type": "error", "protocol": 1, "requestId": "req_ab12cd34", "code": "PROTOCOL_ERROR", "message": "..." }
+{
+  "type": "error",
+  "protocol": 1,
+  "requestId": "req_ab12cd34",
+  "code": "PROTOCOL_ERROR",
+  "message": "Unsupported protocol version"
+}
 ```
 
-## The `ToolResult` envelope
+Do not use transport `error` for tool execution failures. Tool-level failures
+belong inside `tool_result.result`.
 
-Tool-level outcomes (success **and** failure) come back inside `tool_result`,
-never as a transport `error`. The envelope:
+## ToolResult
+
+Every tool resolves to this envelope:
 
 ```ts
 interface ToolResult<T = unknown> {
   ok: boolean;
-  content?: T;                    // present on success
-  meta?: Record<string, unknown>; // optional structured metadata
-  diagnostics?: { level: "info" | "warn" | "error"; message: string }[];
-  error?: { code: ToolErrorCode; message: string; details?: unknown };
+  content?: T;
+  meta?: Record<string, unknown>;
+  diagnostics?: Array<{
+    level: "info" | "warn" | "error";
+    message: string;
+  }>;
+  error?: {
+    code: ToolErrorCode;
+    message: string;
+    details?: unknown;
+  };
 }
 ```
 
-`transport error` messages are reserved for malformed frames, unknown message
-types, and protocol-version mismatches.
+Tools may return either a raw value or a full `ToolResult`.
 
-## Error codes
+- Raw values become `{ ok: true, content: value }`.
+- `okResult()` and `errorResult()` create explicit envelopes.
+- Throwing `ToolError` controls the returned error code.
+- Any other throw becomes `TOOL_FAILED`.
 
-`UNKNOWN_TOOL`, `VALIDATION_ERROR`, `PERMISSION_DENIED`, `TIMEOUT`,
-`TOOL_FAILED`, `RUNTIME_SHUTTING_DOWN`, `CANCELLED`, `PROTOCOL_ERROR`.
+Error codes:
 
-## Capabilities (safety metadata)
+- `UNKNOWN_TOOL`
+- `VALIDATION_ERROR`
+- `PERMISSION_DENIED`
+- `TIMEOUT`
+- `TOOL_FAILED`
+- `RUNTIME_SHUTTING_DOWN`
+- `CANCELLED`
+- `PROTOCOL_ERROR`
 
-Each tool declares `capabilities` so an agent/plugin host can make permission
-decisions before calling:
+## Capabilities
 
-`read-only`, `writes-files`, `controls-browser`, `starts-process`,
-`accesses-network`, `destructive`.
+Each tool can declare safety metadata:
 
-## Timeout & cancellation
+- `read-only`
+- `writes-files`
+- `controls-browser`
+- `starts-process`
+- `accesses-network`
+- `destructive`
 
-- A `tool_call` may set `timeoutMs`; otherwise the tool's own `timeoutMs` or the
-  default (`DEFAULT_TOOL_TIMEOUT_MS`) applies. On expiry the result is
-  `ok: false` with code `TIMEOUT`.
-- `cancel_tool_call` aborts the in-flight call's `AbortSignal`; the result comes
-  back as `ok: false` with code `CANCELLED`. Cancellation is cooperative — tools
-  should observe `ctx.signal`.
+`PermissionService` treats these as authorization inputs. Renderer and internal
+callers are trusted but audited. Socket, agent, and plugin callers are subject
+to grants or approved plugin capabilities for privileged capabilities.
+
+## Caller Identity
+
+`clientInfo` carries requested caller context:
+
+```ts
+{
+  caller: "cli" | "renderer" | "agent" | "plugin" | "internal";
+  cwd?: string;
+  sessionId?: string;
+  spaceId?: string;
+  tabId?: string;
+}
+```
+
+The socket is a local but untrusted boundary. `ToolSocketService` does not trust
+security-relevant caller claims from socket peers:
+
+- socket clients can assert `cli` or `plugin`,
+- attempts to assert `renderer`, `agent`, or `internal` are downgraded,
+- client-provided `sessionId` is replaced by a server-assigned per-connection
+  id,
+- `cwd`, `spaceId`, and `tabId` are passed through as scope hints.
+
+This matters for browser automation ownership. A socket peer cannot choose a
+session id to impersonate another owner.
+
+Renderer IPC is in-process and trusted as `caller: "renderer"`.
+
+Agents do not use the public socket for privileged identity. `AgentService`
+calls the registry in-process and passes `caller: "agent"` with the real session
+id. External ACP agents call through a per-session MCP bridge that maps bearer
+tokens back to the same gated agent session.
+
+Plugin calls are resolved from the sender webContents id. The plugin page never
+supplies its own trusted identity.
+
+## Timeouts
+
+Timeout order:
+
+1. `tool_call.timeoutMs`, if supplied,
+2. the tool definition's `timeoutMs`, if supplied,
+3. `DEFAULT_TOOL_TIMEOUT_MS`.
+
+On expiry, the final result is:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "TIMEOUT",
+    "message": "Tool \"name\" timed out after 30000ms"
+  }
+}
+```
+
+Some tools intentionally override timeout. `attach_process_logs`, for example,
+uses a very large timeout because it is designed to stream until the caller
+cancels or disconnects.
+
+## Auditing
+
+Every registry call is logged and passed to `PermissionService.auditToolCall`.
+Audit entries include caller, tool name, capabilities, decision, cwd, session,
+space, tab, summarized arguments, summarized result, and duration.
+
+Argument and result summaries redact likely secrets and large text payloads
+before writing to `audit.jsonl`.

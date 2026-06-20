@@ -1,46 +1,229 @@
-# Agent Runtime (design)
+# Agent Runtime
 
-> Status: design notes. The `AgentService` today is a placeholder. This document
-> describes how a real agent runtime is intended to plug into the existing tool
-> registry. See [TODO.md](../TODO.md) for the phased plan.
+The agent runtime is implemented in the desktop main process. It manages
+sessions, transcripts, configuration, streaming output, permission prompts, and
+adapter execution while keeping all app actions behind the shared tool registry.
 
-## Principle
+The core files are:
 
-An agent is **just another caller** of the tool registry. It must not reach into
-services directly. It uses the same validated `ToolRegistry.call()` path as the
-CLI and renderer, which gives it input validation, timeouts, cancellation,
-streaming events, and a structured `ToolResult` for free.
+- `packages/desktop/src/main/services/AgentService.ts`
+- `packages/desktop/src/main/agent/types.ts`
+- `packages/desktop/src/main/agent/systemPrompt.ts`
+- `packages/desktop/src/main/agent/adapters/MockAdapter.ts`
+- `packages/desktop/src/main/agent/adapters/AcpAdapter.ts`
+- `packages/desktop/src/main/services/McpBridgeService.ts`
+- `packages/desktop/src/renderer/src/components/AgentView.tsx`
+- `packages/desktop/src/renderer/src/hooks/useAgent.ts`
 
-## Tool exposure
+## Goals
 
-- `ToolRegistry.describe()` already emits serializable `ToolDescriptor`s with a
-  JSON-Schema `inputSchema` — directly usable as model "function definitions".
-- Each descriptor carries `capabilities`, so the runtime can implement a
-  permission policy (e.g. auto-allow `read-only`, prompt the user before
-  `destructive` or `writes-files`).
+The runtime keeps provider-specific code out of the core app.
 
-## Execution loop (intended)
+`AgentService` knows how to:
 
-1. Build the function list from `registry.describe()`.
-2. Send the user/system messages + functions to the model.
-3. For each requested tool call, run `registry.call(ctx, name, args, runtime)`
-   where `ctx.caller = "agent"` and `runtime` provides:
-   - `signal` for cancellation (user "stop"),
-   - `onEvent` to stream `progress` / `partial_text` into the chat UI,
-   - an optional `timeoutMs`.
-4. Feed the returned `ToolResult` back to the model (content on `ok`, the
-   `error.code`/`message` on failure so the model can recover).
-5. Persist messages/sessions (Phase 2 storage).
+- create, hydrate, list, delete, and persist sessions,
+- append messages,
+- stream run chunks to the renderer,
+- build a live system prompt from the registry and workspace context,
+- enforce permissions before tool calls,
+- cancel running sessions,
+- expose per-session tools to an external agent through MCP,
+- switch adapters based on persisted config.
 
-## Permissioning
+Adapters know how to talk to a specific backend or protocol.
 
-`ToolContext` carries `caller`, `sessionId`, `spaceId`, and `tabId`. Combined
-with the tool's `capabilities`, the runtime decides whether to allow, prompt, or
-deny. Denied calls should resolve as `ok: false` with `PERMISSION_DENIED` rather
-than throwing.
+## Session Model
 
-## Browser-using agents
+An agent session contains:
 
-Once real browser views exist (Phase 3/4), an agent claims a tab with
-`browser_use_start` before driving it and releases with `browser_use_end`, so
-two agents never fight over the same `WebContentsView`.
+- id,
+- title,
+- cwd,
+- optional space id,
+- optional model,
+- adapter id,
+- status,
+- created/updated timestamps,
+- messages.
+
+`AgentStore` persists session metadata and messages. On startup,
+`AgentService.hydrate()` loads stored sessions and resets any crash-left
+`running` sessions back to `idle`.
+
+The renderer shows sessions in `AgentView`: a resizable session list, transcript,
+composer, stop button, and pending permission cards.
+
+## Configuration
+
+Agent config is stored by `AgentConfigStore` and edited in Settings.
+
+Current config fields:
+
+- `adapter`: `mock` or `acp`
+- `acpPreset`: `claude`, `codex`, or `custom`
+- `command`: custom ACP executable
+- `args`: custom ACP arguments
+- `model`: optional model string
+- `autoAccept`: whether gated tools run without prompting
+
+The default adapter is `mock`, so the UI works without external setup.
+
+When the adapter config changes, `bootstrap.ts` registers either:
+
+- `MockAdapter`, or
+- `AcpAdapter`.
+
+## System Prompt
+
+`buildSystemPrompt()` composes the prompt from:
+
+- a static base prompt,
+- the live tool catalog from `registry.describe()`,
+- current session context such as cwd, space name, and open browser tabs,
+- safety text reflecting whether auto-accept is enabled.
+
+The tool list is never hardcoded. If a tool is registered, the agent prompt can
+include it. If a tool is removed or renamed, the prompt changes with the
+registry.
+
+## Tool Calls and Permissions
+
+Agents are just another registry caller, but not a trusted one.
+
+`AgentService.gatedCall()` applies this policy:
+
+- tools with no privileged capabilities run directly,
+- tools with privileged capabilities prompt the user unless auto-accept is on or
+  the decision was remembered,
+- denied calls return `PERMISSION_DENIED`,
+- approved calls write a one-use grant into `PermissionService`,
+- the final call goes through `ToolRegistry.call()` with:
+
+```ts
+{
+  caller: "agent",
+  sessionId: session.id,
+  cwd: session.cwd,
+  spaceId: session.spaceId ?? undefined
+}
+```
+
+Privileged capabilities are:
+
+- `writes-files`
+- `controls-browser`
+- `starts-process`
+- `destructive`
+
+`accesses-network` is still declared and audited, but the current privileged
+gate is focused on local side effects and destructive actions.
+
+## Browser Ownership
+
+Browser mutation tools enforce exclusive ownership for automation callers.
+
+An agent should call `browser_use_start` before controlling a tab and
+`browser_use_end` when done. The owner id is the trusted agent session id, so
+another session cannot hijack the tab.
+
+If an agent tries to mutate an unclaimed tab or a tab owned by another session,
+the browser tools return `PERMISSION_DENIED`.
+
+## Mock Adapter
+
+`MockAdapter` is the built-in no-setup adapter. It is deterministic and useful
+for exercising the session UI, streaming path, and permission surfaces without a
+real model process.
+
+Use it for development and tests where the agent backend itself is not under
+test.
+
+## ACP Adapter
+
+`AcpAdapter` runs an external Agent Client Protocol subprocess over stdio.
+
+Execution flow:
+
+1. Resolve the configured preset or custom command.
+2. Spawn the subprocess in the session cwd.
+3. Initialize ACP with `protocolVersion: 1`.
+4. Start the per-session MCP bridge if needed.
+5. Register the current session with `McpBridgeService`, receiving a localhost
+   URL and bearer token.
+6. Send `session/new` with that MCP server in `mcpServers`.
+7. Send `session/prompt` with the composed meith prompt and latest user message.
+8. Map ACP `session/update` notifications into meith stream chunks.
+9. Cancel by notifying `session/cancel`, killing the child process, and ending
+   the stream.
+
+ACP permission requests are allowed at the ACP layer because meith independently
+gates actual tool execution through `AgentService` and `PermissionService`.
+
+## MCP Bridge
+
+`McpBridgeService` is a dependency-light local HTTP JSON-RPC server bound to
+`127.0.0.1` on an ephemeral port.
+
+Each agent session gets a unique bearer token. The token maps to a
+`McpSessionBinding`:
+
+```ts
+{
+  sessionId,
+  listTools,
+  callTool
+}
+```
+
+Supported MCP-style methods:
+
+- `initialize`
+- `notifications/initialized`
+- `notifications/cancelled`
+- `ping`
+- `tools/list`
+- `tools/call`
+
+`tools/call` maps the external request back into the session's gated tool call
+function. This preserves the same permission, audit, and browser-ownership model
+as in-process agent calls.
+
+## Renderer Integration
+
+IPC channels in `packages/desktop/src/main/ipc/handlers.ts` expose:
+
+- list sessions,
+- get a session,
+- create a session,
+- delete a session,
+- send a message,
+- cancel,
+- resolve a permission decision,
+- get/set agent config.
+
+High-volume updates are pushed from main to renderer:
+
+- `agentChunk` for streamed text, tool calls, errors, usage, and done chunks,
+- `agentSession` for metadata/status updates,
+- `agentPermission` for pending permission prompts.
+
+## Plugin AI API
+
+Plugins with the approved `ai` API can call:
+
+```ts
+window.meithPlugin.ai.streamText({ prompt, onStart, onText })
+```
+
+The host creates an ephemeral agent session, streams text chunks back to the
+plugin tab, and deletes the session after completion. Plugin AI calls still run
+through the agent runtime and cannot bypass the tool permission model.
+
+## Operational Notes
+
+- Agents are disposed on runtime shutdown.
+- Deleting a session cancels it, disposes adapter state, unregisters its MCP
+  binding, revokes session grants, and deletes persisted session data.
+- `startIdleGc()` cleans idle session resources.
+- Auto-accept should be treated as a high-trust setting because it lets gated
+  tools run without prompting.
