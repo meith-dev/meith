@@ -15,28 +15,22 @@ export function DocHeader({
   return (
     <header className="mb-8 border-b border-border pb-8">
       {eyebrow ? (
-        <p className="font-mono text-xs uppercase tracking-wide text-primary">
-          {eyebrow}
-        </p>
+        <p className="font-mono text-xs uppercase tracking-wide text-primary">{eyebrow}</p>
       ) : null}
-      <h1 className="mt-2 text-balance text-4xl font-bold tracking-tight">
-        {title}
-      </h1>
+      <h1 className="mt-2 text-balance text-4xl font-bold tracking-tight">{title}</h1>
       {description ? (
-        <p className="mt-3 text-pretty text-lg leading-relaxed text-muted-foreground">
-          {description}
-        </p>
+        <p className="mt-3 text-pretty text-lg leading-relaxed text-muted-foreground">{description}</p>
       ) : null}
     </header>
   )
 }
 
+/** Alias used by the developer docs pages. */
+export const DocsHeader = DocHeader
+
 export function H2({ id, children }: { id?: string; children: ReactNode }) {
   return (
-    <h2
-      id={id}
-      className="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight first:mt-0"
-    >
+    <h2 id={id} className="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight first:mt-0">
       {children}
     </h2>
   )
@@ -55,19 +49,18 @@ export function P({ children }: { children: ReactNode }) {
 }
 
 export function Lead({ children }: { children: ReactNode }) {
-  return (
-    <p className="mt-4 text-lg leading-relaxed text-foreground/90">{children}</p>
-  )
+  return <p className="mt-4 text-lg leading-relaxed text-foreground/90">{children}</p>
 }
 
 /** Inline monospace token for code, tool names, paths, IDs. */
 export function Code({ children }: { children: ReactNode }) {
   return (
-    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground">
-      {children}
-    </code>
+    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground">{children}</code>
   )
 }
+
+/** Alias used by the developer docs pages. */
+export const InlineCode = Code
 
 export function UL({ children }: { children: ReactNode }) {
   return (
@@ -85,6 +78,14 @@ export function OL({ children }: { children: ReactNode }) {
   )
 }
 
+/** Aliases used by the developer docs pages. */
+export const Ul = UL
+export const Ol = OL
+
+export function Li({ children }: { children: ReactNode }) {
+  return <li>{children}</li>
+}
+
 export function A({ href, children }: { href: string; children: ReactNode }) {
   const external = href.startsWith("http")
   if (external) {
@@ -100,10 +101,7 @@ export function A({ href, children }: { href: string; children: ReactNode }) {
     )
   }
   return (
-    <Link
-      href={href}
-      className="font-medium text-primary underline-offset-4 hover:underline"
-    >
+    <Link href={href} className="font-medium text-primary underline-offset-4 hover:underline">
       {children}
     </Link>
   )
@@ -123,17 +121,46 @@ export function Callout({
     <div
       className={cn(
         "mt-6 rounded-lg border p-4 text-sm leading-relaxed",
-        variant === "warning"
-          ? "border-destructive/40 bg-destructive/5"
-          : "border-primary/30 bg-primary/5",
+        variant === "warning" ? "border-destructive/40 bg-destructive/5" : "border-primary/30 bg-primary/5",
       )}
     >
-      {title ? (
-        <p className="font-semibold text-foreground">{title}</p>
-      ) : null}
-      <div className={cn("text-muted-foreground", title && "mt-1")}>
-        {children}
-      </div>
+      {title ? <p className="font-semibold text-foreground">{title}</p> : null}
+      <div className={cn("text-muted-foreground", title && "mt-1")}>{children}</div>
+    </div>
+  )
+}
+
+/** A horizontal rule for separating an article body from its pager. */
+export function Divider() {
+  return <hr className="mt-12 border-border" />
+}
+
+/** A simple two-column reference table. */
+export function Table({ head, rows }: { head: ReactNode[]; rows: ReactNode[][] }) {
+  return (
+    <div className="mt-6 overflow-hidden rounded-lg border border-border">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-border bg-muted/50 text-left">
+            {head.map((cell, i) => (
+              <th key={i} className="px-4 py-2.5 font-semibold text-foreground">
+                {cell}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri} className="border-b border-border last:border-0">
+              {row.map((cell, ci) => (
+                <td key={ci} className="px-4 py-2.5 align-top leading-relaxed text-muted-foreground">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -143,24 +170,14 @@ export function CardGrid({ children }: { children: ReactNode }) {
   return <div className="mt-8 grid gap-4 sm:grid-cols-2">{children}</div>
 }
 
-export function DocCard({
-  href,
-  title,
-  children,
-}: {
-  href: string
-  title: string
-  children: ReactNode
-}) {
+export function DocCard({ href, title, children }: { href: string; title: string; children: ReactNode }) {
   return (
     <Link
       href={href}
       className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent"
     >
       <p className="font-semibold tracking-tight">{title}</p>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-        {children}
-      </p>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{children}</p>
     </Link>
   )
 }

@@ -1,8 +1,12 @@
+"use client"
+
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import { getAdjacentDocs } from "@/lib/docs-nav"
 
-export function DocsPager({ pathname }: { pathname: string }) {
+export function DocsPager() {
+  const pathname = usePathname()
   const { prev, next } = getAdjacentDocs(pathname)
 
   if (!prev && !next) return null

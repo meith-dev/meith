@@ -7,10 +7,12 @@ import { cn } from "@/lib/utils"
 export function CodeBlock({
   code,
   label,
+  language,
   className,
 }: {
   code: string
   label?: string
+  language?: string
   className?: string
 }) {
   const [copied, setCopied] = useState(false)
@@ -31,7 +33,7 @@ export function CodeBlock({
     >
       <div className="flex items-center justify-between border-b border-border bg-sidebar/60 px-3 py-1.5">
         <span className="font-mono text-[11px] text-muted-foreground">
-          {label ?? "terminal"}
+          {label ?? language ?? "terminal"}
         </span>
         <button
           type="button"
