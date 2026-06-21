@@ -82,7 +82,46 @@ describe("ACP adapter prompt", () => {
     ]);
     expect(prompt[0]?.text).toContain("Use Meith tools first.");
     expect(prompt[0]?.text).toContain("`get_tabs`");
-    expect(prompt[0]?.text).toContain("User request:\ncheck the browser");
+    expect(prompt[0]?.text).toContain("Current user request:\ncheck the browser");
+  });
+
+  it("includes prior session messages when building a follow-up prompt", () => {
+    const prompt = buildAcpPrompt("Use Meith tools first.", [
+      {
+        id: "u1",
+        role: "user",
+        content: "check the current browser",
+        createdAt: 1,
+      },
+      {
+        id: "a1",
+        role: "assistant",
+        content: "I used an external browser helper.",
+        createdAt: 2,
+      },
+      {
+        id: "u2",
+        role: "user",
+        content: "use meith's tools only",
+        createdAt: 3,
+      },
+      {
+        id: "a2",
+        role: "assistant",
+        content: "",
+        createdAt: 4,
+      },
+    ]);
+
+    expect(prompt[0]?.text).toContain("Conversation so far:");
+    expect(prompt[0]?.text).toContain("USER: check the current browser");
+    expect(prompt[0]?.text).toContain(
+      "ASSISTANT: I used an external browser helper.",
+    );
+    expect(prompt[0]?.text).toContain(
+      "Current user request:\nuse meith's tools only",
+    );
+    expect(prompt[0]?.text).not.toContain("a2");
   });
 });
 

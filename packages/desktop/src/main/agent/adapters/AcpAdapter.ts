@@ -1,5 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import {
+  type AgentMessage,
   type AgentToolCall,
   type ToolResult,
   newToolCallId,
@@ -158,10 +159,9 @@ export class AcpAdapter implements AgentAdapter {
         })) as { sessionId?: string };
         currentSessionId = newSession.sessionId ?? "";
 
-        const lastUser = [...session.messages].reverse().find((m) => m.role === "user");
         await rpc.request("session/prompt", {
           sessionId: currentSessionId,
-          prompt: buildAcpPrompt(host.systemPrompt(), lastUser?.content ?? ""),
+          prompt: buildAcpPrompt(host.systemPrompt(), session.messages),
         });
         queue.end();
       } catch (err) {
@@ -203,19 +203,73 @@ export class AcpAdapter implements AgentAdapter {
 
 export function buildAcpPrompt(
   systemPrompt: string,
-  userText: string,
+  transcript: AgentMessage[] | string,
 ): Array<{ type: "text"; text: string }> {
   const system = systemPrompt.trim();
-  const user = userText.trim();
+  const rendered = renderTranscript(transcript);
   const text = [
     "Host system instructions from Meith. Follow these instructions and the tool catalog before responding:",
     "",
     system,
     "",
-    "User request:",
-    user,
+    rendered.history ? "Conversation so far:" : "",
+    rendered.history,
+    rendered.history ? "" : "",
+    "Current user request:",
+    rendered.currentUser,
   ].join("\n");
   return [{ type: "text", text }];
+}
+
+function renderTranscript(
+  transcript: AgentMessage[] | string,
+): { history: string; currentUser: string } {
+  if (typeof transcript === "string") {
+    return { history: "", currentUser: transcript.trim() };
+  }
+
+  const messages = transcript.filter((message) => {
+    if (message.role === "assistant" && !message.content.trim() && !message.error) {
+      return Boolean(message.toolCalls?.length);
+    }
+    return Boolean(
+      message.content.trim() || message.error || message.toolCalls?.length,
+    );
+  });
+  const currentUserIndex = findLastUserIndex(messages);
+  if (currentUserIndex < 0) {
+    return { history: formatMessagesForPrompt(messages), currentUser: "" };
+  }
+  return {
+    history: formatMessagesForPrompt(messages.slice(0, currentUserIndex)),
+    currentUser: messages[currentUserIndex]?.content.trim() ?? "",
+  };
+}
+
+function findLastUserIndex(messages: AgentMessage[]): number {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i]?.role === "user") return i;
+  }
+  return -1;
+}
+
+function formatMessagesForPrompt(messages: AgentMessage[]): string {
+  return messages
+    .map((message) => {
+      const role = message.role.toUpperCase();
+      const parts: string[] = [];
+      const content = message.content.trim();
+      if (content) parts.push(content);
+      if (message.error) parts.push(`[error: ${message.error}]`);
+      if (message.toolCalls?.length) {
+        const calls = message.toolCalls
+          .map((call) => `${call.name} (${call.status})`)
+          .join(", ");
+        parts.push(`[tool calls: ${calls}]`);
+      }
+      return `${role}: ${parts.join("\n")}`;
+    })
+    .join("\n\n");
 }
 
 /** Map an ACP `session/update` notification payload to an AgentStreamChunk. */
