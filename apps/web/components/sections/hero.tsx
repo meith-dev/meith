@@ -42,7 +42,7 @@ export function Hero() {
           </div>
 
           <p className="mt-5 text-sm text-muted-foreground">
-            Free and open source · {siteConfig.platforms}
+            {siteConfig.license} licensed · {siteConfig.platforms}
           </p>
         </div>
 

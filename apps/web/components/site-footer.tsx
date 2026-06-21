@@ -79,7 +79,17 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>{`© ${new Date().getFullYear()} meith · Free and open source`}</p>
+          <p>
+            {`© ${new Date().getFullYear()} meith · Licensed under `}
+            <a
+              href={siteConfig.licenseUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground underline-offset-4 transition-colors hover:underline"
+            >
+              {siteConfig.license}
+            </a>
+          </p>
           <p>{siteConfig.platforms}</p>
         </div>
       </div>
