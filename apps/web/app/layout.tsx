@@ -20,6 +20,10 @@ export const metadata: Metadata = {
     template: `%s · ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  applicationName: siteConfig.name,
+  alternates: {
+    canonical: "./",
+  },
   keywords: [
     "meith",
     "AI agent",
@@ -30,6 +34,7 @@ export const metadata: Metadata = {
     "local AI",
   ],
   authors: [{ name: "meith" }],
+  creator: "meith",
   openGraph: {
     type: "website",
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
