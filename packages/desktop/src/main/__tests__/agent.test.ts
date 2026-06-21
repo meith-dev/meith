@@ -115,12 +115,8 @@ describe("ACP adapter prompt", () => {
 
     expect(prompt[0]?.text).toContain("Conversation so far:");
     expect(prompt[0]?.text).toContain("USER: check the current browser");
-    expect(prompt[0]?.text).toContain(
-      "ASSISTANT: I used an external browser helper.",
-    );
-    expect(prompt[0]?.text).toContain(
-      "Current user request:\nuse meith's tools only",
-    );
+    expect(prompt[0]?.text).toContain("ASSISTANT: I used an external browser helper.");
+    expect(prompt[0]?.text).toContain("Current user request:\nuse meith's tools only");
     expect(prompt[0]?.text).not.toContain("a2");
   });
 });

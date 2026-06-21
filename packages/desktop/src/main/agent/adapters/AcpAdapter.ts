@@ -221,9 +221,10 @@ export function buildAcpPrompt(
   return [{ type: "text", text }];
 }
 
-function renderTranscript(
-  transcript: AgentMessage[] | string,
-): { history: string; currentUser: string } {
+function renderTranscript(transcript: AgentMessage[] | string): {
+  history: string;
+  currentUser: string;
+} {
   if (typeof transcript === "string") {
     return { history: "", currentUser: transcript.trim() };
   }
@@ -232,9 +233,7 @@ function renderTranscript(
     if (message.role === "assistant" && !message.content.trim() && !message.error) {
       return Boolean(message.toolCalls?.length);
     }
-    return Boolean(
-      message.content.trim() || message.error || message.toolCalls?.length,
-    );
+    return Boolean(message.content.trim() || message.error || message.toolCalls?.length);
   });
   const currentUserIndex = findLastUserIndex(messages);
   if (currentUserIndex < 0) {
