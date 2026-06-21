@@ -1,15 +1,20 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { ArrowLeft, ArrowRight } from "lucide-react"
-import { getAdjacentDocs } from "@/lib/docs-nav"
+import { getAdjacentDocs } from "@/lib/docs-nav";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-export function DocsPager() {
-  const pathname = usePathname()
-  const { prev, next } = getAdjacentDocs(pathname)
+interface DocsPagerProps {
+  pathname?: string;
+}
 
-  if (!prev && !next) return null
+export function DocsPager({ pathname }: DocsPagerProps) {
+  const runtimePathname = usePathname();
+  const currentPathname = pathname ?? runtimePathname;
+  const { prev, next } = getAdjacentDocs(currentPathname);
+
+  if (!prev && !next) return null;
 
   return (
     <nav className="mt-14 grid gap-3 border-t border-border pt-8 sm:grid-cols-2">
@@ -42,5 +47,5 @@ export function DocsPager() {
         <span />
       )}
     </nav>
-  )
+  );
 }

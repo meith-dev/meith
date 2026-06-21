@@ -5,6 +5,7 @@ import {
   newToolCallId,
   resolveAcpLaunch,
 } from "@meith/shared";
+import { withDesktopExecutablePath } from "../../process/executablePath.js";
 import type { AgentConfigStore } from "../../services/AgentConfigStore.js";
 import type { Logger } from "../../services/Logger.js";
 import { AsyncChunkQueue } from "../acp/AsyncChunkQueue.js";
@@ -66,7 +67,10 @@ export class AcpAdapter implements AgentAdapter {
     try {
       child = spawn(launch.command, launch.args, {
         cwd: host.cwd,
-        env: { ...process.env, ...(model ? { ACP_MODEL: model } : {}) },
+        env: withDesktopExecutablePath({
+          ...process.env,
+          ...(model ? { ACP_MODEL: model } : {}),
+        }),
         stdio: ["pipe", "pipe", "pipe"],
       });
     } catch (err) {
