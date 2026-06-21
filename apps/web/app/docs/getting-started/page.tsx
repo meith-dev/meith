@@ -20,9 +20,10 @@ export default function GettingStartedPage() {
 
       <H2 id="install">Install the app</H2>
       <P>
-        meith is a free, open-source desktop app for macOS, Linux, and Windows.
-        Download the latest build from the releases page, then launch it like any
-        other desktop application.
+        meith is a free, open-source desktop app. It currently supports macOS on
+        Apple Silicon (M-series) only — support for Intel Macs, Linux, and Windows
+        is planned. Download the latest build from the releases page, then launch
+        it like any other desktop application.
       </P>
       <Callout title="Builds in progress">
         meith is under active development and pre-built binaries may not be

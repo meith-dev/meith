@@ -11,7 +11,9 @@ export const siteConfig = {
   url: "https://meith.app",
   repo: "https://github.com/jouwdan/meith",
   releases: "https://github.com/jouwdan/meith/releases",
-  platforms: "macOS, Linux & Windows",
+  platforms: "macOS (Apple Silicon)",
+  license: "AGPL v3",
+  licenseUrl: "https://github.com/jouwdan/meith/blob/main/LICENSE",
   nav: [
     { label: "Features", href: "/#features" },
     { label: "How it works", href: "/#how-it-works" },
