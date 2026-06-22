@@ -4,7 +4,7 @@ import { type GitDiffFile, useGitDiff } from "@/hooks/useGitDiff";
 import { basename } from "@/lib/workspace";
 import type { ToolResult, WorkspaceTab } from "@meith/shared";
 import { FileDiffIcon, FilePlusIcon, FileXIcon, RefreshCwIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface DiffViewProps {
   tab: WorkspaceTab;
@@ -20,6 +20,21 @@ interface DiffViewProps {
  */
 export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
   const { data, loading, error, refresh } = useGitDiff(call, tab.cwd, { refreshKey });
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+
+  // Keep a valid selection as the file list changes: default to the first
+  // file, and recover if the selected file disappears from the diff.
+  useEffect(() => {
+    if (data.files.length === 0) {
+      if (selectedPath !== null) setSelectedPath(null);
+      return;
+    }
+    if (!selectedPath || !data.files.some((f) => f.path === selectedPath)) {
+      setSelectedPath(data.files[0].path);
+    }
+  }, [data.files, selectedPath]);
+
+  const selectedFile = data.files.find((f) => f.path === selectedPath) ?? null;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
@@ -50,24 +65,81 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
         </Button>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
-        {error ? (
-          <EmptyState message={error} />
-        ) : !data.isRepo ? (
-          <EmptyState message="This project is not a git repository." />
-        ) : data.files.length === 0 ? (
-          <EmptyState
-            message={loading ? "Loading changes…" : "No changes — working tree is clean."}
+      {error ? (
+        <EmptyState message={error} />
+      ) : !data.isRepo ? (
+        <EmptyState message="This project is not a git repository." />
+      ) : data.files.length === 0 ? (
+        <EmptyState
+          message={loading ? "Loading changes…" : "No changes — working tree is clean."}
+        />
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          <FileList
+            files={data.files}
+            selectedPath={selectedPath}
+            onSelect={setSelectedPath}
           />
-        ) : (
-          <div className="flex flex-col gap-4 p-3">
-            {data.files.map((file) => (
-              <FileDiff key={file.path} file={file} />
-            ))}
+          <div className="min-w-0 flex-1">
+            {selectedFile && <FileDiff file={selectedFile} />}
           </div>
-        )}
-      </ScrollArea>
+        </div>
+      )}
     </div>
+  );
+}
+
+/** Left sidebar: every changed file with its status and +/- counts. */
+function FileList({
+  files,
+  selectedPath,
+  onSelect,
+}: {
+  files: GitDiffFile[];
+  selectedPath: string | null;
+  onSelect: (path: string) => void;
+}) {
+  return (
+    <ScrollArea className="w-64 shrink-0 border-r border-border bg-card/30">
+      <ul className="flex flex-col py-1">
+        {files.map((file) => {
+          const meta = STATUS_META[file.status] ?? STATUS_META.modified;
+          const Icon = statusIcon(file.status);
+          const active = file.path === selectedPath;
+          return (
+            <li key={file.path}>
+              <button
+                type="button"
+                onClick={() => onSelect(file.path)}
+                aria-current={active}
+                title={file.path}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
+                  active ? "bg-accent" : "hover:bg-accent/50"
+                }`}
+              >
+                <Icon className={`size-4 shrink-0 ${meta.className}`} aria-hidden />
+                <span className="min-w-0 flex-1 truncate font-mono text-xs">
+                  <span className="text-muted-foreground">{dirOf(file.path)}</span>
+                  <span className="font-medium text-foreground">
+                    {basename(file.path)}
+                  </span>
+                </span>
+                {!file.binary && (
+                  <span className="shrink-0 font-mono text-[10px] tabular-nums">
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      +{file.additions}
+                    </span>{" "}
+                    <span className="text-rose-600 dark:text-rose-400">
+                      -{file.deletions}
+                    </span>
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </ScrollArea>
   );
 }
 
@@ -95,18 +167,12 @@ function statusIcon(status: string) {
 }
 
 function FileDiff({ file }: { file: GitDiffFile }) {
-  const [collapsed, setCollapsed] = useState(false);
   const meta = STATUS_META[file.status] ?? STATUS_META.modified;
   const Icon = statusIcon(file.status);
 
   return (
-    <div className="overflow-hidden rounded-md border border-border">
-      <button
-        type="button"
-        onClick={() => setCollapsed((v) => !v)}
-        className="flex w-full items-center gap-2 bg-card/60 px-3 py-2 text-left hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-        aria-expanded={!collapsed}
-      >
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card/40 px-3 py-2">
         <Icon className={`size-4 shrink-0 ${meta.className}`} aria-hidden />
         <span className="min-w-0 flex-1 truncate font-mono text-xs" title={file.path}>
           <span className="text-muted-foreground">{dirOf(file.path)}</span>
@@ -125,16 +191,17 @@ function FileDiff({ file }: { file: GitDiffFile }) {
             <span className="text-rose-600 dark:text-rose-400">-{file.deletions}</span>
           </span>
         )}
-      </button>
+      </div>
 
-      {!collapsed &&
-        (file.binary ? (
+      <ScrollArea className="min-h-0 flex-1">
+        {file.binary ? (
           <div className="px-3 py-2 text-xs text-muted-foreground">
             Binary file not shown.
           </div>
         ) : (
           <DiffBody diff={file.diff} />
-        ))}
+        )}
+      </ScrollArea>
     </div>
   );
 }
