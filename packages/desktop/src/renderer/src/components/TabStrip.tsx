@@ -308,8 +308,9 @@ export function TabStrip({
               onSelect: onNewBrowser,
             },
             ...(Object.keys(WORKSPACE_KINDS) as WorkspaceTab["kind"][])
-              // Diff tabs are opened from the top-bar git-diff chip, not here.
-              .filter((kind) => kind !== "diff")
+              // Diff tabs open from the top-bar git-diff chip, and previews open
+              // as their own browser tab — neither belongs in this menu.
+              .filter((kind) => kind !== "diff" && kind !== "preview")
               .map((kind, i) => ({
                 id: `ws:${kind}`,
                 label: WORKSPACE_KINDS[kind].label,
