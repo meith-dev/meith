@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { AgentView } from "./components/AgentView";
 import { BrowserArea } from "./components/BrowserArea";
 import { DebugPanel, type DebugTab } from "./components/DebugPanel";
+import { DiffView } from "./components/DiffView";
 import { EditorView } from "./components/EditorView";
 import { MeithMark } from "./components/MeithMark";
 import { PaneToolbar } from "./components/PaneToolbar";
@@ -19,6 +20,7 @@ import { SplitDropZone } from "./components/SplitDropZone";
 import { StatusBar } from "./components/StatusBar";
 import { TabStrip } from "./components/TabStrip";
 import { TerminalView } from "./components/TerminalView";
+import { TopBarGitDiff } from "./components/TopBarGitDiff";
 import { TopBarRun } from "./components/TopBarRun";
 import {
   Dialog,
@@ -408,6 +410,28 @@ export function App() {
     },
     [run],
   );
+  // Open (or focus, if one already exists for this space) the diff surface for
+  // the active project.
+  const openDiffTab = useCallback(
+    (pane: PaneId = "primary") => {
+      setSettingsOpen(false);
+      const existing = workspaceTabs.find(
+        (t) => t.kind === "diff" && t.spaceId === activeSpaceId,
+      );
+      if (existing) {
+        layout.setActive(pane, existing.id);
+        void run("focus_workspace_tab", { tabId: existing.id });
+        return;
+      }
+      pendingPaneRef.current = pane;
+      void run("open_workspace_tab", {
+        title: "Diff",
+        cwd: activeProjectCwd,
+        kind: "diff",
+      });
+    },
+    [run, workspaceTabs, activeSpaceId, activeProjectCwd, layout],
+  );
 
   // --- Browser tab actions -------------------------------------------------
   const openBrowserTab = useCallback(
@@ -662,6 +686,14 @@ export function App() {
             />
           )}
           {tab.kind === "agent" && <AgentView key={tab.id} tab={tab} bridge={bridge} />}
+          {tab.kind === "diff" && (
+            <DiffView
+              key={tab.id}
+              tab={tab}
+              call={call}
+              refreshKey={state?.workspaceFileEvents?.length ?? 0}
+            />
+          )}
           {tab.kind === "preview" && (
             <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
               Use a browser tab to preview your running app.
@@ -703,7 +735,13 @@ export function App() {
             <MeithMark className="size-5 text-foreground" />
             <span className="sr-only">meith</span>
           </div>
-          <div className="flex min-w-0 flex-1 items-center justify-end bg-card/40 px-2">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 bg-card/40 px-2">
+            <TopBarGitDiff
+              cwd={activeProjectCwd}
+              call={call}
+              onOpenDiff={() => openDiffTab("primary")}
+              refreshKey={state?.workspaceFileEvents?.length ?? 0}
+            />
             <TopBarRun
               project={activeProject}
               runningServer={runningServer}

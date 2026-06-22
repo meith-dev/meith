@@ -41,6 +41,7 @@ import { ArtifactStore } from "./storage/ArtifactStore.js";
 import { createAppTools } from "./tools/appTools.js";
 import { createBrowserTools } from "./tools/browserTools.js";
 import { createFileTools } from "./tools/fileTools.js";
+import { createGitTools } from "./tools/gitTools.js";
 import { createPluginTools } from "./tools/pluginTools.js";
 import { createProcessTools } from "./tools/processTools.js";
 import { createProjectTools } from "./tools/projectTools.js";
@@ -339,6 +340,7 @@ export async function bootstrap(
   registry.registerAll(createProcessTools(deps));
   registry.registerAll(createProjectTools(deps));
   registry.registerAll(createFileTools(deps));
+  registry.registerAll(createGitTools(deps));
   registry.registerAll(createStorageTools(deps));
   registry.registerAll(createPluginTools(deps));
   registry.registerAll(createSettingsTools(deps));

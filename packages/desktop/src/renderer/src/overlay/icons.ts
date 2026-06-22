@@ -1,6 +1,7 @@
 import {
   BotIcon,
   FileCodeIcon,
+  GitCompareIcon,
   GlobeIcon,
   type LucideIcon,
   MonitorIcon,
@@ -22,6 +23,7 @@ export const OVERLAY_ICONS: Record<string, LucideIcon> = {
   terminal: TerminalIcon,
   agent: BotIcon,
   preview: MonitorIcon,
+  diff: GitCompareIcon,
 };
 
 /** Resolve a registered overlay icon by name (undefined when unknown/omitted). */

@@ -139,7 +139,7 @@ export const WorkspaceTabSchema = z.object({
   title: z.string(),
   /** Working directory / project root for this workspace tab. */
   cwd: z.string(),
-  kind: z.enum(["editor", "terminal", "agent", "preview"]).default("editor"),
+  kind: z.enum(["editor", "terminal", "agent", "preview", "diff"]).default("editor"),
   /** Backing live terminal session id for terminal tabs. */
   terminalId: z.string().optional(),
   /** For editor tabs: the file (relative to cwd) currently focused in the editor. */

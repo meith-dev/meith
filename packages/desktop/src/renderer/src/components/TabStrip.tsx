@@ -307,8 +307,10 @@ export function TabStrip({
               iconName: "globe",
               onSelect: onNewBrowser,
             },
-            ...(Object.keys(WORKSPACE_KINDS) as WorkspaceTab["kind"][]).map(
-              (kind, i) => ({
+            ...(Object.keys(WORKSPACE_KINDS) as WorkspaceTab["kind"][])
+              // Diff tabs are opened from the top-bar git-diff chip, not here.
+              .filter((kind) => kind !== "diff")
+              .map((kind, i) => ({
                 id: `ws:${kind}`,
                 label: WORKSPACE_KINDS[kind].label,
                 iconName: WORKSPACE_ICON_NAME[kind],
