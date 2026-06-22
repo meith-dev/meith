@@ -48,7 +48,7 @@ export function TopBarGitDiff({ cwd, call, onOpenDiff, refreshKey }: TopBarGitDi
           </button>
         }
       />
-      <TooltipContent>
+      <TooltipContent side="bottom">
         {fileCount} changed file{fileCount === 1 ? "" : "s"} — click to view diff
       </TooltipContent>
     </Tooltip>
