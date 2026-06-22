@@ -50,7 +50,7 @@ export function createGitTools(_deps: ToolDeps): ToolDefinition[] {
     inputSchema: z.object({
       cwd: z.string().min(1).describe("A path inside the git repository to inspect."),
     }),
-    execute: (_ctx, input) => okResult(computeDiff(input.cwd)),
+    execute: async (_ctx, input) => okResult(await computeDiff(input.cwd)),
   });
 
   return [gitDiff];
