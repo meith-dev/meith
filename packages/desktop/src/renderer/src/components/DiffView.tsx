@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { type GitDiffFile, useGitDiff } from "@/hooks/useGitDiff";
+import { useResizable } from "@/hooks/useResizable";
 import { basename } from "@/lib/workspace";
 import type { ToolResult, WorkspaceTab } from "@meith/shared";
 import { FileDiffIcon, FilePlusIcon, FileXIcon, RefreshCwIcon } from "lucide-react";
@@ -21,6 +22,13 @@ interface DiffViewProps {
 export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
   const { data, loading, error, refresh } = useGitDiff(call, tab.cwd, { refreshKey });
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const sidebar = useResizable({
+    initial: 256,
+    min: 180,
+    max: 480,
+    axis: "x",
+    storageKey: "meith.diffSidebarWidth",
+  });
 
   // Keep a valid selection as the file list changes: default to the first
   // file, and recover if the selected file disappears from the diff.
@@ -79,6 +87,14 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
             files={data.files}
             selectedPath={selectedPath}
             onSelect={setSelectedPath}
+            width={sidebar.size}
+          />
+          {/* Resize handle */}
+          <button
+            type="button"
+            aria-label="Resize changed files sidebar"
+            onPointerDown={sidebar.onPointerDown}
+            className="w-1 shrink-0 cursor-col-resize border-r border-border bg-transparent transition-colors hover:bg-primary/40 focus-visible:bg-primary/40 focus-visible:outline-none"
           />
           <div className="min-w-0 flex-1">
             {selectedFile && <FileDiff file={selectedFile} />}
@@ -94,13 +110,15 @@ function FileList({
   files,
   selectedPath,
   onSelect,
+  width,
 }: {
   files: GitDiffFile[];
   selectedPath: string | null;
   onSelect: (path: string) => void;
+  width: number;
 }) {
   return (
-    <ScrollArea className="w-64 shrink-0 border-r border-border bg-card/30">
+    <ScrollArea className="shrink-0 bg-card/30" style={{ width }}>
       <ul className="flex flex-col py-1">
         {files.map((file) => {
           const meta = STATUS_META[file.status] ?? STATUS_META.modified;
