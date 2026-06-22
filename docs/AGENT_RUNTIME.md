@@ -156,8 +156,10 @@ Execution flow:
 9. Cancel by notifying `session/cancel`, killing the child process, and ending
    the stream.
 
-ACP permission requests are allowed at the ACP layer because meith independently
-gates actual tool execution through `AgentService` and `PermissionService`.
+ACP permission requests are allowed only when they reference a tool exposed by
+the MCP server named `meith`. Requests for provider-native tools, external MCP
+servers, or helper surfaces are denied at the ACP layer so they cannot bypass
+`AgentService`, `PermissionService`, or browser ownership.
 
 ## MCP Bridge
 

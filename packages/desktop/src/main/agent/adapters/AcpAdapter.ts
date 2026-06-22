@@ -102,16 +102,18 @@ export class AcpAdapter implements AgentAdapter {
       queue.end();
     });
 
-    // The agent asks the client to confirm tool permissions. meith tools are
-    // independently gated at the MCP bridge, so we allow ACP's own prompt by
-    // selecting an "allow" option (or the first option if none is labelled).
+    const meithToolNames = new Set(host.listTools().map((tool) => tool.name));
+    // The ACP peer can ask the client to approve provider-side tools. Meith
+    // tools are exposed through the MCP server named "meith"; everything else
+    // must be denied so provider-native helpers cannot bypass the registry.
     rpc.onRequest((method, params) => {
       if (method === "session/request_permission") {
-        const options =
-          (params as { options?: Array<{ optionId: string; kind?: string }> }).options ??
-          [];
-        const allow = options.find((o) => (o.kind ?? "").includes("allow")) ?? options[0];
-        return { outcome: { outcome: "selected", optionId: allow?.optionId ?? "allow" } };
+        return {
+          outcome: {
+            outcome: "selected",
+            optionId: selectAcpPermissionOption(params, meithToolNames),
+          },
+        };
       }
       throw new Error(`Unhandled request: ${method}`);
     });
@@ -219,6 +221,111 @@ export function buildAcpPrompt(
     rendered.currentUser,
   ].join("\n");
   return [{ type: "text", text }];
+}
+
+interface AcpPermissionOption {
+  optionId: string;
+  kind?: string;
+  name?: string;
+  label?: string;
+  description?: string;
+}
+
+export function selectAcpPermissionOption(
+  params: unknown,
+  meithToolNames: ReadonlySet<string>,
+): string {
+  const request = asRecord(params);
+  const options = toPermissionOptions(request?.options);
+  const allow = findPermissionOption(options, ["allow", "approve", "yes"]);
+  const deny = findPermissionOption(options, [
+    "deny",
+    "reject",
+    "cancel",
+    "no",
+    "disallow",
+  ]);
+
+  if (isMeithPermissionRequest(params, meithToolNames)) {
+    if (allow) return allow.optionId;
+    throw new Error("ACP permission request for a Meith tool had no allow option");
+  }
+
+  if (deny) return deny.optionId;
+  throw new Error("Denied non-Meith ACP tool request without a deny option");
+}
+
+function toPermissionOptions(value: unknown): AcpPermissionOption[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((option) => {
+    const record = asRecord(option);
+    if (!record || typeof record.optionId !== "string") return [];
+    return [
+      {
+        optionId: record.optionId,
+        kind: stringValue(record.kind),
+        name: stringValue(record.name),
+        label: stringValue(record.label),
+        description: stringValue(record.description),
+      },
+    ];
+  });
+}
+
+function findPermissionOption(
+  options: readonly AcpPermissionOption[],
+  needles: readonly string[],
+): AcpPermissionOption | undefined {
+  return options.find((option) => {
+    const haystack = [
+      option.optionId,
+      option.kind,
+      option.name,
+      option.label,
+      option.description,
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join(" ")
+      .toLowerCase();
+    return needles.some((needle) => haystack.includes(needle));
+  });
+}
+
+function isMeithPermissionRequest(
+  params: unknown,
+  meithToolNames: ReadonlySet<string>,
+): boolean {
+  const names = collectStrings(params)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return names.some((name) => isMeithToolName(name, meithToolNames));
+}
+
+function isMeithToolName(name: string, meithToolNames: ReadonlySet<string>): boolean {
+  if (meithToolNames.has(name)) return true;
+  if (name.startsWith("meith.")) return meithToolNames.has(name.slice("meith.".length));
+  if (name.startsWith("meith/")) return meithToolNames.has(name.slice("meith/".length));
+  if (name.startsWith("mcp__meith__")) {
+    return meithToolNames.has(name.slice("mcp__meith__".length));
+  }
+  return false;
+}
+
+function collectStrings(value: unknown, seen = new WeakSet<object>()): string[] {
+  if (typeof value === "string") return [value];
+  if (!value || typeof value !== "object") return [];
+  if (seen.has(value)) return [];
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectStrings(item, seen));
+  }
+
+  return Object.values(value).flatMap((item) => collectStrings(item, seen));
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }
 
 function renderTranscript(transcript: AgentMessage[] | string): {

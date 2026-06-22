@@ -18,13 +18,18 @@ The host (the Electron main process) is the authority for all state and actions.
 
 - You can only affect the app by calling the tools listed below. Do not invent
   tools. Call \`app_get_state\` if you are unsure about the current state.
+- Only use tools from the Meith MCP server named \`meith\`. Do not call
+  provider-native tools, bundled MCP tools from other servers, shell helpers,
+  browser automation helpers, filesystem helpers, or tool-discovery helpers.
+  If a needed action is not available in the Meith catalog, say that clearly
+  instead of reaching for an external tool.
 - The \`Available tools\` section below is authoritative for this session. Do
   not say you are unsure which Meith tools are available, do not search for
   tools elsewhere, and do not use non-Meith tool discovery when a listed Meith
   tool fits the task.
-- Treat the tools in this Meith catalog as your primary interface. If a Meith
-  tool can do the job, use it instead of a generic shell command, external
-  browser CLI, or provider-specific helper.
+- Treat the tools in this Meith catalog as your only action interface. If a
+  Meith tool can do the job, use it; if no Meith tool can do the job, stop and
+  explain the missing capability.
 - For browser work, prefer Meith browser tools such as \`get_tabs\`,
   \`get_active_tab\`, \`get_browser_state\`, \`take_screenshot\`, \`navigate\`,
   and related tab/interaction tools before any external browser automation.

@@ -2,7 +2,10 @@ import { defineTool } from "@meith/protocol";
 import type { ToolResult } from "@meith/shared";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { buildAcpPrompt } from "../agent/adapters/AcpAdapter.js";
+import {
+  buildAcpPrompt,
+  selectAcpPermissionOption,
+} from "../agent/adapters/AcpAdapter.js";
 import { buildSystemPrompt, renderToolCatalog } from "../agent/systemPrompt.js";
 import type { AgentAdapter, AgentSession, AgentStreamChunk } from "../agent/types.js";
 import { AgentConfigStore } from "../services/AgentConfigStore.js";
@@ -58,6 +61,8 @@ describe("system prompt builder", () => {
     expect(prompt).toContain("When the user asks what tools you have");
     expect(prompt).toContain("Available tools");
     expect(prompt).toContain("not say you are unsure");
+    expect(prompt).toContain("Only use tools from the Meith MCP server");
+    expect(prompt).toContain("Meith catalog as your only action interface");
     expect(prompt).toContain("Never pass placeholder values");
     expect(prompt).toContain("`open_browser_tab`");
   });
@@ -118,6 +123,67 @@ describe("ACP adapter prompt", () => {
     expect(prompt[0]?.text).toContain("ASSISTANT: I used an external browser helper.");
     expect(prompt[0]?.text).toContain("Current user request:\nuse meith's tools only");
     expect(prompt[0]?.text).not.toContain("a2");
+  });
+});
+
+describe("ACP adapter permission policy", () => {
+  const meithTools = new Set(["get_tabs", "navigate"]);
+
+  it("allows permission requests for tools exposed by the Meith MCP server", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolCall: { serverName: "meith", name: "get_tabs" },
+          options: [
+            { optionId: "deny", kind: "reject" },
+            { optionId: "allow", kind: "allow_once" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("allow");
+  });
+
+  it("allows prefixed Meith MCP tool names", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolName: "mcp__meith__navigate",
+          options: [
+            { optionId: "no", kind: "deny" },
+            { optionId: "yes", kind: "allow" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("yes");
+  });
+
+  it("denies permission requests for external provider tools", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolCall: { serverName: "next-devtools", name: "browser_eval" },
+          options: [
+            { optionId: "allow", kind: "allow_once" },
+            { optionId: "deny", kind: "reject" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("deny");
+  });
+
+  it("fails closed when an external tool request has no deny option", () => {
+    expect(() =>
+      selectAcpPermissionOption(
+        {
+          toolName: "shell_command",
+          options: [{ optionId: "allow", kind: "allow_once" }],
+        },
+        meithTools,
+      ),
+    ).toThrow(/Denied non-Meith ACP tool request/);
   });
 });
 
