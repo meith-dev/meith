@@ -765,9 +765,6 @@ export function App() {
           <div className="flex min-w-0 flex-1 items-center gap-2 bg-card/40 px-2">
             <TopBarWorkspaceToggles
               tabs={workspaceTabs.filter((t) => t.spaceId === activeSpaceId)}
-              activeTabIds={[layout.active.primary, layout.active.secondary].filter(
-                (id): id is string => Boolean(id),
-              )}
               onToggle={toggleWorkspaceTab}
             />
             <div className="min-w-0 flex-1" />
