@@ -5,6 +5,7 @@ import {
   type AgentMessage,
   type AgentPermissionDecision,
   type AgentPermissionRequest,
+  type AgentProbeResult,
   type AgentSession,
   type AgentSessionMeta,
   type AgentStreamChunk,
@@ -37,6 +38,14 @@ export interface AgentServiceOptions {
   appState?: AppStateService;
   mcpBridge?: McpBridgeService;
   permissions?: PermissionService;
+  /**
+   * Probe a (possibly not-yet-saved) ACP agent for install status + advertised
+   * config options. Injected so the service stays provider-agnostic; bootstrap
+   * supplies an ACP-backed implementation.
+   */
+  probeAcp?: (
+    override?: Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">>,
+  ) => Promise<AgentProbeResult>;
 }
 
 /** Input accepted by `createSession`: a bare cwd or a full options object. */
@@ -98,6 +107,45 @@ export class AgentService extends EventEmitter {
     return next;
   }
 
+  /**
+   * Probe an ACP agent (optionally overriding the saved preset/command, so the
+   * Settings UI can check a draft before saving). Returns install status + the
+   * model/reasoning options the agent advertises. The mock adapter has no
+   * external dependency, so it reports "installed" with no options.
+   */
+  async probeAgent(
+    override?: Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">>,
+  ): Promise<AgentProbeResult> {
+    const cfg = { ...this.getConfig(), ...override };
+    if (this.options.probeAcp) return this.options.probeAcp(override);
+    if (this.adapter?.probe) return this.adapter.probe(override);
+    return { preset: cfg.acpPreset ?? "custom", installed: true, options: [] };
+  }
+
+  /**
+   * Update the model / reasoning level for a session AND persist them as the
+   * global default for new sessions. Applied to the next turn the agent runs.
+   */
+  setSessionModel(
+    sessionId: string,
+    patch: { model?: string; reasoning?: string },
+  ): AgentSessionMeta {
+    const session = this.requireSession(sessionId);
+    if (patch.model !== undefined) session.model = patch.model || undefined;
+    if (patch.reasoning !== undefined) session.reasoning = patch.reasoning || undefined;
+    session.updatedAt = Date.now();
+    this.persistMeta(session);
+    // Persist as the default for future sessions without forcing an adapter
+    // re-registration (configStore.set, not setConfig, which emits "config").
+    const defaults: Partial<AgentConfig> = {};
+    if (patch.model !== undefined) defaults.model = patch.model;
+    if (patch.reasoning !== undefined) defaults.reasoning = patch.reasoning;
+    if (Object.keys(defaults).length > 0) this.options.configStore?.set(defaults);
+    const meta = this.toMeta(session);
+    this.emit("session", meta);
+    return meta;
+  }
+
   // --- Sessions ------------------------------------------------------------
 
   /** Hydrate the in-memory session cache from the persisted index on startup. */
@@ -125,6 +173,7 @@ export class AgentService extends EventEmitter {
       cwd: opts.cwd,
       spaceId: opts.spaceId ?? null,
       model: opts.model || this.getConfig().model || undefined,
+      reasoning: this.getConfig().reasoning || undefined,
       adapterId: this.adapter?.id ?? this.getConfig().adapter,
       status: "idle",
       createdAt: now,

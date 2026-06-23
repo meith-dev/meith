@@ -1162,6 +1162,76 @@ function createMockBridge(): MeithBridge {
         agentConfig = { ...agentConfig, ...patch };
         return structuredClone(agentConfig);
       },
+      probe: async (override) => {
+        const preset = override?.acpPreset ?? agentConfig.acpPreset ?? "custom";
+        // Preview mode has no real subprocess; return synthetic options so the
+        // settings + composer pickers are demonstrable.
+        const models =
+          preset === "codex"
+            ? [
+                { value: "gpt-5.5", name: "GPT-5.5" },
+                { value: "gpt-5.4", name: "GPT-5.4" },
+                { value: "gpt-5.4-mini", name: "GPT-5.4-Mini" },
+              ]
+            : [
+                { value: "claude-opus-4.6", name: "Claude Opus 4.6" },
+                { value: "claude-sonnet-4.6", name: "Claude Sonnet 4.6" },
+              ];
+        const options = [
+          {
+            id: "model",
+            name: "Model",
+            category: "model",
+            type: "select" as const,
+            currentValue: models[0]?.value,
+            values: models,
+          },
+          ...(preset === "codex"
+            ? [
+                {
+                  id: "thought_level",
+                  name: "Reasoning",
+                  category: "thought_level",
+                  type: "select" as const,
+                  currentValue: "high",
+                  values: [
+                    { value: "low", name: "Low" },
+                    { value: "medium", name: "Medium" },
+                    { value: "high", name: "High" },
+                    { value: "extra_high", name: "Extra High" },
+                  ],
+                },
+              ]
+            : []),
+        ];
+        return { preset, installed: true, options };
+      },
+      setSessionModel: async (sessionId, patch) => {
+        const session = agentSessions.get(sessionId);
+        if (patch.model !== undefined)
+          agentConfig = { ...agentConfig, model: patch.model };
+        if (patch.reasoning !== undefined)
+          agentConfig = { ...agentConfig, reasoning: patch.reasoning };
+        if (session) {
+          if (patch.model !== undefined) session.model = patch.model || undefined;
+          if (patch.reasoning !== undefined)
+            session.reasoning = patch.reasoning || undefined;
+          session.updatedAt = Date.now();
+        }
+        const meta = session
+          ? (({ messages: _m, ...rest }) => rest)(session)
+          : {
+              id: sessionId,
+              title: "New session",
+              cwd: "",
+              spaceId: null,
+              adapterId: "mock",
+              status: "idle" as const,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            };
+        return structuredClone(meta);
+      },
       onChunk: (cb) => {
         agentChunkSubs.add(cb);
         return () => agentChunkSubs.delete(cb);

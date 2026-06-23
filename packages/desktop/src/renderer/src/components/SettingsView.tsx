@@ -2,6 +2,7 @@ import {
   ACP_PRESETS,
   type AcpPreset,
   type AgentConfig,
+  type AgentProbeResult,
   type AppSettings,
   type InstalledPlugin,
   type PackageManager,
@@ -9,10 +10,14 @@ import {
   type ProjectRunConfig,
   type RunCommand,
   type ToolResult,
+  isModelConfigOption,
+  isReasoningConfigOption,
   newRunCommandId,
 } from "@meith/shared";
 import {
   AlertTriangleIcon,
+  CheckCircle2Icon,
+  Loader2Icon,
   PlusIcon,
   SettingsIcon,
   TerminalIcon,
@@ -508,8 +513,63 @@ function EnvEditor({
 
 // --- Agent -----------------------------------------------------------------
 
+/**
+ * Inline install/availability status for the configured ACP agent. Shows a
+ * spinner while probing, a success line when the agent handshakes, and an
+ * error block (with the agent's stderr tail) when it can't be launched.
+ */
+function AgentInstallStatus({
+  label,
+  probing,
+  probe,
+}: {
+  label: string;
+  probing: boolean;
+  probe: AgentProbeResult | null;
+}) {
+  if (probing) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Loader2Icon className="size-3.5 animate-spin" />
+        <span>{`Checking ${label}…`}</span>
+      </div>
+    );
+  }
+  if (!probe) return null;
+  if (probe.installed) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2Icon className="size-3.5" />
+        <span>{`${label} is installed and ready.`}</span>
+      </div>
+    );
+  }
+  return (
+    <div
+      role="alert"
+      className="flex flex-col gap-1 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+    >
+      <div className="flex items-center gap-2 font-medium">
+        <AlertTriangleIcon className="size-3.5" />
+        <span>{`${label} isn't available`}</span>
+      </div>
+      {probe.error && (
+        <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed opacity-90">
+          {probe.error}
+        </pre>
+      )}
+      <span className="opacity-80">
+        Make sure the agent CLI is installed and on your PATH, then reopen settings to
+        re-check.
+      </span>
+    </div>
+  );
+}
+
 function AgentTab({ bridge, open }: { bridge: MeithBridge; open: boolean }) {
   const [draft, setDraft] = useState<AgentConfig | null>(null);
+  const [probe, setProbe] = useState<AgentProbeResult | null>(null);
+  const [probing, setProbing] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -522,13 +582,47 @@ function AgentTab({ bridge, open }: { bridge: MeithBridge; open: boolean }) {
     };
   }, [open, bridge]);
 
+  const isAcp = draft?.adapter === "acp";
+  const preset = draft?.acpPreset ?? "custom";
+  const command = draft?.command ?? "";
+  const argsKey = draft?.args.join(" ") ?? "";
+
+  // Probe the configured agent (debounced) whenever the ACP target changes, so
+  // we can detect whether it's installed and list its model/reasoning options.
+  useEffect(() => {
+    if (!open || !isAcp) {
+      setProbe(null);
+      setProbing(false);
+      return;
+    }
+    let cancelled = false;
+    setProbing(true);
+    const handle = setTimeout(() => {
+      void bridge.agent
+        .probe({ acpPreset: preset, command, args: argsKey.split(/\s+/).filter(Boolean) })
+        .then((result) => {
+          if (!cancelled) setProbe(result);
+        })
+        .finally(() => {
+          if (!cancelled) setProbing(false);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [open, bridge, isAcp, preset, command, argsKey]);
+
   if (!draft) {
     return <p className="text-sm text-muted-foreground">Loading agent config…</p>;
   }
 
-  const isAcp = draft.adapter === "acp";
-  const preset = draft.acpPreset ?? "custom";
   const isCustomPreset = preset === "custom";
+  const presetLabel = isCustomPreset
+    ? command.trim() || "custom agent"
+    : ACP_PRESETS[preset].label;
+  const modelOption = probe?.options.find((o) => isModelConfigOption(o));
+  const reasoningOption = probe?.options.find((o) => isReasoningConfigOption(o));
 
   const save = async (next: AgentConfig) => {
     setDraft(next);
@@ -610,20 +704,63 @@ function AgentTab({ bridge, open }: { bridge: MeithBridge; open: boolean }) {
               </label>
             </>
           )}
+
+          <AgentInstallStatus label={presetLabel} probing={probing} probe={probe} />
         </>
       )}
 
-      <label htmlFor="agent-model" className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-muted-foreground">
-          Model (optional)
-        </span>
-        <Input
-          id="agent-model"
-          value={draft.model}
-          placeholder="provider/model"
-          onChange={(e) => void save({ ...draft, model: e.target.value })}
-        />
-      </label>
+      {/* Model: a dropdown of the agent's advertised models when available,
+          otherwise a free-text fallback (mock adapter / custom agents). */}
+      {isAcp && modelOption && modelOption.values.length > 0 ? (
+        <label htmlFor="agent-model-select" className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Model</span>
+          <select
+            id="agent-model-select"
+            value={draft.model || modelOption.currentValue || ""}
+            onChange={(e) => void save({ ...draft, model: e.target.value })}
+            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {modelOption.values.map((v) => (
+              <option key={v.value} value={v.value}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <label htmlFor="agent-model" className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            Model (optional)
+          </span>
+          <Input
+            id="agent-model"
+            value={draft.model}
+            placeholder="provider/model"
+            onChange={(e) => void save({ ...draft, model: e.target.value })}
+          />
+        </label>
+      )}
+
+      {/* Reasoning effort: only shown when the agent advertises one. */}
+      {isAcp && reasoningOption && reasoningOption.values.length > 0 && (
+        <label htmlFor="agent-reasoning" className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            {reasoningOption.name || "Reasoning"}
+          </span>
+          <select
+            id="agent-reasoning"
+            value={draft.reasoning || reasoningOption.currentValue || ""}
+            onChange={(e) => void save({ ...draft, reasoning: e.target.value })}
+            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {reasoningOption.values.map((v) => (
+              <option key={v.value} value={v.value}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <div className="rounded-md border border-border p-3">
         <label htmlFor="agent-auto" className="flex items-start gap-2">

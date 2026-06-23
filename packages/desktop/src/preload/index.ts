@@ -43,6 +43,8 @@ const IPC = {
   agentPermissionDecision: "meith:agent:permission:decision",
   agentGetConfig: "meith:agent:config:get",
   agentSetConfig: "meith:agent:config:set",
+  agentProbe: "meith:agent:probe",
+  agentSetSessionModel: "meith:agent:session:model",
   agentChunk: "meith:agent:chunk",
   agentSession: "meith:agent:session",
   agentPermission: "meith:agent:permission",
@@ -149,6 +151,9 @@ const api: MeithBridge = {
     decide: (decision) => ipcRenderer.invoke(IPC.agentPermissionDecision, decision),
     getConfig: () => ipcRenderer.invoke(IPC.agentGetConfig),
     setConfig: (patch) => ipcRenderer.invoke(IPC.agentSetConfig, patch),
+    probe: (override) => ipcRenderer.invoke(IPC.agentProbe, override),
+    setSessionModel: (sessionId, patch) =>
+      ipcRenderer.invoke(IPC.agentSetSessionModel, sessionId, patch),
     onChunk: (cb) => {
       const listener = (_e: unknown, evt: { sessionId: string; chunk: unknown }) =>
         cb(evt as never);
