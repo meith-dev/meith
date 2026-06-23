@@ -1,4 +1,4 @@
-import type { WorkspaceTab } from "@meith/shared";
+import type { AcpPreset, WorkspaceTab } from "@meith/shared";
 import {
   BotIcon,
   PanelLeftCloseIcon,
@@ -15,6 +15,7 @@ import { useResizable } from "../hooks/useResizable";
 import { AgentMessageList } from "./AgentMessageList";
 import { AgentModelSwitcher } from "./AgentModelSwitcher";
 import { AgentPermissionCard } from "./AgentPermissionCard";
+import { AgentSelector } from "./AgentSelector";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
@@ -47,6 +48,13 @@ export function AgentView({ tab, bridge }: AgentViewProps) {
     if (!text || running) return;
     setDraft("");
     await agent.send(text);
+  };
+
+  const handleAgentChange = async (preset: AcpPreset) => {
+    // Clear the model/reasoning overrides so the newly selected agent falls back
+    // to its own advertised defaults instead of the previous agent's values.
+    if (agent.session) await agent.setSessionModel({ model: "", reasoning: "" });
+    await agent.saveConfig({ adapter: "acp", acpPreset: preset });
   };
 
   return (
@@ -222,14 +230,21 @@ export function AgentView({ tab, bridge }: AgentViewProps) {
               className="min-h-[2.5rem] w-full resize-none bg-transparent px-2 py-1.5 text-sm focus-visible:outline-none disabled:opacity-50"
             />
             <div className="flex items-center justify-between gap-2 px-1 pb-1">
-              <AgentModelSwitcher
-                options={agent.modelOptions}
-                loading={agent.modelOptionsLoading}
-                model={agent.session?.model ?? agent.config?.model ?? ""}
-                reasoning={agent.session?.reasoning ?? agent.config?.reasoning ?? ""}
-                disabled={!agent.session || running}
-                onChange={(patch) => void agent.setSessionModel(patch)}
-              />
+              <div className="flex min-w-0 items-center gap-0.5">
+                <AgentSelector
+                  preset={agent.config?.acpPreset ?? "custom"}
+                  disabled={!agent.session || running}
+                  onChange={(preset) => void handleAgentChange(preset)}
+                />
+                <AgentModelSwitcher
+                  options={agent.modelOptions}
+                  loading={agent.modelOptionsLoading}
+                  model={agent.session?.model ?? agent.config?.model ?? ""}
+                  reasoning={agent.session?.reasoning ?? agent.config?.reasoning ?? ""}
+                  disabled={!agent.session || running}
+                  onChange={(patch) => void agent.setSessionModel(patch)}
+                />
+              </div>
               {running ? (
                 <Button
                   size="icon"
