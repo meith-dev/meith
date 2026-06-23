@@ -13,6 +13,7 @@ import type { MeithBridge } from "../../../bridge.js";
 import { useAgent } from "../hooks/useAgent";
 import { useResizable } from "../hooks/useResizable";
 import { AgentMessageList } from "./AgentMessageList";
+import { AgentModelSwitcher } from "./AgentModelSwitcher";
 import { AgentPermissionCard } from "./AgentPermissionCard";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
@@ -204,7 +205,7 @@ export function AgentView({ tab, bridge }: AgentViewProps) {
 
         {/* Composer */}
         <div className="border-t border-border p-3">
-          <div className="flex items-end gap-2">
+          <div className="flex flex-col gap-2 rounded-md border border-input bg-transparent px-1 pt-1 shadow-sm focus-within:ring-1 focus-within:ring-ring">
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -218,27 +219,37 @@ export function AgentView({ tab, bridge }: AgentViewProps) {
               placeholder="Message the agent…"
               aria-label="Message the agent"
               disabled={!agent.session}
-              className="min-h-[2.5rem] flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+              className="min-h-[2.5rem] w-full resize-none bg-transparent px-2 py-1.5 text-sm focus-visible:outline-none disabled:opacity-50"
             />
-            {running ? (
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={() => void agent.cancel()}
-                aria-label="Stop"
-              >
-                <SquareIcon className="size-4" aria-hidden />
-              </Button>
-            ) : (
-              <Button
-                size="icon"
-                onClick={() => void handleSend()}
-                disabled={!draft.trim() || !agent.session}
-                aria-label="Send"
-              >
-                <SendIcon className="size-4" aria-hidden />
-              </Button>
-            )}
+            <div className="flex items-center justify-between gap-2 px-1 pb-1">
+              <AgentModelSwitcher
+                options={agent.modelOptions}
+                loading={agent.modelOptionsLoading}
+                model={agent.session?.model ?? agent.config?.model ?? ""}
+                reasoning={agent.session?.reasoning ?? agent.config?.reasoning ?? ""}
+                disabled={!agent.session || running}
+                onChange={(patch) => void agent.setSessionModel(patch)}
+              />
+              {running ? (
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => void agent.cancel()}
+                  aria-label="Stop"
+                >
+                  <SquareIcon className="size-4" aria-hidden />
+                </Button>
+              ) : (
+                <Button
+                  size="icon"
+                  onClick={() => void handleSend()}
+                  disabled={!draft.trim() || !agent.session}
+                  aria-label="Send"
+                >
+                  <SendIcon className="size-4" aria-hidden />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

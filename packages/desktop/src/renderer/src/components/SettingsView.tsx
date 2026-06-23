@@ -2,7 +2,6 @@ import {
   ACP_PRESETS,
   type AcpPreset,
   type AgentConfig,
-  type AgentConfigOption,
   type AgentProbeResult,
   type AppSettings,
   type InstalledPlugin,
@@ -514,6 +513,59 @@ function EnvEditor({
 
 // --- Agent -----------------------------------------------------------------
 
+/**
+ * Inline install/availability status for the configured ACP agent. Shows a
+ * spinner while probing, a success line when the agent handshakes, and an
+ * error block (with the agent's stderr tail) when it can't be launched.
+ */
+function AgentInstallStatus({
+  label,
+  probing,
+  probe,
+}: {
+  label: string;
+  probing: boolean;
+  probe: AgentProbeResult | null;
+}) {
+  if (probing) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Loader2Icon className="size-3.5 animate-spin" />
+        <span>{`Checking ${label}…`}</span>
+      </div>
+    );
+  }
+  if (!probe) return null;
+  if (probe.installed) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2Icon className="size-3.5" />
+        <span>{`${label} is installed and ready.`}</span>
+      </div>
+    );
+  }
+  return (
+    <div
+      role="alert"
+      className="flex flex-col gap-1 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+    >
+      <div className="flex items-center gap-2 font-medium">
+        <AlertTriangleIcon className="size-3.5" />
+        <span>{`${label} isn't available`}</span>
+      </div>
+      {probe.error && (
+        <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed opacity-90">
+          {probe.error}
+        </pre>
+      )}
+      <span className="opacity-80">
+        Make sure the agent CLI is installed and on your PATH, then reopen settings to
+        re-check.
+      </span>
+    </div>
+  );
+}
+
 function AgentTab({ bridge, open }: { bridge: MeithBridge; open: boolean }) {
   const [draft, setDraft] = useState<AgentConfig | null>(null);
   const [probe, setProbe] = useState<AgentProbeResult | null>(null);
@@ -653,11 +705,7 @@ function AgentTab({ bridge, open }: { bridge: MeithBridge; open: boolean }) {
             </>
           )}
 
-          <AgentInstallStatus
-            label={presetLabel}
-            probing={probing}
-            probe={probe}
-          />
+          <AgentInstallStatus label={presetLabel} probing={probing} probe={probe} />
         </>
       )}
 

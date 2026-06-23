@@ -1,5 +1,6 @@
 import type {
   AgentConfig,
+  AgentConfigOption,
   AgentMessage,
   AgentPermissionRequest,
   AgentSession,
@@ -36,6 +37,10 @@ export interface UseAgent {
   permissions: AgentPermissionRequest[];
   config: AgentConfig | null;
   busy: boolean;
+  /** Config options (models, reasoning) advertised by the active ACP agent. */
+  modelOptions: AgentConfigOption[];
+  /** True while the agent is being probed for its advertised options. */
+  modelOptionsLoading: boolean;
   selectSession: (id: string) => Promise<void>;
   createSession: () => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
@@ -47,6 +52,11 @@ export interface UseAgent {
     remember: boolean,
   ) => Promise<void>;
   saveConfig: (patch: Partial<AgentConfig>) => Promise<void>;
+  /**
+   * Switch the active session's model/reasoning level and persist it as the new
+   * default. Optimistically updates local state for instant feedback.
+   */
+  setSessionModel: (patch: { model?: string; reasoning?: string }) => Promise<void>;
 }
 
 /**
@@ -67,6 +77,8 @@ export function useAgent(
   const [permissions, setPermissions] = useState<AgentPermissionRequest[]>([]);
   const [config, setConfig] = useState<AgentConfig | null>(null);
   const [busy, setBusy] = useState(false);
+  const [modelOptions, setModelOptions] = useState<AgentConfigOption[]>([]);
+  const [modelOptionsLoading, setModelOptionsLoading] = useState(false);
 
   // Mirror mutable values the (stable) subscription handlers need to read.
   const activeIdRef = useRef<string | null>(null);
@@ -116,6 +128,38 @@ export function useAgent(
     window.addEventListener("meith:agent-config-changed", onChanged);
     return () => window.removeEventListener("meith:agent-config-changed", onChanged);
   }, [bridge]);
+
+  // Probe the configured agent for the model/reasoning options it advertises so
+  // the composer switcher can offer them. Only meaningful for ACP agents; the
+  // mock adapter returns synthetic options. Re-runs when the agent target
+  // changes (adapter/preset/command/args).
+  const probeKey = config
+    ? `${config.adapter}|${config.acpPreset}|${config.command}|${config.args.join(" ")}`
+    : null;
+  useEffect(() => {
+    if (!config || config.adapter !== "acp") {
+      setModelOptions([]);
+      setModelOptionsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setModelOptionsLoading(true);
+    void bridge.agent
+      .probe({ acpPreset: config.acpPreset, command: config.command, args: config.args })
+      .then((result) => {
+        if (!cancelled) setModelOptions(result.installed ? result.options : []);
+      })
+      .catch(() => {
+        if (!cancelled) setModelOptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setModelOptionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridge, probeKey]);
 
   // Single, stable subscription set for the lifetime of the hook.
   useEffect(() => {
@@ -270,6 +314,22 @@ export function useAgent(
     [bridge],
   );
 
+  const setSessionModel = useCallback(
+    async (patch: { model?: string; reasoning?: string }) => {
+      const id = activeIdRef.current;
+      if (!id) return;
+      // Optimistic local update so the switcher label changes immediately.
+      setSession((prev) => (prev ? { ...prev, ...patch } : prev));
+      setConfig((prev) => (prev ? { ...prev, ...patch } : prev));
+      const meta = await bridge.agent.setSessionModel(id, patch);
+      if (meta.id === activeIdRef.current) {
+        setSession((prev) => (prev ? { ...prev, ...meta } : prev));
+        setSessions((prev) => upsertMeta(prev, meta));
+      }
+    },
+    [bridge],
+  );
+
   return {
     sessions,
     activeId,
@@ -278,6 +338,8 @@ export function useAgent(
     permissions,
     config,
     busy,
+    modelOptions,
+    modelOptionsLoading,
     selectSession,
     createSession,
     deleteSession,
@@ -285,6 +347,7 @@ export function useAgent(
     cancel,
     decide,
     saveConfig,
+    setSessionModel,
   };
 }
 

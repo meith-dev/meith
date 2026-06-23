@@ -236,8 +236,7 @@ export class AcpAdapter implements AgentAdapter {
       return {
         preset,
         installed: false,
-        error:
-          "No command configured. Pick Claude or Codex, or set a custom command.",
+        error: "No command configured. Pick Claude or Codex, or set a custom command.",
         options: [],
       };
     }
