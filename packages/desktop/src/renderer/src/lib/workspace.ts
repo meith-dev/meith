@@ -2,6 +2,7 @@ import type { WorkspaceTab } from "@meith/shared";
 import {
   BotIcon,
   FileCodeIcon,
+  GitCompareIcon,
   type LucideIcon,
   MonitorIcon,
   TerminalIcon,
@@ -16,6 +17,7 @@ export const WORKSPACE_KINDS: Record<
   terminal: { icon: TerminalIcon, label: "Terminal" },
   agent: { icon: BotIcon, label: "Agent" },
   preview: { icon: MonitorIcon, label: "Preview" },
+  diff: { icon: GitCompareIcon, label: "Diff" },
 };
 
 /**
@@ -28,6 +30,7 @@ export const WORKSPACE_ICON_NAME: Record<WorkspaceTab["kind"], string> = {
   terminal: "terminal",
   agent: "agent",
   preview: "preview",
+  diff: "diff",
 };
 
 /** Strip a filesystem path down to its last segment for compact display. */

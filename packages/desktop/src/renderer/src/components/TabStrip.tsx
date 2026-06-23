@@ -1,8 +1,8 @@
-import { OverlayDropdown } from "@/components/OverlayDropdown";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PaneId } from "@/hooks/usePaneLayout";
 import { cn } from "@/lib/utils";
-import { WORKSPACE_ICON_NAME, WORKSPACE_KINDS, hostname } from "@/lib/workspace";
+import { WORKSPACE_KINDS, hostname } from "@/lib/workspace";
 import type { BrowserTab, WorkspaceTab } from "@meith/shared";
 import { GlobeIcon, PlusIcon, XIcon } from "lucide-react";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
@@ -30,14 +30,11 @@ interface TabStripProps {
   onFocusTab: (id: string) => void;
   onCloseTab: (id: string) => void;
   onNewBrowser: () => void;
-  onNewWorkspace: (kind: WorkspaceTab["kind"]) => void;
   /** Move a tab (from this or the other pane) into the given pane. */
   onMoveTabToPane: (tabId: string, pane: PaneId) => void;
   /** Fired when a tab drag starts/ends (lets the app reveal the split zone). */
   onTabDragStart?: () => void;
   onTabDragEnd?: () => void;
-  /** Notifies when the "+" menu opens/closes (to yield the native view). */
-  onMenuOpenChange?: (open: boolean) => void;
   /** Optional trailing controls (e.g. the run button) for the right cluster. */
   trailing?: ReactNode;
   /** Extra classes for the outer strip (e.g. to make it fill the top bar). */
@@ -72,7 +69,8 @@ function writeOrder(spaceId: string | null, pane: PaneId, ids: string[]) {
  * row so there is a single place to switch surfaces within that pane. Tabs are
  * draggable to reorder (manual order persisted per space + pane) and can be
  * dragged into the other pane's strip (or the split drop zone) to move between
- * panes. The "+" menu creates any surface kind in this pane.
+ * panes. The "+" button opens a new browser tab in this pane; workspace tabs
+ * (editor/terminal/agent) are toggled from the top bar.
  */
 export function TabStrip({
   spaceId,
@@ -84,11 +82,9 @@ export function TabStrip({
   onFocusTab,
   onCloseTab,
   onNewBrowser,
-  onNewWorkspace,
   onMoveTabToPane,
   onTabDragStart,
   onTabDragEnd,
-  onMenuOpenChange,
   trailing,
   className,
   emptyHint,
@@ -296,38 +292,23 @@ export function TabStrip({
       </ScrollArea>
 
       <div className="flex shrink-0 items-center gap-2 border-l border-border px-2">
-        <OverlayDropdown
-          align="end"
-          minWidth={176}
-          onOpenChange={onMenuOpenChange}
-          items={[
-            {
-              id: "browser",
-              label: "Browser tab",
-              iconName: "globe",
-              onSelect: onNewBrowser,
-            },
-            ...(Object.keys(WORKSPACE_KINDS) as WorkspaceTab["kind"][]).map(
-              (kind, i) => ({
-                id: `ws:${kind}`,
-                label: WORKSPACE_KINDS[kind].label,
-                iconName: WORKSPACE_ICON_NAME[kind],
-                separatorBefore: i === 0,
-                groupLabel: i === 0 ? "Workspace" : undefined,
-                onSelect: () => onNewWorkspace(kind),
-              }),
-            ),
-          ]}
-          trigger={
-            <button
-              type="button"
-              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="New tab"
-            >
-              <PlusIcon className="size-4" />
-            </button>
-          }
-        />
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={onNewBrowser}
+                className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="New browser tab"
+              >
+                <PlusIcon className="size-4" />
+              </button>
+            }
+          />
+          <TooltipContent side="bottom" align="end">
+            New browser tab
+          </TooltipContent>
+        </Tooltip>
 
         {trailing && (
           <>

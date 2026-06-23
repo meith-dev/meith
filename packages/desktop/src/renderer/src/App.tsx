@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { AgentView } from "./components/AgentView";
 import { BrowserArea } from "./components/BrowserArea";
 import { DebugPanel, type DebugTab } from "./components/DebugPanel";
+import { DiffView } from "./components/DiffView";
 import { EditorView } from "./components/EditorView";
 import { MeithMark } from "./components/MeithMark";
 import { PaneToolbar } from "./components/PaneToolbar";
@@ -19,7 +20,9 @@ import { SplitDropZone } from "./components/SplitDropZone";
 import { StatusBar } from "./components/StatusBar";
 import { TabStrip } from "./components/TabStrip";
 import { TerminalView } from "./components/TerminalView";
+import { TopBarGitDiff } from "./components/TopBarGitDiff";
 import { TopBarRun } from "./components/TopBarRun";
+import { TopBarWorkspaceToggles } from "./components/TopBarWorkspaceToggles";
 import {
   Dialog,
   DialogContent,
@@ -408,6 +411,54 @@ export function App() {
     },
     [run],
   );
+  // Single-instance toggle for the top-bar Editor/Terminal/Agent buttons: at
+  // most one tab of each kind exists per space. Open it when absent, reveal it
+  // when hidden, and close it when it is already the visible tab.
+  const toggleWorkspaceTab = useCallback(
+    (kind: WorkspaceTab["kind"]) => {
+      const existing = workspaceTabs.find(
+        (t) => t.kind === kind && t.spaceId === activeSpaceId,
+      );
+      if (!existing) {
+        openWorkspaceTab(kind, "primary");
+        return;
+      }
+      const pane = layout.paneOf(existing.id) ?? "primary";
+      const isVisible = layout.active[pane] === existing.id;
+      if (isVisible) closeWorkspaceTab(existing.id);
+      else focusWorkspaceTab(existing.id, pane);
+    },
+    [
+      workspaceTabs,
+      activeSpaceId,
+      layout,
+      openWorkspaceTab,
+      closeWorkspaceTab,
+      focusWorkspaceTab,
+    ],
+  );
+  // Open (or focus, if one already exists for this space) the diff surface for
+  // the active project.
+  const openDiffTab = useCallback(
+    (pane: PaneId = "primary") => {
+      setSettingsOpen(false);
+      const existing = workspaceTabs.find(
+        (t) => t.kind === "diff" && t.spaceId === activeSpaceId,
+      );
+      if (existing) {
+        layout.setActive(pane, existing.id);
+        void run("focus_workspace_tab", { tabId: existing.id });
+        return;
+      }
+      pendingPaneRef.current = pane;
+      void run("open_workspace_tab", {
+        title: "Diff",
+        cwd: activeProjectCwd,
+        kind: "diff",
+      });
+    },
+    [run, workspaceTabs, activeSpaceId, activeProjectCwd, layout],
+  );
 
   // --- Browser tab actions -------------------------------------------------
   const openBrowserTab = useCallback(
@@ -662,6 +713,14 @@ export function App() {
             />
           )}
           {tab.kind === "agent" && <AgentView key={tab.id} tab={tab} bridge={bridge} />}
+          {tab.kind === "diff" && (
+            <DiffView
+              key={tab.id}
+              tab={tab}
+              call={call}
+              refreshKey={state?.workspaceFileEvents?.length ?? 0}
+            />
+          )}
           {tab.kind === "preview" && (
             <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
               Use a browser tab to preview your running app.
@@ -703,7 +762,18 @@ export function App() {
             <MeithMark className="size-5 text-foreground" />
             <span className="sr-only">meith</span>
           </div>
-          <div className="flex min-w-0 flex-1 items-center justify-end bg-card/40 px-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 bg-card/40 px-2">
+            <TopBarWorkspaceToggles
+              tabs={workspaceTabs.filter((t) => t.spaceId === activeSpaceId)}
+              onToggle={toggleWorkspaceTab}
+            />
+            <div className="min-w-0 flex-1" />
+            <TopBarGitDiff
+              cwd={activeProjectCwd}
+              call={call}
+              onOpenDiff={() => openDiffTab("primary")}
+              refreshKey={state?.workspaceFileEvents?.length ?? 0}
+            />
             <TopBarRun
               project={activeProject}
               runningServer={runningServer}
@@ -752,7 +822,6 @@ export function App() {
                 focused={layout.focused === "primary"}
                 onFocusTab={(id) => focusTabInPane(id, "primary")}
                 onNewBrowser={() => newBrowserTab("primary")}
-                onNewWorkspace={(kind) => openWorkspaceTab(kind, "primary")}
               />
               <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
                 {renderSurface(primaryActive, "primary")}
@@ -788,7 +857,6 @@ export function App() {
                     focused={layout.focused === "secondary"}
                     onFocusTab={(id) => focusTabInPane(id, "secondary")}
                     onNewBrowser={() => newBrowserTab("secondary")}
-                    onNewWorkspace={(kind) => openWorkspaceTab(kind, "secondary")}
                     emptyHint="Drag a tab here, or use + to open one."
                   />
                   <div className="flex min-h-0 min-w-0 flex-1 flex-col">

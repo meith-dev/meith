@@ -906,6 +906,35 @@ function createMockBridge(): MeithBridge {
             // The mock has no TypeScript program; report a clean, supported file.
             return okResult({ diagnostics: [], unsupported: false });
           }
+          case "git_diff": {
+            // Preview mode has no real git repo, so return a small, deterministic
+            // sample so the diff chip + diff surface can be exercised.
+            const sampleDiff =
+              "diff --git a/README.md b/README.md\n" +
+              "--- a/README.md\n" +
+              "+++ b/README.md\n" +
+              "@@ -1,2 +1,4 @@\n" +
+              " # web-app\n" +
+              "+\n" +
+              "+A mock project for preview mode.\n" +
+              "-An old description line.\n";
+            return okResult({
+              isRepo: true,
+              root: projectCwd,
+              files: [
+                {
+                  path: "README.md",
+                  status: "modified",
+                  additions: 2,
+                  deletions: 1,
+                  binary: false,
+                  diff: sampleDiff,
+                },
+              ],
+              totalAdditions: 2,
+              totalDeletions: 1,
+            });
+          }
 
           case "list_plugins":
             return okResult({ plugins: structuredClone(state.plugins) });
