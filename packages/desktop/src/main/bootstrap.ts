@@ -358,6 +358,9 @@ export async function bootstrap(
     appState,
     mcpBridge,
     permissions,
+    // Probe ACP agents on demand (install detection + advertised model/reasoning
+    // options) regardless of which adapter is currently active.
+    probeAcp: (override) => new AcpAdapter(agentConfig, logger).probe(override),
   });
   agents.registerAdapter(
     agentConfig.get().adapter === "acp"

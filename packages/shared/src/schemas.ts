@@ -634,6 +634,8 @@ export const AgentSessionMetaSchema = z.object({
   spaceId: z.string().nullable().default(null),
   /** Model identifier passed to the adapter, when configured. */
   model: z.string().optional(),
+  /** Reasoning/effort level passed to the adapter, when configured. */
+  reasoning: z.string().optional(),
   /** Which adapter ran/owns this session (e.g. "mock", "acp"). */
   adapterId: z.string().default("mock"),
   status: AgentSessionStatusSchema.default("idle"),
@@ -747,6 +749,79 @@ export const ACP_PRESETS: Record<AcpPreset, AcpPresetDef> = {
 };
 
 /**
+ * A single value an ACP `select` config option can take (e.g. one model or one
+ * reasoning level). Mirrors the `{ value, name }` entries an agent advertises.
+ */
+export const AgentConfigOptionValueSchema = z.object({
+  value: z.string(),
+  name: z.string(),
+});
+export type AgentConfigOptionValue = z.infer<typeof AgentConfigOptionValueSchema>;
+
+/**
+ * A session-level configuration option advertised by an ACP agent during
+ * `session/new` (e.g. the model picker or reasoning/effort level). Clients
+ * change the active value via `session/set_config_option`.
+ */
+export const AgentConfigOptionSchema = z.object({
+  /** Stable identifier used as `configId` when setting the value. */
+  id: z.string(),
+  /** Human label for the option (e.g. "Model", "Reasoning"). */
+  name: z.string(),
+  /** UX grouping hint, e.g. "model" or "thought_level". */
+  category: z.string().optional(),
+  type: z.enum(["select", "boolean"]).default("select"),
+  /** Currently selected value, when the agent reports one. */
+  currentValue: z.string().optional(),
+  /** Selectable values for a `select` option. */
+  values: z.array(AgentConfigOptionValueSchema).default([]),
+});
+export type AgentConfigOption = z.infer<typeof AgentConfigOptionSchema>;
+
+/**
+ * Result of probing a configured ACP agent: whether it could be launched +
+ * handshaked, an error message when it couldn't (surfaced in Settings), and the
+ * config options it advertised (the source of the model/reasoning dropdowns).
+ */
+export const AgentProbeResultSchema = z.object({
+  preset: AcpPresetSchema,
+  /** True when the agent spawned and completed the ACP handshake. */
+  installed: z.boolean(),
+  /** Human-readable failure reason when `installed` is false. */
+  error: z.string().optional(),
+  /** Advertised session config options (model, reasoning, ...). */
+  options: z.array(AgentConfigOptionSchema).default([]),
+});
+export type AgentProbeResult = z.infer<typeof AgentProbeResultSchema>;
+
+/**
+ * Categories/keywords used to recognise a "reasoning effort" config option
+ * across agents that name it differently (Codex: `thought_level`).
+ */
+export const ACP_REASONING_HINTS = [
+  "thought_level",
+  "reasoning",
+  "reasoning_effort",
+  "effort",
+  "thinking",
+] as const;
+
+/** True when a config option looks like the model selector. */
+export function isModelConfigOption(option: { id: string; category?: string }): boolean {
+  return option.category === "model" || option.id.toLowerCase() === "model";
+}
+
+/** True when a config option looks like the reasoning/effort selector. */
+export function isReasoningConfigOption(option: {
+  id: string;
+  name: string;
+  category?: string;
+}): boolean {
+  const haystack = `${option.category ?? ""} ${option.id} ${option.name}`.toLowerCase();
+  return ACP_REASONING_HINTS.some((hint) => haystack.includes(hint));
+}
+
+/**
  * Resolve the concrete command/args to spawn for a given config. Built-in
  * presets take precedence; `custom` uses the user-provided command/args.
  */
@@ -780,6 +855,11 @@ export const AgentConfigSchema = z.object({
   /** Model identifier handed to the adapter/agent. */
   model: z.string().default(""),
   /**
+   * Reasoning/effort level handed to the agent (e.g. "low"/"medium"/"high").
+   * Only meaningful for agents that advertise a reasoning config option.
+   */
+  reasoning: z.string().default(""),
+  /**
    * Auto-approve gated tool calls (writes/process/browser) without prompting.
    * Off by default; enabling it is a deliberate, clearly-warned choice.
    */
@@ -795,6 +875,7 @@ export function defaultAgentConfig(): AgentConfig {
     command: "",
     args: [],
     model: "",
+    reasoning: "",
     autoAccept: false,
   };
 }

@@ -1,8 +1,13 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import {
+  type AgentConfig,
+  type AgentConfigOption,
   type AgentMessage,
+  type AgentProbeResult,
   type AgentToolCall,
   type ToolResult,
+  isModelConfigOption,
+  isReasoningConfigOption,
   newToolCallId,
   resolveAcpLaunch,
 } from "@meith/shared";
@@ -61,7 +66,8 @@ export class AcpAdapter implements AgentAdapter {
       yield { type: "done" };
       return;
     }
-    const model = session.model ?? cfg.model;
+    const model = session.model || cfg.model;
+    const reasoning = session.reasoning || cfg.reasoning;
 
     const queue = new AsyncChunkQueue();
     let child: ChildProcessWithoutNullStreams;
@@ -158,8 +164,18 @@ export class AcpAdapter implements AgentAdapter {
         const newSession = (await rpc.request("session/new", {
           cwd: host.cwd,
           mcpServers,
-        })) as { sessionId?: string };
+        })) as { sessionId?: string; configOptions?: unknown };
         currentSessionId = newSession.sessionId ?? "";
+
+        // Apply the chosen model / reasoning level through the stable config
+        // options framework (the experimental session/set_model was removed).
+        await applyConfigOptions(
+          rpc,
+          currentSessionId,
+          parseAcpConfigOptions(newSession.configOptions),
+          { model, reasoning },
+          (msg) => this.log(`[acp] ${msg}`),
+        );
 
         await rpc.request("session/prompt", {
           sessionId: currentSessionId,
@@ -201,6 +217,117 @@ export class AcpAdapter implements AgentAdapter {
   dispose(sessionId: string): void {
     this.kill(sessionId);
   }
+
+  /**
+   * Launch the configured agent, run the ACP handshake (`initialize` +
+   * `session/new`) and read back its advertised config options, then tear the
+   * subprocess down. Doubles as an install check: a spawn failure or handshake
+   * timeout means the agent isn't available. Never throws — failures are
+   * reported on the returned result so the UI can surface them inline.
+   */
+  async probe(
+    override?: Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">>,
+    timeoutMs = 30_000,
+  ): Promise<AgentProbeResult> {
+    const cfg = { ...this.config.get(), ...override };
+    const preset = cfg.acpPreset ?? "custom";
+    const launch = resolveAcpLaunch(cfg);
+    if (!launch.command) {
+      return {
+        preset,
+        installed: false,
+        error:
+          "No command configured. Pick Claude or Codex, or set a custom command.",
+        options: [],
+      };
+    }
+
+    let child: ChildProcessWithoutNullStreams;
+    try {
+      child = spawn(launch.command, launch.args, {
+        cwd: process.cwd(),
+        env: withDesktopExecutablePath({ ...process.env }),
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (err) {
+      return {
+        preset,
+        installed: false,
+        error: `Failed to launch "${launch.command}": ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        options: [],
+      };
+    }
+
+    const rpc = new JsonRpcClient({
+      write: (data) => child.stdin.write(data),
+      onData: (cb) => child.stdout.on("data", cb),
+    });
+    // The agent never needs to call the host during a probe; deny everything.
+    rpc.onRequest(() => {
+      throw new Error("probe: unsupported request");
+    });
+    let stderr = "";
+    child.stderr.on("data", (d: Buffer) => {
+      stderr += d.toString();
+    });
+
+    const cleanup = () => {
+      rpc.close("probe complete");
+      if (!child.killed) {
+        try {
+          child.kill("SIGTERM");
+        } catch {
+          // already gone
+        }
+      }
+    };
+
+    try {
+      const handshake = (async (): Promise<AgentConfigOption[]> => {
+        await rpc.request("initialize", {
+          protocolVersion: ACP_PROTOCOL_VERSION,
+          clientCapabilities: {
+            fs: { readTextFile: false, writeTextFile: false },
+          },
+        });
+        const newSession = (await rpc.request("session/new", {
+          cwd: process.cwd(),
+          mcpServers: [],
+        })) as { configOptions?: unknown };
+        return parseAcpConfigOptions(newSession.configOptions);
+      })();
+
+      const spawnFailure = new Promise<never>((_, reject) => {
+        child.on("error", (err) => reject(err));
+        child.on("exit", (code) =>
+          reject(new Error(`agent exited before handshake (code ${code ?? "?"})`)),
+        );
+      });
+      const timeout = new Promise<never>((_, reject) => {
+        const t = setTimeout(
+          () => reject(new Error(`handshake timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        );
+        t.unref?.();
+      });
+
+      const options = await Promise.race([handshake, spawnFailure, timeout]);
+      return { preset, installed: true, options };
+    } catch (err) {
+      const base = err instanceof Error ? err.message : String(err);
+      const detail = stderr.trim().split("\n").slice(-3).join("\n");
+      return {
+        preset,
+        installed: false,
+        error: detail ? `${base}\n${detail}` : base,
+        options: [],
+      };
+    } finally {
+      cleanup();
+    }
+  }
 }
 
 export function buildAcpPrompt(
@@ -221,6 +348,91 @@ export function buildAcpPrompt(
     rendered.currentUser,
   ].join("\n");
   return [{ type: "text", text }];
+}
+
+/**
+ * Normalise the `configOptions` an agent returns from `session/new` into the
+ * shared `AgentConfigOption` shape. Tolerant of missing/extra fields and of the
+ * `options: [{ value, name }]` vs `values` naming so different agents parse.
+ */
+export function parseAcpConfigOptions(raw: unknown): AgentConfigOption[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry) => {
+    const record = asRecord(entry);
+    const id = stringValue(record?.id) ?? stringValue(record?.configId);
+    if (!record || !id) return [];
+    const rawValues = Array.isArray(record.options)
+      ? record.options
+      : Array.isArray(record.values)
+        ? record.values
+        : [];
+    const values = rawValues.flatMap((value) => {
+      const v = asRecord(value);
+      const val = stringValue(v?.value) ?? stringValue(v?.id);
+      if (!v || !val) return [];
+      return [{ value: val, name: stringValue(v.name) ?? val }];
+    });
+    const type = record.type === "boolean" ? "boolean" : "select";
+    return [
+      {
+        id,
+        name: stringValue(record.name) ?? id,
+        category: stringValue(record.category),
+        type: type as AgentConfigOption["type"],
+        currentValue:
+          stringValue(record.currentValue) ?? stringValue(record.value) ?? undefined,
+        values,
+      },
+    ];
+  });
+}
+
+/**
+ * Apply the chosen model / reasoning level to an open ACP session via
+ * `session/set_config_option`, matching the desired values against the agent's
+ * advertised options. Best-effort: unknown values or set failures are logged
+ * and skipped so a bad selection never aborts the turn.
+ */
+export async function applyConfigOptions(
+  rpc: JsonRpcClient,
+  sessionId: string,
+  options: AgentConfigOption[],
+  desired: { model?: string; reasoning?: string },
+  log?: (message: string) => void,
+): Promise<void> {
+  const set = async (option: AgentConfigOption, want: string) => {
+    if (!want) return;
+    // Match by exact value, then case-insensitive value/name (so "high" maps to
+    // a "High" label or a "reasoning-high" value).
+    const match =
+      option.values.find((v) => v.value === want) ??
+      option.values.find(
+        (v) =>
+          v.value.toLowerCase() === want.toLowerCase() ||
+          v.name.toLowerCase() === want.toLowerCase(),
+      );
+    const value = match?.value ?? want;
+    if (option.currentValue === value) return;
+    try {
+      await rpc.request("session/set_config_option", {
+        sessionId,
+        configId: option.id,
+        value,
+      });
+    } catch (err) {
+      log?.(
+        `set_config_option ${option.id}=${value} failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  };
+
+  const modelOption = options.find((o) => isModelConfigOption(o));
+  if (modelOption && desired.model) await set(modelOption, desired.model);
+
+  const reasoningOption = options.find((o) => isReasoningConfigOption(o));
+  if (reasoningOption && desired.reasoning) await set(reasoningOption, desired.reasoning);
 }
 
 interface AcpPermissionOption {

@@ -51,6 +51,10 @@ export const IPC = {
   agentGetConfig: "meith:agent:config:get",
   /** Renderer -> main (invoke): update agent config. */
   agentSetConfig: "meith:agent:config:set",
+  /** Renderer -> main (invoke): probe an ACP agent (install + model options). */
+  agentProbe: "meith:agent:probe",
+  /** Renderer -> main (invoke): set a session's model/reasoning (+ save default). */
+  agentSetSessionModel: "meith:agent:session:model",
   /** Main -> renderer: a streamed chunk `{ sessionId, chunk }`. */
   agentChunk: "meith:agent:chunk",
   /** Main -> renderer: session metadata changed (status/usage/title). */
@@ -193,6 +197,16 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.agentGetConfig, () => container.agents.getConfig());
   ipcMain.handle(IPC.agentSetConfig, (_e, patch: Record<string, unknown>) =>
     container.agents.setConfig(patch),
+  );
+  ipcMain.handle(
+    IPC.agentProbe,
+    (_e, override?: { acpPreset?: string; command?: string; args?: string[] }) =>
+      container.agents.probeAgent(override as never),
+  );
+  ipcMain.handle(
+    IPC.agentSetSessionModel,
+    (_e, sessionId: string, patch: { model?: string; reasoning?: string }) =>
+      container.agents.setSessionModel(sessionId, patch),
   );
 
   // Push agent run output, session metadata changes, and permission prompts.

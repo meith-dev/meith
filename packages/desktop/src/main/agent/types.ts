@@ -1,7 +1,9 @@
 import type { ToolDescriptor } from "@meith/protocol";
 import type {
+  AgentConfig,
   AgentMessage,
   AgentPermissionRequest,
+  AgentProbeResult,
   AgentSession,
   AgentStreamChunk,
   AgentToolCall,
@@ -106,6 +108,14 @@ export interface AgentAdapter {
   run(session: AgentSession, host: AgentHostContext): AsyncIterable<AgentStreamChunk>;
   /** Optional cleanup hook (e.g. kill a spawned subprocess) for a session. */
   dispose?(sessionId: string): void | Promise<void>;
+  /**
+   * Optional install/capability probe: launch the backend, verify it responds,
+   * and report the config options (models, reasoning levels) it advertises.
+   * Implemented by the ACP adapter; absent for in-process adapters.
+   */
+  probe?(
+    override?: Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">>,
+  ): Promise<AgentProbeResult>;
 }
 
 /** Re-export used by adapters/services that need the message-builder signature. */

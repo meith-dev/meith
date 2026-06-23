@@ -3,6 +3,7 @@ import type {
   AgentConfig,
   AgentPermissionDecision,
   AgentPermissionRequest,
+  AgentProbeResult,
   AgentSession,
   AgentSessionMeta,
   AgentStreamChunk,
@@ -164,6 +165,18 @@ export interface MeithBridge {
     decide: (decision: AgentPermissionDecision) => Promise<boolean>;
     getConfig: () => Promise<AgentConfig>;
     setConfig: (patch: Partial<AgentConfig>) => Promise<AgentConfig>;
+    /**
+     * Probe an ACP agent for install status + advertised config options
+     * (models, reasoning levels). Pass an override to check an unsaved draft.
+     */
+    probe: (
+      override?: Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">>,
+    ) => Promise<AgentProbeResult>;
+    /** Set a session's model/reasoning and persist them as the new default. */
+    setSessionModel: (
+      sessionId: string,
+      patch: { model?: string; reasoning?: string },
+    ) => Promise<AgentSessionMeta>;
     /** Subscribe to streamed run output. Returns an unsubscribe fn. */
     onChunk: (
       cb: (evt: { sessionId: string; chunk: AgentStreamChunk }) => void,
