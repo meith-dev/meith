@@ -86,19 +86,19 @@ export function AgentModelSwitcher({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="top" sideOffset={6} className="min-w-44">
         {hasReasoning && reasoningOption && (
-          <>
+          // Base UI's GroupLabel must live inside a Group/RadioGroup (it reads
+          // the group context), so the section header goes INSIDE the group.
+          <DropdownMenuRadioGroup
+            value={activeReasoning}
+            onValueChange={(value) => onChange({ reasoning: value })}
+          >
             <DropdownMenuLabel>{reasoningOption.name || "Reasoning"}</DropdownMenuLabel>
-            <DropdownMenuRadioGroup
-              value={activeReasoning}
-              onValueChange={(value) => onChange({ reasoning: value })}
-            >
-              {reasoningOption.values.map((v) => (
-                <DropdownMenuRadioItem key={v.value} value={v.value}>
-                  {v.name}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </>
+            {reasoningOption.values.map((v) => (
+              <DropdownMenuRadioItem key={v.value} value={v.value}>
+                {v.name}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
         )}
 
         {hasReasoning && hasModels && <DropdownMenuSeparator />}
@@ -112,11 +112,11 @@ export function AgentModelSwitcher({
               )}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="min-w-40">
-              <DropdownMenuLabel>{modelOption.name || "Model"}</DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={activeModel}
                 onValueChange={(value) => onChange({ model: value })}
               >
+                <DropdownMenuLabel>{modelOption.name || "Model"}</DropdownMenuLabel>
                 {modelOption.values.map((v) => (
                   <DropdownMenuRadioItem key={v.value} value={v.value}>
                     {v.name}
