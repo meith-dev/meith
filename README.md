@@ -124,4 +124,44 @@ pnpm dist:mac
 
 ```
 
+## Release process
+
+Releases are published as GitHub Releases with macOS arm64 desktop artifacts.
+
+1. Choose the next semver version, such as `0.1.3`.
+2. Update the `version` field in the root `package.json` and each package under `packages/`.
+3. Update `packages/desktop/package.json` so `build.mac.bundleVersion` matches the release version.
+4. Run the verification and build commands:
+
+```bash
+pnpm test
+pnpm dist:mac
+
+```
+
+5. Check the generated artifact hashes:
+
+```bash
+shasum -a 256 packages/desktop/release/meith-<version>-mac-arm64.dmg packages/desktop/release/meith-<version>-mac-arm64.zip
+
+```
+
+6. Commit the version and documentation changes, then push `main`.
+7. Publish the GitHub Release:
+
+```bash
+gh release create v<version> \
+  packages/desktop/release/meith-<version>-mac-arm64.dmg \
+  packages/desktop/release/meith-<version>-mac-arm64.zip \
+  packages/desktop/release/meith-<version>-mac-arm64.dmg.blockmap \
+  packages/desktop/release/meith-<version>-mac-arm64.zip.blockmap \
+  --repo jouwdan/meith \
+  --target main \
+  --title "meith <version>" \
+  --notes-file /path/to/release-notes.md
+
+```
+
+The current macOS release build is not Developer ID signed or notarized, so macOS may warn on first open.
+
 On startup, the runtime writes `~/.meith/config.json`, registers the running instance under `~/.meith/instances/`, and exposes a managed launcher at `~/.meith/bin/meith`. Run `meith setup` for shell instructions, or `meith setup --write` to add that launcher directory to your shell config.
