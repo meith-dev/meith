@@ -134,7 +134,7 @@ function MenuView({
   onSelect: (itemId: string) => void;
   onDismiss: () => void;
 }) {
-  const { rect, items, align = "start", minWidth } = descriptor;
+  const { rect, items, align = "start", minWidth, maxWidth } = descriptor;
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
 
@@ -218,6 +218,7 @@ function MenuView({
           left: pos?.left ?? -9999,
           top: pos?.top ?? -9999,
           minWidth: minWidth ?? 128,
+          maxWidth,
         }}
       >
         {items.map((item, i) => {

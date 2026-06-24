@@ -32,6 +32,7 @@ export function AgentAccessSwitcher({
     <OverlayDropdown
       align="start"
       minWidth={248}
+      maxWidth={300}
       onOpenChange={onMenuOpenChange}
       items={[
         {

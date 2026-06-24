@@ -52,6 +52,8 @@ export interface OverlayMenuDescriptor {
   items: OverlayMenuItem[];
   align?: "start" | "end";
   minWidth?: number;
+  /** Maximum menu width in px; long descriptions wrap instead of stretching. */
+  maxWidth?: number;
 }
 
 /** A tooltip to render in the overlay window, anchored to a trigger rect. */

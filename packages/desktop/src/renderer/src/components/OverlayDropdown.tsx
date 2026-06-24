@@ -25,6 +25,8 @@ interface OverlayDropdownProps {
   align?: "start" | "end";
   /** Minimum menu width in px (overlay path); also applied to the fallback. */
   minWidth?: number;
+  /** Maximum menu width in px; long descriptions wrap instead of stretching. */
+  maxWidth?: number;
   /** Notified when the menu opens/closes (e.g. to freeze the browser view). */
   onOpenChange?: (open: boolean) => void;
 }
@@ -41,6 +43,7 @@ export function OverlayDropdown({
   items,
   align = "start",
   minWidth = 200,
+  maxWidth,
   onOpenChange,
 }: OverlayDropdownProps) {
   const overlay = getOverlayApi();
@@ -67,7 +70,7 @@ export function OverlayDropdown({
     return (
       <DropdownMenu onOpenChange={onOpenChange}>
         <DropdownMenuTrigger render={trigger} />
-        <DropdownMenuContent align={align} style={{ minWidth }}>
+        <DropdownMenuContent align={align} style={{ minWidth, maxWidth }}>
           {items.map((item, i) => {
             const Icon = item.iconName ? OVERLAY_ICONS[item.iconName] : undefined;
             return (
@@ -133,6 +136,7 @@ export function OverlayDropdown({
       items: items.map(({ onSelect: _onSelect, ...rest }) => rest),
       align,
       minWidth,
+      maxWidth,
     });
   };
 
