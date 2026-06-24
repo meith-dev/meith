@@ -1,3 +1,4 @@
+import { CheckIcon } from "lucide-react";
 import {
   type ReactElement,
   cloneElement,
@@ -81,14 +82,27 @@ export function OverlayDropdown({
                   variant={item.variant}
                   disabled={item.disabled}
                   onClick={() => item.onSelect()}
+                  className={item.description ? "items-start" : undefined}
                 >
-                  {Icon && <Icon className="size-4" />}
-                  <span className="flex-1">{item.label}</span>
+                  {Icon && (
+                    <Icon
+                      className={`size-4 shrink-0${item.description ? " mt-0.5" : ""}`}
+                    />
+                  )}
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate">{item.label}</span>
+                    {item.description && (
+                      <span className="text-xs text-muted-foreground">
+                        {item.description}
+                      </span>
+                    )}
+                  </span>
                   {item.hint && (
                     <span className="ml-auto text-xs text-muted-foreground">
                       {item.hint}
                     </span>
                   )}
+                  {item.checked && <CheckIcon className="ml-auto size-4 shrink-0" />}
                 </DropdownMenuItem>
               </div>
             );

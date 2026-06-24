@@ -1,18 +1,8 @@
+import type { OverlayActionItem } from "@/lib/overlay";
 import type { AgentConfigOption } from "@meith/shared";
 import { isModelConfigOption, isReasoningConfigOption } from "@meith/shared";
 import { ChevronDownIcon, Loader2Icon } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import { OverlayDropdown } from "./OverlayDropdown";
 
 interface AgentModelSwitcherProps {
   /** Config options advertised by the active agent (model + reasoning). */
@@ -27,6 +17,8 @@ interface AgentModelSwitcherProps {
   disabled?: boolean;
   /** Persist a new model/reasoning selection. */
   onChange: (patch: { model?: string; reasoning?: string }) => void;
+  /** Notified when the menu opens/closes (e.g. to freeze the browser view). */
+  onMenuOpenChange?: (open: boolean) => void;
 }
 
 /** Short label for a value, falling back to the raw value. */
@@ -38,8 +30,11 @@ function labelFor(option: AgentConfigOption | undefined, value: string): string 
 
 /**
  * Compact in-composer switcher for the active agent's model + reasoning effort,
- * inspired by the Codex switcher: a Reasoning list with a nested Model submenu.
- * Only renders when the agent advertises at least one selectable option.
+ * inspired by the Codex switcher. Renders through {@link OverlayDropdown} so the
+ * menu floats ABOVE the native browser view instead of being clipped behind it;
+ * the reasoning + model options are shown as two groups in a single menu (the
+ * overlay menu is flat — it has no nested submenus). Only renders when the agent
+ * advertises at least one selectable option.
  */
 export function AgentModelSwitcher({
   options,
@@ -48,6 +43,7 @@ export function AgentModelSwitcher({
   reasoning,
   disabled,
   onChange,
+  onMenuOpenChange,
 }: AgentModelSwitcherProps) {
   const modelOption = options.find((o) => isModelConfigOption(o));
   const reasoningOption = options.find((o) => isReasoningConfigOption(o));
@@ -72,61 +68,54 @@ export function AgentModelSwitcher({
   const modelLabel = labelFor(modelOption, activeModel);
   const reasoningLabel = labelFor(reasoningOption, activeReasoning);
 
+  const items: OverlayActionItem[] = [];
+  if (hasReasoning && reasoningOption) {
+    const groupLabel = reasoningOption.name || "Reasoning effort";
+    for (const v of reasoningOption.values) {
+      items.push({
+        id: `reasoning:${v.value}`,
+        label: v.name,
+        groupLabel,
+        checked: v.value === activeReasoning,
+        onSelect: () => onChange({ reasoning: v.value }),
+      });
+    }
+  }
+  if (hasModels && modelOption) {
+    const groupLabel = modelOption.name || "Model";
+    modelOption.values.forEach((v, i) => {
+      items.push({
+        id: `model:${v.value}`,
+        label: v.name,
+        groupLabel,
+        separatorBefore: i === 0 && items.length > 0,
+        checked: v.value === activeModel,
+        onSelect: () => onChange({ model: v.value }),
+      });
+    });
+  }
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        disabled={disabled}
-        className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-        aria-label="Switch model and reasoning"
-      >
-        {modelLabel && <span className="font-medium text-foreground">{modelLabel}</span>}
-        {reasoningLabel && <span>{reasoningLabel}</span>}
-        {!modelLabel && !reasoningLabel && <span>Model</span>}
-        <ChevronDownIcon className="size-3" aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" side="top" sideOffset={6} className="min-w-44">
-        {hasReasoning && reasoningOption && (
-          // Base UI's GroupLabel must live inside a Group/RadioGroup (it reads
-          // the group context), so the section header goes INSIDE the group.
-          <DropdownMenuRadioGroup
-            value={activeReasoning}
-            onValueChange={(value) => onChange({ reasoning: value })}
-          >
-            <DropdownMenuLabel>{reasoningOption.name || "Reasoning"}</DropdownMenuLabel>
-            {reasoningOption.values.map((v) => (
-              <DropdownMenuRadioItem key={v.value} value={v.value}>
-                {v.name}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        )}
-
-        {hasReasoning && hasModels && <DropdownMenuSeparator />}
-
-        {hasModels && modelOption && (
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <span className="flex-1">{modelOption.name || "Model"}</span>
-              {modelLabel && (
-                <span className="text-xs text-muted-foreground">{modelLabel}</span>
-              )}
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="min-w-40">
-              <DropdownMenuRadioGroup
-                value={activeModel}
-                onValueChange={(value) => onChange({ model: value })}
-              >
-                <DropdownMenuLabel>{modelOption.name || "Model"}</DropdownMenuLabel>
-                {modelOption.values.map((v) => (
-                  <DropdownMenuRadioItem key={v.value} value={v.value}>
-                    {v.name}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <OverlayDropdown
+      align="start"
+      minWidth={208}
+      onOpenChange={onMenuOpenChange}
+      items={items}
+      trigger={
+        <button
+          type="button"
+          disabled={disabled}
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+          aria-label="Switch model and reasoning"
+        >
+          {modelLabel && (
+            <span className="font-medium text-foreground">{modelLabel}</span>
+          )}
+          {reasoningLabel && <span>{reasoningLabel}</span>}
+          {!modelLabel && !reasoningLabel && <span>Model</span>}
+          <ChevronDownIcon className="size-3" aria-hidden />
+        </button>
+      }
+    />
   );
 }
