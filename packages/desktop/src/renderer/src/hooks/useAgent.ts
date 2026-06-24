@@ -28,6 +28,19 @@ function stripMessages(session: AgentSession): AgentSessionMeta {
   return meta;
 }
 
+/**
+ * Module-level cache of probed model/reasoning options, keyed by the agent
+ * target. Survives the hook being unmounted/remounted (e.g. switching tabs or
+ * spaces), so reopening the agent panel shows the cached models immediately
+ * instead of flashing a loading state while it re-probes. The main process also
+ * caches the underlying probe, so this is purely to avoid the UI flicker.
+ */
+const probeOptionsCache = new Map<string, AgentConfigOption[]>();
+
+function agentTargetKey(config: AgentConfig): string {
+  return `${config.adapter}|${config.acpPreset}|${config.command}|${config.args.join(" ")}`;
+}
+
 export interface UseAgent {
   sessions: AgentSessionMeta[];
   activeId: string | null;
@@ -123,6 +136,9 @@ export function useAgent(
   // Settings dialog) so the header badge stays in sync.
   useEffect(() => {
     const onChanged = () => {
+      // The agent target may have changed (or the CLI was just installed), so
+      // drop cached options to force a fresh probe in sync with the main process.
+      probeOptionsCache.clear();
       void bridge.agent.getConfig().then(setConfig);
     };
     window.addEventListener("meith:agent-config-changed", onChanged);
@@ -133,9 +149,7 @@ export function useAgent(
   // the composer switcher can offer them. Only meaningful for ACP agents; the
   // mock adapter returns synthetic options. Re-runs when the agent target
   // changes (adapter/preset/command/args).
-  const probeKey = config
-    ? `${config.adapter}|${config.acpPreset}|${config.command}|${config.args.join(" ")}`
-    : null;
+  const probeKey = config ? agentTargetKey(config) : null;
   useEffect(() => {
     if (!config || config.adapter !== "acp") {
       setModelOptions([]);
@@ -143,14 +157,24 @@ export function useAgent(
       return;
     }
     let cancelled = false;
-    setModelOptionsLoading(true);
+    // Seed from cache for instant display; only show the loading state on a
+    // genuine first probe for this target.
+    const cached = probeKey ? probeOptionsCache.get(probeKey) : undefined;
+    if (cached) {
+      setModelOptions(cached);
+      setModelOptionsLoading(false);
+    } else {
+      setModelOptionsLoading(true);
+    }
     void bridge.agent
       .probe({ acpPreset: config.acpPreset, command: config.command, args: config.args })
       .then((result) => {
-        if (!cancelled) setModelOptions(result.installed ? result.options : []);
+        const options = result.installed ? result.options : [];
+        if (probeKey) probeOptionsCache.set(probeKey, options);
+        if (!cancelled) setModelOptions(options);
       })
       .catch(() => {
-        if (!cancelled) setModelOptions([]);
+        if (!cancelled && !cached) setModelOptions([]);
       })
       .finally(() => {
         if (!cancelled) setModelOptionsLoading(false);

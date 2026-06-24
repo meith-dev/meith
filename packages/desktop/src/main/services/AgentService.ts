@@ -79,6 +79,19 @@ export class AgentService extends EventEmitter {
   private readonly remembered = new Map<string, Map<string, "allow" | "deny">>();
   private readonly lastActivity = new Map<string, number>();
   private gcTimer: NodeJS.Timeout | null = null;
+  /**
+   * Cache of probe results keyed by the probe target (preset/command/args).
+   * Probing spawns the agent subprocess and runs a full handshake, so we reuse
+   * the result across agent-panel mounts instead of re-probing every time.
+   * Successful probes live longer than failures so a freshly-installed CLI is
+   * picked up quickly. Cleared whenever the agent config changes.
+   */
+  private readonly probeCache = new Map<
+    string,
+    { result: AgentProbeResult; expiresAt: number }
+  >();
+  private static readonly PROBE_TTL_OK = 5 * 60_000;
+  private static readonly PROBE_TTL_FAIL = 15_000;
 
   constructor(
     private readonly registry: ToolRegistry,
@@ -102,6 +115,9 @@ export class AgentService extends EventEmitter {
   setConfig(patch: Partial<AgentConfig>): AgentConfig {
     const next = this.options.configStore?.set(patch) ?? this.getConfig();
     this.logger.info("Agent", `config updated (adapter=${next.adapter})`);
+    // Invalidate cached probes: the agent target may have changed, and the user
+    // may have just installed/updated the CLI, so the next probe should be live.
+    this.probeCache.clear();
     // Let bootstrap re-select the adapter when the configured kind changes.
     this.emit("config", next);
     return next;
@@ -112,14 +128,40 @@ export class AgentService extends EventEmitter {
    * Settings UI can check a draft before saving). Returns install status + the
    * model/reasoning options the agent advertises. The mock adapter has no
    * external dependency, so it reports "installed" with no options.
+   *
+   * Results are cached per target (see `probeCache`); pass `{ force: true }` to
+   * bypass the cache and re-probe (e.g. an explicit "re-check" action).
    */
   async probeAgent(
-    override?: Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">>,
+    override?: Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">> & {
+      force?: boolean;
+    },
   ): Promise<AgentProbeResult> {
-    const cfg = { ...this.getConfig(), ...override };
+    const { force, ...targetOverride } = override ?? {};
+    const cfg = { ...this.getConfig(), ...targetOverride };
+    const key = `${cfg.adapter}|${cfg.acpPreset ?? "custom"}|${cfg.command ?? ""}|${(cfg.args ?? []).join(" ")}`;
+
+    if (!force) {
+      const cached = this.probeCache.get(key);
+      if (cached && cached.expiresAt > Date.now()) return cached.result;
+    }
+
+    const result = await this.runProbe(targetOverride, cfg.acpPreset ?? "custom");
+    const ttl = result.installed
+      ? AgentService.PROBE_TTL_OK
+      : AgentService.PROBE_TTL_FAIL;
+    this.probeCache.set(key, { result, expiresAt: Date.now() + ttl });
+    return result;
+  }
+
+  /** Run the actual probe against the configured probe source / adapter. */
+  private runProbe(
+    override: Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">>,
+    preset: AgentProbeResult["preset"],
+  ): Promise<AgentProbeResult> {
     if (this.options.probeAcp) return this.options.probeAcp(override);
     if (this.adapter?.probe) return this.adapter.probe(override);
-    return { preset: cfg.acpPreset ?? "custom", installed: true, options: [] };
+    return Promise.resolve({ preset, installed: true, options: [] });
   }
 
   /**
