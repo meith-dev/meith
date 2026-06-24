@@ -32,6 +32,10 @@ export interface OverlayMenuItem {
   iconName?: string;
   /** Secondary text shown right-aligned (e.g. a shell command). */
   hint?: string;
+  /** Secondary line shown beneath the label (e.g. an option description). */
+  description?: string;
+  /** Render a trailing check mark (e.g. the currently selected radio option). */
+  checked?: boolean;
   variant?: "default" | "destructive";
   disabled?: boolean;
   /** Render a separator above this item. */
@@ -48,6 +52,8 @@ export interface OverlayMenuDescriptor {
   items: OverlayMenuItem[];
   align?: "start" | "end";
   minWidth?: number;
+  /** Maximum menu width in px; long descriptions wrap instead of stretching. */
+  maxWidth?: number;
 }
 
 /** A tooltip to render in the overlay window, anchored to a trigger rect. */

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { CheckIcon } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type {
   OverlayMenuDescriptor,
@@ -133,7 +134,7 @@ function MenuView({
   onSelect: (itemId: string) => void;
   onDismiss: () => void;
 }) {
-  const { rect, items, align = "start", minWidth } = descriptor;
+  const { rect, items, align = "start", minWidth, maxWidth } = descriptor;
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
 
@@ -217,6 +218,7 @@ function MenuView({
           left: pos?.left ?? -9999,
           top: pos?.top ?? -9999,
           minWidth: minWidth ?? 128,
+          maxWidth,
         }}
       >
         {items.map((item, i) => {
@@ -271,7 +273,8 @@ function MenuRow({
         onMouseEnter={onHover}
         onClick={onClick}
         className={cn(
-          "flex w-full cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-sm outline-none select-none",
+          "flex w-full cursor-default gap-1.5 rounded-md px-1.5 py-1 text-left text-sm outline-none select-none",
+          item.description ? "items-start" : "items-center",
           "disabled:pointer-events-none disabled:opacity-50",
           destructive ? "text-destructive" : "text-popover-foreground",
           active &&
@@ -280,11 +283,17 @@ function MenuRow({
               : "bg-accent text-accent-foreground"),
         )}
       >
-        {Icon && <Icon className="size-4 shrink-0" />}
-        <span className="flex-1 truncate">{item.label}</span>
+        {Icon && <Icon className={cn("size-4 shrink-0", item.description && "mt-0.5")} />}
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate">{item.label}</span>
+          {item.description && (
+            <span className="text-xs text-muted-foreground">{item.description}</span>
+          )}
+        </span>
         {item.hint && (
           <span className="font-mono text-[10px] text-muted-foreground">{item.hint}</span>
         )}
+        {item.checked && <CheckIcon className="size-4 shrink-0" />}
       </button>
     </>
   );
