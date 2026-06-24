@@ -101,6 +101,12 @@ const toolGroups = [
     ],
   },
   {
+    name: "Git",
+    description:
+      "Inspect a project's working-tree changes as structured per-file diffs with +/- line counts.",
+    tools: ["git_diff"],
+  },
+  {
     name: "Processes & terminals",
     description:
       "Create terminals, manage dev servers, inspect process trees, and read or stream logs.",
