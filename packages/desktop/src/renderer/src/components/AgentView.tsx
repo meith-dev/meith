@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import type { MeithBridge } from "../../../bridge.js";
 import { useAgent } from "../hooks/useAgent";
 import { useResizable } from "../hooks/useResizable";
+import { AgentAccessSwitcher } from "./AgentAccessSwitcher";
 import { AgentMessageList } from "./AgentMessageList";
 import { AgentModelSwitcher } from "./AgentModelSwitcher";
 import { AgentPermissionCard } from "./AgentPermissionCard";
@@ -243,6 +244,11 @@ export function AgentView({ tab, bridge }: AgentViewProps) {
                   reasoning={agent.session?.reasoning ?? agent.config?.reasoning ?? ""}
                   disabled={!agent.session || running}
                   onChange={(patch) => void agent.setSessionModel(patch)}
+                />
+                <AgentAccessSwitcher
+                  autoAccept={agent.config?.autoAccept ?? false}
+                  disabled={!agent.session || running}
+                  onChange={(autoAccept) => void agent.saveConfig({ autoAccept })}
                 />
               </div>
               {running ? (
