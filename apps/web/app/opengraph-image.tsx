@@ -54,8 +54,8 @@ export default function OpenGraphImage() {
               color: "#f3efe9",
             }}
           >
-            Where AI stops chatting and{" "}
-            <span style={{ color: "#e8a13c" }}>&nbsp;starts doing.</span>
+            Build web apps with{" "}
+            <span style={{ color: "#e8a13c" }}>&nbsp;an AI that ships.</span>
           </div>
           <div style={{ fontSize: 30, color: "#b8b0a4", maxWidth: 900, lineHeight: 1.4 }}>
             {siteConfig.description}
