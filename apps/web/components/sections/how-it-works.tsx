@@ -18,15 +18,16 @@ export function HowItWorks() {
               A meitheal for your code
             </p>
             <h2 className="mt-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Everything routes through one shared tool registry.
+              Your whole build routes through one shared tool registry.
             </h2>
             <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
-              The visual interface, the terminal command, a plugin, and an AI
-              agent all interact with the exact same project state — not their
-              own isolated views. Opening a tab from the UI, running{" "}
-              <span className="font-mono text-foreground">meith open</span>, or
-              letting an agent control the browser all go through the same tool
-              definition, validation, permission, and audit path.
+              The visual interface, the terminal command, a plugin, and the AI
+              agent all act on the exact same project — not their own isolated
+              views. Editing a file from the UI, running{" "}
+              <span className="font-mono text-foreground">meith open</span> to
+              preview a route, or letting the agent start your dev server all go
+              through the same tool definition, validation, permission, and
+              audit path.
             </p>
             <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
               meith doesn&apos;t lock you into one AI provider. The agent runtime

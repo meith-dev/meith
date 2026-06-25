@@ -24,13 +24,14 @@ export function CliSection() {
               Same tools, from your shell
             </p>
             <h2 className="mt-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Drive a running workspace from the command line.
+              Drive your project from the command line.
             </h2>
             <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
               The <span className="font-mono text-foreground">meith</span> CLI
               discovers a running runtime over a local socket and calls the exact
-              same tools the app uses. List tools, open tabs, inspect processes,
-              stream dev-server logs, or invoke any tool by name.
+              same tools the app uses. Open preview tabs, inspect dev-server
+              processes, stream build logs, or invoke any tool by name — straight
+              from your existing terminal workflow.
             </p>
             <Link
               href="/docs/cli"
