@@ -155,7 +155,7 @@ gh release create v<version> \
   packages/desktop/release/meith-<version>-mac-arm64.zip \
   packages/desktop/release/meith-<version>-mac-arm64.dmg.blockmap \
   packages/desktop/release/meith-<version>-mac-arm64.zip.blockmap \
-  --repo jouwdan/meith \
+  --repo meith-dev/meith \
   --target main \
   --title "meith <version>" \
   --notes-file /path/to/release-notes.md

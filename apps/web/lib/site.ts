@@ -9,11 +9,11 @@ export const siteConfig = {
   description:
     "Meith is a desktop app where AI agents help you build web apps end to end — editing your code, running dev servers, and previewing localhost right beside the chat, with you approving every step.",
   url: "https://meith.dev",
-  repo: "https://github.com/jouwdan/meith",
-  releases: "https://github.com/jouwdan/meith/releases",
+  repo: "https://github.com/meith-dev/meith",
+  releases: "https://github.com/meith-dev/meith/releases",
   platforms: "macOS (Apple Silicon)",
   license: "AGPL v3",
-  licenseUrl: "https://github.com/jouwdan/meith/blob/main/LICENSE",
+  licenseUrl: "https://github.com/meith-dev/meith/blob/main/LICENSE",
   nav: [
     { label: "Features", href: "/#features" },
     { label: "How it works", href: "/#how-it-works" },
