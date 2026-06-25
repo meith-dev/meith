@@ -8,7 +8,7 @@ export const siteConfig = {
   tagline: "The AI workbench for building web apps.",
   description:
     "Meith is a desktop app where AI agents help you build web apps end to end — editing your code, running dev servers, and previewing localhost right beside the chat, with you approving every step.",
-  url: "https://meith.app",
+  url: "https://meith.dev",
   repo: "https://github.com/jouwdan/meith",
   releases: "https://github.com/jouwdan/meith/releases",
   platforms: "macOS (Apple Silicon)",
