@@ -15,7 +15,7 @@ export default function GettingStartedPage() {
       <DocHeader
         eyebrow="Using meith"
         title="Getting started"
-        description="Install meith, open your first project, and put an agent to work."
+        description="Install meith, open your first web project, and put an agent to work building it."
       />
 
       <H2 id="install">Install the app</H2>
@@ -86,8 +86,8 @@ pnpm --filter @meith/desktop dev:headless`}
       <OL>
         <li>Open an agent chat tab inside your workspace.</li>
         <li>
-          Ask it to do something concrete — for example, &ldquo;summarize the
-          README and start the dev server.&rdquo;
+          Ask it to build something concrete — for example, &ldquo;add a pricing
+          section to the landing page and start the dev server.&rdquo;
         </li>
         <li>
           As the agent calls tools, each step appears inline. Read-only steps run

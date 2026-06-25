@@ -13,7 +13,7 @@ export default function SpacesPage() {
       <DocHeader
         eyebrow="Using meith"
         title="Workspaces & tabs"
-        description="Workspaces are the core of meith. One workspace generally maps to one project folder on your disk."
+        description="Workspaces are the core of meith. One workspace generally maps to one web project folder on your disk."
       />
 
       <H2 id="spaces">Spaces are projects</H2>
@@ -28,7 +28,7 @@ export default function SpacesPage() {
       <H2 id="tabs">What lives inside a workspace</H2>
       <P>Within each workspace you can have:</P>
       <UL>
-        <li>browser tabs for local testing or research,</li>
+        <li>browser tabs for previewing localhost or research,</li>
         <li>editor tabs for project files,</li>
         <li>terminal tabs,</li>
         <li>agent chat tabs,</li>

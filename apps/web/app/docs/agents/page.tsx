@@ -14,15 +14,16 @@ export default function AgentsPage() {
       <DocHeader
         eyebrow="Using meith"
         title="Working with agents"
-        description="In meith, agents don't just chat — they call real tools to act on your project, with every step shown inline."
+        description="In meith, agents don't just chat — they call real tools to build your web app, with every step shown inline."
       />
 
       <H2 id="context">Agents work in your project's context</H2>
       <P>
         Open an agent chat tab inside a workspace and the agent operates within
-        that project. It can read files, edit code, control an embedded browser,
-        start processes, and inspect logs — all through the same shared tool
-        registry the rest of the app uses.
+        that project. It can read and edit your app&apos;s code, run the dev
+        server, drive an embedded browser to check the live preview, and inspect
+        dev-server logs — all through the same shared tool registry the rest of
+        the app uses.
       </P>
 
       <H2 id="adapters">Provider-agnostic by design</H2>
