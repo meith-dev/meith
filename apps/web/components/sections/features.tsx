@@ -9,34 +9,34 @@ import {
 
 const features = [
   {
+    icon: Wrench,
+    title: "Agents that write your code",
+    body: "Meith agents don't just suggest snippets. They scaffold components, edit files across your project, and wire up features — calling real tools through a typed protocol, with every change shown inline.",
+  },
+  {
+    icon: TerminalSquare,
+    title: "Dev servers, built in",
+    body: "Start your dev server, watch its output, and preview localhost right beside the conversation. The status bar tracks what's running and on which port — no second terminal required.",
+  },
+  {
     icon: Globe,
-    title: "Agents that actually act",
-    body: "Meith agents don't just reply. They browse the web, read and edit your files, and run commands — calling real tools through a typed protocol, with every step shown inline.",
+    title: "Live preview & browsing",
+    body: "See your app render as the agent builds it. Meith can open localhost, click through your pages, and check its own work against what's actually on screen.",
+  },
+  {
+    icon: FolderTree,
+    title: "Reviewable code changes",
+    body: "Point meith at your repo and it works inside it. Edits land as inline diffs you can review, undo, and ship — nothing touches your codebase without you seeing it.",
   },
   {
     icon: LayoutGrid,
-    title: "Spaces for every project",
-    body: "Each space is one project. Switch between them from the rail like profiles, and keep agent chats, files, and browser tabs scoped to the work in front of you.",
-  },
-  {
-    icon: Wrench,
-    title: "One shared tool registry",
-    body: "The renderer, the CLI, and the agent runtime all cooperate around a single registry of tools — so a capability added once is available everywhere.",
+    title: "A space per project",
+    body: "Each space is one app. Switch between them from the rail like profiles, and keep agent chats, source files, and preview tabs scoped to the project in front of you.",
   },
   {
     icon: ShieldCheck,
     title: "Permission on every action",
     body: "Tools that touch your machine ask first. Allow once, always allow, or deny — you stay in control of files, commands, and network access at all times.",
-  },
-  {
-    icon: FolderTree,
-    title: "Your files, in context",
-    body: "Point meith at a folder and it works inside it. Edits land as inline diffs you can review and undo, so nothing changes without you seeing it.",
-  },
-  {
-    icon: TerminalSquare,
-    title: "Built-in dev runtime",
-    body: "Start dev servers, watch output, and preview localhost right beside the conversation. The status bar tracks what's running and on which port.",
   },
 ]
 
@@ -49,8 +49,9 @@ export function Features() {
             A workbench, not a chat box
           </h2>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            Everything an AI agent needs to do real work — files, tools, a
-            browser, and a runtime — gathered into one desktop app.
+            Everything you need to build a web app with AI — your code, a dev
+            server, a live preview, and reviewable diffs — gathered into one
+            desktop app.
           </p>
         </div>
 

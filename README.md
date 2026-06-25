@@ -1,8 +1,8 @@
 # meith
 
-Meith is a desktop workspace that puts an AI assistant right next to your code.
+Meith is a desktop workbench for building web apps with AI.
 
-It collects the pieces developers usually scatter across multiple windows and puts them in one place: project folders, code files, terminal sessions, browser previews, run commands, logs, plugins, and agent chat sessions. A shared tool system connects everything. The visual interface, the terminal command, a plugin, and an AI agent all interact with the exact same project state, rather than maintaining their own isolated views.
+It collects the pieces web developers usually scatter across multiple windows and puts them in one place: project folders, code files, terminal sessions, a live localhost preview, run commands, dev-server logs, plugins, and agent chat sessions. A shared tool system connects everything. The visual interface, the terminal command, a plugin, and an AI agent all interact with the exact same project state, rather than maintaining their own isolated views — so an agent can edit a component, start your dev server, and check the result in the preview without ever leaving the window.
 
 Meith doesn't lock you into one AI provider. The agent runtime uses an adapter interface and connects to external agents via ACP (Agent Client Protocol), keeping the desktop app independent of any specific model vendor or SDK.
 
@@ -10,13 +10,13 @@ The name comes from the Irish *meitheal*: a group of people coming together to w
 
 ## What you can do with it
 
-* Open a project folder in its own workspace.
-* Browse and edit code in the integrated editor.
-* Start and stop your project's run command from the top bar.
-* Preview the running local app in an embedded browser tab.
-* View terminal and dev-server logs without leaving the window.
-* Split panes to arrange your browser, editor, terminal, or agent side by side.
-* Ask an agent to work within the context of your current project.
+* Open a web project folder in its own workspace.
+* Browse and edit your app's code in the integrated editor.
+* Start and stop your dev server from the top bar.
+* Preview the running app on localhost in an embedded browser tab.
+* Watch the preview update and read dev-server logs without leaving the window.
+* Split panes to arrange your preview, editor, terminal, or agent side by side.
+* Ask an agent to build features in the context of your current project — editing files, running the dev server, and checking the live preview.
 * Install web-app plugins and explicitly approve the APIs they can use.
 * Use the `meith` terminal command to inspect and control a running app instance.
 

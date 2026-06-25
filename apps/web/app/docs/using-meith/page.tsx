@@ -30,10 +30,10 @@ export default function UsingMeithPage() {
 
       <Lead>
         meith is a single window that gathers the things you normally spread
-        across an editor, a terminal, a browser, and a chat app. Once you know
-        where each surface lives, the daily loop is fast: open a project, split
-        a couple of panes, start the dev server, and let an agent work while you
-        watch every step.
+        across an editor, a terminal, a browser, and a chat app while building a
+        web app. Once you know where each surface lives, the daily loop is fast:
+        open a project, split a couple of panes, start the dev server, and let an
+        agent build features while you watch the preview update at every step.
       </Lead>
 
       <H2 id="layout">The workbench at a glance</H2>
@@ -83,9 +83,10 @@ export default function UsingMeithPage() {
           point straight at it.
         </li>
         <li>
-          Ask the agent to do something concrete. As it calls tools, each step
-          appears inline; read-only steps run immediately and anything that touches
-          your machine pauses for approval.
+          Ask the agent to build something concrete — a component, a page, a
+          feature. As it calls tools, each step appears inline; read-only steps
+          run immediately and anything that touches your machine pauses for
+          approval.
         </li>
         <li>
           Watch the preview update and check the diagnostics drawer for logs as

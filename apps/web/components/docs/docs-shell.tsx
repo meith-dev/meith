@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { PanelLeft, X } from "lucide-react"
 import { DocsSidebarNav } from "@/components/docs/docs-sidebar"
 import { cn } from "@/lib/utils"
@@ -11,6 +12,14 @@ import { cn } from "@/lib/utils"
  */
 export function DocsShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+
+  // Reset scroll to the top of the window whenever the docs route changes, so
+  // navigating between pages always starts at the top instead of preserving
+  // the previous page's scroll position.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
 
   return (
     <div className="mx-auto flex max-w-6xl gap-8 px-4 py-10 sm:px-6">
