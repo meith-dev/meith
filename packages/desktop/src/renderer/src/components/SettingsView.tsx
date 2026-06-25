@@ -803,8 +803,9 @@ function AboutTab({ isMock }: { isMock: boolean }) {
       <SectionLabel className="mt-0">About</SectionLabel>
       <p className="text-sm leading-relaxed text-muted-foreground">
         <span className="font-semibold text-foreground">meith</span> is a warm, focused
-        developer workbench where the renderer, CLI, and agent cooperate around one shared
-        tool registry.
+        workbench for building web apps with AI — the renderer, CLI, and agent cooperate
+        around one shared tool registry, editing your code, running dev servers, and
+        previewing localhost side by side.
       </p>
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Runtime</span>
