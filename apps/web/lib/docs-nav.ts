@@ -19,6 +19,7 @@ export const docsNav: DocSection[] = [
     items: [
       { title: "Introduction", href: "/docs" },
       { title: "Getting started", href: "/docs/getting-started" },
+      { title: "Using meith", href: "/docs/using-meith" },
       { title: "Workspaces & tabs", href: "/docs/spaces" },
       { title: "Working with agents", href: "/docs/agents" },
       { title: "Tools & permissions", href: "/docs/tools" },
