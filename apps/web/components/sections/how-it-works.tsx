@@ -40,13 +40,10 @@ export function HowItWorks() {
           {/* The hub-and-spoke: callers cooperating around the registry. */}
           <div className="relative rounded-xl border border-border bg-card p-6 sm:p-10">
             <div className="grid grid-cols-2 gap-4">
-              {callers.map((caller, i) => (
+              {callers.map((caller) => (
                 <div
                   key={caller.label}
-                  className={
-                    "flex flex-col gap-1 rounded-lg border border-border bg-background p-4 " +
-                    (i % 2 === 0 ? "items-start" : "items-end text-right")
-                  }
+                  className="flex flex-col items-center gap-1 rounded-lg border border-border bg-background p-4 text-center"
                 >
                   <div className="flex size-8 items-center justify-center rounded-md bg-accent text-foreground">
                     <caller.icon className="size-4" />

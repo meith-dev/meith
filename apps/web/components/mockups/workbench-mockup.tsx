@@ -203,22 +203,24 @@ export function WorkbenchMockup({ className }: { className?: string }) {
                 {/* user message */}
                 <div className="flex justify-end">
                   <div className="max-w-[80%] rounded-lg rounded-br-sm bg-secondary px-3 py-2 text-secondary-foreground">
-                    Summarize the Q3 report and start the dev server.
+                    Add a pricing section to the landing page and start the dev
+                    server.
                   </div>
                 </div>
 
                 {/* assistant message */}
                 <div className="max-w-[88%] text-foreground/90">
-                  On it. I&apos;ll read the report first, then bring up the preview.
+                  On it. I&apos;ll build the section, then bring up the live
+                  preview.
                 </div>
 
                 {/* tool call card */}
                 <div className="rounded-lg border border-border bg-card/70 p-2.5">
                   <div className="flex items-center gap-2 text-xs">
                     <Wrench className="size-3.5 text-primary" />
-                    <span className="font-medium text-foreground">read_file</span>
+                    <span className="font-medium text-foreground">write_file</span>
                     <code className="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-                      docs/q3-report.md
+                      components/pricing.tsx
                     </code>
                     <span className="ml-auto flex items-center gap-1 text-primary">
                       <Check className="size-3.5" />
