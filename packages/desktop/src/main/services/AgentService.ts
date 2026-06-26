@@ -11,11 +11,14 @@ import {
   type AgentStreamChunk,
   type AgentToolCall,
   type AgentUsage,
+  DEFAULT_AGENT_SESSION_TITLE,
   type ToolResult,
   defaultAgentConfig,
   errorResult,
+  isDefaultAgentSessionTitle,
   newMessageId,
   newSessionId,
+  summarizeAgentSessionTitle,
 } from "@meith/shared";
 import { capabilitiesFor, gatingCapability } from "../agent/permissions.js";
 import { buildSystemPrompt } from "../agent/systemPrompt.js";
@@ -26,10 +29,10 @@ import type {
 } from "../agent/types.js";
 import type { ToolRegistry } from "../tools/registry.js";
 import type { AgentConfigStore } from "./AgentConfigStore.js";
-import type { AgentStore } from "./AgentStore.js";
+import type { AgentMessagePatch, AgentStore } from "./AgentStore.js";
 import type { AppStateService } from "./AppStateService.js";
 import type { Logger } from "./Logger.js";
-import type { McpBridgeService } from "./McpBridgeService.js";
+import type { McpBridgeService, McpSessionEndpoint } from "./McpBridgeService.js";
 import type { PermissionService } from "./PermissionService.js";
 
 export interface AgentServiceOptions {
@@ -57,6 +60,8 @@ interface PendingPermission {
   resolve: (decision: AgentPermissionDecision) => void;
 }
 
+type TranscriptLoadMode = "display" | "full";
+
 /**
  * Manages agent sessions and dispatches runs to a registered adapter.
  *
@@ -72,9 +77,11 @@ interface PendingPermission {
  */
 export class AgentService extends EventEmitter {
   private sessions = new Map<string, AgentSession>();
+  private transcriptLoadMode = new Map<string, TranscriptLoadMode>();
   private adapter: AgentAdapter | null = null;
   private readonly controllers = new Map<string, AbortController>();
   private readonly pending = new Map<string, PendingPermission>();
+  private readonly persistedAssistantContentLength = new Map<string, number>();
   /** Remembered per-session decisions, keyed by tool name. */
   private readonly remembered = new Map<string, Map<string, "allow" | "deny">>();
   private readonly lastActivity = new Map<string, number>();
@@ -172,7 +179,8 @@ export class AgentService extends EventEmitter {
     sessionId: string,
     patch: { model?: string; reasoning?: string },
   ): AgentSessionMeta {
-    const session = this.requireSession(sessionId);
+    const session = this.getOrCreateSessionFromMeta(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
     if (patch.model !== undefined) session.model = patch.model || undefined;
     if (patch.reasoning !== undefined) session.reasoning = patch.reasoning || undefined;
     session.updatedAt = Date.now();
@@ -197,13 +205,13 @@ export class AgentService extends EventEmitter {
     for (const meta of store.listMeta()) {
       // Sessions left "running" by a crash are reset to idle on load.
       const status = meta.status === "running" ? "idle" : meta.status;
-      this.sessions.set(meta.id, {
-        ...meta,
-        status,
-        messages: store.readMessages(meta.id),
-      });
+      this.sessions.set(meta.id, { ...meta, status, messages: [] });
     }
-    this.logger.info("Agent", `hydrated ${this.sessions.size} session(s)`);
+    this.transcriptLoadMode.clear();
+    this.logger.info(
+      "Agent",
+      `hydrated ${this.sessions.size} session metadata record(s)`,
+    );
   }
 
   createSession(input: CreateSessionInput): AgentSession {
@@ -211,7 +219,7 @@ export class AgentService extends EventEmitter {
     const now = Date.now();
     const session: AgentSession = {
       id: newSessionId(),
-      title: opts.title?.trim() || "New session",
+      title: opts.title?.trim() || DEFAULT_AGENT_SESSION_TITLE,
       cwd: opts.cwd,
       spaceId: opts.spaceId ?? null,
       model: opts.model || this.getConfig().model || undefined,
@@ -220,26 +228,27 @@ export class AgentService extends EventEmitter {
       status: "idle",
       createdAt: now,
       updatedAt: now,
+      lastViewedAt: now,
       messages: [],
     };
     this.sessions.set(session.id, session);
+    this.transcriptLoadMode.set(session.id, "full");
     this.persistMeta(session);
     this.touch(session.id);
     return session;
   }
 
   getSession(id: string): AgentSession | undefined {
-    const cached = this.sessions.get(id);
-    if (cached) return cached;
-    const store = this.options.store;
-    const meta = store?.getMeta(id);
-    if (!store || !meta) return undefined;
-    const session: AgentSession = { ...meta, messages: store.readMessages(id) };
-    this.sessions.set(id, session);
-    return session;
+    const session = this.getOrCreateSessionFromMeta(id);
+    return session ? this.ensureTranscriptLoaded(session, "display") : undefined;
   }
 
   listSessions(): AgentSessionMeta[] {
+    if (this.sessions.size > 0) {
+      return [...this.sessions.values()]
+        .map((s) => this.toMeta(s))
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+    }
     if (this.options.store) return this.options.store.listMeta();
     return [...this.sessions.values()]
       .map((s) => this.toMeta(s))
@@ -252,10 +261,25 @@ export class AgentService extends EventEmitter {
     this.options.mcpBridge?.unregisterSession(id);
     this.options.permissions?.revokeSession("agent", id);
     this.sessions.delete(id);
+    this.transcriptLoadMode.delete(id);
     this.remembered.delete(id);
     this.lastActivity.delete(id);
     this.options.store?.deleteSession(id);
     return true;
+  }
+
+  /** Mark a session as viewed without changing its activity ordering. */
+  markSessionViewed(id: string, viewedAt = Date.now()): AgentSessionMeta {
+    const cached = this.sessions.get(id);
+    const storedMeta = cached ? null : this.options.store?.getMeta(id);
+    const session = cached ?? (storedMeta ? { ...storedMeta, messages: [] } : null);
+    if (!session) throw new Error(`Unknown session: ${id}`);
+    if (!cached) this.sessions.set(id, session);
+    session.lastViewedAt = Math.max(session.lastViewedAt ?? 0, viewedAt);
+    this.persistMeta(session);
+    const viewedMeta = this.toMeta(session);
+    this.emit("session", viewedMeta);
+    return viewedMeta;
   }
 
   appendMessage(
@@ -263,7 +287,7 @@ export class AgentService extends EventEmitter {
     role: AgentMessage["role"],
     content: string,
   ): AgentMessage {
-    const session = this.requireSession(sessionId);
+    const session = this.requireSession(sessionId, "full");
     const message: AgentMessage = {
       id: newMessageId(),
       role,
@@ -413,7 +437,7 @@ export class AgentService extends EventEmitter {
   private hostContext(
     session: AgentSession,
     signal: AbortSignal,
-    mcpEndpoint?: { url: string; token: string },
+    mcpEndpoint?: McpSessionEndpoint,
   ): AgentHostContext {
     return {
       listTools: (): ToolDescriptor[] => this.registry.describe(),
@@ -437,7 +461,7 @@ export class AgentService extends EventEmitter {
    * persisted as the turn progresses.
    */
   async *run(sessionId: string, userText?: string): AsyncIterable<AgentStreamChunk> {
-    const session = this.requireSession(sessionId);
+    const session = this.requireSession(sessionId, "full");
     if (!this.adapter) {
       throw new Error(
         "No AgentAdapter registered. Implement AgentAdapter (ACP/MCP/SDK) and call registerAdapter().",
@@ -446,7 +470,10 @@ export class AgentService extends EventEmitter {
     if (session.status === "running" || this.controllers.has(sessionId)) {
       throw new Error(`Agent session is already running: ${sessionId}`);
     }
-    if (userText !== undefined) this.appendMessage(sessionId, "user", userText);
+    if (userText !== undefined) {
+      this.appendMessage(sessionId, "user", userText);
+      this.applyAutoTitle(session, userText);
+    }
 
     const controller = new AbortController();
     this.controllers.set(sessionId, controller);
@@ -454,7 +481,7 @@ export class AgentService extends EventEmitter {
 
     // Register an MCP endpoint so an external (ACP) agent can call our tools
     // with this session's identity. In-process adapters use host.callTool.
-    let mcpEndpoint: { url: string; token: string } | undefined;
+    let mcpEndpoint: McpSessionEndpoint | undefined;
     const bridge = this.options.mcpBridge;
     if (bridge && this.adapter.id === "acp") {
       await bridge.start();
@@ -517,7 +544,8 @@ export class AgentService extends EventEmitter {
   ): void {
     switch (chunk.type) {
       case "text":
-        appendAssistantText(assistant, chunk.text);
+        appendAssistantText(assistant, chunk.text, chunk.kind);
+        this.persistAssistantPatch(session, assistant);
         break;
       case "tool_call": {
         assistant.toolCalls = assistant.toolCalls ?? [];
@@ -529,7 +557,10 @@ export class AgentService extends EventEmitter {
             contentOffset: chunk.toolCall.contentOffset ?? assistant.content.length,
           });
         }
-        this.persistMessage(session, assistant);
+        const call = assistant.toolCalls.find((c) => c.id === chunk.toolCall.id);
+        this.persistAssistantPatch(session, assistant, {
+          toolCalls: call ? [call] : [],
+        });
         break;
       }
       case "tool_result": {
@@ -539,7 +570,9 @@ export class AgentService extends EventEmitter {
           call.status = chunk.result.ok ? "ok" : "error";
           call.endedAt = Date.now();
         }
-        this.persistMessage(session, assistant);
+        this.persistAssistantPatch(session, assistant, {
+          toolCalls: call ? [call] : [],
+        });
         break;
       }
       case "usage":
@@ -563,9 +596,14 @@ export class AgentService extends EventEmitter {
       !assistant.error
     ) {
       session.messages = session.messages.filter((m) => m.id !== assistant.id);
+      this.persistedAssistantContentLength.delete(assistant.id);
       return;
     }
-    this.persistMessage(session, assistant);
+    this.persistAssistantPatch(session, assistant, {
+      usage: assistant.usage,
+      error: assistant.error,
+    });
+    this.persistedAssistantContentLength.delete(assistant.id);
   }
 
   private setStatus(session: AgentSession, status: AgentSession["status"]): void {
@@ -575,12 +613,51 @@ export class AgentService extends EventEmitter {
     this.emit("session", this.toMeta(session));
   }
 
-  private persistMessage(session: AgentSession, message: AgentMessage): void {
-    this.options.store?.appendMessage(session.id, message);
+  private persistAssistantPatch(
+    session: AgentSession,
+    assistant: AgentMessage,
+    extras: Partial<Pick<AgentMessagePatch, "toolCalls" | "usage" | "error">> = {},
+  ): void {
+    const previousLength = this.persistedAssistantContentLength.get(assistant.id) ?? 0;
+    const contentDelta = assistant.content.slice(previousLength);
+    const textSegments = deltaTextSegments(assistant.textSegments, previousLength);
+    if (
+      !contentDelta &&
+      textSegments.length === 0 &&
+      !extras.toolCalls?.length &&
+      extras.usage === undefined &&
+      extras.error === undefined
+    ) {
+      return;
+    }
+
+    const patch: AgentMessagePatch = {
+      type: "message_patch",
+      messageId: assistant.id,
+      role: assistant.role,
+      createdAt: assistant.createdAt,
+      ...(contentDelta ? { contentDelta } : {}),
+      ...(textSegments.length ? { textSegments } : {}),
+      ...extras,
+    };
+    this.options.store?.appendMessagePatch(session.id, patch);
+    if (assistant.content.length > previousLength) {
+      this.persistedAssistantContentLength.set(assistant.id, assistant.content.length);
+    }
   }
 
   private persistMeta(session: AgentSession): void {
     this.options.store?.upsertMeta(this.toMeta(session));
+  }
+
+  private applyAutoTitle(session: AgentSession, userText: string): void {
+    if (!isDefaultAgentSessionTitle(session.title)) return;
+    const title = summarizeAgentSessionTitle(userText);
+    if (!title) return;
+    session.title = title;
+    session.updatedAt = Date.now();
+    this.persistMeta(session);
+    this.emit("session", this.toMeta(session));
   }
 
   private toMeta(session: AgentSession): AgentSessionMeta {
@@ -592,10 +669,64 @@ export class AgentService extends EventEmitter {
     this.lastActivity.set(sessionId, Date.now());
   }
 
-  private requireSession(sessionId: string): AgentSession {
-    const session = this.getSession(sessionId);
-    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+  private getOrCreateSessionFromMeta(sessionId: string): AgentSession | undefined {
+    const cached = this.sessions.get(sessionId);
+    if (cached) return cached;
+    const meta = this.options.store?.getMeta(sessionId);
+    if (!meta) return undefined;
+    const session: AgentSession = { ...meta, messages: [] };
+    this.sessions.set(sessionId, session);
     return session;
+  }
+
+  private ensureTranscriptLoaded(
+    session: AgentSession,
+    mode: TranscriptLoadMode,
+  ): AgentSession {
+    const currentMode = this.transcriptLoadMode.get(session.id);
+    const store = this.options.store;
+    if (currentMode === "full" && mode === "display") {
+      return store
+        ? { ...session, messages: store.readDisplayMessagesFast(session.id) }
+        : session;
+    }
+    if (currentMode === mode) return session;
+    if (!store) {
+      this.transcriptLoadMode.set(session.id, mode);
+      return session;
+    }
+
+    try {
+      const loaded: AgentSession = {
+        ...session,
+        messages:
+          mode === "full"
+            ? store.readMessages(session.id)
+            : store.readDisplayMessagesFast(session.id),
+      };
+      this.sessions.set(session.id, loaded);
+      this.transcriptLoadMode.set(session.id, mode);
+      return loaded;
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      const failed: AgentSession = { ...session, status: "error", messages: [] };
+      this.sessions.set(session.id, failed);
+      this.transcriptLoadMode.set(session.id, mode);
+      this.logger.warn(
+        "Agent",
+        `skipped transcript for ${session.id} during lazy load: ${reason}`,
+      );
+      return failed;
+    }
+  }
+
+  private requireSession(
+    sessionId: string,
+    mode: TranscriptLoadMode = "display",
+  ): AgentSession {
+    const session = this.getOrCreateSessionFromMeta(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    return this.ensureTranscriptLoaded(session, mode);
   }
 
   // --- Lifecycle / GC ------------------------------------------------------
@@ -637,7 +768,11 @@ export class AgentService extends EventEmitter {
   }
 }
 
-function appendAssistantText(assistant: AgentMessage, text: string): void {
+function appendAssistantText(
+  assistant: AgentMessage,
+  text: string,
+  kind: "thought" | "message" = "message",
+): void {
   if (!text) return;
   const start = assistant.content.length;
   const end = start + text.length;
@@ -648,12 +783,51 @@ function appendAssistantText(assistant: AgentMessage, text: string): void {
     (call) => call.contentOffset === start,
   );
   const previous = assistant.textSegments.at(-1);
-  if (previous && previous.end === start && !startsAfterTool) {
+  if (
+    previous &&
+    previous.end === start &&
+    !startsAfterTool &&
+    textSegmentKind(previous) === kind
+  ) {
     previous.text += text;
     previous.end = end;
     return;
   }
-  assistant.textSegments.push({ start, end, text });
+  assistant.textSegments.push(agentTextSegment(start, end, text, kind));
+}
+
+function textSegmentKind(segment: NonNullable<AgentMessage["textSegments"]>[number]) {
+  return segment.kind ?? "message";
+}
+
+function agentTextSegment(
+  start: number,
+  end: number,
+  text: string,
+  kind: "thought" | "message",
+): NonNullable<AgentMessage["textSegments"]>[number] {
+  return kind === "thought" ? { start, end, text, kind } : { start, end, text };
+}
+
+function deltaTextSegments(
+  segments: AgentMessage["textSegments"],
+  fromOffset: number,
+): NonNullable<AgentMessage["textSegments"]> {
+  if (!segments?.length) return [];
+  const delta: NonNullable<AgentMessage["textSegments"]> = [];
+  for (const segment of segments) {
+    if (segment.end <= fromOffset) continue;
+    if (segment.start >= fromOffset) {
+      delta.push(segment);
+      continue;
+    }
+    delta.push({
+      ...segment,
+      start: fromOffset,
+      text: segment.text.slice(fromOffset - segment.start),
+    });
+  }
+  return delta;
 }
 
 function mergeToolCall(target: AgentToolCall, incoming: AgentToolCall): void {

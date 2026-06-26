@@ -88,7 +88,7 @@ export interface AgentHostContext {
    * (ACP subprocess) can call the same tools with `caller: "agent"` scoping.
    * Undefined when no bridge is running.
    */
-  mcpEndpoint?: { url: string; token: string };
+  mcpEndpoint?: { url: string; token: string; ready: Promise<void> };
   log: (message: string) => void;
 }
 

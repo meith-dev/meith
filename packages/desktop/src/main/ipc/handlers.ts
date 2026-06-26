@@ -55,6 +55,8 @@ export const IPC = {
   agentProbe: "meith:agent:probe",
   /** Renderer -> main (invoke): set a session's model/reasoning (+ save default). */
   agentSetSessionModel: "meith:agent:session:model",
+  /** Renderer -> main (invoke): mark a session as viewed. */
+  agentMarkSessionViewed: "meith:agent:session:viewed",
   /** Main -> renderer: a streamed chunk `{ sessionId, chunk }`. */
   agentChunk: "meith:agent:chunk",
   /** Main -> renderer: session metadata changed (status/usage/title). */
@@ -150,10 +152,19 @@ export function registerIpcHandlers(
   // Lifecycle + queries are request/response; the high-rate run output and
   // permission prompts use dedicated push channels (like terminals).
   ipcMain.handle(IPC.agentListSessions, () => container.agents.listSessions());
-  ipcMain.handle(
-    IPC.agentGetSession,
-    (_e, id: string) => container.agents.getSession(id) ?? null,
-  );
+  ipcMain.handle(IPC.agentGetSession, (_e, id: string) => {
+    const start = Date.now();
+    const session = container.agents.getSession(id) ?? null;
+    const messages = session?.messages.length ?? 0;
+    const chars =
+      session?.messages.reduce((sum, message) => sum + message.content.length, 0) ?? 0;
+    const payloadBytes = session ? Buffer.byteLength(JSON.stringify(session), "utf8") : 0;
+    container.logger.debug(
+      "Agent",
+      `getSession ${id} ok (${Date.now() - start}ms, ${messages} messages, ${chars} chars, ${payloadBytes} bytes)`,
+    );
+    return session;
+  });
   ipcMain.handle(
     IPC.agentCreateSession,
     (
@@ -207,6 +218,9 @@ export function registerIpcHandlers(
     IPC.agentSetSessionModel,
     (_e, sessionId: string, patch: { model?: string; reasoning?: string }) =>
       container.agents.setSessionModel(sessionId, patch),
+  );
+  ipcMain.handle(IPC.agentMarkSessionViewed, (_e, sessionId: string) =>
+    container.agents.markSessionViewed(sessionId),
   );
 
   // Push agent run output, session metadata changes, and permission prompts.

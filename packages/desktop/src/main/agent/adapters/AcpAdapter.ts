@@ -24,6 +24,7 @@ import type {
 } from "../types.js";
 
 const ACP_PROTOCOL_VERSION = 1;
+const DEFAULT_TEXT_VERBOSITY = "low";
 
 /**
  * Drives an external agent that speaks the Agent Client Protocol (ACP) over a
@@ -143,10 +144,15 @@ export class AcpAdapter implements AgentAdapter {
     // Run the ACP handshake + prompt in the background, feeding the queue.
     void (async () => {
       try {
-        await rpc.request("initialize", {
+        const initializeResponse = await rpc.request("initialize", {
           protocolVersion: ACP_PROTOCOL_VERSION,
           clientCapabilities: { fs: { readTextFile: false, writeTextFile: false } },
         });
+        if (host.mcpEndpoint && !supportsHttpMcp(initializeResponse)) {
+          throw new Error(
+            "Configured ACP agent does not advertise HTTP MCP support, so Meith tools cannot be exposed.",
+          );
+        }
 
         const mcpServers = host.mcpEndpoint
           ? [
@@ -176,6 +182,10 @@ export class AcpAdapter implements AgentAdapter {
           { model, reasoning },
           (msg) => this.log(`[acp] ${msg}`),
         );
+
+        if (host.mcpEndpoint && shouldWaitForMcpToolsExposure(cfg, launch)) {
+          await waitForMcpToolsExposed(host.mcpEndpoint.ready);
+        }
 
         await rpc.request("session/prompt", {
           sessionId: currentSessionId,
@@ -349,6 +359,45 @@ export function buildAcpPrompt(
   return [{ type: "text", text }];
 }
 
+export function supportsHttpMcp(initializeResponse: unknown): boolean {
+  const response = asRecord(initializeResponse);
+  const capabilities = asRecord(response?.agentCapabilities);
+  const mcpCapabilities = asRecord(capabilities?.mcpCapabilities);
+  return mcpCapabilities?.http === true;
+}
+
+export function shouldWaitForMcpToolsExposure(
+  config: Pick<AgentConfig, "acpPreset">,
+  launch: { command: string; args: string[] },
+): boolean {
+  const preset = config.acpPreset ?? "custom";
+  if (preset === "codex" || preset === "claude") return true;
+  const launchText = [launch.command, ...launch.args].join(" ").toLowerCase();
+  return launchText.includes("codex-acp") || launchText.includes("claude-agent-acp");
+}
+
+export async function waitForMcpToolsExposed(
+  ready: Promise<void>,
+  timeoutMs = 10_000,
+): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(
+        new Error(
+          `Meith MCP tools were not exposed to the ACP agent within ${timeoutMs}ms. The agent did not call tools/list on the per-session Meith MCP bridge.`,
+        ),
+      );
+    }, timeoutMs);
+    timer.unref?.();
+  });
+  try {
+    await Promise.race([ready, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /**
  * Normalise the `configOptions` an agent returns from `session/new` into the
  * shared `AgentConfigOption` shape. Tolerant of missing/extra fields and of the
@@ -432,6 +481,9 @@ export async function applyConfigOptions(
 
   const reasoningOption = options.find((o) => isReasoningConfigOption(o));
   if (reasoningOption && desired.reasoning) await set(reasoningOption, desired.reasoning);
+
+  const verbosityOption = options.find((o) => isTextVerbosityConfigOption(o));
+  if (verbosityOption) await set(verbosityOption, DEFAULT_TEXT_VERBOSITY);
 }
 
 interface AcpPermissionOption {
@@ -590,7 +642,7 @@ function formatMessagesForPrompt(messages: AgentMessage[]): string {
 }
 
 /** Map an ACP `session/update` notification payload to an AgentStreamChunk. */
-function mapSessionUpdate(params: unknown): AgentStreamChunk | null {
+export function mapSessionUpdate(params: unknown): AgentStreamChunk | null {
   const update = (params as { update?: Record<string, unknown> }).update;
   if (!update || typeof update !== "object") return null;
   const kind = update.sessionUpdate as string | undefined;
@@ -598,8 +650,32 @@ function mapSessionUpdate(params: unknown): AgentStreamChunk | null {
   switch (kind) {
     case "agent_message_chunk":
     case "agent_thought_chunk": {
-      const content = update.content as { text?: string } | undefined;
-      if (content?.text) return { type: "text", text: content.text };
+      const text = extractText(update.content) ?? extractText(update.delta);
+      if (text) {
+        return {
+          type: "text",
+          text,
+          kind: kind === "agent_thought_chunk" ? "thought" : "message",
+        };
+      }
+      return null;
+    }
+    case "agent_message":
+    case "assistant_message":
+    case "assistant_item":
+    case "assistant_item_replay": {
+      const text =
+        extractText(update.content) ??
+        extractText(update.message) ??
+        extractText(update.item) ??
+        extractText(update.delta);
+      if (text) return { type: "text", text };
+      return null;
+    }
+    case "phase":
+    case "preamble":
+    case "agent_phase":
+    case "agent_preamble": {
       return null;
     }
     case "tool_call": {
@@ -711,6 +787,31 @@ function extractToolResult(update: Record<string, unknown>): ToolResult | undefi
     };
   }
   return { ok: true, content: output };
+}
+
+function isTextVerbosityConfigOption(option: {
+  id: string;
+  name: string;
+  category?: string;
+}): boolean {
+  const haystack = `${option.category ?? ""} ${option.id} ${option.name}`.toLowerCase();
+  return (
+    haystack.includes("text.verbosity") ||
+    (haystack.includes("verbosity") && haystack.includes("text"))
+  );
+}
+
+function extractText(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  const record = asRecord(value);
+  if (!record) return undefined;
+  if (typeof record.text === "string") return record.text;
+  if (typeof record.delta === "string") return record.delta;
+  if (typeof record.content === "string") return record.content;
+  if (Array.isArray(record.content)) {
+    return record.content.map(extractText).filter(Boolean).join("");
+  }
+  return undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
