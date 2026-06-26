@@ -53,6 +53,22 @@ An agent session contains:
 The renderer shows sessions in `AgentView`: a resizable session list, transcript,
 composer, stop button, and pending permission cards.
 
+Session titles are generated from the first useful user request, capped to a
+short title for the session list. `lastViewedAt` tracks whether a finished
+session has unseen updates.
+
+Transcripts are stored separately from the session index as per-session JSONL
+records. Streaming text is appended as message patches, including optional text
+segment kinds:
+
+- `thought` for compact thinking/progress text,
+- `message` for final assistant prose.
+
+When transcript files grow past size or record-count thresholds, `AgentStore`
+compacts them into message snapshots while preserving tool calls, usage, errors,
+and text segments. This keeps long sessions resumable without making
+`sessions.json` or renderer hydration expensive.
+
 ## Configuration
 
 Agent config is stored by `AgentConfigStore` and edited in Settings.
@@ -64,6 +80,7 @@ Current config fields:
 - `command`: custom ACP executable
 - `args`: custom ACP arguments
 - `model`: optional model string
+- `reasoning`: optional effort/reasoning level
 - `autoAccept`: whether gated tools run without prompting
 
 The default adapter is `mock`, so the UI works without external setup.
@@ -161,6 +178,12 @@ the MCP server named `meith`. Requests for provider-native tools, external MCP
 servers, or helper surfaces are denied at the ACP layer so they cannot bypass
 `AgentService`, `PermissionService`, or browser ownership.
 
+When an ACP agent advertises config options, meith applies the selected model
+and reasoning level through `session/set_config_option`. If a text verbosity
+option is available, meith sets it to low by default so streamed output stays
+compact. Built-in Claude and Codex ACP presets also wait until the agent has
+listed the per-session Meith MCP tools before the prompt is sent.
+
 ## MCP Bridge
 
 `McpBridgeService` is a dependency-light local HTTP JSON-RPC server bound to
@@ -229,3 +252,6 @@ through the agent runtime and cannot bypass the tool permission model.
 - `startIdleGc()` cleans idle session resources.
 - Auto-accept should be treated as a high-trust setting because it lets gated
   tools run without prompting.
+- The packaged desktop app stages a bundled Node runtime and prepends it to
+  spawned process PATHs, so ACP presets that launch through `npx` can run from a
+  Finder-launched app.

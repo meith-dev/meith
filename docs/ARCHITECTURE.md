@@ -17,6 +17,7 @@ tool definition, validation, permission, logging, and persistence path.
 | `@meith/protocol` | Tool contracts, tool descriptors, NDJSON protocol messages, naming helpers, and public plugin bridge types. |
 | `@meith/desktop` | Electron main/preload/renderer, services, tool registration, socket server, IPC, browser/terminal hosts, agents, plugins, storage, and packaging. |
 | `@meith/cli` | Terminal client that discovers a running runtime and calls tools over the local socket. |
+| `@meith/web` | Next.js documentation and marketing site under `apps/web`. |
 
 ## Authority Model
 
@@ -83,12 +84,16 @@ use, discovery data lives under `~/.meith`:
 - `<userData>/audit.jsonl` stores tool authorization/audit records.
 - `<userData>/artifacts/` stores screenshot and bug-report artifacts.
 - `<userData>/plugins/` stores extracted packaged plugins.
-- agent metadata, transcripts, and config are managed by `AgentStore` and
-  `AgentConfigStore`.
+- `<userData>/agent/sessions.json` stores agent session metadata.
+- `<userData>/agent/transcripts/*.jsonl` stores per-session agent transcript
+  records.
+- agent config is managed by `AgentConfigStore`.
 
 `JsonStore` writes bounded JSON atomically and uses migrations before schema
 validation. Corrupt state is backed up and reset to defaults instead of crashing
-the app. `JsonlStore` stores append-only logs and audit records.
+the app. `JsonlStore` stores append-only logs, audit records, and compact agent
+transcript records. Long transcript streams are periodically compacted into
+message snapshots so startup and session hydration stay bounded.
 
 ## Workspaces and Projects
 
@@ -152,6 +157,8 @@ Major surfaces:
 - `TerminalView` for PTY sessions.
 - `AgentView` for session list, transcript, composer, stop button, and
   permission cards.
+- `DiffView` for a working-tree diff tab with a folder tree, cached summary
+  counts, and lazy patch loading for the selected file.
 - `SettingsView` for app preferences, per-project run commands, agent config,
   plugin management, and about info.
 - `DebugPanel` for tool runner, state, logs, and output diagnostics.
@@ -159,6 +166,10 @@ Major surfaces:
 
 The renderer does not mutate services directly. It calls tools or dedicated IPC
 stream channels, then re-renders from pushed app state.
+
+High-frequency app-state and dev-server updates are scheduled with React
+transitions so process logs, status updates, and large state pushes do not block
+typing, dragging tabs, or interacting with the browser surface.
 
 ## CLI
 
@@ -192,6 +203,12 @@ Agent tool calls use `caller: "agent"` and the agent session id. Read-only tools
 run directly. Privileged tools require an explicit permission decision unless
 auto-accept is enabled. Approved one-use grants are written into
 `PermissionService` before the registry call.
+
+ACP permission requests are only approved at the ACP layer when the requested
+tool name maps to a tool exposed by the per-session MCP server named `meith`.
+Provider-native tools, other MCP servers, and unknown helper surfaces are denied
+before they can bypass `AgentService`, `PermissionService`, or browser
+ownership.
 
 ## Plugins
 
@@ -238,3 +255,16 @@ Full verification:
 ```bash
 pnpm check
 ```
+
+## Packaging
+
+Desktop packaging stages a bundled Node runtime into
+`packages/desktop/vendor/node-runtime` before `electron-builder` runs. The
+packaged app adds that runtime, the user's login shell PATH, common Node version
+manager paths, and common user tool directories to spawned process PATHs. This
+lets Finder-launched macOS builds run `npx`, ACP agents, and project scripts
+without depending on a terminal-launched environment.
+
+The public web app is deployed from `apps/web`. `vercel.json` skips Vercel
+builds when a commit does not touch `apps/web`, so desktop-only changes do not
+trigger unnecessary web deployments.
