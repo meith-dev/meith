@@ -1,6 +1,6 @@
 {
   "name": "@meith/desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "main": "./out/main/index.js",
@@ -51,7 +51,7 @@
       }
     ],
     "mac": {
-      "bundleVersion": "0.1.0",
+      "bundleVersion": "0.1.1",
       "category": "public.app-category.developer-tools",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
