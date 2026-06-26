@@ -17,6 +17,7 @@ The name comes from the Irish *meitheal*: a group of people coming together to w
 * Watch the preview update and read dev-server logs without leaving the window.
 * Split panes to arrange your preview, editor, terminal, or agent side by side.
 * Ask an agent to build features in the context of your current project — editing files, running the dev server, and checking the live preview.
+* Review working-tree changes in the built-in Diff tab, with cached summary counts in the top bar and patches loaded only when you select a file.
 * Install web-app plugins and explicitly approve the APIs they can use.
 * Use the `meith` terminal command to inspect and control a running app instance.
 
@@ -31,7 +32,7 @@ Workspaces are the core of meith. One workspace generally maps to one project fo
 * run commands and environment configurations,
 * plugin tabs.
 
-The app persists your spaces, tabs, projects, settings, logs, and agent sessions across restarts.
+The app persists your spaces, tabs, projects, settings, logs, and agent sessions across restarts. Agent transcripts are stored as compact per-session JSONL records so long chats can stream and resume without bloating the app-state index.
 
 ## Agent and plugin safety
 
@@ -46,19 +47,19 @@ The renderer is fully trusted as part of the core app, but agents and plugins fa
 * the host resolves plugin identity directly from the plugin tab itself, ignoring data the plugin sends,
 * plugin tabs only access the `window.meithPlugin` APIs you specifically approve.
 
-For agents, meith currently includes a built-in mock adapter for local testing and an ACP subprocess adapter for actual external agents. The ACP path allows an agent to use meith's tools without forcing the app to depend on a particular AI provider.
+For agents, meith currently includes a built-in mock adapter for local testing and an ACP subprocess adapter for actual external agents. The ACP path allows an agent to use meith's tools without forcing the app to depend on a particular AI provider. ACP provider-side permission requests are only approved automatically when they refer to tools exposed by meith's MCP server; all provider-native or unknown tool approvals are denied before they can bypass the registry.
 
 ## Technical documentation
 
-* [Architecture](https://www.google.com/search?q=./docs/ARCHITECTURE.md) covers the packages, boot path, services, persistence, renderer, CLI, agents, and plugins.
-* [Tool protocol](https://www.google.com/search?q=./docs/TOOL_PROTOCOL.md) details the local socket protocol, tool result envelopes, capabilities, timeouts, cancellation, and caller policies.
-* [Adding tools](https://www.google.com/search?q=./docs/ADDING_TOOLS.md) walks through adding a new tool to the shared registry.
-* [Agent runtime](https://www.google.com/search?q=./docs/AGENT_RUNTIME.md) breaks down sessions, adapters, permissions, MCP bridging, and ACP subprocess integration.
-* [Plugin API](https://www.google.com/search?q=./docs/PLUGIN_API.md) covers plugin manifests, installation, approved grants, `window.meithPlugin`, and the security model.
+* [Architecture](./docs/ARCHITECTURE.md) covers the packages, boot path, services, persistence, renderer, CLI, agents, and plugins.
+* [Tool protocol](./docs/TOOL_PROTOCOL.md) details the local socket protocol, tool result envelopes, capabilities, timeouts, cancellation, and caller policies.
+* [Adding tools](./docs/ADDING_TOOLS.md) walks through adding a new tool to the shared registry.
+* [Agent runtime](./docs/AGENT_RUNTIME.md) breaks down sessions, adapters, permissions, MCP bridging, and ACP subprocess integration.
+* [Plugin API](./docs/PLUGIN_API.md) covers plugin manifests, installation, approved grants, `window.meithPlugin`, and the security model.
 
 ## Developer information
 
-This repository is a pnpm monorepo containing four packages:
+This repository is a pnpm monorepo containing the desktop runtime packages plus the public web app:
 
 | Package | Purpose |
 | --- | --- |
@@ -66,6 +67,7 @@ This repository is a pnpm monorepo containing four packages:
 | `@meith/protocol` | Tool definitions, tool descriptors, NDJSON wire messages, naming helpers, and plugin API types. |
 | `@meith/desktop` | Electron main process, preload bridges, React renderer, services, tools, socket server, plugins, provider-agnostic agent adapters, and packaging. |
 | `@meith/cli` | The `meith` terminal command that talks to the running runtime socket. |
+| `@meith/web` | Next.js documentation and marketing site under `apps/web`. |
 
 Requirements:
 
@@ -123,6 +125,8 @@ pnpm pack:desktop
 pnpm dist:mac
 
 ```
+
+The packaged desktop build stages a bundled Node runtime before `electron-builder` runs. That runtime is added to spawned process PATHs, alongside the user's shell, version-manager, and common tool paths, so Finder-launched builds can still run `npx`, ACP agents, and project scripts.
 
 ## Release process
 

@@ -55,8 +55,13 @@ export default function AgentsPage() {
         <li>file writes,</li>
         <li>browser control,</li>
         <li>process starts,</li>
-        <li>network requests and destructive actions.</li>
+        <li>destructive actions.</li>
       </UL>
+      <P>
+        You can remember an approval for the same tool for the rest of the
+        session. ACP provider-side approvals are narrowed to tools exposed by
+        meith, so provider-native helpers cannot bypass the shared registry.
+      </P>
       <Callout title="Edits are reviewable">
         When an agent edits a file, the change lands as an inline diff with a
         gutter marker, so you can see exactly what was rewritten — and undo it.

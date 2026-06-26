@@ -36,6 +36,17 @@ export default function AgentRuntimePage() {
         <InlineCode>AgentView</InlineCode>: a resizable session list, transcript, composer, stop button, and pending
         permission cards.
       </P>
+      <P>
+        Session titles are generated from the first useful user request and capped for the session list.{" "}
+        <InlineCode>lastViewedAt</InlineCode> tracks finished sessions with unseen updates.
+      </P>
+      <P>
+        Transcripts are stored outside the session index as per-session JSONL records. Streaming text is appended as
+        compact message patches, including optional <InlineCode>thought</InlineCode> and{" "}
+        <InlineCode>message</InlineCode> segment kinds. When a transcript grows past size or record-count thresholds,{" "}
+        <InlineCode>AgentStore</InlineCode> compacts it into message snapshots while preserving tool calls, usage,
+        errors, and text segments.
+      </P>
 
       <H2 id="config">Configuration</H2>
       <P>
@@ -54,6 +65,9 @@ export default function AgentRuntimePage() {
         </Li>
         <Li>
           <InlineCode>model</InlineCode> (optional) and <InlineCode>autoAccept</InlineCode>
+        </Li>
+        <Li>
+          <InlineCode>reasoning</InlineCode> for an optional effort/reasoning level advertised by the ACP agent
         </Li>
       </Ul>
       <P>
@@ -114,8 +128,16 @@ export default function AgentRuntimePage() {
         </Li>
       </Ol>
       <P>
-        ACP permission requests are allowed at the ACP layer because meith independently gates actual tool execution
-        through <InlineCode>AgentService</InlineCode> and <InlineCode>PermissionService</InlineCode>.
+        ACP permission requests are allowed at the ACP layer only when they reference a tool exposed by the MCP server
+        named <InlineCode>meith</InlineCode>. Provider-native tools, other MCP servers, and unknown helper surfaces are
+        denied before they can bypass <InlineCode>AgentService</InlineCode>, <InlineCode>PermissionService</InlineCode>,
+        or browser ownership.
+      </P>
+      <P>
+        When an ACP agent advertises config options, meith applies the selected model and reasoning level through{" "}
+        <InlineCode>session/set_config_option</InlineCode>. If a text verbosity option exists, meith sets it to low by
+        default so streamed output stays compact. Built-in Claude and Codex presets also wait until the agent has listed
+        the per-session Meith MCP tools before the prompt is sent.
       </P>
 
       <H2 id="mcp-bridge">MCP bridge</H2>

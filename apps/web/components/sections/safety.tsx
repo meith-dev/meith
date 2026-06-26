@@ -4,17 +4,17 @@ const guarantees = [
   {
     icon: Eye,
     title: "Read-only runs free",
-    body: "Reading state, logs, metadata, and files executes without interruption. The work that can't hurt you never nags you.",
+    body: "Reading state, logs, metadata, file summaries, and git counts executes without interruption. Low-risk context gathering stays out of your way.",
   },
   {
     icon: KeyRound,
     title: "Privileged actions ask first",
-    body: "File writes, browser control, process starts, and destructive actions require explicit permission or an approved grant.",
+    body: "File writes, browser control, process starts, and destructive actions pause for Allow or Deny. You can remember an agent tool decision for that session.",
   },
   {
     icon: ShieldCheck,
-    title: "Identity can't be forged",
-    body: "The host resolves plugin identity from the tab itself, ignoring whatever the plugin claims. Capabilities are checked on every call.",
+    title: "Identity stays anchored",
+    body: "Plugin identity comes from the tab itself, and agent tool calls use the real session id. ACP approvals are accepted only for tools exposed by meith.",
   },
 ]
 
@@ -27,13 +27,13 @@ export function Safety() {
             You stay in control
           </p>
           <h2 className="mt-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-            Agents and plugins don&apos;t get the keys by default.
+            Agents and plugins stay behind the same gate.
           </h2>
           <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
             Every major action routes through the shared tool registry, where
             tools declare their capabilities upfront. The renderer is trusted as
             part of the core app — agents and plugins face strict limits, and
-            every call is audited.
+            every call is validated and audited.
           </p>
         </div>
 

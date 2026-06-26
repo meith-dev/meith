@@ -224,6 +224,38 @@ Each tool can declare safety metadata:
 callers are trusted but audited. Socket, agent, and plugin callers are subject
 to grants or approved plugin capabilities for privileged capabilities.
 
+The current agent approval gate prompts for `writes-files`, `controls-browser`,
+`starts-process`, and `destructive`. `accesses-network` remains part of the
+declared capability model and audit trail, and plugins still need approved
+capabilities that cover the tools they call.
+
+## Diff Tool Shape
+
+`git_diff` is the built-in read-only working-tree diff tool. It reports staged
+and unstaged changes against `HEAD` plus untracked files:
+
+```json
+{
+  "cwd": "/work/project",
+  "includePatches": false
+}
+```
+
+`includePatches: false` returns file status and line-count summaries without
+patch bodies. The renderer uses that cheap summary for the top-bar diff chip and
+polling. The diff tab then requests a selected file on demand:
+
+```json
+{
+  "cwd": "/work/project",
+  "includePatches": true,
+  "path": "src/app/page.tsx"
+}
+```
+
+This keeps large repositories responsive while preserving the same structured
+tool result for the CLI, renderer, plugins, and agents.
+
 ## Caller Identity
 
 `clientInfo` carries requested caller context:

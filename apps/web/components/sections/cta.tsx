@@ -15,12 +15,12 @@ export function Cta() {
           <MeithMark className="size-7 text-foreground" />
         </div>
         <h2 className="mt-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-          Start building your next web app with meith.
+          Bring your next web app into one AI workbench.
         </h2>
         <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
-          Free and open source. Install meith and let the app, CLI, plugins, and
-          agents gather around your project — from first component to running
-          preview.
+          Free and open source. Install meith and let the desktop app, CLI,
+          plugins, and agent sessions share the same project state — from first
+          edit to running preview and reviewable diff.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link

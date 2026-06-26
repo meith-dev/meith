@@ -103,7 +103,7 @@ const toolGroups = [
   {
     name: "Git",
     description:
-      "Inspect a project's working-tree changes as structured per-file diffs with +/- line counts.",
+      "Inspect a project's working-tree changes as cached summaries, per-file counts, and lazy-loaded patches.",
     tools: ["git_diff"],
   },
   {
@@ -226,9 +226,8 @@ export default function ToolsPage() {
       <H2 id="prompts">Permission prompts</H2>
       <P>
         When an agent or plugin requests a privileged action, meith pauses and asks. You
-        can <strong>Allow once</strong>, <strong>Always allow</strong> (creating a
-        standing grant), or <strong>Deny</strong>. Grants are scoped and can be revisited
-        later.
+        can <strong>Allow</strong> or <strong>Deny</strong>. Agent prompts can also
+        remember the decision for the same tool for the rest of that session.
       </P>
       <Callout title="Audited by default">
         Every call through the registry is validated against the tool&apos;s declared

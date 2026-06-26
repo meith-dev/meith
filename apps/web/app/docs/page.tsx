@@ -58,6 +58,10 @@ export default function DocsIndexPage() {
           files, running the dev server, and checking the live preview.
         </li>
         <li>
+          Review working-tree changes in a Diff tab with top-bar summary counts
+          and lazy-loaded file patches.
+        </li>
+        <li>
           Install web-app plugins and explicitly approve the APIs they can use.
         </li>
         <li>

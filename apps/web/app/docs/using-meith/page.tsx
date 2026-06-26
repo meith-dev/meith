@@ -115,10 +115,11 @@ export default function UsingMeithPage() {
       </P>
       <UL>
         <li>
-          <strong>Allow once</strong> to permit just this action,
+          <strong>Allow</strong> to permit the action,
         </li>
         <li>
-          <strong>Always allow</strong> to create a standing grant, or
+          use <strong>Remember for this tool in this session</strong> when you
+          want the same agent tool to keep running without another prompt, or
         </li>
         <li>
           <strong>Deny</strong> to stop it.

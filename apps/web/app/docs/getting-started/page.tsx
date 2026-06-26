@@ -94,8 +94,9 @@ pnpm --filter @meith/desktop dev:headless`}
           immediately; actions that touch your machine pause for your permission.
         </li>
         <li>
-          Approve with <strong>Allow once</strong> or <strong>Always allow</strong>
-          , or <strong>Deny</strong> to stop. You stay in control of every step.
+          Choose <strong>Allow</strong> or <strong>Deny</strong>. For agent tool
+          prompts, you can remember the decision for that tool for the rest of
+          the session.
         </li>
       </OL>
 
