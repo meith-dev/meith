@@ -1,5 +1,12 @@
 import type { DevServer, ProcessLogEntry } from "@meith/shared";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { MeithBridge } from "../../../bridge";
 
 /** Cap the in-memory per-server log buffer so previews/long runs stay bounded. */
@@ -23,11 +30,19 @@ export function useDevServers(bridge: MeithBridge) {
     mountedRef.current = true;
     bridge.devServers
       .get()
-      .then((list) => mountedRef.current && setServers(list))
+      .then((list) => {
+        if (!mountedRef.current) return;
+        startTransition(() => {
+          setServers(list);
+        });
+      })
       .catch(() => undefined);
 
     const offChange = bridge.devServers.onChange((list) => {
-      if (mountedRef.current) setServers(list);
+      if (!mountedRef.current) return;
+      startTransition(() => {
+        setServers(list);
+      });
     });
     const offLog = bridge.devServers.onLog(({ id, entry }) => {
       if (!mountedRef.current) return;
