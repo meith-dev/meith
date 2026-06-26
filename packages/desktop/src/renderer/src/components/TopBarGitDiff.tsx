@@ -21,7 +21,11 @@ interface TopBarGitDiffProps {
  * git repo or has no changes.
  */
 export function TopBarGitDiff({ cwd, call, onOpenDiff, refreshKey }: TopBarGitDiffProps) {
-  const { data, loading } = useGitDiff(call, cwd, { pollMs: 8000, refreshKey });
+  const { data, loading } = useGitDiff(call, cwd, {
+    pollMs: 8000,
+    refreshKey,
+    includePatches: false,
+  });
 
   // Nothing to show until we know it's a repo with at least one change.
   if (!cwd || !data.isRepo || data.files.length === 0) return null;
