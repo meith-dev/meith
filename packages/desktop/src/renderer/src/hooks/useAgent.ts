@@ -8,7 +8,11 @@ import type {
   AgentToolCall,
   ToolResult,
 } from "@meith/shared";
-import { newMessageId } from "@meith/shared";
+import {
+  isDefaultAgentSessionTitle,
+  newMessageId,
+  summarizeAgentSessionTitle,
+} from "@meith/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MeithBridge } from "../../../bridge.js";
 
@@ -28,6 +32,26 @@ function stripMessages(session: AgentSession): AgentSessionMeta {
   return meta;
 }
 
+function sessionFromMeta(meta: AgentSessionMeta): AgentSession {
+  return { ...meta, messages: [] };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error("Timed out")), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        window.clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 /**
  * Module-level cache of probed model/reasoning options, keyed by the agent
  * target. Survives the hook being unmounted/remounted (e.g. switching tabs or
@@ -45,6 +69,7 @@ export interface UseAgent {
   sessions: AgentSessionMeta[];
   activeId: string | null;
   session: AgentSession | null;
+  sessionLoading: boolean;
   /** Text accumulated for the in-flight assistant turn (cleared on done). */
   streaming: string;
   permissions: AgentPermissionRequest[];
@@ -86,12 +111,18 @@ export function useAgent(
   const [sessions, setSessions] = useState<AgentSessionMeta[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [session, setSession] = useState<AgentSession | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(false);
   const [streaming, setStreaming] = useState("");
   const [permissions, setPermissions] = useState<AgentPermissionRequest[]>([]);
   const [config, setConfig] = useState<AgentConfig | null>(null);
   const [busy, setBusy] = useState(false);
   const [modelOptions, setModelOptions] = useState<AgentConfigOption[]>([]);
   const [modelOptionsLoading, setModelOptionsLoading] = useState(false);
+  const streamingBySessionRef = useRef(new Map<string, string>());
+  const sessionRef = useRef<AgentSession | null>(null);
+  sessionRef.current = session;
+  const sessionsRef = useRef<AgentSessionMeta[]>([]);
+  sessionsRef.current = sessions;
 
   // Mirror mutable values the (stable) subscription handlers need to read.
   const activeIdRef = useRef<string | null>(null);
@@ -99,9 +130,40 @@ export function useAgent(
   const defaultsRef = useRef(defaults);
   defaultsRef.current = defaults;
 
-  // Initial load: sessions + config, then select the most recent (or create).
+  const setActiveStreaming = useCallback(() => {
+    const id = activeIdRef.current;
+    setStreaming(id ? (streamingBySessionRef.current.get(id) ?? "") : "");
+  }, []);
+
+  const seedStreamingFromSession = useCallback((full: AgentSession | null) => {
+    if (!full || full.status !== "running") return;
+    const content = currentTurnAssistantContent(full);
+    if (content && !streamingBySessionRef.current.has(full.id)) {
+      streamingBySessionRef.current.set(full.id, content);
+    }
+  }, []);
+
+  const markSessionViewed = useCallback(
+    async (id: string) => {
+      const meta = await bridge.agent.markSessionViewed(id);
+      if (!meta || meta.spaceId !== defaultsRef.current.spaceId) return;
+      setSessions((prev) => upsertMeta(prev, meta));
+      if (meta.id === activeIdRef.current) {
+        setSession((prev) => (prev ? { ...prev, ...meta } : prev));
+      }
+    },
+    [bridge],
+  );
+
+  // Workspace load: sessions + config, then select the most recent (or create).
   useEffect(() => {
     let cancelled = false;
+    setSessions([]);
+    setActiveId(null);
+    setSession(null);
+    setSessionLoading(false);
+    setStreaming("");
+    setPermissions([]);
     void (async () => {
       const [metas, cfg] = await Promise.all([
         bridge.agent.listSessions(),
@@ -114,23 +176,51 @@ export function useAgent(
       setSessions(filteredMetas);
       setConfig(cfg);
       if (filteredMetas.length > 0) {
-        const full = await bridge.agent.getSession(filteredMetas[0].id);
-        if (cancelled) return;
-        setActiveId(filteredMetas[0].id);
-        setSession(full);
+        const selectedMeta = filteredMetas[0];
+        const selectedId = selectedMeta.id;
+        activeIdRef.current = selectedId;
+        setActiveId(selectedId);
+        setSession(null);
+        setSessionLoading(true);
+        setStreaming(streamingBySessionRef.current.get(selectedId) ?? "");
+        if (cancelled || activeIdRef.current !== selectedId) return;
+        try {
+          const full = await withTimeout(bridge.agent.getSession(selectedId), 3000);
+          if (cancelled) return;
+          const displaySession = full ?? sessionFromMeta(selectedMeta);
+          seedStreamingFromSession(displaySession);
+          if (activeIdRef.current !== selectedId) return;
+          setSession(displaySession);
+          setSessionLoading(false);
+          setStreaming(streamingBySessionRef.current.get(selectedId) ?? "");
+          void markSessionViewed(selectedId);
+        } catch {
+          if (!cancelled && activeIdRef.current === selectedId) {
+            setSession(sessionFromMeta(selectedMeta));
+            setSessionLoading(false);
+          }
+        }
       } else {
         const { cwd, spaceId } = defaultsRef.current;
         const created = await bridge.agent.createSession({ cwd, spaceId });
         if (cancelled) return;
         setSessions((prev) => upsertMeta(prev, stripMessages(created)));
+        activeIdRef.current = created.id;
         setActiveId(created.id);
         setSession(created);
+        setSessionLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [bridge]);
+  }, [
+    bridge,
+    defaults.cwd,
+    defaults.spaceId,
+    markSessionViewed,
+    seedStreamingFromSession,
+  ]);
 
   // Refetch the agent config when it's changed elsewhere (e.g. the global
   // Settings dialog) so the header badge stays in sync.
@@ -156,6 +246,10 @@ export function useAgent(
       setModelOptionsLoading(false);
       return;
     }
+    if (sessionLoading || !activeId) {
+      setModelOptionsLoading(false);
+      return;
+    }
     let cancelled = false;
     // Seed from cache for instant display; only show the loading state on a
     // genuine first probe for this target.
@@ -164,45 +258,71 @@ export function useAgent(
       setModelOptions(cached);
       setModelOptionsLoading(false);
     } else {
-      setModelOptionsLoading(true);
+      setModelOptions([]);
+      setModelOptionsLoading(false);
     }
-    void bridge.agent
-      .probe({ acpPreset: config.acpPreset, command: config.command, args: config.args })
-      .then((result) => {
-        const options = result.installed ? result.options : [];
-        if (probeKey) probeOptionsCache.set(probeKey, options);
-        if (!cancelled) setModelOptions(options);
-      })
-      .catch(() => {
-        if (!cancelled && !cached) setModelOptions([]);
-      })
-      .finally(() => {
-        if (!cancelled) setModelOptionsLoading(false);
-      });
+    const handle = window.setTimeout(() => {
+      if (!cached) setModelOptionsLoading(true);
+      void withTimeout(
+        bridge.agent.probe({
+          acpPreset: config.acpPreset,
+          command: config.command,
+          args: config.args,
+        }),
+        3000,
+      )
+        .then((result) => {
+          const options = result.installed ? result.options : [];
+          if (probeKey) probeOptionsCache.set(probeKey, options);
+          if (!cancelled) setModelOptions(options);
+        })
+        .catch(() => {
+          if (!cancelled && !cached) setModelOptions([]);
+        })
+        .finally(() => {
+          if (!cancelled) setModelOptionsLoading(false);
+        });
+    }, 600);
     return () => {
       cancelled = true;
+      window.clearTimeout(handle);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bridge, probeKey]);
+  }, [bridge, probeKey, sessionLoading, activeId]);
 
   // Single, stable subscription set for the lifetime of the hook.
   useEffect(() => {
     const offChunk = bridge.agent.onChunk(({ sessionId, chunk }) => {
-      if (sessionId !== activeIdRef.current) return;
+      const isActive = sessionId === activeIdRef.current;
       switch (chunk.type) {
         case "text":
-          setStreaming((s) => s + chunk.text);
-          setSession((prev) => appendLiveAssistantText(prev, chunk.text));
+          streamingBySessionRef.current.set(
+            sessionId,
+            (streamingBySessionRef.current.get(sessionId) ??
+              (isActive ? currentTurnAssistantContent(sessionRef.current) : "")) +
+              chunk.text,
+          );
+          if (isActive) {
+            setActiveStreaming();
+            setSession((prev) => appendLiveAssistantText(prev, chunk.text, chunk.kind));
+          }
           break;
         case "tool_call":
-          setSession((prev) => upsertLiveToolCall(prev, chunk.toolCall));
+          if (isActive) {
+            setSession((prev) => upsertLiveToolCall(prev, chunk.toolCall));
+          }
           break;
         case "tool_result":
-          setSession((prev) => applyLiveToolResult(prev, chunk.toolCallId, chunk.result));
+          if (isActive) {
+            setSession((prev) =>
+              applyLiveToolResult(prev, chunk.toolCallId, chunk.result),
+            );
+          }
           break;
         case "done":
         case "error":
-          setStreaming("");
+          streamingBySessionRef.current.delete(sessionId);
+          if (isActive) setStreaming("");
           break;
         default:
           break;
@@ -214,6 +334,7 @@ export function useAgent(
         setSessions((prev) => upsertMeta(prev, meta));
         if (meta.id === activeIdRef.current) {
           setSession((prev) => (prev ? { ...prev, ...meta } : prev));
+          if (hasUnseenFinishedSession(meta)) void markSessionViewed(meta.id);
         }
       }
     });
@@ -228,17 +349,36 @@ export function useAgent(
       offSession();
       offPermission();
     };
-  }, [bridge]);
+  }, [bridge, markSessionViewed, setActiveStreaming]);
 
   const selectSession = useCallback(
     async (id: string) => {
-      setStreaming("");
+      setStreaming(streamingBySessionRef.current.get(id) ?? "");
       setPermissions([]);
+      activeIdRef.current = id;
       setActiveId(id);
-      const full = await bridge.agent.getSession(id);
-      setSession(full);
+      setSession(null);
+      setSessionLoading(true);
+      if (activeIdRef.current !== id) return;
+      try {
+        const full = await withTimeout(bridge.agent.getSession(id), 3000);
+        const fallback = sessionsRef.current.find((meta) => meta.id === id);
+        const displaySession = full ?? (fallback ? sessionFromMeta(fallback) : null);
+        seedStreamingFromSession(displaySession);
+        if (activeIdRef.current !== id) return;
+        setSession(displaySession);
+        setSessionLoading(false);
+        setStreaming(streamingBySessionRef.current.get(id) ?? "");
+        void markSessionViewed(id);
+      } catch {
+        if (activeIdRef.current === id) {
+          const fallback = sessionsRef.current.find((meta) => meta.id === id);
+          setSession(fallback ? sessionFromMeta(fallback) : null);
+          setSessionLoading(false);
+        }
+      }
     },
-    [bridge],
+    [bridge, markSessionViewed, seedStreamingFromSession],
   );
 
   const createSession = useCallback(async () => {
@@ -246,9 +386,11 @@ export function useAgent(
     const created = await bridge.agent.createSession({ cwd, spaceId });
     setSessions((prev) => upsertMeta(prev, stripMessages(created)));
     setStreaming("");
+    streamingBySessionRef.current.delete(created.id);
     setPermissions([]);
     setActiveId(created.id);
     setSession(created);
+    setSessionLoading(false);
   }, [bridge]);
 
   const deleteSession = useCallback(
@@ -262,6 +404,8 @@ export function useAgent(
         } else {
           setActiveId(null);
           setSession(null);
+          setSessionLoading(false);
+          setStreaming("");
         }
       }
     },
@@ -274,42 +418,45 @@ export function useAgent(
       if (!id || !text.trim()) return;
       setBusy(true);
       setStreaming("");
+      streamingBySessionRef.current.delete(id);
+      const createdAt = Date.now();
       // Optimistic user bubble; replaced by the authoritative final session.
       setSession((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "running",
-              messages: [
-                ...prev.messages,
-                {
-                  id: `optimistic-${Date.now()}`,
-                  role: "user" as const,
-                  content: text,
-                  createdAt: Date.now(),
-                },
-              ],
-            }
-          : prev,
+        prev ? optimisticSessionForPrompt(prev, text, createdAt) : prev,
       );
+      setSessions((prev) => {
+        const current = prev.find((meta) => meta.id === id);
+        if (!current) return prev;
+        const title =
+          isDefaultAgentSessionTitle(current.title) && summarizeAgentSessionTitle(text);
+        return upsertMeta(prev, {
+          ...current,
+          title: title || current.title,
+          status: "running",
+          updatedAt: createdAt,
+        });
+      });
       try {
         const final = await bridge.agent.sendMessage(id, text);
         if (final && final.id === activeIdRef.current) {
           setSession(final);
           setSessions((prev) => upsertMeta(prev, stripMessages(final)));
+          void markSessionViewed(final.id);
         }
       } finally {
-        setStreaming("");
+        streamingBySessionRef.current.delete(id);
+        if (id === activeIdRef.current) setStreaming("");
         setBusy(false);
       }
     },
-    [bridge],
+    [bridge, markSessionViewed],
   );
 
   const cancel = useCallback(async () => {
     const id = activeIdRef.current;
     if (!id) return;
     await bridge.agent.cancel(id);
+    streamingBySessionRef.current.delete(id);
     setStreaming("");
   }, [bridge]);
 
@@ -358,6 +505,7 @@ export function useAgent(
     sessions,
     activeId,
     session,
+    sessionLoading,
     streaming,
     permissions,
     config,
@@ -375,9 +523,34 @@ export function useAgent(
   };
 }
 
+function optimisticSessionForPrompt(
+  session: AgentSession,
+  text: string,
+  createdAt: number,
+): AgentSession {
+  const title =
+    isDefaultAgentSessionTitle(session.title) && summarizeAgentSessionTitle(text);
+  return {
+    ...session,
+    title: title || session.title,
+    status: "running",
+    updatedAt: createdAt,
+    messages: [
+      ...session.messages,
+      {
+        id: `optimistic-${createdAt}`,
+        role: "user" as const,
+        content: text,
+        createdAt,
+      },
+    ],
+  };
+}
+
 function appendLiveAssistantText(
   session: AgentSession | null,
   text: string,
+  kind: "thought" | "message" = "message",
 ): AgentSession | null {
   if (!session || !text) return session;
   return updateLiveAssistant(session, (assistant) => {
@@ -390,17 +563,35 @@ function appendLiveAssistantText(
     const previous = textSegments.at(-1);
 
     assistant.content += text;
-    if (previous && previous.end === start && !toolStartsHere) {
+    if (
+      previous &&
+      previous.end === start &&
+      !toolStartsHere &&
+      textSegmentKind(previous) === kind
+    ) {
       textSegments[textSegments.length - 1] = {
         ...previous,
         end,
         text: `${previous.text}${text}`,
       };
     } else {
-      textSegments.push({ start, end, text });
+      textSegments.push(agentTextSegment(start, end, text, kind));
     }
     assistant.textSegments = textSegments;
   });
+}
+
+function textSegmentKind(segment: NonNullable<AgentMessage["textSegments"]>[number]) {
+  return segment.kind ?? "message";
+}
+
+function agentTextSegment(
+  start: number,
+  end: number,
+  text: string,
+  kind: "thought" | "message",
+): NonNullable<AgentMessage["textSegments"]>[number] {
+  return kind === "thought" ? { start, end, text, kind } : { start, end, text };
 }
 
 function upsertLiveToolCall(
@@ -482,6 +673,21 @@ function latestCurrentTurnAssistantIndex(messages: AgentMessage[]): number {
     if (messages[i].role === "assistant") return i;
   }
   return -1;
+}
+
+function hasUnseenFinishedSession(meta: AgentSessionMeta): boolean {
+  return (
+    meta.status !== "running" &&
+    meta.lastViewedAt !== undefined &&
+    meta.updatedAt > meta.lastViewedAt
+  );
+}
+
+function currentTurnAssistantContent(session: AgentSession | null): string {
+  if (!session) return "";
+  const index = latestCurrentTurnAssistantIndex(session.messages);
+  if (index === -1) return "";
+  return session.messages[index].content ?? "";
 }
 
 function mergeLiveToolCall(

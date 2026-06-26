@@ -185,3 +185,38 @@
   width: 3px !important;
   margin-left: 2px;
 }
+
+.meith-thinking-gradient {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--muted-foreground) 82%, var(--background)) 0%,
+    var(--muted-foreground) 40%,
+    color-mix(in oklch, var(--foreground) 70%, var(--muted-foreground)) 50%,
+    var(--muted-foreground) 60%,
+    color-mix(in oklch, var(--muted-foreground) 82%, var(--background)) 100%
+  );
+  background-size: 240% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: meith-thinking-gradient 2.4s linear infinite;
+}
+
+.meith-thinking-static {
+  color: color-mix(in oklch, var(--muted-foreground) 86%, var(--foreground));
+}
+
+@keyframes meith-thinking-gradient {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meith-thinking-gradient {
+    animation: none;
+    color: var(--muted-foreground);
+  }
+}

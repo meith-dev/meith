@@ -95,6 +95,14 @@ export class SpaceService {
     this.appState.update((draft) => {
       draft.activeSpaceId = id;
     }, "switch_space");
+    void this.browserTabs.focusActiveBrowserTab(id).catch((error: unknown) => {
+      this.logger.warn(
+        "Spaces",
+        `failed to focus active browser tab for space ${id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    });
     this.logger.info("Spaces", `switched to space ${id}`);
     return space;
   }
@@ -148,6 +156,19 @@ export class SpaceService {
         draft.activeSpaceId = draft.spaces[draft.spaces.length - 1]?.id ?? null;
       }
     }, "close_space");
+    const activeSpaceId = this.appState.getState().activeSpaceId;
+    if (activeSpaceId) {
+      void this.browserTabs
+        .focusActiveBrowserTab(activeSpaceId)
+        .catch((error: unknown) => {
+          this.logger.warn(
+            "Spaces",
+            `failed to focus active browser tab for space ${activeSpaceId}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        });
+    }
     this.logger.info("Spaces", `closed space ${id}`);
     return true;
   }

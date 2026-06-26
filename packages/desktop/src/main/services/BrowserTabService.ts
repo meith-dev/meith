@@ -164,6 +164,15 @@ export class BrowserTabService {
     );
   }
 
+  /** Ensure and focus the active browser view for a space, if that space has one. */
+  async focusActiveBrowserTab(spaceId?: string): Promise<BrowserTab | null> {
+    const tab = this.getActiveBrowserTab(spaceId);
+    if (!tab) return null;
+    await this.ensureView(tab);
+    await this.host.focusView(tab.id);
+    return this.requireTab(tab.id);
+  }
+
   async openBrowserTab(input: {
     url: string;
     title?: string;

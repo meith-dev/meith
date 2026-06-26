@@ -2,7 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { WORKSPACE_KINDS } from "@/lib/workspace";
 import type { WorkspaceTab } from "@meith/shared";
-import { Columns2Icon, Settings2Icon, XIcon } from "lucide-react";
+import {
+  Columns2Icon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+  Settings2Icon,
+  XIcon,
+} from "lucide-react";
 
 interface PaneToolbarProps {
   kind: WorkspaceTab["kind"];
@@ -13,6 +19,9 @@ interface PaneToolbarProps {
   onClose: () => void;
   /** Provided only for agent surfaces — opens Settings on the Agent tab. */
   onOpenAgentSettings?: () => void;
+  /** Provided only for agent surfaces — hides or restores the sessions sidebar. */
+  agentSessionsCollapsed?: boolean;
+  onToggleAgentSessions?: () => void;
 }
 
 /**
@@ -27,6 +36,8 @@ export function PaneToolbar({
   onToggleSplit,
   onClose,
   onOpenAgentSettings,
+  agentSessionsCollapsed = false,
+  onToggleAgentSessions,
 }: PaneToolbarProps) {
   const { icon: Icon, label } = WORKSPACE_KINDS[kind];
   return (
@@ -38,6 +49,31 @@ export function PaneToolbar({
       <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground/70">
         {label}
       </span>
+
+      {kind === "agent" && onToggleAgentSessions && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                size="icon"
+                variant={agentSessionsCollapsed ? "secondary" : "ghost"}
+                className="size-7"
+                onClick={onToggleAgentSessions}
+                aria-label={agentSessionsCollapsed ? "Show sessions" : "Hide sessions"}
+              >
+                {agentSessionsCollapsed ? (
+                  <PanelLeftOpenIcon className="size-4" aria-hidden />
+                ) : (
+                  <PanelLeftCloseIcon className="size-4" aria-hidden />
+                )}
+              </Button>
+            }
+          />
+          <TooltipContent>
+            {agentSessionsCollapsed ? "Show sessions" : "Hide sessions"}
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {kind === "agent" && onOpenAgentSettings && (
         <Tooltip>

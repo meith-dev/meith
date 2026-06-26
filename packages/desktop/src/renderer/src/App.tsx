@@ -1,8 +1,11 @@
 import type {
   AppSettings,
   BrowserTab,
+  InstalledPlugin,
+  Project,
   ProjectRunConfig,
   Space,
+  WorkspaceFileEvent,
   WorkspaceTab,
 } from "@meith/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -48,6 +51,31 @@ const WORKSPACE_COLORS = [
   "#a86fb0",
 ];
 
+const AGENT_SESSIONS_COLLAPSED_KEY = "meith.agentSessionsCollapsedBySpace";
+
+const EMPTY_SPACES: Space[] = [];
+const EMPTY_BROWSER_TABS: BrowserTab[] = [];
+const EMPTY_WORKSPACE_TABS: WorkspaceTab[] = [];
+const EMPTY_PROJECTS: Project[] = [];
+const EMPTY_WORKSPACE_FILE_EVENTS: WorkspaceFileEvent[] = [];
+const EMPTY_PLUGINS: InstalledPlugin[] = [];
+
+function readAgentSessionsCollapsedBySpace(): Record<string, boolean> {
+  try {
+    const raw = window.localStorage.getItem(AGENT_SESSIONS_COLLAPSED_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, boolean] =>
+          typeof entry[0] === "string" && typeof entry[1] === "boolean",
+      ),
+    );
+  } catch {
+    return {};
+  }
+}
+
 /** A surface shown in a pane — a browser page or a workspace tab. */
 type StripTab =
   | { surface: "browser"; tab: BrowserTab }
@@ -61,6 +89,12 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [infoSpaceId, setInfoSpaceId] = useState<string | null>(null);
+  const [agentSessionsCollapsedBySpace, setAgentSessionsCollapsedBySpace] = useState<
+    Record<string, boolean>
+  >(readAgentSessionsCollapsedBySpace);
+  const [optimisticActiveSpaceId, setOptimisticActiveSpaceId] = useState<string | null>(
+    null,
+  );
   // True while a tab is being dragged — reveals the right-edge split drop zone.
   const [tabDragging, setTabDragging] = useState(false);
   // Robustly clear the drag flag when a drag ends. We can't rely on a single
@@ -109,6 +143,34 @@ export function App() {
   const contentRef = useRef<HTMLDivElement | null>(null);
   // Live dev-server / run state (dedicated IPC channel, not persisted state).
   const devServers = useDevServers(bridge);
+  const spaces = state?.spaces ?? EMPTY_SPACES;
+  const projects = state?.projects ?? EMPTY_PROJECTS;
+  const allBrowserTabs = state?.browserTabs ?? EMPTY_BROWSER_TABS;
+  const allWorkspaceTabs = state?.workspaceTabs ?? EMPTY_WORKSPACE_TABS;
+  const workspaceFileEvents = state?.workspaceFileEvents ?? EMPTY_WORKSPACE_FILE_EVENTS;
+  const plugins = state?.plugins ?? EMPTY_PLUGINS;
+  const settings = state?.settings ?? null;
+  const persistedActiveSpaceId = state?.activeSpaceId ?? null;
+  const optimisticSpaceValid =
+    optimisticActiveSpaceId != null &&
+    spaces.some((space) => space.id === optimisticActiveSpaceId);
+  const effectiveActiveSpaceId = optimisticSpaceValid
+    ? optimisticActiveSpaceId
+    : persistedActiveSpaceId;
+  const activeSpace =
+    spaces.find((s) => s.id === effectiveActiveSpaceId) ?? spaces[0] ?? null;
+  const activeSpaceId = activeSpace?.id ?? null;
+  const layoutStorageId = activeSpaceId ?? "default";
+
+  useEffect(() => {
+    if (!optimisticActiveSpaceId) return;
+    if (
+      persistedActiveSpaceId === optimisticActiveSpaceId ||
+      !spaces.some((space) => space.id === optimisticActiveSpaceId)
+    ) {
+      setOptimisticActiveSpaceId(null);
+    }
+  }, [optimisticActiveSpaceId, persistedActiveSpaceId, spaces]);
 
   // Resizable panes. The browser viewport is reported via a ResizeObserver on
   // the content region, so resizing these automatically re-syncs the native
@@ -119,7 +181,7 @@ export function App() {
     max: 560,
     axis: "y",
     invert: true,
-    storageKey: "meith.drawerHeight",
+    storageKey: `meith.drawerHeight.${layoutStorageId}`,
   });
   // Width of the primary pane when split beside the secondary pane.
   const splitPane = useResizable({
@@ -127,7 +189,7 @@ export function App() {
     min: 320,
     max: 900,
     axis: "x",
-    storageKey: "meith.splitWidth",
+    storageKey: `meith.splitWidth.${layoutStorageId}`,
   });
 
   const openSettings = useCallback((tab: SettingsTab = "general") => {
@@ -144,11 +206,16 @@ export function App() {
     });
   }, []);
 
-  const activeSpace =
-    state?.spaces.find((s) => s.id === state.activeSpaceId) ?? state?.spaces[0] ?? null;
-  const activeSpaceId = activeSpace?.id ?? null;
+  const toggleDebug = useCallback(() => {
+    setDebugOpen((open) => !open);
+  }, []);
+
+  const openSpaceInfo = useCallback((space: Space) => {
+    setInfoSpaceId(space.id);
+  }, []);
+
   const activeProject =
-    state?.projects.find((p) =>
+    projects.find((p) =>
       activeSpace?.projectId
         ? p.id === activeSpace.projectId
         : p.spaceId === activeSpaceId,
@@ -156,35 +223,54 @@ export function App() {
 
   // Tabs are scoped to the active space.
   const workspaceTabs = useMemo(
-    () => state?.workspaceTabs.filter((t) => t.spaceId === activeSpaceId) ?? [],
-    [state, activeSpaceId],
+    () => allWorkspaceTabs.filter((t) => t.spaceId === activeSpaceId),
+    [allWorkspaceTabs, activeSpaceId],
   );
   const browserTabs = useMemo(
-    () => state?.browserTabs.filter((t) => t.spaceId === activeSpaceId) ?? [],
-    [state, activeSpaceId],
+    () => allBrowserTabs.filter((t) => t.spaceId === activeSpaceId),
+    [allBrowserTabs, activeSpaceId],
+  );
+  const browserTabsById = useMemo(
+    () => new Map(browserTabs.map((tab) => [tab.id, tab])),
+    [browserTabs],
+  );
+  const workspaceTabsById = useMemo(
+    () => new Map(workspaceTabs.map((tab) => [tab.id, tab])),
+    [workspaceTabs],
   );
   // Flat list of every tab in the space (browser + workspace), used to drive
   // the pane layout. Pane assignment / active-per-pane / split are renderer
   // view-state managed by usePaneLayout.
   const paneTabs = useMemo(
     () => [
-      ...browserTabs.map((t) => ({ id: t.id, isBrowser: true })),
-      ...workspaceTabs.map((t) => ({ id: t.id, isBrowser: false })),
+      ...browserTabs.map((t) => ({ id: t.id, isBrowser: true, active: t.active })),
+      ...workspaceTabs.map((t) => ({ id: t.id, isBrowser: false, active: t.active })),
     ],
     [browserTabs, workspaceTabs],
   );
   const layout = usePaneLayout(activeSpaceId, paneTabs);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        AGENT_SESSIONS_COLLAPSED_KEY,
+        JSON.stringify(agentSessionsCollapsedBySpace),
+      );
+    } catch {
+      // Best-effort: UI collapse state is non-critical.
+    }
+  }, [agentSessionsCollapsedBySpace]);
+
   const tabById = useCallback(
     (id: string | null): StripTab | null => {
       if (!id) return null;
-      const b = browserTabs.find((t) => t.id === id);
+      const b = browserTabsById.get(id);
       if (b) return { surface: "browser", tab: b };
-      const w = workspaceTabs.find((t) => t.id === id);
+      const w = workspaceTabsById.get(id);
       if (w) return { surface: "workspace", tab: w };
       return null;
     },
-    [browserTabs, workspaceTabs],
+    [browserTabsById, workspaceTabsById],
   );
 
   // The active surface in each pane (per-pane tab lists are built at render
@@ -216,21 +302,18 @@ export function App() {
     activeBrowserTab?.cwd ??
     workspaceTabs.find((t) => t.kind === "terminal")?.cwd ??
     "~";
-  const infoSpace = state?.spaces.find((space) => space.id === infoSpaceId) ?? null;
-  const infoProject =
-    infoSpace && state
-      ? ((infoSpace.projectId
-          ? state.projects.find((project) => project.id === infoSpace.projectId)
-          : state.projects.find((project) => project.spaceId === infoSpace.id)) ?? null)
-      : null;
-  const infoWorkspaceTabs =
-    infoSpace && state
-      ? state.workspaceTabs.filter((tab) => tab.spaceId === infoSpace.id).length
-      : 0;
-  const infoBrowserTabs =
-    infoSpace && state
-      ? state.browserTabs.filter((tab) => tab.spaceId === infoSpace.id).length
-      : 0;
+  const infoSpace = spaces.find((space) => space.id === infoSpaceId) ?? null;
+  const infoProject = infoSpace
+    ? ((infoSpace.projectId
+        ? projects.find((project) => project.id === infoSpace.projectId)
+        : projects.find((project) => project.spaceId === infoSpace.id)) ?? null)
+    : null;
+  const infoWorkspaceTabs = infoSpace
+    ? allWorkspaceTabs.filter((tab) => tab.spaceId === infoSpace.id).length
+    : 0;
+  const infoBrowserTabs = infoSpace
+    ? allBrowserTabs.filter((tab) => tab.spaceId === infoSpace.id).length
+    : 0;
 
   // Report the measured browser content region to the main process so the
   // native browser view is sized to the real layout (not a hard-coded inset).
@@ -302,8 +385,8 @@ export function App() {
   // Create an empty workspace immediately. Projects can still be added by
   // opening a folder, but the plus button should have a visible, local effect.
   const createSpace = useCallback(() => {
-    const existing = new Set((state?.spaces ?? []).map((space) => space.name));
-    let n = (state?.spaces.length ?? 0) + 1;
+    const existing = new Set(spaces.map((space) => space.name));
+    let n = spaces.length + 1;
     let name = `Workspace ${n}`;
     while (existing.has(name)) {
       n += 1;
@@ -312,11 +395,11 @@ export function App() {
     void (async () => {
       const result = await run("create_space", {
         name,
-        color: WORKSPACE_COLORS[(state?.spaces.length ?? 0) % WORKSPACE_COLORS.length],
+        color: WORKSPACE_COLORS[spaces.length % WORKSPACE_COLORS.length],
       });
       if (result.ok) toast.success(`Created ${name}`);
     })();
-  }, [run, state?.spaces]);
+  }, [run, spaces]);
 
   // Opening an existing folder creates a space named after that folder.
   const openFolder = useCallback(async () => {
@@ -326,8 +409,17 @@ export function App() {
   }, [run, bridge]);
 
   const switchSpace = useCallback(
-    (spaceId: string) => void run("switch_space", { spaceId }),
-    [run],
+    (spaceId: string) => {
+      if (spaceId === activeSpaceId) return;
+      setOptimisticActiveSpaceId(spaceId);
+      void (async () => {
+        const result = await run("switch_space", { spaceId });
+        if (!result.ok) {
+          setOptimisticActiveSpaceId((current) => (current === spaceId ? null : current));
+        }
+      })();
+    },
+    [activeSpaceId, run],
   );
 
   const manageSpace = useCallback(
@@ -354,18 +446,24 @@ export function App() {
   // we record the target pane; an effect below assigns the newly-created tab to
   // it once it appears in state. New tabs default to the primary pane otherwise.
   const pendingPaneRef = useRef<PaneId>("primary");
-  const knownTabIdsRef = useRef<Set<string> | null>(null);
+  const knownTabIdsRef = useRef<{ spaceId: string | null; ids: Set<string> } | null>(
+    null,
+  );
   useEffect(() => {
     const ids = paneTabs.map((t) => t.id);
     // First run: seed the known set without assigning (avoids reflowing
-    // existing tabs on mount).
-    if (knownTabIdsRef.current === null) {
-      knownTabIdsRef.current = new Set(ids);
+    // existing tabs on mount). Space switches also seed without assigning:
+    // those tabs already have pane intent persisted for their own space.
+    if (
+      knownTabIdsRef.current === null ||
+      knownTabIdsRef.current.spaceId !== activeSpaceId
+    ) {
+      knownTabIdsRef.current = { spaceId: activeSpaceId, ids: new Set(ids) };
       return;
     }
-    const known = knownTabIdsRef.current;
+    const known = knownTabIdsRef.current.ids;
     const fresh = ids.filter((id) => !known.has(id));
-    knownTabIdsRef.current = new Set(ids);
+    knownTabIdsRef.current = { spaceId: activeSpaceId, ids: new Set(ids) };
     if (fresh.length === 0) return;
     const target = pendingPaneRef.current;
     pendingPaneRef.current = "primary";
@@ -378,7 +476,7 @@ export function App() {
         layout.assignNewTab(id, "primary");
       }
     }
-  }, [paneTabs, layout]);
+  }, [activeSpaceId, paneTabs, layout]);
 
   // --- Workspace tab actions ----------------------------------------------
   const openWorkspaceTab = useCallback(
@@ -495,10 +593,18 @@ export function App() {
   // Focus any tab (browser or workspace) within a pane by id.
   const focusTabInPane = useCallback(
     (tabId: string, pane: PaneId) => {
-      if (browserTabs.some((t) => t.id === tabId)) focusBrowserTab(tabId, pane);
+      if (browserTabsById.has(tabId)) focusBrowserTab(tabId, pane);
       else focusWorkspaceTab(tabId, pane);
     },
-    [browserTabs, focusBrowserTab, focusWorkspaceTab],
+    [browserTabsById, focusBrowserTab, focusWorkspaceTab],
+  );
+
+  const closeTabById = useCallback(
+    (id: string) => {
+      if (browserTabsById.has(id)) closeBrowserTab(id);
+      else closeWorkspaceTab(id);
+    },
+    [browserTabsById, closeBrowserTab, closeWorkspaceTab],
   );
 
   const newBrowserTab = useCallback(
@@ -573,7 +679,7 @@ export function App() {
     projectServers.find((s) => s.status === "running" || s.status === "starting") ??
     projectServers[0] ??
     null;
-  const showOutputOnRun = state?.settings.showOutputOnRun ?? true;
+  const showOutputOnRun = settings?.showOutputOnRun ?? true;
 
   // When a run is triggered we arm an auto-open: as soon as the dev server
   // reports a listening port, we open (or focus) a browser tab on it. Keyed by
@@ -688,6 +794,18 @@ export function App() {
       );
     }
     const tab = active.tab;
+    const agentSessionsCollapsed =
+      tab.kind === "agent"
+        ? (agentSessionsCollapsedBySpace[tab.spaceId] ?? false)
+        : false;
+    const toggleAgentSessions =
+      tab.kind === "agent"
+        ? () =>
+            setAgentSessionsCollapsedBySpace((prev) => ({
+              ...prev,
+              [tab.spaceId]: !(prev[tab.spaceId] ?? false),
+            }))
+        : undefined;
     return (
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <PaneToolbar
@@ -699,6 +817,8 @@ export function App() {
           onOpenAgentSettings={
             tab.kind === "agent" ? () => openSettings("agent") : undefined
           }
+          agentSessionsCollapsed={agentSessionsCollapsed}
+          onToggleAgentSessions={toggleAgentSessions}
         />
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
           {tab.kind === "terminal" && (
@@ -709,16 +829,23 @@ export function App() {
               key={tab.id}
               tab={tab}
               call={call}
-              fileEvents={state?.workspaceFileEvents ?? []}
+              fileEvents={workspaceFileEvents}
             />
           )}
-          {tab.kind === "agent" && <AgentView key={tab.id} tab={tab} bridge={bridge} />}
+          {tab.kind === "agent" && (
+            <AgentView
+              key={tab.id}
+              tab={tab}
+              bridge={bridge}
+              sessionsCollapsed={agentSessionsCollapsed}
+            />
+          )}
           {tab.kind === "diff" && (
             <DiffView
               key={tab.id}
               tab={tab}
               call={call}
-              refreshKey={state?.workspaceFileEvents?.length ?? 0}
+              refreshKey={workspaceFileEvents.length}
             />
           )}
           {tab.kind === "preview" && (
@@ -734,8 +861,7 @@ export function App() {
   // Shared props for both pane tab strips.
   const stripCommon = {
     spaceId: activeSpaceId,
-    onCloseTab: (id: string) =>
-      browserTabs.some((t) => t.id === id) ? closeBrowserTab(id) : closeWorkspaceTab(id),
+    onCloseTab: closeTabById,
     onMoveTabToPane: moveTabToPane,
     // During a tab drag the viewport effect insets the live native browser view
     // to reserve a right-edge gutter, so the DOM split drop zone floats beside
@@ -746,10 +872,27 @@ export function App() {
     // browser view), so no screenshot-freeze is needed when it opens.
   };
 
-  const browserTabsIn = (pane: PaneId) =>
-    browserTabs.filter((t) => layout.paneOf(t.id) === pane);
-  const workspaceTabsIn = (pane: PaneId) =>
-    workspaceTabs.filter((t) => layout.paneOf(t.id) === pane);
+  const paneTabSets = useMemo(
+    () => ({
+      primary: new Set(layout.primaryTabIds),
+      secondary: new Set(layout.secondaryTabIds),
+    }),
+    [layout.primaryTabIds, layout.secondaryTabIds],
+  );
+  const browserTabsByPane = useMemo(
+    () => ({
+      primary: browserTabs.filter((tab) => paneTabSets.primary.has(tab.id)),
+      secondary: browserTabs.filter((tab) => paneTabSets.secondary.has(tab.id)),
+    }),
+    [browserTabs, paneTabSets],
+  );
+  const workspaceTabsByPane = useMemo(
+    () => ({
+      primary: workspaceTabs.filter((tab) => paneTabSets.primary.has(tab.id)),
+      secondary: workspaceTabs.filter((tab) => paneTabSets.secondary.has(tab.id)),
+    }),
+    [workspaceTabs, paneTabSets],
+  );
 
   return (
     <TooltipProvider delay={300}>
@@ -763,16 +906,13 @@ export function App() {
             <span className="sr-only">meith</span>
           </div>
           <div className="flex min-w-0 flex-1 items-center gap-2 bg-card/40 px-2">
-            <TopBarWorkspaceToggles
-              tabs={workspaceTabs.filter((t) => t.spaceId === activeSpaceId)}
-              onToggle={toggleWorkspaceTab}
-            />
+            <TopBarWorkspaceToggles tabs={workspaceTabs} onToggle={toggleWorkspaceTab} />
             <div className="min-w-0 flex-1" />
             <TopBarGitDiff
               cwd={activeProjectCwd}
               call={call}
               onOpenDiff={() => openDiffTab("primary")}
-              refreshKey={state?.workspaceFileEvents?.length ?? 0}
+              refreshKey={workspaceFileEvents.length}
             />
             <TopBarRun
               project={activeProject}
@@ -787,18 +927,18 @@ export function App() {
 
         <div className="flex min-h-0 min-w-0 flex-1">
           <SpacesRail
-            spaces={state?.spaces ?? []}
+            spaces={spaces}
             activeSpaceId={activeSpaceId}
             onSwitch={switchSpace}
             onCreate={createSpace}
             onOpenFolder={openFolder}
             onRename={manageSpace}
             onDelete={closeSpace}
-            onInfo={(space) => setInfoSpaceId(space.id)}
+            onInfo={openSpaceInfo}
             onOpenSettings={toggleSettings}
             settingsOpen={settingsOpen}
             debugOpen={debugOpen}
-            onToggleDebug={() => setDebugOpen((v) => !v)}
+            onToggleDebug={toggleDebug}
           />
 
           {/* Content region is ALWAYS mounted — Settings overlays it (below)
@@ -816,8 +956,8 @@ export function App() {
               <TabStrip
                 {...stripCommon}
                 pane="primary"
-                browserTabs={browserTabsIn("primary")}
-                workspaceTabs={workspaceTabsIn("primary")}
+                browserTabs={browserTabsByPane.primary}
+                workspaceTabs={workspaceTabsByPane.primary}
                 activeTabId={layout.active.primary}
                 focused={layout.focused === "primary"}
                 onFocusTab={(id) => focusTabInPane(id, "primary")}
@@ -851,8 +991,8 @@ export function App() {
                   <TabStrip
                     {...stripCommon}
                     pane="secondary"
-                    browserTabs={browserTabsIn("secondary")}
-                    workspaceTabs={workspaceTabsIn("secondary")}
+                    browserTabs={browserTabsByPane.secondary}
+                    workspaceTabs={workspaceTabsByPane.secondary}
                     activeTabId={layout.active.secondary}
                     focused={layout.focused === "secondary"}
                     onFocusTab={(id) => focusTabInPane(id, "secondary")}
@@ -875,13 +1015,13 @@ export function App() {
               <div className="absolute inset-0 z-30 flex min-w-0">
                 <SettingsView
                   initialTab={settingsTab}
-                  settings={state?.settings ?? null}
+                  settings={settings}
                   project={activeProject}
                   onSaveSettings={saveSettings}
                   onSaveRunConfig={saveRunConfig}
                   bridge={bridge}
                   isMock={isMock}
-                  plugins={state?.plugins ?? []}
+                  plugins={plugins}
                   run={run}
                   onClose={() => setSettingsOpen(false)}
                 />
@@ -950,7 +1090,7 @@ export function App() {
           isMock={isMock || conn !== "ready"}
           browserTabs={browserTabs.length}
           workspaceTabs={workspaceTabs.length}
-          spaces={state?.spaces.length ?? 0}
+          spaces={spaces.length}
           runningCount={devServers.runningServers.length}
           activePort={runningServer?.port ?? null}
           onOpenOutput={() => {

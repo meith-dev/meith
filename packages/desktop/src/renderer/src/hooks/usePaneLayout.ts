@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type PaneId = "primary" | "secondary";
 
@@ -6,6 +6,7 @@ export type PaneId = "primary" | "secondary";
 export interface PaneTabRef {
   id: string;
   isBrowser: boolean;
+  active?: boolean;
 }
 
 /** Persisted "intent" for a space; reconciled against the live tab list. */
@@ -14,6 +15,11 @@ interface PaneIntent {
   secondary: string[];
   active: { primary: string | null; secondary: string | null };
   focused: PaneId;
+}
+
+interface PaneIntentState {
+  spaceId: string | null;
+  intent: PaneIntent;
 }
 
 /** Reconciled, ready-to-render layout derived from intent + the live tabs. */
@@ -78,29 +84,48 @@ function loadIntent(spaceId: string | null): PaneIntent {
  * and an emptied primary pane is promoted from the secondary one.
  */
 export function usePaneLayout(spaceId: string | null, tabs: PaneTabRef[]): PaneLayout {
-  const [intent, setIntent] = useState<PaneIntent>(() => loadIntent(spaceId));
+  const [intentState, setIntentState] = useState<PaneIntentState>(() => ({
+    spaceId,
+    intent: loadIntent(spaceId),
+  }));
 
   // Reload intent when switching spaces.
-  const spaceRef = useRef(spaceId);
   useEffect(() => {
-    if (spaceRef.current !== spaceId) {
-      spaceRef.current = spaceId;
-      setIntent(loadIntent(spaceId));
+    if (intentState.spaceId !== spaceId) {
+      setIntentState({ spaceId, intent: loadIntent(spaceId) });
     }
-  }, [spaceId]);
+  }, [spaceId, intentState.spaceId]);
 
   // Persist intent (best-effort; layout is non-critical view state).
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey(spaceId), JSON.stringify(intent));
+      localStorage.setItem(
+        storageKey(intentState.spaceId),
+        JSON.stringify(intentState.intent),
+      );
     } catch {
       // ignore
     }
-  }, [spaceId, intent]);
+  }, [intentState]);
+
+  const updateIntent = useCallback(
+    (updater: (prev: PaneIntent) => PaneIntent) => {
+      setIntentState((prev) => {
+        const base = prev.spaceId === spaceId ? prev.intent : loadIntent(spaceId);
+        return { spaceId, intent: updater(base) };
+      });
+    },
+    [spaceId],
+  );
+
+  const intent =
+    intentState.spaceId === spaceId ? intentState.intent : loadIntent(spaceId);
+
+  const tabsById = useMemo(() => new Map(tabs.map((tab) => [tab.id, tab])), [tabs]);
 
   const isBrowser = useCallback(
-    (id: string) => tabs.find((t) => t.id === id)?.isBrowser ?? false,
-    [tabs],
+    (id: string) => tabsById.get(id)?.isBrowser ?? false,
+    [tabsById],
   );
 
   const resolved = useMemo(() => {
@@ -119,8 +144,14 @@ export function usePaneLayout(spaceId: string | null, tabs: PaneTabRef[]): PaneL
     }
 
     const split = secondaryTabIds.length > 0;
-    const pick = (want: string | null, pool: string[]) =>
-      want && pool.includes(want) ? want : (pool[pool.length - 1] ?? null);
+    const activeIds = new Set<string>();
+    for (const tab of tabs) {
+      if (tab.active) activeIds.add(tab.id);
+    }
+    const pick = (want: string | null, pool: string[]) => {
+      if (want && pool.includes(want)) return want;
+      return pool.find((id) => activeIds.has(id)) ?? pool[pool.length - 1] ?? null;
+    };
     const active = {
       primary: pick(intent.active.primary, primaryTabIds),
       secondary: split ? pick(intent.active.secondary, secondaryTabIds) : null,
@@ -132,10 +163,10 @@ export function usePaneLayout(spaceId: string | null, tabs: PaneTabRef[]): PaneL
         : "primary";
 
     const browserPane: PaneId | null = secondaryTabIds.some(
-      (id) => tabs.find((t) => t.id === id)?.isBrowser,
+      (id) => tabsById.get(id)?.isBrowser,
     )
       ? "secondary"
-      : primaryTabIds.some((id) => tabs.find((t) => t.id === id)?.isBrowser)
+      : primaryTabIds.some((id) => tabsById.get(id)?.isBrowser)
         ? "primary"
         : null;
 
@@ -148,7 +179,7 @@ export function usePaneLayout(spaceId: string | null, tabs: PaneTabRef[]): PaneL
       focused,
       browserPane,
     };
-  }, [tabs, intent]);
+  }, [tabs, tabsById, intent]);
 
   const paneOf = useCallback(
     (tabId: string): PaneId =>
@@ -156,17 +187,23 @@ export function usePaneLayout(spaceId: string | null, tabs: PaneTabRef[]): PaneL
     [resolved.secondarySet],
   );
 
-  const setActive = useCallback((pane: PaneId, tabId: string) => {
-    setIntent((prev) => ({
-      ...prev,
-      active: { ...prev.active, [pane]: tabId },
-      focused: pane,
-    }));
-  }, []);
+  const setActive = useCallback(
+    (pane: PaneId, tabId: string) => {
+      updateIntent((prev) => ({
+        ...prev,
+        active: { ...prev.active, [pane]: tabId },
+        focused: pane,
+      }));
+    },
+    [updateIntent],
+  );
 
-  const setFocused = useCallback((pane: PaneId) => {
-    setIntent((prev) => ({ ...prev, focused: pane }));
-  }, []);
+  const setFocused = useCallback(
+    (pane: PaneId) => {
+      updateIntent((prev) => ({ ...prev, focused: pane }));
+    },
+    [updateIntent],
+  );
 
   const moveTabToPane = useCallback(
     (tabId: string, pane: PaneId): boolean => {
@@ -179,7 +216,7 @@ export function usePaneLayout(spaceId: string | null, tabs: PaneTabRef[]): PaneL
         );
         if (conflict) return false;
       }
-      setIntent((prev) => {
+      updateIntent((prev) => {
         const set = new Set(prev.secondary);
         if (pane === "secondary") set.add(tabId);
         else set.delete(tabId);
@@ -192,28 +229,31 @@ export function usePaneLayout(spaceId: string | null, tabs: PaneTabRef[]): PaneL
       });
       return true;
     },
-    [isBrowser, tabs, paneOf],
+    [isBrowser, tabs, paneOf, updateIntent],
   );
 
-  const assignNewTab = useCallback((tabId: string, pane: PaneId) => {
-    setIntent((prev) => {
-      const set = new Set(prev.secondary);
-      if (pane === "secondary") set.add(tabId);
-      else set.delete(tabId);
-      return {
-        ...prev,
-        secondary: [...set],
-        active: { ...prev.active, [pane]: tabId },
-        focused: pane,
-      };
-    });
-  }, []);
+  const assignNewTab = useCallback(
+    (tabId: string, pane: PaneId) => {
+      updateIntent((prev) => {
+        const set = new Set(prev.secondary);
+        if (pane === "secondary") set.add(tabId);
+        else set.delete(tabId);
+        return {
+          ...prev,
+          secondary: [...set],
+          active: { ...prev.active, [pane]: tabId },
+          focused: pane,
+        };
+      });
+    },
+    [updateIntent],
+  );
 
   const toggleSplit = useCallback(() => {
     if (resolved.split) {
       // Collapse: keep the currently focused surface visible in the single pane.
       const keep = resolved.active[resolved.focused] ?? resolved.active.primary;
-      setIntent((prev) => ({
+      updateIntent((prev) => ({
         ...prev,
         secondary: [],
         active: { primary: keep, secondary: null },
@@ -226,7 +266,7 @@ export function usePaneLayout(spaceId: string | null, tabs: PaneTabRef[]): PaneL
     if (resolved.primaryTabIds.length < 2) return;
     const tabId = resolved.active.primary;
     if (tabId) moveTabToPane(tabId, "secondary");
-  }, [resolved, moveTabToPane]);
+  }, [resolved, moveTabToPane, updateIntent]);
 
   return {
     split: resolved.split,

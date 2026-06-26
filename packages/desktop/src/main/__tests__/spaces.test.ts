@@ -14,9 +14,14 @@ import { createSpaceTools } from "../tools/spaceTools.js";
 /** Headless host that records which tab views were destroyed. */
 class RecordingViewHost extends HeadlessBrowserViewHost {
   readonly destroyed: string[] = [];
+  readonly focused: string[] = [];
   override destroyView(tabId: string): void {
     this.destroyed.push(tabId);
     super.destroyView(tabId);
+  }
+  override focusView(tabId: string): void {
+    this.focused.push(tabId);
+    super.focusView(tabId);
   }
 }
 
@@ -61,6 +66,27 @@ describe("SpaceService", () => {
     expect(ctx.spaces.getActiveSpaceId()).toBe(first.id);
     ctx.spaces.switchTo(second.id);
     expect(ctx.spaces.getActiveSpaceId()).toBe(second.id);
+  });
+
+  it("focuses the active browser view when switching spaces", async () => {
+    const first = ctx.spaces.list()[0];
+    const firstTab = await ctx.tabs.openBrowserTab({
+      url: "https://first.test",
+      spaceId: first.id,
+    });
+    const second = ctx.spaces.create({ name: "Second" });
+    const secondTab = await ctx.tabs.openBrowserTab({
+      url: "https://second.test",
+      spaceId: second.id,
+    });
+
+    ctx.spaces.switchTo(first.id);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(ctx.host.focused[ctx.host.focused.length - 1]).toBe(firstTab.id);
+
+    ctx.spaces.switchTo(second.id);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(ctx.host.focused[ctx.host.focused.length - 1]).toBe(secondTab.id);
   });
 
   it("closes a space and its tabs, reactivating another", async () => {
