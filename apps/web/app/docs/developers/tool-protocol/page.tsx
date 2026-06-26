@@ -112,6 +112,29 @@ export default function ToolProtocolPage() {
           [<InlineCode key="d">destructive</InlineCode>, "Performs high-impact, irreversible actions."],
         ]}
       />
+      <P>
+        The current agent approval gate prompts for <InlineCode>writes-files</InlineCode>,{" "}
+        <InlineCode>controls-browser</InlineCode>, <InlineCode>starts-process</InlineCode>, and{" "}
+        <InlineCode>destructive</InlineCode>. <InlineCode>accesses-network</InlineCode> remains part of the declared
+        capability model and audit trail.
+      </P>
+
+      <H2 id="diff-tool">Diff tool shape</H2>
+      <P>
+        <InlineCode>git_diff</InlineCode> reports staged and unstaged working-tree changes against{" "}
+        <InlineCode>HEAD</InlineCode> plus untracked files. The top-bar chip calls it with{" "}
+        <InlineCode>includePatches: false</InlineCode> to get cheap file/status/count summaries. The Diff tab then asks
+        for a selected file&apos;s patch on demand with <InlineCode>includePatches: true</InlineCode> and{" "}
+        <InlineCode>path</InlineCode>.
+      </P>
+      <CodeBlock
+        language="json"
+        code={`{
+  "cwd": "/work/project",
+  "includePatches": true,
+  "path": "src/app/page.tsx"
+}`}
+      />
 
       <H2 id="caller-identity">Caller identity</H2>
       <P>

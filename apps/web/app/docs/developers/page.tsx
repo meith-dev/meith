@@ -41,7 +41,7 @@ export default function DevelopersOverviewPage() {
       </P>
 
       <H2 id="packages">Packages</H2>
-      <P>meith is a pnpm monorepo built from four packages.</P>
+      <P>meith is a pnpm monorepo built from the desktop runtime packages plus the public web app.</P>
       <Table
         head={["Package", "Role"]}
         rows={[
@@ -60,6 +60,10 @@ export default function DevelopersOverviewPage() {
           [
             <InlineCode key="c">@meith/cli</InlineCode>,
             "Terminal client that discovers a running runtime and calls tools over the local socket.",
+          ],
+          [
+            <InlineCode key="w">@meith/web</InlineCode>,
+            "Next.js documentation and marketing site under apps/web.",
           ],
         ]}
       />
@@ -164,10 +168,16 @@ Internal calls ───┘`}
           <InlineCode>&lt;userData&gt;/logs.jsonl</InlineCode> and <InlineCode>&lt;userData&gt;/audit.jsonl</InlineCode>{" "}
           store app logs and tool authorization records.
         </Li>
+        <Li>
+          <InlineCode>&lt;userData&gt;/agent/sessions.json</InlineCode> stores agent session metadata, while{" "}
+          <InlineCode>&lt;userData&gt;/agent/transcripts/*.jsonl</InlineCode> stores compact per-session transcript
+          records.
+        </Li>
       </Ul>
       <Callout>
         <InlineCode>JsonStore</InlineCode> writes bounded JSON atomically and runs migrations before schema validation.
-        Corrupt state is backed up and reset to defaults instead of crashing the app.
+        <InlineCode>JsonlStore</InlineCode> stores append-only logs, audit records, and agent transcript records; long
+        transcripts are compacted into snapshots so hydration stays bounded.
       </Callout>
 
       <H2 id="dev-modes">Development modes</H2>
@@ -185,6 +195,17 @@ pnpm --filter @meith/desktop dev:headless
 # full verification
 pnpm check`}
       />
+
+      <H2 id="packaging">Packaging and web deploys</H2>
+      <P>
+        Desktop packaging stages a bundled Node runtime before <InlineCode>electron-builder</InlineCode> runs. The
+        packaged app prepends that runtime plus shell, version-manager, and common user tool paths to spawned process
+        PATHs, so Finder-launched builds can run <InlineCode>npx</InlineCode>, ACP agents, and project scripts.
+      </P>
+      <P>
+        The public web app deploys from <InlineCode>apps/web</InlineCode>. Vercel builds are skipped when a commit does
+        not touch that directory, avoiding web deployments for desktop-only changes.
+      </P>
 
       <Divider />
       <DocsPager />

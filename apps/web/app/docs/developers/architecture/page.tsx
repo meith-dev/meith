@@ -96,10 +96,18 @@ export default function ArchitecturePage() {
           <InlineCode>AgentView</InlineCode> for session list, transcript, composer, stop button, and permission cards.
         </Li>
         <Li>
+          <InlineCode>DiffView</InlineCode> for a working-tree diff tab with a folder tree, cached summary counts, and
+          lazy patch loading for the selected file.
+        </Li>
+        <Li>
           <InlineCode>SettingsView</InlineCode>, <InlineCode>DebugPanel</InlineCode>, and <InlineCode>StatusBar</InlineCode>{" "}
           for preferences, diagnostics, and connection state.
         </Li>
       </Ul>
+      <P>
+        High-frequency app-state and dev-server updates are scheduled with React transitions so process logs, status
+        updates, and large state pushes do not block typing, tab dragging, or browser interaction.
+      </P>
 
       <H2 id="cli">CLI</H2>
       <P>
@@ -116,8 +124,8 @@ export default function ArchitecturePage() {
         </Li>
         <Li>
           mapped commands such as <InlineCode>open</InlineCode>, <InlineCode>tabs</InlineCode>,{" "}
-          <InlineCode>navigate</InlineCode>, <InlineCode>screenshot</InlineCode>, and <InlineCode>processes</InlineCode>{" "}
-          call specific tools.
+          <InlineCode>navigate</InlineCode>, <InlineCode>screenshot</InlineCode>, <InlineCode>processes</InlineCode>,{" "}
+          <InlineCode>dev-servers</InlineCode>, and <InlineCode>start-dev</InlineCode> call specific tools.
         </Li>
         <Li>
           <InlineCode>meith call &lt;toolName&gt;</InlineCode> can invoke any registered tool, and{" "}
