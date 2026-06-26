@@ -54,8 +54,8 @@ export default function OpenGraphImage() {
               color: "#f3efe9",
             }}
           >
-            Build web apps with{" "}
-            <span style={{ color: "#e8a13c" }}>&nbsp;an AI that ships.</span>
+            Build web apps with AI from{" "}
+            <span style={{ color: "#e8a13c" }}>&nbsp;one shared workbench.</span>
           </div>
           <div style={{ fontSize: 30, color: "#b8b0a4", maxWidth: 900, lineHeight: 1.4 }}>
             {siteConfig.description}

@@ -13,13 +13,12 @@ export function Hero() {
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3.5 py-1.5 text-sm text-muted-foreground">
             <span className="size-1.5 rounded-full bg-primary" />
-            Open source ·{" "}
-            <span className="font-medium text-foreground">The AI workbench for web apps</span>
+            <span className="font-medium text-foreground">Open source</span>
           </span>
 
           <h1 className="mt-7 text-balance text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
-            Build web apps with{" "}
-            <span className="text-primary">an AI that ships.</span>
+            Build web apps with AI from{" "}
+            <span className="text-primary">one shared workbench.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">

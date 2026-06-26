@@ -18,12 +18,13 @@ export function HowItWorks() {
               A meitheal for your code
             </p>
             <h2 className="mt-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Your whole build routes through one shared tool registry.
+              One project state, one permission path.
             </h2>
             <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
               The visual interface, the terminal command, a plugin, and the AI
-              agent all act on the exact same project — not their own isolated
-              views. Editing a file from the UI, running{" "}
+              agent all act on the same workspace state: files, tabs, spaces,
+              dev servers, git changes, and browser ownership. Editing a file
+              from the UI, running{" "}
               <span className="font-mono text-foreground">meith open</span> to
               preview a route, or letting the agent start your dev server all go
               through the same tool definition, validation, permission, and
@@ -31,9 +32,11 @@ export function HowItWorks() {
             </p>
             <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
               meith doesn&apos;t lock you into one AI provider. The agent runtime
-              uses an adapter interface and connects to external agents via{" "}
+              uses an adapter interface, stores compact per-session transcripts,
+              and connects to external agents via{" "}
               <span className="font-mono text-foreground">ACP</span> (Agent
-              Client Protocol), keeping the app independent of any model vendor.
+              Client Protocol). ACP tools come through meith&apos;s MCP bridge, so
+              provider-native helpers cannot sidestep the registry.
             </p>
           </div>
 
@@ -60,12 +63,12 @@ export function HowItWorks() {
               <MeithMark className="size-7 text-foreground" />
               <p className="text-sm font-semibold">Shared ToolRegistry</p>
               <p className="font-mono text-[11px] text-muted-foreground">
-                validate · authorize · run · audit
+                validate · gate · run · audit
               </p>
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              {["app state", "files", "browser & processes"].map((label) => (
+              {["app state", "files & diffs", "browser & processes"].map((label) => (
                 <div
                   key={label}
                   className="rounded-md border border-border bg-background px-2 py-2 font-mono text-[11px] text-muted-foreground"

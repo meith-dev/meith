@@ -8,8 +8,8 @@ meith tools
 # open a local URL in a browser tab
 meith open http://localhost:3000
 
-# inspect running app instances
-meith app list
+# inspect managed dev servers
+meith dev-servers
 
 # call any registered tool directly
 meith call app_health`
@@ -24,14 +24,21 @@ export function CliSection() {
               Same tools, from your shell
             </p>
             <h2 className="mt-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Drive your project from the command line.
+              Drive the same workbench from your shell.
             </h2>
             <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
               The <span className="font-mono text-foreground">meith</span> CLI
               discovers a running runtime over a local socket and calls the exact
-              same tools the app uses. Open preview tabs, inspect dev-server
-              processes, stream build logs, or invoke any tool by name — straight
-              from your existing terminal workflow.
+              same registry as the desktop app. Open preview tabs, inspect
+              managed dev servers, stream logs, capture screenshots, or invoke
+              any tool by name from your existing terminal workflow.
+            </p>
+            <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
+              Packaged desktop builds include a bundled Node runtime and add the
+              user&apos;s shell and version-manager paths when spawning commands,
+              so <span className="font-mono text-foreground">npx</span>, ACP
+              agents, and project scripts keep working when meith is launched
+              from Finder.
             </p>
             <Link
               href="/docs/cli"

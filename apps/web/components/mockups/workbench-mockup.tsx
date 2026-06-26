@@ -1,19 +1,24 @@
 import { MeithMark } from "@/components/meith-mark";
 import { cn } from "@/lib/utils";
 import {
-  ArrowUp,
   Bot,
   Check,
   ChevronDown,
   ChevronRight,
   Circle,
   FileCode,
+  FileDiff,
+  FilePlus,
+  Folder,
   FolderOpen,
   GitCompare,
   Globe,
   PlayIcon,
   Plus,
+  RefreshCw,
+  Send,
   Settings,
+  ShieldAlert,
   Terminal,
   TerminalSquare,
   Wrench,
@@ -25,26 +30,18 @@ const spaces = [
   { initial: "D", color: "oklch(0.6 0.13 150)", active: false },
 ];
 
-// Editor / Terminal / Agent are single-instance workspace toggles that live in
-// the top bar; the Agent tab is currently open here.
 const workspaceToggles = [
   { icon: FileCode, label: "Editor", open: false },
   { icon: Terminal, label: "Terminal", open: false },
   { icon: Bot, label: "Agent", open: true },
 ];
 
-// The tab strip carries the open Agent workspace tab plus browser tabs; the
-// "+" opens a new browser tab only.
-const tabs = [
-  { icon: Bot, label: "Agent", active: true },
-  { icon: Globe, label: "localhost:3000", active: false },
+const agentSessions = [
+  { title: "Pricing Section", active: true, running: true },
+  { title: "Hero Polish", active: false, unread: true },
+  { title: "Nav Cleanup", active: false },
 ];
 
-/**
- * Claude brand mark (sourced from theSVG.org), rendered with `currentColor` so
- * it inherits the surrounding text color. Used as the agent selector glyph in
- * the composer, mirroring the desktop workbench.
- */
 function ClaudeMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
@@ -53,13 +50,6 @@ function ClaudeMark({ className }: { className?: string }) {
   );
 }
 
-/**
- * Faithful static recreation of the meith desktop workbench, built from the
- * real renderer surfaces: the top bar (brand cell, workspace toggles, git-diff
- * chip, split Run control), the far-left Spaces rail, a per-pane tab strip, the
- * agent transcript (with a tool-call card and a permission prompt), a side
- * preview pane, and the runtime status bar. Decorative only — `aria-hidden`.
- */
 export function WorkbenchMockup({ className }: { className?: string }) {
   return (
     <div
@@ -69,7 +59,6 @@ export function WorkbenchMockup({ className }: { className?: string }) {
         className,
       )}
     >
-      {/* Window chrome */}
       <div className="flex h-8 items-center gap-2 border-b border-border bg-card px-3">
         <div className="flex items-center gap-1.5">
           <span className="size-3 rounded-full bg-[oklch(0.62_0.2_25)]" />
@@ -83,44 +72,36 @@ export function WorkbenchMockup({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* Top bar: brand cell (aligned to the rail width) + workspace toggles +
-          git-diff chip + run controls. */}
       <div className="flex h-10 items-stretch border-b border-border">
         <div className="flex w-14 shrink-0 items-center justify-center border-r border-border bg-card">
           <MeithMark className="size-5 text-foreground" />
         </div>
         <div className="flex min-w-0 flex-1 items-center gap-1 bg-card/40 px-2">
-          {workspaceToggles.map((t) => (
+          {workspaceToggles.map((toggle) => (
             <div
-              key={t.label}
+              key={toggle.label}
               className={cn(
                 "flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium",
-                t.open ? "text-foreground" : "text-muted-foreground",
+                toggle.open ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              <t.icon className="size-4 shrink-0" />
-              <span>{t.label}</span>
+              <toggle.icon className="size-4 shrink-0" />
+              <span>{toggle.label}</span>
             </div>
           ))}
 
           <div className="min-w-0 flex-1" />
-
-          {/* Git-diff chip */}
           <div className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs">
             <GitCompare className="size-3.5 text-muted-foreground" />
             <span className="font-mono tabular-nums text-[oklch(0.7_0.13_150)]">
-              +128
+              +107
             </span>
-            <span className="font-mono tabular-nums text-[oklch(0.62_0.2_25)]">-34</span>
+            <span className="font-mono tabular-nums text-[oklch(0.62_0.2_25)]">-12</span>
           </div>
-
-          {/* Live port chip */}
           <div className="flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 font-mono text-[11px] text-primary">
             <span className="size-1.5 rounded-full bg-primary" />
             :3000
           </div>
-
-          {/* Split Run control */}
           <div className="flex items-stretch">
             <span className="flex h-7 items-center gap-1.5 rounded-md rounded-r-none bg-primary px-2.5 text-xs font-medium text-primary-foreground">
               <PlayIcon className="size-3.5 fill-current" />
@@ -133,24 +114,22 @@ export function WorkbenchMockup({ className }: { className?: string }) {
         </div>
       </div>
 
-      <div className="flex h-[420px]">
-        {/* Spaces rail */}
+      <div className="flex h-[500px]">
         <nav className="flex w-14 shrink-0 flex-col items-center border-r border-border bg-card py-3">
           <div className="flex flex-1 flex-col items-center gap-2">
-            {spaces.map((s) => (
+            {spaces.map((space) => (
               <div
-                key={s.initial}
+                key={space.initial}
                 className={cn(
                   "flex size-9 items-center justify-center rounded-md text-sm font-semibold text-white",
-                  s.active && "ring-2 ring-offset-2 ring-offset-card",
+                  space.active && "ring-2 ring-offset-2 ring-offset-card",
                 )}
                 style={{
-                  backgroundColor: s.color,
-                  // @ts-expect-error css var
-                  "--tw-ring-color": s.color,
+                  backgroundColor: space.color,
+                  boxShadow: space.active ? `0 0 0 2px ${space.color}` : undefined,
                 }}
               >
-                {s.initial}
+                {space.initial}
               </div>
             ))}
             <div className="my-1 h-px w-7 bg-border" />
@@ -172,142 +151,243 @@ export function WorkbenchMockup({ className }: { className?: string }) {
           </div>
         </nav>
 
-        {/* Main column */}
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Tab strip */}
-          <div className="flex h-9 items-center border-b border-border bg-card/40 px-2">
-            <div className="flex flex-1 items-center gap-1">
-              {tabs.map((t) => (
-                <div
-                  key={t.label}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs",
-                    t.active ? "bg-background text-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  <t.icon className="size-3.5" />
-                  <span className="max-w-28 truncate">{t.label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex size-7 items-center justify-center rounded-md border-l border-border pl-2 text-muted-foreground">
-              <Plus className="size-3.5" />
-            </div>
-          </div>
-
-          {/* Body: transcript + preview */}
           <div className="flex min-h-0 flex-1">
-            {/* Agent transcript */}
-            <div className="flex min-w-0 flex-1 flex-col">
-              <div className="flex-1 space-y-3 overflow-hidden p-3.5 text-[13px] leading-relaxed">
-                {/* user message */}
-                <div className="flex justify-end">
-                  <div className="max-w-[80%] rounded-lg rounded-br-sm bg-secondary px-3 py-2 text-secondary-foreground">
-                    Add a pricing section to the landing page and start the dev
-                    server.
+            <section className="flex min-w-0 flex-1 flex-col">
+              <div className="flex h-9 items-center border-b border-border bg-card/40 px-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1">
+                  <div className="flex items-center gap-1.5 rounded-md bg-background px-2.5 py-1 text-xs text-foreground">
+                    <Bot className="size-3.5" />
+                    <span className="max-w-24 truncate">Agent</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-muted-foreground">
+                    <Globe className="size-3.5" />
+                    <span className="max-w-28 truncate font-mono">localhost:3000</span>
                   </div>
                 </div>
+                <Plus className="size-3.5 text-muted-foreground" />
+              </div>
 
-                {/* assistant message */}
-                <div className="max-w-[88%] text-foreground/90">
-                  On it. I&apos;ll build the section, then bring up the live
-                  preview.
-                </div>
-
-                {/* tool call card */}
-                <div className="rounded-lg border border-border bg-card/70 p-2.5">
-                  <div className="flex items-center gap-2 text-xs">
-                    <Wrench className="size-3.5 text-primary" />
-                    <span className="font-medium text-foreground">write_file</span>
-                    <code className="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-                      components/pricing.tsx
-                    </code>
-                    <span className="ml-auto flex items-center gap-1 text-primary">
-                      <Check className="size-3.5" />
-                      done
+              <div className="flex min-h-0 flex-1">
+                <aside className="hidden w-36 shrink-0 border-r border-border bg-card/25 md:flex md:flex-col">
+                  <div className="flex h-9 items-center justify-between px-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Sessions
                     </span>
+                    <Plus className="size-3.5 text-muted-foreground" />
                   </div>
-                </div>
-
-                {/* permission prompt */}
-                <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
-                  <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                    <Circle className="size-2 fill-primary text-primary" />
-                    Permission required
+                  <div className="space-y-1 px-2">
+                    {agentSessions.map((session) => (
+                      <div
+                        key={session.title}
+                        className={cn(
+                          "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs",
+                          session.active
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground/85",
+                        )}
+                      >
+                        <span className="relative flex size-4 shrink-0 items-center justify-center">
+                          <Bot className="size-3.5 text-muted-foreground" />
+                          {(session.running || session.unread) && (
+                            <span
+                              className={cn(
+                                "absolute -right-0.5 -top-0.5 size-2 rounded-full ring-2 ring-background",
+                                session.running ? "bg-primary" : "bg-[oklch(0.62_0.13_250)]",
+                              )}
+                            />
+                          )}
+                        </span>
+                        <span className="min-w-0 truncate">{session.title}</span>
+                      </div>
+                    ))}
                   </div>
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    Run{" "}
-                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">
-                      pnpm dev
-                    </code>{" "}
-                    in this workspace?
-                  </p>
-                  <div className="mt-2.5 flex gap-2">
-                    <span className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground">
-                      Allow once
-                    </span>
-                    <span className="rounded-md border border-border px-2.5 py-1 text-[11px] text-foreground">
-                      Always allow
-                    </span>
-                    <span className="rounded-md px-2.5 py-1 text-[11px] text-muted-foreground">
-                      Deny
-                    </span>
+                </aside>
+
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <div className="flex-1 space-y-3 overflow-hidden p-3.5 text-[13px] leading-relaxed">
+                    <div className="flex justify-end">
+                      <div className="max-w-[82%] rounded-lg bg-primary px-3 py-2 text-primary-foreground">
+                        Add a pricing section and start the dev server.
+                      </div>
+                    </div>
+
+                    <div className="flex justify-start">
+                      <div className="max-w-[88%] rounded-lg bg-muted px-3 py-2 text-foreground">
+                        <div className="meith-thinking-static truncate text-sm">
+                          Reading the project structure
+                        </div>
+                        <div className="mt-2 rounded-md border border-border bg-background/70 p-2">
+                          <div className="flex items-center gap-2 text-xs">
+                            <Wrench className="size-3.5 text-primary" />
+                            <span className="font-medium text-foreground">workspace_write_file</span>
+                            <code className="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                              components/pricing.tsx
+                            </code>
+                            <span className="ml-auto flex items-center gap-1 text-primary">
+                              <Check className="size-3.5" />
+                              ok
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-sm">
+                          Updated the page and found a matching dev script.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="max-w-[96%] rounded-lg border border-primary/40 bg-primary/10 p-3">
+                      <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                        <ShieldAlert className="size-3.5 text-primary" />
+                        Permission required
+                      </div>
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        The agent wants to run{" "}
+                        <code className="font-mono text-foreground">project_run</code> to
+                        start a process.
+                      </p>
+                      <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <span className="size-3 rounded-[3px] border border-input bg-background" />
+                        Remember for this tool in this session
+                      </label>
+                      <div className="mt-2.5 flex gap-2">
+                        <span className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground">
+                          Allow
+                        </span>
+                        <span className="rounded-md border border-border px-2.5 py-1 text-[11px] text-foreground">
+                          Deny
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border p-3">
+                    <div className="flex flex-col gap-2 rounded-md border border-input bg-transparent px-3 py-2 shadow-sm">
+                      <span className="truncate text-[13px] text-muted-foreground">
+                        Message the agent...
+                      </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-1">
+                          <span className="flex items-center gap-0.5 rounded-md px-1 py-0.5 text-foreground">
+                            <ClaudeMark className="size-4" />
+                            <ChevronDown className="size-3 text-muted-foreground" />
+                          </span>
+                          <span className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs">
+                            <span className="truncate font-medium text-foreground">
+                              Claude Opus
+                            </span>
+                            <span className="text-muted-foreground">xhigh</span>
+                          </span>
+                        </div>
+                        <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                          <Send className="size-3.5" />
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+            </section>
 
-              {/* composer */}
-              <div className="border-t border-border p-3">
-                <div className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2">
-                  <span className="truncate text-[13px] text-muted-foreground">
-                    Ask meith to do something…
-                  </span>
-                  <div className="flex items-center justify-between gap-2">
-                    {/* agent selector (icon) + model / effort switcher */}
-                    <div className="flex items-center gap-1">
-                      <span className="flex items-center gap-0.5 rounded-md px-1 py-0.5 text-foreground">
-                        <ClaudeMark className="size-4" />
-                        <ChevronDown className="size-3 text-muted-foreground" />
-                      </span>
-                      <span className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs">
-                        <span className="font-medium text-foreground">Claude Opus</span>
-                        <span className="text-muted-foreground">xhigh</span>
-                        <ChevronDown className="size-3 text-muted-foreground" />
+            <section className="hidden w-[43%] shrink-0 flex-col border-l border-border bg-background lg:flex">
+              <div className="flex h-9 items-center border-b border-border bg-card/40 px-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1">
+                  <div className="flex items-center gap-1.5 rounded-md bg-background px-2.5 py-1 text-xs text-foreground">
+                    <FileDiff className="size-3.5" />
+                    <span className="truncate">Diff</span>
+                  </div>
+                </div>
+                <Plus className="size-3.5 text-muted-foreground" />
+              </div>
+              <div className="flex h-8 items-center gap-3 border-b border-border bg-card/40 px-3 text-[11px]">
+                <span className="text-muted-foreground">2 changed files</span>
+                <span className="font-mono tabular-nums text-[oklch(0.7_0.13_150)]">
+                  +107
+                </span>
+                <span className="font-mono tabular-nums text-[oklch(0.62_0.2_25)]">-12</span>
+                <RefreshCw className="ml-auto size-3.5 text-muted-foreground" />
+              </div>
+
+              <div className="flex min-h-0 flex-1">
+                <div className="w-40 shrink-0 bg-card/30 py-1 text-xs">
+                  <div className="flex items-center gap-1.5 px-2 py-1 text-muted-foreground">
+                    <ChevronRight className="size-3 rotate-90" />
+                    <FolderOpen className="size-3.5" />
+                    <span className="min-w-0 flex-1 truncate font-mono">apps</span>
+                    <span className="font-mono text-[10px]">2</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2 py-1 pl-6 text-muted-foreground">
+                    <ChevronRight className="size-3 rotate-90" />
+                    <Folder className="size-3.5" />
+                    <span className="min-w-0 flex-1 truncate font-mono">web</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-accent px-2 py-1.5 pl-10 text-foreground">
+                    <FileDiff className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate font-mono">page.tsx</span>
+                    <span className="font-mono text-[10px]">
+                      <span className="text-[oklch(0.7_0.13_150)]">+23</span>{" "}
+                      <span className="text-[oklch(0.62_0.2_25)]">-12</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 px-2 py-1.5 pl-10 text-foreground">
+                    <FilePlus className="size-3.5 shrink-0 text-[oklch(0.7_0.13_150)]" />
+                    <span className="min-w-0 flex-1 truncate font-mono">pricing.tsx</span>
+                    <span className="font-mono text-[10px] text-[oklch(0.7_0.13_150)]">
+                      +84
+                    </span>
+                  </div>
+                </div>
+                <div className="w-1 shrink-0 border-r border-border" />
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <div className="flex h-8 items-center gap-2 border-b border-border bg-card/40 px-3 text-[11px]">
+                    <FileDiff className="size-3.5 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate font-mono">
+                      apps/web/app/page.tsx
+                    </span>
+                    <span className="font-mono">
+                      <span className="text-[oklch(0.7_0.13_150)]">+23</span>{" "}
+                      <span className="text-[oklch(0.62_0.2_25)]">-12</span>
+                    </span>
+                  </div>
+                  <div className="font-mono text-[10px] leading-5">
+                    <div className="bg-muted/60 px-2 text-muted-foreground">
+                      @@ -12,3 +12,4 @@
+                    </div>
+                    <div className="grid grid-cols-[2.25rem_2.25rem_1fr] border-b border-border/40">
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">12</span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">12</span>
+                      <span className="truncate px-2 text-foreground">{"<Hero />"}</span>
+                    </div>
+                    <div className="grid grid-cols-[2.25rem_2.25rem_1fr] bg-[oklch(0.62_0.2_25_/_0.1)]">
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">13</span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60" />
+                      <span className="truncate px-2 text-[oklch(0.72_0.18_25)]">{"-<Features />"}</span>
+                    </div>
+                    <div className="grid grid-cols-[2.25rem_2.25rem_1fr] bg-[oklch(0.7_0.13_150_/_0.1)]">
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60" />
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">13</span>
+                      <span className="truncate px-2 text-[oklch(0.75_0.16_150)]">
+                        {"+<Pricing />"}
                       </span>
                     </div>
-                    <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                      <ArrowUp className="size-3.5" />
-                    </span>
+                    <div className="grid grid-cols-[2.25rem_2.25rem_1fr] bg-[oklch(0.7_0.13_150_/_0.1)]">
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60" />
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">14</span>
+                      <span className="truncate px-2 text-[oklch(0.75_0.16_150)]">
+                        {"+<Features />"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-[2.25rem_2.25rem_1fr]">
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">14</span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">15</span>
+                      <span className="truncate px-2 text-foreground">{"<HowItWorks />"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Preview pane */}
-            <div className="hidden w-2/5 shrink-0 flex-col border-l border-border bg-card/30 lg:flex">
-              <div className="flex h-8 items-center gap-2 border-b border-border px-3 text-[11px] text-muted-foreground">
-                <Globe className="size-3.5" />
-                <span className="truncate font-mono">localhost:3000</span>
-                <span className="ml-auto flex items-center gap-1 text-primary">
-                  <PlayIcon className="size-2.5 fill-current" />
-                  live
-                </span>
-              </div>
-              <div className="flex flex-1 flex-col gap-2.5 p-3.5">
-                <div className="h-2.5 w-1/2 rounded bg-primary/70" />
-                <div className="h-2 w-3/4 rounded bg-muted" />
-                <div className="h-2 w-2/3 rounded bg-muted" />
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div className="h-14 rounded-md border border-border bg-background" />
-                  <div className="h-14 rounded-md border border-border bg-background" />
-                </div>
-                <div className="h-2 w-1/2 rounded bg-muted" />
-                <div className="h-2 w-3/5 rounded bg-muted" />
-              </div>
-            </div>
+            </section>
           </div>
 
-          {/* Status bar */}
           <div className="flex h-7 shrink-0 items-center gap-4 border-t border-border bg-card px-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Circle className="size-2 fill-primary text-primary" />
@@ -318,7 +398,7 @@ export function WorkbenchMockup({ className }: { className?: string }) {
               <span className="font-mono text-primary">:3000</span>
             </span>
             <span className="ml-auto">3 spaces</span>
-            <span>1 workspace tab</span>
+            <span>2 workspace tabs</span>
             <span>1 browser tab</span>
             <span className="font-mono">meith workbench</span>
           </div>

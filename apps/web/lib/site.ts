@@ -5,9 +5,9 @@
  */
 export const siteConfig = {
   name: "meith",
-  tagline: "The AI workbench for building web apps.",
+  tagline: "AI workbench for web apps.",
   description:
-    "Meith is a desktop app where AI agents help you build web apps end to end — editing your code, running dev servers, and previewing localhost right beside the chat, with you approving every step.",
+    "A desktop workbench where AI agents share your project context, tools, preview, and permissions.",
   url: "https://meith.dev",
   repo: "https://github.com/meith-dev/meith",
   releases: "https://github.com/meith-dev/meith/releases",

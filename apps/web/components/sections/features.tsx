@@ -1,5 +1,5 @@
 import {
-  FolderTree,
+  GitCompare,
   Globe,
   LayoutGrid,
   ShieldCheck,
@@ -10,33 +10,33 @@ import {
 const features = [
   {
     icon: Wrench,
-    title: "Agents that write your code",
-    body: "Meith agents don't just suggest snippets. They scaffold components, edit files across your project, and wire up features — calling real tools through a typed protocol, with every change shown inline.",
+    title: "Agent sessions that persist",
+    body: "meith keeps agent chats scoped to the workspace, with compact transcripts, generated session titles, model controls, and remembered approvals for trusted tools.",
   },
   {
     icon: TerminalSquare,
     title: "Dev servers, built in",
-    body: "Start your dev server, watch its output, and preview localhost right beside the conversation. The status bar tracks what's running and on which port — no second terminal required.",
+    body: "Start your dev server from the top bar, watch logs inside the workbench, and open detected localhost ports without leaving the desktop app.",
   },
   {
     icon: Globe,
     title: "Live preview & browsing",
-    body: "See your app render as the agent builds it. Meith can open localhost, click through your pages, and check its own work against what's actually on screen.",
+    body: "Preview the running app beside the chat. Agents can claim browser tabs before automation, so browser control stays attributed and conflicts are blocked.",
   },
   {
-    icon: FolderTree,
-    title: "Reviewable code changes",
-    body: "Point meith at your repo and it works inside it. Edits land as inline diffs you can review, undo, and ship — nothing touches your codebase without you seeing it.",
+    icon: GitCompare,
+    title: "Fast reviewable diffs",
+    body: "The top bar shows cached working-tree totals, and the Diff tab groups changed files by folder while loading full patches only when you select a file.",
   },
   {
     icon: LayoutGrid,
     title: "A space per project",
-    body: "Each space is one app. Switch between them from the rail like profiles, and keep agent chats, source files, and preview tabs scoped to the project in front of you.",
+    body: "Each space is one app. Switch from the rail and keep agent sessions, source files, terminals, browser tabs, and run commands scoped to that project.",
   },
   {
     icon: ShieldCheck,
-    title: "Permission on every action",
-    body: "Tools that touch your machine ask first. Allow once, always allow, or deny — you stay in control of files, commands, and network access at all times.",
+    title: "Permission where it matters",
+    body: "Writes, browser control, process starts, and destructive actions ask first. ACP provider-side approvals are narrowed to meith tools.",
   },
 ]
 
@@ -49,9 +49,9 @@ export function Features() {
             A workbench, not a chat box
           </h2>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            Everything you need to build a web app with AI — your code, a dev
-            server, a live preview, and reviewable diffs — gathered into one
-            desktop app.
+            Everything you need to build a web app with AI: project files,
+            persistent agent sessions, dev-server logs, localhost preview, and
+            fast reviewable diffs in one desktop app.
           </p>
         </div>
 
