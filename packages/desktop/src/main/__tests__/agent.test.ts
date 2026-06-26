@@ -7,6 +7,7 @@ import type { JsonRpcClient } from "../agent/acp/JsonRpcClient.js";
 import {
   applyConfigOptions,
   buildAcpPrompt,
+  extractMeithToolCallId,
   mapSessionUpdate,
   parseAcpConfigOptions,
   selectAcpPermissionOption,
@@ -282,6 +283,77 @@ describe("ACP adapter permission policy", () => {
         meithTools,
       ),
     ).toBe("yes");
+  });
+
+  it("allows dotted Meith MCP display names", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolName: "mcp__meith.navigate",
+          options: [
+            { optionId: "disallow", name: "Disallow", kind: "reject_once" },
+            { optionId: "proceed", name: "Proceed", kind: "allow_once" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("proceed");
+  });
+
+  it("tracks Codex MCP tool updates for later metadata-only approvals", () => {
+    const toolCallId = extractMeithToolCallId(
+      {
+        update: {
+          sessionUpdate: "tool_call",
+          toolCallId: "call-1",
+          title: "mcp.meith.get_tabs",
+          status: "pending",
+          rawInput: { server: "meith", tool: "get_tabs", arguments: {} },
+        },
+      },
+      meithTools,
+    );
+
+    expect(toolCallId).toBe("call-1");
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolCall: {
+            toolCallId: "call-1",
+            kind: "execute",
+            status: "pending",
+          },
+          _meta: { is_mcp_tool_approval: true },
+          options: [
+            { optionId: "allow_once", name: "Allow", kind: "allow_once" },
+            { optionId: "decline", name: "Decline", kind: "reject_once" },
+          ],
+        },
+        meithTools,
+        new Set([toolCallId ?? ""]),
+      ),
+    ).toBe("allow_once");
+  });
+
+  it("still denies metadata-only MCP approval requests without a Meith correlation", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolCall: {
+            toolCallId: "external-call",
+            kind: "execute",
+            status: "pending",
+          },
+          _meta: { is_mcp_tool_approval: true },
+          options: [
+            { optionId: "allow_once", name: "Allow", kind: "allow_once" },
+            { optionId: "decline", name: "Decline", kind: "reject_once" },
+          ],
+        },
+        meithTools,
+        new Set(["call-1"]),
+      ),
+    ).toBe("decline");
   });
 
   it("denies permission requests for external provider tools", () => {

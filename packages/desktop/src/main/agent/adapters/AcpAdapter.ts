@@ -110,6 +110,7 @@ export class AcpAdapter implements AgentAdapter {
     });
 
     const meithToolNames = new Set(host.listTools().map((tool) => tool.name));
+    const meithToolCallIds = new Set<string>();
     // The ACP peer can ask the client to approve provider-side tools. Meith
     // tools are exposed through the MCP server named "meith"; everything else
     // must be denied so provider-native helpers cannot bypass the registry.
@@ -118,7 +119,7 @@ export class AcpAdapter implements AgentAdapter {
         return {
           outcome: {
             outcome: "selected",
-            optionId: selectAcpPermissionOption(params, meithToolNames),
+            optionId: selectAcpPermissionOption(params, meithToolNames, meithToolCallIds),
           },
         };
       }
@@ -127,6 +128,8 @@ export class AcpAdapter implements AgentAdapter {
 
     rpc.on("notification", (method: string, params: unknown) => {
       if (method === "session/update") {
+        const toolCallId = extractMeithToolCallId(params, meithToolNames);
+        if (toolCallId) meithToolCallIds.add(toolCallId);
         const chunk = mapSessionUpdate(params);
         if (chunk) queue.push(chunk);
       }
@@ -497,6 +500,7 @@ interface AcpPermissionOption {
 export function selectAcpPermissionOption(
   params: unknown,
   meithToolNames: ReadonlySet<string>,
+  meithToolCallIds: ReadonlySet<string> = new Set(),
 ): string {
   const request = asRecord(params);
   const options = toPermissionOptions(request?.options);
@@ -509,7 +513,7 @@ export function selectAcpPermissionOption(
     "disallow",
   ]);
 
-  if (isMeithPermissionRequest(params, meithToolNames)) {
+  if (isMeithPermissionRequest(params, meithToolNames, meithToolCallIds)) {
     if (allow) return allow.optionId;
     throw new Error("ACP permission request for a Meith tool had no allow option");
   }
@@ -540,7 +544,7 @@ function findPermissionOption(
   needles: readonly string[],
 ): AcpPermissionOption | undefined {
   return options.find((option) => {
-    const haystack = [
+    const tokens = [
       option.optionId,
       option.kind,
       option.name,
@@ -549,15 +553,19 @@ function findPermissionOption(
     ]
       .filter((value): value is string => Boolean(value))
       .join(" ")
-      .toLowerCase();
-    return needles.some((needle) => haystack.includes(needle));
+      .toLowerCase()
+      .split(/[^a-z0-9]+/u)
+      .filter(Boolean);
+    return needles.some((needle) => tokens.includes(needle));
   });
 }
 
 function isMeithPermissionRequest(
   params: unknown,
   meithToolNames: ReadonlySet<string>,
+  meithToolCallIds: ReadonlySet<string> = new Set(),
 ): boolean {
+  if (hasKnownMeithToolCallId(params, meithToolCallIds)) return true;
   const names = collectStrings(params)
     .map((value) => value.trim())
     .filter(Boolean);
@@ -568,8 +576,60 @@ function isMeithToolName(name: string, meithToolNames: ReadonlySet<string>): boo
   if (meithToolNames.has(name)) return true;
   if (name.startsWith("meith.")) return meithToolNames.has(name.slice("meith.".length));
   if (name.startsWith("meith/")) return meithToolNames.has(name.slice("meith/".length));
+  if (name.startsWith("mcp.meith.")) {
+    return meithToolNames.has(name.slice("mcp.meith.".length));
+  }
+  if (name.startsWith("mcp/meith/")) {
+    return meithToolNames.has(name.slice("mcp/meith/".length));
+  }
+  if (name.startsWith("mcp__meith.")) {
+    return meithToolNames.has(name.slice("mcp__meith.".length));
+  }
   if (name.startsWith("mcp__meith__")) {
     return meithToolNames.has(name.slice("mcp__meith__".length));
+  }
+  return false;
+}
+
+export function extractMeithToolCallId(
+  params: unknown,
+  meithToolNames: ReadonlySet<string>,
+): string | null {
+  const outer = asRecord(params);
+  const update = asRecord(outer?.update);
+  if (!update) return null;
+  const kind = update.sessionUpdate;
+  if (kind !== "tool_call" && kind !== "tool_call_update") return null;
+  const id = stringValue(update.toolCallId);
+  if (!id) return null;
+  return isMeithPermissionRequest(update, meithToolNames) ? id : null;
+}
+
+function hasKnownMeithToolCallId(
+  value: unknown,
+  meithToolCallIds: ReadonlySet<string>,
+  seen = new WeakSet<object>(),
+): boolean {
+  if (meithToolCallIds.size === 0 || !value || typeof value !== "object") {
+    return false;
+  }
+  if (seen.has(value)) return false;
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some((item) => hasKnownMeithToolCallId(item, meithToolCallIds, seen));
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const [key, child] of Object.entries(record)) {
+    if (
+      (key === "toolCallId" || key === "tool_call_id" || key === "callId") &&
+      typeof child === "string" &&
+      meithToolCallIds.has(child)
+    ) {
+      return true;
+    }
+    if (hasKnownMeithToolCallId(child, meithToolCallIds, seen)) return true;
   }
   return false;
 }
