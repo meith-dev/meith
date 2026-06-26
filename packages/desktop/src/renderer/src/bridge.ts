@@ -7,6 +7,7 @@ import {
   type AgentStreamChunk,
   type AppState,
   type BrowserTab,
+  DEFAULT_AGENT_SESSION_TITLE,
   type DevServer,
   type LogEntry,
   type ProcessLogEntry,
@@ -16,6 +17,7 @@ import {
   defaultAgentConfig,
   defaultAppState,
   errorResult,
+  isDefaultAgentSessionTitle,
   newBrowserTabId,
   newMessageId,
   newProjectId,
@@ -23,6 +25,7 @@ import {
   newSpaceId,
   newWorkspaceTabId,
   okResult,
+  summarizeAgentSessionTitle,
 } from "@meith/shared";
 import type { MeithBridge } from "../../bridge.js";
 
@@ -909,6 +912,8 @@ function createMockBridge(): MeithBridge {
           case "git_diff": {
             // Preview mode has no real git repo, so return a small, deterministic
             // sample so the diff chip + diff surface can be exercised.
+            const includePatches = args.includePatches !== false;
+            const selectedPath = typeof args.path === "string" ? args.path : null;
             const sampleDiff =
               "diff --git a/README.md b/README.md\n" +
               "--- a/README.md\n" +
@@ -928,7 +933,10 @@ function createMockBridge(): MeithBridge {
                   additions: 2,
                   deletions: 1,
                   binary: false,
-                  diff: sampleDiff,
+                  diff:
+                    includePatches && (!selectedPath || selectedPath === "README.md")
+                      ? sampleDiff
+                      : "",
                 },
               ],
               totalAdditions: 2,
@@ -1091,7 +1099,7 @@ function createMockBridge(): MeithBridge {
         const ts = Date.now();
         const session: AgentSession = {
           id: newSessionId(),
-          title: input.title?.trim() || "New session",
+          title: input.title?.trim() || DEFAULT_AGENT_SESSION_TITLE,
           cwd: input.cwd,
           spaceId: input.spaceId ?? null,
           model: input.model || agentConfig.model || undefined,
@@ -1099,6 +1107,7 @@ function createMockBridge(): MeithBridge {
           status: "idle",
           createdAt: ts,
           updatedAt: ts,
+          lastViewedAt: ts,
           messages: [],
         };
         agentSessions.set(session.id, session);
@@ -1123,8 +1132,13 @@ function createMockBridge(): MeithBridge {
             createdAt: Date.now(),
           };
           session.messages.push(userMsg);
+          if (isDefaultAgentSessionTitle(session.title)) {
+            const title = summarizeAgentSessionTitle(text);
+            if (title) session.title = title;
+          }
         }
         session.status = "running";
+        session.updatedAt = Date.now();
         emitMeta();
         const reply = `You said: "${text ?? ""}". This is a preview-mode mock agent response.`;
         const assistant: AgentMessage = {
@@ -1222,7 +1236,7 @@ function createMockBridge(): MeithBridge {
           ? (({ messages: _m, ...rest }) => rest)(session)
           : {
               id: sessionId,
-              title: "New session",
+              title: DEFAULT_AGENT_SESSION_TITLE,
               cwd: "",
               spaceId: null,
               adapterId: "mock",
@@ -1230,6 +1244,14 @@ function createMockBridge(): MeithBridge {
               createdAt: Date.now(),
               updatedAt: Date.now(),
             };
+        return structuredClone(meta);
+      },
+      markSessionViewed: async (sessionId) => {
+        const session = agentSessions.get(sessionId);
+        if (!session) return null;
+        session.lastViewedAt = Math.max(session.lastViewedAt ?? 0, Date.now());
+        const { messages: _m, ...meta } = session;
+        for (const cb of agentSessionSubs) cb(structuredClone(meta));
         return structuredClone(meta);
       },
       onChunk: (cb) => {

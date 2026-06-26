@@ -24,6 +24,7 @@ import type {
 } from "../types.js";
 
 const ACP_PROTOCOL_VERSION = 1;
+const DEFAULT_TEXT_VERBOSITY = "low";
 
 /**
  * Drives an external agent that speaks the Agent Client Protocol (ACP) over a
@@ -109,6 +110,7 @@ export class AcpAdapter implements AgentAdapter {
     });
 
     const meithToolNames = new Set(host.listTools().map((tool) => tool.name));
+    const meithToolCallIds = new Set<string>();
     // The ACP peer can ask the client to approve provider-side tools. Meith
     // tools are exposed through the MCP server named "meith"; everything else
     // must be denied so provider-native helpers cannot bypass the registry.
@@ -117,7 +119,7 @@ export class AcpAdapter implements AgentAdapter {
         return {
           outcome: {
             outcome: "selected",
-            optionId: selectAcpPermissionOption(params, meithToolNames),
+            optionId: selectAcpPermissionOption(params, meithToolNames, meithToolCallIds),
           },
         };
       }
@@ -126,6 +128,8 @@ export class AcpAdapter implements AgentAdapter {
 
     rpc.on("notification", (method: string, params: unknown) => {
       if (method === "session/update") {
+        const toolCallId = extractMeithToolCallId(params, meithToolNames);
+        if (toolCallId) meithToolCallIds.add(toolCallId);
         const chunk = mapSessionUpdate(params);
         if (chunk) queue.push(chunk);
       }
@@ -143,10 +147,15 @@ export class AcpAdapter implements AgentAdapter {
     // Run the ACP handshake + prompt in the background, feeding the queue.
     void (async () => {
       try {
-        await rpc.request("initialize", {
+        const initializeResponse = await rpc.request("initialize", {
           protocolVersion: ACP_PROTOCOL_VERSION,
           clientCapabilities: { fs: { readTextFile: false, writeTextFile: false } },
         });
+        if (host.mcpEndpoint && !supportsHttpMcp(initializeResponse)) {
+          throw new Error(
+            "Configured ACP agent does not advertise HTTP MCP support, so Meith tools cannot be exposed.",
+          );
+        }
 
         const mcpServers = host.mcpEndpoint
           ? [
@@ -176,6 +185,10 @@ export class AcpAdapter implements AgentAdapter {
           { model, reasoning },
           (msg) => this.log(`[acp] ${msg}`),
         );
+
+        if (host.mcpEndpoint && shouldWaitForMcpToolsExposure(cfg, launch)) {
+          await waitForMcpToolsExposed(host.mcpEndpoint.ready);
+        }
 
         await rpc.request("session/prompt", {
           sessionId: currentSessionId,
@@ -349,6 +362,45 @@ export function buildAcpPrompt(
   return [{ type: "text", text }];
 }
 
+export function supportsHttpMcp(initializeResponse: unknown): boolean {
+  const response = asRecord(initializeResponse);
+  const capabilities = asRecord(response?.agentCapabilities);
+  const mcpCapabilities = asRecord(capabilities?.mcpCapabilities);
+  return mcpCapabilities?.http === true;
+}
+
+export function shouldWaitForMcpToolsExposure(
+  config: Pick<AgentConfig, "acpPreset">,
+  launch: { command: string; args: string[] },
+): boolean {
+  const preset = config.acpPreset ?? "custom";
+  if (preset === "codex" || preset === "claude") return true;
+  const launchText = [launch.command, ...launch.args].join(" ").toLowerCase();
+  return launchText.includes("codex-acp") || launchText.includes("claude-agent-acp");
+}
+
+export async function waitForMcpToolsExposed(
+  ready: Promise<void>,
+  timeoutMs = 10_000,
+): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(
+        new Error(
+          `Meith MCP tools were not exposed to the ACP agent within ${timeoutMs}ms. The agent did not call tools/list on the per-session Meith MCP bridge.`,
+        ),
+      );
+    }, timeoutMs);
+    timer.unref?.();
+  });
+  try {
+    await Promise.race([ready, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /**
  * Normalise the `configOptions` an agent returns from `session/new` into the
  * shared `AgentConfigOption` shape. Tolerant of missing/extra fields and of the
@@ -432,6 +484,9 @@ export async function applyConfigOptions(
 
   const reasoningOption = options.find((o) => isReasoningConfigOption(o));
   if (reasoningOption && desired.reasoning) await set(reasoningOption, desired.reasoning);
+
+  const verbosityOption = options.find((o) => isTextVerbosityConfigOption(o));
+  if (verbosityOption) await set(verbosityOption, DEFAULT_TEXT_VERBOSITY);
 }
 
 interface AcpPermissionOption {
@@ -445,6 +500,7 @@ interface AcpPermissionOption {
 export function selectAcpPermissionOption(
   params: unknown,
   meithToolNames: ReadonlySet<string>,
+  meithToolCallIds: ReadonlySet<string> = new Set(),
 ): string {
   const request = asRecord(params);
   const options = toPermissionOptions(request?.options);
@@ -457,7 +513,7 @@ export function selectAcpPermissionOption(
     "disallow",
   ]);
 
-  if (isMeithPermissionRequest(params, meithToolNames)) {
+  if (isMeithPermissionRequest(params, meithToolNames, meithToolCallIds)) {
     if (allow) return allow.optionId;
     throw new Error("ACP permission request for a Meith tool had no allow option");
   }
@@ -488,7 +544,7 @@ function findPermissionOption(
   needles: readonly string[],
 ): AcpPermissionOption | undefined {
   return options.find((option) => {
-    const haystack = [
+    const tokens = [
       option.optionId,
       option.kind,
       option.name,
@@ -497,15 +553,19 @@ function findPermissionOption(
     ]
       .filter((value): value is string => Boolean(value))
       .join(" ")
-      .toLowerCase();
-    return needles.some((needle) => haystack.includes(needle));
+      .toLowerCase()
+      .split(/[^a-z0-9]+/u)
+      .filter(Boolean);
+    return needles.some((needle) => tokens.includes(needle));
   });
 }
 
 function isMeithPermissionRequest(
   params: unknown,
   meithToolNames: ReadonlySet<string>,
+  meithToolCallIds: ReadonlySet<string> = new Set(),
 ): boolean {
+  if (hasKnownMeithToolCallId(params, meithToolCallIds)) return true;
   const names = collectStrings(params)
     .map((value) => value.trim())
     .filter(Boolean);
@@ -516,8 +576,60 @@ function isMeithToolName(name: string, meithToolNames: ReadonlySet<string>): boo
   if (meithToolNames.has(name)) return true;
   if (name.startsWith("meith.")) return meithToolNames.has(name.slice("meith.".length));
   if (name.startsWith("meith/")) return meithToolNames.has(name.slice("meith/".length));
+  if (name.startsWith("mcp.meith.")) {
+    return meithToolNames.has(name.slice("mcp.meith.".length));
+  }
+  if (name.startsWith("mcp/meith/")) {
+    return meithToolNames.has(name.slice("mcp/meith/".length));
+  }
+  if (name.startsWith("mcp__meith.")) {
+    return meithToolNames.has(name.slice("mcp__meith.".length));
+  }
   if (name.startsWith("mcp__meith__")) {
     return meithToolNames.has(name.slice("mcp__meith__".length));
+  }
+  return false;
+}
+
+export function extractMeithToolCallId(
+  params: unknown,
+  meithToolNames: ReadonlySet<string>,
+): string | null {
+  const outer = asRecord(params);
+  const update = asRecord(outer?.update);
+  if (!update) return null;
+  const kind = update.sessionUpdate;
+  if (kind !== "tool_call" && kind !== "tool_call_update") return null;
+  const id = stringValue(update.toolCallId);
+  if (!id) return null;
+  return isMeithPermissionRequest(update, meithToolNames) ? id : null;
+}
+
+function hasKnownMeithToolCallId(
+  value: unknown,
+  meithToolCallIds: ReadonlySet<string>,
+  seen = new WeakSet<object>(),
+): boolean {
+  if (meithToolCallIds.size === 0 || !value || typeof value !== "object") {
+    return false;
+  }
+  if (seen.has(value)) return false;
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some((item) => hasKnownMeithToolCallId(item, meithToolCallIds, seen));
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const [key, child] of Object.entries(record)) {
+    if (
+      (key === "toolCallId" || key === "tool_call_id" || key === "callId") &&
+      typeof child === "string" &&
+      meithToolCallIds.has(child)
+    ) {
+      return true;
+    }
+    if (hasKnownMeithToolCallId(child, meithToolCallIds, seen)) return true;
   }
   return false;
 }
@@ -590,7 +702,7 @@ function formatMessagesForPrompt(messages: AgentMessage[]): string {
 }
 
 /** Map an ACP `session/update` notification payload to an AgentStreamChunk. */
-function mapSessionUpdate(params: unknown): AgentStreamChunk | null {
+export function mapSessionUpdate(params: unknown): AgentStreamChunk | null {
   const update = (params as { update?: Record<string, unknown> }).update;
   if (!update || typeof update !== "object") return null;
   const kind = update.sessionUpdate as string | undefined;
@@ -598,8 +710,32 @@ function mapSessionUpdate(params: unknown): AgentStreamChunk | null {
   switch (kind) {
     case "agent_message_chunk":
     case "agent_thought_chunk": {
-      const content = update.content as { text?: string } | undefined;
-      if (content?.text) return { type: "text", text: content.text };
+      const text = extractText(update.content) ?? extractText(update.delta);
+      if (text) {
+        return {
+          type: "text",
+          text,
+          kind: kind === "agent_thought_chunk" ? "thought" : "message",
+        };
+      }
+      return null;
+    }
+    case "agent_message":
+    case "assistant_message":
+    case "assistant_item":
+    case "assistant_item_replay": {
+      const text =
+        extractText(update.content) ??
+        extractText(update.message) ??
+        extractText(update.item) ??
+        extractText(update.delta);
+      if (text) return { type: "text", text };
+      return null;
+    }
+    case "phase":
+    case "preamble":
+    case "agent_phase":
+    case "agent_preamble": {
       return null;
     }
     case "tool_call": {
@@ -711,6 +847,31 @@ function extractToolResult(update: Record<string, unknown>): ToolResult | undefi
     };
   }
   return { ok: true, content: output };
+}
+
+function isTextVerbosityConfigOption(option: {
+  id: string;
+  name: string;
+  category?: string;
+}): boolean {
+  const haystack = `${option.category ?? ""} ${option.id} ${option.name}`.toLowerCase();
+  return (
+    haystack.includes("text.verbosity") ||
+    (haystack.includes("verbosity") && haystack.includes("text"))
+  );
+}
+
+function extractText(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  const record = asRecord(value);
+  if (!record) return undefined;
+  if (typeof record.text === "string") return record.text;
+  if (typeof record.delta === "string") return record.delta;
+  if (typeof record.content === "string") return record.content;
+  if (Array.isArray(record.content)) {
+    return record.content.map(extractText).filter(Boolean).join("");
+  }
+  return undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {

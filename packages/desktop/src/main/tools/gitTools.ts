@@ -11,6 +11,7 @@ const pexec = promisify(execFile);
 const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 /** Generous buffer so large diffs aren't truncated by the default 1 MB cap. */
 const MAX_BUFFER = 64 * 1024 * 1024;
+const MAX_UNTRACKED_PATCH_BYTES = 512 * 1024;
 
 /** A single changed file with its unified diff and line counts. */
 export interface GitDiffFile {
@@ -49,8 +50,20 @@ export function createGitTools(_deps: ToolDeps): ToolDefinition[] {
     capabilities: ["read-only"],
     inputSchema: z.object({
       cwd: z.string().min(1).describe("A path inside the git repository to inspect."),
+      includePatches: z
+        .boolean()
+        .optional()
+        .describe("When false, return file/status/count summaries without patch bodies."),
+      path: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          "When includePatches is true, only include the patch body for this repository-relative path.",
+        ),
     }),
-    execute: async (_ctx, input) => okResult(await computeDiff(input.cwd)),
+    execute: async (_ctx, input) =>
+      okResult(await computeDiff(input.cwd, input.includePatches !== false, input.path)),
   });
 
   return [gitDiff];
@@ -62,23 +75,11 @@ async function git(cwd: string, args: string[]): Promise<string> {
   return stdout;
 }
 
-/**
- * Run git, tolerating a non-zero exit and still returning captured stdout.
- * `git diff --no-index` exits 1 whenever the files differ — which is the normal
- * case for an untracked file — so we read its stdout instead of treating it as
- * an error.
- */
-async function gitAllowFail(cwd: string, args: string[]): Promise<string> {
-  try {
-    return await git(cwd, args);
-  } catch (err) {
-    const out = (err as { stdout?: string }).stdout;
-    if (typeof out === "string") return out;
-    throw err;
-  }
-}
-
-async function computeDiff(cwd: string): Promise<GitDiffResult> {
+async function computeDiff(
+  cwd: string,
+  includePatches: boolean,
+  pathFilter?: string,
+): Promise<GitDiffResult> {
   let root: string;
   try {
     root = (await git(cwd, ["rev-parse", "--show-toplevel"])).trim();
@@ -103,7 +104,16 @@ async function computeDiff(cwd: string): Promise<GitDiffResult> {
   const numstat = (await git(root, [...quote, "diff", base, "--numstat"])).trim();
   const nameStatus = (await git(root, [...quote, "diff", base, "--name-status"])).trim();
   const statusMap = parseNameStatus(nameStatus);
-  const patchByPath = splitPatch(await git(root, [...quote, "diff", base]));
+  const patchByPath = includePatches
+    ? splitPatch(
+        await git(
+          root,
+          pathFilter
+            ? [...quote, "diff", base, "--", pathFilter]
+            : [...quote, "diff", base],
+        ),
+      )
+    : new Map<string, string>();
 
   if (numstat) {
     for (const line of numstat.split("\n")) {
@@ -118,7 +128,7 @@ async function computeDiff(cwd: string): Promise<GitDiffResult> {
         additions: binary ? 0 : Number.parseInt(addRaw, 10) || 0,
         deletions: binary ? 0 : Number.parseInt(delRaw, 10) || 0,
         binary,
-        diff: patchByPath.get(path) ?? "",
+        diff: includePatches ? (patchByPath.get(path) ?? "") : "",
       });
     }
   }
@@ -130,19 +140,16 @@ async function computeDiff(cwd: string): Promise<GitDiffResult> {
   if (untracked) {
     for (const rel of untracked.split("\n")) {
       if (!rel) continue;
-      const patch = await gitAllowFail(root, [
-        ...quote,
-        "diff",
-        "--no-index",
-        "--",
-        "/dev/null",
-        rel,
-      ]);
-      const binary = /^Binary files /m.test(patch);
+      const shouldLoadPatch = includePatches && (!pathFilter || rel === pathFilter);
+      const summary = await untrackedSummary(root, quote, rel);
+      const patch = shouldLoadPatch ? await untrackedPatch(root, quote, rel) : "";
+      const binary = shouldLoadPatch
+        ? summary.binary || /^Binary files /m.test(patch)
+        : summary.binary;
       files.push({
         path: rel,
         status: "untracked",
-        additions: binary ? 0 : countAddedLines(patch),
+        additions: binary ? 0 : summary.additions,
         deletions: 0,
         binary,
         diff: binary ? "" : patch,
@@ -154,6 +161,70 @@ async function computeDiff(cwd: string): Promise<GitDiffResult> {
   const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
   const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
   return { isRepo: true, root, files, totalAdditions, totalDeletions };
+}
+
+async function untrackedSummary(
+  root: string,
+  quote: string[],
+  rel: string,
+): Promise<{ additions: number; binary: boolean }> {
+  const out = await gitDiffMayExit(
+    root,
+    [...quote, "diff", "--no-index", "--numstat", "--", "/dev/null", rel],
+    MAX_BUFFER,
+  );
+  const line = out
+    .trim()
+    .split("\n")
+    .find((entry) => entry.trim());
+  if (!line) return { additions: 0, binary: false };
+  const [addRaw, delRaw] = line.split("\t");
+  const binary = addRaw === "-" || delRaw === "-";
+  return {
+    additions: binary ? 0 : Number.parseInt(addRaw ?? "0", 10) || 0,
+    binary,
+  };
+}
+
+async function untrackedPatch(
+  root: string,
+  quote: string[],
+  rel: string,
+): Promise<string> {
+  try {
+    const { stdout } = await pexec(
+      "git",
+      [...quote, "diff", "--no-index", "--", "/dev/null", rel],
+      {
+        cwd: root,
+        maxBuffer: MAX_UNTRACKED_PATCH_BYTES,
+      },
+    );
+    return stdout;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
+      return `diff --git a/${rel} b/${rel}\n--- /dev/null\n+++ b/${rel}\n@@\n+Large untracked file omitted from preview.\n`;
+    }
+    const out = (err as { stdout?: string }).stdout;
+    if (typeof out === "string") return out;
+    throw err;
+  }
+}
+
+async function gitDiffMayExit(
+  cwd: string,
+  args: string[],
+  maxBuffer: number,
+): Promise<string> {
+  try {
+    const { stdout } = await pexec("git", args, { cwd, maxBuffer });
+    return stdout;
+  } catch (err) {
+    const out = (err as { stdout?: string }).stdout;
+    if (typeof out === "string") return out;
+    throw err;
+  }
 }
 
 /** Map each path to a human status from `git diff --name-status` output. */
@@ -209,13 +280,4 @@ function extractPath(section: string): string | null {
   const dg = section.match(/^diff --git a\/(.+?) b\/(.+)$/m);
   if (dg) return dg[2];
   return null;
-}
-
-/** Count added lines in a patch (excludes the `+++` file header). */
-function countAddedLines(patch: string): number {
-  let n = 0;
-  for (const line of patch.split("\n")) {
-    if (line.startsWith("+") && !line.startsWith("+++")) n++;
-  }
-  return n;
 }

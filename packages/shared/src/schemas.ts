@@ -597,6 +597,8 @@ export const AgentTextSegmentSchema = z.object({
   start: z.number().nonnegative(),
   end: z.number().nonnegative(),
   text: z.string(),
+  /** Distinguishes compact thinking/progress text from final assistant prose. */
+  kind: z.enum(["thought", "message"]).optional(),
 });
 export type AgentTextSegment = z.infer<typeof AgentTextSegmentSchema>;
 
@@ -641,6 +643,8 @@ export const AgentSessionMetaSchema = z.object({
   status: AgentSessionStatusSchema.default("idle"),
   createdAt: z.number(),
   updatedAt: z.number(),
+  /** Last time the user opened this session in the agent panel. */
+  lastViewedAt: z.number().optional(),
   usage: AgentUsageSchema.optional(),
 });
 export type AgentSessionMeta = z.infer<typeof AgentSessionMetaSchema>;
@@ -676,7 +680,11 @@ export type AgentPermissionDecision = z.infer<typeof AgentPermissionDecisionSche
 
 /** A streamed event produced while an adapter generates a turn. */
 export const AgentStreamChunkSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("text"), text: z.string() }),
+  z.object({
+    type: z.literal("text"),
+    text: z.string(),
+    kind: z.enum(["thought", "message"]).optional(),
+  }),
   z.object({ type: z.literal("tool_call"), toolCall: AgentToolCallSchema }),
   z.object({
     type: z.literal("tool_result"),

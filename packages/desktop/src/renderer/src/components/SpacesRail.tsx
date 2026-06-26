@@ -11,7 +11,7 @@ import {
   TerminalSquare,
   Trash2Icon,
 } from "lucide-react";
-import { type MouseEvent, useEffect, useState } from "react";
+import { type MouseEvent, memo, useEffect, useState } from "react";
 
 interface SpacesRailProps {
   spaces: Space[];
@@ -42,7 +42,7 @@ type SpaceMenuState = {
  * The "+" creates an empty workspace; the folder button opens an existing
  * folder as a project. Mirrors the Arc/VS Code profile switcher idiom.
  */
-export function SpacesRail({
+export const SpacesRail = memo(function SpacesRail({
   spaces,
   activeSpaceId,
   onSwitch,
@@ -263,7 +263,7 @@ export function SpacesRail({
       )}
     </nav>
   );
-}
+});
 
 /** Tint the focus ring to the space color when active. */
 function ringColor(space: Space, active: boolean): Record<string, string> {

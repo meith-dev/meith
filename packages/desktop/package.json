@@ -9,9 +9,10 @@
     "dev:renderer": "pnpm --filter @meith/shared --filter @meith/protocol build && vite --config vite.renderer.config.ts",
     "dev:headless": "tsx src/main/harness.ts",
     "build": "electron-vite build",
-    "pack": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite build && electron-builder --dir",
-    "dist": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite build && electron-builder",
-    "dist:mac": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite build && electron-builder --mac",
+    "bundle-runtime": "node scripts/stage-bundled-node.mjs",
+    "pack": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite build && pnpm run bundle-runtime && electron-builder --dir",
+    "dist": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite build && pnpm run bundle-runtime && electron-builder",
+    "dist:mac": "pnpm --filter @meith/shared --filter @meith/protocol --filter @meith/cli build && electron-vite build && pnpm run bundle-runtime && electron-builder --mac",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
@@ -26,31 +27,27 @@
       "output": "release",
       "buildResources": "../../public"
     },
-    "files": [
-      "out/**",
-      "package.json"
-    ],
+    "files": ["out/**", "package.json"],
     "extraResources": [
       {
         "from": "../cli/bin",
         "to": "cli/bin",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**/*"]
       },
       {
         "from": "../cli/dist",
         "to": "cli/dist",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**/*"]
       },
       {
         "from": "../../templates",
         "to": "templates",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**/*"]
+      },
+      {
+        "from": "vendor/node-runtime",
+        "to": "node-runtime",
+        "filter": ["**/*"]
       }
     ],
     "mac": {
@@ -60,23 +57,16 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "target": [
-        "dmg",
-        "zip"
-      ]
+      "target": ["dmg", "zip"]
     },
     "dmg": {
       "sign": false
     },
     "win": {
-      "target": [
-        "nsis"
-      ]
+      "target": ["nsis"]
     },
     "linux": {
-      "target": [
-        "AppImage"
-      ],
+      "target": ["AppImage"],
       "category": "Development"
     }
   },

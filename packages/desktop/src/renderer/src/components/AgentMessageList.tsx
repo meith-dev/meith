@@ -6,10 +6,24 @@ import {
   Loader2Icon,
   WrenchIcon,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef } from "react";
+import {
+  type ReactNode,
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "../lib/utils";
+
+const MARKDOWN_MAX_CHARS = 12_000;
+const MARKDOWN_MAX_LINES = 350;
+const PLAIN_TEXT_MAX_CHARS = 16_000;
+const INITIAL_TRANSCRIPT_BATCH = 4;
+const TRANSCRIPT_BATCH = 2;
 
 interface AgentMessageListProps {
   session: AgentSession;
@@ -18,58 +32,81 @@ interface AgentMessageListProps {
 }
 
 /** Renders the transcript: user/assistant bubbles, tool-call cards, errors. */
-export function AgentMessageList({ session, streaming }: AgentMessageListProps) {
+export const AgentMessageList = memo(function AgentMessageList({
+  session,
+  streaming,
+}: AgentMessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_TRANSCRIPT_BATCH);
 
-  // Keep the view pinned to the latest content while streaming.
   useEffect(() => {
+    let cancelled = false;
+    let cancelScheduled = () => {};
+    const total = session.messages.length;
+    const initialCount = Math.min(total, INITIAL_TRANSCRIPT_BATCH);
+    setVisibleCount(initialCount);
+    if (total === 0) return () => {};
+
+    const step = () => {
+      if (cancelled) return;
+      setVisibleCount((current) => {
+        const next = Math.min(total, current + TRANSCRIPT_BATCH);
+        if (next < total) {
+          cancelScheduled = scheduleIdle(step);
+        }
+        return next;
+      });
+    };
+
+    cancelScheduled = scheduleIdle(step);
+    return () => {
+      cancelled = true;
+      cancelScheduled();
+    };
+  }, [session.id, session.messages.length]);
+
+  // Keep the panel pinned to the newest messages. Older batches are prepended
+  // above the viewport, so this must run after layout, not after a later paint.
+  useLayoutEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [session.messages, session.status, streaming]);
+  }, [session.id, session.messages.length, session.status, streaming, visibleCount]);
 
   const running = session.status === "running";
-  const streamingRemainder = running
-    ? streamingAfterLatestAssistant(session, streaming)
-    : "";
+  const liveAssistant = running ? latestAssistantForCurrentTurn(session) : undefined;
+  const liveAssistantId = liveAssistant?.id;
+  const visibleMessages = session.messages.slice(-visibleCount);
 
   return (
     <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden p-4">
-      {session.messages.map((message) => (
-        <MessageRow key={message.id} message={message} />
-      ))}
-      {streamingRemainder && (
-        <Bubble variant="assistant">
-          <MarkdownMessage content={streamingRemainder} />
-        </Bubble>
-      )}
-      {running && !streamingRemainder && !hasRunningAssistantContent(session) && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      {visibleCount < session.messages.length && (
+        <div className="flex items-center gap-2 self-start rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
           <Loader2Icon className="size-4 animate-spin" aria-hidden />
-          <span>Thinking…</span>
+          <span>Loading earlier messages…</span>
         </div>
+      )}
+      {visibleMessages.map((message) => (
+        <MessageRow
+          key={message.id}
+          message={message}
+          live={message.id === liveAssistantId}
+          liveContent={message.id === liveAssistantId ? streaming || message.content : ""}
+        />
+      ))}
+      {running && !liveAssistant && (
+        <LiveAssistantActivity content={streaming} calls={[]} />
       )}
       <div ref={bottomRef} />
     </div>
   );
-}
+});
 
-function streamingAfterLatestAssistant(session: AgentSession, streaming: string): string {
-  if (!streaming) return "";
-  const latestAssistant = latestAssistantForCurrentTurn(session);
-  const saved = latestAssistant?.content ?? "";
-  if (!saved) return streaming;
-  if (streaming.startsWith(saved)) return streaming.slice(saved.length);
-  if (saved.startsWith(streaming)) return "";
-  return streaming;
-}
-
-function hasRunningAssistantContent(session: AgentSession): boolean {
-  const latestAssistant = latestAssistantForCurrentTurn(session);
-  return Boolean(
-    latestAssistant &&
-      (latestAssistant.content ||
-        latestAssistant.toolCalls?.length ||
-        latestAssistant.error),
-  );
+function scheduleIdle(callback: () => void): () => void {
+  if ("requestIdleCallback" in window && "cancelIdleCallback" in window) {
+    const id = window.requestIdleCallback(callback, { timeout: 250 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = globalThis.setTimeout(callback, 0);
+  return () => globalThis.clearTimeout(id);
 }
 
 function latestAssistantForCurrentTurn(session: AgentSession): AgentMessage | undefined {
@@ -85,7 +122,15 @@ function latestAssistantForCurrentTurn(session: AgentSession): AgentMessage | un
   return currentTurnMessages.filter((message) => message.role === "assistant").at(-1);
 }
 
-function MessageRow({ message }: { message: AgentMessage }) {
+function MessageRow({
+  message,
+  live = false,
+  liveContent = "",
+}: {
+  message: AgentMessage;
+  live?: boolean;
+  liveContent?: string;
+}) {
   if (message.role === "user") {
     return (
       <Bubble variant="user">
@@ -94,6 +139,14 @@ function MessageRow({ message }: { message: AgentMessage }) {
     );
   }
   if (message.role === "assistant") {
+    if (live) {
+      return (
+        <LiveAssistantActivity
+          content={liveContent || message.content}
+          calls={message.toolCalls ?? []}
+        />
+      );
+    }
     return (
       <Bubble variant="assistant">
         <AssistantTranscript message={message} />
@@ -130,21 +183,183 @@ function Bubble({
   );
 }
 
+function LiveAssistantActivity({
+  content,
+  calls,
+}: {
+  content: string;
+  calls: AgentToolCall[];
+}) {
+  const events = liveActivityEvents(content, calls);
+  return (
+    <Bubble variant="assistant">
+      <div className="flex min-w-0 flex-col gap-2">
+        {events.map((event) =>
+          event.type === "thinking" ? (
+            <ThinkingLine key={event.id} content={event.content} live={event.live} />
+          ) : (
+            <ToolCallStack key={event.id} calls={event.calls} compact />
+          ),
+        )}
+      </div>
+    </Bubble>
+  );
+}
+
+type LiveActivityEvent =
+  | { type: "thinking"; id: string; content: string; live: boolean }
+  | { type: "tools"; id: string; calls: AgentToolCall[] };
+
+type TranscriptTextSegment = {
+  start: number;
+  end: number;
+  text: string;
+  kind?: "thought" | "message";
+};
+
+function liveActivityEvents(
+  content: string,
+  calls: AgentToolCall[],
+): LiveActivityEvent[] {
+  if (calls.length === 0) {
+    return [{ type: "thinking", id: "thinking-live", content, live: true }];
+  }
+
+  const inlineCalls = calls
+    .filter(
+      (call) =>
+        typeof call.contentOffset === "number" &&
+        call.contentOffset >= 0 &&
+        call.contentOffset <= content.length,
+    )
+    .sort(
+      (a, b) =>
+        (a.contentOffset ?? 0) - (b.contentOffset ?? 0) || a.startedAt - b.startedAt,
+    );
+
+  if (inlineCalls.length === 0) {
+    return [
+      ...calls.map((call) => ({
+        type: "tools" as const,
+        id: `tool-${call.id}`,
+        calls: [call],
+      })),
+      { type: "thinking", id: "thinking-live", content, live: true },
+    ];
+  }
+
+  const inlineIds = new Set(inlineCalls.map((call) => call.id));
+  const events: LiveActivityEvent[] = [];
+  let cursor = 0;
+
+  for (let index = 0; index < inlineCalls.length; index += 1) {
+    const call = inlineCalls[index];
+    const offset = call.contentOffset ?? content.length;
+    const text = content.slice(cursor, offset);
+    if (text.trim()) {
+      events.push({
+        type: "thinking",
+        id: `thinking-${cursor}-${offset}`,
+        content: text,
+        live: false,
+      });
+    }
+
+    const group = [call];
+    while (index + 1 < inlineCalls.length) {
+      const next = inlineCalls[index + 1];
+      if (next.contentOffset !== offset) break;
+      group.push(next);
+      index += 1;
+    }
+    events.push({
+      type: "tools",
+      id: `tools-${offset}-${group.map((item) => item.id).join("-")}`,
+      calls: group,
+    });
+    cursor = offset;
+  }
+
+  const trailingCalls = calls.filter((call) => !inlineIds.has(call.id));
+  for (const call of trailingCalls) {
+    events.push({ type: "tools", id: `tool-${call.id}`, calls: [call] });
+  }
+
+  const trailingText = content.slice(cursor);
+  events.push({
+    type: "thinking",
+    id: `thinking-${cursor}-live`,
+    content: trailingText,
+    live: true,
+  });
+
+  return events;
+}
+
+function ThinkingLine({ content, live }: { content: string; live: boolean }) {
+  const update = usePeriodicActivityUpdate(content, live);
+  const hasDetails = content.trim().length > update.length && update.length > 0;
+  const label = update || "Thinking…";
+  const inner = (
+    <div className="flex min-w-0 items-center gap-1.5 py-0.5 text-sm">
+      <span
+        className={cn(
+          "min-w-0 truncate",
+          live ? "meith-thinking-gradient" : "meith-thinking-static",
+        )}
+        title={label}
+      >
+        {label}
+      </span>
+      {hasDetails && (
+        <ChevronRightIcon
+          className="size-3 shrink-0 text-muted-foreground opacity-0 transition-[opacity,transform] group-focus-within/thinking:opacity-100 group-hover/thinking:opacity-100 group-open/thinking:rotate-90 group-open/thinking:opacity-100"
+          aria-hidden
+        />
+      )}
+    </div>
+  );
+  if (!hasDetails) {
+    return <div className="group/thinking min-w-0">{inner}</div>;
+  }
+  return (
+    <details className="group/thinking min-w-0 overflow-hidden">
+      <summary className="min-w-0 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        {inner}
+      </summary>
+      <div className="mt-1 pl-4 text-xs text-muted-foreground">
+        <MarkdownMessage content={content} />
+      </div>
+    </details>
+  );
+}
+
 function AssistantTranscript({ message }: { message: AgentMessage }) {
   const content = message.content ?? "";
   const calls = message.toolCalls ?? [];
   const segments = normalizedTextSegments(message, calls);
+  const { thinkingSegments, finalSegments } = transcriptTextParts(segments, calls);
+  const finalContent = finalSegments.map((segment) => segment.text).join("");
   if (calls.length === 0) {
-    return segments.length > 0 ? (
-      <div className="flex min-w-0 flex-col gap-3">
-        {segments.map((segment) => (
-          <MarkdownMessage
+    if (thinkingSegments.length === 0) {
+      return finalContent ? <MarkdownMessage content={finalContent} /> : null;
+    }
+    return (
+      <div className="flex min-w-0 flex-col gap-2">
+        {thinkingSegments.map((segment) => (
+          <ThinkingLine
             key={`text-${segment.start}-${segment.end}`}
             content={segment.text}
+            live={false}
           />
         ))}
+        {finalContent && (
+          <div className="mt-1">
+            <MarkdownMessage content={finalContent} />
+          </div>
+        )}
       </div>
-    ) : null;
+    );
   }
 
   const inlineCalls = calls
@@ -164,23 +379,29 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
   if (inlineCalls.length === 0) {
     return (
       <>
-        {segments.length > 0 && (
-          <div className="flex min-w-0 flex-col gap-3">
-            {segments.map((segment) => (
-              <MarkdownMessage
+        {thinkingSegments.length > 0 && (
+          <div className="flex min-w-0 flex-col gap-2">
+            {thinkingSegments.map((segment) => (
+              <ThinkingLine
                 key={`text-${segment.start}-${segment.end}`}
                 content={segment.text}
+                live={false}
               />
             ))}
           </div>
         )}
-        <ToolCallStack calls={calls} className={content ? "mt-2" : ""} />
+        <ToolCallStack calls={calls} compact className={content ? "mt-2" : ""} />
+        {finalContent && (
+          <div className="mt-3">
+            <MarkdownMessage content={finalContent} />
+          </div>
+        )}
       </>
     );
   }
 
   const events: TranscriptEvent[] = [
-    ...segments.map((segment) => ({
+    ...thinkingSegments.map((segment) => ({
       type: "text" as const,
       at: segment.start,
       segment,
@@ -197,9 +418,10 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
     const event = events[index];
     if (event.type === "text") {
       parts.push(
-        <MarkdownMessage
+        <ThinkingLine
           key={`text-${event.segment.start}-${event.segment.end}`}
           content={event.segment.text}
+          live={false}
         />,
       );
       continue;
@@ -212,10 +434,19 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
       group.push(next.call);
       index += 1;
     }
-    parts.push(<ToolCallStack key={`tools-${event.at}-${index}`} calls={group} />);
+    parts.push(
+      <ToolCallStack key={`tools-${event.at}-${index}`} calls={group} compact />,
+    );
   }
   if (trailingCalls.length > 0) {
-    parts.push(<ToolCallStack key="trailing-tools" calls={trailingCalls} />);
+    parts.push(<ToolCallStack key="trailing-tools" calls={trailingCalls} compact />);
+  }
+  if (finalContent) {
+    parts.push(
+      <div key="final-answer" className="mt-1">
+        <MarkdownMessage content={finalContent} />
+      </div>,
+    );
   }
 
   return <div className="flex min-w-0 flex-col gap-2">{parts}</div>;
@@ -260,9 +491,9 @@ function callOffsets(content: string, calls: AgentToolCall[]): number[] {
 
 function splitSegmentsAtOffsets(
   content: string,
-  segments: Array<{ start: number; end: number; text: string }>,
+  segments: TranscriptTextSegment[],
   offsets: number[],
-): Array<{ start: number; end: number; text: string }> {
+): TranscriptTextSegment[] {
   return segments.flatMap((segment) => {
     const innerOffsets = offsets.filter(
       (offset) => offset > segment.start && offset < segment.end,
@@ -273,10 +504,104 @@ function splitSegmentsAtOffsets(
       .slice(0, -1)
       .map((start, index) => {
         const end = boundaries[index + 1];
-        return { start, end, text: content.slice(start, end) };
+        return { start, end, text: content.slice(start, end), kind: segment.kind };
       })
       .filter((part) => part.text);
   });
+}
+
+function transcriptTextParts(
+  segments: TranscriptTextSegment[],
+  calls: AgentToolCall[],
+): {
+  thinkingSegments: TranscriptTextSegment[];
+  finalSegments: TranscriptTextSegment[];
+} {
+  const explicitCompletion = splitExplicitCompletionBlock(segments);
+  if (explicitCompletion) return explicitCompletion;
+
+  if (calls.length === 0) {
+    return splitCompletionTail(segments);
+  }
+
+  const lastToolOffset = calls.reduce(
+    (max, call) =>
+      typeof call.contentOffset === "number" ? Math.max(max, call.contentOffset) : max,
+    0,
+  );
+  const thinkingSegments: TranscriptTextSegment[] = [];
+  const tailSegments: TranscriptTextSegment[] = [];
+
+  for (const segment of segments) {
+    if (segment.start < lastToolOffset) {
+      thinkingSegments.push(segment);
+    } else {
+      tailSegments.push(segment);
+    }
+  }
+
+  const splitTail = splitCompletionTail(tailSegments);
+  return {
+    thinkingSegments: [...thinkingSegments, ...splitTail.thinkingSegments],
+    finalSegments: splitTail.finalSegments,
+  };
+}
+
+function splitCompletionTail(segments: TranscriptTextSegment[]): {
+  thinkingSegments: TranscriptTextSegment[];
+  finalSegments: TranscriptTextSegment[];
+} {
+  const explicitCompletion = splitExplicitCompletionBlock(segments);
+  if (explicitCompletion) return explicitCompletion;
+
+  return {
+    thinkingSegments: segments.filter((segment) => segment.kind === "thought"),
+    finalSegments: segments.filter((segment) => segment.kind !== "thought"),
+  };
+}
+
+function splitExplicitCompletionBlock(segments: TranscriptTextSegment[]): {
+  thinkingSegments: TranscriptTextSegment[];
+  finalSegments: TranscriptTextSegment[];
+} | null {
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index];
+    const finalStart = completionBlockStart(segment.text);
+    if (finalStart < 0) continue;
+    if (finalStart === 0) {
+      return {
+        thinkingSegments: segments.slice(0, index),
+        finalSegments: segments.slice(index),
+      };
+    }
+    const thinkingPrefix: TranscriptTextSegment = {
+      ...segment,
+      end: segment.start + finalStart,
+      text: segment.text.slice(0, finalStart),
+      kind: "thought",
+    };
+    const finalRemainder: TranscriptTextSegment = {
+      ...segment,
+      start: segment.start + finalStart,
+      text: segment.text.slice(finalStart),
+      kind: "message",
+    };
+    return {
+      thinkingSegments: [...segments.slice(0, index), thinkingPrefix].filter((part) =>
+        part.text.trim(),
+      ),
+      finalSegments: [finalRemainder, ...segments.slice(index + 1)],
+    };
+  }
+  return null;
+}
+
+function completionBlockStart(text: string): number {
+  const match = text.match(
+    /(?:^|\n{2,})(?:Done\b|Implemented\b|Completed\b|Changed\b|Updated\b|Fixed\b|Checked\b|What changed:|Storage now works like this:|Current storage shape:|Validation(?: passed)?\b|Checks? passed\b)/,
+  );
+  if (!match || match.index === undefined) return -1;
+  return match[0].startsWith("\n") ? match.index + match[0].search(/\S/) : match.index;
 }
 
 type TranscriptEvent =
@@ -290,12 +615,43 @@ type TranscriptEvent =
 function ToolCallStack({
   calls,
   className,
+  compact = false,
 }: {
   calls: AgentToolCall[];
   className?: string;
+  compact?: boolean;
 }) {
   const visibleCalls = calls.filter((call) => !isImageInspectionToolCall(call));
   if (visibleCalls.length === 0) return null;
+  if (compact && visibleCalls.length === 1) {
+    return <ToolCallCard call={visibleCalls[0]} className={className} />;
+  }
+  if (compact) {
+    return (
+      <details
+        className={cn(
+          "group min-w-0 overflow-hidden rounded-md border border-border bg-card/60 text-xs",
+          className,
+        )}
+      >
+        <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 px-2 py-1.5 [&::-webkit-details-marker]:hidden">
+          <WrenchIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="min-w-0 truncate font-medium text-foreground">
+            {toolCallStackTitle(visibleCalls)}
+          </span>
+          <ChevronRightIcon
+            className="ml-auto size-3 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+            aria-hidden
+          />
+        </summary>
+        <div className="flex min-w-0 flex-col gap-2 border-t border-border/70 p-2">
+          {visibleCalls.map((call) => (
+            <ToolCallCard key={call.id} call={call} />
+          ))}
+        </div>
+      </details>
+    );
+  }
   return (
     <div className={cn("flex min-w-0 flex-col gap-2", className)}>
       {visibleCalls.map((call) => (
@@ -303,6 +659,32 @@ function ToolCallStack({
       ))}
     </div>
   );
+}
+
+function usePeriodicActivityUpdate(content: string, live = true): string {
+  const [update, setUpdate] = useState("");
+  const latestRef = useRef("");
+
+  useEffect(() => {
+    if (!live) return;
+    latestRef.current = compactActivityUpdate(content);
+  }, [content, live]);
+
+  useEffect(() => {
+    if (!live) return undefined;
+    const publish = () => {
+      const next = latestRef.current;
+      if (next) setUpdate((prev) => (prev === next ? prev : next));
+    };
+    const initial = window.setTimeout(publish, 1500);
+    const interval = window.setInterval(publish, 4500);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
+  }, [live]);
+
+  return live ? update : compactActivityUpdate(content);
 }
 
 const markdownComponents: Components = {
@@ -388,6 +770,12 @@ const markdownComponents: Components = {
 };
 
 function MarkdownMessage({ content }: { content: string }) {
+  const tooLarge =
+    content.length > MARKDOWN_MAX_CHARS ||
+    content.split("\n", MARKDOWN_MAX_LINES + 1).length > MARKDOWN_MAX_LINES;
+  if (tooLarge) {
+    return <PlainTextMessage content={content} />;
+  }
   return (
     <div className="min-w-0 space-y-2 break-words">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
@@ -397,7 +785,26 @@ function MarkdownMessage({ content }: { content: string }) {
   );
 }
 
-function ToolCallCard({ call }: { call: AgentToolCall }) {
+function PlainTextMessage({ content }: { content: string }) {
+  const text = useMemo(() => {
+    const redacted = redactLocalImagePaths(content);
+    if (redacted.length <= PLAIN_TEXT_MAX_CHARS) return redacted;
+    return `[Earlier content omitted]\n\n${redacted.slice(-PLAIN_TEXT_MAX_CHARS)}`;
+  }, [content]);
+  return (
+    <pre className="min-w-0 whitespace-pre-wrap break-words font-sans leading-relaxed">
+      {text}
+    </pre>
+  );
+}
+
+function ToolCallCard({
+  call,
+  className,
+}: {
+  call: AgentToolCall;
+  className?: string;
+}) {
   const StatusIcon =
     call.status === "ok"
       ? CheckCircle2Icon
@@ -414,57 +821,121 @@ function ToolCallCard({ call }: { call: AgentToolCall }) {
         ? "text-emerald-600 dark:text-emerald-400"
         : "text-muted-foreground";
   const argText = JSON.stringify(call.args ?? {});
-  const displayName = displayToolName(call);
   const screenshot = screenshotArtifact(call);
   const resultText = screenshot ? "" : redactLocalImagePaths(formatToolResult(call));
-  const resultPreview = truncate(resultText, 160);
+  const title = toolCallTitle(call);
   return (
-    <div className="min-w-0 overflow-hidden rounded-md border border-border bg-card/60 p-2 text-xs">
-      <div className="flex min-w-0 items-center gap-2">
+    <details
+      className={cn(
+        "group/tool min-w-0 overflow-hidden rounded-md border border-border bg-card/60 text-xs",
+        className,
+      )}
+    >
+      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 px-2 py-1.5 [&::-webkit-details-marker]:hidden">
         <StatusIcon
           className={`size-3.5 ${tone} ${spin ? "animate-spin" : ""}`}
           aria-hidden
         />
         <span className="min-w-0 truncate font-mono font-medium text-foreground">
-          {displayName}
+          {title}
         </span>
         <span className={`ml-auto shrink-0 ${tone}`}>{call.status}</span>
-      </div>
-      {argText !== "{}" && (
-        <div className="mt-1 flex min-w-0 items-start gap-1 text-muted-foreground">
-          <ChevronRightIcon className="mt-0.5 size-3 shrink-0" aria-hidden />
-          <code className="min-w-0 max-w-full break-words font-mono [overflow-wrap:anywhere]">
-            {argText}
-          </code>
-        </div>
-      )}
-      {resultText && (
-        <details className="group mt-1 min-w-0 rounded border border-border/70 bg-background/50 text-muted-foreground">
-          <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 px-2 py-1 [&::-webkit-details-marker]:hidden">
-            <span className="shrink-0 font-medium text-foreground">
-              {call.result?.ok === false ? "Error" : "Result"}
-            </span>
-            <code className="min-w-0 flex-1 truncate font-mono">{resultPreview}</code>
-            <ChevronRightIcon
-              className="size-3 shrink-0 transition-transform group-open:rotate-90"
-              aria-hidden
-            />
-          </summary>
-          <pre className="max-h-48 min-w-0 overflow-y-auto whitespace-pre-wrap break-words border-t border-border/70 px-2 py-1 font-mono [overflow-wrap:anywhere]">
-            {resultText}
-          </pre>
-        </details>
-      )}
-      {screenshot && (
-        <ScreenshotFigure
-          path={screenshot.path}
-          width={screenshot.width}
-          height={screenshot.height}
+        <ChevronRightIcon
+          className="size-3 shrink-0 text-muted-foreground transition-transform group-open/tool:rotate-90"
+          aria-hidden
         />
-      )}
-      {call.error && <p className="mt-1 text-destructive">{call.error}</p>}
-    </div>
+      </summary>
+      <div className="min-w-0 border-t border-border/70 p-2">
+        {argText !== "{}" && (
+          <div className="min-w-0 text-muted-foreground">
+            <p className="mb-1 font-medium text-foreground">Command</p>
+            <code className="block min-w-0 max-w-full whitespace-pre-wrap break-words rounded border border-border/70 bg-background/50 px-2 py-1 font-mono [overflow-wrap:anywhere]">
+              {argText}
+            </code>
+          </div>
+        )}
+        {resultText && (
+          <div
+            className={cn("min-w-0 text-muted-foreground", argText !== "{}" && "mt-2")}
+          >
+            <p className="mb-1 font-medium text-foreground">
+              {call.result?.ok === false ? "Error" : "Output"}
+            </p>
+            <pre className="max-h-48 min-w-0 overflow-y-auto whitespace-pre-wrap break-words rounded border border-border/70 bg-background/50 px-2 py-1 font-mono [overflow-wrap:anywhere]">
+              {resultText}
+            </pre>
+          </div>
+        )}
+        {screenshot && (
+          <ScreenshotFigure
+            path={screenshot.path}
+            width={screenshot.width}
+            height={screenshot.height}
+          />
+        )}
+        {call.error && <p className="mt-1 text-destructive">{call.error}</p>}
+        {!resultText && !screenshot && !call.error && argText === "{}" && (
+          <p className="text-muted-foreground">No command details.</p>
+        )}
+      </div>
+    </details>
   );
+}
+
+function toolCallTitle(call: AgentToolCall): string {
+  if (call.status === "running" || call.status === "pending") {
+    return displayToolName(call);
+  }
+  const displayName = displayToolName(call);
+  if (call.status === "error" || call.status === "denied") {
+    return `Command failed: ${displayName}`;
+  }
+  return `Ran ${displayName}`;
+}
+
+function toolCallStackTitle(calls: AgentToolCall[]): string {
+  const commandLabel = calls.length === 1 ? "command" : "commands";
+  const running = calls.some(
+    (call) => call.status === "running" || call.status === "pending",
+  );
+  if (running) return `Running ${calls.length} ${commandLabel}`;
+
+  const failed = calls.filter(
+    (call) => call.status === "error" || call.status === "denied",
+  ).length;
+  if (failed === calls.length) {
+    return `${calls.length} ${commandLabel} failed`;
+  }
+  if (failed > 0) {
+    return `Ran ${calls.length} ${commandLabel}, ${failed} failed`;
+  }
+  return `Ran ${calls.length} ${commandLabel}`;
+}
+
+function compactActivityUpdate(content: string): string {
+  const cleaned = content
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[#>*_~-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "";
+
+  const chunks = cleaned
+    .split(/(?<=[.!?])\s+/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  const candidate = [...chunks].reverse().find((chunk) => chunk.length >= 18) ?? cleaned;
+  return truncateActivityUpdate(candidate);
+}
+
+function truncateActivityUpdate(value: string): string {
+  const max = 96;
+  if (value.length <= max) return value;
+  const trimmed = value.slice(0, max - 1);
+  const lastSpace = trimmed.lastIndexOf(" ");
+  return `${trimmed.slice(0, lastSpace > 48 ? lastSpace : max - 1)}…`;
 }
 
 function ScreenshotFigure({
@@ -624,10 +1095,4 @@ function formatUnknown(value: unknown): string {
   } catch {
     return String(value);
   }
-}
-
-function truncate(value: string, max: number): string {
-  const compact = value.replace(/\s+/g, " ").trim();
-  if (compact.length <= max) return compact;
-  return `${compact.slice(0, max - 1)}…`;
 }

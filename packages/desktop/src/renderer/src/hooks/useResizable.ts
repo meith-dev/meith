@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type SetStateAction, useCallback, useEffect, useRef, useState } from "react";
 
 interface ResizableOptions {
   /** Initial size in pixels. */
@@ -18,6 +18,24 @@ interface ResizableOptions {
   storageKey?: string;
 }
 
+interface ResizableState {
+  storageKey?: string;
+  size: number;
+}
+
+function readStoredSize(
+  storageKey: string | undefined,
+  initial: number,
+  min: number,
+  max: number,
+): number {
+  if (storageKey) {
+    const saved = Number(window.localStorage.getItem(storageKey));
+    if (Number.isFinite(saved) && saved >= min && saved <= max) return saved;
+  }
+  return initial;
+}
+
 /**
  * Generic pointer-driven pane resizer. Returns the current size plus an
  * `onPointerDown` handler to attach to a drag handle. Sizes are clamped to
@@ -33,14 +51,39 @@ export function useResizable({
   invert = false,
   storageKey,
 }: ResizableOptions) {
-  const [size, setSize] = useState<number>(() => {
-    if (storageKey) {
-      const saved = Number(window.localStorage.getItem(storageKey));
-      if (Number.isFinite(saved) && saved >= min && saved <= max) return saved;
-    }
-    return initial;
-  });
+  const [state, setState] = useState<ResizableState>(() => ({
+    storageKey,
+    size: readStoredSize(storageKey, initial, min, max),
+  }));
   const dragRef = useRef<{ start: number; origin: number } | null>(null);
+
+  useEffect(() => {
+    if (state.storageKey !== storageKey) {
+      setState({
+        storageKey,
+        size: readStoredSize(storageKey, initial, min, max),
+      });
+    }
+  }, [storageKey, initial, min, max, state.storageKey]);
+
+  const setSize = useCallback(
+    (value: SetStateAction<number>) => {
+      setState((prev) => {
+        const current =
+          prev.storageKey === storageKey
+            ? prev.size
+            : readStoredSize(storageKey, initial, min, max);
+        const next = typeof value === "function" ? value(current) : value;
+        return { storageKey, size: next };
+      });
+    },
+    [storageKey, initial, min, max],
+  );
+
+  const size =
+    state.storageKey === storageKey
+      ? state.size
+      : readStoredSize(storageKey, initial, min, max);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -63,13 +106,13 @@ export function useResizable({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [axis, invert, min, max]);
+  }, [axis, invert, min, max, setSize]);
 
   // Persist after changes settle.
   useEffect(() => {
-    if (!storageKey) return;
-    window.localStorage.setItem(storageKey, String(Math.round(size)));
-  }, [size, storageKey]);
+    if (!state.storageKey) return;
+    window.localStorage.setItem(state.storageKey, String(Math.round(state.size)));
+  }, [state]);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {

@@ -6,9 +6,11 @@ import {
   createId,
   defaultAppState,
   errorResult,
+  isDefaultAgentSessionTitle,
   isToolResult,
   newRequestId,
   okResult,
+  summarizeAgentSessionTitle,
 } from "../index.js";
 
 describe("id helpers", () => {
@@ -62,5 +64,22 @@ describe("tool result envelope", () => {
     expect(() =>
       ToolResultSchema.parse({ ok: false, error: { code: "NOPE", message: "x" } }),
     ).toThrow();
+  });
+});
+
+describe("agent session titles", () => {
+  it("summarizes a first prompt into a short title", () => {
+    expect(summarizeAgentSessionTitle("Fix login crash when switching spaces")).toBe(
+      "Login Crash Switching",
+    );
+  });
+
+  it("falls back to prompt words when every word is filtered", () => {
+    expect(summarizeAgentSessionTitle("please help me")).toBe("Please Help Me");
+  });
+
+  it("detects default titles case-insensitively", () => {
+    expect(isDefaultAgentSessionTitle(" new SESSION ")).toBe(true);
+    expect(isDefaultAgentSessionTitle("Release Notes")).toBe(false);
   });
 });

@@ -5,7 +5,9 @@ import { basename, join } from "node:path";
 
 const POSIX_SYSTEM_PATHS = [
   "/opt/homebrew/bin",
+  "/opt/homebrew/sbin",
   "/usr/local/bin",
+  "/usr/local/sbin",
   "/usr/bin",
   "/bin",
   "/usr/sbin",
@@ -19,7 +21,12 @@ export interface DesktopExecutablePathOptions {
   env?: NodeJS.ProcessEnv;
   home?: string;
   platform?: NodeJS.Platform;
+  cwd?: string;
+  resourcesPath?: string;
   loginShellPath?: string;
+  prependBins?: string[];
+  bundledNodeBinDir?: string;
+  bundledNodeRuntimeDir?: string;
 }
 
 /**
@@ -33,10 +40,15 @@ export function buildDesktopExecutablePath(
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
   const home = options.home ?? homedir();
+  const bundledNodeBinDir =
+    options.bundledNodeBinDir ?? findBundledNodeRuntimeBinDir(options);
   const parts = [
+    ...(options.prependBins ?? []),
+    bundledNodeBinDir,
     currentPathValue(env),
     options.loginShellPath ?? queryLoginShellPath(env, platform),
     ...versionManagerPaths(home, platform),
+    ...commonUserToolPaths(home, platform),
     ...(platform === "win32" ? [] : POSIX_SYSTEM_PATHS),
   ];
 
@@ -53,6 +65,31 @@ export function withDesktopExecutablePath(
   const pathKey = findPathKey(next) ?? "PATH";
   next[pathKey] = buildDesktopExecutablePath({ env: next });
   return next;
+}
+
+export function findBundledNodeRuntimeBinDir(
+  options: DesktopExecutablePathOptions = {},
+): string | undefined {
+  const env = options.env ?? process.env;
+  const platform = options.platform ?? process.platform;
+  const roots = [
+    options.bundledNodeRuntimeDir,
+    env.MEITH_NODE_RUNTIME_DIR,
+    env.MEITH_BUNDLED_NODE_DIR,
+    options.resourcesPath
+      ? join(options.resourcesPath, "node-runtime")
+      : electronResourcesPath()
+        ? join(electronResourcesPath() as string, "node-runtime")
+        : undefined,
+    join(options.cwd ?? process.cwd(), "vendor", "node-runtime"),
+  ];
+
+  for (const root of roots) {
+    if (!root) continue;
+    const binDir = nodeRuntimeBinDir(root, platform);
+    if (binDir) return binDir;
+  }
+  return undefined;
 }
 
 function queryLoginShellPath(
@@ -123,6 +160,15 @@ function versionManagerPaths(home: string, platform: NodeJS.Platform): string[] 
   return paths.filter((path) => existsSync(path));
 }
 
+function commonUserToolPaths(home: string, platform: NodeJS.Platform): string[] {
+  if (platform === "win32") return [];
+  return [
+    join(home, ".local", "bin"),
+    join(home, ".bun", "bin"),
+    join(home, ".cargo", "bin"),
+  ];
+}
+
 function currentPathValue(env: NodeJS.ProcessEnv): string {
   const key = findPathKey(env);
   return key ? (env[key] ?? "") : "";
@@ -134,6 +180,23 @@ function findPathKey(env: NodeJS.ProcessEnv): string | undefined {
 
 function splitPath(value: string | undefined, platform: NodeJS.Platform): string[] {
   return (value ?? "").split(platform === "win32" ? ";" : ":");
+}
+
+function electronResourcesPath(): string | undefined {
+  return (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+}
+
+function nodeRuntimeBinDir(
+  root: string,
+  platform: NodeJS.Platform,
+): string | undefined {
+  const nodeExe = platform === "win32" ? "node.exe" : "node";
+  const candidates =
+    platform === "win32" ? [root, join(root, "bin")] : [join(root, "bin"), root];
+  for (const candidate of candidates) {
+    if (existsSync(join(candidate, nodeExe))) return candidate;
+  }
+  return undefined;
 }
 
 function dedupePathParts(parts: string[], platform: NodeJS.Platform): string {

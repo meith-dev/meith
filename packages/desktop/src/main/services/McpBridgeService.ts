@@ -21,6 +21,18 @@ export interface McpSessionBinding {
   ) => Promise<ToolResult>;
 }
 
+export interface McpSessionEndpoint {
+  url: string;
+  token: string;
+  /** Resolves when the external agent's MCP client has listed Meith tools. */
+  ready: Promise<void>;
+}
+
+interface McpReadyState {
+  resolved: boolean;
+  resolve: () => void;
+}
+
 interface JsonRpcRequest {
   jsonrpc?: string;
   id?: string | number | null;
@@ -47,6 +59,7 @@ export class McpBridgeService {
   private server: Server | null = null;
   private port = 0;
   private readonly bindings = new Map<string, McpSessionBinding>();
+  private readonly readyStates = new Map<string, McpReadyState>();
 
   constructor(private readonly logger: Logger) {}
 
@@ -75,16 +88,24 @@ export class McpBridgeService {
   }
 
   /** Mint a token + register a session binding. Returns the endpoint + token. */
-  registerSession(binding: McpSessionBinding): { url: string; token: string } {
+  registerSession(binding: McpSessionBinding): McpSessionEndpoint {
     const token = randomBytes(24).toString("hex");
+    let resolveReady!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      resolveReady = resolve;
+    });
     this.bindings.set(token, binding);
-    return { url: this.baseUrl(), token };
+    this.readyStates.set(token, { resolved: false, resolve: resolveReady });
+    return { url: this.baseUrl(), token, ready };
   }
 
   /** Drop a session's binding (its token stops working immediately). */
   unregisterSession(sessionId: string): void {
     for (const [token, binding] of this.bindings) {
-      if (binding.sessionId === sessionId) this.bindings.delete(token);
+      if (binding.sessionId === sessionId) {
+        this.bindings.delete(token);
+        this.readyStates.delete(token);
+      }
     }
   }
 
@@ -136,7 +157,7 @@ export class McpBridgeService {
       return;
     }
 
-    const response = await this.dispatch(parsed, binding);
+    const response = await this.dispatch(parsed, binding, token);
     // Notifications (no id) get a 202 with no body, per JSON-RPC semantics.
     if (response === null) {
       res.writeHead(202).end();
@@ -150,6 +171,7 @@ export class McpBridgeService {
   private async dispatch(
     req: JsonRpcRequest,
     binding: McpSessionBinding,
+    token: string,
   ): Promise<Record<string, unknown> | null> {
     const id = req.id ?? null;
     switch (req.method) {
@@ -165,6 +187,7 @@ export class McpBridgeService {
       case "ping":
         return rpcOk(id, {});
       case "tools/list":
+        this.markReady(token);
         return rpcOk(id, {
           tools: binding.listTools().map((t) => ({
             name: t.name,
@@ -188,6 +211,13 @@ export class McpBridgeService {
       default:
         return rpcError(id, -32601, `Method not found: ${req.method ?? "(none)"}`);
     }
+  }
+
+  private markReady(token: string): void {
+    const state = this.readyStates.get(token);
+    if (!state || state.resolved) return;
+    state.resolved = true;
+    state.resolve();
   }
 }
 

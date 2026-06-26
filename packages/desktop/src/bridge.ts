@@ -183,6 +183,8 @@ export interface MeithBridge {
       sessionId: string,
       patch: { model?: string; reasoning?: string },
     ) => Promise<AgentSessionMeta>;
+    /** Mark a session as viewed so unseen-finished indicators can clear. */
+    markSessionViewed: (sessionId: string) => Promise<AgentSessionMeta | null>;
     /** Subscribe to streamed run output. Returns an unsubscribe fn. */
     onChunk: (
       cb: (evt: { sessionId: string; chunk: AgentStreamChunk }) => void,

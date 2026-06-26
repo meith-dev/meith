@@ -1,5 +1,12 @@
 import type { AppState, ToolResult } from "@meith/shared";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { getBridge } from "../bridge";
 
 export type ConnState = "connecting" | "ready" | "error";
@@ -23,14 +30,18 @@ export function useWorkbench() {
       .get()
       .then((s) => {
         if (!mountedRef.current) return;
-        setState(s);
-        setConn("ready");
+        startTransition(() => {
+          setState(s);
+          setConn("ready");
+        });
       })
       .catch(() => mountedRef.current && setConn("error"));
     const off = bridge.state.onChange((s) => {
       if (!mountedRef.current) return;
-      setState(s);
-      setConn("ready");
+      startTransition(() => {
+        setState(s);
+        setConn("ready");
+      });
     });
     return () => {
       mountedRef.current = false;
