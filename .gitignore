@@ -19,6 +19,8 @@ dist/
 out/
 .vite/
 *.log
+packages/desktop/vendor/node-runtime/
+packages/desktop/vendor/.cache/
 
 # TypeScript incremental build cache (must NOT be committed: stale build info
 # makes a fresh clone think packages are already emitted when dist/ is absent)

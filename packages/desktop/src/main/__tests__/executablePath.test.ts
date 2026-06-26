@@ -1,8 +1,11 @@
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildDesktopExecutablePath } from "../process/executablePath.js";
+import {
+  buildDesktopExecutablePath,
+  findBundledNodeRuntimeBinDir,
+} from "../process/executablePath.js";
 
 const tmpDirs: string[] = [];
 
@@ -68,6 +71,45 @@ describe("desktop executable PATH", () => {
       "/usr/bin",
       "/opt/homebrew/bin",
     ]);
+  });
+
+  it("prepends meith and bundled Node bins before the host PATH", () => {
+    const home = mkTmpHome();
+    const nodeRoot = join(home, "node-runtime");
+    const nodeBin = join(nodeRoot, "bin");
+    mkdirSync(nodeBin, { recursive: true });
+    writeFileSync(join(nodeBin, "node"), "");
+
+    const path = buildDesktopExecutablePath({
+      env: { PATH: "/usr/bin" },
+      home,
+      platform: "darwin",
+      loginShellPath: "",
+      prependBins: ["/tmp/meith-bin"],
+      bundledNodeRuntimeDir: nodeRoot,
+    });
+
+    expect(path.split(":").slice(0, 3)).toEqual([
+      "/tmp/meith-bin",
+      nodeBin,
+      "/usr/bin",
+    ]);
+  });
+
+  it("finds a packaged Node runtime under Electron resources", () => {
+    const home = mkTmpHome();
+    const resources = join(home, "Resources");
+    const nodeBin = join(resources, "node-runtime", "bin");
+    mkdirSync(nodeBin, { recursive: true });
+    writeFileSync(join(nodeBin, "node"), "");
+
+    expect(
+      findBundledNodeRuntimeBinDir({
+        env: {},
+        platform: "darwin",
+        resourcesPath: resources,
+      }),
+    ).toBe(nodeBin);
   });
 });
 
