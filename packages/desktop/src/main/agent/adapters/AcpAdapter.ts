@@ -1,5 +1,8 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import {
+  type AcpPreset,
   type AgentConfig,
   type AgentConfigOption,
   type AgentMessage,
@@ -11,7 +14,10 @@ import {
   newToolCallId,
   resolveAcpLaunch,
 } from "@meith/shared";
-import { withDesktopExecutablePath } from "../../process/executablePath.js";
+import {
+  buildDesktopExecutablePath,
+  findBundledNpxExecutable,
+} from "../../process/executablePath.js";
 import type { AgentConfigStore } from "../../services/AgentConfigStore.js";
 import type { Logger } from "../../services/Logger.js";
 import { AsyncChunkQueue } from "../acp/AsyncChunkQueue.js";
@@ -25,6 +31,47 @@ import type {
 
 const ACP_PROTOCOL_VERSION = 1;
 const DEFAULT_TEXT_VERBOSITY = "low";
+
+function resolvePackagedAcpLaunch(config: {
+  acpPreset?: AcpPreset;
+  command: string;
+  args: string[];
+}): { command: string; args: string[] } {
+  const launch = resolveAcpLaunch(config);
+  if ((config.acpPreset ?? "custom") === "custom") return launch;
+  if (launch.command !== "npx") return launch;
+  return { command: findBundledNpxExecutable() ?? launch.command, args: launch.args };
+}
+
+function acpSpawnEnv(
+  preset: AcpPreset | undefined,
+  extra: NodeJS.ProcessEnv = {},
+): NodeJS.ProcessEnv {
+  const hasBundledNpx = Boolean(findBundledNpxExecutable());
+  const env = {
+    ...process.env,
+    ...npmRuntimeEnv(),
+    ...extra,
+  };
+  return {
+    ...env,
+    PATH: buildDesktopExecutablePath({
+      env,
+      allowHostPathLookup: (preset ?? "custom") === "custom" || !hasBundledNpx,
+    }),
+  };
+}
+
+function npmRuntimeEnv(): NodeJS.ProcessEnv {
+  const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
+  return {
+    npm_config_cache: join(home, "npm-cache"),
+    npm_config_prefix: join(home, "npm-prefix"),
+    npm_config_update_notifier: "false",
+    npm_config_fund: "false",
+    npm_config_audit: "false",
+  };
+}
 
 /**
  * Drives an external agent that speaks the Agent Client Protocol (ACP) over a
@@ -57,7 +104,7 @@ export class AcpAdapter implements AgentAdapter {
     const cfg = this.config.get();
     // A built-in preset supplies its own command/args; `custom` uses the
     // user-provided command. Resolve once so the rest of the method is agnostic.
-    const launch = resolveAcpLaunch(cfg);
+    const launch = resolvePackagedAcpLaunch(cfg);
     if (!launch.command) {
       yield {
         type: "error",
@@ -75,10 +122,7 @@ export class AcpAdapter implements AgentAdapter {
     try {
       child = spawn(launch.command, launch.args, {
         cwd: host.cwd,
-        env: withDesktopExecutablePath({
-          ...process.env,
-          ...(model ? { ACP_MODEL: model } : {}),
-        }),
+        env: acpSpawnEnv(cfg.acpPreset, model ? { ACP_MODEL: model } : {}),
         stdio: ["pipe", "pipe", "pipe"],
       });
     } catch (err) {
@@ -244,7 +288,7 @@ export class AcpAdapter implements AgentAdapter {
   ): Promise<AgentProbeResult> {
     const cfg = { ...this.config.get(), ...override };
     const preset = cfg.acpPreset ?? "custom";
-    const launch = resolveAcpLaunch(cfg);
+    const launch = resolvePackagedAcpLaunch(cfg);
     if (!launch.command) {
       return {
         preset,
@@ -258,7 +302,7 @@ export class AcpAdapter implements AgentAdapter {
     try {
       child = spawn(launch.command, launch.args, {
         cwd: process.cwd(),
-        env: withDesktopExecutablePath({ ...process.env }),
+        env: acpSpawnEnv(cfg.acpPreset),
         stdio: ["pipe", "pipe", "pipe"],
       });
     } catch (err) {

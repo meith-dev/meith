@@ -252,6 +252,6 @@ through the agent runtime and cannot bypass the tool permission model.
 - `startIdleGc()` cleans idle session resources.
 - Auto-accept should be treated as a high-trust setting because it lets gated
   tools run without prompting.
-- The packaged desktop app stages a bundled Node runtime and prepends it to
-  spawned process PATHs, so ACP presets that launch through `npx` can run from a
-  Finder-launched app.
+- The packaged desktop app stages a bundled Node/npm/npx runtime. Built-in ACP
+  presets launch through that bundled `npx`, with npm cache/prefix directed at
+  Meith-managed directories, so they do not require user-installed Node tooling.

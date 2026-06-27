@@ -726,8 +726,9 @@ export interface AcpPresetDef {
 }
 
 /**
- * Built-in ACP agent presets. Both ship as npm packages runnable via `npx`, so
- * no global install is required as long as Node/npx is on PATH.
+ * Built-in ACP agent presets. The desktop app resolves `npx` to its packaged
+ * Node runtime, so no user-installed Node/npm/npx is required. `npx` may still
+ * fetch the ACP package from the npm registry into Meith's managed npm cache.
  *
  * - Claude: https://github.com/agentclientprotocol/claude-agent-acp
  * - Codex:  https://github.com/agentclientprotocol/codex-acp

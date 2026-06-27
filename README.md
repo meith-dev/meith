@@ -126,7 +126,7 @@ pnpm dist:mac
 
 ```
 
-The packaged desktop build stages a bundled Node runtime before `electron-builder` runs. That runtime is added to spawned process PATHs, alongside the user's shell, version-manager, and common tool paths, so Finder-launched builds can still run `npx`, ACP agents, and project scripts.
+The packaged desktop build stages its own Node/npm/npx runtime and a self-contained `meith` CLI runtime before `electron-builder` runs. Packaged app processes resolve Meith-owned Node tooling from the app bundle first, not from the user's machine. Built-in ACP presets launch through the bundled `npx`, which may fetch ACP packages from the npm registry into Meith's managed npm cache. Project templates are copied without any builder-machine `node_modules`.
 
 ## Release process
 

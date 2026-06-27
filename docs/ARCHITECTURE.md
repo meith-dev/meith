@@ -259,11 +259,13 @@ pnpm check
 ## Packaging
 
 Desktop packaging stages a bundled Node runtime into
-`packages/desktop/vendor/node-runtime` before `electron-builder` runs. The
-packaged app adds that runtime, the user's login shell PATH, common Node version
-manager paths, and common user tool directories to spawned process PATHs. This
-lets Finder-launched macOS builds run `npx`, ACP agents, and project scripts
-without depending on a terminal-launched environment.
+`packages/desktop/vendor/node-runtime` and a self-contained CLI runtime into
+`packages/desktop/vendor/cli-runtime` before `electron-builder` runs. Packaged
+app processes resolve Meith-owned Node/npm/npx tooling from the app bundle
+first, not from the user's machine. Built-in ACP presets launch through the
+bundled `npx`, which may fetch ACP packages from the npm registry into Meith's
+managed npm cache. Template `node_modules` are excluded from the app package so
+generated projects do not inherit dependencies from the build machine.
 
 The public web app is deployed from `apps/web`. `vercel.json` skips Vercel
 builds when a commit does not touch `apps/web`, so desktop-only changes do not

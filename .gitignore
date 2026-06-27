@@ -20,6 +20,7 @@ out/
 .vite/
 *.log
 packages/desktop/vendor/node-runtime/
+packages/desktop/vendor/cli-runtime/
 packages/desktop/vendor/.cache/
 
 # TypeScript incremental build cache (must NOT be committed: stale build info
