@@ -139,6 +139,11 @@ export default function AgentRuntimePage() {
         default so streamed output stays compact. Built-in Claude and Codex presets also wait until the agent has listed
         the per-session Meith MCP tools before the prompt is sent.
       </P>
+      <P>
+        Packaged desktop builds run built-in ACP presets through Meith&apos;s bundled{" "}
+        <InlineCode>npx</InlineCode>, with npm cache and prefix directed at Meith-managed directories. The ACP package
+        can still be fetched from the npm registry, but the app does not rely on a user-installed Node, npm, or npx.
+      </P>
 
       <H2 id="mcp-bridge">MCP bridge</H2>
       <P>

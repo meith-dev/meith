@@ -255,3 +255,4 @@ through the agent runtime and cannot bypass the tool permission model.
 - The packaged desktop app stages a bundled Node/npm/npx runtime. Built-in ACP
   presets launch through that bundled `npx`, with npm cache/prefix directed at
   Meith-managed directories, so they do not require user-installed Node tooling.
+  The ACP package may still be fetched from the npm registry on first use.

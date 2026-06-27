@@ -128,6 +128,8 @@ pnpm dist:mac
 
 The packaged desktop build stages its own Node/npm/npx runtime and a self-contained `meith` CLI runtime before `electron-builder` runs. Packaged app processes resolve Meith-owned Node tooling from the app bundle first, not from the user's machine. Built-in ACP presets launch through the bundled `npx`, which may fetch ACP packages from the npm registry into Meith's managed npm cache. Project templates are copied without any builder-machine `node_modules`.
 
+Packaging also verifies the final runtime bundle: Node/npm/npx, CLI dependencies, templates, and the native `node-pty` helper are checked before the app is signed. Local macOS builds are ad-hoc signed so the generated `.app`, ZIP, and DMG are internally valid and runnable. This is not Developer ID signing or notarization.
+
 ## Release process
 
 Releases are published as GitHub Releases with macOS arm64 desktop artifacts.
@@ -166,6 +168,6 @@ gh release create v<version> \
 
 ```
 
-The current macOS release build is not Developer ID signed or notarized, so macOS may warn on first open.
+The current macOS release build is ad-hoc signed but not Developer ID signed or notarized, so macOS may warn on first open.
 
 On startup, the runtime writes `~/.meith/config.json`, registers the running instance under `~/.meith/instances/`, and exposes a managed launcher at `~/.meith/bin/meith`. Run `meith setup` for shell instructions, or `meith setup --write` to add that launcher directory to your shell config.

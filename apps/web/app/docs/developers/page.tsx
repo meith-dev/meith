@@ -198,9 +198,16 @@ pnpm check`}
 
       <H2 id="packaging">Packaging and web deploys</H2>
       <P>
-        Desktop packaging stages a bundled Node runtime before <InlineCode>electron-builder</InlineCode> runs. The
-        packaged app prepends that runtime plus shell, version-manager, and common user tool paths to spawned process
-        PATHs, so Finder-launched builds can run <InlineCode>npx</InlineCode>, ACP agents, and project scripts.
+        Desktop packaging stages a bundled Node/npm/npx runtime and a self-contained CLI runtime before{" "}
+        <InlineCode>electron-builder</InlineCode> runs. Packaged app processes resolve Meith-owned Node tooling from the
+        app bundle first, not from the user&apos;s machine. Built-in ACP presets launch through the bundled{" "}
+        <InlineCode>npx</InlineCode>, which may fetch ACP packages from the npm registry into Meith&apos;s managed npm
+        cache.
+      </P>
+      <P>
+        The package verifier checks Node/npm/npx, CLI dependencies, templates, and the native{" "}
+        <InlineCode>node-pty</InlineCode> helper. Local macOS builds are ad-hoc signed so the generated app, ZIP, and
+        DMG are internally valid and runnable; this is not Developer ID signing or notarization.
       </P>
       <P>
         The public web app deploys from <InlineCode>apps/web</InlineCode>. Vercel builds are skipped when a commit does
