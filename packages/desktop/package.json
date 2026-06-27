@@ -22,6 +22,7 @@
     "icon": "build/icon.png",
     "electronVersion": "33.2.1",
     "npmRebuild": false,
+    "afterPack": "scripts/verify-packaged-runtime.mjs",
     "artifactName": "meith-${version}-${os}-${arch}.${ext}",
     "directories": {
       "output": "release",
@@ -30,19 +31,14 @@
     "files": ["out/**", "package.json"],
     "extraResources": [
       {
-        "from": "../cli/bin",
-        "to": "cli/bin",
-        "filter": ["**/*"]
-      },
-      {
-        "from": "../cli/dist",
-        "to": "cli/dist",
+        "from": "vendor/cli-runtime",
+        "to": "cli",
         "filter": ["**/*"]
       },
       {
         "from": "../../templates",
         "to": "templates",
-        "filter": ["**/*"]
+        "filter": ["**/*", "!**/node_modules/**"]
       },
       {
         "from": "vendor/node-runtime",

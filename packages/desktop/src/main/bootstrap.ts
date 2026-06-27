@@ -20,7 +20,10 @@ import { MockAdapter } from "./agent/adapters/MockAdapter.js";
 import type { BrowserViewHost } from "./browser/BrowserViewHost.js";
 import {
   buildDesktopExecutablePath,
+  findBundledNodeExecutable,
   findBundledNodeRuntimeBinDir,
+  findBundledNpmExecutable,
+  findBundledNpxExecutable,
 } from "./process/executablePath.js";
 import type { PtyHost } from "./process/PtyHost.js";
 import { type RuntimeInstallInfo, installRuntimeCli } from "./runtime/install.js";
@@ -231,11 +234,16 @@ export async function bootstrap(
 
   mkdirSync(home, { recursive: true });
   mkdirSync(instancesDir, { recursive: true });
+  const bundledNodeBinDir = findBundledNodeRuntimeBinDir();
+  const bundledNodePath = findBundledNodeExecutable();
+  const bundledNpmPath = findBundledNpmExecutable();
+  const bundledNpxPath = findBundledNpxExecutable();
   const runtimeInstall: RuntimeInstallInfo | undefined = installRuntimeCli({
     home,
     appVersion,
     appPath: options.appPath,
     cliEntryPath: options.cliEntryPath,
+    nodePath: bundledNodePath,
   });
   const instanceFile = join(instancesDir, `${process.pid}.json`);
   const config: MeithConfig = {
@@ -268,7 +276,6 @@ export async function bootstrap(
   // Runtime environment injected into every spawned terminal / dev server so
   // tools and plugins launched inside them can reach this running app: the
   // socket path for dev-log attachment plus app-scoped identifiers.
-  const bundledNodeBinDir = findBundledNodeRuntimeBinDir();
   const runtimePathBins = [
     runtimeInstall?.binDir ?? join(home, "bin"),
   ];
@@ -288,6 +295,21 @@ export async function bootstrap(
     ...(bundledNodeBinDir
       ? {
           MEITH_BUNDLED_NODE_BIN: bundledNodeBinDir,
+        }
+      : {}),
+    ...(bundledNodePath
+      ? {
+          MEITH_NODE: bundledNodePath,
+        }
+      : {}),
+    ...(bundledNpmPath
+      ? {
+          MEITH_NPM: bundledNpmPath,
+        }
+      : {}),
+    ...(bundledNpxPath
+      ? {
+          MEITH_NPX: bundledNpxPath,
         }
       : {}),
   };

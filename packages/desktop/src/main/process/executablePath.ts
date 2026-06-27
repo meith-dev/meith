@@ -3,15 +3,12 @@ import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 
-const POSIX_SYSTEM_PATHS = [
+const POSIX_SYSTEM_PATHS = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"];
+const POSIX_USER_TOOL_PATHS = [
   "/opt/homebrew/bin",
   "/opt/homebrew/sbin",
   "/usr/local/bin",
   "/usr/local/sbin",
-  "/usr/bin",
-  "/bin",
-  "/usr/sbin",
-  "/sbin",
 ];
 const PATH_MARKER = "__MEITH_PATH__";
 
@@ -27,12 +24,15 @@ export interface DesktopExecutablePathOptions {
   prependBins?: string[];
   bundledNodeBinDir?: string;
   bundledNodeRuntimeDir?: string;
+  allowHostPathLookup?: boolean;
 }
 
 /**
- * Electron apps launched from Finder inherit a minimal environment, so commands
- * installed by Homebrew, nvm, fnm, Volta, asdf, etc. may be missing even though
- * they work in Terminal. Build a PATH suitable for spawning user CLIs.
+ * Build the PATH Meith injects into spawned processes.
+ *
+ * When a bundled Node runtime is present, Meith-owned Node/npm resolution stays
+ * inside the app package. Host shell/version-manager lookup is opt-in for
+ * intentionally external tools such as user-configured ACP agents.
  */
 export function buildDesktopExecutablePath(
   options: DesktopExecutablePathOptions = {},
@@ -42,13 +42,20 @@ export function buildDesktopExecutablePath(
   const home = options.home ?? homedir();
   const bundledNodeBinDir =
     options.bundledNodeBinDir ?? findBundledNodeRuntimeBinDir(options);
+  const allowHostPathLookup =
+    options.allowHostPathLookup ?? bundledNodeBinDir === undefined;
   const parts = [
     ...(options.prependBins ?? []),
     bundledNodeBinDir,
-    currentPathValue(env),
-    options.loginShellPath ?? queryLoginShellPath(env, platform),
-    ...versionManagerPaths(home, platform),
-    ...commonUserToolPaths(home, platform),
+    ...(allowHostPathLookup
+      ? [
+          currentPathValue(env),
+          options.loginShellPath ?? queryLoginShellPath(env, platform),
+          ...versionManagerPaths(home, platform),
+          ...commonUserToolPaths(home, platform),
+          ...(platform === "win32" ? [] : POSIX_USER_TOOL_PATHS),
+        ]
+      : []),
     ...(platform === "win32" ? [] : POSIX_SYSTEM_PATHS),
   ];
 
@@ -70,6 +77,48 @@ export function withDesktopExecutablePath(
 export function findBundledNodeRuntimeBinDir(
   options: DesktopExecutablePathOptions = {},
 ): string | undefined {
+  const root = findBundledNodeRuntimeDir(options);
+  return root ? nodeRuntimeBinDir(root, options.platform ?? process.platform) : undefined;
+}
+
+export function findBundledNodeExecutable(
+  options: DesktopExecutablePathOptions = {},
+): string | undefined {
+  const platform = options.platform ?? process.platform;
+  const binDir = findBundledNodeRuntimeBinDir(options);
+  if (!binDir) return undefined;
+  const nodeExe = platform === "win32" ? "node.exe" : "node";
+  const candidate = join(binDir, nodeExe);
+  return existsSync(candidate) ? candidate : undefined;
+}
+
+export function findBundledNpmExecutable(
+  options: DesktopExecutablePathOptions = {},
+): string | undefined {
+  return findBundledNodeToolExecutable("npm", options);
+}
+
+export function findBundledNpxExecutable(
+  options: DesktopExecutablePathOptions = {},
+): string | undefined {
+  return findBundledNodeToolExecutable("npx", options);
+}
+
+function findBundledNodeToolExecutable(
+  tool: "npm" | "npx",
+  options: DesktopExecutablePathOptions = {},
+): string | undefined {
+  const platform = options.platform ?? process.platform;
+  const binDir = findBundledNodeRuntimeBinDir(options);
+  if (!binDir) return undefined;
+  const exe = platform === "win32" ? `${tool}.cmd` : tool;
+  const candidate = join(binDir, exe);
+  return existsSync(candidate) ? candidate : undefined;
+}
+
+export function findBundledNodeRuntimeDir(
+  options: DesktopExecutablePathOptions = {},
+): string | undefined {
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
   const roots = [
@@ -86,8 +135,7 @@ export function findBundledNodeRuntimeBinDir(
 
   for (const root of roots) {
     if (!root) continue;
-    const binDir = nodeRuntimeBinDir(root, platform);
-    if (binDir) return binDir;
+    if (nodeRuntimeBinDir(root, platform)) return root;
   }
   return undefined;
 }

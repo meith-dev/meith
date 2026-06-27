@@ -34,11 +34,12 @@ export function CliSection() {
               any tool by name from your existing terminal workflow.
             </p>
             <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
-              Packaged desktop builds include a bundled Node runtime and add the
-              user&apos;s shell and version-manager paths when spawning commands,
-              so <span className="font-mono text-foreground">npx</span>, ACP
-              agents, and project scripts keep working when meith is launched
-              from Finder.
+              Packaged desktop builds include their own Node/npm/npx runtime
+              and a self-contained CLI bundle. Built-in ACP presets launch
+              through the bundled{" "}
+              <span className="font-mono text-foreground">npx</span>, so meith
+              does not depend on user-installed Node tooling when launched from
+              Finder.
             </p>
             <Link
               href="/docs/cli"
