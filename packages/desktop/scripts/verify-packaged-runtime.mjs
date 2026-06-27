@@ -1,16 +1,18 @@
-import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { chmodSync, existsSync, readdirSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const desktopRoot = dirname(scriptDir);
 
 export default async function verifyPackagedRuntime(context) {
-  const resourcesDir = join(
-    context.appOutDir,
-    `${context.packager.appInfo.productFilename}.app`,
-    "Contents",
-    "Resources",
-  );
   const platform = context.electronPlatformName;
+  const appPath = packagedAppPath(context, platform);
+  const resourcesDir =
+    platform === "darwin" ? join(appPath, "Contents", "Resources") : undefined;
   const root =
-    platform === "darwin" && existsSync(resourcesDir)
+    resourcesDir && existsSync(resourcesDir)
       ? resourcesDir
       : join(context.appOutDir, "resources");
 
@@ -56,6 +58,77 @@ export default async function verifyPackagedRuntime(context) {
       `Packaged templates must not include builder node_modules:\n${templateNodeModules.join("\n")}`,
     );
   }
+
+  if (platform === "darwin") {
+    ensureDarwinSpawnHelpersExecutable(root);
+    adHocSignMacApp(appPath);
+    execFileSync("codesign", ["--verify", "--deep", "--strict", "--verbose=2", appPath], {
+      stdio: "inherit",
+    });
+  }
+}
+
+function ensureDarwinSpawnHelpersExecutable(resourcesRoot) {
+  const nodePtyRoot = join(
+    resourcesRoot,
+    "app.asar.unpacked",
+    "node_modules",
+    "node-pty",
+  );
+  const helpers = findFilesNamed(nodePtyRoot, "spawn-helper");
+  if (helpers.length === 0) {
+    throw new Error(`node-pty spawn-helper was not found under ${nodePtyRoot}`);
+  }
+
+  for (const helper of helpers) {
+    const mode = statSync(helper).mode;
+    if ((mode & 0o111) === 0) chmodSync(helper, mode | 0o755);
+  }
+}
+
+function findFilesNamed(root, name) {
+  const found = [];
+  walkFiles(root, name, found);
+  return found;
+}
+
+function walkFiles(dir, name, found) {
+  if (!existsSync(dir)) return;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkFiles(path, name, found);
+    } else if (entry.isFile() && entry.name === name) {
+      found.push(path);
+    }
+  }
+}
+
+function packagedAppPath(context, platform) {
+  if (platform === "darwin") {
+    return join(
+      context.appOutDir,
+      `${context.packager.appInfo.productFilename}.app`,
+    );
+  }
+  return context.appOutDir;
+}
+
+function adHocSignMacApp(appPath) {
+  execFileSync("xattr", ["-cr", appPath], { stdio: "ignore" });
+  execFileSync(
+    "codesign",
+    [
+      "--force",
+      "--deep",
+      "--sign",
+      "-",
+      "--entitlements",
+      join(desktopRoot, "build", "entitlements.mac.plist"),
+      appPath,
+    ],
+    { stdio: "inherit" },
+  );
 }
 
 function findTemplateNodeModules(root) {
