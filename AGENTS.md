@@ -68,6 +68,14 @@ pnpm dev:web
 pnpm cli tools
 ```
 
+Release and commit checks:
+
+```bash
+pnpm commitlint
+pnpm release:pr --dry-run --token="$GITHUB_TOKEN"
+pnpm release:github --dry-run --token="$GITHUB_TOKEN"
+```
+
 ## Style
 
 - TypeScript is ESM. Use explicit `.js` extensions in relative TS imports where
@@ -76,6 +84,8 @@ pnpm cli tools
   commas, line width 90.
 - Prefer Zod validation at boundaries and inferred types from schemas.
 - Keep changes scoped; avoid unrelated refactors or lockfile churn.
+- Use Conventional Commit messages for PR titles and commits. Release Please uses
+  them to calculate versions and changelogs.
 - Use `node:` imports for Node built-ins.
 - Tests use Vitest and live near the relevant package under `__tests__`.
 
@@ -83,6 +93,12 @@ pnpm cli tools
 
 - Do not run destructive git commands or delete user files unless explicitly
   requested.
+- Do not push version bumps, release commits, or artifact changes directly to
+  `main`. Release Please owns release PRs, version updates, `CHANGELOG.md`, and
+  `.release-please-manifest.json`.
+- `main` is protected: force pushes and branch deletion are disabled, and changes
+  must land through pull requests with the required `Validate Conventional
+  Commits` check.
 - Do not weaken tool permissions, browser ownership, plugin grants, or ACP/MCP
   approval checks for convenience.
 - Packaging changes affect bundled Node/npm/npx, CLI runtime, templates, and

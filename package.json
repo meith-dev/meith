@@ -23,13 +23,19 @@
     "typecheck": "pnpm build:deps && pnpm -r --filter \"./packages/**\" --filter \"./apps/**\" typecheck",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
+    "commitlint": "commitlint",
     "format": "biome format --write .",
     "check": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
     "smoke": "pnpm build:deps && tsx scripts/smoke.mts",
+    "release:pr": "release-please release-pr --repo-url=meith-dev/meith --target-branch=main",
+    "release:github": "release-please github-release --repo-url=meith-dev/meith --target-branch=main",
     "cli": "pnpm --filter @meith/cli start --"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "release-please": "^16.18.0",
     "tsx": "^4.19.2",
     "typescript": "5.7.3",
     "vitest": "^2.1.8"

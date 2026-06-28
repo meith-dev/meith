@@ -74,3 +74,4 @@ pnpm check
 - [Adding Tools](/docs/developers/adding-tools)
 - [Agent Runtime](/docs/developers/agent-runtime)
 - [Plugin API](/docs/developers/plugin-api)
+- [Release process](/docs/developers/releases)

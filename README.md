@@ -159,41 +159,22 @@ Packaging also verifies the final runtime bundle: Node/npm/npx, CLI dependencies
 
 ## Release process
 
-Releases are published as GitHub Releases with macOS arm64 desktop artifacts.
+Releases are driven by Release Please and Conventional Commits. Do not push
+release commits or version bumps directly to `main`.
 
-1. Choose the next semver version, such as `0.1.3`.
-2. Update the `version` field in the root `package.json` and each package under `packages/`.
-3. Update `packages/desktop/package.json` so `build.mac.bundleVersion` matches the release version.
-4. Run the verification and build commands:
+1. Land normal work through pull requests with Conventional Commit titles and
+   commits, such as `feat(renderer): add split previews` or
+   `fix(cli): handle stale sockets`.
+2. The release workflow keeps a Release Please PR open against `main`.
+3. Review and merge the Release Please PR when ready to publish. That PR updates
+   package versions, the desktop macOS bundle version, `CHANGELOG.md`, and the
+   release manifest.
+4. After the Release Please PR merges, CI creates the GitHub Release, builds the
+   macOS arm64 desktop artifacts, writes checksums, and uploads them to the
+   release.
 
-```bash
-pnpm test
-pnpm dist:mac
-
-```
-
-5. Check the generated artifact hashes:
-
-```bash
-shasum -a 256 packages/desktop/release/meith-<version>-mac-arm64.dmg packages/desktop/release/meith-<version>-mac-arm64.zip
-
-```
-
-6. Commit the version and documentation changes, then push `main`.
-7. Publish the GitHub Release:
-
-```bash
-gh release create v<version> \
-  packages/desktop/release/meith-<version>-mac-arm64.dmg \
-  packages/desktop/release/meith-<version>-mac-arm64.zip \
-  packages/desktop/release/meith-<version>-mac-arm64.dmg.blockmap \
-  packages/desktop/release/meith-<version>-mac-arm64.zip.blockmap \
-  --repo meith-dev/meith \
-  --target main \
-  --title "meith <version>" \
-  --notes-file /path/to/release-notes.md
-
-```
+See [Release process](docs/developer/RELEASES.md) for maintainer details,
+required repository settings, and local dry-run commands.
 
 The current macOS release build is ad-hoc signed but not Developer ID signed or notarized, so macOS may warn on first open.
 
