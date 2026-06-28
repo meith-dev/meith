@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildParams, coerce, parseArgs } from "../args.js";
-import { commands } from "../commands.js";
+import { commands, normalizeCommandParams } from "../commands.js";
 
 describe("parseArgs", () => {
   it("parses a command, positionals and flags", () => {
@@ -112,6 +112,24 @@ describe("buildParams", () => {
     const parsed = parseArgs(["call", "tool", "--arg-json", "[1,2]"]);
     expect(() => buildParams(parsed, [])).toThrow(/must be a JSON object/);
   });
+
+  it("normalizes command-specific array flags", () => {
+    const parsed = parseArgs([
+      "approve-plugin",
+      "com.example.hello",
+      "--capabilities",
+      "read-only",
+      "--apis",
+      "tools",
+    ]);
+    const spec = commands["approve-plugin"];
+    const params = normalizeCommandParams(spec, buildParams(parsed, spec.positionals));
+    expect(params).toEqual({
+      pluginId: "com.example.hello",
+      capabilities: ["read-only"],
+      apis: ["tools"],
+    });
+  });
 });
 
 describe("command map", () => {
@@ -119,5 +137,96 @@ describe("command map", () => {
     for (const spec of Object.values(commands)) {
       expect(spec.tool).toMatch(/^[a-z][a-z0-9_]*$/);
     }
+  });
+
+  it("covers the current desktop tool catalog with commands or built-ins", () => {
+    const desktopTools = [
+      "app_export_bug_report",
+      "app_get_logs",
+      "app_get_state",
+      "app_health",
+      "app_list_instances",
+      "app_screenshot",
+      "app_set_debug_mode",
+      "approve_plugin_grants",
+      "attach_process_logs",
+      "browser_use_end",
+      "browser_use_start",
+      "cdp_command",
+      "click_element",
+      "close_browser_tab",
+      "close_space",
+      "close_terminal",
+      "close_workspace_tab",
+      "create_space",
+      "create_terminal",
+      "get_active_tab",
+      "get_app_settings",
+      "get_browser_state",
+      "get_console_logs",
+      "get_diagnostics",
+      "get_network_logs",
+      "get_process_logs",
+      "get_process_tree",
+      "get_tabs",
+      "get_terminal_snapshot",
+      "git_diff",
+      "go_back",
+      "go_forward",
+      "install_plugin",
+      "kill_terminal",
+      "list_dev_servers",
+      "list_plugins",
+      "list_spaces",
+      "list_terminals",
+      "navigate",
+      "open_browser_tab",
+      "open_plugin_tab",
+      "open_workspace_tab",
+      "project_allocate",
+      "project_create",
+      "project_create_plugin",
+      "project_detect",
+      "project_list",
+      "project_list_templates",
+      "project_open",
+      "project_prewarm",
+      "project_prewarm_status",
+      "project_run",
+      "project_set_run_config",
+      "project_start_dev_server",
+      "project_stop_dev_server",
+      "refresh",
+      "resize_terminal",
+      "scroll_page",
+      "send_keys",
+      "set_app_settings",
+      "set_plugin_enabled",
+      "set_workspace_tab_file",
+      "set_workspace_tab_terminal",
+      "start_dev_server",
+      "stop_dev_server",
+      "storage_export_state",
+      "storage_list_collections",
+      "storage_read_collection",
+      "switch_space",
+      "take_screenshot",
+      "type_text",
+      "uninstall_plugin",
+      "update_space",
+      "workspace_apply_patch",
+      "workspace_list_files",
+      "workspace_read_file",
+      "workspace_search",
+      "workspace_undo",
+      "workspace_write_file",
+      "write_terminal",
+    ];
+    const commandTools = new Set(Object.values(commands).map((spec) => spec.tool));
+    const builtInTools = new Set(["attach_process_logs"]);
+    const missing = desktopTools.filter(
+      (tool) => !commandTools.has(tool) && !builtInTools.has(tool),
+    );
+    expect(missing).toEqual([]);
   });
 });

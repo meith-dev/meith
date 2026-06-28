@@ -114,9 +114,18 @@ pnpm cli tools
 pnpm cli app list
 pnpm cli open http://localhost:3000
 pnpm cli tabs
+pnpm cli projects
+pnpm cli files /path/to/project --recursive true
+pnpm cli diff /path/to/project --includePatches false
 pnpm cli call app_health
 
 ```
+
+Friendly CLI commands cover the registered desktop tool catalog: browser tabs
+and automation, spaces/workspace tabs, projects/templates, workspace files,
+git diff, terminals/dev servers, settings, storage, plugins, and runtime
+diagnostics. `pnpm cli call <toolName>` remains the exact-name escape hatch for
+scripts and newly-added tools.
 
 Package the desktop app:
 
@@ -170,4 +179,4 @@ gh release create v<version> \
 
 The current macOS release build is ad-hoc signed but not Developer ID signed or notarized, so macOS may warn on first open.
 
-On startup, the runtime writes `~/.meith/config.json`, registers the running instance under `~/.meith/instances/`, and exposes a managed launcher at `~/.meith/bin/meith`. Run `meith setup` for shell instructions, or `meith setup --write` to add that launcher directory to your shell config.
+On startup, the runtime writes `~/.meith/config.json`, registers the running instance under `~/.meith/instances/`, and exposes a managed launcher at `~/.meith/bin/meith`. Open the desktop app once, then run `~/.meith/bin/meith setup` for shell instructions, or `~/.meith/bin/meith setup --write` to add that launcher directory to your shell config. After restarting your shell, use `meith` directly.

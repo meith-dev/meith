@@ -2,7 +2,7 @@
 import { runApp } from "./app.js";
 import { type ParsedArgs, buildParams, parseArgs, readStdinJson } from "./args.js";
 import { ToolClient } from "./client.js";
-import { commands } from "./commands.js";
+import { commands, normalizeCommandParams } from "./commands.js";
 import { cliVersion, commandHelp, toolHelp, topLevelHelp } from "./help.js";
 import { resolveTarget } from "./instances.js";
 import { detectLaunchIntent, runLaunch } from "./launch.js";
@@ -173,7 +173,10 @@ async function runRuntimeCommand(
         return;
       }
       toolName = spec.tool;
-      params = { ...stdinBase, ...buildParams(parsed, spec.positionals, RESERVED_FLAGS) };
+      params = normalizeCommandParams(spec, {
+        ...stdinBase,
+        ...buildParams(parsed, spec.positionals, RESERVED_FLAGS),
+      });
       if (parsed.command === "start-dev") {
         const args = params.args ?? parsed.passthrough;
         if (Array.isArray(args) && args.length > 0) params.args = args;
@@ -197,8 +200,9 @@ async function runRuntimeCommand(
     });
 
     // Screenshot commands print just the artifact path in text mode.
-    if (parsed.command === "screenshot") printArtifact(result, mode);
-    else printResult(result, mode);
+    if (parsed.command === "screenshot" || parsed.command === "app-screenshot") {
+      printArtifact(result, mode);
+    } else printResult(result, mode);
   } catch (err) {
     fail(err instanceof Error ? err.message : String(err), socketPath);
   } finally {

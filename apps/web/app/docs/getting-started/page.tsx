@@ -1,13 +1,13 @@
-import type { Metadata } from "next"
-import { Code, Callout, DocHeader, H2, OL, P, UL } from "@/components/docs/prose"
-import { CodeBlock } from "@/components/code-block"
-import { DocsPager } from "@/components/docs/docs-pager"
-import { siteConfig } from "@/lib/site"
+import { CodeBlock } from "@/components/code-block";
+import { DocsPager } from "@/components/docs/docs-pager";
+import { Callout, Code, DocHeader, H2, OL, P, UL } from "@/components/docs/prose";
+import { siteConfig } from "@/lib/site";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Getting started",
   description: "Install meith, open a project, and run your first agent session.",
-}
+};
 
 export default function GettingStartedPage() {
   return (
@@ -20,15 +20,15 @@ export default function GettingStartedPage() {
 
       <H2 id="install">Install the app</H2>
       <P>
-        meith is a free, open-source desktop app. It currently supports macOS on
-        Apple Silicon (M-series) only — support for Intel Macs, Linux, and Windows
-        is planned. Download the latest build from the releases page, then launch
-        it like any other desktop application.
+        meith is a free, open-source desktop app. It currently supports macOS on Apple
+        Silicon (M-series) only — support for Intel Macs, Linux, and Windows is planned.
+        Download the latest build from the releases page, then launch it like any other
+        desktop application.
       </P>
       <Callout title="Builds in progress">
-        meith is under active development and pre-built binaries may not be
-        published yet. Until they are, you can build and run the app from source —
-        see the steps below — or grab the latest artifacts from{" "}
+        meith is under active development and pre-built binaries may not be published yet.
+        Until they are, you can build and run the app from source — see the steps below —
+        or grab the latest artifacts from{" "}
         <a
           href={siteConfig.releases}
           target="_blank"
@@ -68,17 +68,16 @@ pnpm --filter @meith/desktop dev:headless`}
       <H2 id="first-project">Open your first project</H2>
       <OL>
         <li>
-          Launch meith. You start in a workspace backed by the built-in mock
-          bridge until you open a real folder.
+          Launch meith. You start in a workspace backed by the built-in mock bridge until
+          you open a real folder.
         </li>
         <li>
-          In the far-left <strong>Spaces rail</strong>, click the folder button to
-          open a project folder — or the <Code>+</Code> button to create an empty
-          workspace.
+          In the far-left <strong>Spaces rail</strong>, click the folder button to open a
+          project folder — or the <Code>+</Code> button to create an empty workspace.
         </li>
         <li>
-          meith creates a space for that project. Browser tabs, editor tabs,
-          terminals, and agent chats you open are scoped to it.
+          meith creates a space for that project. Browser tabs, editor tabs, terminals,
+          and agent chats you open are scoped to it.
         </li>
       </OL>
 
@@ -86,43 +85,48 @@ pnpm --filter @meith/desktop dev:headless`}
       <OL>
         <li>Open an agent chat tab inside your workspace.</li>
         <li>
-          Ask it to build something concrete — for example, &ldquo;add a pricing
-          section to the landing page and start the dev server.&rdquo;
+          Ask it to build something concrete — for example, &ldquo;add a pricing section
+          to the landing page and start the dev server.&rdquo;
         </li>
         <li>
           As the agent calls tools, each step appears inline. Read-only steps run
           immediately; actions that touch your machine pause for your permission.
         </li>
         <li>
-          Choose <strong>Allow</strong> or <strong>Deny</strong>. For agent tool
-          prompts, you can remember the decision for that tool for the rest of
-          the session.
+          Choose <strong>Allow</strong> or <strong>Deny</strong>. For agent tool prompts,
+          you can remember the decision for that tool for the rest of the session.
         </li>
       </OL>
 
       <H2 id="cli-setup">Set up the CLI (optional)</H2>
       <P>
-        On startup the runtime writes <Code>~/.meith/config.json</Code>, registers
-        the running instance under <Code>~/.meith/instances/</Code>, and exposes a
-        managed launcher at <Code>~/.meith/bin/meith</Code>. To add that launcher
-        to your shell:
+        On startup the runtime writes <Code>~/.meith/config.json</Code>, registers the
+        running instance under <Code>~/.meith/instances/</Code>, and exposes a managed
+        launcher at <Code>~/.meith/bin/meith</Code>. Open the desktop app once, then use
+        that launcher to add it to your shell:
       </P>
       <CodeBlock
         label="terminal"
-        code={`# print shell setup instructions
-meith setup
+        code={`# print shell PATH setup instructions
+~/.meith/bin/meith setup
 
 # or write the launcher dir into your shell config
-meith setup --write`}
+~/.meith/bin/meith setup --write
+
+# after restarting your shell
+meith app list`}
       />
       <UL>
         <li>
-          See <a className="text-primary hover:underline" href="/docs/cli">The meith CLI</a> for
-          the full command reference.
+          See{" "}
+          <a className="text-primary hover:underline" href="/docs/cli">
+            The meith CLI
+          </a>{" "}
+          for the full command reference.
         </li>
       </UL>
 
       <DocsPager pathname="/docs/getting-started" />
     </>
-  )
+  );
 }
