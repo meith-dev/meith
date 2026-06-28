@@ -177,7 +177,12 @@ export const commands = {
 ```
 
 The CLI help system can enrich static command help with the tool descriptor when
-the runtime is reachable.
+the runtime is reachable. If the command has flags that should always be arrays
+when passed once, set `arrayFlags` on its `CommandSpec`.
+
+Keep `packages/cli/src/__tests__/args.test.ts` in sync. It has a coverage guard
+for the current desktop tool catalog, with only dedicated built-ins such as
+`devlogs` allowed to stand in for a direct command mapping.
 
 ## 9. Test the Tool
 
@@ -213,5 +218,5 @@ pnpm check
 - Long-running work observes `ctx.signal`.
 - Streaming work uses `ctx.emit`.
 - The tool is registered in `bootstrap.ts`.
-- CLI mapping is added only if the command is user-facing enough to deserve it.
+- CLI mapping or an intentional built-in exists for every registered desktop tool.
 - Tests cover the service and registry behavior.

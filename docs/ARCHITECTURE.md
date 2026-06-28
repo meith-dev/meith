@@ -182,12 +182,18 @@ Common surfaces:
 - `meith new [name]` creates and opens a generated project.
 - mapped commands such as `open`, `tabs`, `navigate`, `screenshot`, `processes`,
   `dev-servers`, and `start-dev` call specific tools.
+- mapped commands also cover spaces/workspace tabs, projects/templates,
+  workspace file read/write/search/diagnostics, git diff, browser automation,
+  terminal control, settings, storage, plugins, and runtime diagnostics.
 - `meith call <toolName>` can invoke any registered tool.
 - `meith tools` lists runtime tools.
 - `meith devlogs` attaches to a managed dev server's log stream.
 - `meith app <list|logs|health|bug-report|kill|screenshot>` inspects or controls
   runtime instances.
-- `meith setup` prints or writes shell PATH setup for the managed launcher.
+- The packaged app bundles the CLI and Node runtime, then writes a managed
+  launcher to `~/.meith/bin/meith` on startup. First-time setup is
+  `~/.meith/bin/meith setup` or `~/.meith/bin/meith setup --write`; after the
+  shell PATH is updated, `meith setup` works like any other CLI command.
 
 ## Agents
 

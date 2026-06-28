@@ -282,41 +282,41 @@ from the CLI.
 Install from a local folder:
 
 ```bash
-meith call install_plugin --directory /absolute/path/to/plugin
+meith install-plugin --directory /absolute/path/to/plugin
 ```
 
 Install from a dev server:
 
 ```bash
-meith call install_plugin --devUrl http://localhost:5173/
+meith install-plugin --devUrl http://localhost:5173/
 ```
 
 Approve grants:
 
 ```bash
-meith call approve_plugin_grants \
-  --pluginId com.example.hello \
-  --capabilities-json '["read-only"]' \
-  --apis-json '["tools","storage"]'
+meith approve-plugin com.example.hello \
+  --capabilities read-only \
+  --apis tools \
+  --apis storage
 ```
 
 Enable:
 
 ```bash
-meith call set_plugin_enabled --pluginId com.example.hello --enabled true
+meith enable-plugin com.example.hello true
 ```
 
 Open:
 
 ```bash
-meith call open_plugin_tab --pluginId com.example.hello
+meith open-plugin com.example.hello
 ```
 
 Package a plugin folder:
 
 ```bash
 tar -czf hello-plugin.tgz -C dist .
-meith call install_plugin --archive /absolute/path/hello-plugin.tgz
+meith install-plugin --archive /absolute/path/hello-plugin.tgz
 ```
 
 ## Authoring Notes

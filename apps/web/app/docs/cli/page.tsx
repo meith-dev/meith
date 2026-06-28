@@ -1,13 +1,13 @@
-import type { Metadata } from "next"
-import { Code, Callout, DocHeader, H2, P, UL } from "@/components/docs/prose"
-import { CodeBlock } from "@/components/code-block"
-import { DocsPager } from "@/components/docs/docs-pager"
+import { CodeBlock } from "@/components/code-block";
+import { DocsPager } from "@/components/docs/docs-pager";
+import { Callout, Code, DocHeader, H2, P, UL } from "@/components/docs/prose";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "The meith CLI",
   description:
     "Inspect and control a running meith runtime from your terminal with the meith command.",
-}
+};
 
 export default function CliPage() {
   return (
@@ -20,16 +20,20 @@ export default function CliPage() {
 
       <H2 id="setup">Setup</H2>
       <P>
-        On startup the runtime registers the running instance and exposes a
-        managed launcher at <Code>~/.meith/bin/meith</Code>. Add it to your shell:
+        On startup the runtime registers the running instance and exposes a managed
+        launcher at <Code>~/.meith/bin/meith</Code>. Open the desktop app once, then use
+        that launcher to add it to your shell:
       </P>
       <CodeBlock
         label="terminal"
         code={`# print shell PATH setup instructions
-meith setup
+~/.meith/bin/meith setup
 
 # or write the launcher dir into your shell config
-meith setup --write`}
+~/.meith/bin/meith setup --write
+
+# after restarting your shell
+meith app list`}
       />
       <P>
         Through the monorepo you can also run the CLI with{" "}
@@ -46,8 +50,8 @@ meith new my-app      # create and open a new project`}
 
       <H2 id="tools">Tools & generic calls</H2>
       <P>
-        Every runtime capability is a tool. List them, or invoke any tool by its
-        exact name with <Code>meith call</Code>:
+        Every runtime capability is a tool. List them, or invoke any tool by its exact
+        name with <Code>meith call</Code>:
       </P>
       <CodeBlock
         label="terminal"
@@ -58,7 +62,8 @@ meith call <tool> --help     # inspect a tool's parameters`}
 
       <H2 id="common">Common commands</H2>
       <P>
-        Friendly commands map to underlying tools. A representative set:
+        Friendly commands map to the registered desktop tools. The full list is available
+        with <Code>meith --help</Code>; common groups include:
       </P>
       <UL>
         <li>
@@ -69,6 +74,35 @@ meith call <tool> --help     # inspect a tool's parameters`}
         </li>
         <li>
           <Code>meith active-tab</Code> — show the active browser tab.
+        </li>
+        <li>
+          <Code>meith browser-state &lt;tabId&gt;</Code> — inspect interactable browser
+          elements for automation.
+        </li>
+        <li>
+          <Code>meith click &lt;tabId&gt; &lt;elementId&gt;</Code>,{" "}
+          <Code>meith type &lt;tabId&gt; &lt;elementId&gt; &lt;text&gt;</Code>,{" "}
+          <Code>meith keys &lt;tabId&gt; &lt;keys&gt;</Code> — automate a tab.
+        </li>
+        <li>
+          <Code>meith spaces</Code>, <Code>meith create-space &lt;name&gt;</Code>, and{" "}
+          <Code>meith open-workspace-tab &lt;title&gt; &lt;cwd&gt;</Code> — manage spaces
+          and workspace tabs.
+        </li>
+        <li>
+          <Code>meith projects</Code>, <Code>meith open-project &lt;cwd&gt;</Code>,
+          <Code>meith templates</Code>, and{" "}
+          <Code>meith create-project &lt;template&gt;</Code> — manage projects and
+          templates.
+        </li>
+        <li>
+          <Code>meith files &lt;cwd&gt;</Code>,{" "}
+          <Code>meith read &lt;cwd&gt; &lt;path&gt;</Code>,{" "}
+          <Code>meith search &lt;cwd&gt; &lt;query&gt;</Code>, and{" "}
+          <Code>meith diagnostics &lt;cwd&gt; [path]</Code> — inspect workspace files.
+        </li>
+        <li>
+          <Code>meith diff &lt;cwd&gt;</Code> — summarize the git working tree.
         </li>
         <li>
           <Code>meith app list</Code> — inspect running app instances.
@@ -88,12 +122,17 @@ meith call <tool> --help     # inspect a tool's parameters`}
         <li>
           <Code>meith processes</Code> — list managed child processes.
         </li>
+        <li>
+          <Code>meith settings</Code>, <Code>meith storage</Code>, and{" "}
+          <Code>meith plugins</Code> — inspect settings, durable storage, and installed
+          plugins.
+        </li>
       </UL>
       <Callout>
         Run <Code>meith --help</Code> for the full command list, or{" "}
-        <Code>meith &lt;command&gt; --help</Code> for command-specific details.
-        When the runtime is reachable, help is enriched with each tool&apos;s
-        live parameter schema.
+        <Code>meith &lt;command&gt; --help</Code> for command-specific details. When the
+        runtime is reachable, help is enriched with each tool&apos;s live parameter
+        schema.
       </Callout>
 
       <H2 id="options">Useful options</H2>
@@ -102,8 +141,7 @@ meith call <tool> --help     # inspect a tool's parameters`}
           <Code>--json</Code> — print the raw <Code>ToolResult</Code> envelope.
         </li>
         <li>
-          <Code>--instance &lt;id&gt;</Code> — target a specific instance by pid or
-          label.
+          <Code>--instance &lt;id&gt;</Code> — target a specific instance by pid or label.
         </li>
         <li>
           <Code>--socket &lt;path&gt;</Code> — override the runtime socket path.
@@ -119,5 +157,5 @@ meith call <tool> --help     # inspect a tool's parameters`}
 
       <DocsPager pathname="/docs/cli" />
     </>
-  )
+  );
 }
