@@ -2,3 +2,10 @@ packages:
   - "apps/*"
   - "packages/*"
   - "templates/*"
+allowBuilds:
+  '@biomejs/biome': set this to true or false
+  electron: set this to true or false
+  esbuild: set this to true or false
+  msw: set this to true or false
+  node-pty: set this to true or false
+  sharp: set this to true or false

@@ -259,18 +259,15 @@ export function useAgent(
       setModelOptionsLoading(false);
     } else {
       setModelOptions([]);
-      setModelOptionsLoading(false);
+      setModelOptionsLoading(true);
     }
     const handle = window.setTimeout(() => {
-      if (!cached) setModelOptionsLoading(true);
-      void withTimeout(
-        bridge.agent.probe({
+      void bridge.agent
+        .probe({
           acpPreset: config.acpPreset,
           command: config.command,
           args: config.args,
-        }),
-        3000,
-      )
+        })
         .then((result) => {
           const options = result.installed ? result.options : [];
           if (probeKey) probeOptionsCache.set(probeKey, options);
