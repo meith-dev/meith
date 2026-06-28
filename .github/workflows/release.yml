@@ -19,6 +19,8 @@ jobs:
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
+    env:
+      RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
     outputs:
       release_created: ${{ steps.detect-release.outputs.release_created }}
       tag: ${{ steps.detect-release.outputs.tag }}
@@ -43,15 +45,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate Release Please token
+        run: |
+          if [ -z "$RELEASE_PLEASE_TOKEN" ]; then
+            echo "::error::Set the RELEASE_PLEASE_TOKEN repository secret to a fine-grained PAT or GitHub App token with contents, pull requests, and issues write access."
+            exit 1
+          fi
+
       - name: Create GitHub Release from merged Release PR
         run: pnpm release:github --token="$RELEASE_PLEASE_TOKEN"
-        env:
-          RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Create or update Release PR
         run: pnpm release:pr --token="$RELEASE_PLEASE_TOKEN"
-        env:
-          RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Detect release tag on this commit
         id: detect-release
