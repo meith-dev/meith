@@ -70,9 +70,9 @@ pnpm release:github --dry-run --token="$GITHUB_TOKEN"
 
 The `main` branch must be protected so maintainers cannot bypass the PR-based
 release flow. Force pushes and branch deletion are disabled. Pull requests,
-linear history, one approving review, and the `Validate Conventional Commits`
-status check are required before changes can land on `main`. Use a Conventional
-Commit PR title if the branch will be squash-merged.
+linear history, and the `Validate Conventional Commits` status check are
+required before changes can land on `main`. Use a Conventional Commit PR title
+if the branch will be squash-merged.
 
 The release workflow can use the default `GITHUB_TOKEN`. Configure a
 `RELEASE_PLEASE_TOKEN` secret instead if Release Please PRs must trigger

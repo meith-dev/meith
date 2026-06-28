@@ -97,8 +97,8 @@ pnpm release:github --dry-run --token="$GITHUB_TOKEN"
   `main`. Release Please owns release PRs, version updates, `CHANGELOG.md`, and
   `.release-please-manifest.json`.
 - `main` is protected: force pushes and branch deletion are disabled, and changes
-  must land through PR review with the required `Validate Conventional Commits`
-  check.
+  must land through pull requests with the required `Validate Conventional
+  Commits` check.
 - Do not weaken tool permissions, browser ownership, plugin grants, or ACP/MCP
   approval checks for convenience.
 - Packaging changes affect bundled Node/npm/npx, CLI runtime, templates, and
