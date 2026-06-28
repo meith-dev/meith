@@ -1,23 +1,29 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { docsNav } from "@/lib/docs-nav"
-import { cn } from "@/lib/utils"
+import type { DocSection } from "@/lib/docs-nav";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-export function DocsSidebarNav({ onNavigate }: { onNavigate?: () => void }) {
-  const pathname = usePathname()
+export function DocsSidebarNav({
+  onNavigate,
+  sections,
+}: {
+  onNavigate?: () => void;
+  sections: DocSection[];
+}) {
+  const pathname = usePathname();
 
   return (
     <nav className="space-y-7" aria-label="Documentation">
-      {docsNav.map((section) => (
+      {sections.map((section) => (
         <div key={section.title}>
           <p className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {section.title}
           </p>
           <ul className="mt-2 space-y-0.5">
             {section.items.map((item) => {
-              const active = pathname === item.href
+              const active = pathname === item.href;
               return (
                 <li key={item.href}>
                   <Link
@@ -34,11 +40,11 @@ export function DocsSidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     {item.title}
                   </Link>
                 </li>
-              )
+              );
             })}
           </ul>
         </div>
       ))}
     </nav>
-  )
+  );
 }

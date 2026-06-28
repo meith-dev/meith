@@ -1,3 +1,12 @@
+---
+title: Adding Tools
+description: How to add typed tools to the shared desktop runtime.
+section: Developers
+sectionOrder: 2
+order: 40
+slug: developers/adding-tools
+---
+
 # Adding Tools
 
 A tool is a typed unit of behavior callable by the renderer, CLI, agents,

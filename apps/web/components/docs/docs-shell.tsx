@@ -1,32 +1,39 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { usePathname } from "next/navigation"
-import { PanelLeft, X } from "lucide-react"
-import { DocsSidebarNav } from "@/components/docs/docs-sidebar"
-import { cn } from "@/lib/utils"
+import { DocsSidebarNav } from "@/components/docs/docs-sidebar";
+import type { DocSection } from "@/lib/docs-nav";
+import { cn } from "@/lib/utils";
+import { PanelLeft, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 /**
  * Responsive docs layout: a persistent left sidebar on desktop, and a
  * slide-over drawer on mobile toggled by a button in the content column.
  */
-export function DocsShell({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false)
-  const pathname = usePathname()
+export function DocsShell({
+  children,
+  sections,
+}: {
+  children: React.ReactNode;
+  sections: DocSection[];
+}) {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   // Reset scroll to the top of the window whenever the docs route changes, so
   // navigating between pages always starts at the top instead of preserving
   // the previous page's scroll position.
   useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [pathname])
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
     <div className="mx-auto flex max-w-6xl gap-8 px-4 py-10 sm:px-6">
       {/* Desktop sidebar */}
       <aside className="hidden w-56 shrink-0 lg:block">
         <div className="sticky top-24 max-h-[calc(100dvh-7rem)] overflow-y-auto pb-8">
-          <DocsSidebarNav />
+          <DocsSidebarNav sections={sections} />
         </div>
       </aside>
 
@@ -38,7 +45,10 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
         )}
         aria-hidden={!open}
       >
-        <div
+        <button
+          type="button"
+          aria-label="Close navigation"
+          tabIndex={open ? 0 : -1}
           className={cn(
             "absolute inset-0 bg-background/70 backdrop-blur-sm transition-opacity",
             open ? "opacity-100" : "opacity-0",
@@ -62,7 +72,7 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
               <X className="size-4" />
             </button>
           </div>
-          <DocsSidebarNav onNavigate={() => setOpen(false)} />
+          <DocsSidebarNav sections={sections} onNavigate={() => setOpen(false)} />
         </div>
       </div>
 
@@ -79,5 +89,5 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
         <article className="max-w-3xl">{children}</article>
       </div>
     </div>
-  )
+  );
 }

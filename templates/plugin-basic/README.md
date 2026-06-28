@@ -22,7 +22,7 @@ export default {
 } satisfies MeithPlugin;
 ```
 
-Host responsibilities (see `docs/PLUGIN_API.md` in the meith repo):
+Host responsibilities (see `docs/developer/PLUGIN_API.md` in the meith repo):
 
 - **Isolation** — plugin code runs in a constrained context, never with Node
   access to web content.

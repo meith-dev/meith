@@ -1,3 +1,12 @@
+---
+title: Architecture
+description: How meith is built: an Electron workbench backed by one local tool runtime.
+section: Developers
+sectionOrder: 2
+order: 20
+slug: developers/architecture
+---
+
 # Architecture
 
 meith is an Electron desktop workbench backed by a local tool runtime. The main

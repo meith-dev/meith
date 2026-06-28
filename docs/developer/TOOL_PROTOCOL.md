@@ -1,3 +1,12 @@
+---
+title: Tool Protocol
+description: The NDJSON socket protocol, ToolResult envelope, capabilities, caller identity, timeouts, and auditing model.
+section: Developers
+sectionOrder: 2
+order: 30
+slug: developers/tool-protocol
+---
+
 # Tool Protocol
 
 meith exposes its tool registry over a local newline-delimited JSON socket. The
