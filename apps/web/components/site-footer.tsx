@@ -1,38 +1,43 @@
-import Link from "next/link"
-import { MeithMark } from "@/components/meith-mark"
-import { siteConfig } from "@/lib/site"
+import { MeithMark } from "@/components/meith-mark";
+import { getDocsNav } from "@/lib/docs";
+import { siteConfig } from "@/lib/site";
+import Link from "next/link";
 
-const groups = [
-  {
-    title: "Product",
-    links: [
-      { label: "Features", href: "/#features" },
-      { label: "How it works", href: "/#how-it-works" },
-      { label: "Safety & control", href: "/#safety" },
-      { label: "Download", href: siteConfig.releases, external: true },
-    ],
-  },
-  {
-    title: "Documentation",
-    links: [
-      { label: "Getting started", href: "/docs" },
-      { label: "Using meith", href: "/docs/using-meith" },
-      { label: "Spaces & tabs", href: "/docs/spaces" },
-      { label: "Tools & permissions", href: "/docs/tools" },
-    ],
-  },
-  {
-    title: "Developers",
-    links: [
-      { label: "Architecture", href: "/docs/developers/architecture" },
-      { label: "Tool protocol", href: "/docs/developers/tool-protocol" },
-      { label: "Adding tools", href: "/docs/developers/adding-tools" },
-      { label: "Plugin API", href: "/docs/developers/plugin-api" },
-    ],
-  },
-]
+type FooterLink = {
+  label: string;
+  href: string;
+  external?: boolean;
+};
+
+const productLinks = [
+  { label: "Features", href: "/#features" },
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Safety & control", href: "/#safety" },
+  { label: "Download", href: siteConfig.releases, external: true },
+];
 
 export function SiteFooter() {
+  const docsNav = getDocsNav();
+  const groups: Array<{ title: string; links: FooterLink[] }> = [
+    { title: "Product", links: productLinks },
+    {
+      title: "Documentation",
+      links:
+        docsNav
+          .find((section) => section.title === "Using meith")
+          ?.items.slice(0, 4)
+          .map((item) => ({ label: item.title, href: item.href })) ?? [],
+    },
+    {
+      title: "Developers",
+      links:
+        docsNav
+          .find((section) => section.title === "Developers")
+          ?.items.slice(1, 5)
+          .map((item) => ({ label: item.title, href: item.href })) ?? [],
+    },
+  ];
+
   return (
     <footer className="border-t border-border bg-card/40">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -43,8 +48,8 @@ export function SiteFooter() {
               <span className="text-lg font-semibold tracking-tight">meith</span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-              From the Irish <span className="italic">meitheal</span> — a gathering
-              where everyone pitches in. Free and open source.
+              From the Irish <span className="italic">meitheal</span> — a gathering where
+              everyone pitches in. Free and open source.
             </p>
           </div>
 
@@ -94,5 +99,5 @@ export function SiteFooter() {
         </div>
       </div>
     </footer>
-  )
+  );
 }

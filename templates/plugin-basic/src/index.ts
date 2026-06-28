@@ -6,7 +6,7 @@
  * one. The host loads the default export, enforces the declared `capabilities`,
  * namespaces the tool names, and runs the plugin in an isolated context.
  *
- * See ../README.md and docs/PLUGIN_API.md in the meith repo for the full
+ * See ../README.md and docs/developer/PLUGIN_API.md in the meith repo for the full
  * contract. The `MeithPlugin` / `PluginApi` types below are intentionally
  * local placeholders until `@meith/protocol` exports them.
  */

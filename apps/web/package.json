@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "next": "16.2.9",
+    "react-markdown": "10.1.0",
     "@radix-ui/react-slot": "^1.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "remark-gfm": "4.0.1",
     "lucide-react": "^0.460.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.6.0",

@@ -49,13 +49,31 @@ The renderer is fully trusted as part of the core app, but agents and plugins fa
 
 For agents, meith currently includes a built-in mock adapter for local testing and an ACP subprocess adapter for actual external agents. The ACP path allows an agent to use meith's tools without forcing the app to depend on a particular AI provider. ACP provider-side permission requests are only approved automatically when they refer to tools exposed by meith's MCP server; all provider-native or unknown tool approvals are denied before they can bypass the registry.
 
-## Technical documentation
+## Documentation
 
-* [Architecture](./docs/ARCHITECTURE.md) covers the packages, boot path, services, persistence, renderer, CLI, agents, and plugins.
-* [Tool protocol](./docs/TOOL_PROTOCOL.md) details the local socket protocol, tool result envelopes, capabilities, timeouts, cancellation, and caller policies.
-* [Adding tools](./docs/ADDING_TOOLS.md) walks through adding a new tool to the shared registry.
-* [Agent runtime](./docs/AGENT_RUNTIME.md) breaks down sessions, adapters, permissions, MCP bridging, and ACP subprocess integration.
-* [Plugin API](./docs/PLUGIN_API.md) covers plugin manifests, installation, approved grants, `window.meithPlugin`, and the security model.
+The repository markdown under `docs/` is the source of truth for documentation.
+The public Next.js site reads those files and their frontmatter at build time, so
+repo docs and web docs cannot drift into separate copies.
+
+User-facing docs live in `docs/user/`:
+
+* [Introduction](./docs/user/INTRODUCTION.md)
+* [Getting started](./docs/user/GETTING_STARTED.md)
+* [Using meith](./docs/user/USING_MEITH.md)
+* [Workspaces & tabs](./docs/user/SPACES.md)
+* [Working with agents](./docs/user/WORKING_WITH_AGENTS.md)
+* [Tools & permissions](./docs/user/TOOLS.md)
+* [Plugins](./docs/user/PLUGINS.md)
+* [The meith CLI](./docs/user/CLI.md)
+
+Developer docs live in `docs/developer/`:
+
+* [Developer overview](./docs/developer/DEVELOPERS.md)
+* [Architecture](./docs/developer/ARCHITECTURE.md) covers the packages, boot path, services, persistence, renderer, CLI, agents, and plugins.
+* [Tool protocol](./docs/developer/TOOL_PROTOCOL.md) details the local socket protocol, tool result envelopes, capabilities, timeouts, cancellation, and caller policies.
+* [Adding tools](./docs/developer/ADDING_TOOLS.md) walks through adding a new tool to the shared registry.
+* [Agent runtime](./docs/developer/AGENT_RUNTIME.md) breaks down sessions, adapters, permissions, MCP bridging, and ACP subprocess integration.
+* [Plugin API](./docs/developer/PLUGIN_API.md) covers plugin manifests, installation, approved grants, `window.meithPlugin`, and the security model.
 
 ## Developer information
 

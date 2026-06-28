@@ -1,3 +1,12 @@
+---
+title: Agent Runtime
+description: How meith runs provider-agnostic agent sessions behind the shared tool registry.
+section: Developers
+sectionOrder: 2
+order: 50
+slug: developers/agent-runtime
+---
+
 # Agent Runtime
 
 The agent runtime is implemented in the desktop main process. It manages

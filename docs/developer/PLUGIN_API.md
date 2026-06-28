@@ -1,3 +1,12 @@
+---
+title: Plugin API
+description: Manifest, grants, bridge APIs, lifecycle, and security model for meith web-app plugins.
+section: Developers
+sectionOrder: 2
+order: 60
+slug: developers/plugin-api
+---
+
 # Plugin API
 
 A meith plugin is a web app that runs inside a controlled plugin browser tab.
