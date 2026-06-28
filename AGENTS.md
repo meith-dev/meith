@@ -72,8 +72,8 @@ Release and commit checks:
 
 ```bash
 pnpm commitlint
-pnpm release:pr --dry-run --token="$GITHUB_TOKEN"
-pnpm release:github --dry-run --token="$GITHUB_TOKEN"
+pnpm release:pr --dry-run --token="$RELEASE_PLEASE_TOKEN"
+pnpm release:github --dry-run --token="$RELEASE_PLEASE_TOKEN"
 ```
 
 ## Style
@@ -96,6 +96,8 @@ pnpm release:github --dry-run --token="$GITHUB_TOKEN"
 - Do not push version bumps, release commits, or artifact changes directly to
   `main`. Release Please owns release PRs, version updates, `CHANGELOG.md`, and
   `.release-please-manifest.json`.
+- The release workflow requires the `RELEASE_PLEASE_TOKEN` repository secret;
+  do not fall back to `GITHUB_TOKEN` for Release Please PR creation.
 - `main` is protected: force pushes and branch deletion are disabled, and changes
   must land through pull requests with the required `Validate Conventional
   Commits` check.

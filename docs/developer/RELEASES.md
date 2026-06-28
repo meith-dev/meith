@@ -62,8 +62,8 @@ Release Please owns these files during a release PR:
 For local validation, use dry runs with a GitHub token:
 
 ```bash
-pnpm release:pr --dry-run --token="$GITHUB_TOKEN"
-pnpm release:github --dry-run --token="$GITHUB_TOKEN"
+pnpm release:pr --dry-run --token="$RELEASE_PLEASE_TOKEN"
+pnpm release:github --dry-run --token="$RELEASE_PLEASE_TOKEN"
 ```
 
 ## Repository protection
@@ -74,6 +74,7 @@ linear history, and the `Validate Conventional Commits` status check are
 required before changes can land on `main`. Use a Conventional Commit PR title
 if the branch will be squash-merged.
 
-The release workflow can use the default `GITHUB_TOKEN`. Configure a
-`RELEASE_PLEASE_TOKEN` secret instead if Release Please PRs must trigger
-additional workflows created by the release bot.
+The release workflow requires a `RELEASE_PLEASE_TOKEN` repository secret. The
+default `GITHUB_TOKEN` is not sufficient when the organization blocks GitHub
+Actions from creating pull requests. Use a fine-grained personal access token or
+GitHub App token with write access for contents, pull requests, and issues.
