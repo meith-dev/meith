@@ -1,6 +1,6 @@
 {
   "name": "meith-monorepo",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "description": "Scaffold for meith, an extensible desktop AI IDE (Electron + tool registry + CLI).",
   "engines": {
