@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/meith-dev/meith/compare/v0.2.0...v0.2.1) (2026-06-29)
+
+
+### Bug Fixes
+
+* **desktop:** create managed npm dirs before spawning ACP agents ([#13](https://github.com/meith-dev/meith/issues/13)) ([01718f2](https://github.com/meith-dev/meith/commit/01718f2b81b980ab749c5635ae1d90274146a51a))
+
 ## [0.2.0](https://github.com/meith-dev/meith/compare/v0.1.2...v0.2.0) (2026-06-29)
 
 
