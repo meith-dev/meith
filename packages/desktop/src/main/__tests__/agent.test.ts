@@ -749,6 +749,52 @@ describe("AgentService cancellation and run locking", () => {
     });
   });
 
+  it("finalizes unresolved in-flight tool calls when a run is cancelled", async () => {
+    const registry = new ToolRegistry();
+    const service = new AgentService(registry, new Logger());
+    const adapter: AgentAdapter = {
+      id: "test",
+      displayName: "Test",
+      async *run(_session, host): AsyncIterable<AgentStreamChunk> {
+        yield {
+          type: "tool_call",
+          toolCall: {
+            id: "stuck-call",
+            name: "get_browser_state",
+            args: { tabId: "btab_1" },
+            status: "running",
+            startedAt: Date.now(),
+          },
+        };
+        await new Promise<void>((resolve) => {
+          host.signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+        yield { type: "done" };
+      },
+    };
+    service.registerAdapter(adapter);
+    const session = service.createSession("/tmp/x");
+
+    const drain = (async () => {
+      for await (const _chunk of service.run(session.id, "go")) void _chunk;
+    })();
+    await waitFor(() => service.getSession(session.id)?.status === "running");
+    service.cancel(session.id);
+    await drain;
+
+    const assistant = service
+      .getSession(session.id)
+      ?.messages.find((message) => message.role === "assistant");
+    const call = assistant?.toolCalls?.[0];
+
+    expect(call?.status).toBe("cancelled");
+    expect(call?.endedAt).toBeTypeOf("number");
+    expect(call?.result).toMatchObject({
+      ok: false,
+      error: { code: "TOOL_FAILED" },
+    });
+  });
+
   it("rejects concurrent runs on the same session", async () => {
     const registry = new ToolRegistry();
     const service = new AgentService(registry, new Logger());
