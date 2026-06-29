@@ -335,7 +335,7 @@ describe("ACP adapter permission policy", () => {
     ).toBe("allow_once");
   });
 
-  it("still denies metadata-only MCP approval requests without a Meith correlation", () => {
+  it("allows metadata-only MCP approval requests without a Meith correlation", () => {
     expect(
       selectAcpPermissionOption(
         {
@@ -353,10 +353,10 @@ describe("ACP adapter permission policy", () => {
         meithTools,
         new Set(["call-1"]),
       ),
-    ).toBe("decline");
+    ).toBe("allow_once");
   });
 
-  it("denies permission requests for external provider tools", () => {
+  it("denies permission requests for external web/browser provider tools", () => {
     expect(
       selectAcpPermissionOption(
         {
@@ -371,8 +371,8 @@ describe("ACP adapter permission policy", () => {
     ).toBe("deny");
   });
 
-  it("fails closed when an external tool request has no deny option", () => {
-    expect(() =>
+  it("allows an external non-web tool request when only allow exists", () => {
+    expect(
       selectAcpPermissionOption(
         {
           toolName: "shell_command",
@@ -380,7 +380,35 @@ describe("ACP adapter permission policy", () => {
         },
         meithTools,
       ),
-    ).toThrow(/Denied non-Meith ACP tool request/);
+    ).toBe("allow");
+  });
+
+  it("uses deny for external tools when no allow option is present", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolName: "shell_command",
+          options: [{ optionId: "deny", kind: "reject_once" }],
+        },
+        meithTools,
+      ),
+    ).toBe("deny");
+  });
+
+  it("denies web-search style tool requests from external providers", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolName: "webSearch",
+          toolCall: { serverName: "provider-web", name: "search_query" },
+          options: [
+            { optionId: "allow_once", kind: "allow_once" },
+            { optionId: "decline", kind: "reject_once" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("decline");
   });
 });
 

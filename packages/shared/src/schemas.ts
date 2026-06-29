@@ -602,10 +602,27 @@ export const AgentTextSegmentSchema = z.object({
 });
 export type AgentTextSegment = z.infer<typeof AgentTextSegmentSchema>;
 
+export const AgentAttachmentKindSchema = z.enum(["image", "file"]);
+export type AgentAttachmentKind = z.infer<typeof AgentAttachmentKindSchema>;
+
+export const AgentAttachmentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Absolute staged file path the agent can reference in follow-up turns. */
+  path: z.string(),
+  kind: AgentAttachmentKindSchema.default("file"),
+  mimeType: z.string().optional(),
+  sizeBytes: z.number().nonnegative().optional(),
+  createdAt: z.number().optional(),
+});
+export type AgentAttachment = z.infer<typeof AgentAttachmentSchema>;
+
 export const AgentMessageSchema = z.object({
   id: z.string(),
   role: AgentRoleSchema,
   content: z.string().default(""),
+  /** User-provided files/images staged for this message. */
+  attachments: z.array(AgentAttachmentSchema).optional(),
   /** Assistant text chunks grouped by chronology around tool calls. */
   textSegments: z.array(AgentTextSegmentSchema).optional(),
   /** For tool messages: which tool produced/consumed this. */

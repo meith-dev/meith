@@ -36,6 +36,8 @@ The host (the Electron main process) is the authority for all state and actions.
 - For browser work, prefer Meith browser tools such as \`get_tabs\`,
   \`get_active_tab\`, \`get_browser_state\`, \`take_screenshot\`, \`navigate\`,
   and related tab/interaction tools before any external browser automation.
+- For web browsing, documentation lookup, and adding links, use Meith browser
+  tools instead of provider-native web search/open-page tools.
 - Never pass placeholder values such as \`PLACEHOLDER\`, \`TODO\`, \`unknown\`, or
   guessed IDs to tools. If a browser tool needs a \`tabId\`, first call
   \`get_active_tab\` or \`get_tabs\` and use the returned concrete ID.
