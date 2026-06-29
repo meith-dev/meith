@@ -59,6 +59,99 @@ function makeRegistry(opts?: {
 }
 
 describe("PermissionService", () => {
+  // ---------------------------------------------------------------------------
+  // Deny-by-default: every privileged caller type without a session grant must
+  // be explicitly blocked. Tests cover cli, agent, plugin, renderer, internal.
+  // ---------------------------------------------------------------------------
+
+  it("renderer is unconditionally trusted for privileged tools (in-process)", async () => {
+    const env = makeRegistry();
+    const result = await env.registry.call(
+      { caller: "renderer", cwd: "/tmp/project", sessionId: undefined },
+      "write_file",
+      { content: "from renderer" },
+    );
+    expect(result.ok).toBe(true);
+    expect(env.writes).toBe(1);
+    const entry = env.permissions.listAudit()[0];
+    expect(entry?.caller).toBe("renderer");
+    expect(entry?.decision).toBe("allow");
+  });
+
+  it("internal is unconditionally trusted for privileged tools (in-process)", async () => {
+    const env = makeRegistry();
+    const result = await env.registry.call(
+      { caller: "internal", cwd: "/tmp/project", sessionId: undefined },
+      "write_file",
+      { content: "from internal" },
+    );
+    expect(result.ok).toBe(true);
+    expect(env.writes).toBe(1);
+  });
+
+  it("agent without sessionId is denied privileged tools (no grant key)", async () => {
+    const env = makeRegistry();
+    const result = await env.registry.call(
+      { caller: "agent", cwd: "/tmp/project", sessionId: undefined },
+      "write_file",
+      { content: "no session" },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "PERMISSION_DENIED" } });
+    expect(env.writes).toBe(0);
+    expect(env.permissions.listAudit()[0]?.decision).toBe("deny");
+  });
+
+  it("plugin without any registered identity is denied privileged tools", async () => {
+    const env = makeRegistry({
+      getPluginGrants: () => null, // unknown plugin
+    });
+    const result = await env.registry.call(
+      {
+        caller: "plugin",
+        cwd: "/tmp/project",
+        sessionId: "plugin:com.example.unknown",
+      },
+      "write_file",
+      { content: "unknown plugin" },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "PERMISSION_DENIED" } });
+    expect(env.writes).toBe(0);
+  });
+
+  it("plugin with empty grants is denied privileged tools", async () => {
+    const env = makeRegistry({
+      getPluginGrants: () => [], // known plugin, but no approved capabilities
+    });
+    const result = await env.registry.call(
+      {
+        caller: "plugin",
+        cwd: "/tmp/project",
+        sessionId: "plugin:com.example.nogrants",
+      },
+      "write_file",
+      { content: "no grants" },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "PERMISSION_DENIED" } });
+    expect(env.writes).toBe(0);
+  });
+
+  it("revoked session grant no longer allows privileged calls", async () => {
+    const env = makeRegistry();
+    env.permissions.grant({
+      caller: "agent",
+      sessionId: "sess_revoke",
+      capabilities: ["writes-files"],
+    });
+    env.permissions.revokeSession("agent", "sess_revoke");
+    const result = await env.registry.call(
+      { caller: "agent", cwd: "/tmp/project", sessionId: "sess_revoke" },
+      "write_file",
+      { content: "after revoke" },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "PERMISSION_DENIED" } });
+    expect(env.writes).toBe(0);
+  });
+
   it("allows CLI read-only calls and writes redacted audit entries", async () => {
     const { permissions, registry } = makeRegistry();
     const result = await registry.call(

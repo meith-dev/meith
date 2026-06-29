@@ -218,6 +218,178 @@ describe("install + manifest validation", () => {
     });
     expect(existsSync(join(dir, "escape.html"))).toBe(false);
   });
+
+  it("rejects archives with raw ../ traversal entry names that escape the staging root", async () => {
+    // Use a literal "../escape.txt" tar entry that, after path.resolve, would
+    // land one directory above the staging root. writeTarGz only supports safe
+    // path names, so we build this raw tar manually.
+    const { gzipSync } = await import("node:zlib");
+
+    function makeEntry(name: string, content: string): Buffer {
+      const data = Buffer.from(content, "utf8");
+      const h = Buffer.alloc(512, 0);
+      // Write the entry name directly — no normalisation here.
+      Buffer.from(name, "utf8").copy(h, 0, 0, Math.min(name.length, 99));
+      h.fill(" ", 148, 156);
+      h.write("0", 156, 1, "ascii"); // regular file
+      h.write("ustar\0", 257, 6, "ascii");
+      h.write("00", 263, 2, "ascii");
+      h.write(data.byteLength.toString(8).padStart(11, "0") + "\0", 124, 12, "ascii");
+      let sum = 0;
+      for (const b of h) sum += b;
+      h.write(sum.toString(8).padStart(7, "0") + "\0", 148, 8, "ascii");
+      const pad = (512 - (data.byteLength % 512)) % 512;
+      return Buffer.concat([h, data, Buffer.alloc(pad, 0)]);
+    }
+
+    const blocks = Buffer.concat([
+      makeEntry("../escape-traversal.txt", "pwned"),
+      makeEntry("package/plugin.json", "{}"),
+      Buffer.alloc(1024, 0),
+    ]);
+    const archive = join(dir, "raw-traversal.tgz");
+    writeFileSync(archive, gzipSync(blocks));
+
+    await expect(host.installFromArchive(archive)).rejects.toMatchObject({
+      code: "INVALID",
+    });
+    expect(existsSync(join(dir, "escape-traversal.txt"))).toBe(false);
+  });
+
+  it("rejects archives that contain hard links (type 1)", async () => {
+    // Build a raw tar with a type-1 (hard link) entry — writeTarGz always writes
+    // regular files, so we build the raw tar ourselves and then gzip it.
+    const { gzipSync } = await import("node:zlib");
+    const header = Buffer.alloc(512, 0);
+    header.write("package/link", 0, 100, "utf8");
+    header.write("0000777\0", 100, 8, "ascii");
+    header.write("0000000\0", 108, 8, "ascii");
+    header.write("0000000\0", 116, 8, "ascii");
+    header.write("00000000000\0", 124, 12, "ascii"); // size 0
+    header.write("00000000000\0", 136, 12, "ascii"); // mtime
+    header.fill(" ", 148, 156);
+    header.write("1", 156, 1, "ascii"); // type = hard link
+    header.write("ustar\0", 257, 6, "ascii");
+    header.write("00", 263, 2, "ascii");
+    let sum = 0;
+    for (const b of header) sum += b;
+    header.write(sum.toString(8).padStart(7, "0") + "\0", 148, 8, "ascii");
+    const blocks = Buffer.concat([header, Buffer.alloc(1024, 0)]);
+    const archive = join(dir, "hardlink.tgz");
+    writeFileSync(archive, gzipSync(blocks));
+    await expect(host.installFromArchive(archive)).rejects.toMatchObject({
+      code: "INVALID",
+    });
+  });
+
+  it("rejects archives that contain symbolic links (type 2)", async () => {
+    const { gzipSync } = await import("node:zlib");
+    const header = Buffer.alloc(512, 0);
+    header.write("package/symlink", 0, 100, "utf8");
+    header.write("0000777\0", 100, 8, "ascii");
+    header.fill(" ", 148, 156);
+    header.write("2", 156, 1, "ascii"); // type = symlink
+    header.write("ustar\0", 257, 6, "ascii");
+    header.write("00", 263, 2, "ascii");
+    header.write("/etc/passwd", 157, 100, "utf8"); // link target
+    let sum = 0;
+    for (const b of header) sum += b;
+    header.write(sum.toString(8).padStart(7, "0") + "\0", 148, 8, "ascii");
+    const blocks = Buffer.concat([header, Buffer.alloc(1024, 0)]);
+    const archive = join(dir, "symlink.tgz");
+    writeFileSync(archive, gzipSync(blocks));
+    await expect(host.installFromArchive(archive)).rejects.toMatchObject({
+      code: "INVALID",
+    });
+  });
+
+  it("rejects archives that exceed the maximum file count", async () => {
+    // Build an archive with 2001 files (one over the limit of 2000).
+    const entries: Record<string, string> = {
+      "package/plugin.json": JSON.stringify({
+        kind: "plugin",
+        id: "com.example.toomany",
+        name: "Many",
+        version: "1.0.0",
+        entry: "index.html",
+        permissions: [],
+        requestedApis: [],
+      }),
+      "package/index.html": "<!doctype html>",
+    };
+    for (let i = 0; i < 2000; i++) {
+      entries[`package/asset-${i}.txt`] = `asset ${i}`;
+    }
+    const archive = join(dir, "toomany.tgz");
+    writeTarGz(archive, entries);
+    await expect(host.installFromArchive(archive)).rejects.toMatchObject({
+      code: "INVALID",
+    });
+  });
+
+  it("rejects archives with an oversized individual file entry", async () => {
+    // Write an archive where a single file claims to be larger than 10 MB.
+    // We set the size in the header but only put a few bytes so the test stays
+    // fast; the size check happens before writing the body.
+    const { gzipSync } = await import("node:zlib");
+
+    function makeOversizedEntry(name: string, claimedSize: number): Buffer {
+      const header = Buffer.alloc(512, 0);
+      header.write(name, 0, Math.min(name.length, 100), "utf8");
+      header.write("0000644\0", 100, 8, "ascii");
+      header.fill(" ", 148, 156);
+      header.write("0", 156, 1, "ascii"); // regular file
+      header.write("ustar\0", 257, 6, "ascii");
+      header.write("00", 263, 2, "ascii");
+      const sizeStr = claimedSize.toString(8).padStart(11, "0") + "\0";
+      header.write(sizeStr, 124, 12, "ascii");
+      let sum = 0;
+      for (const b of header) sum += b;
+      header.write(sum.toString(8).padStart(7, "0") + "\0", 148, 8, "ascii");
+      // Body: just one padded 512-byte block (we don't write all claimed bytes).
+      return Buffer.concat([header, Buffer.alloc(512, 0x61)]);
+    }
+
+    const manifestJson = JSON.stringify({
+      kind: "plugin",
+      id: "com.example.oversized",
+      name: "Oversized",
+      version: "1.0.0",
+      entry: "fat.bin",
+      permissions: [],
+      requestedApis: [],
+    });
+
+    const manifestEntry = (() => {
+      const name = "package/plugin.json";
+      const data = Buffer.from(manifestJson, "utf8");
+      const h = Buffer.alloc(512, 0);
+      h.write(name, 0, Math.min(name.length, 100), "utf8");
+      h.write("0000644\0", 100, 8, "ascii");
+      h.fill(" ", 148, 156);
+      h.write("0", 156, 1, "ascii");
+      h.write("ustar\0", 257, 6, "ascii");
+      h.write("00", 263, 2, "ascii");
+      h.write(data.byteLength.toString(8).padStart(11, "0") + "\0", 124, 12, "ascii");
+      let sum = 0;
+      for (const b of h) sum += b;
+      h.write(sum.toString(8).padStart(7, "0") + "\0", 148, 8, "ascii");
+      const pad = 512 - (data.byteLength % 512 || 512);
+      return Buffer.concat([h, data, Buffer.alloc(pad, 0)]);
+    })();
+
+    const oversized = makeOversizedEntry(
+      "package/fat.bin",
+      11 * 1024 * 1024, // 11 MB — exceeds 10 MB per-file limit
+    );
+    const blocks = Buffer.concat([manifestEntry, oversized, Buffer.alloc(1024, 0)]);
+    const archive = join(dir, "oversized.tgz");
+    writeFileSync(archive, gzipSync(blocks));
+
+    await expect(host.installFromArchive(archive)).rejects.toMatchObject({
+      code: "INVALID",
+    });
+  });
 });
 
 describe("dev-url install", () => {
