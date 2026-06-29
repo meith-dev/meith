@@ -1,5 +1,6 @@
 import type { ToolDescriptor } from "@meith/protocol";
 import type {
+  AgentAttachment,
   AgentConfig,
   AgentPermissionDecision,
   AgentPermissionRequest,
@@ -14,6 +15,22 @@ import type {
   ProcessLogEntry,
   ToolResult,
 } from "@meith/shared";
+
+export interface AgentSendMessageInput {
+  text?: string;
+  attachments?: AgentAttachment[];
+}
+
+export interface AgentStageAttachmentInput {
+  /** Friendly filename shown in the UI/transcript. */
+  name?: string;
+  /** MIME type from the browser clipboard/drop payload when available. */
+  mimeType?: string;
+  /** Absolute file path (from drag/drop) to copy into the session workspace. */
+  sourcePath?: string;
+  /** Base64 payload (from paste) to write into the session workspace. */
+  dataBase64?: string;
+}
 
 /** A rectangle in main-window content coordinates (CSS px, origin = content top-left). */
 export interface OverlayRect {
@@ -165,7 +182,15 @@ export interface MeithBridge {
     }) => Promise<AgentSession>;
     deleteSession: (id: string) => Promise<boolean>;
     /** Start a run; resolves with the final session when the turn ends. */
-    sendMessage: (sessionId: string, text?: string) => Promise<AgentSession | null>;
+    sendMessage: (
+      sessionId: string,
+      input?: string | AgentSendMessageInput,
+    ) => Promise<AgentSession | null>;
+    /** Stage a dropped/pasted file into this session's workspace. */
+    stageAttachment: (
+      sessionId: string,
+      input: AgentStageAttachmentInput,
+    ) => Promise<AgentAttachment>;
     cancel: (sessionId: string) => Promise<boolean>;
     /** Resolve a pending permission request raised during a run. */
     decide: (decision: AgentPermissionDecision) => Promise<boolean>;

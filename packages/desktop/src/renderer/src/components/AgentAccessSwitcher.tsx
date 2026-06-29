@@ -1,4 +1,4 @@
-import { ChevronDownIcon, HandIcon, ShieldAlertIcon } from "lucide-react";
+import { HandIcon, ShieldAlertIcon } from "lucide-react";
 import { OverlayDropdown } from "./OverlayDropdown";
 
 interface AgentAccessSwitcherProps {
@@ -14,11 +14,10 @@ interface AgentAccessSwitcherProps {
 
 /**
  * Compact in-composer access-mode switcher, shown to the right of the model
- * switcher. Mirrors the Codex control: a shield-alert icon + "Full access" in
- * the brand color when gated tools auto-run, or a hand icon + "Ask for
- * approval" in muted gray when each gated tool requires confirmation. Renders
- * through {@link OverlayDropdown} so the menu floats ABOVE the native browser
- * view instead of being clipped behind it.
+ * switcher. Shows icon-only state: shield-alert when gated tools auto-run, hand
+ * when each gated tool requires confirmation. Renders through
+ * {@link OverlayDropdown} so the menu floats ABOVE the native browser view
+ * instead of being clipped behind it.
  */
 export function AgentAccessSwitcher({
   autoAccept,
@@ -59,18 +58,15 @@ export function AgentAccessSwitcher({
         <button
           type="button"
           disabled={disabled}
-          className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 ${
+          className={`inline-flex size-7 items-center justify-center rounded-md transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 ${
             autoAccept
               ? "text-primary hover:text-primary"
               : "text-muted-foreground hover:text-accent-foreground"
           }`}
           aria-label={`Access mode: ${autoAccept ? "Full access" : "Ask for approval"}`}
+          title={autoAccept ? "Full access" : "Ask for approval"}
         >
           <Icon className="size-3.5" aria-hidden />
-          <span className="font-medium">
-            {autoAccept ? "Full access" : "Ask for approval"}
-          </span>
-          <ChevronDownIcon className="size-3" aria-hidden />
         </button>
       }
     />

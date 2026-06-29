@@ -1,5 +1,6 @@
 import type { ToolDescriptor } from "@meith/protocol";
 import {
+  type AgentAttachment,
   type AgentConfig,
   type AgentMessage,
   type AgentSession,
@@ -1114,9 +1115,31 @@ function createMockBridge(): MeithBridge {
         return structuredClone(session);
       },
       deleteSession: async (id) => agentSessions.delete(id),
-      sendMessage: async (sessionId, text) => {
+      sendMessage: async (sessionId, input) => {
         const session = agentSessions.get(sessionId);
         if (!session) return null;
+        const payload =
+          typeof input === "string"
+            ? { text: input }
+            : {
+                text: input?.text,
+                attachments: (input?.attachments ?? []).filter((attachment) =>
+                  Boolean(attachment.path),
+                ),
+              };
+        const attachments = payload.attachments ?? [];
+        const attachmentPrompt =
+          attachments.length > 0
+            ? [
+                "Attached files:",
+                ...attachments.map(
+                  (attachment) => `- ${attachment.name} at ${attachment.path}`,
+                ),
+              ].join("\n")
+            : "";
+        const text = [payload.text?.trim() ?? "", attachmentPrompt]
+          .filter(Boolean)
+          .join("\n\n");
         const emitChunk = (chunk: AgentStreamChunk) => {
           for (const cb of agentChunkSubs) cb({ sessionId, chunk });
         };
@@ -1129,6 +1152,7 @@ function createMockBridge(): MeithBridge {
             id: newMessageId(),
             role: "user",
             content: text,
+            attachments: attachments.length ? attachments : undefined,
             createdAt: Date.now(),
           };
           session.messages.push(userMsg);
@@ -1160,6 +1184,25 @@ function createMockBridge(): MeithBridge {
         session.updatedAt = Date.now();
         emitMeta();
         return structuredClone(session);
+      },
+      stageAttachment: async (_sessionId, input) => {
+        const name = input.name?.trim() || "attachment";
+        const mime = input.mimeType?.trim() || undefined;
+        const kind: AgentAttachment["kind"] =
+          mime?.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg)$/i.test(name)
+            ? "image"
+            : "file";
+        return {
+          id: `mock_att_${Math.random().toString(16).slice(2)}`,
+          name,
+          path:
+            input.sourcePath?.trim() ||
+            `/Users/dev/projects/web-app/.meith/attachments/${Date.now()}-${name}`,
+          kind,
+          mimeType: mime,
+          sizeBytes: undefined,
+          createdAt: Date.now(),
+        };
       },
       cancel: async (sessionId) => {
         const session = agentSessions.get(sessionId);

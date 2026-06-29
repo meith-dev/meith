@@ -66,8 +66,6 @@ export function AgentModelSwitcher({
   const activeModel = model || modelOption?.currentValue || "";
   const activeReasoning = reasoning || reasoningOption?.currentValue || "";
   const modelLabel = labelFor(modelOption, activeModel);
-  const reasoningLabel = labelFor(reasoningOption, activeReasoning);
-
   const items: OverlayActionItem[] = [];
   if (hasReasoning && reasoningOption) {
     const groupLabel = reasoningOption.name || "Reasoning effort";
@@ -105,14 +103,13 @@ export function AgentModelSwitcher({
         <button
           type="button"
           disabled={disabled}
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+          className="flex min-w-0 max-w-[15rem] items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
           aria-label="Switch model and reasoning"
         >
           {modelLabel && (
-            <span className="font-medium text-foreground">{modelLabel}</span>
+            <span className="truncate font-medium text-foreground">{modelLabel}</span>
           )}
-          {reasoningLabel && <span>{reasoningLabel}</span>}
-          {!modelLabel && !reasoningLabel && <span>Model</span>}
+          {!modelLabel && <span className="truncate">Model</span>}
           <ChevronDownIcon className="size-3" aria-hidden />
         </button>
       }

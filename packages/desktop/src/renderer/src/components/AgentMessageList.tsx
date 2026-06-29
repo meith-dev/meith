@@ -1,20 +1,47 @@
+import {
+  Attachment,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentGroup,
+  AttachmentMedia,
+  AttachmentTitle,
+  AttachmentTrigger,
+} from "@/components/ui/attachment";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Marker, MarkerContent } from "@/components/ui/marker";
+import {
+  Message,
+  MessageContent,
+  MessageGroup,
+  MessageHeader,
+} from "@/components/ui/message";
+import {
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller";
 import type { AgentMessage, AgentSession, AgentToolCall } from "@meith/shared";
 import {
   AlertCircleIcon,
   CheckCircle2Icon,
   ChevronRightIcon,
+  FileIcon,
+  ImageIcon,
   Loader2Icon,
+  MessageSquareDashedIcon,
   WrenchIcon,
 } from "lucide-react";
-import {
-  type ReactNode,
-  memo,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, memo, useMemo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "../lib/utils";
@@ -22,8 +49,12 @@ import { cn } from "../lib/utils";
 const MARKDOWN_MAX_CHARS = 12_000;
 const MARKDOWN_MAX_LINES = 350;
 const PLAIN_TEXT_MAX_CHARS = 16_000;
-const INITIAL_TRANSCRIPT_BATCH = 4;
-const TRANSCRIPT_BATCH = 2;
+const TOOL_OUTPUT_COLLAPSE_CHARS = 1_200;
+const TOOL_OUTPUT_COLLAPSE_LINES = 24;
+const MESSAGE_TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  hour: "numeric",
+  minute: "2-digit",
+});
 
 interface AgentMessageListProps {
   session: AgentSession;
@@ -36,78 +67,64 @@ export const AgentMessageList = memo(function AgentMessageList({
   session,
   streaming,
 }: AgentMessageListProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const [visibleCount, setVisibleCount] = useState(INITIAL_TRANSCRIPT_BATCH);
-
-  useEffect(() => {
-    let cancelled = false;
-    let cancelScheduled = () => {};
-    const total = session.messages.length;
-    const initialCount = Math.min(total, INITIAL_TRANSCRIPT_BATCH);
-    setVisibleCount(initialCount);
-    if (total === 0) return () => {};
-
-    const step = () => {
-      if (cancelled) return;
-      setVisibleCount((current) => {
-        const next = Math.min(total, current + TRANSCRIPT_BATCH);
-        if (next < total) {
-          cancelScheduled = scheduleIdle(step);
-        }
-        return next;
-      });
-    };
-
-    cancelScheduled = scheduleIdle(step);
-    return () => {
-      cancelled = true;
-      cancelScheduled();
-    };
-  }, [session.id, session.messages.length]);
-
-  // Keep the panel pinned to the newest messages. Older batches are prepended
-  // above the viewport, so this must run after layout, not after a later paint.
-  useLayoutEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [session.id, session.messages.length, session.status, streaming, visibleCount]);
-
   const running = session.status === "running";
   const liveAssistant = running ? latestAssistantForCurrentTurn(session) : undefined;
   const liveAssistantId = liveAssistant?.id;
-  const visibleMessages = session.messages.slice(-visibleCount);
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden p-4">
-      {visibleCount < session.messages.length && (
-        <div className="flex items-center gap-2 self-start rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-          <Loader2Icon className="size-4 animate-spin" aria-hidden />
-          <span>Loading earlier messages…</span>
-        </div>
-      )}
-      {visibleMessages.map((message) => (
-        <MessageRow
-          key={message.id}
-          message={message}
-          live={message.id === liveAssistantId}
-          liveContent={message.id === liveAssistantId ? streaming || message.content : ""}
-        />
-      ))}
-      {running && !liveAssistant && (
-        <LiveAssistantActivity content={streaming} calls={[]} />
-      )}
-      <div ref={bottomRef} />
-    </div>
+    <MessageScrollerProvider
+      autoScroll
+      defaultScrollPosition="last-anchor"
+      scrollEdgeThreshold={64}
+    >
+      <MessageScroller>
+        <MessageScrollerViewport>
+          <MessageScrollerContent className="gap-4 p-3">
+            {session.messages.length === 0 && !running ? (
+              <MessageScrollerItem messageId={`empty-${session.id}`}>
+                <Empty className="h-full border border-dashed border-border/70">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <MessageSquareDashedIcon className="size-4" aria-hidden />
+                    </EmptyMedia>
+                    <EmptyTitle>No messages yet</EmptyTitle>
+                    <EmptyDescription>
+                      Send a prompt to start this conversation.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              </MessageScrollerItem>
+            ) : (
+              <MessageGroup className="gap-4">
+                {session.messages.map((message) => (
+                  <MessageScrollerItem
+                    key={message.id}
+                    messageId={message.id}
+                    scrollAnchor={message.role === "user"}
+                  >
+                    <MessageRow
+                      message={message}
+                      live={message.id === liveAssistantId}
+                      liveContent={
+                        message.id === liveAssistantId ? streaming || message.content : ""
+                      }
+                    />
+                  </MessageScrollerItem>
+                ))}
+                {running && !liveAssistant && (
+                  <MessageScrollerItem messageId={`live-${session.id}`} scrollAnchor>
+                    <LiveAssistantActivity content={streaming} calls={[]} />
+                  </MessageScrollerItem>
+                )}
+              </MessageGroup>
+            )}
+          </MessageScrollerContent>
+        </MessageScrollerViewport>
+        <MessageScrollerButton direction="end" />
+      </MessageScroller>
+    </MessageScrollerProvider>
   );
 });
-
-function scheduleIdle(callback: () => void): () => void {
-  if ("requestIdleCallback" in window && "cancelIdleCallback" in window) {
-    const id = window.requestIdleCallback(callback, { timeout: 250 });
-    return () => window.cancelIdleCallback(id);
-  }
-  const id = globalThis.setTimeout(callback, 0);
-  return () => globalThis.clearTimeout(id);
-}
 
 function latestAssistantForCurrentTurn(session: AgentSession): AgentMessage | undefined {
   let latestUserIndex = -1;
@@ -132,13 +149,62 @@ function MessageRow({
   liveContent?: string;
 }) {
   if (message.role === "user") {
+    const attachments = message.attachments ?? [];
     return (
-      <Bubble variant="user">
-        <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
-      </Bubble>
+      <Message align="end">
+        <MessageContent>
+          <MessageHeader className="justify-end">
+            <span>You</span>
+            <span className="ml-2 text-[11px]">
+              {formatMessageTime(message.createdAt)}
+            </span>
+          </MessageHeader>
+          <Bubble align="end" variant="default">
+            <BubbleContent>
+              {attachments.length > 0 && (
+                <AttachmentGroup className="mb-2">
+                  {attachments.map((attachment) => (
+                    <Attachment key={attachment.id} size="sm">
+                      <AttachmentMedia
+                        variant={attachment.kind === "image" ? "image" : "icon"}
+                        className="size-10"
+                      >
+                        {attachment.kind === "image" ? (
+                          <ImageIcon
+                            className="size-4 text-muted-foreground"
+                            aria-hidden
+                          />
+                        ) : (
+                          <FileIcon
+                            className="size-4 text-muted-foreground"
+                            aria-hidden
+                          />
+                        )}
+                      </AttachmentMedia>
+                      <AttachmentContent>
+                        <AttachmentTitle>{attachment.name}</AttachmentTitle>
+                        <AttachmentDescription>
+                          {attachment.kind}
+                          {attachment.mimeType ? ` • ${attachment.mimeType}` : ""}
+                        </AttachmentDescription>
+                      </AttachmentContent>
+                    </Attachment>
+                  ))}
+                </AttachmentGroup>
+              )}
+              {message.content.trim() ? (
+                <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Sent attachments</p>
+              )}
+            </BubbleContent>
+          </Bubble>
+        </MessageContent>
+      </Message>
     );
   }
   if (message.role === "assistant") {
+    const hasExpandableSections = hasExpandableAssistantSections(message);
     if (live) {
       return (
         <LiveAssistantActivity
@@ -148,39 +214,33 @@ function MessageRow({
       );
     }
     return (
-      <Bubble variant="assistant">
-        <AssistantTranscript message={message} />
-        {message.error && (
-          <div className="mt-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
-            <AlertCircleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>{message.error}</span>
-          </div>
-        )}
-      </Bubble>
+      <Message align="start">
+        <MessageContent>
+          <MessageHeader>
+            <span>Agent</span>
+            <span className="ml-2 text-[11px]">
+              {formatMessageTime(message.createdAt)}
+            </span>
+          </MessageHeader>
+          <Bubble
+            variant="muted"
+            className={hasExpandableSections ? "w-full max-w-[80%]" : undefined}
+          >
+            <BubbleContent className={hasExpandableSections ? "w-full" : undefined}>
+              <AssistantTranscript message={message} />
+              {message.error && (
+                <div className="mt-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
+                  <AlertCircleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  <span>{message.error}</span>
+                </div>
+              )}
+            </BubbleContent>
+          </Bubble>
+        </MessageContent>
+      </Message>
     );
   }
   return null;
-}
-
-function Bubble({
-  variant,
-  children,
-}: {
-  variant: "user" | "assistant";
-  children: ReactNode;
-}) {
-  const isUser = variant === "user";
-  return (
-    <div className={`flex min-w-0 ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`min-w-0 max-w-[85%] overflow-hidden rounded-lg px-3 py-2 text-sm ${
-          isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
-        }`}
-      >
-        {children}
-      </div>
-    </div>
-  );
 }
 
 function LiveAssistantActivity({
@@ -191,18 +251,42 @@ function LiveAssistantActivity({
   calls: AgentToolCall[];
 }) {
   const events = liveActivityEvents(content, calls);
+  const groupedEvents = groupLiveActivityEvents(events);
   return (
-    <Bubble variant="assistant">
-      <div className="flex min-w-0 flex-col gap-2">
-        {events.map((event) =>
-          event.type === "thinking" ? (
-            <ThinkingLine key={event.id} content={event.content} live={event.live} />
-          ) : (
-            <ToolCallStack key={event.id} calls={event.calls} compact />
-          ),
-        )}
-      </div>
-    </Bubble>
+    <Message align="start">
+      <MessageContent>
+        <MessageHeader>
+          <span>Agent</span>
+          <span className="ml-2 text-[11px]">streaming</span>
+        </MessageHeader>
+        <Bubble variant="muted" className="w-full max-w-[80%]">
+          <BubbleContent className="w-full">
+            <div className="flex min-w-0 flex-col gap-2">
+              {groupedEvents.map((event) =>
+                event.type === "thinking" ? (
+                  <ThinkingBlock key={event.id} entries={event.entries} />
+                ) : (
+                  <ToolCallStack key={event.id} calls={event.calls} compact />
+                ),
+              )}
+            </div>
+          </BubbleContent>
+        </Bubble>
+      </MessageContent>
+    </Message>
+  );
+}
+
+function formatMessageTime(timestamp: number): string {
+  return MESSAGE_TIME_FORMATTER.format(new Date(timestamp));
+}
+
+function hasExpandableAssistantSections(message: AgentMessage): boolean {
+  if ((message.toolCalls?.length ?? 0) > 0) return true;
+  return (
+    message.textSegments?.some(
+      (segment) => segment.kind === "thought" && segment.text.trim().length > 0,
+    ) ?? false
   );
 }
 
@@ -210,11 +294,29 @@ type LiveActivityEvent =
   | { type: "thinking"; id: string; content: string; live: boolean }
   | { type: "tools"; id: string; calls: AgentToolCall[] };
 
+type GroupedLiveActivityEvent =
+  | {
+      type: "thinking";
+      id: string;
+      entries: ThinkingEntry[];
+    }
+  | {
+      type: "tools";
+      id: string;
+      calls: AgentToolCall[];
+    };
+
 type TranscriptTextSegment = {
   start: number;
   end: number;
   text: string;
   kind?: "thought" | "message";
+};
+
+type ThinkingEntry = {
+  id: string;
+  content: string;
+  live: boolean;
 };
 
 function liveActivityEvents(
@@ -296,42 +398,100 @@ function liveActivityEvents(
   return events;
 }
 
-function ThinkingLine({ content, live }: { content: string; live: boolean }) {
-  const update = usePeriodicActivityUpdate(content, live);
-  const hasDetails = content.trim().length > update.length && update.length > 0;
-  const label = update || "Thinking…";
-  const inner = (
-    <div className="flex min-w-0 items-center gap-1.5 py-0.5 text-sm">
-      <span
-        className={cn(
-          "min-w-0 truncate",
-          live ? "meith-thinking-gradient" : "meith-thinking-static",
-        )}
-        title={label}
+function groupLiveActivityEvents(
+  events: LiveActivityEvent[],
+): GroupedLiveActivityEvent[] {
+  const grouped: GroupedLiveActivityEvent[] = [];
+  let pendingThinking: ThinkingEntry[] = [];
+
+  const flushThinking = () => {
+    if (pendingThinking.length === 0) return;
+    const first = pendingThinking[0];
+    const last = pendingThinking[pendingThinking.length - 1];
+    grouped.push({
+      type: "thinking",
+      id: `${first.id}-${last.id}`,
+      entries: pendingThinking,
+    });
+    pendingThinking = [];
+  };
+
+  for (const event of events) {
+    if (event.type === "thinking") {
+      pendingThinking.push({
+        id: event.id,
+        content: event.content,
+        live: event.live,
+      });
+      continue;
+    }
+    flushThinking();
+    grouped.push(event);
+  }
+
+  flushThinking();
+  return grouped;
+}
+
+function ThinkingBlock({ entries }: { entries: ThinkingEntry[] }) {
+  const visibleEntries = entries.filter((entry) => entry.content.trim());
+  const fallbackEntry = entries.at(-1);
+  const latestEntry = visibleEntries.at(-1) ?? fallbackEntry;
+  const live = Boolean(latestEntry?.live);
+  const label = live ? "Thinking" : "Thoughts";
+  const detailContent = visibleEntries.map((entry) => entry.content.trim()).join("\n\n");
+  const detailCount = visibleEntries.length;
+  const hasDetails = detailContent.length > 0;
+  const countLabel = detailCount > 1 ? `${detailCount} updates` : undefined;
+  const summary = (
+    <div className="flex min-w-0 items-center gap-1.5 py-0.5 text-sm text-muted-foreground">
+      <Marker
+        className="min-w-0 flex-1 py-0"
+        role={live ? "status" : undefined}
+        aria-live={live ? "polite" : undefined}
+        aria-atomic={live ? "true" : undefined}
       >
-        {label}
-      </span>
+        <MarkerContent className="min-w-0 truncate font-medium text-muted-foreground">
+          {label}
+        </MarkerContent>
+      </Marker>
+      {countLabel && (
+        <span className="shrink-0 text-[11px] text-muted-foreground">{countLabel}</span>
+      )}
       {hasDetails && (
         <ChevronRightIcon
-          className="size-3 shrink-0 text-muted-foreground opacity-0 transition-[opacity,transform] group-focus-within/thinking:opacity-100 group-hover/thinking:opacity-100 group-open/thinking:rotate-90 group-open/thinking:opacity-100"
+          className="size-3 shrink-0 text-muted-foreground transition-transform group-open/thinking:rotate-90"
           aria-hidden
         />
       )}
     </div>
   );
+
   if (!hasDetails) {
-    return <div className="group/thinking min-w-0">{inner}</div>;
+    return <div className="group/thinking min-w-0">{summary}</div>;
   }
+
   return (
     <details className="group/thinking min-w-0 overflow-hidden">
       <summary className="min-w-0 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-        {inner}
+        {summary}
       </summary>
       <div className="mt-1 pl-4 text-xs text-muted-foreground">
-        <MarkdownMessage content={content} />
+        <MarkdownMessage content={detailContent} />
       </div>
     </details>
   );
+}
+
+function thinkingEntriesFromSegments(
+  segments: TranscriptTextSegment[],
+  live = false,
+): ThinkingEntry[] {
+  return segments.map((segment) => ({
+    id: `text-${segment.start}-${segment.end}`,
+    content: segment.text,
+    live,
+  }));
 }
 
 function AssistantTranscript({ message }: { message: AgentMessage }) {
@@ -346,13 +506,7 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
     }
     return (
       <div className="flex min-w-0 flex-col gap-2">
-        {thinkingSegments.map((segment) => (
-          <ThinkingLine
-            key={`text-${segment.start}-${segment.end}`}
-            content={segment.text}
-            live={false}
-          />
-        ))}
+        <ThinkingBlock entries={thinkingEntriesFromSegments(thinkingSegments)} />
         {finalContent && (
           <div className="mt-1">
             <MarkdownMessage content={finalContent} />
@@ -380,15 +534,7 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
     return (
       <>
         {thinkingSegments.length > 0 && (
-          <div className="flex min-w-0 flex-col gap-2">
-            {thinkingSegments.map((segment) => (
-              <ThinkingLine
-                key={`text-${segment.start}-${segment.end}`}
-                content={segment.text}
-                live={false}
-              />
-            ))}
-          </div>
+          <ThinkingBlock entries={thinkingEntriesFromSegments(thinkingSegments)} />
         )}
         <ToolCallStack calls={calls} compact className={content ? "mt-2" : ""} />
         {finalContent && (
@@ -417,11 +563,17 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index];
     if (event.type === "text") {
+      const group = [event.segment];
+      while (index + 1 < events.length) {
+        const next = events[index + 1];
+        if (next.type !== "text") break;
+        group.push(next.segment);
+        index += 1;
+      }
       parts.push(
-        <ThinkingLine
-          key={`text-${event.segment.start}-${event.segment.end}`}
-          content={event.segment.text}
-          live={false}
+        <ThinkingBlock
+          key={`text-${group[0].start}-${group[group.length - 1].end}`}
+          entries={thinkingEntriesFromSegments(group)}
         />,
       );
       continue;
@@ -661,32 +813,6 @@ function ToolCallStack({
   );
 }
 
-function usePeriodicActivityUpdate(content: string, live = true): string {
-  const [update, setUpdate] = useState("");
-  const latestRef = useRef("");
-
-  useEffect(() => {
-    if (!live) return;
-    latestRef.current = compactActivityUpdate(content);
-  }, [content, live]);
-
-  useEffect(() => {
-    if (!live) return undefined;
-    const publish = () => {
-      const next = latestRef.current;
-      if (next) setUpdate((prev) => (prev === next ? prev : next));
-    };
-    const initial = window.setTimeout(publish, 1500);
-    const interval = window.setInterval(publish, 4500);
-    return () => {
-      window.clearTimeout(initial);
-      window.clearInterval(interval);
-    };
-  }, [live]);
-
-  return live ? update : compactActivityUpdate(content);
-}
-
 const markdownComponents: Components = {
   p: ({ className, ...props }) => (
     <p className={cn("leading-relaxed", className)} {...props} />
@@ -855,19 +981,14 @@ function ToolCallCard({
           </div>
         )}
         {resultText && (
-          <div
+          <ToolResultBlock
             className={cn("min-w-0 text-muted-foreground", argText !== "{}" && "mt-2")}
-          >
-            <p className="mb-1 font-medium text-foreground">
-              {call.result?.ok === false ? "Error" : "Output"}
-            </p>
-            <pre className="max-h-48 min-w-0 overflow-y-auto whitespace-pre-wrap break-words rounded border border-border/70 bg-background/50 px-2 py-1 font-mono [overflow-wrap:anywhere]">
-              {resultText}
-            </pre>
-          </div>
+            label={call.result?.ok === false ? "Error" : "Output"}
+            content={resultText}
+          />
         )}
         {screenshot && (
-          <ScreenshotFigure
+          <ScreenshotAttachment
             path={screenshot.path}
             width={screenshot.width}
             height={screenshot.height}
@@ -878,6 +999,53 @@ function ToolCallCard({
           <p className="text-muted-foreground">No command details.</p>
         )}
       </div>
+    </details>
+  );
+}
+
+function ToolResultBlock({
+  label,
+  content,
+  className,
+}: {
+  label: string;
+  content: string;
+  className?: string;
+}) {
+  const lineCount = content.split("\n").length;
+  const verbose =
+    content.length > TOOL_OUTPUT_COLLAPSE_CHARS || lineCount > TOOL_OUTPUT_COLLAPSE_LINES;
+  if (!verbose) {
+    return (
+      <div className={className}>
+        <p className="mb-1 font-medium text-foreground">{label}</p>
+        <pre className="max-h-48 min-w-0 overflow-y-auto whitespace-pre-wrap break-words rounded border border-border/70 bg-background/50 px-2 py-1 font-mono [overflow-wrap:anywhere]">
+          {content}
+        </pre>
+      </div>
+    );
+  }
+
+  const preview = compactActivityUpdate(content) || `${lineCount} lines`;
+  return (
+    <details className={cn("group/tool-output min-w-0 overflow-hidden", className)}>
+      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+        <Marker className="min-w-0 flex-1 py-0 text-xs">
+          <MarkerContent className="min-w-0 truncate" title={`${label}: ${preview}`}>
+            {label}: {preview}
+          </MarkerContent>
+        </Marker>
+        <span className="shrink-0 text-[11px] text-muted-foreground">
+          {lineCount} lines
+        </span>
+        <ChevronRightIcon
+          className="size-3 shrink-0 text-muted-foreground transition-transform group-open/tool-output:rotate-90"
+          aria-hidden
+        />
+      </summary>
+      <pre className="mt-1 max-h-64 min-w-0 overflow-y-auto whitespace-pre-wrap break-words rounded border border-border/70 bg-background/50 px-2 py-1 font-mono [overflow-wrap:anywhere]">
+        {content}
+      </pre>
     </details>
   );
 }
@@ -938,7 +1106,7 @@ function truncateActivityUpdate(value: string): string {
   return `${trimmed.slice(0, lastSpace > 48 ? lastSpace : max - 1)}…`;
 }
 
-function ScreenshotFigure({
+function ScreenshotAttachment({
   path,
   width,
   height,
@@ -947,20 +1115,29 @@ function ScreenshotFigure({
   width?: number;
   height?: number;
 }) {
+  const dimensions = width && height ? `${width}x${height}` : "Open preview";
   return (
-    <figure className="mt-2 overflow-hidden rounded-md border border-border/70 bg-background/50">
-      <img
-        src={artifactUrl(path)}
-        alt="Browser screenshot"
-        className="max-h-96 w-full object-contain"
-        loading="lazy"
+    <Attachment size="sm" className="mt-2 min-w-0 max-w-md overflow-hidden">
+      <AttachmentMedia variant="image" className="size-14 self-stretch">
+        <img
+          src={artifactUrl(path)}
+          alt="Browser screenshot"
+          className="size-full object-cover"
+          loading="lazy"
+        />
+      </AttachmentMedia>
+      <AttachmentContent>
+        <AttachmentTitle>Browser screenshot</AttachmentTitle>
+        <AttachmentDescription>{dimensions}</AttachmentDescription>
+      </AttachmentContent>
+      <AttachmentTrigger
+        render={
+          <a href={artifactUrl(path)} target="_blank" rel="noreferrer" aria-label={path}>
+            <span className="sr-only">Open screenshot</span>
+          </a>
+        }
       />
-      {(width || height) && (
-        <figcaption className="border-t border-border/70 px-2 py-1 font-mono text-[11px] text-muted-foreground">
-          {width && height ? `${width}x${height}` : path}
-        </figcaption>
-      )}
-    </figure>
+    </Attachment>
   );
 }
 
