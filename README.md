@@ -50,6 +50,13 @@ The renderer is part of the core app. Agents and plugins have tighter limits:
 * the host resolves plugin identity directly from the plugin tab itself, ignoring data the plugin sends,
 * plugin tabs only access the `window.meithPlugin` APIs you specifically approve.
 
+Additional enforcement layers harden the runtime against privilege escalation:
+
+* **Electron web content hardening** — every browser tab created by meith registers a `setPermissionRequestHandler` that denies all OS-level permission requests (camera, microphone, geolocation, notifications, MIDI, HID, serial, Bluetooth, clipboard-read, fullscreen), and a `setWindowOpenHandler` that denies all `window.open()` and `target=_blank` navigations that would spawn a new renderer process. Plugins and web-content tabs cannot silently acquire hardware access or open unchecked popups.
+* **Plugin archive limits** — packaged plugin archives are rejected before extraction if they exceed 50 MB total, contain more than 2 000 files, or include any single entry larger than 10 MB. Path traversal, hard links, and symbolic links are also rejected.
+* **Workspace symlink filtering** — the file listing and file search walks skip symbolic link entries. A symlink inside a workspace that points outside the project boundary cannot be used to read or expose files that the caller would not otherwise reach.
+* **Capability-gated tool registry** — every mutating tool must declare at least one privileged capability (`writes-files`, `controls-browser`, `starts-process`, or `destructive`). A test sentinel enforces this rule at build time so new tools cannot bypass the permission gate by omission.
+
 For agents, meith includes a built-in mock adapter for local testing and an ACP subprocess adapter for external agents. ACP lets an agent use meith's tools without tying the desktop app to one AI provider. Meith only accepts ACP provider-side approvals for tools exposed by its MCP server. Provider-native and unknown tool approvals are denied at the boundary.
 
 ## Documentation

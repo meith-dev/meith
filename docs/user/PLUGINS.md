@@ -27,6 +27,11 @@ through the shared tool registry.
 5. Once its requested APIs are approved, the plugin can be enabled.
 6. Opening it creates a plugin-mode browser tab.
 
+Packaged archives (`.tgz`, `.tar.gz`, `.tar`) are validated before extraction.
+Archives larger than 50 MB, archives with more than 2 000 files, and archives
+with any single file larger than 10 MB are rejected. Path traversal, hard links,
+and symbolic links inside an archive are also rejected.
+
 > **Approval can only narrow**
 >
 > Approving grants always intersects your choices with what the manifest
