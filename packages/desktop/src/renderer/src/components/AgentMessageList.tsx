@@ -257,6 +257,12 @@ function LiveAssistantActivity({
 }) {
   const events = liveActivityEvents(content, calls);
   const groupedEvents = groupLiveActivityEvents(events);
+  const latestThinkingIndex = useMemo(() => {
+    for (let index = groupedEvents.length - 1; index >= 0; index -= 1) {
+      if (groupedEvents[index]?.type === "thinking") return index;
+    }
+    return -1;
+  }, [groupedEvents]);
   return (
     <Message align="start">
       <MessageContent>
@@ -267,9 +273,13 @@ function LiveAssistantActivity({
         <Bubble variant="muted" className="w-full max-w-[80%]">
           <BubbleContent className="w-full">
             <div className="flex min-w-0 flex-col gap-2">
-              {groupedEvents.map((event) =>
+              {groupedEvents.map((event, index) =>
                 event.type === "thinking" ? (
-                  <ThinkingBlock key={event.id} entries={event.entries} />
+                  <ThinkingBlock
+                    key={event.id}
+                    entries={event.entries}
+                    expanded={index === latestThinkingIndex}
+                  />
                 ) : (
                   <ToolCallStack key={event.id} calls={event.calls} compact />
                 ),
@@ -440,12 +450,19 @@ function groupLiveActivityEvents(
   return grouped;
 }
 
-function ThinkingBlock({ entries }: { entries: ThinkingEntry[] }) {
+function ThinkingBlock({
+  entries,
+  expanded,
+}: {
+  entries: ThinkingEntry[];
+  expanded?: boolean;
+}) {
   const visibleEntries = entries.filter((entry) => entry.content.trim());
   const fallbackEntry = entries.at(-1);
   const latestEntry = visibleEntries.at(-1) ?? fallbackEntry;
   const live = Boolean(latestEntry?.live);
   const label = live ? "Thinking" : "Thoughts";
+  const summaryText = summarizeThought(latestEntry?.content ?? "");
   const detailContent = visibleEntries.map((entry) => entry.content.trim()).join("\n\n");
   const detailCount = visibleEntries.length;
   const hasDetails = detailContent.length > 0;
@@ -458,8 +475,13 @@ function ThinkingBlock({ entries }: { entries: ThinkingEntry[] }) {
         aria-live={live ? "polite" : undefined}
         aria-atomic={live ? "true" : undefined}
       >
-        <MarkerContent className="min-w-0 truncate font-medium text-muted-foreground">
-          {label}
+        <MarkerContent className="min-w-0 truncate text-muted-foreground">
+          <span className="font-medium">{label}</span>
+          {summaryText && (
+            <span className="ml-1 align-middle text-muted-foreground/90">
+              {summaryText}
+            </span>
+          )}
         </MarkerContent>
       </Marker>
       {countLabel && (
@@ -479,7 +501,10 @@ function ThinkingBlock({ entries }: { entries: ThinkingEntry[] }) {
   }
 
   return (
-    <details className="group/thinking min-w-0 overflow-hidden">
+    <details
+      className="group/thinking min-w-0 overflow-hidden"
+      open={expanded === undefined ? undefined : expanded}
+    >
       <summary className="min-w-0 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
         {summary}
       </summary>
@@ -488,6 +513,14 @@ function ThinkingBlock({ entries }: { entries: ThinkingEntry[] }) {
       </div>
     </details>
   );
+}
+
+function summarizeThought(text: string): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  const withPrefix = `· ${normalized}`;
+  if (withPrefix.length <= 96) return withPrefix;
+  return `${withPrefix.slice(0, 93)}...`;
 }
 
 function thinkingEntriesFromSegments(

@@ -411,17 +411,28 @@ const AgentComposer = memo(function AgentComposer({
   const handleSend = useCallback(async () => {
     const text = draft.trim();
     if (!canSend) return;
-    await onSend({
-      text,
-      attachments: attachments.map(
-        ({ previewUrl: _previewUrl, ...attachment }) => attachment,
-      ),
-    });
+    const sentDraft = draft;
+    const sentAttachments = attachments;
+    const payloadAttachments = sentAttachments.map(
+      ({ previewUrl: _previewUrl, ...attachment }) => attachment,
+    );
+
+    // Clear optimistically so the composer resets immediately after send.
     setDraft("");
-    setAttachments((prev) => {
-      revokeAttachmentPreviews(prev);
-      return [];
-    });
+    setAttachmentError(null);
+    setAttachments([]);
+
+    try {
+      await onSend({
+        text,
+        attachments: payloadAttachments,
+      });
+      revokeAttachmentPreviews(sentAttachments);
+    } catch (err) {
+      setAttachmentError(err instanceof Error ? err.message : String(err));
+      setDraft((current) => (current.length > 0 ? current : sentDraft));
+      setAttachments((current) => (current.length > 0 ? current : sentAttachments));
+    }
   }, [attachments, canSend, draft, onSend]);
 
   const openAttachmentPicker = useCallback(() => {
