@@ -1,4 +1,4 @@
-import { Eye, KeyRound, ShieldCheck } from "lucide-react";
+import { Eye, Globe, KeyRound, ShieldCheck } from "lucide-react";
 
 const guarantees = [
   {
@@ -10,6 +10,11 @@ const guarantees = [
     icon: KeyRound,
     title: "Actions that change things",
     body: "Writes, process starts, browser control, and destructive actions require Allow or Deny.",
+  },
+  {
+    icon: Globe,
+    title: "Browser tabs stay contained",
+    body: "Browser tabs cannot request camera, microphone, geolocation, or other OS permissions. Popups and new-window navigations are blocked.",
   },
   {
     icon: ShieldCheck,
@@ -35,7 +40,7 @@ export function Safety() {
           </p>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {guarantees.map((item) => (
             <div
               key={item.title}

@@ -94,8 +94,18 @@ Supported archives:
 - `.tar`
 
 The host extracts archives into the managed plugin store under user data. The
-safe tar reader rejects absolute paths, `..` traversal, and links before writing
-files.
+safe tar reader enforces these hard limits before writing any file to disk:
+
+| Limit | Value |
+| --- | --- |
+| Maximum archive size (compressed) | 50 MB |
+| Maximum number of files in the archive | 2 000 |
+| Maximum size of any single extracted file | 10 MB |
+
+In addition to the size limits, the reader rejects absolute paths, `..`
+traversal in entry names, hard links (tar type `1`), and symbolic links (tar
+type `2`). Any violation aborts the extraction with `INVALID` before any file is
+written.
 
 ### Dev URL
 
@@ -268,7 +278,9 @@ Important invariants:
 - Navigating away from a plugin entry revokes the webContents-to-plugin mapping.
 - Plugin tabs are hidden from normal plugin storage listings.
 - Local/package entries are realpath-contained inside the plugin root.
-- Packaged archives are extracted with path traversal and link checks.
+- Packaged archives are extracted with path traversal and link checks, and are subject to size and file-count limits (see [Package Archive](#package-archive) above).
+- Every plugin browser tab has `setPermissionRequestHandler` set to deny all OS-level permission requests (camera, microphone, geolocation, notifications, MIDI, HID, serial, Bluetooth, clipboard-read, fullscreen).
+- Every plugin browser tab has `setWindowOpenHandler` set to deny all `window.open()` and `target=_blank` navigations that would create a new renderer process.
 
 ## Control-Plane Tools
 

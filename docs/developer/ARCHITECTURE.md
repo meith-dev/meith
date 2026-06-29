@@ -141,6 +141,16 @@ The renderer measures the actual content area and reports it over
 When settings, overlays, or split-drag drop zones need DOM interaction above the
 native view, the renderer temporarily collapses the view.
 
+Every `WebContentsView` created by `ElectronBrowserViewHost` is hardened
+immediately after construction via `hardenWebContents()`:
+
+- `setPermissionRequestHandler` is set to deny all OS-level permission requests
+  (camera, microphone, geolocation, notifications, MIDI, HID, serial, Bluetooth,
+  clipboard-read, fullscreen).
+- `setWindowOpenHandler` is set to deny all `window.open()` and
+  `target=_blank` navigations. Legitimate outbound navigation must go through
+  `open_browser_tab`.
+
 Browser tools include tab listing, open/navigate/back/forward/refresh/focus/close,
 screenshot capture, DOM state extraction, element clicks, typing, scrolling,
 keyboard input, CDP commands, console logs, and network logs.
@@ -235,6 +245,13 @@ recognizes the tab as an enabled plugin.
 Plugin manifests declare requested capabilities and API namespaces. The user
 approves a subset of those requests. Runtime enforcement uses only approved
 grants.
+
+Plugin archive extraction enforces hard limits: 50 MB maximum compressed
+archive size, 2 000 maximum file entries, and 10 MB maximum per-file size.
+Extraction also rejects path traversal, hard links, and symbolic links. The
+`WorkspaceFileService` listing and search walks skip symbolic link directory
+entries entirely, preventing a symlink inside a workspace from being used to
+read files outside the project boundary.
 
 Approved API namespaces:
 

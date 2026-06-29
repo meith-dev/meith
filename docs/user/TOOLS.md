@@ -54,7 +54,20 @@ strict limits:
 - the host resolves plugin identity directly from the plugin tab itself,
   ignoring whatever data the plugin sends,
 - plugin tabs only access the `window.meithPlugin` APIs you specifically
-  approve.
+  approve,
+- agents or plugins without a valid active session are denied privileged tools
+  outright, and revoking a session immediately ends any grants it held.
+
+Additional safeguards run below the permission layer:
+
+- Browser tabs (including plugin tabs) cannot acquire OS-level permissions such
+  as camera, microphone, geolocation, or notifications — all such requests are
+  denied automatically.
+- Browser tabs cannot open new windows or popups through `window.open()` or
+  `target=_blank` links. Opening additional tabs must go through `open_browser_tab`.
+- The file listing and file search tools skip symbolic links, so a symlink
+  inside a project that points outside the project folder cannot be used to
+  read files that would otherwise be out of reach.
 
 ## Permission prompts
 

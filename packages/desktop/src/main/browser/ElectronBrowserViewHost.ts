@@ -152,8 +152,34 @@ export class ElectronBrowserViewHost extends EventEmitter implements BrowserView
     }
     this.views.set(tabId, managed);
     this.wireEvents(tabId, managed);
+    this.hardenWebContents(tabId, managed);
     this.attachDebugger(tabId, managed);
     void view.webContents.loadURL(url).catch(() => this.markFailed(tabId));
+  }
+
+  /**
+   * Harden a newly created WebContentsView against common browser-level
+   * privilege escalations:
+   *
+   * 1. `setPermissionRequestHandler` — deny every OS-level permission request
+   *    (camera, microphone, geolocation, notifications, MIDI, HID, serial,
+   *    Bluetooth, clipboard-read, fullscreen) so plugin or web-content tabs
+   *    cannot silently acquire hardware or notification access.
+   *
+   * 2. `setWindowOpenHandler` — deny all `window.open()` / anchor[target=_blank]
+   *    navigations that would create a new renderer process. Legitimate outbound
+   *    links should be opened by the host explicitly via `open_browser_tab`.
+   */
+  private hardenWebContents(_tabId: string, managed: ManagedView): void {
+    const wc = managed.view.webContents;
+
+    // Deny all OS permission requests unconditionally.
+    wc.session.setPermissionRequestHandler((_wc, _permission, callback) => {
+      callback(false);
+    });
+
+    // Deny popup/new-window navigations from within a web content view.
+    wc.setWindowOpenHandler(() => ({ action: "deny" }));
   }
 
   /** Revoke a plugin view's authority (idempotent). */

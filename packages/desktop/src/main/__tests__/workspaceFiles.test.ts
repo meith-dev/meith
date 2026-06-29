@@ -231,6 +231,66 @@ describe("WorkspaceFileService", () => {
     expect(matches[0]).toMatchObject({ path: "a.ts", line: 1 });
   });
 
+  // ---- Symlink escape: search, list, undo ---------------------------------
+
+  it("search does not match files reachable only through escaping symlinks", () => {
+    // A secret file with unique content, living entirely outside the workspace.
+    const outsideDir = mkdtempSync(join(tmpdir(), "meith-search-out-"));
+    const secret = join(outsideDir, "secret.ts");
+    writeFileSync(secret, "const SYMLINK_SECRET_TOKEN = 'do-not-expose';\n");
+    // A symlink inside the workspace pointing at the outside file.
+    const link = join(ctx.projectDir, "leaked.ts");
+    symlinkSync(secret, link);
+
+    try {
+      const { matches } = ctx.files.search(ctx.projectDir, {
+        query: "SYMLINK_SECRET_TOKEN",
+      });
+      // The match must not include the outside file via the symlink.
+      const leakedMatch = matches.find((m) => m.text.includes("SYMLINK_SECRET_TOKEN"));
+      expect(leakedMatch).toBeUndefined();
+    } finally {
+      rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it("listFiles does not traverse a symlinked directory that escapes the workspace", () => {
+    // An outside directory with a recognisable file.
+    const outsideDir = mkdtempSync(join(tmpdir(), "meith-list-out-"));
+    writeFileSync(join(outsideDir, "outside-secret.txt"), "secret");
+    // Symlinked from inside the workspace.
+    const linkDir = join(ctx.projectDir, "linked-dir");
+    symlinkSync(outsideDir, linkDir);
+
+    try {
+      const { entries } = ctx.files.listFiles(ctx.projectDir, { recursive: true });
+      const leaked = entries.find((e) => e.name === "outside-secret.txt");
+      expect(leaked).toBeUndefined();
+    } finally {
+      rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it("undo rejects a path that was a symlink escaping the workspace when it was written", () => {
+    // Create an outside file and symlink it into the workspace.
+    const outsideDir = mkdtempSync(join(tmpdir(), "meith-undo-out-"));
+    const secret = join(outsideDir, "secret.txt");
+    writeFileSync(secret, "original");
+    const link = join(ctx.projectDir, "sym-undo.txt");
+    symlinkSync(secret, link);
+
+    try {
+      // Attempting undo on the symlink path (which resolves outside) must throw.
+      expect(() => ctx.files.undoLast(ctx.projectDir, "sym-undo.txt")).toThrow(
+        WorkspaceFileError,
+      );
+      // The real outside file must remain untouched.
+      expect(readFileSync(secret, "utf8")).toBe("original");
+    } finally {
+      rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+
   it("returns unsupported diagnostics for non-TS/JS files", () => {
     ctx.files.writeFile(ctx.projectDir, "notes.md", "# hi");
     const diag = ctx.files.getDiagnostics(ctx.projectDir, "notes.md");

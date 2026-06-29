@@ -584,11 +584,27 @@ export class PluginHostService {
   }
 }
 
+/** Maximum compressed archive size accepted (50 MB). */
+const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
+/** Maximum number of files that may be extracted from a single archive. */
+const MAX_ARCHIVE_FILE_COUNT = 2_000;
+/** Maximum size of any single extracted file (10 MB). */
+const MAX_EXTRACTED_FILE_BYTES = 10 * 1024 * 1024;
+
 async function extractTarArchive(archive: string, dest: string): Promise<void> {
+  const info = await stat(archive);
+  if (info.size > MAX_ARCHIVE_BYTES) {
+    throw new PluginError(
+      "INVALID",
+      `Plugin archive exceeds the maximum allowed size of ${MAX_ARCHIVE_BYTES} bytes (got ${info.size} bytes).`,
+    );
+  }
+
   const lower = archive.toLowerCase();
   const raw = await readFile(archive);
   const tar = lower.endsWith(".tgz") || lower.endsWith(".tar.gz") ? gunzipSync(raw) : raw;
   let offset = 0;
+  let fileCount = 0;
 
   while (offset + 512 <= tar.length) {
     const header = tar.subarray(offset, offset + 512);
@@ -607,6 +623,19 @@ async function extractTarArchive(archive: string, dest: string): Promise<void> {
     if (type === "5") {
       await mkdir(target, { recursive: true });
     } else if (type === "0" || type === "\0" || type === "") {
+      fileCount += 1;
+      if (fileCount > MAX_ARCHIVE_FILE_COUNT) {
+        throw new PluginError(
+          "INVALID",
+          `Plugin archive contains more than ${MAX_ARCHIVE_FILE_COUNT} files.`,
+        );
+      }
+      if (size > MAX_EXTRACTED_FILE_BYTES) {
+        throw new PluginError(
+          "INVALID",
+          `Plugin archive entry "${fullName}" exceeds the maximum extracted file size of ${MAX_EXTRACTED_FILE_BYTES} bytes.`,
+        );
+      }
       await mkdir(path.dirname(target), { recursive: true });
       await writeFile(target, body);
     } else if (type === "x" || type === "g") {

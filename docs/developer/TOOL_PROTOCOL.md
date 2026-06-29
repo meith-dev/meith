@@ -301,6 +301,29 @@ tokens back to the same gated agent session.
 Plugin calls are resolved from the sender webContents id. The plugin page never
 supplies its own trusted identity.
 
+### Deny-by-default for privileged callers
+
+`PermissionService` applies a deny-by-default policy for every caller that is
+not `renderer` or `internal`:
+
+| Caller | Privileged tool without a grant | Read-only tool |
+| --- | --- | --- |
+| `renderer` | Allowed (trusted in-process) | Allowed |
+| `internal` | Allowed (trusted in-process) | Allowed |
+| `cli` | Denied unless session has a matching capability grant | Allowed |
+| `agent` | Denied if no `sessionId` is present, or if the session has no matching capability grant | Allowed |
+| `plugin` | Denied if the plugin id resolves to `null` grants, or the approved grants do not cover the required capability | Allowed |
+
+Every call — allowed or denied — is written to `audit.jsonl`. Revoking a session
+(`PermissionService.revokeSession`) immediately invalidates all grants for that
+session; subsequent calls with the revoked session id receive `PERMISSION_DENIED`
+even if the tool was previously allowed.
+
+The test suite in `permission.test.ts` enforces these invariants directly:
+renderer/internal trust, agent-without-session deny, plugin-with-null-grants
+deny, plugin-with-empty-grants deny, and revoked-session deny are all covered
+as explicit test cases.
+
 ## Timeouts
 
 Timeout order:

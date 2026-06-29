@@ -306,6 +306,10 @@ export class WorkspaceFileService {
           return;
         }
         if (dirent.isDirectory() && IGNORED_DIRS.has(dirent.name)) continue;
+        // Skip symlinks: a symlink inside the workspace could point outside it
+        // (symlink-escape). Listing the symlink itself is fine but we must not
+        // follow it into an external directory or expose its resolved path.
+        if (dirent.isSymbolicLink()) continue;
         const child = join(dir, dirent.name);
         const isDir = dirent.isDirectory();
         let size: number | undefined;
@@ -362,6 +366,10 @@ export class WorkspaceFileService {
           truncated = true;
           return;
         }
+        // Skip symlinks: a symlink-to-file inside the workspace could point at
+        // a sensitive file outside it (symlink-escape read). Only follow real
+        // directory entries during recursion.
+        if (dirent.isSymbolicLink()) continue;
         if (dirent.isDirectory()) {
           if (IGNORED_DIRS.has(dirent.name)) continue;
           walk(join(dir, dirent.name));

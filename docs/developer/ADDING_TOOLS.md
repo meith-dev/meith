@@ -119,6 +119,15 @@ Renderer and internal callers are trusted in-process callers, but all calls are
 still audited. CLI and agent callers need explicit grants for privileged
 capabilities. Plugins need approved capabilities that cover the tool.
 
+**Build-time enforcement:** a test in `toolFactories.test.ts` checks every tool
+whose name begins with a mutating verb prefix (such as `write_`, `create_`,
+`set_`, `open_`, `close_`, `kill_`, `navigate`, etc.) and fails the build if
+that tool does not declare at least one privileged capability (`writes-files`,
+`controls-browser`, `starts-process`, or `destructive`). A second test keeps a
+full capability classification table for all registered tools, acting as a
+regression guard when capabilities change. When you add or rename a tool, update
+that table.
+
 ## 5. Handle Errors Intentionally
 
 Use these patterns:
@@ -222,7 +231,8 @@ pnpm check
 - The service owns the actual behavior.
 - The tool has a Zod input schema with useful descriptions.
 - The tool name is `snake_case`.
-- Capabilities cover every side effect.
+- Capabilities cover every side effect. Mutating tools must declare at least one privileged capability or the `toolFactories.test.ts` sentinel will fail.
+- The capability classification table in `toolFactories.test.ts` is updated to include the new tool.
 - Errors map to the right `ToolErrorCode`.
 - Long-running work observes `ctx.signal`.
 - Streaming work uses `ctx.emit`.
