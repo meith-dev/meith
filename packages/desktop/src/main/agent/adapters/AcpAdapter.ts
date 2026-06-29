@@ -67,11 +67,16 @@ function npmRuntimeEnv(): NodeJS.ProcessEnv {
   const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
   const cacheDir = join(home, "npm-cache");
   const prefixDir = join(home, "npm-prefix");
+  const prefixLibDir = join(prefixDir, "lib");
+  const prefixBinDir = join(prefixDir, "bin");
   // Packaged builds may start with an empty ~/.meith directory. npm exec on
   // Node 20/ npm 10 can fail with ENOENT if `npm_config_prefix` does not
-  // exist, so create the managed runtime dirs before spawning ACP presets.
+  // exist (and Arborist lstat()s npm_config_prefix/lib), so create the managed
+  // runtime dirs before spawning ACP presets.
   mkdirSync(cacheDir, { recursive: true });
   mkdirSync(prefixDir, { recursive: true });
+  mkdirSync(prefixLibDir, { recursive: true });
+  mkdirSync(prefixBinDir, { recursive: true });
   return {
     npm_config_cache: cacheDir,
     npm_config_prefix: prefixDir,
