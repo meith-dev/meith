@@ -568,11 +568,12 @@ export class AgentService extends EventEmitter {
         yield chunk;
         if (controller.signal.aborted) break;
       }
-      this.finalizeAssistant(session, assistant);
-      this.setStatus(session, controller.signal.aborted ? "cancelled" : "idle");
+      const finalStatus = controller.signal.aborted ? "cancelled" : "idle";
+      this.finalizeAssistant(session, assistant, finalStatus);
+      this.setStatus(session, finalStatus);
     } catch (err) {
       assistant.error = err instanceof Error ? err.message : String(err);
-      this.finalizeAssistant(session, assistant);
+      this.finalizeAssistant(session, assistant, "error");
       this.setStatus(session, "error");
       const chunk: AgentStreamChunk = { type: "error", message: assistant.error };
       this.emit("chunk", { sessionId, chunk });
@@ -654,7 +655,11 @@ export class AgentService extends EventEmitter {
     session.updatedAt = Date.now();
   }
 
-  private finalizeAssistant(session: AgentSession, assistant: AgentMessage): void {
+  private finalizeAssistant(
+    session: AgentSession,
+    assistant: AgentMessage,
+    outcome: "idle" | "cancelled" | "error",
+  ): void {
     // Drop a fully-empty assistant message (e.g. immediate cancel).
     if (
       !assistant.content &&
@@ -665,7 +670,25 @@ export class AgentService extends EventEmitter {
       this.persistedAssistantContentLength.delete(assistant.id);
       return;
     }
+
+    const incompleteCalls: AgentToolCall[] = [];
+    for (const call of assistant.toolCalls ?? []) {
+      if (call.status !== "running" && call.status !== "pending") continue;
+      call.status = outcome === "cancelled" ? "cancelled" : "error";
+      call.endedAt = Date.now();
+      if (!call.result) {
+        call.result = errorResult(
+          "TOOL_FAILED",
+          outcome === "cancelled"
+            ? `Tool "${call.name}" was cancelled before a result was received.`
+            : `Tool "${call.name}" ended without returning a result.`,
+        );
+      }
+      incompleteCalls.push(call);
+    }
+
     this.persistAssistantPatch(session, assistant, {
+      ...(incompleteCalls.length > 0 ? { toolCalls: incompleteCalls } : {}),
       usage: assistant.usage,
       error: assistant.error,
     });
