@@ -44,6 +44,7 @@ import {
 import { type ReactNode, memo, useMemo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useNowTick } from "../hooks/useNowTick";
 import { cn } from "../lib/utils";
 
 const MARKDOWN_MAX_CHARS = 12_000;
@@ -67,6 +68,7 @@ export const AgentMessageList = memo(function AgentMessageList({
   session,
   streaming,
 }: AgentMessageListProps) {
+  const now = useNowTick(30_000);
   const running = session.status === "running";
   const liveAssistant = running ? latestAssistantForCurrentTurn(session) : undefined;
   const liveAssistantId = liveAssistant?.id;
@@ -104,6 +106,7 @@ export const AgentMessageList = memo(function AgentMessageList({
                   >
                     <MessageRow
                       message={message}
+                      now={now}
                       live={message.id === liveAssistantId}
                       liveContent={
                         message.id === liveAssistantId ? streaming || message.content : ""
@@ -141,10 +144,12 @@ function latestAssistantForCurrentTurn(session: AgentSession): AgentMessage | un
 
 function MessageRow({
   message,
+  now,
   live = false,
   liveContent = "",
 }: {
   message: AgentMessage;
+  now: number;
   live?: boolean;
   liveContent?: string;
 }) {
@@ -156,7 +161,7 @@ function MessageRow({
           <MessageHeader className="justify-end">
             <span>You</span>
             <span className="ml-2 text-[11px]">
-              {formatMessageTime(message.createdAt)}
+              {formatMessageTime(message.createdAt, now)}
             </span>
           </MessageHeader>
           <Bubble align="end" variant="default">
@@ -219,7 +224,7 @@ function MessageRow({
           <MessageHeader>
             <span>Agent</span>
             <span className="ml-2 text-[11px]">
-              {formatMessageTime(message.createdAt)}
+              {formatMessageTime(message.createdAt, now)}
             </span>
           </MessageHeader>
           <Bubble
@@ -277,7 +282,9 @@ function LiveAssistantActivity({
   );
 }
 
-function formatMessageTime(timestamp: number): string {
+function formatMessageTime(timestamp: number, now: number): string {
+  const deltaSeconds = Math.round((timestamp - now) / 1000);
+  if (Math.abs(deltaSeconds) < 45) return "just now";
   return MESSAGE_TIME_FORMATTER.format(new Date(timestamp));
 }
 

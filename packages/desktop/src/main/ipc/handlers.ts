@@ -1,8 +1,12 @@
 import type { MeithPluginIdentity } from "@meith/protocol";
-import { type ToolContext, errorResult } from "@meith/shared";
+import { type AgentConfig, type ToolContext, errorResult } from "@meith/shared";
 import { type BrowserWindow, dialog, ipcMain } from "electron";
 import type { ServiceContainer } from "../bootstrap.js";
 import { PluginError } from "../services/PluginHostService.js";
+
+type AgentProbeOverride = Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">> & {
+  force?: boolean;
+};
 
 /**
  * IPC channel names shared with the preload bridge. Keep in sync with
@@ -226,10 +230,8 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.agentSetConfig, (_e, patch: Record<string, unknown>) =>
     container.agents.setConfig(patch),
   );
-  ipcMain.handle(
-    IPC.agentProbe,
-    (_e, override?: { acpPreset?: string; command?: string; args?: string[] }) =>
-      container.agents.probeAgent(override as never),
+  ipcMain.handle(IPC.agentProbe, (_e, override?: AgentProbeOverride) =>
+    container.agents.probeAgent(override),
   );
   ipcMain.handle(
     IPC.agentSetSessionModel,

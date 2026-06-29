@@ -800,7 +800,8 @@ function isExternalWebToolName(name: string): boolean {
     normalized.includes("open_page") ||
     normalized.includes("openpage") ||
     normalized.includes("browser_eval") ||
-    normalized.includes("browser") ||
+    normalized.includes("browser_") ||
+    normalized.includes("_browser") ||
     normalized.includes("agent-browser") ||
     normalized.includes("playwright") ||
     normalized.includes("cdp_command")

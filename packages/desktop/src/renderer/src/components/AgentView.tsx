@@ -20,6 +20,7 @@ import {
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MeithBridge } from "../../../bridge.js";
 import { useAgent } from "../hooks/useAgent";
+import { useNowTick } from "../hooks/useNowTick";
 import { useResizable } from "../hooks/useResizable";
 import { AgentAccessSwitcher } from "./AgentAccessSwitcher";
 import { AgentMessageList } from "./AgentMessageList";
@@ -49,6 +50,7 @@ export function AgentView({ tab, bridge, sessionsCollapsed }: AgentViewProps) {
     [tab.cwd, tab.spaceId],
   );
   const agent = useAgent(bridge, defaults);
+  const now = useNowTick(30_000);
   const sidebar = useResizable({
     initial: 280,
     min: 220,
@@ -141,7 +143,7 @@ export function AgentView({ tab, bridge, sessionsCollapsed }: AgentViewProps) {
                               {s.title}
                             </span>
                             <span className="truncate text-[11px] text-muted-foreground">
-                              {formatRelativeTime(s.updatedAt)}
+                              {formatRelativeTime(s.updatedAt, now)}
                             </span>
                           </span>
                         </button>
@@ -735,8 +737,8 @@ function hasUnseenFinishedSession(session: {
   );
 }
 
-function formatRelativeTime(timestamp: number): string {
-  const deltaSeconds = Math.round((timestamp - Date.now()) / 1000);
+function formatRelativeTime(timestamp: number, now: number): string {
+  const deltaSeconds = Math.round((timestamp - now) / 1000);
   if (Math.abs(deltaSeconds) < 45) return "just now";
   if (Math.abs(deltaSeconds) < 3600) {
     return RELATIVE_TIME_FORMATTER.format(Math.round(deltaSeconds / 60), "minute");
