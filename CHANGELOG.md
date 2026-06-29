@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/meith-dev/meith/compare/v0.2.2...v0.3.0) (2026-06-29)
+
+
+### Features
+
+* **security:** hardening capability gates, electron permissions, archive limit, symlink boundary ([#17](https://github.com/meith-dev/meith/issues/17)) ([45129ba](https://github.com/meith-dev/meith/commit/45129bae50c48ee6da19fc3d0b0ae12ba6311140))
+
 ## [0.2.2](https://github.com/meith-dev/meith/compare/v0.2.1...v0.2.2) (2026-06-29)
 
 
