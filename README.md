@@ -1,8 +1,10 @@
 # meith
 
-Meith is a desktop workbench for building web apps with AI.
+Meith is a desktop AI workbench for building web apps.
 
-It collects the pieces web developers usually scatter across multiple windows and puts them in one place: project folders, code files, terminal sessions, a live localhost preview, run commands, dev-server logs, plugins, and agent chat sessions. A shared tool system connects everything. The visual interface, the terminal command, a plugin, and an AI agent all interact with the exact same project state, rather than maintaining their own isolated views — so an agent can edit a component, start your dev server, and check the result in the preview without ever leaving the window.
+It puts the pieces of web app work in one desktop window: project folders, code files, terminals, run commands, dev-server logs, a built-in browser, plugins, and agent chats. A shared tool system connects them. The visual app, CLI, plugins, and agents all work against the same project state, so an agent can edit code, start your dev server, open the app in the browser, click through the UI, read console output, and show you the diff.
+
+Codex and Claude Code can write code. Meith gives them a place to work: the browser, terminal, logs, files, diffs, and permissions all sit in the same workbench the agent can use.
 
 Meith doesn't lock you into one AI provider. The agent runtime uses an adapter interface and connects to external agents via ACP (Agent Client Protocol), keeping the desktop app independent of any specific model vendor or SDK.
 
@@ -13,11 +15,12 @@ The name comes from the Irish *meitheal*: a group of people coming together to w
 * Open a web project folder in its own workspace.
 * Browse and edit your app's code in the integrated editor.
 * Start and stop your dev server from the top bar.
-* Preview the running app on localhost in an embedded browser tab.
-* Watch the preview update and read dev-server logs without leaving the window.
-* Split panes to arrange your preview, editor, terminal, or agent side by side.
-* Ask an agent to build features in the context of your current project — editing files, running the dev server, and checking the live preview.
-* Review working-tree changes in the built-in Diff tab, with cached summary counts in the top bar and patches loaded only when you select a file.
+* Open the running app in the built-in browser.
+* Let an agent open pages, click, type, inspect the UI, read console output, and take screenshots.
+* Watch browser state and dev-server logs in the same window.
+* Split panes to arrange your browser, editor, terminal, or agent side by side.
+* Ask an agent to build features in the context of your current project: editing files, running the dev server, and checking the app in the browser.
+* Review working-tree changes in the built-in Diff tab, with summary counts in the top bar and patches loaded only when you select a file.
 * Install web-app plugins and explicitly approve the APIs they can use.
 * Use the `meith` terminal command to inspect and control a running app instance.
 
@@ -25,35 +28,35 @@ The name comes from the Irish *meitheal*: a group of people coming together to w
 
 Workspaces are the core of meith. One workspace generally maps to one project folder on your disk. Within each workspace, you can have:
 
-* browser tabs for local testing or research,
+* browser tabs for local testing, research, and agent-controlled checks,
 * editor tabs for project files,
 * terminal tabs,
 * agent chat tabs,
 * run commands and environment configurations,
 * plugin tabs.
 
-The app persists your spaces, tabs, projects, settings, logs, and agent sessions across restarts. Agent transcripts are stored as compact per-session JSONL records so long chats can stream and resume without bloating the app-state index.
+Meith keeps your spaces, tabs, projects, settings, logs, and agent sessions across restarts. Agent transcripts are stored as compact per-session JSONL records, so long chats can stream and resume without swelling the app-state index.
 
 ## Agent and plugin safety
 
 Agents and plugins do not get unrestricted access by default.
 
-Every major action routes through a shared tool registry in the desktop main process. Tools declare their capabilities upfront, like reading state, writing files, controlling the browser, starting processes, making network requests, or performing destructive actions.
+Every major action routes through a shared tool registry in the desktop main process. Each tool declares what it can do, such as reading state, writing files, controlling the browser, starting processes, making network requests, or performing destructive actions.
 
-The renderer is fully trusted as part of the core app, but agents and plugins face strict limits:
+The renderer is part of the core app. Agents and plugins have tighter limits:
 
 * read-only actions execute without interruption,
 * file writes, browser control, process starts, and destructive actions require explicit permission or an approved grant,
 * the host resolves plugin identity directly from the plugin tab itself, ignoring data the plugin sends,
 * plugin tabs only access the `window.meithPlugin` APIs you specifically approve.
 
-For agents, meith currently includes a built-in mock adapter for local testing and an ACP subprocess adapter for actual external agents. The ACP path allows an agent to use meith's tools without forcing the app to depend on a particular AI provider. ACP provider-side permission requests are only approved automatically when they refer to tools exposed by meith's MCP server; all provider-native or unknown tool approvals are denied before they can bypass the registry.
+For agents, meith includes a built-in mock adapter for local testing and an ACP subprocess adapter for external agents. ACP lets an agent use meith's tools without tying the desktop app to one AI provider. Meith only accepts ACP provider-side approvals for tools exposed by its MCP server. Provider-native and unknown tool approvals are denied at the boundary.
 
 ## Documentation
 
-The repository markdown under `docs/` is the source of truth for documentation.
-The public Next.js site reads those files and their frontmatter at build time, so
-repo docs and web docs cannot drift into separate copies.
+Documentation lives in the repository markdown under `docs/`. The public Next.js
+site reads those files and their frontmatter at build time, so repo docs and web
+docs stay in sync.
 
 User-facing docs live in `docs/user/`:
 
@@ -101,28 +104,24 @@ pnpm test
 pnpm typecheck
 pnpm lint
 pnpm check
-
 ```
 
 Run the desktop app in development:
 
 ```bash
 pnpm dev
-
 ```
 
 Run the renderer only, with an in-memory mock bridge:
 
 ```bash
 pnpm dev:renderer
-
 ```
 
 Run the main-process services without Electron:
 
 ```bash
 pnpm --filter @meith/desktop dev:headless
-
 ```
 
 Use the CLI through the monorepo:
@@ -136,31 +135,29 @@ pnpm cli projects
 pnpm cli files /path/to/project --recursive true
 pnpm cli diff /path/to/project --includePatches false
 pnpm cli call app_health
-
 ```
 
-Friendly CLI commands cover the registered desktop tool catalog: browser tabs
+The CLI covers the registered desktop tool catalog: browser tabs
 and automation, spaces/workspace tabs, projects/templates, workspace files,
 git diff, terminals/dev servers, settings, storage, plugins, and runtime
-diagnostics. `pnpm cli call <toolName>` remains the exact-name escape hatch for
-scripts and newly-added tools.
+diagnostics. `pnpm cli call <toolName>` is the fallback for scripts and tools
+without a named CLI command yet.
 
 Package the desktop app:
 
 ```bash
 pnpm pack:desktop
 pnpm dist:mac
-
 ```
 
-The packaged desktop build stages its own Node/npm/npx runtime and a self-contained `meith` CLI runtime before `electron-builder` runs. Packaged app processes resolve Meith-owned Node tooling from the app bundle first, not from the user's machine. Built-in ACP presets launch through the bundled `npx`, which may fetch ACP packages from the npm registry into Meith's managed npm cache. Project templates are copied without any builder-machine `node_modules`.
+The packaged desktop build stages its own Node/npm/npx runtime and `meith` CLI before `electron-builder` runs. Packaged app processes prefer Meith-owned Node tooling from the app bundle, not from the user's machine. Built-in ACP presets launch through the bundled `npx`, which may fetch ACP packages from the npm registry into Meith's managed npm cache. Project templates are copied without any builder-machine `node_modules`.
 
-Packaging also verifies the final runtime bundle: Node/npm/npx, CLI dependencies, templates, and the native `node-pty` helper are checked before the app is signed. Local macOS builds are ad-hoc signed so the generated `.app`, ZIP, and DMG are internally valid and runnable. This is not Developer ID signing or notarization.
+Packaging verifies the final runtime bundle before signing: Node/npm/npx, CLI dependencies, templates, and the native `node-pty` helper. Local macOS builds use ad hoc signing, so the generated `.app`, ZIP, and DMG are internally valid and runnable. They are not Developer ID signed or notarized.
 
 ## Release process
 
-Releases are driven by Release Please and Conventional Commits. Do not push
-release commits or version bumps directly to `main`.
+Release Please and Conventional Commits drive releases. Do not push release
+commits or version bumps directly to `main`.
 
 1. Land normal work through pull requests with Conventional Commit titles and
    commits, such as `feat(renderer): add split previews` or
@@ -176,6 +173,6 @@ release commits or version bumps directly to `main`.
 See [Release process](docs/developer/RELEASES.md) for maintainer details,
 required repository settings, and local dry-run commands.
 
-The current macOS release build is ad-hoc signed but not Developer ID signed or notarized, so macOS may warn on first open.
+The current macOS release build uses ad hoc signing and is not Developer ID signed or notarized, so macOS may warn on first open.
 
-On startup, the runtime writes `~/.meith/config.json`, registers the running instance under `~/.meith/instances/`, and exposes a managed launcher at `~/.meith/bin/meith`. Open the desktop app once, then run `~/.meith/bin/meith setup` for shell instructions, or `~/.meith/bin/meith setup --write` to add that launcher directory to your shell config. After restarting your shell, use `meith` directly.
+At startup, the runtime writes `~/.meith/config.json`, registers the running instance under `~/.meith/instances/`, and exposes a managed launcher at `~/.meith/bin/meith`. Open the desktop app once, then run `~/.meith/bin/meith setup` for shell instructions, or `~/.meith/bin/meith setup --write` to add that launcher directory to your shell config. After restarting your shell, use `meith` directly.
