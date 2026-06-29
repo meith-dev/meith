@@ -2,7 +2,6 @@ import { MeithMark } from "@/components/meith-mark";
 import { cn } from "@/lib/utils";
 import {
   Bot,
-  Check,
   ChevronDown,
   ChevronRight,
   Circle,
@@ -12,7 +11,8 @@ import {
   Folder,
   FolderOpen,
   GitCompare,
-  Globe,
+  Hand,
+  Paperclip,
   PlayIcon,
   Plus,
   RefreshCw,
@@ -37,9 +37,9 @@ const workspaceToggles = [
 ];
 
 const agentSessions = [
-  { title: "Pricing Section", active: true, running: true },
-  { title: "Hero Polish", active: false, unread: true },
-  { title: "Nav Cleanup", active: false },
+  { title: "Pricing Section", active: true, status: "running", updated: "just now" },
+  { title: "Hero Polish", active: false, status: "idle", updated: "12 min ago", unread: true },
+  { title: "Nav Cleanup", active: false, status: "idle", updated: "31 min ago" },
 ];
 
 function ClaudeMark({ className }: { className?: string }) {
@@ -114,7 +114,7 @@ export function WorkbenchMockup({ className }: { className?: string }) {
         </div>
       </div>
 
-      <div className="flex h-[500px]">
+      <div className="flex h-[560px]">
         <nav className="flex w-14 shrink-0 flex-col items-center border-r border-border bg-card py-3">
           <div className="flex flex-1 flex-col items-center gap-2">
             {spaces.map((space) => (
@@ -160,126 +160,165 @@ export function WorkbenchMockup({ className }: { className?: string }) {
                     <Bot className="size-3.5" />
                     <span className="max-w-24 truncate">Agent</span>
                   </div>
-                  <div className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-muted-foreground">
-                    <Globe className="size-3.5" />
-                    <span className="max-w-28 truncate font-mono">localhost:3000</span>
-                  </div>
                 </div>
                 <Plus className="size-3.5 text-muted-foreground" />
               </div>
 
               <div className="flex min-h-0 flex-1">
                 <aside className="hidden w-36 shrink-0 border-r border-border bg-card/25 md:flex md:flex-col">
-                  <div className="flex h-9 items-center justify-between px-3">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Sessions
-                    </span>
-                    <Plus className="size-3.5 text-muted-foreground" />
+                  <div className="h-11 border-b border-border px-3 py-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Sessions
+                      </span>
+                      <Plus className="size-3.5 text-muted-foreground" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">8 conversations</span>
                   </div>
-                  <div className="space-y-1 px-2">
+                  <div className="space-y-1 px-2 py-2">
                     {agentSessions.map((session) => (
                       <div
                         key={session.title}
                         className={cn(
-                          "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs",
+                          "rounded-md px-2 py-1.5",
                           session.active
                             ? "bg-accent text-accent-foreground"
                             : "text-foreground/85",
                         )}
                       >
-                        <span className="relative flex size-4 shrink-0 items-center justify-center">
-                          <Bot className="size-3.5 text-muted-foreground" />
-                          {(session.running || session.unread) && (
-                            <span
-                              className={cn(
-                                "absolute -right-0.5 -top-0.5 size-2 rounded-full ring-2 ring-background",
-                                session.running ? "bg-primary" : "bg-[oklch(0.62_0.13_250)]",
-                              )}
-                            />
-                          )}
-                        </span>
-                        <span className="min-w-0 truncate">{session.title}</span>
+                        <div className="flex min-w-0 items-center gap-2 text-xs">
+                          <span className="relative flex size-4 shrink-0 items-center justify-center">
+                            <Bot className="size-3.5 text-muted-foreground" />
+                            {(session.status === "running" || session.unread) && (
+                              <span
+                                className={cn(
+                                  "absolute -right-0.5 -top-0.5 size-2 rounded-full ring-2 ring-background",
+                                  session.status === "running"
+                                    ? "bg-primary"
+                                    : "bg-[oklch(0.62_0.13_250)]",
+                                )}
+                              />
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate">{session.title}</span>
+                        </div>
+                        <div className="pl-6 pt-0.5 text-[10px] text-muted-foreground">
+                          {session.updated}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </aside>
 
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="flex-1 space-y-3 overflow-hidden p-3.5 text-[13px] leading-relaxed">
-                    <div className="flex justify-end">
-                      <div className="max-w-[82%] rounded-lg bg-primary px-3 py-2 text-primary-foreground">
-                        Add a pricing section and start the dev server.
-                      </div>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                  <div className="flex h-11 items-center justify-between border-b border-border px-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">Pricing Section</p>
+                      <p className="text-[11px] text-muted-foreground">7 messages</p>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-primary/50 px-2 py-0.5 text-[11px] text-primary">
+                        Running
+                      </span>
+                      <span className="rounded-md border border-border px-2 py-1 text-[11px] text-foreground">
+                        + New session
+                      </span>
+                    </div>
+                  </div>
 
-                    <div className="flex justify-start">
-                      <div className="max-w-[88%] rounded-lg bg-muted px-3 py-2 text-foreground">
-                        <div className="meith-thinking-static truncate text-sm">
-                          Reading the project structure
-                        </div>
-                        <div className="mt-2 rounded-md border border-border bg-background/70 p-2">
-                          <div className="flex items-center gap-2 text-xs">
-                            <Wrench className="size-3.5 text-primary" />
-                            <span className="font-medium text-foreground">workspace_write_file</span>
-                            <code className="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-                              components/pricing.tsx
-                            </code>
-                            <span className="ml-auto flex items-center gap-1 text-primary">
-                              <Check className="size-3.5" />
-                              ok
-                            </span>
+                  <div className="flex min-h-0 flex-1 overflow-hidden p-3.5 text-[13px] leading-relaxed">
+                    <div className="flex h-full min-h-0 w-full flex-col justify-end overflow-hidden">
+                      <div className="space-y-2.5">
+                        <div className="flex justify-end">
+                          <div className="max-w-[82%] rounded-lg bg-primary px-3 py-2 text-primary-foreground">
+                            Add a pricing section and start the dev server.
                           </div>
                         </div>
-                        <p className="mt-2 text-sm">
-                          Updated the page and found a matching dev script.
+
+                      <div className="flex justify-start">
+                        <div className="max-w-[90%] space-y-1.5">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground">Agent</span>
+                            <span>streaming</span>
+                          </div>
+                          <div className="rounded-lg bg-muted p-2">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 rounded-md border border-border/80 bg-background px-2.5 py-1.5 text-sm">
+                                <span className="font-medium text-foreground">Thoughts</span>
+                                <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                                  · Checking the existing layout and section spacing
+                                </span>
+                                <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+                              </div>
+                              <div className="rounded-md border border-border/80 bg-background px-2.5 py-1.5">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="font-medium text-foreground">Thoughts</span>
+                                  <span className="shrink-0 text-xs text-muted-foreground">
+                                    2 updates
+                                  </span>
+                                  <ChevronDown className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
+                                </div>
+                                <div className="mt-1.5 rounded-md border border-border bg-background/80 p-1.5">
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <Wrench className="size-3.5 text-muted-foreground" />
+                                    <span className="font-medium text-foreground">
+                                      Ran 3 commands
+                                    </span>
+                                    <ChevronRight className="ml-auto size-3.5 text-muted-foreground" />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="max-w-[92%] rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5">
+                        <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                          <ShieldAlert className="size-3.5 text-amber-400" />
+                          <span>Permission required</span>
+                        </div>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          The agent wants to run{" "}
+                          <code className="font-mono text-foreground">project_run</code> to
+                          start a process.
                         </p>
+                        <label className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <span className="size-3 rounded-[3px] border border-input bg-background" />
+                          Remember for this tool in this session
+                        </label>
+                        <div className="mt-1.5 flex gap-2">
+                          <span className="rounded-md bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
+                            Allow
+                          </span>
+                          <span className="rounded-md border border-border px-2 py-0.5 text-[11px] text-foreground">
+                            Deny
+                          </span>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="max-w-[96%] rounded-lg border border-primary/40 bg-primary/10 p-3">
-                      <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                        <ShieldAlert className="size-3.5 text-primary" />
-                        Permission required
-                      </div>
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        The agent wants to run{" "}
-                        <code className="font-mono text-foreground">project_run</code> to
-                        start a process.
-                      </p>
-                      <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <span className="size-3 rounded-[3px] border border-input bg-background" />
-                        Remember for this tool in this session
-                      </label>
-                      <div className="mt-2.5 flex gap-2">
-                        <span className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground">
-                          Allow
-                        </span>
-                        <span className="rounded-md border border-border px-2.5 py-1 text-[11px] text-foreground">
-                          Deny
-                        </span>
-                      </div>
                     </div>
                   </div>
 
                   <div className="border-t border-border p-3">
-                    <div className="flex flex-col gap-2 rounded-md border border-input bg-transparent px-3 py-2 shadow-sm">
-                      <span className="truncate text-[13px] text-muted-foreground">
+                    <div className="rounded-md border border-input bg-transparent">
+                      <div className="truncate px-3 pt-2.5 pb-2 text-[13px] text-muted-foreground">
                         Message the agent...
-                      </span>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-1">
-                          <span className="flex items-center gap-0.5 rounded-md px-1 py-0.5 text-foreground">
+                      </div>
+                      <div className="flex items-center justify-between border-t border-border/70 px-2 py-1.5">
+                        <div className="flex items-center gap-1">
+                          <span className="flex size-7 items-center justify-center rounded-md text-muted-foreground">
+                            <Paperclip className="size-4" />
+                          </span>
+                          <span className="flex size-7 items-center justify-center gap-0.5 rounded-md text-foreground">
                             <ClaudeMark className="size-4" />
                             <ChevronDown className="size-3 text-muted-foreground" />
                           </span>
-                          <span className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs">
-                            <span className="truncate font-medium text-foreground">
-                              Claude Opus
-                            </span>
-                            <span className="text-muted-foreground">xhigh</span>
+                          <span className="flex size-7 items-center justify-center rounded-md text-muted-foreground">
+                            <Hand className="size-4" />
                           </span>
                         </div>
-                        <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                        <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
                           <Send className="size-3.5" />
                         </span>
                       </div>
