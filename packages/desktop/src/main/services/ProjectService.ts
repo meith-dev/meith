@@ -9,10 +9,11 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { basename, isAbsolute, join, resolve } from "node:path";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import {
   type DevServer,
   type PackageManager,
+  type ProcessLogEntry,
   type Project,
   type ProjectFramework,
   type ProjectKind,
@@ -35,6 +36,59 @@ export interface ProjectDetection {
   scripts: ProjectScript[];
   /** True when a package.json was found and parsed. */
   hasPackageJson: boolean;
+}
+
+/** Monorepo workspace entry found inside a project root. */
+export interface WorkspaceEntry {
+  /** Package name from its package.json (or the directory name as fallback). */
+  name: string;
+  /** Directory path relative to the project root. */
+  dir: string;
+  framework: ProjectFramework;
+  scripts: ProjectScript[];
+}
+
+/**
+ * Extended detection result produced by `setupDetect()`. Adds env-file
+ * discovery, monorepo topology, likely dev-server port, and a prose
+ * `setupNotes` summary — enough for an agent to build a `RunConfig` without
+ * reading the project itself.
+ */
+export interface ProjectSetupDetection extends ProjectDetection {
+  /** `.env*` files found in the project root (relative paths). */
+  envFiles: string[];
+  /**
+   * Whether the root looks like a monorepo (pnpm-workspace.yaml, workspaces
+   * field in package.json, turbo.json, or nx.json present).
+   */
+  isMonorepo: boolean;
+  /**
+   * Workspace packages discovered inside a monorepo root. Empty for
+   * non-monorepos or when no packages could be parsed.
+   */
+  workspaces: WorkspaceEntry[];
+  /**
+   * Best-guess listening port for the primary dev server, derived from
+   * framework defaults or a `PORT` / `--port` hint found in the dev script.
+   * Null when no reasonable guess is possible.
+   */
+  likelyPort: number | null;
+  /**
+   * Human-readable prose summary an agent can store as `runConfig.setupNotes`
+   * and surface to the user or feed into a retry prompt.
+   */
+  setupNotes: string;
+}
+
+/**
+ * Result returned by `retryDevServer()`: the newly started dev server plus the
+ * tail of logs from the previous (failed) server to help the agent diagnose the
+ * failure.
+ */
+export interface RetryDevServerResult {
+  devServer: DevServer;
+  /** Last N log lines from the server that was stopped (for diagnosis). */
+  previousLogsTail: ProcessLogEntry[];
 }
 
 /** Static information about an available project template. */
@@ -147,6 +201,90 @@ export class ProjectService {
       scripts,
       hasPackageJson: pkg !== null,
     };
+  }
+
+  /**
+   * Extended project inspection for the "setup mode" agent flow.
+   *
+   * Builds on `detect()` and additionally:
+   *  - lists `.env*` files in the root,
+   *  - detects monorepo topology (pnpm-workspace.yaml / turbo / nx / workspaces
+   *    field) and enumerates workspace packages,
+   *  - guesses the most likely dev-server port from framework defaults or a
+   *    `PORT`/`--port` hint embedded in the dev script command, and
+   *  - produces a prose `setupNotes` summary suitable for storing on
+   *    `runConfig.setupNotes`.
+   *
+   * Like `detect()` this is a pure read — nothing is persisted.
+   */
+  setupDetect(cwd: string): ProjectSetupDetection {
+    const dir = normalizeCwd(cwd);
+    const base = this.detect(dir);
+
+    // Env files ---------------------------------------------------------------
+    const envFiles = detectEnvFiles(dir);
+
+    // Monorepo topology -------------------------------------------------------
+    const { isMonorepo, workspaces } = detectMonorepo(dir, base.packageManager);
+
+    // Likely port -------------------------------------------------------------
+    const devScript = pickDevScript(base.scripts);
+    const likelyPort = guessPort(base.framework, devScript?.command ?? null);
+
+    // Prose notes -------------------------------------------------------------
+    const setupNotes = buildSetupNotes({
+      dir,
+      base,
+      envFiles,
+      isMonorepo,
+      workspaces,
+      likelyPort,
+      devScript,
+    });
+
+    return { ...base, envFiles, isMonorepo, workspaces, likelyPort, setupNotes };
+  }
+
+  /**
+   * Stop the most recent failed/errored/exited dev server for a project,
+   * capture its log tail for diagnosis, and immediately start a fresh one.
+   *
+   * This is the retry entry-point an agent calls after `get_process_logs`
+   * reveals a startup failure — it bundles "capture logs → stop → restart"
+   * into a single atomic tool call so the agent only needs to deal with one
+   * round-trip.
+   */
+  retryDevServer(
+    projectId: string,
+    opts: { scriptName?: string; logTailLines?: number } = {},
+  ): RetryDevServerResult {
+    const project = this.get(projectId);
+    if (!project) throw new ProjectError(`Unknown project: ${projectId}`);
+
+    const tailLines = opts.logTailLines ?? 50;
+
+    // Find the most recent non-running server for this project.
+    const candidates = this.devServers
+      .findByCwd(project.cwd)
+      .filter((s) => s.status === "errored" || s.status === "exited")
+      .sort((a, b) => b.startedAt - a.startedAt);
+
+    const previous = candidates[0] ?? null;
+    const previousLogsTail: ProcessLogEntry[] = previous
+      ? this.devServers.getLogs(previous.id, tailLines)
+      : [];
+
+    // Stop every existing server for this project before starting the new one.
+    for (const server of this.devServers.findByCwd(project.cwd)) {
+      this.devServers.stop(server.id);
+    }
+
+    const devServer = this.startDevServer(projectId, opts.scriptName);
+    this.logger.info(
+      "Project",
+      `retried dev server for ${project.name} (previous: ${previous?.id ?? "none"})`,
+    );
+    return { devServer, previousLogsTail };
   }
 
   // ---- Open flow ---------------------------------------------------------
@@ -678,6 +816,194 @@ function runScriptCommand(
     default:
       return { command: "npm", args: ["run", script] };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Setup-detect helpers
+// ---------------------------------------------------------------------------
+
+const FRAMEWORK_DEFAULT_PORTS: Partial<Record<ProjectFramework, number>> = {
+  nextjs: 3000,
+  vite: 5173,
+  react: 3000,
+  vue: 5173,
+  svelte: 5173,
+  astro: 4321,
+  remix: 3000,
+  node: 3000,
+};
+
+const ENV_FILE_NAMES = [
+  ".env",
+  ".env.local",
+  ".env.development",
+  ".env.development.local",
+  ".env.production",
+  ".env.production.local",
+  ".env.test",
+  ".env.test.local",
+];
+
+/** Collect env files that actually exist in `dir`. */
+function detectEnvFiles(dir: string): string[] {
+  return ENV_FILE_NAMES.filter((f) => existsSync(join(dir, f)));
+}
+
+/** Glob-expand a pnpm/yarn/npm workspaces pattern against `dir`. */
+function expandWorkspaceGlob(dir: string, pattern: string): string[] {
+  // We only handle the common non-glob forms ("packages/*") and explicit paths
+  // to avoid pulling in a glob dependency. Patterns ending with `/*` are
+  // expanded by listing the parent directory.
+  if (pattern.endsWith("/*")) {
+    const parent = join(dir, pattern.slice(0, -2));
+    if (!existsSync(parent)) return [];
+    try {
+      return readdirSync(parent, { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => join(parent, e.name));
+    } catch {
+      return [];
+    }
+  }
+  // Treat it as a literal path.
+  const resolved = join(dir, pattern);
+  return existsSync(resolved) ? [resolved] : [];
+}
+
+/** Detect monorepo topology and enumerate workspace packages. */
+function detectMonorepo(
+  dir: string,
+  pm: PackageManager,
+): { isMonorepo: boolean; workspaces: WorkspaceEntry[] } {
+  const pkg = readPackageJson(dir);
+  const hasTurbo = existsSync(join(dir, "turbo.json"));
+  const hasNx = existsSync(join(dir, "nx.json"));
+  const hasPnpmWorkspace = existsSync(join(dir, "pnpm-workspace.yaml"));
+  const hasWorkspacesField =
+    pkg && Array.isArray((pkg as Record<string, unknown>).workspaces);
+
+  const isMonorepo = hasTurbo || hasNx || hasPnpmWorkspace || hasWorkspacesField;
+  if (!isMonorepo) return { isMonorepo: false, workspaces: [] };
+
+  // Collect raw glob patterns from the config files.
+  let patterns: string[] = [];
+  if (hasPnpmWorkspace) {
+    // Parse pnpm-workspace.yaml minimally: look for "packages:" lines.
+    try {
+      const yaml = readFileSync(join(dir, "pnpm-workspace.yaml"), "utf8");
+      const pkgLines = yaml
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.startsWith("-"))
+        .map((l) => l.replace(/^-\s*['"]?/, "").replace(/['"]?\s*$/, ""));
+      patterns = pkgLines.length ? pkgLines : ["packages/*"];
+    } catch {
+      patterns = ["packages/*"];
+    }
+  } else if (hasWorkspacesField) {
+    const ws = (pkg as Record<string, unknown>).workspaces;
+    if (Array.isArray(ws)) patterns = (ws as unknown[]).map(String);
+  } else {
+    // turbo/nx without an explicit workspaces field — best-effort guess.
+    patterns = ["packages/*", "apps/*"];
+  }
+
+  const dirs = patterns.flatMap((p) => expandWorkspaceGlob(dir, p));
+  const workspaces: WorkspaceEntry[] = [];
+  for (const wDir of dirs) {
+    const wPkg = readPackageJson(wDir);
+    const wScripts: ProjectScript[] = wPkg?.scripts
+      ? Object.entries(wPkg.scripts).map(([name, command]) => ({
+          name,
+          command: String(command),
+        }))
+      : [];
+    workspaces.push({
+      name:
+        (typeof wPkg?.name === "string" && wPkg.name) ||
+        relative(dir, wDir) ||
+        basename(wDir),
+      dir: relative(dir, wDir),
+      framework: detectFramework(wDir, wPkg),
+      scripts: wScripts,
+    });
+  }
+
+  return { isMonorepo: true, workspaces };
+}
+
+/** Extract a port from a script command string (--port N or PORT=N). */
+function extractPortFromCommand(command: string): number | null {
+  const portFlag = /--port[=\s]+(\d{2,5})\b/.exec(command);
+  if (portFlag) {
+    const p = Number(portFlag[1]);
+    if (p >= 1 && p <= 65535) return p;
+  }
+  const portEnv = /\bPORT[=\s]+(\d{2,5})\b/.exec(command);
+  if (portEnv) {
+    const p = Number(portEnv[1]);
+    if (p >= 1 && p <= 65535) return p;
+  }
+  return null;
+}
+
+/** Best-effort guess at the primary dev server port. */
+function guessPort(framework: ProjectFramework, devCommand: string | null): number | null {
+  if (devCommand) {
+    const extracted = extractPortFromCommand(devCommand);
+    if (extracted !== null) return extracted;
+  }
+  return FRAMEWORK_DEFAULT_PORTS[framework] ?? null;
+}
+
+/** Build the prose setup notes string. */
+function buildSetupNotes(input: {
+  dir: string;
+  base: ProjectDetection;
+  envFiles: string[];
+  isMonorepo: boolean;
+  workspaces: WorkspaceEntry[];
+  likelyPort: number | null;
+  devScript: ProjectScript | null;
+}): string {
+  const { dir, base, envFiles, isMonorepo, workspaces, likelyPort, devScript } = input;
+  const lines: string[] = [];
+
+  lines.push(`Project: ${base.name}`);
+  lines.push(`Directory: ${dir}`);
+  lines.push(`Framework: ${base.framework}`);
+  lines.push(`Package manager: ${base.packageManager}`);
+
+  if (devScript) {
+    const { command: cmd, args } = runScriptCommand(base.packageManager, devScript.name);
+    lines.push(`Dev command: ${cmd} ${args.join(" ")} (script: "${devScript.command}")`);
+  } else if (base.scripts.length > 0) {
+    lines.push(`No dev/start script found. Available scripts: ${base.scripts.map((s) => s.name).join(", ")}`);
+  } else {
+    lines.push("No runnable scripts found in package.json.");
+  }
+
+  if (likelyPort !== null) {
+    lines.push(`Likely port: ${likelyPort}`);
+  }
+
+  if (envFiles.length > 0) {
+    lines.push(`Env files: ${envFiles.join(", ")}`);
+  } else {
+    lines.push("No .env files found.");
+  }
+
+  if (isMonorepo) {
+    lines.push(`Monorepo: yes (${workspaces.length} workspace package${workspaces.length !== 1 ? "s" : ""})`);
+    for (const ws of workspaces) {
+      const devS = pickDevScript(ws.scripts);
+      lines.push(`  - ${ws.name} (${ws.dir}): framework=${ws.framework}${devS ? `, dev="${devS.command}"` : ""}`);
+    }
+  } else {
+    lines.push("Monorepo: no");
+  }
+
+  return lines.join("\n");
 }
 
 function normalizeCwd(cwd: string): string {

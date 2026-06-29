@@ -185,6 +185,48 @@ export function createProjectTools(deps: ToolDeps): ToolDefinition[] {
       withProjectErrors(() => okResult(projects.allocatePrewarmed(input))),
   });
 
+  const projectSetupDetect = defineTool({
+    name: "project_setup_detect",
+    description:
+      "Extended project inspection for the setup-mode agent flow. Returns everything in project_detect plus: env files present in the root, monorepo topology (workspaces list), best-guess dev-server port, and a prose setupNotes summary. Use this to build or verify a project's run configuration without opening it.",
+    capabilities: ["read-only"],
+    inputSchema: z.object({
+      cwd: z.string().min(1).describe("Directory to inspect."),
+    }),
+    execute: (_ctx, input) =>
+      withProjectErrors(() => okResult(projects.setupDetect(input.cwd))),
+  });
+
+  const projectRetryDevServer = defineTool({
+    name: "project_retry_dev_server",
+    description:
+      "Stop the most recent failed/exited dev server for a project, capture its log tail for diagnosis, and immediately start a fresh one. Use this after inspecting process logs that show a startup failure — it bundles capture→stop→restart into a single call and returns both the new server record and the previous logs tail.",
+    capabilities: ["starts-process", "accesses-network"],
+    inputSchema: z.object({
+      projectId: z.string(),
+      scriptName: z
+        .string()
+        .optional()
+        .describe("Override which package.json script to run; defaults to dev/start."),
+      logTailLines: z
+        .number()
+        .int()
+        .positive()
+        .max(500)
+        .optional()
+        .describe("How many trailing log lines to capture from the previous server (default 50)."),
+    }),
+    execute: (_ctx, input) =>
+      withProjectErrors(() =>
+        okResult(
+          projects.retryDevServer(input.projectId, {
+            scriptName: input.scriptName,
+            logTailLines: input.logTailLines,
+          }),
+        ),
+      ),
+  });
+
   return [
     projectList,
     projectDetect,
@@ -199,6 +241,8 @@ export function createProjectTools(deps: ToolDeps): ToolDefinition[] {
     projectPrewarm,
     projectPrewarmStatus,
     projectAllocate,
+    projectSetupDetect,
+    projectRetryDevServer,
   ];
 }
 

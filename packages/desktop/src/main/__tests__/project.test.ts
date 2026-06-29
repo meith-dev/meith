@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -387,5 +387,254 @@ describe("project tools", () => {
     expect(created.cwd).toContain("tooled");
     devServers.stopAll();
     rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  it("registers project_setup_detect and project_retry_dev_server tools", () => {
+    const { tools, devServers, dataDir } = makeTools();
+    expect(tools["project_setup_detect"], "missing project_setup_detect").toBeTruthy();
+    expect(
+      tools["project_retry_dev_server"],
+      "missing project_retry_dev_server",
+    ).toBeTruthy();
+    devServers.stopAll();
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ProjectService.setupDetect
+// ---------------------------------------------------------------------------
+
+describe("ProjectService.setupDetect", () => {
+  let ctx: ReturnType<typeof makeCtx>;
+
+  beforeEach(() => {
+    ctx = makeCtx();
+  });
+
+  afterEach(() => {
+    ctx.devServers.stopAll();
+    rmSync(ctx.dataDir, { recursive: true, force: true });
+  });
+
+  it("returns all base detection fields plus setup-specific fields", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-setup-"));
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({
+        name: "setup-test",
+        dependencies: { next: "15.0.0" },
+        scripts: { dev: "next dev", build: "next build" },
+      }),
+    );
+    writeFileSync(join(dir, "pnpm-lock.yaml"), "");
+
+    const result = ctx.projects.setupDetect(dir);
+
+    expect(result.name).toBe("setup-test");
+    expect(result.framework).toBe("nextjs");
+    expect(result.packageManager).toBe("pnpm");
+    expect(result.hasPackageJson).toBe(true);
+    expect(result.scripts.map((s) => s.name)).toContain("dev");
+    expect(result.envFiles).toBeInstanceOf(Array);
+    expect(result.isMonorepo).toBe(false);
+    expect(result.workspaces).toEqual([]);
+    expect(result.likelyPort).toBe(3000);
+    expect(typeof result.setupNotes).toBe("string");
+    expect(result.setupNotes).toContain("setup-test");
+    expect(result.setupNotes).toContain("nextjs");
+    expect(result.setupNotes).toContain("3000");
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("detects .env files in the project root", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-env-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "envtest" }));
+    writeFileSync(join(dir, ".env"), "FOO=bar");
+    writeFileSync(join(dir, ".env.local"), "SECRET=xyz");
+
+    const result = ctx.projects.setupDetect(dir);
+    expect(result.envFiles).toContain(".env");
+    expect(result.envFiles).toContain(".env.local");
+    expect(result.setupNotes).toContain(".env");
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("reports no env files when none exist", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-noenv-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "noenv" }));
+
+    const result = ctx.projects.setupDetect(dir);
+    expect(result.envFiles).toEqual([]);
+    expect(result.setupNotes).toContain("No .env files found");
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("detects a pnpm monorepo and enumerates workspace packages", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-mono-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "monorepo-root" }));
+    writeFileSync(join(dir, "pnpm-lock.yaml"), "");
+    writeFileSync(
+      join(dir, "pnpm-workspace.yaml"),
+      "packages:\n  - 'packages/*'\n",
+    );
+    const pkgDir = join(dir, "packages", "web");
+    mkdirSync(pkgDir, { recursive: true });
+    writeFileSync(
+      join(pkgDir, "package.json"),
+      JSON.stringify({
+        name: "@mono/web",
+        dependencies: { next: "15.0.0" },
+        scripts: { dev: "next dev" },
+      }),
+    );
+
+    const result = ctx.projects.setupDetect(dir);
+    expect(result.isMonorepo).toBe(true);
+    expect(result.workspaces).toHaveLength(1);
+    expect(result.workspaces[0].name).toBe("@mono/web");
+    expect(result.workspaces[0].dir).toBe(join("packages", "web"));
+    expect(result.workspaces[0].framework).toBe("nextjs");
+    expect(result.setupNotes).toContain("Monorepo: yes");
+    expect(result.setupNotes).toContain("@mono/web");
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("extracts a port from a --port flag in the dev script", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-port-"));
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({
+        name: "custom-port",
+        scripts: { dev: "vite --port 4200" },
+      }),
+    );
+
+    const result = ctx.projects.setupDetect(dir);
+    expect(result.likelyPort).toBe(4200);
+    expect(result.setupNotes).toContain("4200");
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("falls back to framework default port when no --port flag is present", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-defaultport-"));
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({
+        name: "astro-app",
+        dependencies: { astro: "4.0.0" },
+        scripts: { dev: "astro dev" },
+      }),
+    );
+
+    const result = ctx.projects.setupDetect(dir);
+    expect(result.likelyPort).toBe(4321);
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("throws a ProjectError for a missing directory", () => {
+    expect(() => ctx.projects.setupDetect("/definitely/missing/xyz")).toThrow(
+      ProjectError,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ProjectService.retryDevServer
+// ---------------------------------------------------------------------------
+
+describe("ProjectService.retryDevServer", () => {
+  let ctx: ReturnType<typeof makeCtx>;
+
+  beforeEach(() => {
+    ctx = makeCtx();
+  });
+
+  afterEach(() => {
+    ctx.devServers.stopAll();
+    rmSync(ctx.dataDir, { recursive: true, force: true });
+  });
+
+  it("stops the existing errored server and starts a fresh one, returning the log tail", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-retry-"));
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "retry-app", scripts: { dev: "node server.mjs" } }),
+    );
+    writeFileSync(join(dir, "yarn.lock"), "");
+    const project = ctx.projects.open({ cwd: dir }).project;
+
+    const fakeErroredServer = {
+      id: "dev_errored",
+      cwd: dir,
+      status: "errored" as const,
+      command: "yarn",
+      args: ["dev"],
+      startedAt: Date.now() - 5000,
+      pid: null,
+      port: null,
+      exitCode: 1,
+      signal: null,
+      name: "retry-app:dev",
+    };
+    const fakeNewServer = { id: "dev_fresh", cwd: dir, status: "starting" as const } as never;
+
+    // findByCwd is called twice inside retryDevServer: once for candidates, once for
+    // "stop all before restart". Both times it should return the errored server.
+    const findSpy = vi
+      .spyOn(ctx.devServers, "findByCwd")
+      .mockReturnValue([fakeErroredServer]);
+    const stopSpy = vi.spyOn(ctx.devServers, "stop").mockReturnValue(true);
+    const logSpy = vi
+      .spyOn(ctx.devServers, "getLogs")
+      .mockReturnValue([{ seq: 0, stream: "stderr", text: "error: port in use", ts: Date.now() }]);
+    // start() is called exactly once (for the fresh server) because open() was called
+    // before the mocks were applied.
+    const startSpy = vi.spyOn(ctx.devServers, "start").mockReturnValue(fakeNewServer);
+
+    const result = ctx.projects.retryDevServer(project.id, { logTailLines: 10 });
+
+    expect(stopSpy).toHaveBeenCalledWith("dev_errored");
+    expect(logSpy).toHaveBeenCalledWith("dev_errored", 10);
+    expect(result.previousLogsTail).toHaveLength(1);
+    expect(result.previousLogsTail[0].text).toContain("error: port in use");
+    expect(result.devServer.id).toBe("dev_fresh");
+
+    startSpy.mockRestore();
+    findSpy.mockRestore();
+    stopSpy.mockRestore();
+    logSpy.mockRestore();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("starts a fresh server and returns an empty tail when no previous server exists", () => {
+    const dir = mkdtempSync(join(tmpdir(), "meith-retry-fresh-"));
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "fresh-retry", scripts: { dev: "node s.mjs" } }),
+    );
+    const project = ctx.projects.open({ cwd: dir }).project;
+
+    const fakeServer = { id: "dev_new", cwd: dir, status: "starting" as const } as never;
+    const spy = vi.spyOn(ctx.devServers, "start").mockReturnValue(fakeServer);
+    const findSpy = vi.spyOn(ctx.devServers, "findByCwd").mockReturnValue([]);
+
+    const result = ctx.projects.retryDevServer(project.id);
+    expect(result.previousLogsTail).toEqual([]);
+    expect(result.devServer.id).toBe("dev_new");
+
+    spy.mockRestore();
+    findSpy.mockRestore();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("throws a ProjectError for an unknown projectId", () => {
+    expect(() => ctx.projects.retryDevServer("proj_unknown")).toThrow(ProjectError);
   });
 });

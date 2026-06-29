@@ -228,6 +228,13 @@ export const ProjectRunConfigSchema = z.object({
   defaultCommandId: z.string().nullable().default(null),
   /** Extra environment variables injected when running a command. */
   env: z.record(z.string(), z.string()).default({}),
+  /**
+   * Human-readable notes produced by the setup-detect flow describing how the
+   * project should be started, any env files found, detected workspace layout,
+   * etc. Stored here so agents and the UI can surface them alongside the run
+   * commands without requiring a separate inspect pass.
+   */
+  setupNotes: z.string().optional(),
 });
 export type ProjectRunConfig = z.infer<typeof ProjectRunConfigSchema>;
 
