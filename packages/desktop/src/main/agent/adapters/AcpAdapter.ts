@@ -795,6 +795,12 @@ function isExternalWebToolName(name: string): boolean {
     normalized.includes("websearch") ||
     normalized.includes("web search") ||
     normalized.includes("web_search") ||
+    normalized.includes("webfetch") ||
+    normalized.includes("web fetch") ||
+    normalized.includes("web_fetch") ||
+    normalized.includes("web-fetch") ||
+    normalized.includes("fetch_url") ||
+    normalized.includes("url_fetch") ||
     normalized.includes("search_query") ||
     normalized.includes("open page") ||
     normalized.includes("open_page") ||
@@ -825,6 +831,8 @@ function isGenericBrowserAction(name: string): boolean {
     normalized === "open" ||
     normalized === "open_page" ||
     normalized === "openpage" ||
+    normalized === "fetch" ||
+    normalized === "goto" ||
     normalized === "click" ||
     normalized === "find" ||
     normalized === "screenshot" ||
