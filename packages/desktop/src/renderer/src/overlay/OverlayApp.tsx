@@ -116,7 +116,7 @@ function TooltipView({ descriptor }: { descriptor: OverlayTooltipDescriptor }) {
     <div
       ref={ref}
       role="tooltip"
-      className="pointer-events-none fixed z-50 inline-flex w-fit max-w-xs items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs text-background shadow-md"
+      className="pointer-events-none fixed z-50 inline-flex w-fit max-w-xs items-center gap-1.5 rounded-md bg-muted/95 px-3 py-1.5 text-xs text-foreground shadow-md ring-1 ring-border/80 backdrop-blur-sm"
       style={{ left: pos?.left ?? -9999, top: pos?.top ?? -9999 }}
     >
       {text}

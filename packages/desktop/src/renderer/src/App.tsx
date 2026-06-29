@@ -785,11 +785,9 @@ export function App() {
           tab={active.tab}
           isMock={isMock}
           contentRef={contentRef}
-          split={effectiveSplit}
           onOpen={(url) => openBrowserTab(url, pane)}
           onNavigate={navigateBrowserTab}
           onRefresh={refreshBrowserTab}
-          onToggleSplit={toggleSplit}
         />
       );
     }
@@ -811,8 +809,6 @@ export function App() {
         <PaneToolbar
           kind={tab.kind}
           title={tab.title}
-          split={effectiveSplit}
-          onToggleSplit={toggleSplit}
           onClose={() => closeWorkspaceTab(tab.id)}
           onOpenAgentSettings={
             tab.kind === "agent" ? () => openSettings("agent") : undefined

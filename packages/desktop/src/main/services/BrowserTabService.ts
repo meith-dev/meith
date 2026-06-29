@@ -22,6 +22,12 @@ export interface BrowserTabServiceOptions {
   host?: BrowserViewHost;
   /** Where screenshots are persisted. */
   artifacts?: ArtifactStore;
+  /**
+   * Upper bound for DOM extraction in `getBrowserState`. Guards against pages
+   * or renderer states that never settle and would otherwise leave a tool call
+   * stuck in "running".
+   */
+  browserStateTimeoutMs?: number;
 }
 
 /** Raised when a tab is controlled by another automation owner. */
@@ -72,6 +78,7 @@ export interface ControlContext {
 export class BrowserTabService {
   private readonly host: BrowserViewHost;
   private readonly artifacts?: ArtifactStore;
+  private readonly browserStateTimeoutMs: number;
 
   constructor(
     private readonly appState: AppStateService,
@@ -80,6 +87,7 @@ export class BrowserTabService {
   ) {
     this.host = options.host ?? new HeadlessBrowserViewHost();
     this.artifacts = options.artifacts;
+    this.browserStateTimeoutMs = Math.max(1, options.browserStateTimeoutMs ?? 10_000);
 
     // Merge live navigation updates back into the persisted tab record.
     this.host.onNavStateChanged((tabId, nav) => this.applyNavState(tabId, nav));
@@ -428,7 +436,11 @@ export class BrowserTabService {
   async getBrowserState(id: string): Promise<BrowserState> {
     const tab = this.requireTab(id);
     await this.ensureView(tab);
-    const state = await this.host.getBrowserState(id);
+    const state = await withTimeout(
+      this.host.getBrowserState(id),
+      this.browserStateTimeoutMs,
+      `Timed out extracting browser state for tab ${id}`,
+    );
     if (!state) throw new Error(`No live view for tab ${id}`);
     return { tabId: id, ...state };
   }
@@ -640,4 +652,24 @@ export class BrowserTabService {
       if (nav.canGoForward !== undefined) t.canGoForward = nav.canGoForward;
     }, "browser_nav_state");
   }
+}
+
+function withTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+    operation.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
 }

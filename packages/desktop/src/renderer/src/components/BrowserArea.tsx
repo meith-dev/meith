@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BrowserTab } from "@meith/shared";
-import { Columns2Icon, LockIcon, PlusIcon, RotateCwIcon } from "lucide-react";
+import { LockIcon, PlusIcon, RotateCwIcon } from "lucide-react";
 import { type FormEvent, type RefObject, useEffect, useState } from "react";
 
 interface BrowserAreaProps {
@@ -11,12 +10,9 @@ interface BrowserAreaProps {
   tab: BrowserTab | null;
   isMock: boolean;
   contentRef: RefObject<HTMLDivElement | null>;
-  /** Whether the browser is currently shown beside a workspace surface. */
-  split: boolean;
   onOpen: (url: string) => void;
   onNavigate: (url: string) => void;
   onRefresh: (id: string) => void;
-  onToggleSplit: () => void;
 }
 
 /**
@@ -30,11 +26,9 @@ export function BrowserArea({
   tab,
   isMock,
   contentRef,
-  split,
   onOpen,
   onNavigate,
   onRefresh,
-  onToggleSplit,
 }: BrowserAreaProps) {
   const [address, setAddress] = useState(tab?.url ?? "");
 
@@ -80,28 +74,6 @@ export function BrowserArea({
               className="h-8 pl-8 font-mono text-xs"
             />
           </div>
-          <span className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">
-            {tab.loadState}
-          </span>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  type="button"
-                  variant={split ? "secondary" : "ghost"}
-                  size="icon"
-                  className="size-7 shrink-0"
-                  onClick={onToggleSplit}
-                  aria-label={split ? "Close split view" : "Split with workspace"}
-                >
-                  <Columns2Icon />
-                </Button>
-              }
-            />
-            <TooltipContent>
-              {split ? "Close split" : "Split with workspace"}
-            </TooltipContent>
-          </Tooltip>
         </form>
       )}
 

@@ -46,7 +46,7 @@ export function Hero() {
         </div>
 
         {/* Workbench mockup */}
-        <div className="relative mx-auto mt-16 max-w-5xl">
+        <div className="relative mx-auto mt-16 max-w-6xl">
           <WorkbenchMockup />
         </div>
       </div>

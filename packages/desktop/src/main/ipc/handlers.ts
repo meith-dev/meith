@@ -1,8 +1,12 @@
 import type { MeithPluginIdentity } from "@meith/protocol";
-import { type ToolContext, errorResult } from "@meith/shared";
+import { type AgentConfig, type ToolContext, errorResult } from "@meith/shared";
 import { type BrowserWindow, dialog, ipcMain } from "electron";
 import type { ServiceContainer } from "../bootstrap.js";
 import { PluginError } from "../services/PluginHostService.js";
+
+type AgentProbeOverride = Partial<Pick<AgentConfig, "acpPreset" | "command" | "args">> & {
+  force?: boolean;
+};
 
 /**
  * IPC channel names shared with the preload bridge. Keep in sync with
@@ -43,6 +47,8 @@ export const IPC = {
   agentDeleteSession: "meith:agent:session:delete",
   /** Renderer -> main (invoke): start a run (returns when the turn ends). */
   agentSendMessage: "meith:agent:message:send",
+  /** Renderer -> main (invoke): stage a dropped/pasted attachment for a session. */
+  agentStageAttachment: "meith:agent:attachment:stage",
   /** Renderer -> main (invoke): cancel a running session. */
   agentCancel: "meith:agent:cancel",
   /** Renderer -> main (invoke): resolve a pending permission request. */
@@ -175,14 +181,29 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.agentDeleteSession, (_e, id: string) =>
     container.agents.deleteSession(id),
   );
-  ipcMain.handle(IPC.agentSendMessage, async (_e, sessionId: string, text?: string) => {
-    // Drain the run to completion; chunks are pushed via IPC.agentChunk as
-    // they arrive. Returns the final session so the renderer can reconcile.
-    for await (const _chunk of container.agents.run(sessionId, text)) {
-      void _chunk;
-    }
-    return container.agents.getSession(sessionId) ?? null;
-  });
+  ipcMain.handle(
+    IPC.agentSendMessage,
+    async (
+      _e,
+      sessionId: string,
+      input?: string | { text?: string; attachments?: unknown[] },
+    ) => {
+      // Drain the run to completion; chunks are pushed via IPC.agentChunk as
+      // they arrive. Returns the final session so the renderer can reconcile.
+      for await (const _chunk of container.agents.run(
+        sessionId,
+        input as Parameters<typeof container.agents.run>[1],
+      )) {
+        void _chunk;
+      }
+      return container.agents.getSession(sessionId) ?? null;
+    },
+  );
+  ipcMain.handle(
+    IPC.agentStageAttachment,
+    (_e, sessionId: string, input: Record<string, unknown>) =>
+      container.agents.stageAttachment(sessionId, input),
+  );
   ipcMain.handle(IPC.agentCancel, (_e, id: string) => {
     container.agents.cancel(id);
     return true;
@@ -209,10 +230,8 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.agentSetConfig, (_e, patch: Record<string, unknown>) =>
     container.agents.setConfig(patch),
   );
-  ipcMain.handle(
-    IPC.agentProbe,
-    (_e, override?: { acpPreset?: string; command?: string; args?: string[] }) =>
-      container.agents.probeAgent(override as never),
+  ipcMain.handle(IPC.agentProbe, (_e, override?: AgentProbeOverride) =>
+    container.agents.probeAgent(override),
   );
   ipcMain.handle(
     IPC.agentSetSessionModel,

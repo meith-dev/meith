@@ -196,6 +196,7 @@ export function createBrowserTools(deps: ToolDeps): ToolDefinition[] {
     description:
       "Extract a browser tab's interactable elements (with stable ids), plus url/title/viewport. Use the returned element ids with click_element and type_text.",
     capabilities: ["read-only", "controls-browser"],
+    timeoutMs: 20_000,
     inputSchema: z.object({ tabId: z.string() }),
     execute: (_ctx, input) => deps.browserTabs.getBrowserState(input.tabId),
   });

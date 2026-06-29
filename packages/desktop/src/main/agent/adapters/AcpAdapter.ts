@@ -155,9 +155,9 @@ export class AcpAdapter implements AgentAdapter {
 
     const meithToolNames = new Set(host.listTools().map((tool) => tool.name));
     const meithToolCallIds = new Set<string>();
-    // The ACP peer can ask the client to approve provider-side tools. Meith
-    // tools are exposed through the MCP server named "meith"; everything else
-    // must be denied so provider-native helpers cannot bypass the registry.
+    // The ACP peer can ask the client to approve provider-side tools. Prefer
+    // Meith MCP tools, and deny external web/browsing/search tools so web work
+    // is routed through Meith browser tools without cancelling the whole turn.
     rpc.onRequest((method, params) => {
       if (method === "session/request_permission") {
         return {
@@ -562,8 +562,15 @@ export function selectAcpPermissionOption(
     throw new Error("ACP permission request for a Meith tool had no allow option");
   }
 
+  if (isExternalWebPermissionRequest(params, meithToolNames, meithToolCallIds)) {
+    if (deny) return deny.optionId;
+    if (allow) return allow.optionId;
+    throw new Error("ACP web-tool permission request had no allow or deny option");
+  }
+
+  if (allow) return allow.optionId;
   if (deny) return deny.optionId;
-  throw new Error("Denied non-Meith ACP tool request without a deny option");
+  throw new Error("ACP permission request had no allow or deny option");
 }
 
 function toPermissionOptions(value: unknown): AcpPermissionOption[] {
@@ -610,10 +617,22 @@ function isMeithPermissionRequest(
   meithToolCallIds: ReadonlySet<string> = new Set(),
 ): boolean {
   if (hasKnownMeithToolCallId(params, meithToolCallIds)) return true;
-  const names = collectStrings(params)
+  const markers = collectToolMarkers(params);
+  const serverNames = markers
+    .filter((marker) => isServerMarkerKey(marker.key))
+    .map((marker) => marker.value);
+  if (serverNames.some(isMeithServerName)) return true;
+  if (serverNames.some((name) => !isMeithServerName(name))) return false;
+
+  const names = markers
+    .filter((marker) => marker.key !== "toolCallId" && marker.key !== "tool_call_id")
+    .map((marker) => marker.value)
+    .concat(collectStrings(params))
     .map((value) => value.trim())
     .filter(Boolean);
-  return names.some((name) => isMeithToolName(name, meithToolNames));
+  return names.some(
+    (name) => isMeithToolName(name, meithToolNames) || isMeithServerName(name),
+  );
 }
 
 function isMeithToolName(name: string, meithToolNames: ReadonlySet<string>): boolean {
@@ -678,6 +697,151 @@ function hasKnownMeithToolCallId(
   return false;
 }
 
+interface ToolMarker {
+  key: string;
+  value: string;
+}
+
+function isExternalWebPermissionRequest(
+  params: unknown,
+  meithToolNames: ReadonlySet<string>,
+  meithToolCallIds: ReadonlySet<string> = new Set(),
+): boolean {
+  if (isMeithPermissionRequest(params, meithToolNames, meithToolCallIds)) {
+    return false;
+  }
+  const markers = collectToolMarkers(params);
+  if (markers.length === 0) return false;
+
+  const hasExternalWebServer = markers
+    .filter((marker) => isServerMarkerKey(marker.key))
+    .some((marker) => isExternalWebServerName(marker.value));
+
+  const hasExternalWebToolName = markers
+    .filter((marker) => isToolIdentityMarkerKey(marker.key))
+    .some((marker) => isExternalWebToolName(marker.value));
+
+  const hasGenericWebAction = markers
+    .filter((marker) => isToolIdentityMarkerKey(marker.key))
+    .some((marker) => isGenericBrowserAction(marker.value));
+
+  return hasExternalWebToolName || (hasExternalWebServer && hasGenericWebAction);
+}
+
+function collectToolMarkers(value: unknown, seen = new WeakSet<object>()): ToolMarker[] {
+  if (!value || typeof value !== "object") return [];
+  if (seen.has(value)) return [];
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectToolMarkers(item, seen));
+  }
+
+  const markers: ToolMarker[] = [];
+  const record = value as Record<string, unknown>;
+  for (const [key, child] of Object.entries(record)) {
+    if (typeof child === "string" && isToolMarkerKey(key)) {
+      markers.push({ key, value: child });
+    }
+    markers.push(...collectToolMarkers(child, seen));
+  }
+  return markers;
+}
+
+function isToolMarkerKey(key: string): boolean {
+  return (
+    isServerMarkerKey(key) ||
+    isToolIdentityMarkerKey(key) ||
+    key === "toolCallId" ||
+    key === "tool_call_id" ||
+    key === "callId"
+  );
+}
+
+function isServerMarkerKey(key: string): boolean {
+  return (
+    key === "server" ||
+    key === "serverName" ||
+    key === "mcpServer" ||
+    key === "mcpServerName" ||
+    key === "namespace"
+  );
+}
+
+function isToolIdentityMarkerKey(key: string): boolean {
+  return (
+    key === "tool" ||
+    key === "toolName" ||
+    key === "name" ||
+    key === "title" ||
+    key === "method" ||
+    key === "action"
+  );
+}
+
+function isMeithServerName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  return (
+    normalized === "meith" ||
+    normalized === "mcp.meith" ||
+    normalized === "mcp/meith" ||
+    normalized === "mcp__meith"
+  );
+}
+
+function isExternalWebToolName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  return (
+    normalized.includes("websearch") ||
+    normalized.includes("web search") ||
+    normalized.includes("web_search") ||
+    normalized.includes("webfetch") ||
+    normalized.includes("web fetch") ||
+    normalized.includes("web_fetch") ||
+    normalized.includes("web-fetch") ||
+    normalized.includes("fetch_url") ||
+    normalized.includes("url_fetch") ||
+    normalized.includes("search_query") ||
+    normalized.includes("open page") ||
+    normalized.includes("open_page") ||
+    normalized.includes("openpage") ||
+    normalized.includes("browser_eval") ||
+    normalized.includes("browser_") ||
+    normalized.includes("_browser") ||
+    normalized.includes("agent-browser") ||
+    normalized.includes("playwright") ||
+    normalized.includes("cdp_command")
+  );
+}
+
+function isExternalWebServerName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  if (isMeithServerName(normalized)) return false;
+  return (
+    normalized.includes("web") ||
+    normalized.includes("browser") ||
+    normalized.includes("playwright") ||
+    normalized.includes("devtools")
+  );
+}
+
+function isGenericBrowserAction(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  return (
+    normalized === "open" ||
+    normalized === "open_page" ||
+    normalized === "openpage" ||
+    normalized === "fetch" ||
+    normalized === "goto" ||
+    normalized === "click" ||
+    normalized === "find" ||
+    normalized === "screenshot" ||
+    normalized === "search" ||
+    normalized === "search_query" ||
+    normalized === "navigate"
+  );
+}
+
 function collectStrings(value: unknown, seen = new WeakSet<object>()): string[] {
   if (typeof value === "string") return [value];
   if (!value || typeof value !== "object") return [];
@@ -705,9 +869,14 @@ function renderTranscript(transcript: AgentMessage[] | string): {
 
   const messages = transcript.filter((message) => {
     if (message.role === "assistant" && !message.content.trim() && !message.error) {
-      return Boolean(message.toolCalls?.length);
+      return Boolean(message.toolCalls?.length || message.attachments?.length);
     }
-    return Boolean(message.content.trim() || message.error || message.toolCalls?.length);
+    return Boolean(
+      message.content.trim() ||
+        message.error ||
+        message.toolCalls?.length ||
+        message.attachments?.length,
+    );
   });
   const currentUserIndex = findLastUserIndex(messages);
   if (currentUserIndex < 0) {
@@ -715,7 +884,7 @@ function renderTranscript(transcript: AgentMessage[] | string): {
   }
   return {
     history: formatMessagesForPrompt(messages.slice(0, currentUserIndex)),
-    currentUser: messages[currentUserIndex]?.content.trim() ?? "",
+    currentUser: formatMessageBody(messages[currentUserIndex] as AgentMessage),
   };
 }
 
@@ -730,19 +899,38 @@ function formatMessagesForPrompt(messages: AgentMessage[]): string {
   return messages
     .map((message) => {
       const role = message.role.toUpperCase();
-      const parts: string[] = [];
-      const content = message.content.trim();
-      if (content) parts.push(content);
-      if (message.error) parts.push(`[error: ${message.error}]`);
-      if (message.toolCalls?.length) {
-        const calls = message.toolCalls
-          .map((call) => `${call.name} (${call.status})`)
-          .join(", ");
-        parts.push(`[tool calls: ${calls}]`);
-      }
-      return `${role}: ${parts.join("\n")}`;
+      return `${role}: ${formatMessageBody(message)}`;
     })
     .join("\n\n");
+}
+
+function formatMessageBody(message: AgentMessage): string {
+  const parts: string[] = [];
+  const content = message.content.trim();
+  if (content) parts.push(content);
+  if (message.attachments?.length) {
+    const files = message.attachments.map((attachment) => {
+      const details = [
+        attachment.kind,
+        attachment.mimeType,
+        typeof attachment.sizeBytes === "number"
+          ? `${attachment.sizeBytes.toLocaleString()} bytes`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      return `- ${attachment.name} (${details || "file"}) at ${attachment.path}`;
+    });
+    parts.push(["Attached files:", ...files].join("\n"));
+  }
+  if (message.error) parts.push(`[error: ${message.error}]`);
+  if (message.toolCalls?.length) {
+    const calls = message.toolCalls
+      .map((call) => `${call.name} (${call.status})`)
+      .join(", ");
+    parts.push(`[tool calls: ${calls}]`);
+  }
+  return parts.join("\n");
 }
 
 /** Map an ACP `session/update` notification payload to an AgentStreamChunk. */

@@ -1,4 +1,5 @@
 import type {
+  AgentAttachment,
   AgentConfig,
   AgentConfigOption,
   AgentMessage,
@@ -82,7 +83,10 @@ export interface UseAgent {
   selectSession: (id: string) => Promise<void>;
   createSession: () => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
-  send: (text: string) => Promise<void>;
+  send: (input: { text?: string; attachments?: AgentAttachment[] }) => Promise<void>;
+  stageAttachment: (
+    input: Parameters<MeithBridge["agent"]["stageAttachment"]>[1],
+  ) => Promise<AgentAttachment>;
   cancel: () => Promise<void>;
   decide: (
     req: AgentPermissionRequest,
@@ -410,22 +414,26 @@ export function useAgent(
   );
 
   const send = useCallback(
-    async (text: string) => {
+    async (input: { text?: string; attachments?: AgentAttachment[] }) => {
       const id = activeIdRef.current;
-      if (!id || !text.trim()) return;
+      const text = input.text?.trim() ?? "";
+      const attachments = input.attachments ?? [];
+      if (!id || (!text && attachments.length === 0)) return;
       setBusy(true);
       setStreaming("");
       streamingBySessionRef.current.delete(id);
       const createdAt = Date.now();
       // Optimistic user bubble; replaced by the authoritative final session.
       setSession((prev) =>
-        prev ? optimisticSessionForPrompt(prev, text, createdAt) : prev,
+        prev ? optimisticSessionForPrompt(prev, { text, attachments }, createdAt) : prev,
       );
       setSessions((prev) => {
         const current = prev.find((meta) => meta.id === id);
         if (!current) return prev;
+        const titleSeed = text || attachments[0]?.name || "";
         const title =
-          isDefaultAgentSessionTitle(current.title) && summarizeAgentSessionTitle(text);
+          isDefaultAgentSessionTitle(current.title) &&
+          summarizeAgentSessionTitle(titleSeed);
         return upsertMeta(prev, {
           ...current,
           title: title || current.title,
@@ -434,7 +442,7 @@ export function useAgent(
         });
       });
       try {
-        const final = await bridge.agent.sendMessage(id, text);
+        const final = await bridge.agent.sendMessage(id, { text, attachments });
         if (final && final.id === activeIdRef.current) {
           setSession(final);
           setSessions((prev) => upsertMeta(prev, stripMessages(final)));
@@ -447,6 +455,15 @@ export function useAgent(
       }
     },
     [bridge, markSessionViewed],
+  );
+
+  const stageAttachment = useCallback(
+    async (input: Parameters<MeithBridge["agent"]["stageAttachment"]>[1]) => {
+      const id = activeIdRef.current;
+      if (!id) throw new Error("No active session.");
+      return bridge.agent.stageAttachment(id, input);
+    },
+    [bridge],
   );
 
   const cancel = useCallback(async () => {
@@ -513,6 +530,7 @@ export function useAgent(
     createSession,
     deleteSession,
     send,
+    stageAttachment,
     cancel,
     decide,
     saveConfig,
@@ -522,11 +540,14 @@ export function useAgent(
 
 function optimisticSessionForPrompt(
   session: AgentSession,
-  text: string,
+  input: { text?: string; attachments?: AgentAttachment[] },
   createdAt: number,
 ): AgentSession {
+  const text = input.text?.trim() ?? "";
+  const attachments = input.attachments ?? [];
+  const titleSeed = text || attachments[0]?.name || "";
   const title =
-    isDefaultAgentSessionTitle(session.title) && summarizeAgentSessionTitle(text);
+    isDefaultAgentSessionTitle(session.title) && summarizeAgentSessionTitle(titleSeed);
   return {
     ...session,
     title: title || session.title,
@@ -538,6 +559,7 @@ function optimisticSessionForPrompt(
         id: `optimistic-${createdAt}`,
         role: "user" as const,
         content: text,
+        attachments: attachments.length ? attachments : undefined,
         createdAt,
       },
     ],

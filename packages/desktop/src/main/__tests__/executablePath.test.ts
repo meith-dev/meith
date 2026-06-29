@@ -17,9 +17,11 @@ afterEach(() => {
 
 describe("desktop executable PATH", () => {
   it("adds login-shell and standard macOS CLI locations to a minimal app env", () => {
+    const cwd = mkTmpHome();
     const path = buildDesktopExecutablePath({
       env: { PATH: "/usr/bin:/bin" },
       platform: "darwin",
+      cwd,
       loginShellPath: "/Users/me/.nvm/versions/node/v22.0.0/bin:/opt/homebrew/bin",
     });
 
@@ -36,6 +38,7 @@ describe("desktop executable PATH", () => {
 
   it("discovers common Node version-manager bins from the user home", () => {
     const home = mkTmpHome();
+    const cwd = mkTmpHome();
     mkdirSync(join(home, ".nvm", "versions", "node", "v22.12.0", "bin"), {
       recursive: true,
     });
@@ -48,6 +51,7 @@ describe("desktop executable PATH", () => {
       env: { PATH: "" },
       home,
       platform: "darwin",
+      cwd,
       loginShellPath: "",
     }).split(":");
 
@@ -59,9 +63,11 @@ describe("desktop executable PATH", () => {
   });
 
   it("deduplicates path entries while preserving first occurrence order", () => {
+    const cwd = mkTmpHome();
     const path = buildDesktopExecutablePath({
       env: { PATH: "/bin:/usr/bin:/bin" },
       platform: "darwin",
+      cwd,
       loginShellPath: "/usr/bin:/opt/homebrew/bin",
     });
 

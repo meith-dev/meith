@@ -39,6 +39,7 @@ const IPC = {
   agentCreateSession: "meith:agent:session:create",
   agentDeleteSession: "meith:agent:session:delete",
   agentSendMessage: "meith:agent:message:send",
+  agentStageAttachment: "meith:agent:attachment:stage",
   agentCancel: "meith:agent:cancel",
   agentPermissionDecision: "meith:agent:permission:decision",
   agentGetConfig: "meith:agent:config:get",
@@ -146,8 +147,10 @@ const api: MeithBridge = {
     getSession: (id) => ipcRenderer.invoke(IPC.agentGetSession, id),
     createSession: (input) => ipcRenderer.invoke(IPC.agentCreateSession, input),
     deleteSession: (id) => ipcRenderer.invoke(IPC.agentDeleteSession, id),
-    sendMessage: (sessionId, text) =>
-      ipcRenderer.invoke(IPC.agentSendMessage, sessionId, text),
+    sendMessage: (sessionId, input) =>
+      ipcRenderer.invoke(IPC.agentSendMessage, sessionId, input),
+    stageAttachment: (sessionId, input) =>
+      ipcRenderer.invoke(IPC.agentStageAttachment, sessionId, input),
     cancel: (sessionId) => ipcRenderer.invoke(IPC.agentCancel, sessionId),
     decide: (decision) => ipcRenderer.invoke(IPC.agentPermissionDecision, decision),
     getConfig: () => ipcRenderer.invoke(IPC.agentGetConfig),

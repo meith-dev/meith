@@ -172,8 +172,7 @@ export function TerminalView({ tab, bridge, call }: TerminalViewProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#1a1714]">
-      <div className="flex items-center justify-between border-b border-border/60 px-3 py-1.5">
-        <span className="text-xs font-medium text-muted-foreground">Terminal</span>
+      <div className="flex items-center justify-end border-b border-border/60 px-3 py-1.5">
         <span
           className="text-[10px] uppercase tracking-wide text-muted-foreground/70"
           data-status={status}

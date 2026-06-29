@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ElementNotFoundError } from "../browser/BrowserViewHost.js";
+import { HeadlessBrowserViewHost } from "../browser/HeadlessBrowserViewHost.js";
 import { AppStateService } from "../services/AppStateService.js";
 import {
   BrowserTabService,
@@ -231,5 +232,25 @@ describe("BrowserTabService automation & diagnostics", () => {
         requireClaim: true,
       }),
     ).resolves.toBeUndefined();
+  });
+
+  it("times out stalled browser-state extraction", async () => {
+    class HangingBrowserStateHost extends HeadlessBrowserViewHost {
+      override async getBrowserState(): Promise<never> {
+        return new Promise(() => {});
+      }
+    }
+
+    const dir = mkdtempSync(join(tmpdir(), "meith-browser-timeout-"));
+    const appState = new AppStateService(join(dir, "state.json"), new Logger(), 0);
+    const service = new BrowserTabService(appState, new Logger(), {
+      host: new HangingBrowserStateHost(),
+      browserStateTimeoutMs: 20,
+    });
+    const tab = await service.openBrowserTab({ url: "https://a.test" });
+
+    await expect(service.getBrowserState(tab.id)).rejects.toThrow(
+      "Timed out extracting browser state",
+    );
   });
 });

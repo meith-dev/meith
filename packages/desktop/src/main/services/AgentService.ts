@@ -1,6 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
+import { copyFileSync, mkdirSync, statSync, writeFileSync } from "node:fs";
+import { basename, extname, join } from "node:path";
 import type { ToolDescriptor } from "@meith/protocol";
 import {
+  type AgentAttachment,
   type AgentConfig,
   type AgentMessage,
   type AgentPermissionDecision,
@@ -55,6 +59,20 @@ export interface AgentServiceOptions {
 export type CreateSessionInput =
   | string
   | { cwd: string; spaceId?: string | null; title?: string; model?: string };
+
+export interface StageAttachmentInput {
+  name?: string;
+  mimeType?: string;
+  sourcePath?: string;
+  dataBase64?: string;
+}
+
+export type AgentRunInput =
+  | string
+  | {
+      text?: string;
+      attachments?: AgentAttachment[];
+    };
 
 interface PendingPermission {
   resolve: (decision: AgentPermissionDecision) => void;
@@ -286,12 +304,14 @@ export class AgentService extends EventEmitter {
     sessionId: string,
     role: AgentMessage["role"],
     content: string,
+    options?: { attachments?: AgentAttachment[] },
   ): AgentMessage {
     const session = this.requireSession(sessionId, "full");
     const message: AgentMessage = {
       id: newMessageId(),
       role,
       content,
+      attachments: options?.attachments,
       createdAt: Date.now(),
     };
     session.messages.push(message);
@@ -299,6 +319,49 @@ export class AgentService extends EventEmitter {
     this.options.store?.appendMessage(sessionId, message);
     this.persistMeta(session);
     return message;
+  }
+
+  /**
+   * Stage a dropped/pasted file into `<session.cwd>/.meith/attachments` so the
+   * agent can reference it in tools constrained to the session workspace.
+   */
+  stageAttachment(sessionId: string, input: StageAttachmentInput): AgentAttachment {
+    const session = this.requireSession(sessionId, "display");
+    const sourcePath = input.sourcePath?.trim() || undefined;
+    const dataBase64 = input.dataBase64?.trim() || undefined;
+    if (!sourcePath && !dataBase64) {
+      throw new Error("Attachment requires sourcePath or dataBase64.");
+    }
+
+    const sourceName = sourcePath ? basename(sourcePath) : "attachment";
+    const requestedName = input.name?.trim() || sourceName;
+    const safeName = sanitizeAttachmentName(requestedName);
+    const attachmentsDir = join(session.cwd, ".meith", "attachments");
+    mkdirSync(attachmentsDir, { recursive: true });
+
+    const ext = extname(safeName);
+    const stem = ext ? safeName.slice(0, -ext.length) : safeName;
+    const unique = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
+    const targetName = ext ? `${stem}-${unique}${ext}` : `${stem}-${unique}`;
+    const targetPath = join(attachmentsDir, targetName);
+
+    if (sourcePath) {
+      copyFileSync(sourcePath, targetPath);
+    } else if (dataBase64) {
+      const data = Buffer.from(dataBase64, "base64");
+      writeFileSync(targetPath, data);
+    }
+
+    const sizeBytes = statSync(targetPath).size;
+    return {
+      id: `att_${randomUUID().slice(0, 10)}`,
+      name: safeName,
+      path: targetPath,
+      kind: inferAttachmentKind(input.mimeType, safeName),
+      mimeType: input.mimeType?.trim() || undefined,
+      sizeBytes,
+      createdAt: Date.now(),
+    };
   }
 
   // --- Permissions ---------------------------------------------------------
@@ -456,11 +519,11 @@ export class AgentService extends EventEmitter {
 
   /**
    * Run a session through the registered adapter, streaming chunks. If
-   * `userText` is provided it is appended as a user message first. Chunks are
+   * user input is provided it is appended as a user message first. Chunks are
    * also emitted as `chunk` events for the IPC layer; the transcript is
    * persisted as the turn progresses.
    */
-  async *run(sessionId: string, userText?: string): AsyncIterable<AgentStreamChunk> {
+  async *run(sessionId: string, input?: AgentRunInput): AsyncIterable<AgentStreamChunk> {
     const session = this.requireSession(sessionId, "full");
     if (!this.adapter) {
       throw new Error(
@@ -470,9 +533,12 @@ export class AgentService extends EventEmitter {
     if (session.status === "running" || this.controllers.has(sessionId)) {
       throw new Error(`Agent session is already running: ${sessionId}`);
     }
-    if (userText !== undefined) {
-      this.appendMessage(sessionId, "user", userText);
-      this.applyAutoTitle(session, userText);
+    const userInput = normalizeRunInput(input);
+    if (userInput) {
+      this.appendMessage(sessionId, "user", userInput.text, {
+        attachments: userInput.attachments,
+      });
+      this.applyAutoTitle(session, userInput.titleSeed);
     }
 
     const controller = new AbortController();
@@ -502,11 +568,12 @@ export class AgentService extends EventEmitter {
         yield chunk;
         if (controller.signal.aborted) break;
       }
-      this.finalizeAssistant(session, assistant);
-      this.setStatus(session, controller.signal.aborted ? "cancelled" : "idle");
+      const finalStatus = controller.signal.aborted ? "cancelled" : "idle";
+      this.finalizeAssistant(session, assistant, finalStatus);
+      this.setStatus(session, finalStatus);
     } catch (err) {
       assistant.error = err instanceof Error ? err.message : String(err);
-      this.finalizeAssistant(session, assistant);
+      this.finalizeAssistant(session, assistant, "error");
       this.setStatus(session, "error");
       const chunk: AgentStreamChunk = { type: "error", message: assistant.error };
       this.emit("chunk", { sessionId, chunk });
@@ -588,7 +655,11 @@ export class AgentService extends EventEmitter {
     session.updatedAt = Date.now();
   }
 
-  private finalizeAssistant(session: AgentSession, assistant: AgentMessage): void {
+  private finalizeAssistant(
+    session: AgentSession,
+    assistant: AgentMessage,
+    outcome: "idle" | "cancelled" | "error",
+  ): void {
     // Drop a fully-empty assistant message (e.g. immediate cancel).
     if (
       !assistant.content &&
@@ -599,7 +670,25 @@ export class AgentService extends EventEmitter {
       this.persistedAssistantContentLength.delete(assistant.id);
       return;
     }
+
+    const incompleteCalls: AgentToolCall[] = [];
+    for (const call of assistant.toolCalls ?? []) {
+      if (call.status !== "running" && call.status !== "pending") continue;
+      call.status = outcome === "cancelled" ? "cancelled" : "error";
+      call.endedAt = Date.now();
+      if (!call.result) {
+        call.result = errorResult(
+          "TOOL_FAILED",
+          outcome === "cancelled"
+            ? `Tool "${call.name}" was cancelled before a result was received.`
+            : `Tool "${call.name}" ended without returning a result.`,
+        );
+      }
+      incompleteCalls.push(call);
+    }
+
     this.persistAssistantPatch(session, assistant, {
+      ...(incompleteCalls.length > 0 ? { toolCalls: incompleteCalls } : {}),
       usage: assistant.usage,
       error: assistant.error,
     });
@@ -766,6 +855,51 @@ export class AgentService extends EventEmitter {
     this.options.store?.flush();
     this.options.configStore?.flush();
   }
+}
+
+function normalizeRunInput(
+  input?: AgentRunInput,
+): { text: string; titleSeed: string; attachments?: AgentAttachment[] } | null {
+  if (input === undefined) return null;
+  if (typeof input === "string") {
+    const text = input.trim();
+    return text ? { text, titleSeed: text } : null;
+  }
+  const rawText = input.text?.trim() ?? "";
+  const attachments = (input.attachments ?? []).filter((attachment) =>
+    Boolean(attachment.path),
+  );
+  if (!rawText && attachments.length === 0) return null;
+  return {
+    text: rawText,
+    titleSeed: rawText || attachments[0]?.name || "Attachment",
+    attachments: attachments.length ? attachments : undefined,
+  };
+}
+
+function sanitizeAttachmentName(name: string): string {
+  const cleaned = [...name]
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return code >= 32 && code !== 127;
+    })
+    .join("")
+    .replace(/[/\\]/g, "-")
+    .trim();
+  if (!cleaned) return "attachment";
+  return cleaned.slice(0, 120);
+}
+
+function inferAttachmentKind(
+  mimeType: string | undefined,
+  name: string,
+): AgentAttachment["kind"] {
+  const mime = mimeType?.toLowerCase() ?? "";
+  if (mime.startsWith("image/")) return "image";
+  const ext = extname(name).toLowerCase();
+  return [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"].includes(ext)
+    ? "image"
+    : "file";
 }
 
 function appendAssistantText(

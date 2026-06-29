@@ -3,9 +3,9 @@ packages:
   - "packages/*"
   - "templates/*"
 allowBuilds:
-  '@biomejs/biome': set this to true or false
-  electron: set this to true or false
-  esbuild: set this to true or false
-  msw: set this to true or false
-  node-pty: set this to true or false
-  sharp: set this to true or false
+  '@biomejs/biome': true
+  electron: true
+  esbuild: true
+  msw: true
+  node-pty: true
+  sharp: true
