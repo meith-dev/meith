@@ -5,40 +5,40 @@ import {
   ShieldCheck,
   TerminalSquare,
   Wrench,
-} from "lucide-react"
+} from "lucide-react";
 
 const features = [
   {
     icon: Wrench,
-    title: "Agent sessions that persist",
-    body: "meith keeps agent chats scoped to the workspace, with compact transcripts, generated session titles, model controls, and remembered approvals for trusted tools.",
+    title: "Project-aware agents",
+    body: "Keep agent chats tied to a project, with model controls, compact history, and approvals remembered for the session.",
   },
   {
     icon: TerminalSquare,
-    title: "Dev servers, built in",
-    body: "Start your dev server from the top bar, watch logs inside the workbench, and open detected localhost ports without leaving the desktop app.",
+    title: "Editor, terminal, browser",
+    body: "Open files, run commands, start dev servers, and keep the running app in the same window.",
   },
   {
     icon: Globe,
-    title: "Live preview & browsing",
-    body: "Preview the running app beside the chat. Agents can claim browser tabs before automation, so browser control stays attributed and conflicts are blocked.",
+    title: "A browser agents can use",
+    body: "Let an agent open pages, click, type, inspect the UI, read console output, and take screenshots.",
   },
   {
     icon: GitCompare,
-    title: "Fast reviewable diffs",
-    body: "The top bar shows cached working-tree totals, and the Diff tab groups changed files by folder while loading full patches only when you select a file.",
+    title: "Reviewable diffs",
+    body: "See working-tree counts and per-file patches before you keep a change.",
   },
   {
     icon: LayoutGrid,
-    title: "A space per project",
-    body: "Each space is one app. Switch from the rail and keep agent sessions, source files, terminals, browser tabs, and run commands scoped to that project.",
+    title: "Spaces for projects",
+    body: "Each project gets its own tabs, terminals, agents, browser state, and run commands.",
   },
   {
     icon: ShieldCheck,
-    title: "Permission where it matters",
-    body: "Writes, browser control, process starts, and destructive actions ask first. ACP provider-side approvals are narrowed to meith tools.",
+    title: "Permission gates",
+    body: "Writes, browser control, process starts, and destructive actions ask first.",
   },
-]
+];
 
 export function Features() {
   return (
@@ -46,12 +46,12 @@ export function Features() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-            A workbench, not a chat box
+            More than a coding agent
           </h2>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            Everything you need to build a web app with AI: project files,
-            persistent agent sessions, dev-server logs, localhost preview, and
-            fast reviewable diffs in one desktop app.
+            Codex and Claude Code can write code. meith gives them the rest of the loop:
+            files, terminal, a browser they can control, logs, diffs, and permissions in
+            one desktop app.
           </p>
         </div>
 
@@ -70,5 +70,5 @@ export function Features() {
         </div>
       </div>
     </section>
-  )
+  );
 }

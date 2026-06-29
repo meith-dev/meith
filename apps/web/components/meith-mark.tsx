@@ -1,9 +1,9 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 /**
  * Meith brand mark.
  *
- * A "meitheal" — several workers gathering around one shared structure.
+ * A "meitheal": several workers gathering around one shared structure.
  * Three outer nodes (the renderer, the CLI, the agent) connect inward to a
  * single central hub (the tool registry) that does the heavy lifting.
  */
@@ -29,7 +29,7 @@ export function MeithMark({ className }: { className?: string }) {
       <circle cx="16" cy="18.5" r="4.4" className="fill-primary" />
       <circle cx="16" cy="18.5" r="1.7" className="fill-primary-foreground" />
     </svg>
-  )
+  );
 }
 
 export function MeithWordmark({ className }: { className?: string }) {
@@ -38,5 +38,5 @@ export function MeithWordmark({ className }: { className?: string }) {
       <MeithMark className="size-6 text-foreground" />
       <span className="text-lg font-semibold tracking-tight">meith</span>
     </span>
-  )
+  );
 }

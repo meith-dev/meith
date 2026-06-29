@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s · meith docs",
   },
   description:
-    "Learn how to use meith — the desktop workspace where AI agents browse, read files, run tasks, and get real work done.",
+    "Learn how to use meith, the desktop workspace where AI agents browse, read files, run tasks, and get real work done.",
 };
 
 export default function DocsLayout({

@@ -1,7 +1,7 @@
-import Link from "next/link"
-import { ArrowRight, GitFork } from "lucide-react"
-import { MeithMark } from "@/components/meith-mark"
-import { siteConfig } from "@/lib/site"
+import { MeithMark } from "@/components/meith-mark";
+import { siteConfig } from "@/lib/site";
+import { ArrowRight, GitFork } from "lucide-react";
+import Link from "next/link";
 
 export function Cta() {
   return (
@@ -15,12 +15,11 @@ export function Cta() {
           <MeithMark className="size-7 text-foreground" />
         </div>
         <h2 className="mt-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-          Bring your next web app into one AI workbench.
+          Put your AI coding loop in one place.
         </h2>
         <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
-          Free and open source. Install meith and let the desktop app, CLI,
-          plugins, and agent sessions share the same project state — from first
-          edit to running preview and reviewable diff.
+          Free and open source. Use meith to give your agent the editor, terminal,
+          browser, logs, and diffs it needs to build and check the app.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -47,5 +46,5 @@ export function Cta() {
         </p>
       </div>
     </section>
-  )
+  );
 }
