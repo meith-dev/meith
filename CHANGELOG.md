@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/meith-dev/meith/compare/v0.2.1...v0.2.2) (2026-06-29)
+
+
+### Bug Fixes
+
+* bump node version and create folders required for build ([#15](https://github.com/meith-dev/meith/issues/15)) ([edd5f96](https://github.com/meith-dev/meith/commit/edd5f96e1a1c6c8d634572923924fe9eceea7016))
+
 ## [0.2.1](https://github.com/meith-dev/meith/compare/v0.2.0...v0.2.1) (2026-06-29)
 
 
