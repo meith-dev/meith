@@ -7,7 +7,7 @@ export const siteConfig = {
   name: "meith",
   tagline: "AI workbench for web apps.",
   description:
-    "A desktop workbench where AI agents share your project context, tools, preview, and permissions.",
+    "A desktop AI workbench where agents can edit code, run commands, use the browser, read logs, and show you the diff.",
   url: "https://meith.dev",
   repo: "https://github.com/meith-dev/meith",
   releases: "https://github.com/meith-dev/meith/releases",
@@ -20,6 +20,6 @@ export const siteConfig = {
     { label: "Docs", href: "/docs" },
     { label: "Developers", href: "/docs/developers" },
   ],
-} as const
+} as const;
 
-export type SiteConfig = typeof siteConfig
+export type SiteConfig = typeof siteConfig;

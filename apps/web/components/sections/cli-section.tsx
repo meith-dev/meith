@@ -1,6 +1,6 @@
-import Link from "next/link"
-import { ArrowRight } from "lucide-react"
-import { CodeBlock } from "@/components/code-block"
+import { CodeBlock } from "@/components/code-block";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 const cliExample = `# list the runtime's registered tools
 meith tools
@@ -12,7 +12,7 @@ meith open http://localhost:3000
 meith dev-servers
 
 # call any registered tool directly
-meith call app_health`
+meith call app_health`;
 
 export function CliSection() {
   return (
@@ -24,22 +24,18 @@ export function CliSection() {
               Same tools, from your shell
             </p>
             <h2 className="mt-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Drive the same workbench from your shell.
+              Use it from the terminal too.
             </h2>
             <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
-              The <span className="font-mono text-foreground">meith</span> CLI
-              discovers a running runtime over a local socket and calls the exact
-              same registry as the desktop app. Open preview tabs, inspect
-              managed dev servers, stream logs, capture screenshots, or invoke
-              any tool by name from your existing terminal workflow.
+              The <span className="font-mono text-foreground">meith</span> CLI talks to
+              the running desktop app over a local socket and calls the same tools. Open
+              preview tabs, inspect dev servers, stream logs, capture screenshots, or call
+              a tool by name.
             </p>
             <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
-              Packaged desktop builds include their own Node/npm/npx runtime
-              and a self-contained CLI bundle. Built-in ACP presets launch
-              through the bundled{" "}
-              <span className="font-mono text-foreground">npx</span>, so meith
-              does not depend on user-installed Node tooling when launched from
-              Finder.
+              Packaged desktop builds include their own Node/npm/npx runtime and CLI
+              bundle, so the app can launch built-in ACP presets without relying on your
+              global Node setup.
             </p>
             <Link
               href="/docs/cli"
@@ -50,9 +46,9 @@ export function CliSection() {
             </Link>
           </div>
 
-          <CodeBlock code={cliExample} label="meith — terminal" />
+          <CodeBlock code={cliExample} label="meith terminal" />
         </div>
       </div>
     </section>
-  )
+  );
 }

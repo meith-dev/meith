@@ -48,7 +48,7 @@ export function SiteFooter() {
               <span className="text-lg font-semibold tracking-tight">meith</span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-              From the Irish <span className="italic">meitheal</span> — a gathering where
+              From the Irish <span className="italic">meitheal</span>, a gathering where
               everyone pitches in. Free and open source.
             </p>
           </div>
