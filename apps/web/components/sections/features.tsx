@@ -36,7 +36,7 @@ const features = [
   {
     icon: ShieldCheck,
     title: "Permission gates",
-    body: "Writes, browser control, process starts, and destructive actions ask first.",
+    body: "Writes, browser control, process starts, and destructive actions ask first. Browser tabs cannot acquire OS permissions or open popups without your approval.",
   },
 ];
 
@@ -49,7 +49,7 @@ export function Features() {
             More than a coding agent
           </h2>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            Codex and Claude Code can write code. meith gives them the rest of the loop:
+            AI agents can write code. meith gives them the rest of the loop:
             files, terminal, a browser they can control, logs, diffs, and permissions in
             one desktop app.
           </p>
