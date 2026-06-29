@@ -1,4 +1,5 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
@@ -64,9 +65,16 @@ function acpSpawnEnv(
 
 function npmRuntimeEnv(): NodeJS.ProcessEnv {
   const home = process.env.MEITH_HOME ?? join(homedir(), ".meith");
+  const cacheDir = join(home, "npm-cache");
+  const prefixDir = join(home, "npm-prefix");
+  // Packaged builds may start with an empty ~/.meith directory. npm exec on
+  // Node 20/ npm 10 can fail with ENOENT if `npm_config_prefix` does not
+  // exist, so create the managed runtime dirs before spawning ACP presets.
+  mkdirSync(cacheDir, { recursive: true });
+  mkdirSync(prefixDir, { recursive: true });
   return {
-    npm_config_cache: join(home, "npm-cache"),
-    npm_config_prefix: join(home, "npm-prefix"),
+    npm_config_cache: cacheDir,
+    npm_config_prefix: prefixDir,
     npm_config_update_notifier: "false",
     npm_config_fund: "false",
     npm_config_audit: "false",
