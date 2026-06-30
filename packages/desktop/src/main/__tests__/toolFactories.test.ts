@@ -115,6 +115,10 @@ const factoryCases = [
       "storage_list_collections",
       "storage_read_collection",
       "storage_export_state",
+      "storage_export_support_bundle",
+      "storage_clear_collection",
+      "storage_delete_old_screenshots",
+      "storage_prune_stale_agent_sessions",
     ],
   },
   {
@@ -235,9 +239,7 @@ describe("tool factory contracts", () => {
     const violations: string[] = [];
 
     for (const tool of all) {
-      const isMutating = MUTATING_PREFIXES.some((prefix) =>
-        tool.name.startsWith(prefix),
-      );
+      const isMutating = MUTATING_PREFIXES.some((prefix) => tool.name.startsWith(prefix));
       if (!isMutating) continue;
 
       const caps = tool.capabilities ?? [];

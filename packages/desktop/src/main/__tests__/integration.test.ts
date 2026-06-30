@@ -103,6 +103,9 @@ describe("socket integration", () => {
     expect(names).toContain("state");
     expect(names).toContain("logs");
     expect(names).toContain("audit");
+    expect(names).toContain("artifacts");
+    expect(names).toContain("agent_sessions");
+    expect(names).toContain("agent_transcripts");
   });
 
   it("denies privileged socket calls without an explicit session grant", async () => {

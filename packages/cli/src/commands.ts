@@ -470,6 +470,26 @@ export const commands: Record<string, CommandSpec> = {
     positionals: [],
     summary: "Export persisted state and storage metadata",
   },
+  "storage-support-bundle": {
+    tool: "storage_export_support_bundle",
+    positionals: [],
+    summary: "Export storage support bundle artifact",
+  },
+  "storage-clear": {
+    tool: "storage_clear_collection",
+    positionals: ["name"],
+    summary: "Clear logs, audit, or artifacts (--confirm)",
+  },
+  "storage-delete-screenshots": {
+    tool: "storage_delete_old_screenshots",
+    positionals: [],
+    summary: "Delete screenshot artifacts older than --olderThanDays (--confirm)",
+  },
+  "storage-prune-sessions": {
+    tool: "storage_prune_stale_agent_sessions",
+    positionals: [],
+    summary: "Prune agent sessions older than --olderThanDays (--confirm)",
+  },
   plugins: {
     tool: "list_plugins",
     positionals: [],

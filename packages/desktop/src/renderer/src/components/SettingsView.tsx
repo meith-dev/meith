@@ -19,16 +19,19 @@ import {
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
+  DownloadIcon,
   GitBranchIcon,
+  HardDriveIcon,
   Loader2Icon,
   PlusIcon,
+  RefreshCwIcon,
   SettingsIcon,
   TerminalIcon,
   Trash2Icon,
   UserRoundIcon,
   XIcon,
 } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import type { MeithBridge } from "../../../bridge";
 import { cn } from "../lib/utils";
@@ -40,7 +43,14 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-export type SettingsTab = "general" | "run" | "git" | "agent" | "plugins" | "about";
+export type SettingsTab =
+  | "general"
+  | "run"
+  | "git"
+  | "agent"
+  | "plugins"
+  | "storage"
+  | "about";
 
 type Run = (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
 
@@ -163,6 +173,9 @@ export function SettingsView({
           <TabsTrigger value="plugins" className={settingsTabClass}>
             Plugins
           </TabsTrigger>
+          <TabsTrigger value="storage" className={settingsTabClass}>
+            Storage
+          </TabsTrigger>
           <TabsTrigger value="about" className={settingsTabClass}>
             About
           </TabsTrigger>
@@ -189,6 +202,9 @@ export function SettingsView({
             </TabsContent>
             <TabsContent value="plugins" className="mt-0">
               <PluginsPanel plugins={plugins} run={run} isMock={isMock} />
+            </TabsContent>
+            <TabsContent value="storage" className="mt-0">
+              <StorageTab run={run} open={tab === "storage"} />
             </TabsContent>
             <TabsContent value="about" className="mt-0">
               <AboutTab isMock={isMock} />
@@ -1123,6 +1139,357 @@ function AgentTab({ bridge, open }: { bridge: MeithBridge; open: boolean }) {
       </div>
     </div>
   );
+}
+
+// --- Storage ---------------------------------------------------------------
+
+interface StorageCollectionInfo {
+  name: string;
+  kind: "json" | "jsonl" | "directory";
+  path: string;
+  description: string;
+  exists: boolean;
+  sizeBytes: number;
+}
+
+interface StorageListContent {
+  dataDirectory: string;
+  collections: StorageCollectionInfo[];
+}
+
+type StorageAction =
+  | "export"
+  | "clear-logs"
+  | "clear-audit"
+  | "clear-artifacts"
+  | "screenshots"
+  | "sessions"
+  | "refresh";
+
+function StorageTab({ run, open }: { run: Run; open: boolean }) {
+  const [storage, setStorage] = useState<StorageListContent | null>(null);
+  const [busy, setBusy] = useState<StorageAction | null>(null);
+  const [screenshotDays, setScreenshotDays] = useState(30);
+  const [sessionDays, setSessionDays] = useState(30);
+
+  const refresh = useCallback(
+    async (action: StorageAction = "refresh") => {
+      setBusy(action);
+      try {
+        const result = await run("storage_list_collections", {});
+        if (!result.ok)
+          throw new Error(result.error?.message ?? "Failed to load storage");
+        setStorage(result.content as StorageListContent);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusy(null);
+      }
+    },
+    [run],
+  );
+
+  useEffect(() => {
+    if (open) void refresh();
+  }, [open, refresh]);
+
+  const runStorageAction = async (
+    action: StorageAction,
+    tool: string,
+    args: Record<string, unknown>,
+    success: (result: ToolResult) => string,
+  ) => {
+    setBusy(action);
+    try {
+      const result = await run(tool, args);
+      if (!result.ok) throw new Error(result.error?.message ?? "Storage action failed");
+      toast.success(success(result));
+      await refresh(action);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+      setBusy(null);
+    }
+  };
+
+  const clearCollection = (name: "logs" | "audit" | "artifacts") => {
+    if (!window.confirm(`Clear ${name}? This cannot be undone.`)) return;
+    void runStorageAction(
+      `clear-${name}` as StorageAction,
+      "storage_clear_collection",
+      { name, confirm: true },
+      (result) => {
+        const content = result.content as {
+          deletedBytes?: number;
+          deletedFiles?: number;
+        };
+        return `Cleared ${formatBytes(content.deletedBytes ?? 0)} from ${name}`;
+      },
+    );
+  };
+
+  const exportBundle = () => {
+    void runStorageAction(
+      "export",
+      "storage_export_support_bundle",
+      { logsLimit: 500 },
+      (result) => {
+        const content = result.content as { path?: string; bytes?: number };
+        return content.path
+          ? `Support bundle exported (${formatBytes(content.bytes ?? 0)})`
+          : "Support bundle prepared";
+      },
+    );
+  };
+
+  const deleteScreenshots = () => {
+    if (
+      !window.confirm(
+        `Delete screenshot artifacts older than ${screenshotDays} days? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    void runStorageAction(
+      "screenshots",
+      "storage_delete_old_screenshots",
+      { olderThanDays: screenshotDays, confirm: true },
+      (result) => {
+        const content = result.content as { deletedFiles?: number };
+        return `Deleted ${content.deletedFiles ?? 0} old screenshots`;
+      },
+    );
+  };
+
+  const pruneSessions = () => {
+    if (
+      !window.confirm(
+        `Prune agent sessions idle for ${sessionDays} days? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    void runStorageAction(
+      "sessions",
+      "storage_prune_stale_agent_sessions",
+      { olderThanDays: sessionDays, confirm: true },
+      (result) => {
+        const content = result.content as { deletedSessions?: number };
+        return `Pruned ${content.deletedSessions ?? 0} stale sessions`;
+      },
+    );
+  };
+
+  const collections = storage?.collections ?? [];
+  const totalBytes = collections.reduce(
+    (sum, collection) => sum + collection.sizeBytes,
+    0,
+  );
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <HardDriveIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <SectionLabel className="mt-0">Storage usage</SectionLabel>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy !== null}
+            onClick={() => void refresh()}
+          >
+            <RefreshCwIcon data-icon="inline-start" />
+            Refresh
+          </Button>
+          <Button size="sm" disabled={busy !== null} onClick={exportBundle}>
+            <DownloadIcon data-icon="inline-start" />
+            Export bundle
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-border">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
+          <span className="truncate font-mono text-xs text-muted-foreground">
+            {storage?.dataDirectory ?? "Loading storage directory…"}
+          </span>
+          <Badge variant="secondary">{formatBytes(totalBytes)}</Badge>
+        </div>
+        <ul className="divide-y divide-border">
+          {collections.map((collection) => (
+            <li key={collection.name} className="flex items-center gap-3 px-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {formatCollectionName(collection.name)}
+                  </span>
+                  <Badge variant="outline">{collection.kind}</Badge>
+                  {!collection.exists && <Badge variant="secondary">missing</Badge>}
+                </div>
+                <p className="truncate text-xs text-muted-foreground">
+                  {collection.description}
+                </p>
+              </div>
+              <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                {formatBytes(collection.sizeBytes)}
+              </span>
+            </li>
+          ))}
+          {collections.length === 0 && (
+            <li className="px-3 py-6 text-center text-sm text-muted-foreground">
+              {busy ? "Loading storage collections…" : "No storage collections found."}
+            </li>
+          )}
+        </ul>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <SectionLabel className="mt-0">Maintenance</SectionLabel>
+        <StorageActionRow
+          label="Logs"
+          description="Clear append-only application logs."
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy !== null}
+              onClick={() => clearCollection("logs")}
+            >
+              <Trash2Icon data-icon="inline-start" />
+              Clear
+            </Button>
+          }
+        />
+        <StorageActionRow
+          label="Audit"
+          description="Clear redacted tool-call audit entries."
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy !== null}
+              onClick={() => clearCollection("audit")}
+            >
+              <Trash2Icon data-icon="inline-start" />
+              Clear
+            </Button>
+          }
+        />
+        <StorageActionRow
+          label="Artifacts"
+          description="Clear screenshots, support bundles, and generated artifacts."
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy !== null}
+              onClick={() => clearCollection("artifacts")}
+            >
+              <Trash2Icon data-icon="inline-start" />
+              Clear
+            </Button>
+          }
+        />
+        <StorageNumberAction
+          label="Screenshots"
+          description="Delete screenshot PNGs older than the selected age."
+          value={screenshotDays}
+          onValueChange={setScreenshotDays}
+          disabled={busy !== null}
+          buttonLabel="Delete old"
+          onClick={deleteScreenshots}
+        />
+        <StorageNumberAction
+          label="Agent sessions"
+          description="Prune non-running sessions idle longer than the selected age."
+          value={sessionDays}
+          onValueChange={setSessionDays}
+          disabled={busy !== null}
+          buttonLabel="Prune"
+          onClick={pruneSessions}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StorageActionRow({
+  label,
+  description,
+  action,
+}: {
+  label: string;
+  description: string;
+  action: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md px-1 py-2">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="shrink-0">{action}</div>
+    </div>
+  );
+}
+
+function StorageNumberAction({
+  label,
+  description,
+  value,
+  onValueChange,
+  disabled,
+  buttonLabel,
+  onClick,
+}: {
+  label: string;
+  description: string;
+  value: number;
+  onValueChange: (value: number) => void;
+  disabled: boolean;
+  buttonLabel: string;
+  onClick: () => void;
+}) {
+  return (
+    <StorageActionRow
+      label={label}
+      description={description}
+      action={
+        <div className="flex items-center gap-2">
+          <Input
+            aria-label={`${label} age in days`}
+            type="number"
+            min={1}
+            max={3650}
+            value={value}
+            disabled={disabled}
+            className="h-8 w-20"
+            onChange={(e) => onValueChange(Number(e.target.value))}
+          />
+          <Button variant="outline" size="sm" disabled={disabled} onClick={onClick}>
+            <Trash2Icon data-icon="inline-start" />
+            {buttonLabel}
+          </Button>
+        </div>
+      }
+    />
+  );
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+function formatCollectionName(name: string): string {
+  return name
+    .split("_")
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
 }
 
 // --- About -----------------------------------------------------------------

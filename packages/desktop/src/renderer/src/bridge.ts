@@ -334,6 +334,20 @@ function createMockBridge(): MeithBridge {
     ]),
     desc("get_app_settings", "Read global app settings.", ["read-only"]),
     desc("set_app_settings", "Patch global app settings.", ["writes-files"]),
+    desc("storage_list_collections", "List durable storage collections.", ["read-only"]),
+    desc("storage_export_state", "Export persisted state and storage metadata.", [
+      "read-only",
+    ]),
+    desc("storage_export_support_bundle", "Export a support bundle.", ["read-only"]),
+    desc("storage_clear_collection", "Clear a managed storage collection.", [
+      "destructive",
+    ]),
+    desc("storage_delete_old_screenshots", "Delete old screenshot artifacts.", [
+      "destructive",
+    ]),
+    desc("storage_prune_stale_agent_sessions", "Prune stale agent sessions.", [
+      "destructive",
+    ]),
     desc("git_identity_detect", "Detect local Git commit identity suggestions.", [
       "read-only",
     ]),
@@ -428,6 +442,86 @@ function createMockBridge(): MeithBridge {
             return okResult(structuredClone(state));
           case "app_get_logs":
             return okResult([...logs]);
+          case "storage_list_collections":
+            return okResult({
+              dataDirectory: "/tmp/meith-preview",
+              collections: [
+                {
+                  name: "state",
+                  kind: "json",
+                  path: "/tmp/meith-preview/state.json",
+                  description: "Small, bounded application state (spaces, tabs).",
+                  exists: true,
+                  sizeBytes: JSON.stringify(state).length,
+                },
+                {
+                  name: "logs",
+                  kind: "jsonl",
+                  path: "/tmp/meith-preview/logs.jsonl",
+                  description: "Append-only structured log history.",
+                  exists: true,
+                  sizeBytes: JSON.stringify(logs).length,
+                },
+                {
+                  name: "audit",
+                  kind: "jsonl",
+                  path: "/tmp/meith-preview/audit.jsonl",
+                  description: "Append-only redacted tool-call audit history.",
+                  exists: false,
+                  sizeBytes: 0,
+                },
+                {
+                  name: "artifacts",
+                  kind: "directory",
+                  path: "/tmp/meith-preview/artifacts",
+                  description: "Binary and JSON artifacts, including screenshots.",
+                  exists: false,
+                  sizeBytes: 0,
+                },
+                {
+                  name: "agent_sessions",
+                  kind: "json",
+                  path: "/tmp/meith-preview/agent/sessions.json",
+                  description: "Agent session metadata index.",
+                  exists: true,
+                  sizeBytes: agentSessions.size * 512,
+                },
+                {
+                  name: "agent_transcripts",
+                  kind: "directory",
+                  path: "/tmp/meith-preview/agent/sessions",
+                  description: "Append-only JSONL agent transcripts.",
+                  exists: true,
+                  sizeBytes: agentSessions.size * 2048,
+                },
+              ],
+            });
+          case "storage_export_state":
+            return okResult({
+              exportedAt: Date.now(),
+              dataDirectory: "/tmp/meith-preview",
+              state,
+            });
+          case "storage_export_support_bundle":
+            return okResult({ bytes: 1024, bundle: { state, logs } });
+          case "storage_clear_collection":
+            return okResult({
+              collection: String(args.name ?? ""),
+              deletedFiles: 0,
+              deletedBytes: 0,
+            });
+          case "storage_delete_old_screenshots":
+            return okResult({
+              collection: "artifacts",
+              deletedFiles: 0,
+              deletedBytes: 0,
+            });
+          case "storage_prune_stale_agent_sessions":
+            return okResult({
+              collection: "agent_sessions",
+              deletedSessions: 0,
+              cutoff: Date.now(),
+            });
 
           case "create_space": {
             const space = {

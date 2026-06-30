@@ -46,6 +46,7 @@ import { WorkspaceFileService } from "./services/WorkspaceFileService.js";
 import { ArtifactStore } from "./storage/ArtifactStore.js";
 import { createAppTools } from "./tools/appTools.js";
 import { createBrowserTools } from "./tools/browserTools.js";
+import type { ToolDeps } from "./tools/deps.js";
 import { createFileTools } from "./tools/fileTools.js";
 import { createGitTools } from "./tools/gitTools.js";
 import { createPluginTools } from "./tools/pluginTools.js";
@@ -357,7 +358,7 @@ export async function bootstrap(
     managedPluginsDir: join(userDataPath, "plugins"),
   });
   pluginRef.current = plugins;
-  const deps = {
+  const deps: ToolDeps = {
     appState,
     browserTabs,
     spaces,
@@ -369,6 +370,7 @@ export async function bootstrap(
     storage,
     plugins,
     permissions,
+    artifacts,
   };
   registry.registerAll(createBrowserTools(deps));
   registry.registerAll(createSpaceTools(deps));
@@ -413,6 +415,7 @@ export async function bootstrap(
   });
   agents.hydrate();
   agents.startIdleGc();
+  deps.agents = agents;
 
   registry.registerAll(
     createAppTools(deps, {
