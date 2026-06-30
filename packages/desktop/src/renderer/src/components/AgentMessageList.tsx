@@ -500,8 +500,13 @@ function ThinkingBlock({
         <MarkerContent className="min-w-0 truncate text-muted-foreground">
           <span className="font-medium">{label}</span>
           {summaryText && (
-            <span className="ml-1 align-middle text-muted-foreground/80">
-              {summaryText}
+            <span className="ml-1 inline align-middle text-muted-foreground/80">
+              <ReactMarkdown
+                allowedElements={["strong", "em", "code"]}
+                unwrapDisallowed
+              >
+                {summaryText}
+              </ReactMarkdown>
             </span>
           )}
         </MarkerContent>
