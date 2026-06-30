@@ -16,6 +16,7 @@ import {
   FolderOpenIcon,
   GitCommitIcon,
   LightbulbIcon,
+  ListPlusIcon,
   RefreshCwIcon,
   RotateCcwIcon,
 } from "lucide-react";
@@ -137,6 +138,10 @@ export function GitPanel({ tab, call, bridge, settings, refreshKey }: GitPanelPr
       unstaged: buildDiffTree(unstagedFiles),
     }),
     [stagedFiles, unstagedFiles],
+  );
+  const stageablePaths = useMemo(
+    () => [...new Set(unstagedFiles.map((file) => file.path))],
+    [unstagedFiles],
   );
   const refreshStatus = useCallback(async () => {
     const res = await call("git_status", { cwd: tab.cwd });
@@ -360,6 +365,11 @@ export function GitPanel({ tab, call, bridge, settings, refreshKey }: GitPanelPr
     setCommitMessage("");
   }, [commitMessage, runGitAction]);
 
+  const stageAllChanges = useCallback(async () => {
+    if (stageablePaths.length === 0) return;
+    await runGitAction("git_stage", { paths: stageablePaths });
+  }, [runGitAction, stageablePaths]);
+
   const restoreFile = useCallback(
     async (path: string) => {
       if (confirmBeforeRestore) {
@@ -395,6 +405,19 @@ export function GitPanel({ tab, call, bridge, settings, refreshKey }: GitPanelPr
           -{data.totalDeletions}
         </span>
         <div className="flex-1" />
+        <TooltipButton label="Stage all changes" side="bottom">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={stageAllChanges}
+            disabled={actionBusy || stageablePaths.length === 0}
+            aria-label="Stage all changes"
+          >
+            <ListPlusIcon className="size-3.5" aria-hidden />
+            Stage all
+          </Button>
+        </TooltipButton>
         <TooltipButton label="Refresh git status" side="bottom">
           <Button
             size="icon"
