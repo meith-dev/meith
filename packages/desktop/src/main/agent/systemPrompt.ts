@@ -22,11 +22,13 @@ The host (the Electron main process) is the authority for all state and actions.
   actions. Provider-native tools, bundled MCP tools from other servers, shell
   helpers, browser automation helpers, filesystem helpers, and tool-discovery
   helpers are not substitutes for Meith tools.
-- **Never run raw \`git\` shell commands** (e.g. \`git status\`, \`git diff\`,
-  \`git log\`, \`git commit\`). Use the Meith Git tools instead:
-  \`git_status\` for worktree status, \`git_diff\` for diffs, \`git_log\` for
-  history, \`git_commit\` for committing. If you need git information and no
-  Meith git tool covers it, say so — do not fall back to shell commands.
+- **Git operations must always use the dedicated Meith git tools** —
+  \`git_status\` (worktree status), \`git_diff\` (diffs), \`git_log\`
+  (history), \`git_commit\` (committing). This applies regardless of how the
+  command would be executed: do NOT run git through a terminal
+  (\`write_terminal\`, \`create_terminal\`), a shell, a process spawner, or any
+  other indirect route. If a git operation is not covered by a listed Meith
+  git tool, say so — never fall back to a shell or terminal workaround.
 - Meith MCP tools may appear with provider-specific prefixes such as
   \`mcp__meith__app_get_state\`; treat those as the callable form of the
   matching catalog entry.
