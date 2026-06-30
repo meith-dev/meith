@@ -601,7 +601,15 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
   const content = message.content ?? "";
   const calls = message.toolCalls ?? [];
   const segments = normalizedTextSegments(message, calls);
-  const { thinkingSegments, finalSegments } = transcriptTextParts(segments, calls);
+  // When the backend supplied explicit textSegments, their `kind` field is the
+  // authoritative thought/message classification — trust it instead of the
+  // fragile keyword heuristic, which can mis-split a final answer mid-content.
+  const classified = Boolean(message.textSegments?.length);
+  const { thinkingSegments, finalSegments } = transcriptTextParts(
+    segments,
+    calls,
+    classified,
+  );
   const finalContent = finalSegments.map((segment) => segment.text).join("");
   if (calls.length === 0) {
     if (thinkingSegments.length === 0) {
@@ -768,10 +776,21 @@ function splitSegmentsAtOffsets(
 function transcriptTextParts(
   segments: TranscriptTextSegment[],
   calls: AgentToolCall[],
+  classified = false,
 ): {
   thinkingSegments: TranscriptTextSegment[];
   finalSegments: TranscriptTextSegment[];
 } {
+  // Authoritative path: the backend tagged each segment's kind. Thoughts carry
+  // kind === "thought"; everything else is part of the final answer. This never
+  // slices content mid-token the way the keyword/offset heuristics can.
+  if (classified) {
+    return {
+      thinkingSegments: segments.filter((segment) => segment.kind === "thought"),
+      finalSegments: segments.filter((segment) => segment.kind !== "thought"),
+    };
+  }
+
   const explicitCompletion = splitExplicitCompletionBlock(segments);
   if (explicitCompletion) return explicitCompletion;
 
