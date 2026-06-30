@@ -531,8 +531,12 @@ function ThinkingBlock({
 function normalizeThoughtText(text: string): string {
   return text
     .replace(/\r\n/g, "\n")
-    .replace(/([^\n])\n([^\n])/g, "$1 $2") // single newline → space
-    .replace(/ {2,}/g, " ") // collapse extra spaces
+    // Collapse runs of 2+ newlines to a double newline (paragraph break)
+    .replace(/\n{2,}/g, "\n\n")
+    // Replace any remaining single newlines with a space
+    .replace(/\n/g, " ")
+    // Collapse any accidental multiple spaces
+    .replace(/ {2,}/g, " ")
     .trim();
 }
 
