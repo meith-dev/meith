@@ -1534,6 +1534,42 @@ describe("AgentService persistence", () => {
     expect(statSync(transcriptPath).size).toBe(before);
   });
 
+  it("preserves textSegments and kind when truncating long message content", async () => {
+    const { AgentStore } = await import("../services/AgentStore.js");
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "meith-agent-"));
+    const store = new AgentStore(dir);
+
+    // Content longer than the per-message display cap so limitContentOnly runs.
+    const content = "x".repeat(30_000);
+    store.appendMessage("sess-segments", {
+      id: "msg-seg",
+      role: "assistant",
+      content,
+      createdAt: 1,
+      textSegments: [
+        // A thought near the start — falls entirely in the dropped prefix.
+        { start: 0, end: 50, text: content.slice(0, 50), kind: "thought" },
+        // The final answer near the end — must survive in the kept tail.
+        { start: 29_950, end: 30_000, text: content.slice(29_950), kind: "message" },
+      ],
+    });
+
+    const [message] = store.readDisplayMessagesFast("sess-segments");
+    expect(message.content.length).toBeLessThanOrEqual(20_000);
+    expect(message.content.startsWith("[Earlier content omitted]")).toBe(true);
+
+    // The thought in the removed prefix is dropped...
+    expect(message.textSegments?.some((s) => s.kind === "thought")).toBe(false);
+    // ...but the final-answer segment survives with its kind intact.
+    const finalSeg = message.textSegments?.find((s) => s.kind === "message");
+    expect(finalSeg).toBeDefined();
+    // Rebased offsets index correctly into the truncated content (no mid-token chop).
+    expect(message.content.slice(finalSeg!.start, finalSeg!.end)).toBe(finalSeg!.text);
+  });
+
   it("keeps display output within the total budget across multiple messages", async () => {
     const { AgentStore } = await import("../services/AgentStore.js");
     const { mkdtempSync } = await import("node:fs");
