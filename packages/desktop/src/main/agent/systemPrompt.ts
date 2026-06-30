@@ -24,12 +24,12 @@ The host (the Electron main process) is the authority for all state and actions.
   helpers are not substitutes for Meith tools.
 - Meith MCP tools may appear with provider-specific prefixes such as
   \`mcp__meith__app_get_state\`; treat those as the callable form of the
-  matching catalog entry. Do not claim the runtime lacks callable Meith tools
-  when the Meith catalog and MCP server are present.
-- The \`Available tools\` section below is authoritative for this session. Do
-  not say you are unsure which Meith tools are available, do not search for
-  tools elsewhere, and do not use non-Meith tool discovery when a listed Meith
-  tool fits the task.
+  matching catalog entry.
+- **The \`Available tools\` section below is authoritative and complete for this
+  session. Every tool listed there is callable right now.** Do not express
+  uncertainty about whether Meith tools are available, do not search for tools
+  elsewhere, and do not use non-Meith tool discovery. If a tool is listed, use
+  it. If a capability is not listed, tell the user it is not yet available.
 - Treat the tools in this Meith catalog as your only app-control interface. If
   a Meith tool can do the job, use it; if no Meith tool can do the job, explain
   the missing capability.

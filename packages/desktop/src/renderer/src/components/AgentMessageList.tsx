@@ -543,15 +543,21 @@ function ThinkingBlock({
 }
 
 /** Normalise streaming thought text.
- *  Tokens arrive one-per-line so collapse all whitespace runs into a single
- *  space, then fix tokenizer artifacts (spaces before punctuation, spaced
- *  contractions). Paragraph-level structure is intentionally flattened —
- *  thought entries are a continuous internal stream, not formatted prose.
+ *  Tokens arrive one-per-line. Collapse single newlines to spaces while
+ *  preserving double-newline paragraph breaks so Markdown renders sections
+ *  correctly. Also fix tokenizer artifacts: spaces before punctuation and
+ *  spaced contractions.
  */
 function normalizeThoughtText(text: string): string {
   return text
-    // Collapse all whitespace (newlines, tabs, multiple spaces) into one space
-    .replace(/\s+/g, " ")
+    .replace(/\r\n/g, "\n")
+    // Protect paragraph breaks (2+ newlines) with a sentinel
+    .replace(/\n{2,}/g, "\0")
+    // Collapse all remaining whitespace (single newlines, tabs, spaces) to one space
+    .replace(/[ \t]*\n[ \t]*/g, " ")
+    .replace(/ {2,}/g, " ")
+    // Restore paragraph breaks
+    .replace(/\0/g, "\n\n")
     // Remove space before punctuation: "word ." → "word."
     .replace(/ ([.,:;!?])/g, "$1")
     // Fix spaced contractions: "won 't" → "won't", "I 'll" → "I'll"
