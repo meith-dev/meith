@@ -526,17 +526,29 @@ function ThinkingBlock({
   );
 }
 
-/** Collapse single newlines (streaming token gaps) into spaces while
- *  preserving intentional paragraph breaks (two or more newlines). */
+/** Normalise streaming thought text:
+ *  - Collapse single newlines (token gaps) into spaces
+ *  - Preserve intentional paragraph breaks (2+ newlines)
+ *  - Remove spaces inserted before punctuation ( . , ; : ! ? ' )
+ *  - Remove spaces inserted inside contractions / mid-word splits
+ */
 function normalizeThoughtText(text: string): string {
   return text
     .replace(/\r\n/g, "\n")
-    // Collapse runs of 2+ newlines to a double newline (paragraph break)
-    .replace(/\n{2,}/g, "\n\n")
-    // Replace any remaining single newlines with a space
+    // Protect real paragraph breaks
+    .replace(/\n{2,}/g, "\0")
+    // Collapse all remaining single newlines to spaces
     .replace(/\n/g, " ")
-    // Collapse any accidental multiple spaces
+    // Restore paragraph breaks
+    .replace(/\0/g, "\n\n")
+    // Collapse multiple spaces
     .replace(/ {2,}/g, " ")
+    // Remove space before punctuation: "word ." → "word."
+    .replace(/ ([.,:;!?])/g, "$1")
+    // Remove space after opening quotes/before closing: '" word' / 'word "'
+    .replace(/ (['"]) /g, "$1 ")
+    // Fix spaced contractions: "won 't" → "won't", "I 'll" → "I'll"
+    .replace(/(\w) ('(?:t|s|re|ve|ll|d|m))\b/gi, "$1$2")
     .trim();
 }
 
