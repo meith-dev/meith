@@ -47,8 +47,38 @@ export interface AgentPromptContext {
   cwd: string;
   /** Active space name, when the session is associated with one. */
   spaceName?: string;
+  /** Active editor file in this space, when the editor has one focused. */
+  activeEditorFile?: { tabTitle: string; cwd: string; path: string };
+  /** Selected file in the active/relevant diff surface. */
+  selectedDiffFile?: { tabTitle: string; cwd: string; path: string };
   /** URLs/titles of browser tabs currently open in the session's space. */
   openTabs?: Array<{ title: string; url: string }>;
+  /** Recent console errors captured from browser tabs in the session's space. */
+  consoleErrors?: Array<{ tabTitle: string; url: string; text: string; source?: string }>;
+  /** Live terminal sessions relevant to the session's space/cwd. */
+  terminals?: Array<{
+    id: string;
+    tabTitle?: string;
+    cwd: string;
+    status: string;
+    pid: number | null;
+    exitCode: number | null;
+    active: boolean;
+  }>;
+  /** Managed dev servers relevant to the session's space/cwd. */
+  devServers?: Array<{
+    id: string;
+    name?: string;
+    cwd: string;
+    status: string;
+    command: string;
+    url?: string;
+    pid: number | null;
+  }>;
+  /** Current git state for the session cwd. */
+  git?: { branch?: string; status: string; summary?: string; files?: string[] };
+  /** Project-specific instruction files discovered for the session cwd. */
+  instructionFiles?: Array<{ path: string; content: string; truncated: boolean }>;
   /** Whether gated tool calls are auto-accepted (affects the safety section). */
   autoAccept?: boolean;
 }

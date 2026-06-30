@@ -173,6 +173,21 @@ describe("BrowserTabService workspace tabs", () => {
     expect(cleared.terminalId).toBeUndefined();
   });
 
+  it("persists the selected file on diff workspace tabs", () => {
+    const tab = ctx.tabs.openWorkspaceTab({
+      title: "Diff",
+      cwd: "/tmp/project",
+      kind: "diff",
+    });
+
+    const updated = ctx.tabs.setWorkspaceTabFile(tab.id, {
+      selectedDiffFilePath: "src/app.ts",
+    });
+
+    expect(updated.selectedDiffFilePath).toBe("src/app.ts");
+    expect(ctx.tabs.listWorkspaceTabs()[0].selectedDiffFilePath).toBe("src/app.ts");
+  });
+
   it("rejects terminal session ids on non-terminal workspace tabs", () => {
     const tab = ctx.tabs.openWorkspaceTab({ title: "Editor", cwd: "/tmp/project" });
     expect(() => ctx.tabs.setWorkspaceTabTerminal(tab.id, "term_123")).toThrow(

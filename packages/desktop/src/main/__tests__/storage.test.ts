@@ -38,12 +38,22 @@ describe("migrations", () => {
 
   it("passes through a valid current-version state", () => {
     const valid = {
-      version: 3,
-      spaces: [{ id: "s1", name: "S", createdAt: 1 }],
+      version: CURRENT_STATE_VERSION,
+      spaces: [{ id: "s1", name: "S", projectId: null, createdAt: 1 }],
       activeSpaceId: "s1",
       browserTabs: [],
       workspaceTabs: [],
       projects: [],
+      workspaceFileEvents: [],
+      plugins: [],
+      settings: {
+        autoRunOnOpen: false,
+        confirmOnClose: true,
+        stopServersOnClose: true,
+        showOutputOnRun: true,
+        defaultPackageManager: "unknown",
+        debugMode: false,
+      },
     };
     expect(migrateAppState(valid).activeSpaceId).toBe("s1");
   });
@@ -114,6 +124,43 @@ describe("migrations", () => {
       defaultCommandId: null,
       env: {},
     });
+  });
+
+  it("migrates v4 -> v5 by preserving selected diff file state", () => {
+    const v4 = {
+      version: 4,
+      spaces: [{ id: "s1", name: "S", createdAt: 1, projectId: null }],
+      activeSpaceId: "s1",
+      browserTabs: [],
+      workspaceTabs: [
+        {
+          id: "w1",
+          spaceId: "s1",
+          title: "Diff",
+          cwd: "/tmp/proj",
+          kind: "diff",
+          selectedDiffFilePath: "src/app.ts",
+          active: true,
+          createdAt: 1,
+        },
+      ],
+      projects: [],
+      workspaceFileEvents: [],
+      plugins: [],
+      settings: {
+        autoRunOnOpen: false,
+        confirmOnClose: true,
+        stopServersOnClose: true,
+        showOutputOnRun: true,
+        defaultPackageManager: "unknown",
+        debugMode: false,
+      },
+    };
+
+    const migrated = migrateAppState(v4);
+
+    expect(migrated.version).toBe(CURRENT_STATE_VERSION);
+    expect(migrated.workspaceTabs[0].selectedDiffFilePath).toBe("src/app.ts");
   });
 
   it("throws on a newer-than-supported version", () => {

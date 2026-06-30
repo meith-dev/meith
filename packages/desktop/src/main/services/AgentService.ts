@@ -1,7 +1,15 @@
+import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
-import { copyFileSync, mkdirSync, statSync, writeFileSync } from "node:fs";
-import { basename, extname, join } from "node:path";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, extname, join, relative, resolve, sep } from "node:path";
 import type { ToolDescriptor } from "@meith/protocol";
 import {
   type AgentAttachment,
@@ -35,14 +43,20 @@ import type { ToolRegistry } from "../tools/registry.js";
 import type { AgentConfigStore } from "./AgentConfigStore.js";
 import type { AgentMessagePatch, AgentStore } from "./AgentStore.js";
 import type { AppStateService } from "./AppStateService.js";
+import type { BrowserTabService } from "./BrowserTabService.js";
+import type { DevServerService } from "./DevServerService.js";
 import type { Logger } from "./Logger.js";
 import type { McpBridgeService, McpSessionEndpoint } from "./McpBridgeService.js";
 import type { PermissionService } from "./PermissionService.js";
+import type { TerminalService } from "./TerminalService.js";
 
 export interface AgentServiceOptions {
   store?: AgentStore;
   configStore?: AgentConfigStore;
   appState?: AppStateService;
+  browserTabs?: BrowserTabService;
+  terminals?: TerminalService;
+  devServers?: DevServerService;
   mcpBridge?: McpBridgeService;
   permissions?: PermissionService;
   /**
@@ -430,10 +444,98 @@ export class AgentService extends EventEmitter {
     if (state) {
       const space = state.spaces.find((s) => s.id === session.spaceId);
       if (space) ctx.spaceName = space.name;
-      ctx.openTabs = state.browserTabs
+      const browserTabs = state.browserTabs.filter((t) =>
+        session.spaceId ? t.spaceId === session.spaceId : true,
+      );
+      const workspaceTabs = state.workspaceTabs.filter((t) =>
+        session.spaceId ? t.spaceId === session.spaceId : true,
+      );
+      const activeEditor =
+        workspaceTabs.find((t) => t.kind === "editor" && t.active && t.activeFilePath) ??
+        workspaceTabs.find((t) => t.kind === "editor" && t.activeFilePath);
+      if (activeEditor?.activeFilePath) {
+        ctx.activeEditorFile = {
+          tabTitle: activeEditor.title,
+          cwd: activeEditor.cwd,
+          path: activeEditor.activeFilePath,
+        };
+      }
+      const selectedDiff =
+        workspaceTabs.find(
+          (t) => t.kind === "diff" && t.active && t.selectedDiffFilePath,
+        ) ?? workspaceTabs.find((t) => t.kind === "diff" && t.selectedDiffFilePath);
+      if (selectedDiff?.selectedDiffFilePath) {
+        ctx.selectedDiffFile = {
+          tabTitle: selectedDiff.title,
+          cwd: selectedDiff.cwd,
+          path: selectedDiff.selectedDiffFilePath,
+        };
+      }
+      ctx.openTabs = browserTabs
         .filter((t) => (session.spaceId ? t.spaceId === session.spaceId : true))
         .map((t) => ({ title: t.title, url: t.url }));
+      ctx.consoleErrors = browserTabs.flatMap((tab) =>
+        (this.options.browserTabs?.getConsoleLogSnapshot(tab.id, 10) ?? [])
+          .filter((entry) => entry.level === "error")
+          .slice(-3)
+          .map((entry) => ({
+            tabTitle: tab.title,
+            url: tab.url,
+            text: entry.text,
+            source: entry.source,
+          })),
+      );
+      const relevantCwds = new Set([
+        resolve(session.cwd),
+        ...workspaceTabs.map((t) => resolve(t.cwd)),
+        ...state.projects
+          .filter((project) =>
+            session.spaceId
+              ? project.spaceId === session.spaceId
+              : project.cwd === session.cwd,
+          )
+          .map((project) => resolve(project.cwd)),
+      ]);
+      const terminalTabs = new Map(
+        workspaceTabs
+          .filter((tab) => tab.kind === "terminal" && tab.terminalId)
+          .map((tab) => [tab.terminalId as string, tab]),
+      );
+      ctx.terminals = (this.options.terminals?.list() ?? [])
+        .filter(
+          (terminal) =>
+            terminalTabs.has(terminal.id) || relevantCwds.has(resolve(terminal.cwd)),
+        )
+        .map((terminal) => {
+          const tab = terminalTabs.get(terminal.id);
+          return {
+            id: terminal.id,
+            tabTitle: tab?.title,
+            cwd: terminal.cwd,
+            status: terminal.status,
+            pid: terminal.pid,
+            exitCode: terminal.exitCode,
+            active: tab?.active ?? false,
+          };
+        });
+      ctx.devServers = (this.options.devServers?.list() ?? [])
+        .filter(
+          (server) =>
+            (server.status === "running" || server.status === "starting") &&
+            relevantCwds.has(resolve(server.cwd)),
+        )
+        .map((server) => ({
+          id: server.id,
+          name: server.name,
+          cwd: server.cwd,
+          status: server.status,
+          command: [server.command, ...server.args].join(" "),
+          url: server.port ? `http://localhost:${server.port}` : undefined,
+          pid: server.pid,
+        }));
     }
+    ctx.git = readGitSummary(session.cwd);
+    ctx.instructionFiles = readInstructionFiles(session.cwd);
     return ctx;
   }
 
@@ -900,6 +1002,92 @@ function inferAttachmentKind(
   return [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"].includes(ext)
     ? "image"
     : "file";
+}
+
+const INSTRUCTION_FILE_NAMES = [
+  "AGENTS.md",
+  "CLAUDE.md",
+  ".cursorrules",
+  ".github/copilot-instructions.md",
+] as const;
+const MAX_INSTRUCTION_BYTES = 24_000;
+
+function readGitSummary(cwd: string): AgentPromptContext["git"] {
+  if (runGit(cwd, ["rev-parse", "--is-inside-work-tree"]) !== "true") {
+    return { status: "not a git repository" };
+  }
+  const branch =
+    runGit(cwd, ["branch", "--show-current"]) ||
+    runGit(cwd, ["rev-parse", "--short", "HEAD"]);
+  const statusText = runGit(cwd, ["status", "--short"]) ?? "";
+  const files = statusText
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter(Boolean);
+  return {
+    branch,
+    status: files.length === 0 ? "clean" : "changes",
+    summary:
+      files.length === 0 ? "working tree clean" : `${files.length} changed file(s)`,
+    files: files.slice(0, 12),
+  };
+}
+
+function readInstructionFiles(cwd: string): AgentPromptContext["instructionFiles"] {
+  const root = runGit(cwd, ["rev-parse", "--show-toplevel"]) || cwd;
+  const dirs = instructionSearchDirs(root, cwd);
+  const seen = new Set<string>();
+  const files: NonNullable<AgentPromptContext["instructionFiles"]> = [];
+  for (const dir of dirs) {
+    for (const name of INSTRUCTION_FILE_NAMES) {
+      const path = resolve(dir, name);
+      if (seen.has(path) || !isRegularFile(path)) continue;
+      seen.add(path);
+      const raw = readFileSync(path);
+      const truncated = raw.byteLength > MAX_INSTRUCTION_BYTES;
+      const content = raw.subarray(0, MAX_INSTRUCTION_BYTES).toString("utf8").trimEnd();
+      files.push({ path, content, truncated });
+    }
+  }
+  return files;
+}
+
+function instructionSearchDirs(root: string, cwd: string): string[] {
+  const base = resolve(root);
+  const current = resolve(cwd);
+  const rel = relative(base, current);
+  if (rel.startsWith("..") || rel === "" || rel.split(sep).includes("..")) {
+    return rel === "" ? [base] : [current];
+  }
+  const dirs = [base];
+  let cursor = base;
+  for (const part of rel.split(sep).filter(Boolean)) {
+    cursor = resolve(cursor, part);
+    dirs.push(cursor);
+  }
+  return dirs;
+}
+
+function isRegularFile(path: string): boolean {
+  try {
+    return existsSync(path) && statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function runGit(cwd: string, args: string[]): string | undefined {
+  try {
+    return execFileSync("git", args, {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 750,
+      maxBuffer: 128 * 1024,
+    }).trim();
+  } catch {
+    return undefined;
+  }
 }
 
 function appendAssistantText(

@@ -70,6 +70,7 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
       kind: z.enum(["editor", "terminal", "agent", "preview", "diff"]).optional(),
       spaceId: z.string().optional(),
       terminalId: z.string().optional(),
+      selectedDiffFilePath: z.string().optional(),
     }),
     execute: (_ctx, input) => deps.browserTabs.openWorkspaceTab(input),
   });
@@ -89,17 +90,19 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
   const setWorkspaceTabFile = defineTool({
     name: "set_workspace_tab_file",
     description:
-      "Set the focused file and/or open files of an editor workspace tab (paths relative to its cwd).",
+      "Set file-focused workspace tab state: editor focused/open files or diff selected file (paths relative to cwd).",
     capabilities: ["writes-files"],
     inputSchema: z.object({
       tabId: z.string(),
       activeFilePath: z.string().nullable().optional(),
       openFilePaths: z.array(z.string()).optional(),
+      selectedDiffFilePath: z.string().nullable().optional(),
     }),
     execute: (_ctx, input) =>
       deps.browserTabs.setWorkspaceTabFile(input.tabId, {
         activeFilePath: input.activeFilePath,
         openFilePaths: input.openFilePaths,
+        selectedDiffFilePath: input.selectedDiffFilePath,
       }),
   });
 

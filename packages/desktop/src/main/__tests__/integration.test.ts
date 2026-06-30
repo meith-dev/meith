@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { ToolClient } from "@meith/cli/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { type ServiceContainer, bootstrap } from "../bootstrap.js";
+import { CURRENT_STATE_VERSION } from "../storage/migrations.js";
 
 function sendRawFrame(
   socketPath: string,
@@ -322,8 +323,8 @@ describe("socket integration", () => {
       dataDirectory: string;
       state: { version: number };
     };
-    expect(snapshot.stateVersion).toBe(4);
-    expect(snapshot.state.version).toBe(4);
+    expect(snapshot.stateVersion).toBe(CURRENT_STATE_VERSION);
+    expect(snapshot.state.version).toBe(CURRENT_STATE_VERSION);
   });
 
   it("returns app health and live instances over the socket", async () => {
@@ -389,7 +390,7 @@ describe("socket integration", () => {
     };
     expect(content.path).toBeTruthy();
     expect(content.report.schema).toBe("meith-bug-report/v1");
-    expect(content.report.stateSummary.version).toBe(4);
+    expect(content.report.stateSummary.version).toBe(CURRENT_STATE_VERSION);
     expect(content.report.toolRegistry.some((t) => t.name === "app_health")).toBe(true);
   });
 });

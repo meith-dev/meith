@@ -538,13 +538,17 @@ export function App() {
   // Open (or focus, if one already exists for this space) the diff surface for
   // the active project.
   const openDiffTab = useCallback(
-    (pane: PaneId = "primary") => {
+    (pane: PaneId = "secondary") => {
       setSettingsOpen(false);
       const existing = workspaceTabs.find(
         (t) => t.kind === "diff" && t.spaceId === activeSpaceId,
       );
       if (existing) {
-        layout.setActive(pane, existing.id);
+        if (layout.paneOf(existing.id) !== pane) {
+          layout.moveTabToPane(existing.id, pane);
+        } else {
+          layout.setActive(pane, existing.id);
+        }
         void run("focus_workspace_tab", { tabId: existing.id });
         return;
       }
@@ -907,7 +911,7 @@ export function App() {
             <TopBarGitDiff
               cwd={activeProjectCwd}
               call={call}
-              onOpenDiff={() => openDiffTab("primary")}
+              onOpenDiff={openDiffTab}
               refreshKey={workspaceFileEvents.length}
             />
             <TopBarRun
@@ -947,6 +951,8 @@ export function App() {
             {/* Primary pane: its own tab strip + active surface. */}
             <div
               className="flex min-w-0 flex-col"
+              onFocusCapture={() => layout.setFocused("primary")}
+              onPointerDownCapture={() => layout.setFocused("primary")}
               style={effectiveSplit ? { width: splitPane.size } : { flex: "1 1 0%" }}
             >
               <TabStrip
@@ -983,7 +989,11 @@ export function App() {
                 />
 
                 {/* Secondary pane: its own tab strip + active surface. */}
-                <div className="flex min-w-0 flex-1 flex-col">
+                <div
+                  className="flex min-w-0 flex-1 flex-col"
+                  onFocusCapture={() => layout.setFocused("secondary")}
+                  onPointerDownCapture={() => layout.setFocused("secondary")}
+                >
                   <TabStrip
                     {...stripCommon}
                     pane="secondary"

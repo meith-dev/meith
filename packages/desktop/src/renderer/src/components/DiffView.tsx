@@ -50,9 +50,13 @@ type DiffTreeNode = DiffTreeDir | DiffTreeFile;
 export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
   const { data, loading, error, refresh } = useGitDiff(call, tab.cwd, {
     refreshKey,
+    pollMs: 2500,
+    forcePoll: true,
     includePatches: false,
   });
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [selectedPath, setSelectedPath] = useState<string | null>(
+    tab.selectedDiffFilePath ?? null,
+  );
   const [patchByPath, setPatchByPath] = useState<Record<string, GitDiffFile>>({});
   const [patchLoading, setPatchLoading] = useState(false);
   const [patchError, setPatchError] = useState<string | null>(null);
@@ -94,6 +98,15 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
       setSelectedPath(data.files[0].path);
     }
   }, [data.files, selectedPath]);
+
+  useEffect(() => {
+    const persistedPath = tab.selectedDiffFilePath ?? null;
+    if (selectedPath === persistedPath) return;
+    void call("set_workspace_tab_file", {
+      tabId: tab.id,
+      selectedDiffFilePath: selectedPath,
+    });
+  }, [call, selectedPath, tab.id, tab.selectedDiffFilePath]);
 
   // Keep selected files visible in the tree, and drop expansion entries for
   // directories that no longer exist after a diff refresh.
