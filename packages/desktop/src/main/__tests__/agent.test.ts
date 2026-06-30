@@ -1566,6 +1566,43 @@ describe("AgentService persistence", () => {
     expect(display[0].content.length).toBe(10);
     expect(display[0].content).toBe("[Earlier c");
   });
+
+  it("preserves and re-bases textSegments when truncating long messages", async () => {
+    const { AgentStore } = await import("../services/AgentStore.js");
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "meith-agent-"));
+    const store = new AgentStore(dir);
+
+    // A long message: leading thought, then a final answer at the tail. With a
+    // tight budget the front is truncated, but the final-answer segment must
+    // survive (re-based) so the renderer can still show it as the answer.
+    const thought = "t".repeat(40_000);
+    const answer = "FINAL ANSWER";
+    const content = `${thought}${answer}`;
+    store.appendMessage("sess-seg", {
+      id: "msg-seg",
+      role: "assistant",
+      content,
+      createdAt: 1,
+      textSegments: [
+        { start: 0, end: thought.length, text: thought, kind: "thought" },
+        { start: thought.length, end: content.length, text: answer },
+      ],
+    });
+
+    const [message] = store.readDisplayMessagesFast("sess-seg");
+    expect(message.content.length).toBeLessThanOrEqual(20_000);
+    expect(message.content.endsWith(answer)).toBe(true);
+    // The final-answer segment is kept and points at the real answer text.
+    const segments = message.textSegments ?? [];
+    const finalSegment = segments.find((segment) => segment.kind !== "thought");
+    expect(finalSegment?.text).toContain(answer);
+    expect(message.content.slice(finalSegment!.start, finalSegment!.end)).toContain(
+      answer,
+    );
+  });
 });
 
 async function waitFor(predicate: () => boolean, timeoutMs = 1000): Promise<void> {
