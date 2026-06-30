@@ -520,7 +520,7 @@ function ThinkingBlock({
         {summary}
       </summary>
       <div className="mt-1 pl-4 text-xs text-muted-foreground">
-        <MarkdownMessage content={detailContent} />
+        <PlainTextMessage content={detailContent} />
       </div>
     </details>
   );
