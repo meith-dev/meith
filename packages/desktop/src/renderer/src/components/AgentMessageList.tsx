@@ -468,7 +468,9 @@ function ThinkingBlock({
   const live = Boolean(latestEntry?.live);
   const label = live ? "Thinking" : "Thoughts";
   const summaryText = summarizeThought(latestEntry?.content ?? "");
-  const detailContent = visibleEntries.map((entry) => entry.content.trim()).join("\n\n");
+  // Entries are individual streamed thought tokens — join them as a single
+  // continuous stream and let normalizeThoughtText collapse all whitespace.
+  const detailContent = visibleEntries.map((entry) => entry.content).join("");
   const detailCount = visibleEntries.length;
   const hasDetails = detailContent.length > 0;
   const countLabel = detailCount > 1 ? `${detailCount} updates` : undefined;
@@ -526,27 +528,18 @@ function ThinkingBlock({
   );
 }
 
-/** Normalise streaming thought text:
- *  - Collapse single newlines (token gaps) into spaces
- *  - Preserve intentional paragraph breaks (2+ newlines)
- *  - Remove spaces inserted before punctuation ( . , ; : ! ? ' )
- *  - Remove spaces inserted inside contractions / mid-word splits
+/** Normalise streaming thought text.
+ *  Tokens arrive one-per-line so collapse all whitespace runs into a single
+ *  space, then fix tokenizer artifacts (spaces before punctuation, spaced
+ *  contractions). Paragraph-level structure is intentionally flattened —
+ *  thought entries are a continuous internal stream, not formatted prose.
  */
 function normalizeThoughtText(text: string): string {
   return text
-    .replace(/\r\n/g, "\n")
-    // Protect real paragraph breaks
-    .replace(/\n{2,}/g, "\0")
-    // Collapse all remaining single newlines to spaces
-    .replace(/\n/g, " ")
-    // Restore paragraph breaks
-    .replace(/\0/g, "\n\n")
-    // Collapse multiple spaces
-    .replace(/ {2,}/g, " ")
+    // Collapse all whitespace (newlines, tabs, multiple spaces) into one space
+    .replace(/\s+/g, " ")
     // Remove space before punctuation: "word ." → "word."
     .replace(/ ([.,:;!?])/g, "$1")
-    // Remove space after opening quotes/before closing: '" word' / 'word "'
-    .replace(/ (['"]) /g, "$1 ")
     // Fix spaced contractions: "won 't" → "won't", "I 'll" → "I'll"
     .replace(/(\w) ('(?:t|s|re|ve|ll|d|m))\b/gi, "$1$2")
     .trim();
