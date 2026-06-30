@@ -535,7 +535,7 @@ function ThinkingBlock({
       <summary className="min-w-0 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
         {summary}
       </summary>
-      <div className="mt-1 pl-4 text-xs text-muted-foreground">
+      <div className="mt-1 max-h-40 overflow-y-auto pl-4 text-xs text-muted-foreground">
         <MarkdownMessage content={normalizedContent} />
       </div>
     </details>
@@ -562,9 +562,13 @@ function normalizeThoughtText(text: string): string {
 function summarizeThought(text: string): string {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (!normalized) return "";
-  const withPrefix = `· ${normalized}`;
-  if (withPrefix.length <= 96) return withPrefix;
-  return `${withPrefix.slice(0, 93)}...`;
+  // Prefer the first **heading** as a tight label
+  const headingMatch = normalized.match(/\*\*([^*]+)\*\*/);
+  if (headingMatch) return `**${headingMatch[1].trim()}**`;
+  // Fall back to the first ~55 chars of plain text
+  const plain = normalized.replace(/\*+/g, "");
+  if (plain.length <= 55) return plain;
+  return `${plain.slice(0, 52)}...`;
 }
 
 function thinkingEntriesFromSegments(
