@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0](https://github.com/meith-dev/meith/compare/v0.3.0...v0.4.0) (2026-06-30)
+
+
+### Features
+
+* add git panel source control workflows ([#22](https://github.com/meith-dev/meith/issues/22)) ([b4b6c42](https://github.com/meith-dev/meith/commit/b4b6c42883c59919957fa1eaf675813e0a84fd8a))
+* **desktop:** enrich agent context and improve diff UX ([#20](https://github.com/meith-dev/meith/issues/20)) ([fa08e79](https://github.com/meith-dev/meith/commit/fa08e7967c535912038980d8deee1ecbfb1fc148))
+* **desktop:** implement storage management in the settings ui ([#23](https://github.com/meith-dev/meith/issues/23)) ([8d493c5](https://github.com/meith-dev/meith/commit/8d493c5f5d42084bf1f74c0f4992050e327c8843))
+
 ## [0.3.0](https://github.com/meith-dev/meith/compare/v0.2.2...v0.3.0) (2026-06-29)
 
 
