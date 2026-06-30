@@ -16,6 +16,11 @@ project. It can read and edit your app's code, run the dev server, drive an
 embedded browser to check the live preview, and inspect dev-server logs. All of
 that happens through the same shared tool registry the rest of the app uses.
 
+Before each run, meith also gives the agent a bounded snapshot of the workbench:
+the active editor file, selected diff file, open browser tabs, terminal and dev
+server status, recent browser console errors, the current git summary, and
+project-specific instruction files such as `AGENTS.md` when they exist.
+
 ## Provider-agnostic by design
 
 meith does not lock you into one AI provider. The agent runtime uses an adapter
@@ -46,6 +51,11 @@ provider-native helpers cannot bypass the shared registry.
 >
 > When an agent edits a file, the change lands as an inline diff with a gutter
 > marker, so you can see exactly what was rewritten and undo it.
+
+The top-bar diff chip and the diff tab refresh while visible, so changes made by
+agents, tools, or terminal commands should appear without waiting for a manual
+refresh. Opening the git diff from the top bar opens it on the right side by
+default, creating a split pane when needed.
 
 ## Learn more
 

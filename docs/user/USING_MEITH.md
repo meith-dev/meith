@@ -38,7 +38,8 @@ outside in, the window is made of a few stable regions:
    scopes every tab you open to that project.
 2. Split the workspace so you can see more than one thing at once. A common
    layout is an agent chat on the left and a live `localhost` preview on the
-   right.
+   right. Clicking inside either pane makes that pane active; its active tab is
+   highlighted in orange.
 3. Start your project's run command from the title bar. The status bar shows the
    running server and its port, and the embedded browser tab can point straight
    at it.
@@ -54,6 +55,11 @@ When an agent edits files, the edits are not a black box. meith reads a
 project's working-tree changes, including staged, unstaged, and brand-new files,
 and presents them as per-file diffs with added and removed line counts. You can
 see exactly what was rewritten before you keep it.
+
+The git diff view opens on the right by default. From a single-pane layout,
+opening the diff starts split view; from an existing split layout, it focuses or
+moves the diff tab into the right pane. The tab remains draggable if you want a
+different arrangement.
 
 > **Edits are reversible**
 >
