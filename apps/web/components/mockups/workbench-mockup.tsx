@@ -11,8 +11,10 @@ import {
   Folder,
   FolderOpen,
   GitBranch,
+  GitCommit,
   GitCompare,
   Hand,
+  Lightbulb,
   ListPlus,
   Paperclip,
   PlayIcon,
@@ -373,32 +375,64 @@ export function WorkbenchMockup({ className }: { className?: string }) {
               </div>
 
               <div className="flex min-h-0 flex-1">
-                <div className="w-40 shrink-0 bg-card/30 py-1 text-xs">
-                  <div className="flex items-center gap-1.5 px-2 py-1 text-muted-foreground">
-                    <ChevronRight className="size-3 rotate-90" />
-                    <FolderOpen className="size-3.5" />
-                    <span className="min-w-0 flex-1 truncate font-mono">apps</span>
-                    <span className="font-mono text-[10px]">2</span>
+                <div className="flex w-44 shrink-0 flex-col bg-card/30 text-xs">
+                  <div className="min-h-0 flex-1 py-1">
+                    <div className="flex items-center justify-between px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span>Staged</span>
+                      <span className="font-mono">0</span>
+                    </div>
+                    <div className="px-2 py-1 text-[11px] text-muted-foreground/70">
+                      No files
+                    </div>
+                    <div className="mt-1 flex items-center justify-between px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span>Changes</span>
+                      <span className="font-mono">2</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-1 text-muted-foreground">
+                      <ChevronRight className="size-3 rotate-90" />
+                      <FolderOpen className="size-3.5" />
+                      <span className="min-w-0 flex-1 truncate font-mono">apps</span>
+                      <span className="font-mono text-[10px]">2</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-1 pl-6 text-muted-foreground">
+                      <ChevronRight className="size-3 rotate-90" />
+                      <Folder className="size-3.5" />
+                      <span className="min-w-0 flex-1 truncate font-mono">web</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-accent px-2 py-1.5 pl-10 text-foreground">
+                      <FileDiff className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate font-mono">page.tsx</span>
+                      <span className="font-mono text-[10px]">
+                        <span className="text-[oklch(0.7_0.13_150)]">+23</span>{" "}
+                        <span className="text-[oklch(0.62_0.2_25)]">-12</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 py-1.5 pl-10 text-foreground">
+                      <FilePlus className="size-3.5 shrink-0 text-[oklch(0.7_0.13_150)]" />
+                      <span className="min-w-0 flex-1 truncate font-mono">
+                        pricing.tsx
+                      </span>
+                      <span className="font-mono text-[10px] text-[oklch(0.7_0.13_150)]">
+                        +84
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1 pl-6 text-muted-foreground">
-                    <ChevronRight className="size-3 rotate-90" />
-                    <Folder className="size-3.5" />
-                    <span className="min-w-0 flex-1 truncate font-mono">web</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-accent px-2 py-1.5 pl-10 text-foreground">
-                    <FileDiff className="size-3.5 shrink-0 text-muted-foreground" />
-                    <span className="min-w-0 flex-1 truncate font-mono">page.tsx</span>
-                    <span className="font-mono text-[10px]">
-                      <span className="text-[oklch(0.7_0.13_150)]">+23</span>{" "}
-                      <span className="text-[oklch(0.62_0.2_25)]">-12</span>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 px-2 py-1.5 pl-10 text-foreground">
-                    <FilePlus className="size-3.5 shrink-0 text-[oklch(0.7_0.13_150)]" />
-                    <span className="min-w-0 flex-1 truncate font-mono">pricing.tsx</span>
-                    <span className="font-mono text-[10px] text-[oklch(0.7_0.13_150)]">
-                      +84
-                    </span>
+                  <div className="border-t border-border p-2">
+                    <div className="min-h-12 rounded-md border border-border bg-background px-2 py-1.5 text-[11px] leading-relaxed text-foreground">
+                      feat: add pricing section
+                    </div>
+                    <div className="mt-1 truncate px-0.5 text-[10px] text-muted-foreground">
+                      Jordan Harrison &lt;jordan@...&gt;
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground">
+                        <Lightbulb className="size-3.5" />
+                      </span>
+                      <span className="flex h-6 min-w-0 flex-1 items-center justify-center gap-1 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground">
+                        <GitCommit className="size-3.5" />
+                        Commit
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="w-1 shrink-0 border-r border-border" />
@@ -407,6 +441,9 @@ export function WorkbenchMockup({ className }: { className?: string }) {
                     <FileDiff className="size-3.5 text-muted-foreground" />
                     <span className="min-w-0 flex-1 truncate font-mono">
                       apps/web/app/page.tsx
+                    </span>
+                    <span className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-foreground">
+                      Stage
                     </span>
                     <span className="font-mono">
                       <span className="text-[oklch(0.7_0.13_150)]">+23</span>{" "}
