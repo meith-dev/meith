@@ -931,7 +931,14 @@ export class AgentService extends EventEmitter {
     assistant: AgentMessage,
     extras: Partial<Pick<AgentMessagePatch, "toolCalls" | "usage" | "error">> = {},
   ): void {
-    const previousLength = this.persistedAssistantContentLength.get(assistant.id) ?? 0;
+    const tracked = this.persistedAssistantContentLength.get(assistant.id) ?? 0;
+    // Defensive: if tracking ever exceeds the current content length the cursor
+    // has desynced (content shorter than what we think we persisted). Slicing at
+    // a stale cursor would persist a delta that starts mid-stream, which on
+    // reload reconstructs as content chopped mid-token (e.g. inside a markdown
+    // link). Reset to 0 so we re-persist the full content instead of a fragment.
+    const previousLength =
+      tracked > assistant.content.length ? 0 : tracked;
     const contentDelta = assistant.content.slice(previousLength);
     const textSegments = deltaTextSegments(assistant.textSegments, previousLength);
     if (
