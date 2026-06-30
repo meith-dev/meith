@@ -1155,6 +1155,12 @@ function createMockBridge(): MeithBridge {
         }
       },
     },
+    ai: {
+      complete: async (input) => ({
+        text: previewCompletion(input.prompt),
+        adapterId: "mock",
+      }),
+    },
     state: {
       get: async () => structuredClone(state),
       onChange: (cb) => {
@@ -1489,6 +1495,15 @@ function handleMockInput(
       write(ch);
     }
   }
+}
+
+function previewCompletion(prompt: string): string {
+  const path =
+    prompt.match(/^diff --git a\/(.+?) b\//m)?.[1] ??
+    prompt.match(/^Path:\s*(.+)$/m)?.[1]?.trim() ??
+    "changes";
+  const file = path.split("/").filter(Boolean).at(-1) ?? path;
+  return `chore: update ${file}`.slice(0, 90);
 }
 
 function desc(

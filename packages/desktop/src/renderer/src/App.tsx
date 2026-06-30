@@ -848,6 +848,7 @@ export function App() {
               key={tab.id}
               tab={tab}
               call={call}
+              bridge={bridge}
               settings={settings?.git}
               refreshKey={gitRefreshKey}
             />

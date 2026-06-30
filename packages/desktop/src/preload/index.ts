@@ -13,6 +13,7 @@ import type {
 const IPC = {
   toolsList: "meith:tools:list",
   toolCall: "meith:tools:call",
+  aiComplete: "meith:ai:complete",
   getState: "meith:state:get",
   stateChanged: "meith:state:changed",
   getLogs: "meith:logs:get",
@@ -56,6 +57,9 @@ const api: MeithBridge = {
   tools: {
     list: () => ipcRenderer.invoke(IPC.toolsList) as Promise<ToolDescriptor[]>,
     call: (name, args = {}) => ipcRenderer.invoke(IPC.toolCall, name, args),
+  },
+  ai: {
+    complete: (input) => ipcRenderer.invoke(IPC.aiComplete, input),
   },
   state: {
     get: () => ipcRenderer.invoke(IPC.getState) as Promise<AppState>,

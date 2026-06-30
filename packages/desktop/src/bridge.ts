@@ -32,6 +32,24 @@ export interface AgentStageAttachmentInput {
   dataBase64?: string;
 }
 
+export interface LlmCompletionInput {
+  /** User prompt to send to the configured LLM/agent. */
+  prompt: string;
+  /** Optional system instruction for focused one-shot completions. */
+  systemPrompt?: string;
+  /** Working directory used as the completion context. */
+  cwd?: string;
+  /** Maximum returned text length after trimming. */
+  maxChars?: number;
+  /** Completion timeout in milliseconds. */
+  timeoutMs?: number;
+}
+
+export interface LlmCompletionResult {
+  text: string;
+  adapterId: string;
+}
+
 /** A rectangle in main-window content coordinates (CSS px, origin = content top-left). */
 export interface OverlayRect {
   x: number;
@@ -99,6 +117,10 @@ export interface MeithBridge {
   tools: {
     list: () => Promise<ToolDescriptor[]>;
     call: (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
+  };
+  /** Small one-shot LLM completion API for renderer features. */
+  ai: {
+    complete: (input: LlmCompletionInput) => Promise<LlmCompletionResult>;
   };
   state: {
     get: () => Promise<AppState>;

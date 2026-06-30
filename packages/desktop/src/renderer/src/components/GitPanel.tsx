@@ -20,10 +20,12 @@ import {
   RotateCcwIcon,
 } from "lucide-react";
 import { type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
+import type { MeithBridge } from "../../../bridge";
 
 interface GitPanelProps {
   tab: WorkspaceTab;
   call: (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
+  bridge: MeithBridge;
   settings?: GitSettings;
   /** Bumped when workspace files change, to refetch git state. */
   refreshKey: number;
@@ -75,7 +77,7 @@ interface GitStatusResult {
  * with its unified patch rendered as colored add/remove lines. Self-contained
  * — it fetches via the `git_diff` tool and refreshes on file changes.
  */
-export function GitPanel({ tab, call, settings, refreshKey }: GitPanelProps) {
+export function GitPanel({ tab, call, bridge, settings, refreshKey }: GitPanelProps) {
   const refreshIntervalMs = settings?.refreshIntervalMs ?? 2500;
   const showUntrackedFiles = settings?.showUntrackedFiles ?? true;
   const confirmBeforeRestore = settings?.confirmBeforeRestore ?? true;
@@ -95,6 +97,7 @@ export function GitPanel({ tab, call, settings, refreshKey }: GitPanelProps) {
   const [status, setStatus] = useState<GitStatusResult | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+  const [suggestBusy, setSuggestBusy] = useState(false);
   const [commitMessage, setCommitMessage] = useState("");
   const activeIdentity =
     settings?.identityProfiles.find(
@@ -309,9 +312,47 @@ export function GitPanel({ tab, call, settings, refreshKey }: GitPanelProps) {
     setSelectedScope(scope);
   }, []);
 
-  const suggestCommitMessage = useCallback(() => {
-    setCommitMessage(suggestMessage(status, data.files));
-  }, [status, data.files]);
+  const suggestCommitMessage = useCallback(async () => {
+    setSuggestBusy(true);
+    setActionError(null);
+    try {
+      const scope = (status?.staged.length ?? 0) > 0 ? "staged" : "all";
+      const res = await call("git_diff", {
+        cwd: tab.cwd,
+        includePatches: true,
+        scope,
+      });
+      if (!res.ok || !res.content) {
+        throw new Error(res.error?.message ?? "Failed to load full diff");
+      }
+      const fullDiff = res.content as { files?: GitDiffFile[] };
+      const files = fullDiff.files ?? data.files;
+      const fallback = suggestMessage(status, files);
+      try {
+        const completion = await bridge.ai.complete({
+          cwd: tab.cwd,
+          systemPrompt: COMMIT_MESSAGE_SYSTEM_PROMPT,
+          prompt: buildCommitMessagePrompt(scope, files),
+          maxChars: 160,
+          timeoutMs: 45_000,
+        });
+        const suggestion =
+          completion.adapterId === "mock"
+            ? fallback
+            : normalizeCommitSubject(completion.text);
+        setCommitMessage(suggestion || fallback);
+      } catch (err) {
+        setCommitMessage(fallback);
+        setActionError(
+          `AI suggestion unavailable: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSuggestBusy(false);
+    }
+  }, [bridge.ai, call, data.files, status, tab.cwd]);
 
   const commitChanges = useCallback(async () => {
     if (!commitMessage.trim()) return;
@@ -400,6 +441,7 @@ export function GitPanel({ tab, call, settings, refreshKey }: GitPanelProps) {
               (status?.staged.length ?? 0) > 0 && commitMessage.trim().length > 0
             }
             busy={actionBusy}
+            suggestBusy={suggestBusy}
           />
           {/* Resize handle */}
           <button
@@ -444,6 +486,7 @@ function SourceControlSidebar({
   activeIdentity,
   canCommit,
   busy,
+  suggestBusy,
 }: {
   stagedNodes: DiffTreeNode[];
   unstagedNodes: DiffTreeNode[];
@@ -460,6 +503,7 @@ function SourceControlSidebar({
   activeIdentity: GitSettings["identityProfiles"][number] | null;
   canCommit: boolean;
   busy: boolean;
+  suggestBusy: boolean;
 }) {
   return (
     <div
@@ -511,9 +555,14 @@ function SourceControlSidebar({
               size="icon-sm"
               variant="ghost"
               onClick={onSuggestCommitMessage}
+              disabled={busy || suggestBusy}
               aria-label="Suggest commit message"
             >
-              <LightbulbIcon className="size-4" aria-hidden />
+              {suggestBusy ? (
+                <RefreshCwIcon className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <LightbulbIcon className="size-4" aria-hidden />
+              )}
             </Button>
           </TooltipButton>
           <TooltipButton label="Commit staged changes" side="top">
@@ -787,19 +836,141 @@ function countFiles(nodes: DiffTreeNode[]): number {
   }, 0);
 }
 
+const COMMIT_MESSAGE_SYSTEM_PROMPT = [
+  "You generate Conventional Commit subject lines from git diffs.",
+  "Return exactly one subject line and no Markdown, commentary, bullets, or quotes.",
+  "Keep it under 90 characters.",
+  "Use a useful type such as feat, fix, docs, test, style, refactor, chore, or build.",
+  "Describe the semantic intent of the diff, not just the filenames.",
+].join("\n");
+
+function buildCommitMessagePrompt(scope: "all" | GitScope, files: GitDiffFile[]): string {
+  const changedFiles = files
+    .map(
+      (file) =>
+        `- ${file.status} ${file.path} (+${file.additions} -${file.deletions})${
+          file.binary ? " [binary]" : ""
+        }`,
+    )
+    .join("\n");
+  return [
+    `Generate a meaningful Conventional Commit subject for the ${scope} diff below.`,
+    "",
+    "Changed files:",
+    changedFiles || "- none",
+    "",
+    "Full diff:",
+    "```diff",
+    renderFullDiffForPrompt(files),
+    "```",
+  ].join("\n");
+}
+
+function renderFullDiffForPrompt(files: GitDiffFile[]): string {
+  return files
+    .map((file) => {
+      if (file.diff.trim()) return file.diff.trim();
+      return [
+        `diff --git a/${file.path} b/${file.path}`,
+        `# status: ${file.status}`,
+        `# additions: ${file.additions}`,
+        `# deletions: ${file.deletions}`,
+        file.binary ? "# binary file" : "# patch unavailable",
+      ].join("\n");
+    })
+    .join("\n\n");
+}
+
+function normalizeCommitSubject(text: string): string {
+  const line = text
+    .replace(/```[\s\S]*?```/g, (block) =>
+      block
+        .replace(/^```[a-z]*\s*/i, "")
+        .replace(/```$/i, "")
+        .trim(),
+    )
+    .split(/\r?\n/)
+    .map((item) =>
+      item
+        .trim()
+        .replace(/^[-*]\s+/, "")
+        .replace(/^["'`]+|["'`]+$/g, "")
+        .replace(/^commit message:\s*/i, ""),
+    )
+    .find(Boolean);
+  return (line ?? "").slice(0, 90);
+}
+
 function suggestMessage(status: GitStatusResult | null, files: GitDiffFile[]): string {
   const staged = status?.staged ?? [];
-  const source = staged.length > 0 ? staged : files;
+  const filesByPath = new Map(files.map((file) => [file.path, file]));
+  const source =
+    staged.length > 0 ? staged.map((file) => filesByPath.get(file.path) ?? file) : files;
   if (source.length === 0) return "";
+  const fullDiff = files
+    .map((file) => file.diff)
+    .filter(Boolean)
+    .join("\n\n");
   const firstPath = source[0].path;
   const area = firstPath.includes("/") ? firstPath.split("/")[0] : basename(firstPath);
-  const added = source.some(
-    (file) => file.status === "added" || file.status === "untracked",
-  );
-  const deleted = source.some((file) => file.status === "deleted");
-  const type = added ? "feat" : deleted ? "chore" : "fix";
+  const type = inferCommitType(source, fullDiff);
   if (source.length === 1) return `${type}: update ${basename(firstPath)}`;
   return `${type}: update ${area} source control changes`;
+}
+
+function inferCommitType(
+  files: Array<Pick<GitDiffFile, "path" | "status">>,
+  fullDiff: string,
+): "feat" | "fix" | "docs" | "test" | "style" | "chore" {
+  const paths = files.map((file) => file.path);
+  if (paths.length > 0 && paths.every(isDocsPath)) return "docs";
+  if (paths.length > 0 && paths.every(isTestPath)) return "test";
+  if (paths.length > 0 && paths.every(isStylePath)) return "style";
+  if (paths.some(isDependencyPath)) return "chore";
+  const added = files.some(
+    (file) => file.status === "added" || file.status === "untracked",
+  );
+  if (
+    added ||
+    /^\+(?!\+\+).*(export\s+)?(class|function|interface|type|const)\s+/m.test(fullDiff)
+  ) {
+    return "feat";
+  }
+  if (files.some((file) => file.status === "deleted")) return "chore";
+  return "fix";
+}
+
+function isDocsPath(path: string): boolean {
+  return (
+    path.startsWith("docs/") ||
+    path === "README.md" ||
+    path.endsWith(".md") ||
+    path.endsWith(".mdx")
+  );
+}
+
+function isTestPath(path: string): boolean {
+  return (
+    path.includes("__tests__/") ||
+    path.endsWith(".test.ts") ||
+    path.endsWith(".test.tsx") ||
+    path.endsWith(".spec.ts") ||
+    path.endsWith(".spec.tsx")
+  );
+}
+
+function isStylePath(path: string): boolean {
+  return path.endsWith(".css") || path.endsWith(".scss") || path.endsWith(".sass");
+}
+
+function isDependencyPath(path: string): boolean {
+  return (
+    path === "package.json" ||
+    path.endsWith("/package.json") ||
+    path.endsWith("-lock.json") ||
+    path.endsWith("pnpm-lock.yaml") ||
+    path.endsWith("yarn.lock")
+  );
 }
 
 function sortDiffTree(nodes: DiffTreeNode[]): void {

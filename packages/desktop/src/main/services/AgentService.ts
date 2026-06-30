@@ -81,6 +81,19 @@ export interface StageAttachmentInput {
   dataBase64?: string;
 }
 
+export interface AgentCompletionInput {
+  prompt?: string;
+  systemPrompt?: string;
+  cwd?: string;
+  maxChars?: number;
+  timeoutMs?: number;
+}
+
+export interface AgentCompletionResult {
+  text: string;
+  adapterId: string;
+}
+
 export type AgentRunInput =
   | string
   | {
@@ -226,6 +239,86 @@ export class AgentService extends EventEmitter {
     const meta = this.toMeta(session);
     this.emit("session", meta);
     return meta;
+  }
+
+  /**
+   * Run a one-shot, non-persisted completion through the configured real agent
+   * adapter. This is for renderer features such as commit-message or title
+   * generation that need LLM output without creating chat history.
+   */
+  async complete(input: AgentCompletionInput): Promise<AgentCompletionResult> {
+    const prompt = input.prompt?.trim();
+    if (!prompt) throw new Error("Completion prompt is required.");
+    if (!this.adapter) throw new Error("No agent adapter is configured.");
+    if (this.adapter.id === "mock") {
+      throw new Error("No LLM agent is configured. Configure an ACP agent in Settings.");
+    }
+
+    const cfg = this.getConfig();
+    const now = Date.now();
+    const session: AgentSession = {
+      id: `completion_${randomUUID().slice(0, 10)}`,
+      title: "Completion",
+      cwd: input.cwd?.trim() || process.cwd(),
+      spaceId: null,
+      model: cfg.model || undefined,
+      reasoning: cfg.reasoning || undefined,
+      adapterId: this.adapter.id,
+      status: "running",
+      createdAt: now,
+      updatedAt: now,
+      lastViewedAt: now,
+      messages: [
+        {
+          id: newMessageId(),
+          role: "user",
+          content: prompt,
+          createdAt: now,
+        },
+      ],
+    };
+    const controller = new AbortController();
+    const timeoutMs = Math.min(Math.max(input.timeoutMs ?? 45_000, 1_000), 120_000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    timeout.unref?.();
+
+    const host: AgentHostContext = {
+      listTools: () => [],
+      callTool: (toolCall) =>
+        Promise.resolve(
+          errorResult(
+            "PERMISSION_DENIED",
+            `Completion requests cannot call tools (${toolCall.name}).`,
+          ),
+        ),
+      systemPrompt: () =>
+        input.systemPrompt?.trim() ||
+        "You are a concise completion engine. Return only the requested text.",
+      signal: controller.signal,
+      cwd: session.cwd,
+      model: session.model,
+      log: (message) => this.logger.info("Agent", message),
+    };
+
+    let text = "";
+    try {
+      for await (const chunk of this.adapter.run(session, host)) {
+        if (chunk.type === "text") text += chunk.text;
+        if (chunk.type === "error") throw new Error(chunk.message);
+        if (controller.signal.aborted) break;
+      }
+      if (controller.signal.aborted) {
+        throw new Error(`Completion timed out after ${timeoutMs}ms.`);
+      }
+      const maxChars = Math.min(Math.max(input.maxChars ?? 2_000, 1), 20_000);
+      return {
+        text: text.trim().slice(0, maxChars),
+        adapterId: this.adapter.id,
+      };
+    } finally {
+      clearTimeout(timeout);
+      void this.adapter.dispose?.(session.id);
+    }
   }
 
   // --- Sessions ------------------------------------------------------------
