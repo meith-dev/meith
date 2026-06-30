@@ -283,7 +283,7 @@ function LiveAssistantActivity({
                   <ThinkingBlock
                     key={event.id}
                     entries={event.entries}
-                    expanded={index === latestThinkingIndex}
+                    isLatest={index === latestThinkingIndex}
                   />
                 ) : (
                   <ToolCallStack key={event.id} calls={event.calls} compact isLive />
@@ -457,25 +457,32 @@ function groupLiveActivityEvents(
 
 function ThinkingBlock({
   entries,
-  expanded,
+  isLatest = false,
 }: {
   entries: ThinkingEntry[];
-  expanded?: boolean;
+  /** When true the block starts open and is only collapsed once a newer
+   *  thought block arrives. When false (a prior thought) it starts closed. */
+  isLatest?: boolean;
 }) {
   const visibleEntries = entries.filter((entry) => entry.content.trim());
   const fallbackEntry = entries.at(-1);
   const latestEntry = visibleEntries.at(-1) ?? fallbackEntry;
   const live = Boolean(latestEntry?.live);
   const label = live ? "Thinking" : "Thoughts";
-  const summaryText = summarizeThought(latestEntry?.content ?? "");
-  // Entries are individual streamed thought tokens — join them as a single
-  // continuous stream and let normalizeThoughtText collapse all whitespace.
+
+  // Join all tokens into one continuous string for rendering and summary
   const detailContent = visibleEntries.map((entry) => entry.content).join("");
-  const hasDetails = detailContent.length > 0;
+  const normalizedContent = normalizeThoughtText(detailContent);
+  const hasDetails = normalizedContent.length > 0;
+
+  // Summarise the full normalised content (not just the last token)
+  const summaryText = summarizeThought(normalizedContent);
+
   const wordCount = hasDetails
-    ? normalizeThoughtText(detailContent).split(/\s+/).filter(Boolean).length
+    ? normalizedContent.split(/\s+/).filter(Boolean).length
     : 0;
   const countLabel = wordCount > 10 ? `${wordCount} words` : undefined;
+
   const summary = (
     <div className="flex min-w-0 items-center gap-1.5 py-0.5 text-sm text-muted-foreground">
       {live && (
@@ -518,13 +525,13 @@ function ThinkingBlock({
   return (
     <details
       className="group/thinking min-w-0 overflow-hidden"
-      open={expanded === undefined ? undefined : expanded}
+      open={isLatest || undefined}
     >
       <summary className="min-w-0 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
         {summary}
       </summary>
       <div className="mt-1 pl-4 text-xs text-muted-foreground">
-        <PlainTextMessage content={normalizeThoughtText(detailContent)} />
+        <MarkdownMessage content={normalizedContent} />
       </div>
     </details>
   );
