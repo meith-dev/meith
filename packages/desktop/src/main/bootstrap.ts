@@ -18,6 +18,7 @@ import {
 import { AcpAdapter } from "./agent/adapters/AcpAdapter.js";
 import { MockAdapter } from "./agent/adapters/MockAdapter.js";
 import type { BrowserViewHost } from "./browser/BrowserViewHost.js";
+import type { PtyHost } from "./process/PtyHost.js";
 import {
   buildDesktopExecutablePath,
   findBundledNodeExecutable,
@@ -25,7 +26,6 @@ import {
   findBundledNpmExecutable,
   findBundledNpxExecutable,
 } from "./process/executablePath.js";
-import type { PtyHost } from "./process/PtyHost.js";
 import { type RuntimeInstallInfo, installRuntimeCli } from "./runtime/install.js";
 import { AgentConfigStore } from "./services/AgentConfigStore.js";
 import { AgentService } from "./services/AgentService.js";
@@ -276,9 +276,7 @@ export async function bootstrap(
   // Runtime environment injected into every spawned terminal / dev server so
   // tools and plugins launched inside them can reach this running app: the
   // socket path for dev-log attachment plus app-scoped identifiers.
-  const runtimePathBins = [
-    runtimeInstall?.binDir ?? join(home, "bin"),
-  ];
+  const runtimePathBins = [runtimeInstall?.binDir ?? join(home, "bin")];
   const runtimeEnv: Record<string, string> = {
     MEITH_SOCKET: socketPath,
     MEITH_HOME: home,
@@ -393,6 +391,9 @@ export async function bootstrap(
     store: agentStore,
     configStore: agentConfig,
     appState,
+    browserTabs,
+    terminals,
+    devServers,
     mcpBridge,
     permissions,
     // Probe ACP agents on demand (install detection + advertised model/reasoning

@@ -59,6 +59,20 @@ The host (the Electron main process) is the authority for all state and actions.
   and keep final answers focused on what changed and how it was verified.
 - Never assume a browser tab, workspace tab, or process exists — list it first.
 
+## Instruction precedence
+
+- App safety rules, permission boundaries, and the tool call contract are
+  mandatory. Do not bypass them to satisfy user or repo instructions.
+- Tool descriptors, schemas, and tool results are authoritative for how to call
+  Meith tools and interpret their output.
+- The latest user request defines the task. It overrides project instruction
+  files when they conflict, unless doing so would violate app safety rules or
+  tool contracts.
+- Project-specific instruction files apply to work inside their project scope.
+  More specific nested files override broader repo files.
+- If instructions conflict and the safe precedence is unclear, explain the
+  conflict and ask before making a risky change.
+
 ## Tool call contract
 
 Each tool has a name (snake_case), a description, and a JSON Schema for input.
@@ -97,6 +111,20 @@ export function renderContext(context: AgentPromptContext): string {
   const lines: string[] = ["## Current context", ""];
   lines.push(`- Working directory: \`${context.cwd}\``);
   if (context.spaceName) lines.push(`- Space: ${context.spaceName}`);
+  if (context.activeEditorFile) {
+    lines.push(
+      `- Active editor file: \`${context.activeEditorFile.path}\` (${context.activeEditorFile.tabTitle}, cwd \`${context.activeEditorFile.cwd}\`)`,
+    );
+  } else {
+    lines.push("- Active editor file: none");
+  }
+  if (context.selectedDiffFile) {
+    lines.push(
+      `- Selected diff file: \`${context.selectedDiffFile.path}\` (${context.selectedDiffFile.tabTitle}, cwd \`${context.selectedDiffFile.cwd}\`)`,
+    );
+  } else {
+    lines.push("- Selected diff file: none");
+  }
   if (context.openTabs && context.openTabs.length > 0) {
     lines.push("- Open browser tabs:");
     for (const tab of context.openTabs) {
@@ -104,6 +132,75 @@ export function renderContext(context: AgentPromptContext): string {
     }
   } else {
     lines.push("- Open browser tabs: none");
+  }
+  if (context.terminals && context.terminals.length > 0) {
+    lines.push("- Terminal status:");
+    for (const terminal of context.terminals) {
+      const title = terminal.tabTitle ? `${terminal.tabTitle}: ` : "";
+      const active = terminal.active ? ", active" : "";
+      const exit =
+        terminal.status === "exited" ? `, exit=${terminal.exitCode ?? "null"}` : "";
+      lines.push(
+        `  - ${title}\`${terminal.id}\` ${terminal.status}${active}${exit}, cwd \`${terminal.cwd}\`, pid ${terminal.pid ?? "n/a"}`,
+      );
+    }
+  } else {
+    lines.push("- Terminal status: no relevant terminals");
+  }
+  if (context.devServers && context.devServers.length > 0) {
+    lines.push("- Running dev servers:");
+    for (const server of context.devServers) {
+      const name = server.name ? `${server.name}: ` : "";
+      const url = server.url ? `, url ${server.url}` : "";
+      lines.push(
+        `  - ${name}\`${server.id}\` ${server.status}${url}, command \`${server.command}\`, cwd \`${server.cwd}\`, pid ${server.pid ?? "n/a"}`,
+      );
+    }
+  } else {
+    lines.push("- Running dev servers: none");
+  }
+  if (context.consoleErrors && context.consoleErrors.length > 0) {
+    lines.push("- Recent console errors:");
+    for (const entry of context.consoleErrors) {
+      const source = entry.source ? ` (${entry.source})` : "";
+      lines.push(
+        `  - ${entry.tabTitle || "(untitled)"} — ${entry.url}: ${oneLine(entry.text)}${source}`,
+      );
+    }
+  } else {
+    lines.push("- Recent console errors: none");
+  }
+  if (context.git) {
+    const branch = context.git.branch ? ` on ${context.git.branch}` : "";
+    const summary = context.git.summary ? ` — ${context.git.summary}` : "";
+    lines.push(`- Git: ${context.git.status}${branch}${summary}`);
+    if (context.git.files && context.git.files.length > 0) {
+      for (const file of context.git.files) lines.push(`  - ${file}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+/** Render project-specific instruction files discovered for the session cwd. */
+export function renderInstructionFiles(context: AgentPromptContext): string {
+  if (!context.instructionFiles || context.instructionFiles.length === 0) {
+    return [
+      "## Project instructions",
+      "",
+      "_No project-specific instruction files were found for this session cwd._",
+    ].join("\n");
+  }
+  const lines = [
+    "## Project instructions",
+    "",
+    "Instruction files are listed from broadest to most specific. Apply the",
+    "precedence rules above when they conflict.",
+  ];
+  for (const file of context.instructionFiles) {
+    lines.push("", `### ${file.path}${file.truncated ? " (truncated)" : ""}`, "");
+    lines.push("```");
+    lines.push(file.content);
+    lines.push("```");
   }
   return lines.join("\n");
 }
@@ -142,5 +239,10 @@ export function buildSystemPrompt(
       ? `${SYSTEM_PROMPT_BASE}\n\n${catalog}`
       : `${SYSTEM_PROMPT_BASE.slice(0, idx)}${catalog}\n\n${SYSTEM_PROMPT_BASE.slice(idx)}`;
   if (!context) return base;
-  return `${base}\n\n${renderContext(context)}\n\n${renderSafety(context)}`;
+  return `${base}\n\n${renderInstructionFiles(context)}\n\n${renderContext(context)}\n\n${renderSafety(context)}`;
+}
+
+function oneLine(value: string): string {
+  const text = value.replace(/\s+/g, " ").trim();
+  return text.length > 240 ? `${text.slice(0, 237)}...` : text;
 }

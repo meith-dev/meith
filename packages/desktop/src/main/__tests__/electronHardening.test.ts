@@ -103,9 +103,9 @@ describe("ElectronBrowserViewHost Electron permission hardening", () => {
     permissionHandler = null;
     windowOpenHandler = null;
     // Reset the mock factory so each test gets its own view.
-    const { WebContentsView } = vi.mocked(
-      await import("electron"),
-    ) as { WebContentsView: ReturnType<typeof vi.fn> };
+    const { WebContentsView } = vi.mocked(await import("electron")) as unknown as {
+      WebContentsView: ReturnType<typeof vi.fn>;
+    };
     WebContentsView.mockImplementation(() => makeMockView());
   });
 

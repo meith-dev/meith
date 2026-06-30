@@ -146,6 +146,8 @@ export const WorkspaceTabSchema = z.object({
   activeFilePath: z.string().optional(),
   /** For editor tabs: files open in the editor (relative to cwd), in tab order. */
   openFilePaths: z.array(z.string()).optional(),
+  /** For diff tabs: the currently selected changed file (relative to cwd). */
+  selectedDiffFilePath: z.string().optional(),
   active: z.boolean().default(false),
   createdAt: z.number(),
 });
@@ -1040,7 +1042,7 @@ export function defaultAppSettings(): AppSettings {
 }
 
 export const AppStateSchema = z.object({
-  version: z.literal(4),
+  version: z.literal(5),
   spaces: z.array(SpaceSchema),
   activeSpaceId: z.string().nullable(),
   browserTabs: z.array(BrowserTabSchema),

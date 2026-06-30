@@ -283,7 +283,11 @@ function createMockBridge(): MeithBridge {
     desc("close_browser_tab", "Close a browser tab.", ["controls-browser"]),
     desc("open_workspace_tab", "Open a workspace tab.", []),
     desc("set_workspace_tab_terminal", "Bind a terminal session to a workspace tab.", []),
-    desc("set_workspace_tab_file", "Set the focused/open files of an editor tab.", []),
+    desc(
+      "set_workspace_tab_file",
+      "Set editor focused/open files or diff selected file.",
+      [],
+    ),
     desc("focus_workspace_tab", "Focus a workspace tab.", []),
     desc("close_workspace_tab", "Close a workspace tab.", []),
     desc("workspace_read_file", "Read a file from a project workspace.", ["read-only"]),
@@ -780,14 +784,24 @@ function createMockBridge(): MeithBridge {
           case "set_workspace_tab_file": {
             const tab = state.workspaceTabs.find((t) => t.id === args.tabId);
             if (!tab) return errorResult("TOOL_FAILED", "Unknown workspace tab");
-            if (tab.kind !== "editor") {
+            const editsEditor =
+              args.activeFilePath !== undefined || Array.isArray(args.openFilePaths);
+            const editsDiff = args.selectedDiffFilePath !== undefined;
+            if (editsEditor && tab.kind !== "editor") {
               return errorResult("TOOL_FAILED", "Workspace tab is not an editor");
+            }
+            if (editsDiff && tab.kind !== "diff") {
+              return errorResult("TOOL_FAILED", "Workspace tab is not a diff view");
             }
             if (args.activeFilePath !== undefined) {
               tab.activeFilePath = (args.activeFilePath as string | null) ?? undefined;
             }
             if (Array.isArray(args.openFilePaths)) {
               tab.openFilePaths = args.openFilePaths as string[];
+            }
+            if (args.selectedDiffFilePath !== undefined) {
+              tab.selectedDiffFilePath =
+                (args.selectedDiffFilePath as string | null) ?? undefined;
             }
             emitState();
             return okResult(structuredClone(tab));

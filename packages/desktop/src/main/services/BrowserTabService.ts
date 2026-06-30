@@ -513,6 +513,18 @@ export class BrowserTabService {
     return this.host.getConsoleLogs(id, limit);
   }
 
+  /**
+   * Read whatever console messages are already available without creating or
+   * hydrating a browser view. Used while composing synchronous agent context.
+   */
+  getConsoleLogSnapshot(id: string, limit?: number): ConsoleLogEntry[] {
+    try {
+      return this.host.getConsoleLogs(id, limit);
+    } catch {
+      return [];
+    }
+  }
+
   /** Read observed network requests for a tab (read-only). */
   async getNetworkLogs(id: string, limit?: number): Promise<NetworkLogEntry[]> {
     const tab = this.requireTab(id);
@@ -526,6 +538,7 @@ export class BrowserTabService {
     kind?: WorkspaceTab["kind"];
     spaceId?: string;
     terminalId?: string;
+    selectedDiffFilePath?: string;
   }): WorkspaceTab {
     const spaceId = input.spaceId ?? this.activeSpaceId();
     const tab: WorkspaceTab = {
@@ -535,6 +548,8 @@ export class BrowserTabService {
       cwd: input.cwd,
       kind: input.kind ?? "editor",
       terminalId: input.terminalId,
+      selectedDiffFilePath:
+        input.kind === "diff" ? input.selectedDiffFilePath : undefined,
       active: true,
       createdAt: Date.now(),
     };
@@ -567,18 +582,28 @@ export class BrowserTabService {
   }
 
   /**
-   * Persist the editor session state of an editor workspace tab: the focused
-   * file and the list of open files (paths are relative to the tab's cwd). This
-   * lets the renderer editor, CLI, and agents agree on what is open via state.
+   * Persist file-focused state for workspace tabs. Editor tabs keep their
+   * focused/open files; diff tabs keep the selected changed file. Paths are
+   * relative to the tab's cwd.
    */
   setWorkspaceTabFile(
     id: string,
-    input: { activeFilePath?: string | null; openFilePaths?: string[] },
+    input: {
+      activeFilePath?: string | null;
+      openFilePaths?: string[];
+      selectedDiffFilePath?: string | null;
+    },
   ): WorkspaceTab {
     const tab = this.appState.getState().workspaceTabs.find((t) => t.id === id);
     if (!tab) throw new Error(`Unknown workspace tab: ${id}`);
-    if (tab.kind !== "editor") {
+    const editsEditor =
+      input.activeFilePath !== undefined || input.openFilePaths !== undefined;
+    const editsDiff = input.selectedDiffFilePath !== undefined;
+    if (editsEditor && tab.kind !== "editor") {
       throw new Error(`Workspace tab is not an editor: ${id}`);
+    }
+    if (editsDiff && tab.kind !== "diff") {
+      throw new Error(`Workspace tab is not a diff view: ${id}`);
     }
     this.appState.update((draft) => {
       const t = draft.workspaceTabs.find((w) => w.id === id);
@@ -592,6 +617,9 @@ export class BrowserTabService {
         if (t.activeFilePath && !input.openFilePaths.includes(t.activeFilePath)) {
           t.activeFilePath = input.openFilePaths[input.openFilePaths.length - 1];
         }
+      }
+      if (input.selectedDiffFilePath !== undefined) {
+        t.selectedDiffFilePath = input.selectedDiffFilePath ?? undefined;
       }
     }, "set_workspace_tab_file");
     const next = this.appState.getState().workspaceTabs.find((t) => t.id === id);

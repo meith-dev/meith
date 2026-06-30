@@ -252,7 +252,8 @@ and unstaged changes against `HEAD` plus untracked files:
 
 `includePatches: false` returns file status and line-count summaries without
 patch bodies. The renderer uses that cheap summary for the top-bar diff chip and
-polling. The diff tab then requests a selected file on demand:
+visible diff tab, refreshing while they are shown. The diff tab then requests a
+selected file on demand:
 
 ```json
 {

@@ -19,6 +19,7 @@ import { buildSystemPrompt, renderToolCatalog } from "../agent/systemPrompt.js";
 import type { AgentAdapter, AgentSession, AgentStreamChunk } from "../agent/types.js";
 import { AgentConfigStore } from "../services/AgentConfigStore.js";
 import { AgentService } from "../services/AgentService.js";
+import { AppStateService } from "../services/AppStateService.js";
 import { Logger } from "../services/Logger.js";
 import { ToolRegistry } from "../tools/registry.js";
 
@@ -82,6 +83,63 @@ describe("system prompt builder", () => {
 
   it("handles an empty registry gracefully", () => {
     expect(renderToolCatalog([])).toContain("No tools are currently registered");
+  });
+
+  it("renders live IDE context, instructions, and precedence rules", () => {
+    const prompt = buildSystemPrompt([], {
+      cwd: "/repo",
+      spaceName: "Project",
+      activeEditorFile: { tabTitle: "Editor", cwd: "/repo", path: "src/app.ts" },
+      selectedDiffFile: { tabTitle: "Diff", cwd: "/repo", path: "src/app.ts" },
+      openTabs: [{ title: "Local app", url: "http://localhost:3000" }],
+      terminals: [
+        {
+          id: "term_1",
+          tabTitle: "Terminal",
+          cwd: "/repo",
+          status: "running",
+          pid: 123,
+          exitCode: null,
+          active: true,
+        },
+      ],
+      devServers: [
+        {
+          id: "dev_1",
+          cwd: "/repo",
+          status: "running",
+          command: "pnpm dev",
+          url: "http://localhost:3000",
+          pid: 456,
+        },
+      ],
+      consoleErrors: [
+        {
+          tabTitle: "Local app",
+          url: "http://localhost:3000",
+          text: "Uncaught Error: boom",
+        },
+      ],
+      git: {
+        branch: "main",
+        status: "changes",
+        summary: "1 changed file(s)",
+        files: ["M src/app.ts"],
+      },
+      instructionFiles: [
+        { path: "/repo/AGENTS.md", content: "Use pnpm.", truncated: false },
+      ],
+    });
+
+    expect(prompt).toContain("## Instruction precedence");
+    expect(prompt).toContain("latest user request defines the task");
+    expect(prompt).toContain("## Project instructions");
+    expect(prompt).toContain("Use pnpm.");
+    expect(prompt).toContain("Active editor file: `src/app.ts`");
+    expect(prompt).toContain("Selected diff file: `src/app.ts`");
+    expect(prompt).toContain("http://localhost:3000");
+    expect(prompt).toContain("Uncaught Error: boom");
+    expect(prompt).toContain("Git: changes on main");
   });
 });
 
@@ -472,6 +530,64 @@ describe("AgentService host context", () => {
     expect(seen.sessionId).toBe(session.id);
     // The host exposes a registry-derived prompt to the adapter.
     expect(captured.systemPrompt).toContain("__probe");
+  });
+
+  it("builds prompt context from app state and project instruction files", async () => {
+    const { mkdtempSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const cwd = mkdtempSync(join(tmpdir(), "meith-agent-context-"));
+    writeFileSync(join(cwd, "AGENTS.md"), "Use pnpm for this project.\n", "utf8");
+
+    const logger = new Logger();
+    const appState = new AppStateService(join(cwd, "state.json"), logger, 0);
+    const spaceId = appState.getState().activeSpaceId ?? appState.getState().spaces[0].id;
+    appState.update((draft) => {
+      draft.workspaceTabs.push(
+        {
+          id: "w_editor",
+          spaceId,
+          title: "Editor",
+          cwd,
+          kind: "editor",
+          active: false,
+          activeFilePath: "src/app.ts",
+          createdAt: 1,
+        },
+        {
+          id: "w_diff",
+          spaceId,
+          title: "Diff",
+          cwd,
+          kind: "diff",
+          active: true,
+          selectedDiffFilePath: "src/app.ts",
+          createdAt: 2,
+        },
+      );
+    });
+    const registry = new ToolRegistry();
+    registry.register(
+      defineTool({
+        name: "__probe",
+        description: "captures call context",
+        inputSchema: z.object({}),
+        execute: () => ({}),
+      }),
+    );
+    const service = new AgentService(registry, logger, { appState });
+    const { adapter, captured } = makeCapturingAdapter();
+    service.registerAdapter(adapter);
+    const session = service.createSession({ cwd, spaceId });
+
+    for await (const _chunk of service.run(session.id)) {
+      void _chunk;
+    }
+
+    expect(captured.systemPrompt).toContain("Use pnpm for this project.");
+    expect(captured.systemPrompt).toContain("Active editor file: `src/app.ts`");
+    expect(captured.systemPrompt).toContain("Selected diff file: `src/app.ts`");
+    expect(captured.systemPrompt).toContain("Git: not a git repository");
   });
 });
 

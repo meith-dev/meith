@@ -240,9 +240,11 @@ export function TabStrip({
                 }}
                 className={cn(
                   "group relative flex h-full min-w-32 max-w-52 items-center gap-2 border-r border-border px-3 text-sm transition-colors",
-                  isActive
-                    ? "bg-background text-foreground"
-                    : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+                  isFocused
+                    ? "bg-orange-50 text-orange-950 dark:bg-orange-950/30 dark:text-orange-100"
+                    : isActive
+                      ? "bg-background text-foreground"
+                      : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
                   isDropTarget && "bg-primary/10",
                   dragId === item.tab.id && "opacity-50",
                 )}
@@ -252,7 +254,7 @@ export function TabStrip({
                     aria-hidden
                     className={cn(
                       "pointer-events-none absolute inset-x-0 top-0 h-0.5",
-                      isFocused ? "bg-primary" : "bg-border",
+                      isFocused ? "bg-orange-500" : "bg-border",
                     )}
                   />
                 )}
@@ -265,7 +267,7 @@ export function TabStrip({
                   <Icon
                     className={cn(
                       "size-3.5 shrink-0",
-                      isFocused ? "text-primary" : "text-muted-foreground",
+                      isFocused ? "text-orange-500" : "text-muted-foreground",
                     )}
                   />
                   <span className="min-w-0 flex-1 truncate">{label}</span>

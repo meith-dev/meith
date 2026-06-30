@@ -33,6 +33,8 @@ type CallFn = (name: string, args?: Record<string, unknown>) => Promise<ToolResu
 interface UseGitDiffOptions {
   /** Re-fetch automatically on this interval (ms). 0 disables polling. */
   pollMs?: number;
+  /** When polling, bypass the short shared cache. Useful for visible git UI. */
+  forcePoll?: boolean;
   /** Bump this (e.g. file-event count) to trigger an immediate refetch. */
   refreshKey?: number | string;
   /** Fetch full unified patches. Summary-only calls are much cheaper. */
@@ -83,7 +85,12 @@ async function fetchGitDiff(
 export function useGitDiff(
   call: CallFn,
   cwd: string | null | undefined,
-  { pollMs = 0, refreshKey, includePatches = false }: UseGitDiffOptions = {},
+  {
+    pollMs = 0,
+    forcePoll = false,
+    refreshKey,
+    includePatches = false,
+  }: UseGitDiffOptions = {},
 ) {
   const [data, setData] = useState<GitDiffResult>(EMPTY);
   const [loading, setLoading] = useState(false);
@@ -92,6 +99,7 @@ export function useGitDiff(
   // a newer one.
   const latestCwd = useRef<string | null>(null);
   const lastRefreshKey = useRef(refreshKey);
+  const requestSeq = useRef(0);
 
   const refresh = useCallback(
     async (force = false) => {
@@ -101,18 +109,20 @@ export function useGitDiff(
         return;
       }
       latestCwd.current = cwd;
+      requestSeq.current += 1;
+      const seq = requestSeq.current;
       setLoading(true);
       try {
         const data = await fetchGitDiff(call, cwd, includePatches, force);
-        if (latestCwd.current !== cwd) return; // superseded
+        if (latestCwd.current !== cwd || requestSeq.current !== seq) return; // superseded
         setData(data);
         setError(null);
       } catch (err) {
-        if (latestCwd.current !== cwd) return;
+        if (latestCwd.current !== cwd || requestSeq.current !== seq) return;
         setData(EMPTY);
         setError(err instanceof Error ? err.message : "Failed to read git diff");
       } finally {
-        if (latestCwd.current === cwd) setLoading(false);
+        if (latestCwd.current === cwd && requestSeq.current === seq) setLoading(false);
       }
     },
     [call, cwd, includePatches],
@@ -130,9 +140,9 @@ export function useGitDiff(
 
   useEffect(() => {
     if (!pollMs || !cwd) return;
-    const id = setInterval(() => void refresh(), pollMs);
+    const id = setInterval(() => void refresh(forcePoll), pollMs);
     return () => clearInterval(id);
-  }, [pollMs, cwd, refresh]);
+  }, [pollMs, forcePoll, cwd, refresh]);
 
   return { data, loading, error, refresh };
 }

@@ -99,7 +99,7 @@ export type { ToolCapability };
 
 export function defaultAppState(): AppState {
   return {
-    version: 4,
+    version: 5,
     spaces: [],
     activeSpaceId: null,
     browserTabs: [],
