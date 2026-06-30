@@ -25,14 +25,20 @@ export function createSettingsTools(deps: ToolDeps): ToolDefinition[] {
   const setAppSettings = defineTool({
     name: "set_app_settings",
     description:
-      "Patch global app settings (auto-run, confirm/stop-on-close, show-output-on-run, default package manager). Only the provided keys change.",
+      "Patch global app settings (workspace, run, git, debug, default package manager). Only the provided keys change.",
     capabilities: ["writes-files"],
     inputSchema: z.object({
-      settings: AppSettingsSchema.partial(),
+      settings: AppSettingsSchema.deepPartial(),
     }),
     execute: (_ctx, input) => {
       const next = appState.update((draft) => {
-        draft.settings = { ...draft.settings, ...input.settings };
+        draft.settings = {
+          ...draft.settings,
+          ...input.settings,
+          git: input.settings.git
+            ? { ...draft.settings.git, ...input.settings.git }
+            : draft.settings.git,
+        };
       }, "set_app_settings");
       return okResult({ settings: next.settings });
     },

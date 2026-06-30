@@ -19,7 +19,7 @@ export function Cta() {
         </h2>
         <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
           Free and open source. Use meith to give your agent the editor, terminal,
-          browser, logs, and diffs it needs to build and check the app.
+          browser, logs, and Git panel it needs to build and check the app.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link

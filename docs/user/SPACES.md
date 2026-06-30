@@ -22,7 +22,7 @@ Within each workspace you can have:
 
 - browser tabs for previewing localhost or research,
 - editor tabs for project files,
-- diff tabs for reviewing git working-tree changes,
+- git tabs for reviewing and committing working-tree changes,
 - terminal tabs,
 - agent chat tabs,
 - run commands and environment configurations,
@@ -35,8 +35,8 @@ other. A common layout is an agent chat on the left with a live localhost previe
 on the right, so you can watch changes land as the agent works.
 
 Clicking inside a pane makes that pane active and highlights its active tab in
-orange. Opening the git diff from the top bar defaults to the right pane,
-creating split view from a single-pane layout; you can still drag the diff tab
+orange. Opening git changes from the top bar defaults to the right pane,
+creating split view from a single-pane layout; you can still drag the Git tab
 elsewhere.
 
 ## Run commands & preview

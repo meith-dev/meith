@@ -12,7 +12,7 @@ import type { ToolDeps } from "./deps.js";
  * every caller uses (renderer editor, CLI, future agents), so reading, writing,
  * patching, listing, searching, and diagnosing files all share one set of
  * guardrails: a `cwd` workspace boundary (rejecting out-of-bounds paths unless
- * `allowOutside` is set), write logging, and undo metadata for the diff UI.
+ * `allowOutside` is set), write logging, and undo metadata for review surfaces.
  */
 export function createFileTools(deps: ToolDeps): ToolDefinition[] {
   const { files } = deps;

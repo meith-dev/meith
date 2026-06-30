@@ -238,33 +238,69 @@ The current agent approval gate prompts for `writes-files`, `controls-browser`,
 declared capability model and audit trail, and plugins still need approved
 capabilities that cover the tools they call.
 
-## Diff Tool Shape
+## Git Tool Shape
 
 `git_diff` is the built-in read-only working-tree diff tool. It reports staged
-and unstaged changes against `HEAD` plus untracked files:
+and unstaged changes against `HEAD` plus untracked files. Pass `scope:
+"staged"` or `scope: "unstaged"` to fetch a section-specific diff:
 
 ```json
 {
   "cwd": "/work/project",
-  "includePatches": false
+  "includePatches": false,
+  "scope": "all"
 }
 ```
 
 `includePatches: false` returns file status and line-count summaries without
-patch bodies. The renderer uses that cheap summary for the top-bar diff chip and
-visible diff tab, refreshing while they are shown. The diff tab then requests a
+patch bodies. `git_status` returns the corresponding branch, ahead/behind, and
+staged/unstaged/untracked sections used by the Git panel. The renderer uses
+these cheap summaries for the top-bar Git changes chip and visible Git tab,
+refreshing while they are shown. The tab then requests a
 selected file on demand:
 
 ```json
 {
   "cwd": "/work/project",
   "includePatches": true,
-  "path": "src/app/page.tsx"
+  "path": "src/app/page.tsx",
+  "scope": "unstaged"
 }
 ```
 
-This keeps large repositories responsive while preserving the same structured
-tool result for the CLI, renderer, plugins, and agents.
+Mutating git tools are capability-gated. `git_stage`, `git_unstage`,
+`git_commit`, `git_branch`, and `git_worktree` declare `writes-files`.
+`git_restore` and `git_checkpoint_restore` declare `destructive` and require a
+literal `confirm: true` argument.
+
+The Git panel stages individual files and its **Stage all** control by calling
+`git_stage` with repository-relative paths. Its commit-message suggestion flow
+first loads the full staged diff (`includePatches: true`, `scope: "staged"`),
+or the full working-tree diff when nothing is staged, then sends that patch
+through the renderer `ai.complete` bridge for a one-line Conventional Commit
+subject. The deterministic filename heuristic is only a fallback when no real
+agent completion is available.
+
+The top-header branch switcher uses `git_branch` with `action: "list"` to show
+the current branch, `action: "switch"` to change branches, and `action:
+"create"` followed by `switch` when creating a new branch.
+
+`git_commit` reads the active Git identity profile from app settings. When a
+profile is selected, Meith passes that profile as the commit author and
+committer for commits created through the tool. When no profile is selected,
+Git's repository/global config decides the identity.
+
+`git_identity_detect` is read-only. It proposes commit identity profiles from
+repo/effective Git config, global Git config, and installed provider CLI account
+state such as `gh auth status` or `glab auth status`. It does not read credential
+helper secrets, tokens, or private key material; the renderer only saves a
+suggestion after the user explicitly adds it.
+
+Checkpoints are hidden git commit objects stored under
+`refs/meith/checkpoints/*` with metadata in `.git/meith/checkpoints.json`.
+`AgentService` creates a `git_checkpoint_create` snapshot before each agent run
+and records the agent `sessionId`; callers can later list, compare, or restore
+those checkpoints without moving the current branch ref.
 
 ## Caller Identity
 

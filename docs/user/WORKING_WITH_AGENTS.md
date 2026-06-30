@@ -17,7 +17,7 @@ embedded browser to check the live preview, and inspect dev-server logs. All of
 that happens through the same shared tool registry the rest of the app uses.
 
 Before each run, meith also gives the agent a bounded snapshot of the workbench:
-the active editor file, selected diff file, open browser tabs, terminal and dev
+the active editor file, selected Git file, open browser tabs, terminal and dev
 server status, recent browser console errors, the current git summary, and
 project-specific instruction files such as `AGENTS.md` when they exist.
 
@@ -52,10 +52,14 @@ provider-native helpers cannot bypass the shared registry.
 > When an agent edits a file, the change lands as an inline diff with a gutter
 > marker, so you can see exactly what was rewritten and undo it.
 
-The top-bar diff chip and the diff tab refresh while visible, so changes made by
-agents, tools, or terminal commands should appear without waiting for a manual
-refresh. Opening the git diff from the top bar opens it on the right side by
-default, creating a split pane when needed.
+The top-bar Git changes chip and Git panel refresh while visible, so changes
+made by agents, tools, or terminal commands should appear without waiting for a
+manual refresh. Opening Git changes from the top bar opens the Git panel on the
+right side by default, creating a split pane when needed. Before each
+agent run, Meith creates a git-backed checkpoint linked to the agent session so
+you can compare or restore the pre-run state later. The Git panel can stage all
+visible changes and ask the configured agent for a one-line commit message from
+the full diff.
 
 ## Learn more
 

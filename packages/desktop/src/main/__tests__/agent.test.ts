@@ -90,7 +90,7 @@ describe("system prompt builder", () => {
       cwd: "/repo",
       spaceName: "Project",
       activeEditorFile: { tabTitle: "Editor", cwd: "/repo", path: "src/app.ts" },
-      selectedDiffFile: { tabTitle: "Diff", cwd: "/repo", path: "src/app.ts" },
+      selectedGitFile: { tabTitle: "Git", cwd: "/repo", path: "src/app.ts" },
       openTabs: [{ title: "Local app", url: "http://localhost:3000" }],
       terminals: [
         {
@@ -136,7 +136,7 @@ describe("system prompt builder", () => {
     expect(prompt).toContain("## Project instructions");
     expect(prompt).toContain("Use pnpm.");
     expect(prompt).toContain("Active editor file: `src/app.ts`");
-    expect(prompt).toContain("Selected diff file: `src/app.ts`");
+    expect(prompt).toContain("Selected Git file: `src/app.ts`");
     expect(prompt).toContain("http://localhost:3000");
     expect(prompt).toContain("Uncaught Error: boom");
     expect(prompt).toContain("Git: changes on main");
@@ -555,13 +555,13 @@ describe("AgentService host context", () => {
           createdAt: 1,
         },
         {
-          id: "w_diff",
+          id: "w_git",
           spaceId,
-          title: "Diff",
+          title: "Git",
           cwd,
-          kind: "diff",
+          kind: "git",
           active: true,
-          selectedDiffFilePath: "src/app.ts",
+          selectedGitFilePath: "src/app.ts",
           createdAt: 2,
         },
       );
@@ -586,8 +586,61 @@ describe("AgentService host context", () => {
 
     expect(captured.systemPrompt).toContain("Use pnpm for this project.");
     expect(captured.systemPrompt).toContain("Active editor file: `src/app.ts`");
-    expect(captured.systemPrompt).toContain("Selected diff file: `src/app.ts`");
+    expect(captured.systemPrompt).toContain("Selected Git file: `src/app.ts`");
     expect(captured.systemPrompt).toContain("Git: not a git repository");
+  });
+
+  it("runs one-shot completions without tool access or persisted sessions", async () => {
+    const registry = new ToolRegistry();
+    const captured: { prompt?: string; systemPrompt?: string; toolResult?: ToolResult } =
+      {};
+    const service = new AgentService(registry, new Logger());
+    service.registerAdapter({
+      id: "test",
+      displayName: "Test",
+      async *run(session, host): AsyncIterable<AgentStreamChunk> {
+        captured.prompt = session.messages[0]?.content;
+        captured.systemPrompt = host.systemPrompt();
+        captured.toolResult = await host.callTool({
+          id: "c1",
+          name: "read_thing",
+          args: {},
+        });
+        yield { type: "text", text: "feat: add completion api" };
+        yield { type: "done" };
+      },
+    });
+
+    const result = await service.complete({
+      cwd: "/tmp/project-x",
+      prompt: "Generate a commit message",
+      systemPrompt: "Return one subject line.",
+    });
+
+    expect(result).toEqual({
+      text: "feat: add completion api",
+      adapterId: "test",
+    });
+    expect(captured.prompt).toBe("Generate a commit message");
+    expect(captured.systemPrompt).toBe("Return one subject line.");
+    expect(captured.toolResult?.ok).toBe(false);
+    expect(captured.toolResult?.error?.code).toBe("PERMISSION_DENIED");
+    expect(service.listSessions()).toEqual([]);
+  });
+
+  it("does not treat the deterministic mock adapter as an LLM completion source", async () => {
+    const service = new AgentService(new ToolRegistry(), new Logger());
+    service.registerAdapter({
+      id: "mock",
+      displayName: "Mock",
+      async *run(): AsyncIterable<AgentStreamChunk> {
+        yield { type: "text", text: "mock" };
+      },
+    });
+
+    await expect(service.complete({ prompt: "Generate a title" })).rejects.toThrow(
+      /No LLM agent is configured/,
+    );
   });
 });
 

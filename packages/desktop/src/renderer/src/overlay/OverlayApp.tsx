@@ -134,9 +134,12 @@ function MenuView({
   onSelect: (itemId: string) => void;
   onDismiss: () => void;
 }) {
-  const { rect, items, align = "start", minWidth, maxWidth } = descriptor;
+  const { rect, items, align = "start", minWidth, maxWidth, maxHeight } = descriptor;
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const entries = items.map((item, index) => ({ item, index }));
+  const scrollEntries = entries.filter(({ item }) => item.pinned !== "bottom");
+  const pinnedEntries = entries.filter(({ item }) => item.pinned === "bottom");
 
   const enabledIndices = items
     .map((it, i) => (it.disabled ? -1 : i))
@@ -194,7 +197,27 @@ function MenuView({
     }
   };
 
-  let lastGroup: string | undefined;
+  const renderEntries = (
+    menuEntries: Array<{ item: OverlayMenuItem; index: number }>,
+    options: { suppressSeparators?: boolean } = {},
+  ) => {
+    let lastGroup: string | undefined;
+    return menuEntries.map(({ item, index }) => {
+      const showGroup = item.groupLabel && item.groupLabel !== lastGroup;
+      lastGroup = item.groupLabel ?? lastGroup;
+      return (
+        <MenuRow
+          key={item.id}
+          item={item}
+          active={index === active}
+          showSeparator={Boolean(item.separatorBefore) && !options.suppressSeparators}
+          groupLabel={showGroup ? item.groupLabel : undefined}
+          onHover={() => !item.disabled && setActive(index)}
+          onClick={() => !item.disabled && onSelect(item.id)}
+        />
+      );
+    });
+  };
 
   return (
     // Full-area backdrop catches outside clicks to dismiss the menu.
@@ -213,29 +236,23 @@ function MenuView({
         aria-orientation="vertical"
         onKeyDown={onKeyDown}
         onMouseDown={(e) => e.stopPropagation()}
-        className="fixed z-50 overflow-hidden rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none"
+        className="fixed z-50 flex flex-col overflow-hidden rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none"
         style={{
           left: pos?.left ?? -9999,
           top: pos?.top ?? -9999,
           minWidth: minWidth ?? 128,
           maxWidth,
+          maxHeight,
         }}
       >
-        {items.map((item, i) => {
-          const showGroup = item.groupLabel && item.groupLabel !== lastGroup;
-          lastGroup = item.groupLabel ?? lastGroup;
-          return (
-            <MenuRow
-              key={item.id}
-              item={item}
-              active={i === active}
-              showSeparator={Boolean(item.separatorBefore)}
-              groupLabel={showGroup ? item.groupLabel : undefined}
-              onHover={() => !item.disabled && setActive(i)}
-              onClick={() => !item.disabled && onSelect(item.id)}
-            />
-          );
-        })}
+        <div className="min-h-0 overflow-x-hidden overflow-y-auto">
+          {renderEntries(scrollEntries)}
+        </div>
+        {pinnedEntries.length > 0 && (
+          <div className="-mx-1 mt-1 border-t border-border pt-1">
+            {renderEntries(pinnedEntries, { suppressSeparators: true })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -69,15 +69,15 @@ const migrations: Record<number, (raw: RawState) => RawState> = {
     }),
   }),
 
-  // 4 -> 5: diff workspace tabs persist their selected changed file so agents
-  // and restored UI sessions can agree on the currently inspected diff.
+  // 4 -> 5: git workspace tabs persist their selected changed file so agents
+  // and restored UI sessions can agree on the currently inspected file.
   4: (raw) => ({
     ...raw,
     version: 5,
     workspaceTabs: (Array.isArray(raw.workspaceTabs) ? raw.workspaceTabs : []).map(
       (tab) => {
         const t = (tab ?? {}) as RawState;
-        return { ...t, selectedDiffFilePath: t.selectedDiffFilePath ?? undefined };
+        return { ...t, selectedGitFilePath: t.selectedGitFilePath ?? undefined };
       },
     ),
   }),

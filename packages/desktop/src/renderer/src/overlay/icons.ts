@@ -31,7 +31,7 @@ export const OVERLAY_ICONS: Record<string, OverlayIcon> = {
   terminal: TerminalIcon,
   agent: BotIcon,
   preview: MonitorIcon,
-  diff: GitCompareIcon,
+  git: GitCompareIcon,
   hand: HandIcon,
   "shield-alert": ShieldAlertIcon,
   claude: ClaudeMark,

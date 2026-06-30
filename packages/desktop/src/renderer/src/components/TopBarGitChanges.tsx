@@ -1,28 +1,35 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useGitDiff } from "@/hooks/useGitDiff";
-import type { ToolResult } from "@meith/shared";
+import { useGitChanges } from "@/hooks/useGitChanges";
+import type { GitSettings, ToolResult } from "@meith/shared";
 import { GitCompareIcon } from "lucide-react";
 
-interface TopBarGitDiffProps {
+interface TopBarGitChangesProps {
   /** Project root to inspect. Null hides the chip. */
   cwd: string | null;
   /** Typed tool invoker from the workbench. */
   call: (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
-  /** Open (or focus) the diff surface for this project. */
-  onOpenDiff: () => void;
+  /** Open (or focus) the Git panel for this project. */
+  onOpenGitPanel: () => void;
+  settings?: GitSettings;
   /** Changes whenever workspace files change, to trigger a refetch. */
   refreshKey: number;
 }
 
 /**
- * Compact git-diff indicator for the top bar, sitting beside the run status.
+ * Compact git-change indicator for the top bar, sitting beside the run status.
  * Shows the working-tree's total +added / -removed line counts across changed
- * files; clicking opens a dedicated diff tab. Hidden when the project isn't a
+ * files; clicking opens the Git panel. Hidden when the project isn't a
  * git repo or has no changes.
  */
-export function TopBarGitDiff({ cwd, call, onOpenDiff, refreshKey }: TopBarGitDiffProps) {
-  const { data, loading } = useGitDiff(call, cwd, {
-    pollMs: 2500,
+export function TopBarGitChanges({
+  cwd,
+  call,
+  onOpenGitPanel,
+  settings,
+  refreshKey,
+}: TopBarGitChangesProps) {
+  const { data, loading } = useGitChanges(call, cwd, {
+    pollMs: settings?.refreshIntervalMs ?? 2500,
     forcePoll: true,
     refreshKey,
     includePatches: false,
@@ -38,7 +45,7 @@ export function TopBarGitDiff({ cwd, call, onOpenDiff, refreshKey }: TopBarGitDi
         render={
           <button
             type="button"
-            onClick={() => onOpenDiff()}
+            onClick={() => onOpenGitPanel()}
             data-loading={loading}
             className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[loading=true]:opacity-70"
             aria-label={`View ${fileCount} changed file${fileCount === 1 ? "" : "s"}: ${data.totalAdditions} additions, ${data.totalDeletions} deletions`}
@@ -54,7 +61,7 @@ export function TopBarGitDiff({ cwd, call, onOpenDiff, refreshKey }: TopBarGitDi
         }
       />
       <TooltipContent side="bottom">
-        {fileCount} changed file{fileCount === 1 ? "" : "s"} — click to view diff
+        {fileCount} changed file{fileCount === 1 ? "" : "s"} - open Git panel
       </TooltipContent>
     </Tooltip>
   );

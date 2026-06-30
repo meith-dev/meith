@@ -126,7 +126,7 @@ describe("migrations", () => {
     });
   });
 
-  it("migrates v4 -> v5 by preserving selected diff file state", () => {
+  it("migrates v4 -> v5 by preserving selected Git file state", () => {
     const v4 = {
       version: 4,
       spaces: [{ id: "s1", name: "S", createdAt: 1, projectId: null }],
@@ -136,10 +136,10 @@ describe("migrations", () => {
         {
           id: "w1",
           spaceId: "s1",
-          title: "Diff",
+          title: "Git",
           cwd: "/tmp/proj",
-          kind: "diff",
-          selectedDiffFilePath: "src/app.ts",
+          kind: "git",
+          selectedGitFilePath: "src/app.ts",
           active: true,
           createdAt: 1,
         },
@@ -160,7 +160,7 @@ describe("migrations", () => {
     const migrated = migrateAppState(v4);
 
     expect(migrated.version).toBe(CURRENT_STATE_VERSION);
-    expect(migrated.workspaceTabs[0].selectedDiffFilePath).toBe("src/app.ts");
+    expect(migrated.workspaceTabs[0].selectedGitFilePath).toBe("src/app.ts");
   });
 
   it("throws on a newer-than-supported version", () => {

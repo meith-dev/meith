@@ -15,6 +15,8 @@ type AgentProbeOverride = Partial<Pick<AgentConfig, "acpPreset" | "command" | "a
 export const IPC = {
   toolsList: "meith:tools:list",
   toolCall: "meith:tools:call",
+  /** Renderer -> main (invoke): one-shot LLM completion via the configured agent. */
+  aiComplete: "meith:ai:complete",
   getState: "meith:state:get",
   stateChanged: "meith:state:changed",
   getLogs: "meith:logs:get",
@@ -125,6 +127,9 @@ export function registerIpcHandlers(
       };
       return container.registry.call(ctx, name, args ?? {});
     },
+  );
+  ipcMain.handle(IPC.aiComplete, (_event, input: Record<string, unknown>) =>
+    container.agents.complete(input),
   );
 
   ipcMain.handle(IPC.getState, () => container.appState.getState());

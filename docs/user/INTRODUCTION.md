@@ -29,8 +29,9 @@ gather around a single workspace.
 - Split panes to arrange your preview, editor, terminal, or agent side by side.
 - Ask an agent to build features in your project's context: editing files,
   running the dev server, and checking the live preview.
-- Review working-tree changes in a Diff tab with top-bar summary counts and
-  lazy-loaded file patches.
+- Review and commit working-tree changes in a Git panel with top-bar branch
+  switching, summary counts, staged/unstaged sections, stage-all, AI commit
+  message suggestions, and lazy-loaded file patches.
 - Install web-app plugins and explicitly approve the APIs they can use.
 - Use the `meith` terminal command to inspect and control a running app
   instance.

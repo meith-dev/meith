@@ -285,7 +285,7 @@ function createMockBridge(): MeithBridge {
     desc("set_workspace_tab_terminal", "Bind a terminal session to a workspace tab.", []),
     desc(
       "set_workspace_tab_file",
-      "Set editor focused/open files or diff selected file.",
+      "Set editor focused/open files or Git selected file.",
       [],
     ),
     desc("focus_workspace_tab", "Focus a workspace tab.", []),
@@ -334,6 +334,12 @@ function createMockBridge(): MeithBridge {
     ]),
     desc("get_app_settings", "Read global app settings.", ["read-only"]),
     desc("set_app_settings", "Patch global app settings.", ["writes-files"]),
+    desc("git_identity_detect", "Detect local Git commit identity suggestions.", [
+      "read-only",
+    ]),
+    desc("git_diff", "Summarize git working-tree changes.", ["read-only"]),
+    desc("git_status", "Return structured git status.", ["read-only"]),
+    desc("git_branch", "List, create, or switch git branches.", ["writes-files"]),
     desc("list_plugins", "List installed plugins and their grants.", ["read-only"]),
     desc("install_plugin", "Install a plugin from a folder, archive, or dev URL.", [
       "destructive",
@@ -777,7 +783,13 @@ function createMockBridge(): MeithBridge {
             return okResult({ settings: structuredClone(state.settings) });
           case "set_app_settings": {
             const patch = (args.settings ?? {}) as Partial<AppState["settings"]>;
-            state.settings = { ...state.settings, ...patch };
+            state.settings = {
+              ...state.settings,
+              ...patch,
+              git: patch.git
+                ? { ...state.settings.git, ...patch.git }
+                : state.settings.git,
+            };
             emitState();
             return okResult({ settings: structuredClone(state.settings) });
           }
@@ -786,12 +798,12 @@ function createMockBridge(): MeithBridge {
             if (!tab) return errorResult("TOOL_FAILED", "Unknown workspace tab");
             const editsEditor =
               args.activeFilePath !== undefined || Array.isArray(args.openFilePaths);
-            const editsDiff = args.selectedDiffFilePath !== undefined;
+            const editsGit = args.selectedGitFilePath !== undefined;
             if (editsEditor && tab.kind !== "editor") {
               return errorResult("TOOL_FAILED", "Workspace tab is not an editor");
             }
-            if (editsDiff && tab.kind !== "diff") {
-              return errorResult("TOOL_FAILED", "Workspace tab is not a diff view");
+            if (editsGit && tab.kind !== "git") {
+              return errorResult("TOOL_FAILED", "Workspace tab is not a git view");
             }
             if (args.activeFilePath !== undefined) {
               tab.activeFilePath = (args.activeFilePath as string | null) ?? undefined;
@@ -799,9 +811,9 @@ function createMockBridge(): MeithBridge {
             if (Array.isArray(args.openFilePaths)) {
               tab.openFilePaths = args.openFilePaths as string[];
             }
-            if (args.selectedDiffFilePath !== undefined) {
-              tab.selectedDiffFilePath =
-                (args.selectedDiffFilePath as string | null) ?? undefined;
+            if (args.selectedGitFilePath !== undefined) {
+              tab.selectedGitFilePath =
+                (args.selectedGitFilePath as string | null) ?? undefined;
             }
             emitState();
             return okResult(structuredClone(tab));
@@ -926,7 +938,7 @@ function createMockBridge(): MeithBridge {
           }
           case "git_diff": {
             // Preview mode has no real git repo, so return a small, deterministic
-            // sample so the diff chip + diff surface can be exercised.
+            // sample so the Git changes chip and panel can be exercised.
             const includePatches = args.includePatches !== false;
             const selectedPath = typeof args.path === "string" ? args.path : null;
             const sampleDiff =
@@ -941,6 +953,7 @@ function createMockBridge(): MeithBridge {
             return okResult({
               isRepo: true,
               root: projectCwd,
+              scope: String(args.scope ?? "all"),
               files: [
                 {
                   path: "README.md",
@@ -958,6 +971,100 @@ function createMockBridge(): MeithBridge {
               totalDeletions: 1,
             });
           }
+          case "git_status": {
+            return okResult({
+              isRepo: true,
+              root: projectCwd,
+              branch: "main",
+              upstream: "origin/main",
+              ahead: 0,
+              behind: 0,
+              files: [
+                {
+                  path: "README.md",
+                  status: "modified",
+                  indexStatus: " ",
+                  worktreeStatus: "M",
+                  staged: false,
+                  unstaged: true,
+                  untracked: false,
+                },
+              ],
+              staged: [],
+              unstaged: [
+                {
+                  path: "README.md",
+                  status: "modified",
+                  indexStatus: " ",
+                  worktreeStatus: "M",
+                  staged: false,
+                  unstaged: true,
+                  untracked: false,
+                },
+              ],
+              untracked: [],
+              clean: false,
+            });
+          }
+          case "git_identity_detect": {
+            return okResult({
+              root: projectCwd,
+              suggestions: [
+                {
+                  source: "global",
+                  label: "Global Git config",
+                  name: "Demo User",
+                  email: "demo@example.com",
+                  detail: "Configured with git config --global user.name/user.email.",
+                },
+                {
+                  source: "github-cli",
+                  label: "GitHub: demo",
+                  name: "demo",
+                  email: "demo@users.noreply.github.com",
+                  username: "demo",
+                  host: "github.com",
+                  detail:
+                    "Detected from GitHub CLI login. Uses GitHub's noreply email pattern.",
+                },
+              ],
+            });
+          }
+          case "git_branch": {
+            const action = String(args.action ?? "list");
+            const name = typeof args.name === "string" ? args.name : "";
+            const branches = [
+              {
+                name: action === "switch" && name ? name : "main",
+                current: true,
+                upstream: "origin/main",
+                commit: "a1b2c3d",
+                subject: "Mock branch state",
+              },
+              {
+                name: "feature/git-panel",
+                current: false,
+                upstream: null,
+                commit: "d4e5f6a",
+                subject: "Polish Git panel",
+              },
+            ];
+            if (action === "create" && name) {
+              branches.unshift({
+                name,
+                current: false,
+                upstream: null,
+                commit: "0000000",
+                subject: "New branch",
+              });
+            }
+            return okResult(branches);
+          }
+          case "git_stage":
+          case "git_unstage":
+          case "git_restore":
+          case "git_commit":
+            return okResult({ ok: true });
 
           case "list_plugins":
             return okResult({ plugins: structuredClone(state.plugins) });
@@ -1047,6 +1154,12 @@ function createMockBridge(): MeithBridge {
             return errorResult("UNKNOWN_TOOL", `Unknown tool: ${name}`);
         }
       },
+    },
+    ai: {
+      complete: async (input) => ({
+        text: previewCompletion(input.prompt),
+        adapterId: "mock",
+      }),
     },
     state: {
       get: async () => structuredClone(state),
@@ -1382,6 +1495,15 @@ function handleMockInput(
       write(ch);
     }
   }
+}
+
+function previewCompletion(prompt: string): string {
+  const path =
+    prompt.match(/^diff --git a\/(.+?) b\//m)?.[1] ??
+    prompt.match(/^Path:\s*(.+)$/m)?.[1]?.trim() ??
+    "changes";
+  const file = path.split("/").filter(Boolean).at(-1) ?? path;
+  return `chore: update ${file}`.slice(0, 90);
 }
 
 function desc(

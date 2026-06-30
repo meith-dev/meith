@@ -173,19 +173,19 @@ describe("BrowserTabService workspace tabs", () => {
     expect(cleared.terminalId).toBeUndefined();
   });
 
-  it("persists the selected file on diff workspace tabs", () => {
+  it("persists the selected file on git workspace tabs", () => {
     const tab = ctx.tabs.openWorkspaceTab({
-      title: "Diff",
+      title: "Git",
       cwd: "/tmp/project",
-      kind: "diff",
+      kind: "git",
     });
 
     const updated = ctx.tabs.setWorkspaceTabFile(tab.id, {
-      selectedDiffFilePath: "src/app.ts",
+      selectedGitFilePath: "src/app.ts",
     });
 
-    expect(updated.selectedDiffFilePath).toBe("src/app.ts");
-    expect(ctx.tabs.listWorkspaceTabs()[0].selectedDiffFilePath).toBe("src/app.ts");
+    expect(updated.selectedGitFilePath).toBe("src/app.ts");
+    expect(ctx.tabs.listWorkspaceTabs()[0].selectedGitFilePath).toBe("src/app.ts");
   });
 
   it("rejects terminal session ids on non-terminal workspace tabs", () => {
