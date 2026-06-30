@@ -471,9 +471,11 @@ function ThinkingBlock({
   // Entries are individual streamed thought tokens — join them as a single
   // continuous stream and let normalizeThoughtText collapse all whitespace.
   const detailContent = visibleEntries.map((entry) => entry.content).join("");
-  const detailCount = visibleEntries.length;
   const hasDetails = detailContent.length > 0;
-  const countLabel = detailCount > 1 ? `${detailCount} updates` : undefined;
+  const wordCount = hasDetails
+    ? normalizeThoughtText(detailContent).split(/\s+/).filter(Boolean).length
+    : 0;
+  const countLabel = wordCount > 10 ? `${wordCount} words` : undefined;
   const summary = (
     <div className="flex min-w-0 items-center gap-1.5 py-0.5 text-sm text-muted-foreground">
       {live && (
