@@ -27,6 +27,8 @@ interface OverlayDropdownProps {
   minWidth?: number;
   /** Maximum menu width in px; long descriptions wrap instead of stretching. */
   maxWidth?: number;
+  /** Maximum menu height in px; longer menus scroll. */
+  maxHeight?: number;
   /** Notified when the menu opens/closes (e.g. to freeze the browser view). */
   onOpenChange?: (open: boolean) => void;
 }
@@ -44,6 +46,7 @@ export function OverlayDropdown({
   align = "start",
   minWidth = 200,
   maxWidth,
+  maxHeight,
   onOpenChange,
 }: OverlayDropdownProps) {
   const overlay = getOverlayApi();
@@ -67,49 +70,58 @@ export function OverlayDropdown({
 
   // --- Fallback: normal in-DOM dropdown (preview / tests / non-Electron) ---
   if (!overlay) {
+    const scrollItems = items.filter((item) => item.pinned !== "bottom");
+    const pinnedItems = items.filter((item) => item.pinned === "bottom");
+    const renderItem = (item: OverlayActionItem, i: number) => {
+      const Icon = item.iconName ? OVERLAY_ICONS[item.iconName] : undefined;
+      return (
+        <div key={item.id}>
+          {item.separatorBefore && i > 0 && <DropdownMenuSeparator />}
+          {item.groupLabel && (
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              {item.groupLabel}
+            </DropdownMenuLabel>
+          )}
+          <DropdownMenuItem
+            variant={item.variant}
+            disabled={item.disabled}
+            onClick={() => item.onSelect()}
+            className={item.description ? "items-start" : undefined}
+          >
+            {Icon && (
+              <Icon className={`size-4 shrink-0${item.description ? " mt-0.5" : ""}`} />
+            )}
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate">{item.label}</span>
+              {item.description && (
+                <span className="text-xs text-muted-foreground">{item.description}</span>
+              )}
+            </span>
+            {item.hint && (
+              <span className="ml-auto text-xs text-muted-foreground">{item.hint}</span>
+            )}
+            {item.checked && <CheckIcon className="ml-auto size-4 shrink-0" />}
+          </DropdownMenuItem>
+        </div>
+      );
+    };
+
     return (
       <DropdownMenu onOpenChange={onOpenChange}>
         <DropdownMenuTrigger render={trigger} />
-        <DropdownMenuContent align={align} style={{ minWidth, maxWidth }}>
-          {items.map((item, i) => {
-            const Icon = item.iconName ? OVERLAY_ICONS[item.iconName] : undefined;
-            return (
-              <div key={item.id}>
-                {item.separatorBefore && i > 0 && <DropdownMenuSeparator />}
-                {item.groupLabel && (
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    {item.groupLabel}
-                  </DropdownMenuLabel>
-                )}
-                <DropdownMenuItem
-                  variant={item.variant}
-                  disabled={item.disabled}
-                  onClick={() => item.onSelect()}
-                  className={item.description ? "items-start" : undefined}
-                >
-                  {Icon && (
-                    <Icon
-                      className={`size-4 shrink-0${item.description ? " mt-0.5" : ""}`}
-                    />
-                  )}
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate">{item.label}</span>
-                    {item.description && (
-                      <span className="text-xs text-muted-foreground">
-                        {item.description}
-                      </span>
-                    )}
-                  </span>
-                  {item.hint && (
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {item.hint}
-                    </span>
-                  )}
-                  {item.checked && <CheckIcon className="ml-auto size-4 shrink-0" />}
-                </DropdownMenuItem>
-              </div>
-            );
-          })}
+        <DropdownMenuContent
+          align={align}
+          className="flex flex-col overflow-hidden"
+          style={{ minWidth, maxWidth, maxHeight }}
+        >
+          <div className="min-h-0 overflow-y-auto">
+            {scrollItems.map((item, i) => renderItem(item, i))}
+          </div>
+          {pinnedItems.length > 0 && (
+            <div className="-mx-1 mt-1 border-t border-border pt-1">
+              {pinnedItems.map((item, i) => renderItem(item, i))}
+            </div>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -137,6 +149,7 @@ export function OverlayDropdown({
       align,
       minWidth,
       maxWidth,
+      maxHeight,
     });
   };
 

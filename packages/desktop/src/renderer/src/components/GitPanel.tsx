@@ -1,25 +1,31 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { type GitDiffFile, useGitDiff } from "@/hooks/useGitDiff";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { type GitDiffFile, useGitChanges } from "@/hooks/useGitChanges";
 import { useResizable } from "@/hooks/useResizable";
 import { cn } from "@/lib/utils";
 import { basename } from "@/lib/workspace";
-import type { ToolResult, WorkspaceTab } from "@meith/shared";
+import type { GitSettings, ToolResult, WorkspaceTab } from "@meith/shared";
 import {
+  CheckIcon,
   ChevronRightIcon,
   FileDiffIcon,
   FilePlusIcon,
   FileXIcon,
   FolderIcon,
   FolderOpenIcon,
+  GitCommitIcon,
+  LightbulbIcon,
   RefreshCwIcon,
+  RotateCcwIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
 
-interface DiffViewProps {
+interface GitPanelProps {
   tab: WorkspaceTab;
   call: (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
-  /** Bumped when workspace files change, to refetch the diff. */
+  settings?: GitSettings;
+  /** Bumped when workspace files change, to refetch git state. */
   refreshKey: number;
 }
 
@@ -41,40 +47,105 @@ interface DiffTreeFile {
 }
 
 type DiffTreeNode = DiffTreeDir | DiffTreeFile;
+type GitScope = "staged" | "unstaged";
+type TooltipSide = "top" | "bottom" | "left" | "right";
+
+interface GitStatusFile {
+  path: string;
+  status: string;
+  staged: boolean;
+  unstaged: boolean;
+  untracked: boolean;
+}
+
+interface GitStatusResult {
+  isRepo: boolean;
+  root: string | null;
+  branch: string | null;
+  ahead: number;
+  behind: number;
+  staged: GitStatusFile[];
+  unstaged: GitStatusFile[];
+  untracked: GitStatusFile[];
+  clean: boolean;
+}
 
 /**
- * The diff surface: lists every changed file (vs HEAD, including untracked)
+ * The Git panel: lists every changed file (vs HEAD, including untracked)
  * with its unified patch rendered as colored add/remove lines. Self-contained
  * — it fetches via the `git_diff` tool and refreshes on file changes.
  */
-export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
-  const { data, loading, error, refresh } = useGitDiff(call, tab.cwd, {
+export function GitPanel({ tab, call, settings, refreshKey }: GitPanelProps) {
+  const refreshIntervalMs = settings?.refreshIntervalMs ?? 2500;
+  const showUntrackedFiles = settings?.showUntrackedFiles ?? true;
+  const confirmBeforeRestore = settings?.confirmBeforeRestore ?? true;
+  const { data, loading, error, refresh } = useGitChanges(call, tab.cwd, {
     refreshKey,
-    pollMs: 2500,
+    pollMs: refreshIntervalMs,
     forcePoll: true,
     includePatches: false,
   });
   const [selectedPath, setSelectedPath] = useState<string | null>(
-    tab.selectedDiffFilePath ?? null,
+    tab.selectedGitFilePath ?? null,
   );
+  const [selectedScope, setSelectedScope] = useState<GitScope>("unstaged");
   const [patchByPath, setPatchByPath] = useState<Record<string, GitDiffFile>>({});
   const [patchLoading, setPatchLoading] = useState(false);
   const [patchError, setPatchError] = useState<string | null>(null);
+  const [status, setStatus] = useState<GitStatusResult | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [commitMessage, setCommitMessage] = useState("");
+  const activeIdentity =
+    settings?.identityProfiles.find(
+      (profile) => profile.id === settings.activeIdentityProfileId,
+    ) ?? null;
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(() => new Set());
   const sidebar = useResizable({
     initial: 256,
     min: 180,
     max: 480,
     axis: "x",
-    storageKey: "meith.diffSidebarWidth",
+    storageKey: "meith.gitSidebarWidth",
   });
 
-  const fileTree = useMemo(() => buildDiffTree(data.files), [data.files]);
+  const summaryByPath = useMemo(
+    () => new Map(data.files.map((file) => [file.path, file])),
+    [data.files],
+  );
+  const stagedFiles = useMemo(
+    () => filesForStatus(status?.staged ?? [], summaryByPath, "staged"),
+    [status?.staged, summaryByPath],
+  );
+  const unstagedFiles = useMemo(
+    () =>
+      filesForStatus(
+        [...(status?.unstaged ?? []), ...(status?.untracked ?? [])].filter(
+          (file) => showUntrackedFiles || !file.untracked,
+        ),
+        summaryByPath,
+        "unstaged",
+      ),
+    [status?.unstaged, status?.untracked, showUntrackedFiles, summaryByPath],
+  );
+  const fileTree = useMemo(
+    () => ({
+      staged: buildDiffTree(stagedFiles),
+      unstaged: buildDiffTree(unstagedFiles),
+    }),
+    [stagedFiles, unstagedFiles],
+  );
+  const refreshStatus = useCallback(async () => {
+    const res = await call("git_status", { cwd: tab.cwd });
+    if (res.ok && res.content) setStatus(res.content as GitStatusResult);
+  }, [call, tab.cwd]);
   const clearAndRefresh = useCallback(() => {
     setPatchByPath({});
     setPatchError(null);
+    setActionError(null);
     void refresh(true);
-  }, [refresh]);
+    void refreshStatus();
+  }, [refresh, refreshStatus]);
   const toggleDir = useCallback((path: string) => {
     setExpandedDirs((prev) => {
       const next = new Set(prev);
@@ -88,30 +159,42 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
   }, []);
 
   // Keep a valid selection as the file list changes: default to the first
-  // file, and recover if the selected file disappears from the diff.
+  // file, and recover if the selected file disappears from git status.
+  useEffect(() => {
+    void refreshStatus();
+  }, [refreshStatus, refreshKey]);
+
+  useEffect(() => {
+    const id = setInterval(() => void refreshStatus(), refreshIntervalMs);
+    return () => clearInterval(id);
+  }, [refreshStatus, refreshIntervalMs]);
+
   useEffect(() => {
     if (data.files.length === 0) {
       if (selectedPath !== null) setSelectedPath(null);
       return;
     }
     if (!selectedPath || !data.files.some((f) => f.path === selectedPath)) {
-      setSelectedPath(data.files[0].path);
+      const firstStaged = stagedFiles[0]?.path;
+      const firstUnstaged = unstagedFiles[0]?.path;
+      setSelectedPath(firstUnstaged ?? firstStaged ?? data.files[0].path);
+      setSelectedScope(firstUnstaged ? "unstaged" : "staged");
     }
-  }, [data.files, selectedPath]);
+  }, [data.files, selectedPath, stagedFiles, unstagedFiles]);
 
   useEffect(() => {
-    const persistedPath = tab.selectedDiffFilePath ?? null;
+    const persistedPath = tab.selectedGitFilePath ?? null;
     if (selectedPath === persistedPath) return;
     void call("set_workspace_tab_file", {
       tabId: tab.id,
-      selectedDiffFilePath: selectedPath,
+      selectedGitFilePath: selectedPath,
     });
-  }, [call, selectedPath, tab.id, tab.selectedDiffFilePath]);
+  }, [call, selectedPath, tab.id, tab.selectedGitFilePath]);
 
   // Keep selected files visible in the tree, and drop expansion entries for
-  // directories that no longer exist after a diff refresh.
+  // directories that no longer exist after a git refresh.
   useEffect(() => {
-    const validDirs = collectDirPaths(fileTree);
+    const validDirs = collectDirPaths([...fileTree.staged, ...fileTree.unstaged]);
     const selectedParents = selectedPath ? parentDirs(selectedPath) : [];
     setExpandedDirs((prev) => {
       let changed = false;
@@ -138,8 +221,9 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
     setPatchError(null);
   }, [tab.cwd, refreshKey]);
 
-  const selectedSummary = data.files.find((f) => f.path === selectedPath) ?? null;
-  const selectedPatch = selectedPath ? patchByPath[selectedPath] : undefined;
+  const selectedSummary = selectedPath ? (summaryByPath.get(selectedPath) ?? null) : null;
+  const selectedPatchKey = selectedPath ? `${selectedScope}:${selectedPath}` : null;
+  const selectedPatch = selectedPatchKey ? patchByPath[selectedPatchKey] : undefined;
   const selectedFile = selectedSummary
     ? { ...selectedSummary, ...(selectedPatch ?? {}) }
     : null;
@@ -163,6 +247,7 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
       cwd: tab.cwd,
       includePatches: true,
       path: selectedPath,
+      scope: selectedScope,
     })
       .then((res) => {
         if (cancelled) return;
@@ -172,7 +257,10 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
         const next = res.content as { files?: GitDiffFile[] };
         const file = next.files?.find((candidate) => candidate.path === selectedPath);
         if (file) {
-          setPatchByPath((prev) => ({ ...prev, [selectedPath]: file }));
+          setPatchByPath((prev) => ({
+            ...prev,
+            [`${selectedScope}:${selectedPath}`]: file,
+          }));
         }
       })
       .catch((err) => {
@@ -187,7 +275,64 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [call, tab.cwd, data.isRepo, selectedPath, selectedSummary, selectedPatch?.diff]);
+  }, [
+    call,
+    tab.cwd,
+    data.isRepo,
+    selectedPath,
+    selectedScope,
+    selectedSummary,
+    selectedPatch?.diff,
+  ]);
+
+  const runGitAction = useCallback(
+    async (name: string, args: Record<string, unknown>) => {
+      setActionBusy(true);
+      setActionError(null);
+      try {
+        const res = await call(name, { cwd: tab.cwd, ...args });
+        if (!res.ok) throw new Error(res.error?.message ?? `Failed to run ${name}`);
+        setPatchByPath({});
+        await refresh(true);
+        await refreshStatus();
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setActionBusy(false);
+      }
+    },
+    [call, refresh, refreshStatus, tab.cwd],
+  );
+
+  const selectFile = useCallback((path: string, scope: GitScope) => {
+    setSelectedPath(path);
+    setSelectedScope(scope);
+  }, []);
+
+  const suggestCommitMessage = useCallback(() => {
+    setCommitMessage(suggestMessage(status, data.files));
+  }, [status, data.files]);
+
+  const commitChanges = useCallback(async () => {
+    if (!commitMessage.trim()) return;
+    await runGitAction("git_commit", { message: commitMessage.trim() });
+    setCommitMessage("");
+  }, [commitMessage, runGitAction]);
+
+  const restoreFile = useCallback(
+    async (path: string) => {
+      if (confirmBeforeRestore) {
+        const ok = window.confirm(`Discard changes in ${path}? This cannot be undone.`);
+        if (!ok) return;
+      }
+      await runGitAction("git_restore", {
+        paths: [path],
+        target: selectedScope === "staged" ? "staged" : "worktree",
+        confirm: true,
+      });
+    },
+    [confirmBeforeRestore, runGitAction, selectedScope],
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
@@ -195,6 +340,13 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
         <span className="text-xs text-muted-foreground">
           {data.files.length} changed file{data.files.length === 1 ? "" : "s"}
         </span>
+        {status?.branch && (
+          <span className="max-w-48 truncate font-mono text-xs text-muted-foreground">
+            {status.branch}
+            {status.ahead > 0 ? ` +${status.ahead}` : ""}
+            {status.behind > 0 ? ` -${status.behind}` : ""}
+          </span>
+        )}
         <span className="font-mono text-xs tabular-nums text-emerald-600 dark:text-emerald-400">
           +{data.totalAdditions}
         </span>
@@ -202,20 +354,22 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
           -{data.totalDeletions}
         </span>
         <div className="flex-1" />
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-7"
-          onClick={clearAndRefresh}
-          aria-label="Refresh diff"
-          data-loading={loading}
-        >
-          <RefreshCwIcon
-            className="size-4 data-[spin=true]:animate-spin"
-            data-spin={loading}
-            aria-hidden
-          />
-        </Button>
+        <TooltipButton label="Refresh git status" side="bottom">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7"
+            onClick={clearAndRefresh}
+            aria-label="Refresh git status"
+            data-loading={loading}
+          >
+            <RefreshCwIcon
+              className="size-4 data-[spin=true]:animate-spin"
+              data-spin={loading}
+              aria-hidden
+            />
+          </Button>
+        </TooltipButton>
       </div>
 
       {error ? (
@@ -228,13 +382,24 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
         />
       ) : (
         <div className="flex min-h-0 flex-1">
-          <FileTree
-            nodes={fileTree}
+          <SourceControlSidebar
+            stagedNodes={fileTree.staged}
+            unstagedNodes={fileTree.unstaged}
             expandedDirs={expandedDirs}
             selectedPath={selectedPath}
+            selectedScope={selectedScope}
             onToggleDir={toggleDir}
-            onSelect={setSelectedPath}
+            onSelect={selectFile}
             width={sidebar.size}
+            commitMessage={commitMessage}
+            onCommitMessageChange={setCommitMessage}
+            onSuggestCommitMessage={suggestCommitMessage}
+            onCommit={commitChanges}
+            activeIdentity={activeIdentity}
+            canCommit={
+              (status?.staged.length ?? 0) > 0 && commitMessage.trim().length > 0
+            }
+            busy={actionBusy}
           />
           {/* Resize handle */}
           <button
@@ -245,7 +410,16 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
           />
           <div className="min-w-0 flex-1">
             {selectedFile && (
-              <FileDiff file={selectedFile} loading={patchLoading} error={patchError} />
+              <FileDiff
+                file={selectedFile}
+                scope={selectedScope}
+                loading={patchLoading}
+                error={patchError ?? actionError}
+                busy={actionBusy}
+                onStage={(path) => runGitAction("git_stage", { paths: [path] })}
+                onUnstage={(path) => runGitAction("git_unstage", { paths: [path] })}
+                onRestore={restoreFile}
+              />
             )}
           </div>
         </div>
@@ -254,55 +428,176 @@ export function DiffView({ tab, call, refreshKey }: DiffViewProps) {
   );
 }
 
-/** Left sidebar: changed files grouped by folder. */
-function FileTree({
-  nodes,
+function SourceControlSidebar({
+  stagedNodes,
+  unstagedNodes,
   expandedDirs,
   selectedPath,
+  selectedScope,
   onToggleDir,
   onSelect,
   width,
+  commitMessage,
+  onCommitMessageChange,
+  onSuggestCommitMessage,
+  onCommit,
+  activeIdentity,
+  canCommit,
+  busy,
 }: {
-  nodes: DiffTreeNode[];
+  stagedNodes: DiffTreeNode[];
+  unstagedNodes: DiffTreeNode[];
   expandedDirs: Set<string>;
   selectedPath: string | null;
+  selectedScope: GitScope;
   onToggleDir: (path: string) => void;
-  onSelect: (path: string) => void;
+  onSelect: (path: string, scope: GitScope) => void;
   width: number;
+  commitMessage: string;
+  onCommitMessageChange: (message: string) => void;
+  onSuggestCommitMessage: () => void;
+  onCommit: () => void;
+  activeIdentity: GitSettings["identityProfiles"][number] | null;
+  canCommit: boolean;
+  busy: boolean;
 }) {
   return (
-    <ScrollArea className="shrink-0 bg-card/30" style={{ width }}>
-      <div className="flex flex-col py-1">
-        {nodes.map((node) => (
-          <DiffTreeRow
-            key={node.path}
-            node={node}
-            depth={0}
+    <div
+      className="flex min-h-0 shrink-0 flex-col border-r border-border bg-card/30"
+      style={{ width }}
+    >
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="flex flex-col py-1">
+          <SourceSection
+            title="Staged"
+            scope="staged"
+            nodes={stagedNodes}
             expandedDirs={expandedDirs}
             selectedPath={selectedPath}
+            selectedScope={selectedScope}
             onToggleDir={onToggleDir}
             onSelect={onSelect}
           />
-        ))}
+          <SourceSection
+            title="Changes"
+            scope="unstaged"
+            nodes={unstagedNodes}
+            expandedDirs={expandedDirs}
+            selectedPath={selectedPath}
+            selectedScope={selectedScope}
+            onToggleDir={onToggleDir}
+            onSelect={onSelect}
+          />
+        </div>
+      </ScrollArea>
+      <div className="shrink-0 border-t border-border p-2">
+        <textarea
+          value={commitMessage}
+          onChange={(event) => onCommitMessageChange(event.target.value)}
+          placeholder="Commit message"
+          className="min-h-16 w-full resize-none rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+        <p className="mt-1 truncate px-0.5 text-[11px] text-muted-foreground">
+          {activeIdentity
+            ? `Committing as ${activeIdentity.name || "unnamed user"}${
+                activeIdentity.email ? ` <${activeIdentity.email}>` : ""
+              }`
+            : "Committing with repository Git config"}
+        </p>
+        <div className="mt-2 flex items-center gap-1.5">
+          <TooltipButton label="Suggest commit message" side="top">
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              onClick={onSuggestCommitMessage}
+              aria-label="Suggest commit message"
+            >
+              <LightbulbIcon className="size-4" aria-hidden />
+            </Button>
+          </TooltipButton>
+          <TooltipButton label="Commit staged changes" side="top">
+            <Button
+              type="button"
+              size="sm"
+              className="min-w-0 flex-1"
+              onClick={onCommit}
+              disabled={!canCommit || busy}
+            >
+              <GitCommitIcon className="size-4" aria-hidden />
+              Commit
+            </Button>
+          </TooltipButton>
+        </div>
       </div>
-    </ScrollArea>
+    </div>
+  );
+}
+
+function SourceSection({
+  title,
+  scope,
+  nodes,
+  expandedDirs,
+  selectedPath,
+  selectedScope,
+  onToggleDir,
+  onSelect,
+}: {
+  title: string;
+  scope: GitScope;
+  nodes: DiffTreeNode[];
+  expandedDirs: Set<string>;
+  selectedPath: string | null;
+  selectedScope: GitScope;
+  onToggleDir: (path: string) => void;
+  onSelect: (path: string, scope: GitScope) => void;
+}) {
+  return (
+    <div className="pb-1">
+      <div className="flex items-center justify-between px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span>{title}</span>
+        <span className="font-mono">{countFiles(nodes)}</span>
+      </div>
+      {nodes.length === 0 ? (
+        <div className="px-2 py-1 text-xs text-muted-foreground/70">No files</div>
+      ) : (
+        nodes.map((node) => (
+          <DiffTreeRow
+            key={`${scope}:${node.path}`}
+            node={node}
+            depth={0}
+            scope={scope}
+            expandedDirs={expandedDirs}
+            selectedPath={selectedPath}
+            selectedScope={selectedScope}
+            onToggleDir={onToggleDir}
+            onSelect={onSelect}
+          />
+        ))
+      )}
+    </div>
   );
 }
 
 function DiffTreeRow({
   node,
   depth,
+  scope,
   expandedDirs,
   selectedPath,
+  selectedScope,
   onToggleDir,
   onSelect,
 }: {
   node: DiffTreeNode;
   depth: number;
+  scope: GitScope;
   expandedDirs: Set<string>;
   selectedPath: string | null;
+  selectedScope: GitScope;
   onToggleDir: (path: string) => void;
-  onSelect: (path: string) => void;
+  onSelect: (path: string, scope: GitScope) => void;
 }) {
   const paddingLeft = 10 + depth * 14;
 
@@ -344,8 +639,10 @@ function DiffTreeRow({
               key={child.path}
               node={child}
               depth={depth + 1}
+              scope={scope}
               expandedDirs={expandedDirs}
               selectedPath={selectedPath}
+              selectedScope={selectedScope}
               onToggleDir={onToggleDir}
               onSelect={onSelect}
             />
@@ -357,12 +654,12 @@ function DiffTreeRow({
   const { file } = node;
   const meta = STATUS_META[file.status] ?? STATUS_META.modified;
   const Icon = statusIcon(file.status);
-  const active = file.path === selectedPath;
+  const active = file.path === selectedPath && scope === selectedScope;
 
   return (
     <button
       type="button"
-      onClick={() => onSelect(file.path)}
+      onClick={() => onSelect(file.path, scope)}
       aria-current={active}
       title={file.path}
       className={cn(
@@ -455,6 +752,56 @@ function buildDiffTree(files: GitDiffFile[]): DiffTreeNode[] {
   return root.children;
 }
 
+function filesForStatus(
+  files: GitStatusFile[],
+  summaryByPath: Map<string, GitDiffFile>,
+  scope: GitScope,
+): GitDiffFile[] {
+  const seen = new Set<string>();
+  return files
+    .filter((file) => {
+      if (seen.has(file.path)) return false;
+      seen.add(file.path);
+      return true;
+    })
+    .map((file) => {
+      const summary = summaryByPath.get(file.path);
+      return {
+        path: file.path,
+        status: file.status,
+        additions: summary?.additions ?? 0,
+        deletions: summary?.deletions ?? 0,
+        binary: summary?.binary ?? false,
+        diff: "",
+      };
+    })
+    .filter(
+      (file) => scope === "staged" || file.status !== "deleted" || file.deletions > 0,
+    );
+}
+
+function countFiles(nodes: DiffTreeNode[]): number {
+  return nodes.reduce((sum, node) => {
+    if (node.type === "file") return sum + 1;
+    return sum + node.fileCount;
+  }, 0);
+}
+
+function suggestMessage(status: GitStatusResult | null, files: GitDiffFile[]): string {
+  const staged = status?.staged ?? [];
+  const source = staged.length > 0 ? staged : files;
+  if (source.length === 0) return "";
+  const firstPath = source[0].path;
+  const area = firstPath.includes("/") ? firstPath.split("/")[0] : basename(firstPath);
+  const added = source.some(
+    (file) => file.status === "added" || file.status === "untracked",
+  );
+  const deleted = source.some((file) => file.status === "deleted");
+  const type = added ? "feat" : deleted ? "chore" : "fix";
+  if (source.length === 1) return `${type}: update ${basename(firstPath)}`;
+  return `${type}: update ${area} source control changes`;
+}
+
 function sortDiffTree(nodes: DiffTreeNode[]): void {
   nodes.sort((a, b) => {
     if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
@@ -493,6 +840,23 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+function TooltipButton({
+  label,
+  side = "top",
+  children,
+}: {
+  label: string;
+  side?: TooltipSide;
+  children: ReactElement;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side={side}>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 const STATUS_META: Record<string, { label: string; className: string }> = {
   added: { label: "Added", className: "text-emerald-600 dark:text-emerald-400" },
   untracked: { label: "Untracked", className: "text-emerald-600 dark:text-emerald-400" },
@@ -510,12 +874,22 @@ function statusIcon(status: string) {
 
 function FileDiff({
   file,
+  scope,
   loading,
   error,
+  busy,
+  onStage,
+  onUnstage,
+  onRestore,
 }: {
   file: GitDiffFile;
+  scope: GitScope;
   loading: boolean;
   error: string | null;
+  busy: boolean;
+  onStage: (path: string) => void;
+  onUnstage: (path: string) => void;
+  onRestore: (path: string) => void;
 }) {
   const meta = STATUS_META[file.status] ?? STATUS_META.modified;
   const Icon = statusIcon(file.status);
@@ -541,6 +915,47 @@ function FileDiff({
             <span className="text-rose-600 dark:text-rose-400">-{file.deletions}</span>
           </span>
         )}
+        <div className="flex shrink-0 items-center gap-1">
+          {scope === "unstaged" ? (
+            <TooltipButton label="Stage file" side="bottom">
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                onClick={() => onStage(file.path)}
+                disabled={busy}
+                aria-label="Stage file"
+              >
+                <CheckIcon className="size-3.5" aria-hidden />
+              </Button>
+            </TooltipButton>
+          ) : (
+            <TooltipButton label="Unstage file" side="bottom">
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                onClick={() => onUnstage(file.path)}
+                disabled={busy}
+                aria-label="Unstage file"
+              >
+                <RotateCcwIcon className="size-3.5" aria-hidden />
+              </Button>
+            </TooltipButton>
+          )}
+          <TooltipButton label="Restore file" side="bottom">
+            <Button
+              type="button"
+              size="icon-xs"
+              variant="destructive"
+              onClick={() => onRestore(file.path)}
+              disabled={busy}
+              aria-label="Restore file"
+            >
+              <FileXIcon className="size-3.5" aria-hidden />
+            </Button>
+          </TooltipButton>
+        </div>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">

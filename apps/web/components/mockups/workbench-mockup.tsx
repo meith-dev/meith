@@ -10,6 +10,7 @@ import {
   FilePlus,
   Folder,
   FolderOpen,
+  GitBranch,
   GitCompare,
   Hand,
   Paperclip,
@@ -38,7 +39,13 @@ const workspaceToggles = [
 
 const agentSessions = [
   { title: "Pricing Section", active: true, status: "running", updated: "just now" },
-  { title: "Hero Polish", active: false, status: "idle", updated: "12 min ago", unread: true },
+  {
+    title: "Hero Polish",
+    active: false,
+    status: "idle",
+    updated: "12 min ago",
+    unread: true,
+  },
   { title: "Nav Cleanup", active: false, status: "idle", updated: "31 min ago" },
 ];
 
@@ -91,6 +98,11 @@ export function WorkbenchMockup({ className }: { className?: string }) {
           ))}
 
           <div className="min-w-0 flex-1" />
+          <div className="flex max-w-28 items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs">
+            <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 truncate font-mono">main</span>
+            <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
+          </div>
           <div className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs">
             <GitCompare className="size-3.5 text-muted-foreground" />
             <span className="font-mono tabular-nums text-[oklch(0.7_0.13_150)]">
@@ -173,7 +185,9 @@ export function WorkbenchMockup({ className }: { className?: string }) {
                       </span>
                       <Plus className="size-3.5 text-muted-foreground" />
                     </div>
-                    <span className="text-[10px] text-muted-foreground">8 conversations</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      8 conversations
+                    </span>
                   </div>
                   <div className="space-y-1 px-2 py-2">
                     {agentSessions.map((session) => (
@@ -235,68 +249,72 @@ export function WorkbenchMockup({ className }: { className?: string }) {
                           </div>
                         </div>
 
-                      <div className="flex justify-start">
-                        <div className="max-w-[90%] space-y-1.5">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground">Agent</span>
-                            <span>streaming</span>
-                          </div>
-                          <div className="rounded-lg bg-muted p-2">
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-2 rounded-md border border-border/80 bg-background px-2.5 py-1.5 text-sm">
-                                <span className="font-medium text-foreground">Thoughts</span>
-                                <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                                  · Checking the existing layout and section spacing
-                                </span>
-                                <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-                              </div>
-                              <div className="rounded-md border border-border/80 bg-background px-2.5 py-1.5">
-                                <div className="flex items-center gap-2 text-sm">
-                                  <span className="font-medium text-foreground">Thoughts</span>
-                                  <span className="shrink-0 text-xs text-muted-foreground">
-                                    2 updates
+                        <div className="flex justify-start">
+                          <div className="max-w-[90%] space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground">Agent</span>
+                              <span>streaming</span>
+                            </div>
+                            <div className="rounded-lg bg-muted p-2">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 rounded-md border border-border/80 bg-background px-2.5 py-1.5 text-sm">
+                                  <span className="font-medium text-foreground">
+                                    Thoughts
                                   </span>
-                                  <ChevronDown className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
+                                  <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                                    · Checking the existing layout and section spacing
+                                  </span>
+                                  <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
                                 </div>
-                                <div className="mt-1.5 rounded-md border border-border bg-background/80 p-1.5">
-                                  <div className="flex items-center gap-2 text-xs">
-                                    <Wrench className="size-3.5 text-muted-foreground" />
+                                <div className="rounded-md border border-border/80 bg-background px-2.5 py-1.5">
+                                  <div className="flex items-center gap-2 text-sm">
                                     <span className="font-medium text-foreground">
-                                      Ran 3 commands
+                                      Thoughts
                                     </span>
-                                    <ChevronRight className="ml-auto size-3.5 text-muted-foreground" />
+                                    <span className="shrink-0 text-xs text-muted-foreground">
+                                      2 updates
+                                    </span>
+                                    <ChevronDown className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
+                                  </div>
+                                  <div className="mt-1.5 rounded-md border border-border bg-background/80 p-1.5">
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <Wrench className="size-3.5 text-muted-foreground" />
+                                      <span className="font-medium text-foreground">
+                                        Ran 3 commands
+                                      </span>
+                                      <ChevronRight className="ml-auto size-3.5 text-muted-foreground" />
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="max-w-[92%] rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5">
-                        <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                          <ShieldAlert className="size-3.5 text-amber-400" />
-                          <span>Permission required</span>
-                        </div>
-                        <p className="mt-1 text-[11px] text-muted-foreground">
-                          The agent wants to run{" "}
-                          <code className="font-mono text-foreground">project_run</code> to
-                          start a process.
-                        </p>
-                        <label className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span className="size-3 rounded-[3px] border border-input bg-background" />
-                          Remember for this tool in this session
-                        </label>
-                        <div className="mt-1.5 flex gap-2">
-                          <span className="rounded-md bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
-                            Allow
-                          </span>
-                          <span className="rounded-md border border-border px-2 py-0.5 text-[11px] text-foreground">
-                            Deny
-                          </span>
+                        <div className="max-w-[92%] rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5">
+                          <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                            <ShieldAlert className="size-3.5 text-amber-400" />
+                            <span>Permission required</span>
+                          </div>
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            The agent wants to run{" "}
+                            <code className="font-mono text-foreground">project_run</code>{" "}
+                            to start a process.
+                          </p>
+                          <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <span className="size-3 rounded-[3px] border border-input bg-background" />
+                            Remember for this tool in this session
+                          </div>
+                          <div className="mt-1.5 flex gap-2">
+                            <span className="rounded-md bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
+                              Allow
+                            </span>
+                            <span className="rounded-md border border-border px-2 py-0.5 text-[11px] text-foreground">
+                              Deny
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
                     </div>
                   </div>
 
@@ -333,7 +351,7 @@ export function WorkbenchMockup({ className }: { className?: string }) {
                 <div className="flex min-w-0 flex-1 items-center gap-1">
                   <div className="flex items-center gap-1.5 rounded-md bg-background px-2.5 py-1 text-xs text-foreground">
                     <FileDiff className="size-3.5" />
-                    <span className="truncate">Diff</span>
+                    <span className="truncate">Git</span>
                   </div>
                 </div>
                 <Plus className="size-3.5 text-muted-foreground" />
@@ -343,7 +361,9 @@ export function WorkbenchMockup({ className }: { className?: string }) {
                 <span className="font-mono tabular-nums text-[oklch(0.7_0.13_150)]">
                   +107
                 </span>
-                <span className="font-mono tabular-nums text-[oklch(0.62_0.2_25)]">-12</span>
+                <span className="font-mono tabular-nums text-[oklch(0.62_0.2_25)]">
+                  -12
+                </span>
                 <RefreshCw className="ml-auto size-3.5 text-muted-foreground" />
               </div>
 
@@ -393,33 +413,51 @@ export function WorkbenchMockup({ className }: { className?: string }) {
                       @@ -12,3 +12,4 @@
                     </div>
                     <div className="grid grid-cols-[2.25rem_2.25rem_1fr] border-b border-border/40">
-                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">12</span>
-                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">12</span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">
+                        12
+                      </span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">
+                        12
+                      </span>
                       <span className="truncate px-2 text-foreground">{"<Hero />"}</span>
                     </div>
                     <div className="grid grid-cols-[2.25rem_2.25rem_1fr] bg-[oklch(0.62_0.2_25_/_0.1)]">
-                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">13</span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">
+                        13
+                      </span>
                       <span className="border-r border-border px-2 text-right text-muted-foreground/60" />
-                      <span className="truncate px-2 text-[oklch(0.72_0.18_25)]">{"-<Features />"}</span>
+                      <span className="truncate px-2 text-[oklch(0.72_0.18_25)]">
+                        {"-<Features />"}
+                      </span>
                     </div>
                     <div className="grid grid-cols-[2.25rem_2.25rem_1fr] bg-[oklch(0.7_0.13_150_/_0.1)]">
                       <span className="border-r border-border px-2 text-right text-muted-foreground/60" />
-                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">13</span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">
+                        13
+                      </span>
                       <span className="truncate px-2 text-[oklch(0.75_0.16_150)]">
                         {"+<Pricing />"}
                       </span>
                     </div>
                     <div className="grid grid-cols-[2.25rem_2.25rem_1fr] bg-[oklch(0.7_0.13_150_/_0.1)]">
                       <span className="border-r border-border px-2 text-right text-muted-foreground/60" />
-                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">14</span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">
+                        14
+                      </span>
                       <span className="truncate px-2 text-[oklch(0.75_0.16_150)]">
                         {"+<Features />"}
                       </span>
                     </div>
                     <div className="grid grid-cols-[2.25rem_2.25rem_1fr]">
-                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">14</span>
-                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">15</span>
-                      <span className="truncate px-2 text-foreground">{"<HowItWorks />"}</span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">
+                        14
+                      </span>
+                      <span className="border-r border-border px-2 text-right text-muted-foreground/60">
+                        15
+                      </span>
+                      <span className="truncate px-2 text-foreground">
+                        {"<HowItWorks />"}
+                      </span>
                     </div>
                   </div>
                 </div>

@@ -25,8 +25,8 @@ const features = [
   },
   {
     icon: GitCompare,
-    title: "Reviewable diffs",
-    body: "See working-tree counts and per-file patches before you keep a change.",
+    title: "Built-in Git panel",
+    body: "Switch or create branches from the header, review staged and unstaged files, commit with saved identities, and keep agent checkpoints.",
   },
   {
     icon: LayoutGrid,
@@ -49,8 +49,8 @@ export function Features() {
             More than a coding agent
           </h2>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            AI agents can write code. meith gives them the rest of the loop:
-            files, terminal, a browser they can control, logs, diffs, and permissions in
+            AI agents can write code. meith gives them the rest of the loop: files,
+            terminal, a browser they can control, logs, Git changes, and permissions in
             one desktop app.
           </p>
         </div>

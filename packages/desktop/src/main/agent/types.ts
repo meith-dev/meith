@@ -49,8 +49,8 @@ export interface AgentPromptContext {
   spaceName?: string;
   /** Active editor file in this space, when the editor has one focused. */
   activeEditorFile?: { tabTitle: string; cwd: string; path: string };
-  /** Selected file in the active/relevant diff surface. */
-  selectedDiffFile?: { tabTitle: string; cwd: string; path: string };
+  /** Selected file in the active/relevant Git panel. */
+  selectedGitFile?: { tabTitle: string; cwd: string; path: string };
   /** URLs/titles of browser tabs currently open in the session's space. */
   openTabs?: Array<{ title: string; url: string }>;
   /** Recent console errors captured from browser tabs in the session's space. */

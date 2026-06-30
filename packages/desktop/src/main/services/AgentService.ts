@@ -460,15 +460,15 @@ export class AgentService extends EventEmitter {
           path: activeEditor.activeFilePath,
         };
       }
-      const selectedDiff =
+      const selectedGit =
         workspaceTabs.find(
-          (t) => t.kind === "diff" && t.active && t.selectedDiffFilePath,
-        ) ?? workspaceTabs.find((t) => t.kind === "diff" && t.selectedDiffFilePath);
-      if (selectedDiff?.selectedDiffFilePath) {
-        ctx.selectedDiffFile = {
-          tabTitle: selectedDiff.title,
-          cwd: selectedDiff.cwd,
-          path: selectedDiff.selectedDiffFilePath,
+          (t) => t.kind === "git" && t.active && t.selectedGitFilePath,
+        ) ?? workspaceTabs.find((t) => t.kind === "git" && t.selectedGitFilePath);
+      if (selectedGit?.selectedGitFilePath) {
+        ctx.selectedGitFile = {
+          tabTitle: selectedGit.title,
+          cwd: selectedGit.cwd,
+          path: selectedGit.selectedGitFilePath,
         };
       }
       ctx.openTabs = browserTabs
@@ -617,6 +617,34 @@ export class AgentService extends EventEmitter {
     };
   }
 
+  private async createPreRunCheckpoint(session: AgentSession): Promise<void> {
+    if (this.options.appState?.getState().settings.git.checkpointBeforeAgentRun === false)
+      return;
+    if (!this.registry.has("git_checkpoint_create")) return;
+    const result = await this.registry.call(
+      {
+        cwd: session.cwd,
+        caller: "internal",
+        sessionId: session.id,
+        spaceId: session.spaceId ?? undefined,
+      },
+      "git_checkpoint_create",
+      {
+        cwd: session.cwd,
+        label: `Before agent run: ${session.title}`,
+        source: "agent-run",
+        sessionId: session.id,
+      },
+    );
+    if (!result.ok) {
+      this.logger.warn(
+        "Agent",
+        `failed to create pre-run checkpoint: ${result.error?.message ?? "unknown error"}`,
+        { sessionId: session.id },
+      );
+    }
+  }
+
   // --- Run -----------------------------------------------------------------
 
   /**
@@ -642,6 +670,7 @@ export class AgentService extends EventEmitter {
       });
       this.applyAutoTitle(session, userInput.titleSeed);
     }
+    await this.createPreRunCheckpoint(session);
 
     const controller = new AbortController();
     this.controllers.set(sessionId, controller);

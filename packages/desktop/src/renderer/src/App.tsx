@@ -13,8 +13,8 @@ import { toast } from "sonner";
 import { AgentView } from "./components/AgentView";
 import { BrowserArea } from "./components/BrowserArea";
 import { DebugPanel, type DebugTab } from "./components/DebugPanel";
-import { DiffView } from "./components/DiffView";
 import { EditorView } from "./components/EditorView";
+import { GitPanel } from "./components/GitPanel";
 import { MeithMark } from "./components/MeithMark";
 import { PaneToolbar } from "./components/PaneToolbar";
 import { type SettingsTab, SettingsView } from "./components/SettingsView";
@@ -23,7 +23,8 @@ import { SplitDropZone } from "./components/SplitDropZone";
 import { StatusBar } from "./components/StatusBar";
 import { TabStrip } from "./components/TabStrip";
 import { TerminalView } from "./components/TerminalView";
-import { TopBarGitDiff } from "./components/TopBarGitDiff";
+import { TopBarBranchSwitcher } from "./components/TopBarBranchSwitcher";
+import { TopBarGitChanges } from "./components/TopBarGitChanges";
 import { TopBarRun } from "./components/TopBarRun";
 import { TopBarWorkspaceToggles } from "./components/TopBarWorkspaceToggles";
 import {
@@ -89,6 +90,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [infoSpaceId, setInfoSpaceId] = useState<string | null>(null);
+  const [gitRefreshNonce, setGitRefreshNonce] = useState(0);
   const [agentSessionsCollapsedBySpace, setAgentSessionsCollapsedBySpace] = useState<
     Record<string, boolean>
   >(readAgentSessionsCollapsedBySpace);
@@ -150,6 +152,7 @@ export function App() {
   const workspaceFileEvents = state?.workspaceFileEvents ?? EMPTY_WORKSPACE_FILE_EVENTS;
   const plugins = state?.plugins ?? EMPTY_PLUGINS;
   const settings = state?.settings ?? null;
+  const gitRefreshKey = workspaceFileEvents.length + gitRefreshNonce;
   const persistedActiveSpaceId = state?.activeSpaceId ?? null;
   const optimisticSpaceValid =
     optimisticActiveSpaceId != null &&
@@ -535,13 +538,13 @@ export function App() {
       focusWorkspaceTab,
     ],
   );
-  // Open (or focus, if one already exists for this space) the diff surface for
+  // Open (or focus, if one already exists for this space) the Git surface for
   // the active project.
-  const openDiffTab = useCallback(
+  const openGitTab = useCallback(
     (pane: PaneId = "secondary") => {
       setSettingsOpen(false);
       const existing = workspaceTabs.find(
-        (t) => t.kind === "diff" && t.spaceId === activeSpaceId,
+        (t) => t.kind === "git" && t.spaceId === activeSpaceId,
       );
       if (existing) {
         if (layout.paneOf(existing.id) !== pane) {
@@ -554,9 +557,9 @@ export function App() {
       }
       pendingPaneRef.current = pane;
       void run("open_workspace_tab", {
-        title: "Diff",
+        title: "Git",
         cwd: activeProjectCwd,
-        kind: "diff",
+        kind: "git",
       });
     },
     [run, workspaceTabs, activeSpaceId, activeProjectCwd, layout],
@@ -840,12 +843,13 @@ export function App() {
               sessionsCollapsed={agentSessionsCollapsed}
             />
           )}
-          {tab.kind === "diff" && (
-            <DiffView
+          {tab.kind === "git" && (
+            <GitPanel
               key={tab.id}
               tab={tab}
               call={call}
-              refreshKey={workspaceFileEvents.length}
+              settings={settings?.git}
+              refreshKey={gitRefreshKey}
             />
           )}
           {tab.kind === "preview" && (
@@ -908,11 +912,18 @@ export function App() {
           <div className="flex min-w-0 flex-1 items-center gap-2 bg-card/40 px-2">
             <TopBarWorkspaceToggles tabs={workspaceTabs} onToggle={toggleWorkspaceTab} />
             <div className="min-w-0 flex-1" />
-            <TopBarGitDiff
+            <TopBarBranchSwitcher
+              cwd={activeProject?.cwd ?? null}
+              call={call}
+              refreshKey={gitRefreshKey}
+              onChanged={() => setGitRefreshNonce((value) => value + 1)}
+            />
+            <TopBarGitChanges
               cwd={activeProjectCwd}
               call={call}
-              onOpenDiff={openDiffTab}
-              refreshKey={workspaceFileEvents.length}
+              onOpenGitPanel={openGitTab}
+              settings={settings?.git}
+              refreshKey={gitRefreshKey}
             />
             <TopBarRun
               project={activeProject}

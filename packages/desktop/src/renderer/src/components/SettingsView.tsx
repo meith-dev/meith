@@ -4,12 +4,14 @@ import {
   type AgentConfig,
   type AgentProbeResult,
   type AppSettings,
+  type GitIdentityProfile,
   type InstalledPlugin,
   type PackageManager,
   type Project,
   type ProjectRunConfig,
   type RunCommand,
   type ToolResult,
+  createId,
   isModelConfigOption,
   isReasoningConfigOption,
   newRunCommandId,
@@ -17,11 +19,13 @@ import {
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
+  GitBranchIcon,
   Loader2Icon,
   PlusIcon,
   SettingsIcon,
   TerminalIcon,
   Trash2Icon,
+  UserRoundIcon,
   XIcon,
 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
@@ -36,7 +40,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-export type SettingsTab = "general" | "run" | "agent" | "plugins" | "about";
+export type SettingsTab = "general" | "run" | "git" | "agent" | "plugins" | "about";
 
 type Run = (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
 
@@ -150,6 +154,9 @@ export function SettingsView({
           <TabsTrigger value="run" className={settingsTabClass}>
             Run
           </TabsTrigger>
+          <TabsTrigger value="git" className={settingsTabClass}>
+            Git
+          </TabsTrigger>
           <TabsTrigger value="agent" className={settingsTabClass}>
             Agent
           </TabsTrigger>
@@ -169,6 +176,14 @@ export function SettingsView({
             <TabsContent value="run" className="mt-0">
               <RunTab project={project} onSave={onSaveRunConfig} />
             </TabsContent>
+            <TabsContent value="git" className="mt-0">
+              <GitTab
+                settings={settings}
+                cwd={project?.cwd ?? null}
+                run={run}
+                onSave={onSaveSettings}
+              />
+            </TabsContent>
             <TabsContent value="agent" className="mt-0">
               <AgentTab bridge={bridge} open={tab === "agent"} />
             </TabsContent>
@@ -182,6 +197,321 @@ export function SettingsView({
         </ScrollArea>
       </Tabs>
     </section>
+  );
+}
+
+// --- Git -------------------------------------------------------------------
+
+const GIT_REFRESH_INTERVALS = [
+  { label: "1 second", value: 1000 },
+  { label: "2.5 seconds", value: 2500 },
+  { label: "5 seconds", value: 5000 },
+  { label: "10 seconds", value: 10000 },
+  { label: "30 seconds", value: 30000 },
+];
+
+interface GitIdentitySuggestion {
+  source: "repo" | "global" | "github-cli" | "gitlab-cli";
+  label: string;
+  name: string;
+  email: string;
+  username?: string;
+  host?: string;
+  detail: string;
+}
+
+function GitTab({
+  settings,
+  cwd,
+  run,
+  onSave,
+}: {
+  settings: AppSettings | null;
+  cwd: string | null;
+  run: Run;
+  onSave: (patch: Partial<AppSettings>) => unknown;
+}) {
+  const [detecting, setDetecting] = useState(false);
+  const [detectError, setDetectError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<GitIdentitySuggestion[]>([]);
+
+  if (!settings) {
+    return <p className="text-sm text-muted-foreground">Loading settings…</p>;
+  }
+
+  const git = settings.git;
+  const patchGit = (next: Partial<AppSettings["git"]>) => {
+    void onSave({ git: { ...git, ...next } });
+  };
+  const profiles = git.identityProfiles;
+  const activeProfile = profiles.find(
+    (profile) => profile.id === git.activeIdentityProfileId,
+  );
+  const addProfile = () => {
+    const profile: GitIdentityProfile = {
+      id: createId("gitacct"),
+      label: "New account",
+      name: "",
+      email: "",
+    };
+    patchGit({
+      identityProfiles: [...profiles, profile],
+      activeIdentityProfileId: profile.id,
+    });
+  };
+  const updateProfile = (id: string, next: Partial<GitIdentityProfile>) => {
+    patchGit({
+      identityProfiles: profiles.map((profile) =>
+        profile.id === id ? { ...profile, ...next } : profile,
+      ),
+    });
+  };
+  const removeProfile = (id: string) => {
+    patchGit({
+      identityProfiles: profiles.filter((profile) => profile.id !== id),
+      activeIdentityProfileId:
+        git.activeIdentityProfileId === id ? null : git.activeIdentityProfileId,
+    });
+  };
+  const detectAccounts = async () => {
+    setDetecting(true);
+    setDetectError(null);
+    try {
+      const result = await run("git_identity_detect", cwd ? { cwd } : {});
+      if (!result.ok) {
+        throw new Error(result.error?.message ?? "Failed to detect git accounts");
+      }
+      const content = result.content as { suggestions?: GitIdentitySuggestion[] };
+      setSuggestions(content.suggestions ?? []);
+    } catch (err) {
+      setDetectError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDetecting(false);
+    }
+  };
+  const addSuggestion = (suggestion: GitIdentitySuggestion) => {
+    const existing = profiles.find(
+      (profile) =>
+        profile.name.trim().toLowerCase() === suggestion.name.trim().toLowerCase() &&
+        profile.email.trim().toLowerCase() === suggestion.email.trim().toLowerCase(),
+    );
+    if (existing) {
+      patchGit({ activeIdentityProfileId: existing.id });
+      return;
+    }
+    const profile: GitIdentityProfile = {
+      id: createId("gitacct"),
+      label: suggestion.label,
+      name: suggestion.name,
+      email: suggestion.email,
+    };
+    patchGit({
+      identityProfiles: [...profiles, profile],
+      activeIdentityProfileId: profile.id,
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="mb-2 flex items-center gap-2">
+        <GitBranchIcon className="size-4 text-muted-foreground" aria-hidden />
+        <SectionLabel className="mt-0">Git panel</SectionLabel>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 rounded-md px-1 py-2.5">
+        <div className="flex min-w-0 flex-col">
+          <span className="text-sm font-medium text-foreground">Refresh interval</span>
+          <span className="text-xs text-muted-foreground">
+            How often the visible Git panel refreshes status and patch summaries.
+          </span>
+        </div>
+        <select
+          aria-label="Git refresh interval"
+          value={git.refreshIntervalMs}
+          onChange={(e) => patchGit({ refreshIntervalMs: Number(e.target.value) })}
+          className="h-9 shrink-0 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          {GIT_REFRESH_INTERVALS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <ToggleRow
+        label="Show untracked files"
+        description="Include new, untracked files in the unstaged section."
+        checked={git.showUntrackedFiles}
+        onChange={(v) => patchGit({ showUntrackedFiles: v })}
+      />
+      <ToggleRow
+        label="Confirm before restore"
+        description="Ask before discarding file changes from the Git panel."
+        checked={git.confirmBeforeRestore}
+        onChange={(v) => patchGit({ confirmBeforeRestore: v })}
+      />
+      <ToggleRow
+        label="Checkpoint before agent runs"
+        description="Create a git-backed snapshot before an agent starts changing a workspace."
+        checked={git.checkpointBeforeAgentRun}
+        onChange={(v) => patchGit({ checkpointBeforeAgentRun: v })}
+      />
+
+      <div className="mt-5 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <UserRoundIcon className="size-4 text-muted-foreground" aria-hidden />
+          <SectionLabel className="mt-0">Commit identity</SectionLabel>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={detecting}
+            onClick={detectAccounts}
+          >
+            {detecting ? (
+              <Loader2Icon data-icon="inline-start" className="animate-spin" />
+            ) : (
+              <UserRoundIcon data-icon="inline-start" />
+            )}
+            Detect accounts
+          </Button>
+          <Button variant="outline" size="sm" onClick={addProfile}>
+            <PlusIcon data-icon="inline-start" />
+            Add account
+          </Button>
+        </div>
+      </div>
+
+      {detectError && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
+          {detectError}
+        </div>
+      )}
+
+      {suggestions.length > 0 && (
+        <div className="mt-2 flex flex-col gap-2 rounded-md border border-border bg-card/40 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Detected accounts
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              {suggestions.length} found
+            </span>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {suggestions.map((suggestion) => (
+              <li
+                key={`${suggestion.source}:${suggestion.name}:${suggestion.email}`}
+                className="flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-foreground">
+                    {suggestion.label}
+                  </div>
+                  <div className="truncate font-mono text-[11px] text-muted-foreground">
+                    {suggestion.name} &lt;{suggestion.email}&gt;
+                  </div>
+                  <div className="truncate text-[11px] text-muted-foreground">
+                    {suggestion.detail}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => addSuggestion(suggestion)}
+                >
+                  Add
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-4 rounded-md px-1 py-2.5">
+        <div className="flex min-w-0 flex-col">
+          <span className="text-sm font-medium text-foreground">Active account</span>
+          <span className="text-xs text-muted-foreground">
+            Commits made from Meith use this name and email.
+          </span>
+        </div>
+        <select
+          aria-label="Active git commit account"
+          value={git.activeIdentityProfileId ?? ""}
+          onChange={(e) => patchGit({ activeIdentityProfileId: e.target.value || null })}
+          className="h-9 max-w-64 shrink-0 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <option value="">Use Git config</option>
+          {profiles.map((profile) => (
+            <option key={profile.id} value={profile.id}>
+              {profile.label.trim() || profile.email.trim() || "Untitled account"}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {activeProfile && (
+        <p className="px-1 text-xs text-muted-foreground">
+          Active commits use {activeProfile.name.trim() || "unnamed user"}
+          {activeProfile.email.trim() ? ` <${activeProfile.email.trim()}>` : ""}.
+        </p>
+      )}
+
+      {profiles.length === 0 ? (
+        <div className="rounded-md border border-dashed border-border px-3 py-5 text-center text-sm text-muted-foreground">
+          No saved accounts. Meith will use each repository&apos;s Git config.
+        </div>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-2">
+          {profiles.map((profile) => (
+            <li
+              key={profile.id}
+              className="flex flex-col gap-2 rounded-md border border-border bg-card/50 p-3"
+            >
+              <div className="flex items-center gap-2">
+                <Input
+                  aria-label="Account label"
+                  value={profile.label}
+                  placeholder="Work"
+                  className="h-8 w-36 shrink-0"
+                  onChange={(e) => updateProfile(profile.id, { label: e.target.value })}
+                />
+                <Input
+                  aria-label="Commit author name"
+                  value={profile.name}
+                  placeholder="Name"
+                  className="h-8 flex-1"
+                  onChange={(e) => updateProfile(profile.id, { name: e.target.value })}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Remove ${profile.label || "account"}`}
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => removeProfile(profile.id)}
+                >
+                  <Trash2Icon className="size-4" />
+                </Button>
+              </div>
+              <Input
+                aria-label="Commit email"
+                type="email"
+                value={profile.email}
+                placeholder="name@example.com"
+                className="h-8 font-mono text-xs"
+                onChange={(e) => updateProfile(profile.id, { email: e.target.value })}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

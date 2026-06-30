@@ -90,7 +90,7 @@ describe("system prompt builder", () => {
       cwd: "/repo",
       spaceName: "Project",
       activeEditorFile: { tabTitle: "Editor", cwd: "/repo", path: "src/app.ts" },
-      selectedDiffFile: { tabTitle: "Diff", cwd: "/repo", path: "src/app.ts" },
+      selectedGitFile: { tabTitle: "Git", cwd: "/repo", path: "src/app.ts" },
       openTabs: [{ title: "Local app", url: "http://localhost:3000" }],
       terminals: [
         {
@@ -136,7 +136,7 @@ describe("system prompt builder", () => {
     expect(prompt).toContain("## Project instructions");
     expect(prompt).toContain("Use pnpm.");
     expect(prompt).toContain("Active editor file: `src/app.ts`");
-    expect(prompt).toContain("Selected diff file: `src/app.ts`");
+    expect(prompt).toContain("Selected Git file: `src/app.ts`");
     expect(prompt).toContain("http://localhost:3000");
     expect(prompt).toContain("Uncaught Error: boom");
     expect(prompt).toContain("Git: changes on main");
@@ -555,13 +555,13 @@ describe("AgentService host context", () => {
           createdAt: 1,
         },
         {
-          id: "w_diff",
+          id: "w_git",
           spaceId,
-          title: "Diff",
+          title: "Git",
           cwd,
-          kind: "diff",
+          kind: "git",
           active: true,
-          selectedDiffFilePath: "src/app.ts",
+          selectedGitFilePath: "src/app.ts",
           createdAt: 2,
         },
       );
@@ -586,7 +586,7 @@ describe("AgentService host context", () => {
 
     expect(captured.systemPrompt).toContain("Use pnpm for this project.");
     expect(captured.systemPrompt).toContain("Active editor file: `src/app.ts`");
-    expect(captured.systemPrompt).toContain("Selected diff file: `src/app.ts`");
+    expect(captured.systemPrompt).toContain("Selected Git file: `src/app.ts`");
     expect(captured.systemPrompt).toContain("Git: not a git repository");
   });
 });

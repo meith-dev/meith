@@ -65,7 +65,15 @@ available with `meith --help`; common groups include:
   `meith create-project <template>`: manage projects and templates.
 - `meith files <cwd>`, `meith read <cwd> <path>`, `meith search <cwd> <query>`,
   and `meith diagnostics <cwd> [path]`: inspect workspace files.
-- `meith diff <cwd>`: summarize the git working tree.
+- `meith status <cwd>`, `meith diff <cwd>`, `meith stage <cwd>`,
+  `meith unstage <cwd>`, `meith commit <cwd> <message>`, `meith branch <cwd>`,
+  `meith log <cwd>`, `meith blame <cwd> <path>`, and `meith worktree <cwd>`:
+  inspect and manage git state.
+- `meith git-accounts <cwd>`: detect local Git commit identity suggestions from
+  Git config and installed provider CLIs.
+- `meith checkpoint <cwd>`, `meith checkpoints <cwd>`,
+  `meith checkpoint-compare <cwd> <left>`, and
+  `meith checkpoint-restore <cwd> <id>`: manage Meith git checkpoints.
 - `meith app list`: inspect running app instances.
 - `meith health`: print runtime service health.
 - `meith dev-servers`: list managed dev servers and their port.

@@ -2,9 +2,9 @@
 
 Meith is a desktop AI workbench for building web apps.
 
-It puts the pieces of web app work in one desktop window: project folders, code files, terminals, run commands, dev-server logs, a built-in browser, plugins, and agent chats. A shared tool system connects them. The visual app, CLI, plugins, and agents all work against the same project state, so an agent can edit code, start your dev server, open the app in the browser, click through the UI, read console output, and show you the diff.
+It puts the pieces of web app work in one desktop window: project folders, code files, terminals, run commands, dev-server logs, a built-in browser, plugins, and agent chats. A shared tool system connects them. The visual app, CLI, plugins, and agents all work against the same project state, so an agent can edit code, start your dev server, open the app in the browser, click through the UI, read console output, and surface Git changes.
 
-Codex and Claude Code can write code. Meith gives them a place to work: the browser, terminal, logs, files, diffs, and permissions all sit in the same workbench the agent can use.
+Codex and Claude Code can write code. Meith gives them a place to work: the browser, terminal, logs, files, Git changes, and permissions all sit in the same workbench the agent can use.
 
 Meith doesn't lock you into one AI provider. The agent runtime uses an adapter interface and connects to external agents via ACP (Agent Client Protocol), keeping the desktop app independent of any specific model vendor or SDK.
 
@@ -20,7 +20,7 @@ The name comes from the Irish *meitheal*: a group of people coming together to w
 * Watch browser state and dev-server logs in the same window.
 * Split panes to arrange your browser, editor, terminal, or agent side by side.
 * Ask an agent to build features in the context of your current project: editing files, running the dev server, and checking the app in the browser.
-* Review working-tree changes in the built-in Diff tab, with summary counts in the top bar and patches loaded only when you select a file.
+* Review and manage working-tree changes in the built-in Git panel, with a top-bar branch switcher, staged and unstaged sections, inline diffs, commit identity switching, commits, and guarded restore actions.
 * Install web-app plugins and explicitly approve the APIs they can use.
 * Use the `meith` terminal command to inspect and control a running app instance.
 
@@ -146,7 +146,7 @@ pnpm cli call app_health
 
 The CLI covers the registered desktop tool catalog: browser tabs
 and automation, spaces/workspace tabs, projects/templates, workspace files,
-git diff, terminals/dev servers, settings, storage, plugins, and runtime
+git status/diff, terminals/dev servers, settings, storage, plugins, and runtime
 diagnostics. `pnpm cli call <toolName>` is the fallback for scripts and tools
 without a named CLI command yet.
 

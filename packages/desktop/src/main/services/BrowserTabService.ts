@@ -538,7 +538,7 @@ export class BrowserTabService {
     kind?: WorkspaceTab["kind"];
     spaceId?: string;
     terminalId?: string;
-    selectedDiffFilePath?: string;
+    selectedGitFilePath?: string;
   }): WorkspaceTab {
     const spaceId = input.spaceId ?? this.activeSpaceId();
     const tab: WorkspaceTab = {
@@ -548,8 +548,7 @@ export class BrowserTabService {
       cwd: input.cwd,
       kind: input.kind ?? "editor",
       terminalId: input.terminalId,
-      selectedDiffFilePath:
-        input.kind === "diff" ? input.selectedDiffFilePath : undefined,
+      selectedGitFilePath: input.kind === "git" ? input.selectedGitFilePath : undefined,
       active: true,
       createdAt: Date.now(),
     };
@@ -583,7 +582,7 @@ export class BrowserTabService {
 
   /**
    * Persist file-focused state for workspace tabs. Editor tabs keep their
-   * focused/open files; diff tabs keep the selected changed file. Paths are
+   * focused/open files; git tabs keep the selected changed file. Paths are
    * relative to the tab's cwd.
    */
   setWorkspaceTabFile(
@@ -591,19 +590,19 @@ export class BrowserTabService {
     input: {
       activeFilePath?: string | null;
       openFilePaths?: string[];
-      selectedDiffFilePath?: string | null;
+      selectedGitFilePath?: string | null;
     },
   ): WorkspaceTab {
     const tab = this.appState.getState().workspaceTabs.find((t) => t.id === id);
     if (!tab) throw new Error(`Unknown workspace tab: ${id}`);
     const editsEditor =
       input.activeFilePath !== undefined || input.openFilePaths !== undefined;
-    const editsDiff = input.selectedDiffFilePath !== undefined;
+    const editsGit = input.selectedGitFilePath !== undefined;
     if (editsEditor && tab.kind !== "editor") {
       throw new Error(`Workspace tab is not an editor: ${id}`);
     }
-    if (editsDiff && tab.kind !== "diff") {
-      throw new Error(`Workspace tab is not a diff view: ${id}`);
+    if (editsGit && tab.kind !== "git") {
+      throw new Error(`Workspace tab is not a git view: ${id}`);
     }
     this.appState.update((draft) => {
       const t = draft.workspaceTabs.find((w) => w.id === id);
@@ -618,8 +617,8 @@ export class BrowserTabService {
           t.activeFilePath = input.openFilePaths[input.openFilePaths.length - 1];
         }
       }
-      if (input.selectedDiffFilePath !== undefined) {
-        t.selectedDiffFilePath = input.selectedDiffFilePath ?? undefined;
+      if (input.selectedGitFilePath !== undefined) {
+        t.selectedGitFilePath = input.selectedGitFilePath ?? undefined;
       }
     }, "set_workspace_tab_file");
     const next = this.appState.getState().workspaceTabs.find((t) => t.id === id);

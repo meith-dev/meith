@@ -62,15 +62,15 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
   const openWorkspaceTab = defineTool({
     name: "open_workspace_tab",
     description:
-      "Open a workspace tab (editor/terminal/agent/preview/diff) in the active space.",
+      "Open a workspace tab (editor/terminal/agent/preview/git) in the active space.",
     capabilities: ["writes-files"],
     inputSchema: z.object({
       title: z.string().min(1),
       cwd: z.string().min(1),
-      kind: z.enum(["editor", "terminal", "agent", "preview", "diff"]).optional(),
+      kind: z.enum(["editor", "terminal", "agent", "preview", "git"]).optional(),
       spaceId: z.string().optional(),
       terminalId: z.string().optional(),
-      selectedDiffFilePath: z.string().optional(),
+      selectedGitFilePath: z.string().optional(),
     }),
     execute: (_ctx, input) => deps.browserTabs.openWorkspaceTab(input),
   });
@@ -90,19 +90,19 @@ export function createSpaceTools(deps: ToolDeps): ToolDefinition[] {
   const setWorkspaceTabFile = defineTool({
     name: "set_workspace_tab_file",
     description:
-      "Set file-focused workspace tab state: editor focused/open files or diff selected file (paths relative to cwd).",
+      "Set file-focused workspace tab state: editor focused/open files or git selected file (paths relative to cwd).",
     capabilities: ["writes-files"],
     inputSchema: z.object({
       tabId: z.string(),
       activeFilePath: z.string().nullable().optional(),
       openFilePaths: z.array(z.string()).optional(),
-      selectedDiffFilePath: z.string().nullable().optional(),
+      selectedGitFilePath: z.string().nullable().optional(),
     }),
     execute: (_ctx, input) =>
       deps.browserTabs.setWorkspaceTabFile(input.tabId, {
         activeFilePath: input.activeFilePath,
         openFilePaths: input.openFilePaths,
-        selectedDiffFilePath: input.selectedDiffFilePath,
+        selectedGitFilePath: input.selectedGitFilePath,
       }),
   });
 

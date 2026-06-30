@@ -179,7 +179,7 @@ export const commands: Record<string, CommandSpec> = {
   "open-workspace-tab": {
     tool: "open_workspace_tab",
     positionals: ["title", "cwd"],
-    summary: "Open an editor/terminal/agent/preview/diff tab",
+    summary: "Open an editor/terminal/agent/preview/git tab",
   },
   "set-tab-terminal": {
     tool: "set_workspace_tab_terminal",
@@ -310,6 +310,76 @@ export const commands: Record<string, CommandSpec> = {
     tool: "git_diff",
     positionals: ["cwd"],
     summary: "Summarize a git working-tree diff",
+  },
+  status: {
+    tool: "git_status",
+    positionals: ["cwd"],
+    summary: "Show structured git status",
+  },
+  "git-accounts": {
+    tool: "git_identity_detect",
+    positionals: ["cwd"],
+    summary: "Detect local git commit identity suggestions",
+  },
+  branch: {
+    tool: "git_branch",
+    positionals: ["cwd"],
+    summary: "List, create, or switch git branches (--action)",
+  },
+  commit: {
+    tool: "git_commit",
+    positionals: ["cwd", "message"],
+    summary: "Create a git commit from staged changes",
+  },
+  stage: {
+    tool: "git_stage",
+    positionals: ["cwd"],
+    summary: "Stage files (--paths-json) or a patch (--patch)",
+  },
+  unstage: {
+    tool: "git_unstage",
+    positionals: ["cwd"],
+    summary: "Unstage files (--paths-json) or a patch (--patch)",
+  },
+  restore: {
+    tool: "git_restore",
+    positionals: ["cwd"],
+    summary: "Restore files or a patch; requires --confirm true",
+  },
+  log: {
+    tool: "git_log",
+    positionals: ["cwd"],
+    summary: "Show recent git commits",
+  },
+  blame: {
+    tool: "git_blame",
+    positionals: ["cwd", "path"],
+    summary: "Show git blame for a file",
+  },
+  worktree: {
+    tool: "git_worktree",
+    positionals: ["cwd"],
+    summary: "List, create, or remove git worktrees (--action)",
+  },
+  checkpoint: {
+    tool: "git_checkpoint_create",
+    positionals: ["cwd"],
+    summary: "Create a git-backed Meith checkpoint",
+  },
+  checkpoints: {
+    tool: "git_checkpoint_list",
+    positionals: ["cwd"],
+    summary: "List Meith git checkpoints",
+  },
+  "checkpoint-restore": {
+    tool: "git_checkpoint_restore",
+    positionals: ["cwd", "id"],
+    summary: "Restore a Meith checkpoint; requires --confirm true",
+  },
+  "checkpoint-compare": {
+    tool: "git_checkpoint_compare",
+    positionals: ["cwd", "left"],
+    summary: "Compare Meith checkpoints",
   },
 
   // Terminals, dev servers, and processes.

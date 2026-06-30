@@ -56,10 +56,23 @@ project's working-tree changes, including staged, unstaged, and brand-new files,
 and presents them as per-file diffs with added and removed line counts. You can
 see exactly what was rewritten before you keep it.
 
-The git diff view opens on the right by default. From a single-pane layout,
-opening the diff starts split view; from an existing split layout, it focuses or
-moves the diff tab into the right pane. The tab remains draggable if you want a
+The Git panel opens on the right by default. From a single-pane layout, opening
+Git changes starts split view; from an existing split layout, it focuses or
+moves the Git tab into the right pane. The tab remains draggable if you want a
 different arrangement.
+
+The top header shows the current branch for the active workspace. Open it to
+switch to another local branch or create a new branch and switch to it. The
+current branch stays pinned at the top of the menu, long branch lists scroll,
+and the create-branch action remains visible at the bottom.
+
+Git settings include saved commit identities for switching between accounts.
+Choose **Use Git config** to keep repository/global `user.name` and `user.email`
+behavior, or select a saved profile so commits made from Meith use that name and
+email as both author and committer. The settings panel can detect profile
+suggestions from effective repo config, global Git config, and installed
+provider CLIs such as `gh` and `glab`; it saves a suggestion only after you add
+it.
 
 > **Edits are reversible**
 >

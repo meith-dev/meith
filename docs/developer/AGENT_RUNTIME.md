@@ -42,7 +42,7 @@ The runtime keeps provider-specific code out of the core app.
 Adapters know how to talk to a specific backend or protocol.
 
 The composed system prompt includes the live registry catalog plus bounded
-session context: cwd, space name, active editor file, selected diff file, open
+session context: cwd, space name, active editor file, selected Git file, open
 browser tabs, terminal status, running dev-server URLs, recent browser console
 errors, current git summary, and project instruction files discovered from the
 session cwd (`AGENTS.md`, `.cursorrules`, `CLAUDE.md`, and GitHub Copilot

@@ -30,7 +30,7 @@ const EMPTY: GitDiffResult = {
 
 type CallFn = (name: string, args?: Record<string, unknown>) => Promise<ToolResult>;
 
-interface UseGitDiffOptions {
+interface UseGitChangesOptions {
   /** Re-fetch automatically on this interval (ms). 0 disables polling. */
   pollMs?: number;
   /** When polling, bypass the short shared cache. Useful for visible git UI. */
@@ -49,7 +49,7 @@ function cacheKey(cwd: string, includePatches: boolean): string {
   return `${includePatches ? "patch" : "summary"}:${cwd}`;
 }
 
-async function fetchGitDiff(
+async function fetchGitChanges(
   call: CallFn,
   cwd: string,
   includePatches: boolean,
@@ -67,7 +67,7 @@ async function fetchGitDiff(
       cache.set(key, { data, ts: Date.now() });
       return data;
     }
-    throw new Error(res.error?.message ?? "Failed to read git diff");
+    throw new Error(res.error?.message ?? "Failed to read git changes");
   });
   inflight.set(key, promise);
   try {
@@ -78,11 +78,11 @@ async function fetchGitDiff(
 }
 
 /**
- * Fetches the working-tree diff for `cwd` via the `git_diff` tool and keeps it
- * fresh. Shared by the top-bar diff chip and the diff surface so both show the
+ * Fetches working-tree changes for `cwd` via the `git_diff` tool and keeps them
+ * fresh. Shared by the top-bar Git chip and the Git panel so both show the
  * same numbers. Re-fetches when `cwd`/`refreshKey` change and on `pollMs`.
  */
-export function useGitDiff(
+export function useGitChanges(
   call: CallFn,
   cwd: string | null | undefined,
   {
@@ -90,7 +90,7 @@ export function useGitDiff(
     forcePoll = false,
     refreshKey,
     includePatches = false,
-  }: UseGitDiffOptions = {},
+  }: UseGitChangesOptions = {},
 ) {
   const [data, setData] = useState<GitDiffResult>(EMPTY);
   const [loading, setLoading] = useState(false);
@@ -113,14 +113,14 @@ export function useGitDiff(
       const seq = requestSeq.current;
       setLoading(true);
       try {
-        const data = await fetchGitDiff(call, cwd, includePatches, force);
+        const data = await fetchGitChanges(call, cwd, includePatches, force);
         if (latestCwd.current !== cwd || requestSeq.current !== seq) return; // superseded
         setData(data);
         setError(null);
       } catch (err) {
         if (latestCwd.current !== cwd || requestSeq.current !== seq) return;
         setData(EMPTY);
-        setError(err instanceof Error ? err.message : "Failed to read git diff");
+        setError(err instanceof Error ? err.message : "Failed to read git changes");
       } finally {
         if (latestCwd.current === cwd && requestSeq.current === seq) setLoading(false);
       }

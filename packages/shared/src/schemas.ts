@@ -139,15 +139,15 @@ export const WorkspaceTabSchema = z.object({
   title: z.string(),
   /** Working directory / project root for this workspace tab. */
   cwd: z.string(),
-  kind: z.enum(["editor", "terminal", "agent", "preview", "diff"]).default("editor"),
+  kind: z.enum(["editor", "terminal", "agent", "preview", "git"]).default("editor"),
   /** Backing live terminal session id for terminal tabs. */
   terminalId: z.string().optional(),
   /** For editor tabs: the file (relative to cwd) currently focused in the editor. */
   activeFilePath: z.string().optional(),
   /** For editor tabs: files open in the editor (relative to cwd), in tab order. */
   openFilePaths: z.array(z.string()).optional(),
-  /** For diff tabs: the currently selected changed file (relative to cwd). */
-  selectedDiffFilePath: z.string().optional(),
+  /** For git tabs: the currently selected changed file (relative to cwd). */
+  selectedGitFilePath: z.string().optional(),
   active: z.boolean().default(false),
   createdAt: z.number(),
 });
@@ -1008,6 +1008,30 @@ export const InstalledPluginSchema = z.object({
 });
 export type InstalledPlugin = z.infer<typeof InstalledPluginSchema>;
 
+export const GitIdentityProfileSchema = z.object({
+  id: z.string(),
+  label: z.string().default("Work"),
+  name: z.string().default(""),
+  email: z.string().default(""),
+});
+export type GitIdentityProfile = z.infer<typeof GitIdentityProfileSchema>;
+
+export const GitSettingsSchema = z.object({
+  /** Refresh visible git status and patch summaries on this interval. */
+  refreshIntervalMs: z.number().int().min(1000).max(30000).default(2500),
+  /** Show untracked files in the Git panel. */
+  showUntrackedFiles: z.boolean().default(true),
+  /** Ask before restoring/discarding file changes from the Git panel. */
+  confirmBeforeRestore: z.boolean().default(true),
+  /** Create a git-backed checkpoint before each agent run. */
+  checkpointBeforeAgentRun: z.boolean().default(true),
+  /** Saved commit identities for switching between work/personal accounts. */
+  identityProfiles: z.array(GitIdentityProfileSchema).default([]),
+  /** Active commit identity profile. Null means use the repository/default git config. */
+  activeIdentityProfileId: z.string().nullable().default(null),
+});
+export type GitSettings = z.infer<typeof GitSettingsSchema>;
+
 /**
  * Global, app-wide user preferences. Persisted as part of AppState so they ride
  * the existing reactive broadcast to every renderer/CLI client. Per-workspace
@@ -1026,6 +1050,15 @@ export const AppSettingsSchema = z.object({
   defaultPackageManager: PackageManagerSchema.default("unknown"),
   /** Enables extra app-target diagnostics tools and verbose debugging surfaces. */
   debugMode: z.boolean().default(false),
+  /** Git panel and checkpoint preferences. */
+  git: GitSettingsSchema.default({
+    refreshIntervalMs: 2500,
+    showUntrackedFiles: true,
+    confirmBeforeRestore: true,
+    checkpointBeforeAgentRun: true,
+    identityProfiles: [],
+    activeIdentityProfileId: null,
+  }),
 });
 export type AppSettings = z.infer<typeof AppSettingsSchema>;
 
@@ -1038,6 +1071,14 @@ export function defaultAppSettings(): AppSettings {
     showOutputOnRun: true,
     defaultPackageManager: "unknown",
     debugMode: false,
+    git: {
+      refreshIntervalMs: 2500,
+      showUntrackedFiles: true,
+      confirmBeforeRestore: true,
+      checkpointBeforeAgentRun: true,
+      identityProfiles: [],
+      activeIdentityProfileId: null,
+    },
   };
 }
 

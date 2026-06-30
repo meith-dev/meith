@@ -118,12 +118,12 @@ export function renderContext(context: AgentPromptContext): string {
   } else {
     lines.push("- Active editor file: none");
   }
-  if (context.selectedDiffFile) {
+  if (context.selectedGitFile) {
     lines.push(
-      `- Selected diff file: \`${context.selectedDiffFile.path}\` (${context.selectedDiffFile.tabTitle}, cwd \`${context.selectedDiffFile.cwd}\`)`,
+      `- Selected Git file: \`${context.selectedGitFile.path}\` (${context.selectedGitFile.tabTitle}, cwd \`${context.selectedGitFile.cwd}\`)`,
     );
   } else {
-    lines.push("- Selected diff file: none");
+    lines.push("- Selected Git file: none");
   }
   if (context.openTabs && context.openTabs.length > 0) {
     lines.push("- Open browser tabs:");

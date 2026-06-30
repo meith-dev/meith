@@ -59,6 +59,8 @@ export interface OverlayMenuItem {
   separatorBefore?: boolean;
   /** Render a group label above this item. */
   groupLabel?: string;
+  /** Keep this item outside the scrollable list at the bottom of the menu. */
+  pinned?: "bottom";
 }
 
 /** A menu to render in the overlay window, anchored to a trigger rect. */
@@ -71,6 +73,8 @@ export interface OverlayMenuDescriptor {
   minWidth?: number;
   /** Maximum menu width in px; long descriptions wrap instead of stretching. */
   maxWidth?: number;
+  /** Maximum menu height in px; longer menus scroll. */
+  maxHeight?: number;
 }
 
 /** A tooltip to render in the overlay window, anchored to a trigger rect. */

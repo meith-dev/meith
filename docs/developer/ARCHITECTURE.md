@@ -88,7 +88,7 @@ use, discovery data lives under `~/.meith`:
 - `~/.meith/instances/<pid>.json` records live runtime instances so the CLI can
   list, target, or kill them.
 - `<userData>/state.json` stores spaces, projects, browser tabs, workspace tabs
-  (including editor file focus and diff-tab selected file), file edit events,
+  (including editor file focus and git-tab selected file), file edit events,
   plugins, and app settings.
 - `<userData>/logs.jsonl` stores app logs.
 - `<userData>/audit.jsonl` stores tool authorization/audit records.
@@ -177,9 +177,9 @@ Major surfaces:
 - `TerminalView` for PTY sessions.
 - `AgentView` for session list, transcript, composer, stop button, and
   permission cards.
-- `DiffView` for a working-tree diff tab with a folder tree, refreshed summary
-  counts, persisted selected-file state, and lazy patch loading for the selected
-  file.
+- `GitPanel` for the Git tab with staged/unstaged trees, commit
+  controls, guarded restore actions, refreshed summary counts, persisted
+  selected-file state, and lazy patch loading for the selected file.
 - `SettingsView` for app preferences, per-project run commands, agent config,
   plugin management, and about info.
 - `DebugPanel` for tool runner, state, logs, and output diagnostics.
