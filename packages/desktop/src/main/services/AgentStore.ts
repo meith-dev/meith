@@ -195,19 +195,68 @@ function limitMessageContent(message: AgentMessage, maxChars: number): AgentMess
 
 function limitContentOnly(message: AgentMessage, maxChars: number): AgentMessage {
   const tailChars = maxChars - OMITTED_PREFIX.length;
-  const content =
-    tailChars <= 0
-      ? OMITTED_PREFIX.slice(0, Math.max(0, maxChars))
-      : `${OMITTED_PREFIX}${message.content.slice(-tailChars)}`;
+  if (tailChars <= 0) {
+    return {
+      ...message,
+      content: OMITTED_PREFIX.slice(0, Math.max(0, maxChars)),
+      textSegments: undefined,
+      toolCalls: message.toolCalls?.map((call) => ({
+        ...call,
+        contentOffset: undefined,
+      })),
+    };
+  }
+  // Keep the tail of the content. Crucially, re-base textSegments and tool
+  // contentOffsets onto the truncated string instead of dropping them — the
+  // renderer relies on segment `kind` to separate thinking from the final
+  // answer, and losing it forces a fragile heuristic that can hide/chop the
+  // final answer.
+  const cut = message.content.length - tailChars; // chars removed from the front
+  const shift = OMITTED_PREFIX.length - cut; // original offset -> new offset
+  const content = `${OMITTED_PREFIX}${message.content.slice(-tailChars)}`;
   return {
     ...message,
     content,
-    textSegments: undefined,
+    textSegments: rebaseTextSegments(message.textSegments, cut, shift, content.length),
     toolCalls: message.toolCalls?.map((call) => ({
       ...call,
-      contentOffset: undefined,
+      contentOffset:
+        typeof call.contentOffset === "number" && call.contentOffset >= cut
+          ? call.contentOffset + shift
+          : undefined,
     })),
   };
+}
+
+/**
+ * Shift textSegments onto a tail-truncated content string. Segments fully in
+ * the removed prefix are dropped; a segment straddling the cut is clipped to
+ * the kept portion. `kind` is preserved so the renderer can still distinguish
+ * thoughts from the final answer.
+ */
+function rebaseTextSegments(
+  segments: AgentMessage["textSegments"],
+  cut: number,
+  shift: number,
+  newLength: number,
+): AgentMessage["textSegments"] {
+  if (!segments?.length) return segments;
+  const rebased = segments.flatMap((segment) => {
+    const keptStart = Math.max(segment.start, cut);
+    if (keptStart >= segment.end) return [];
+    const newStart = keptStart + shift;
+    const newEnd = segment.end + shift;
+    if (newStart >= newLength || newEnd <= newStart) return [];
+    return [
+      {
+        ...segment,
+        start: newStart,
+        end: newEnd,
+        text: segment.text.slice(keptStart - segment.start),
+      },
+    ];
+  });
+  return rebased.length ? rebased : undefined;
 }
 
 function limitMessageToolCalls(message: AgentMessage): AgentMessage {

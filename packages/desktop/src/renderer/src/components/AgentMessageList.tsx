@@ -605,11 +605,7 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
   // authoritative thought/message classification — trust it instead of the
   // fragile keyword heuristic, which can mis-split a final answer mid-content.
   const classified = Boolean(message.textSegments?.length);
-  const { thinkingSegments, finalSegments } = transcriptTextParts(
-    segments,
-    calls,
-    classified,
-  );
+  const { thinkingSegments, finalSegments } = transcriptTextParts(segments, classified);
   const finalContent = finalSegments.map((segment) => segment.text).join("");
   if (calls.length === 0) {
     if (thinkingSegments.length === 0) {
@@ -775,7 +771,6 @@ function splitSegmentsAtOffsets(
 
 function transcriptTextParts(
   segments: TranscriptTextSegment[],
-  calls: AgentToolCall[],
   classified = false,
 ): {
   thinkingSegments: TranscriptTextSegment[];
@@ -791,34 +786,12 @@ function transcriptTextParts(
     };
   }
 
-  const explicitCompletion = splitExplicitCompletionBlock(segments);
-  if (explicitCompletion) return explicitCompletion;
-
-  if (calls.length === 0) {
-    return splitCompletionTail(segments);
-  }
-
-  const lastToolOffset = calls.reduce(
-    (max, call) =>
-      typeof call.contentOffset === "number" ? Math.max(max, call.contentOffset) : max,
-    0,
-  );
-  const thinkingSegments: TranscriptTextSegment[] = [];
-  const tailSegments: TranscriptTextSegment[] = [];
-
-  for (const segment of segments) {
-    if (segment.start < lastToolOffset) {
-      thinkingSegments.push(segment);
-    } else {
-      tailSegments.push(segment);
-    }
-  }
-
-  const splitTail = splitCompletionTail(tailSegments);
-  return {
-    thinkingSegments: [...thinkingSegments, ...splitTail.thinkingSegments],
-    finalSegments: splitTail.finalSegments,
-  };
+  // Legacy fallback (no per-segment kind): split thinking vs final answer by
+  // the completion-block keyword heuristic only. We deliberately do NOT use
+  // tool-call offsets to reclassify text here: a tool invoked mid-answer would
+  // otherwise sweep the first half of the final answer into a hidden "thinking"
+  // block and leave the visible answer chopped mid-token.
+  return splitCompletionTail(segments);
 }
 
 function splitCompletionTail(segments: TranscriptTextSegment[]): {
