@@ -81,23 +81,25 @@ export const AgentMessageList = memo(function AgentMessageList({
     >
       <MessageScroller>
         <MessageScrollerViewport>
-          <MessageScrollerContent className="gap-4 p-3">
+          <MessageScrollerContent className="gap-5 px-4 py-4">
             {session.messages.length === 0 && !running ? (
               <MessageScrollerItem messageId={`empty-${session.id}`}>
-                <Empty className="h-full border border-dashed border-border/70">
+                <Empty className="h-full border border-dashed border-border/50">
                   <EmptyHeader>
-                    <EmptyMedia variant="icon">
+                    <EmptyMedia variant="icon" className="text-muted-foreground/60">
                       <MessageSquareDashedIcon className="size-4" aria-hidden />
                     </EmptyMedia>
-                    <EmptyTitle>No messages yet</EmptyTitle>
-                    <EmptyDescription>
+                    <EmptyTitle className="text-sm font-medium text-foreground/70">
+                      No messages yet
+                    </EmptyTitle>
+                    <EmptyDescription className="text-xs text-muted-foreground/70">
                       Send a prompt to start this conversation.
                     </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
               </MessageScrollerItem>
             ) : (
-              <MessageGroup className="gap-4">
+              <MessageGroup className="gap-5">
                 {session.messages.map((message) => (
                   <MessageScrollerItem
                     key={message.id}
@@ -164,7 +166,7 @@ function MessageRow({
               {formatMessageTime(message.createdAt, now)}
             </span>
           </MessageHeader>
-          <Bubble align="end" variant="default">
+          <Bubble align="end" variant="secondary">
             <BubbleContent>
               {attachments.length > 0 && (
                 <AttachmentGroup className="mb-2">
@@ -268,7 +270,10 @@ function LiveAssistantActivity({
       <MessageContent>
         <MessageHeader>
           <span>Agent</span>
-          <span className="ml-2 text-[11px]">streaming</span>
+          <span className="ml-2 flex items-center gap-1 text-[11px]">
+            <span className="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden />
+            <span>now</span>
+          </span>
         </MessageHeader>
         <Bubble variant="muted" className="w-full max-w-[80%]">
           <BubbleContent className="w-full">
@@ -469,6 +474,12 @@ function ThinkingBlock({
   const countLabel = detailCount > 1 ? `${detailCount} updates` : undefined;
   const summary = (
     <div className="flex min-w-0 items-center gap-1.5 py-0.5 text-sm text-muted-foreground">
+      {live && (
+        <span
+          className="size-1.5 shrink-0 animate-pulse rounded-full bg-primary"
+          aria-hidden
+        />
+      )}
       <Marker
         className="min-w-0 flex-1 py-0"
         role={live ? "status" : undefined}
@@ -478,18 +489,18 @@ function ThinkingBlock({
         <MarkerContent className="min-w-0 truncate text-muted-foreground">
           <span className="font-medium">{label}</span>
           {summaryText && (
-            <span className="ml-1 align-middle text-muted-foreground/90">
+            <span className="ml-1 align-middle text-muted-foreground/80">
               {summaryText}
             </span>
           )}
         </MarkerContent>
       </Marker>
       {countLabel && (
-        <span className="shrink-0 text-[11px] text-muted-foreground">{countLabel}</span>
+        <span className="shrink-0 text-[11px] text-muted-foreground/70">{countLabel}</span>
       )}
       {hasDetails && (
         <ChevronRightIcon
-          className="size-3 shrink-0 text-muted-foreground transition-transform group-open/thinking:rotate-90"
+          className="size-3 shrink-0 text-muted-foreground/60 transition-transform group-open/thinking:rotate-90"
           aria-hidden
         />
       )}
@@ -1012,30 +1023,31 @@ function ToolCallCard({
     >
       <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 px-2 py-1.5 [&::-webkit-details-marker]:hidden">
         <StatusIcon
-          className={`size-3.5 ${tone} ${spin ? "animate-spin" : ""}`}
+          className={`size-3.5 shrink-0 ${tone} ${spin ? "animate-spin" : ""}`}
           aria-hidden
         />
         <span className="min-w-0 truncate font-mono font-medium text-foreground">
           {title}
         </span>
-        <span className={`ml-auto shrink-0 ${tone}`}>{call.status}</span>
         <ChevronRightIcon
-          className="size-3 shrink-0 text-muted-foreground transition-transform group-open/tool:rotate-90"
+          className="ml-auto size-3 shrink-0 text-muted-foreground transition-transform group-open/tool:rotate-90"
           aria-hidden
         />
       </summary>
-      <div className="min-w-0 border-t border-border/70 p-2">
+      <div className="min-w-0 border-t border-border/70 px-2 py-2">
         {argText !== "{}" && (
-          <div className="min-w-0 text-muted-foreground">
-            <p className="mb-1 font-medium text-foreground">Command</p>
-            <code className="block min-w-0 max-w-full whitespace-pre-wrap break-words rounded border border-border/70 bg-background/50 px-2 py-1 font-mono [overflow-wrap:anywhere]">
+          <div className="min-w-0">
+            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+              Input
+            </p>
+            <code className="block min-w-0 max-w-full whitespace-pre-wrap break-words rounded border border-border/60 bg-background/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-foreground/80 [overflow-wrap:anywhere]">
               {argText}
             </code>
           </div>
         )}
         {resultText && (
           <ToolResultBlock
-            className={cn("min-w-0 text-muted-foreground", argText !== "{}" && "mt-2")}
+            className={cn("min-w-0", argText !== "{}" && "mt-2")}
             label={call.result?.ok === false ? "Error" : "Output"}
             content={resultText}
           />
@@ -1047,9 +1059,11 @@ function ToolCallCard({
             height={screenshot.height}
           />
         )}
-        {call.error && <p className="mt-1 text-destructive">{call.error}</p>}
+        {call.error && (
+          <p className="mt-1.5 text-xs text-destructive">{call.error}</p>
+        )}
         {!resultText && !screenshot && !call.error && argText === "{}" && (
-          <p className="text-muted-foreground">No command details.</p>
+          <p className="text-[11px] text-muted-foreground/60">No details.</p>
         )}
       </div>
     </details>
@@ -1071,8 +1085,10 @@ function ToolResultBlock({
   if (!verbose) {
     return (
       <div className={className}>
-        <p className="mb-1 font-medium text-foreground">{label}</p>
-        <pre className="max-h-48 min-w-0 overflow-y-auto whitespace-pre-wrap break-words rounded border border-border/70 bg-background/50 px-2 py-1 font-mono [overflow-wrap:anywhere]">
+        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+          {label}
+        </p>
+        <pre className="max-h-48 min-w-0 overflow-y-auto whitespace-pre-wrap break-words rounded border border-border/60 bg-background/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-foreground/80 [overflow-wrap:anywhere]">
           {content}
         </pre>
       </div>
@@ -1084,19 +1100,20 @@ function ToolResultBlock({
     <details className={cn("group/tool-output min-w-0 overflow-hidden", className)}>
       <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
         <Marker className="min-w-0 flex-1 py-0 text-xs">
-          <MarkerContent className="min-w-0 truncate" title={`${label}: ${preview}`}>
-            {label}: {preview}
+          <MarkerContent className="min-w-0 truncate text-muted-foreground/80" title={`${label}: ${preview}`}>
+            <span className="font-medium">{label}:</span>
+            {" "}{preview}
           </MarkerContent>
         </Marker>
-        <span className="shrink-0 text-[11px] text-muted-foreground">
+        <span className="shrink-0 text-[10px] text-muted-foreground/60">
           {lineCount} lines
         </span>
         <ChevronRightIcon
-          className="size-3 shrink-0 text-muted-foreground transition-transform group-open/tool-output:rotate-90"
+          className="size-3 shrink-0 text-muted-foreground/60 transition-transform group-open/tool-output:rotate-90"
           aria-hidden
         />
       </summary>
-      <pre className="mt-1 max-h-64 min-w-0 overflow-y-auto whitespace-pre-wrap break-words rounded border border-border/70 bg-background/50 px-2 py-1 font-mono [overflow-wrap:anywhere]">
+      <pre className="mt-1.5 max-h-64 min-w-0 overflow-y-auto whitespace-pre-wrap break-words rounded border border-border/60 bg-background/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-foreground/80 [overflow-wrap:anywhere]">
         {content}
       </pre>
     </details>

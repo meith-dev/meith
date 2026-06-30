@@ -84,13 +84,15 @@ export function AgentView({ tab, bridge, sessionsCollapsed }: AgentViewProps) {
             className="flex min-h-0 shrink-0 flex-col border-r border-border/80"
             style={{ width: sidebar.size }}
           >
-            <div className="px-3 py-2">
+            <div className="flex items-center justify-between px-3 py-2">
               <div>
                 <p className="text-sm font-semibold">Sessions</p>
                 <p className="text-xs text-muted-foreground">
-                  {agent.sessions.length === 1
-                    ? "1 conversation"
-                    : `${agent.sessions.length} conversations`}
+                  {agent.sessions.length === 0
+                    ? "No sessions yet"
+                    : agent.sessions.length === 1
+                      ? "1 conversation"
+                      : `${agent.sessions.length} conversations`}
                 </p>
               </div>
             </div>
@@ -132,8 +134,10 @@ export function AgentView({ tab, bridge, sessionsCollapsed }: AgentViewProps) {
                                     ? "Running session"
                                     : "Finished session not viewed"
                                 }
-                                className={`absolute -right-0.5 -top-0.5 size-2 rounded-full ring-2 ring-background ${
-                                  s.status === "running" ? "bg-emerald-500" : "bg-sky-500"
+                                className={`absolute -right-0.5 -top-0.5 size-1.5 rounded-full ring-2 ring-background ${
+                                  s.status === "running"
+                                    ? "animate-pulse bg-primary"
+                                    : "bg-muted-foreground"
                                 }`}
                               />
                             )}
@@ -173,30 +177,39 @@ export function AgentView({ tab, bridge, sessionsCollapsed }: AgentViewProps) {
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-3 py-2">
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <div className="min-w-0">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">
                 {agent.session?.title ?? "Session"}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground">
                 {agent.session
-                  ? `${agent.session.messages.length} messages`
+                  ? agent.session.messages.length === 0
+                    ? "No messages yet"
+                    : `${agent.session.messages.length} message${agent.session.messages.length === 1 ? "" : "s"}`
                   : "Start a new conversation"}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {agent.session && (
-              <span
-                className={`rounded-full border px-2 py-0.5 text-xs ${
-                  agent.session.status === "error"
-                    ? "border-destructive/50 text-destructive"
-                    : agent.session.status === "running"
-                      ? "border-emerald-500/50 text-emerald-400"
-                      : "border-border text-muted-foreground"
-                }`}
-              >
-                {sessionStatusLabel(agent.session.status)}
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {agent.session.status === "running" && (
+                  <span
+                    className="size-1.5 animate-pulse rounded-full bg-primary"
+                    aria-hidden
+                  />
+                )}
+                {agent.session.status === "error" && (
+                  <span className="size-1.5 rounded-full bg-destructive" aria-hidden />
+                )}
+                <span
+                  className={
+                    agent.session.status === "error" ? "text-destructive" : undefined
+                  }
+                >
+                  {sessionStatusLabel(agent.session.status)}
+                </span>
               </span>
             )}
             <Button
@@ -225,7 +238,7 @@ export function AgentView({ tab, bridge, sessionsCollapsed }: AgentViewProps) {
           )}
         </div>
 
-        <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-muted/20 p-3">
+        <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-background px-3 pb-3 pt-2">
           {agent.permissions.length > 0 && (
             <div className="flex flex-col gap-2">
               {agent.permissions.map((req) => (
