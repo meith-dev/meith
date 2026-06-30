@@ -20,7 +20,7 @@ The name comes from the Irish *meitheal*: a group of people coming together to w
 * Watch browser state and dev-server logs in the same window.
 * Split panes to arrange your browser, editor, terminal, or agent side by side.
 * Ask an agent to build features in the context of your current project: editing files, running the dev server, and checking the app in the browser.
-* Review and manage working-tree changes in the built-in Git panel, with a top-bar branch switcher, staged and unstaged sections, inline diffs, commit identity switching, commits, and guarded restore actions.
+* Review and manage working-tree changes in the built-in Git panel, with a top-bar branch switcher, staged and unstaged sections, stage-all, inline diffs, AI commit message suggestions, commit identity switching, commits, and guarded restore actions.
 * Install web-app plugins and explicitly approve the APIs they can use.
 * Use the `meith` terminal command to inspect and control a running app instance.
 

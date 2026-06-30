@@ -13,6 +13,7 @@ import {
   GitBranch,
   GitCompare,
   Hand,
+  ListPlus,
   Paperclip,
   PlayIcon,
   Plus,
@@ -364,7 +365,11 @@ export function WorkbenchMockup({ className }: { className?: string }) {
                 <span className="font-mono tabular-nums text-[oklch(0.62_0.2_25)]">
                   -12
                 </span>
-                <RefreshCw className="ml-auto size-3.5 text-muted-foreground" />
+                <span className="ml-auto flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] text-foreground">
+                  <ListPlus className="size-3" />
+                  Stage all
+                </span>
+                <RefreshCw className="size-3.5 text-muted-foreground" />
               </div>
 
               <div className="flex min-h-0 flex-1">

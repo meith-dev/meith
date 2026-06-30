@@ -61,6 +61,13 @@ Git changes starts split view; from an existing split layout, it focuses or
 moves the Git tab into the right pane. The tab remains draggable if you want a
 different arrangement.
 
+Use **Stage all** to move every visible unstaged or untracked file into the
+index, or stage and unstage individual files from the selected file header. The
+commit composer can ask the configured ACP agent for a Conventional Commit
+subject using the full staged diff; if nothing is staged, it uses the full
+working-tree diff and falls back to a local heuristic when no real agent is
+configured.
+
 The top header shows the current branch for the active workspace. Open it to
 switch to another local branch or create a new branch and switch to it. The
 current branch stays pinned at the top of the menu, long branch lists scroll,

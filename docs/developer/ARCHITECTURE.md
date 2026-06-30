@@ -178,7 +178,8 @@ Major surfaces:
 - `AgentView` for session list, transcript, composer, stop button, and
   permission cards.
 - `GitPanel` for the Git tab with staged/unstaged trees, commit
-  controls, guarded restore actions, refreshed summary counts, persisted
+  controls, stage-all, guarded restore actions, AI commit-message suggestions
+  via the renderer completion bridge, refreshed summary counts, persisted
   selected-file state, and lazy patch loading for the selected file.
 - `SettingsView` for app preferences, per-project run commands, agent config,
   plugin management, and about info.
@@ -186,7 +187,9 @@ Major surfaces:
 - `StatusBar` for connection, tab counts, running process count, and active port.
 
 The renderer does not mutate services directly. It calls tools or dedicated IPC
-stream channels, then re-renders from pushed app state.
+stream channels, then re-renders from pushed app state. Short AI-assisted UI
+features use `window.meith.ai.complete`, a one-shot completion bridge backed by
+the configured agent adapter rather than a chat transcript.
 
 High-frequency app-state and dev-server updates are scheduled with React
 transitions so process logs, status updates, and large state pushes do not block

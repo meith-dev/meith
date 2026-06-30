@@ -26,7 +26,7 @@ const features = [
   {
     icon: GitCompare,
     title: "Built-in Git panel",
-    body: "Switch or create branches from the header, review staged and unstaged files, commit with saved identities, and keep agent checkpoints.",
+    body: "Switch or create branches, stage all changes, inspect staged and unstaged diffs, and draft commit messages from the full patch.",
   },
   {
     icon: LayoutGrid,

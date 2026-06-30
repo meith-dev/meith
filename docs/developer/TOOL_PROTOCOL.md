@@ -273,6 +273,14 @@ Mutating git tools are capability-gated. `git_stage`, `git_unstage`,
 `git_restore` and `git_checkpoint_restore` declare `destructive` and require a
 literal `confirm: true` argument.
 
+The Git panel stages individual files and its **Stage all** control by calling
+`git_stage` with repository-relative paths. Its commit-message suggestion flow
+first loads the full staged diff (`includePatches: true`, `scope: "staged"`),
+or the full working-tree diff when nothing is staged, then sends that patch
+through the renderer `ai.complete` bridge for a one-line Conventional Commit
+subject. The deterministic filename heuristic is only a fallback when no real
+agent completion is available.
+
 The top-header branch switcher uses `git_branch` with `action: "list"` to show
 the current branch, `action: "switch"` to change branches, and `action:
 "create"` followed by `switch` when creating a new branch.

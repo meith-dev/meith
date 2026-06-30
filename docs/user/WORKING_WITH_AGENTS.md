@@ -57,7 +57,9 @@ made by agents, tools, or terminal commands should appear without waiting for a
 manual refresh. Opening Git changes from the top bar opens the Git panel on the
 right side by default, creating a split pane when needed. Before each
 agent run, Meith creates a git-backed checkpoint linked to the agent session so
-you can compare or restore the pre-run state later.
+you can compare or restore the pre-run state later. The Git panel can stage all
+visible changes and ask the configured agent for a one-line commit message from
+the full diff.
 
 ## Learn more
 

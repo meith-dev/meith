@@ -30,8 +30,8 @@ gather around a single workspace.
 - Ask an agent to build features in your project's context: editing files,
   running the dev server, and checking the live preview.
 - Review and commit working-tree changes in a Git panel with top-bar branch
-  switching, summary counts, staged/unstaged sections, and lazy-loaded file
-  patches.
+  switching, summary counts, staged/unstaged sections, stage-all, AI commit
+  message suggestions, and lazy-loaded file patches.
 - Install web-app plugins and explicitly approve the APIs they can use.
 - Use the `meith` terminal command to inspect and control a running app
   instance.
