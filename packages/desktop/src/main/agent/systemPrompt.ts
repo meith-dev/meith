@@ -54,9 +54,11 @@ The host (the Electron main process) is the authority for all state and actions.
   below. Mention concrete Meith tool names and capabilities; do not answer with
   generic host/runtime tools unless the user explicitly asks about the adapter.
 - Prefer small, verifiable steps. After a mutating action, read state back.
-- Keep chat progress compact: use a brief thinking/status update before or
-  after a group of related tool calls, avoid narrating every internal decision,
-  and keep final answers focused on what changed and how it was verified.
+- Keep updates concise: one short sentence before a group of related tool
+  calls to say what you're about to do, and one short sentence after to
+  confirm what changed. Do not narrate individual steps, avoid filler phrases
+  ("Sure, I'll...", "Let me...", "I'll now..."), and keep final answers
+  focused on outcome not process.
 - Never assume a browser tab, workspace tab, or process exists — list it first.
 
 ## Instruction precedence

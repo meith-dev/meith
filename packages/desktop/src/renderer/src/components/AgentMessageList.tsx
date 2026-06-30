@@ -281,7 +281,7 @@ function LiveAssistantActivity({
                     expanded={index === latestThinkingIndex}
                   />
                 ) : (
-                  <ToolCallStack key={event.id} calls={event.calls} compact />
+                  <ToolCallStack key={event.id} calls={event.calls} compact isLive />
                 ),
               )}
             </div>
@@ -808,17 +808,19 @@ function ToolCallStack({
   calls,
   className,
   compact = false,
+  isLive = false,
 }: {
   calls: AgentToolCall[];
   className?: string;
   compact?: boolean;
+  isLive?: boolean;
 }) {
   const visibleCalls = calls.filter((call) => !isImageInspectionToolCall(call));
   if (visibleCalls.length === 0) return null;
-  if (compact && visibleCalls.length === 1) {
-    return <ToolCallCard call={visibleCalls[0]} className={className} />;
-  }
-  if (compact) {
+
+  // Only collapse into a group when there are 3+ tools.
+  // 1–2 tools always render as individual cards.
+  if (compact && visibleCalls.length >= 3) {
     return (
       <details
         className={cn(
@@ -844,10 +846,18 @@ function ToolCallStack({
       </details>
     );
   }
+
+  // For 1–2 tools (or non-compact), render individual cards.
+  // In a live turn, the last card starts open so the user can see what's happening.
+  const lastIndex = visibleCalls.length - 1;
   return (
     <div className={cn("flex min-w-0 flex-col gap-2", className)}>
-      {visibleCalls.map((call) => (
-        <ToolCallCard key={call.id} call={call} />
+      {visibleCalls.map((call, index) => (
+        <ToolCallCard
+          key={call.id}
+          call={call}
+          defaultOpen={isLive && index === lastIndex}
+        />
       ))}
     </div>
   );
@@ -967,9 +977,11 @@ function PlainTextMessage({ content }: { content: string }) {
 function ToolCallCard({
   call,
   className,
+  defaultOpen = false,
 }: {
   call: AgentToolCall;
   className?: string;
+  defaultOpen?: boolean;
 }) {
   const StatusIcon =
     call.status === "ok"
@@ -992,6 +1004,7 @@ function ToolCallCard({
   const title = toolCallTitle(call);
   return (
     <details
+      open={defaultOpen}
       className={cn(
         "group/tool min-w-0 overflow-hidden rounded-md border border-border bg-card/60 text-xs",
         className,
