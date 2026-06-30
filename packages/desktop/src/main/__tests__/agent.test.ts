@@ -70,7 +70,7 @@ describe("system prompt builder", () => {
     expect(prompt).toContain("Treat the tools in this Meith catalog");
     expect(prompt).toContain("When the user asks what tools you have");
     expect(prompt).toContain("Available tools");
-    expect(prompt).toContain("not say you are unsure");
+    expect(prompt).toContain("Every tool listed there is callable right now");
     expect(prompt).toContain("Only use tools from the Meith MCP server");
     expect(prompt).not.toContain("does not expose callable Meith tools");
     expect(prompt).toContain("provider-specific prefixes");

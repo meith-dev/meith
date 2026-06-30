@@ -543,7 +543,45 @@ export async function applyConfigOptions(
   if (reasoningOption && desired.reasoning) await set(reasoningOption, desired.reasoning);
 
   const verbosityOption = options.find((o) => isTextVerbosityConfigOption(o));
-  if (verbosityOption) await set(verbosityOption, DEFAULT_TEXT_VERBOSITY);
+  if (verbosityOption) {
+    // Pick the most concise verbosity the agent actually advertises, falling
+    // back to "low" if none of the known concise values are offered.
+    const concise = mostConciseVerbosityValue(verbosityOption.values);
+    await set(verbosityOption, concise ?? DEFAULT_TEXT_VERBOSITY);
+  }
+}
+
+/**
+ * Verbosity value labels ordered from least to most verbose. Used to choose
+ * the tersest option an agent offers so model output stays compact.
+ */
+const VERBOSITY_RANK = [
+  "none",
+  "minimal",
+  "terse",
+  "concise",
+  "compact",
+  "short",
+  "low",
+  "medium",
+  "normal",
+  "default",
+  "high",
+  "verbose",
+  "detailed",
+];
+
+function mostConciseVerbosityValue(
+  values: { value: string; name: string }[],
+): string | undefined {
+  let best: { value: string; rank: number } | undefined;
+  for (const v of values) {
+    const key = `${v.value} ${v.name}`.toLowerCase();
+    const rank = VERBOSITY_RANK.findIndex((label) => key.includes(label));
+    if (rank === -1) continue;
+    if (!best || rank < best.rank) best = { value: v.value, rank };
+  }
+  return best?.value;
 }
 
 interface AcpPermissionOption {

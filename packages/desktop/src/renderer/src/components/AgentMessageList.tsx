@@ -41,7 +41,7 @@ import {
   MessageSquareDashedIcon,
   WrenchIcon,
 } from "lucide-react";
-import { type ReactNode, memo, useMemo } from "react";
+import { type ReactNode, memo, useEffect, useMemo, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useNowTick } from "../hooks/useNowTick";
@@ -470,6 +470,14 @@ function ThinkingBlock({
   const live = Boolean(latestEntry?.live);
   const label = live ? "Thinking" : "Thoughts";
 
+  // Open when this block is the latest thought, then leave it open. We never
+  // auto-collapse when a newer thought arrives — the user keeps manual control
+  // via the disclosure toggle so they can always follow what's happening.
+  const [open, setOpen] = useState(isLatest);
+  useEffect(() => {
+    if (isLatest) setOpen(true);
+  }, [isLatest]);
+
   // Join all tokens into one continuous string for rendering and summary
   const detailContent = visibleEntries.map((entry) => entry.content).join("");
   const normalizedContent = normalizeThoughtText(detailContent);
@@ -530,7 +538,8 @@ function ThinkingBlock({
   return (
     <details
       className="group/thinking min-w-0 overflow-hidden"
-      open={isLatest || undefined}
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
     >
       <summary className="min-w-0 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
         {summary}
