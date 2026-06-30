@@ -520,10 +520,20 @@ function ThinkingBlock({
         {summary}
       </summary>
       <div className="mt-1 pl-4 text-xs text-muted-foreground">
-        <PlainTextMessage content={detailContent} />
+        <PlainTextMessage content={normalizeThoughtText(detailContent)} />
       </div>
     </details>
   );
+}
+
+/** Collapse single newlines (streaming token gaps) into spaces while
+ *  preserving intentional paragraph breaks (two or more newlines). */
+function normalizeThoughtText(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/([^\n])\n([^\n])/g, "$1 $2") // single newline → space
+    .replace(/ {2,}/g, " ") // collapse extra spaces
+    .trim();
 }
 
 function summarizeThought(text: string): string {
