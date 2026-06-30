@@ -1,3 +1,4 @@
+import type { AgentService } from "../services/AgentService.js";
 import type { AppStateService } from "../services/AppStateService.js";
 import type { BrowserTabService } from "../services/BrowserTabService.js";
 import type { DevServerService } from "../services/DevServerService.js";
@@ -9,6 +10,7 @@ import type { SpaceService } from "../services/SpaceService.js";
 import type { StorageService } from "../services/StorageService.js";
 import type { TerminalService } from "../services/TerminalService.js";
 import type { WorkspaceFileService } from "../services/WorkspaceFileService.js";
+import type { ArtifactStore } from "../storage/ArtifactStore.js";
 
 /**
  * Dependencies injected into tool factories. Keeping this explicit (rather than
@@ -27,4 +29,6 @@ export interface ToolDeps {
   storage: StorageService;
   plugins: PluginHostService;
   permissions: PermissionService;
+  agents?: AgentService;
+  artifacts?: ArtifactStore;
 }
