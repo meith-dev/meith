@@ -606,7 +606,15 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
   // fragile keyword heuristic, which can mis-split a final answer mid-content.
   const classified = Boolean(message.textSegments?.length);
   const { thinkingSegments, finalSegments } = transcriptTextParts(segments, classified);
-  const finalContent = finalSegments.map((segment) => segment.text).join("");
+  // `content` is the full interleaved stream (thoughts + answer). When the
+  // segments are classified, derive the final answer by slicing `content` at
+  // the thought character-ranges rather than re-joining per-segment `.text`.
+  // The latter chops the answer mid-token whenever a segment's stored text
+  // drifts from `content` (e.g. after splitting at a tool offset, or after the
+  // store re-bases offsets on truncation).
+  const finalContent = classified
+    ? contentWithoutThoughtRanges(content, thinkingSegments)
+    : finalSegments.map((segment) => segment.text).join("");
   if (calls.length === 0) {
     if (thinkingSegments.length === 0) {
       return finalContent ? <MarkdownMessage content={finalContent} /> : null;
@@ -709,6 +717,35 @@ function AssistantTranscript({ message }: { message: AgentMessage }) {
   }
 
   return <div className="flex min-w-0 flex-col gap-2">{parts}</div>;
+}
+
+/**
+ * Reconstruct the final answer by removing thought character-ranges from the
+ * full interleaved `content`. Works purely from offsets so it never chops a
+ * markdown token the way joining per-segment `.text` can. Ranges are clamped to
+ * the content length to stay safe even if offsets drift.
+ */
+function contentWithoutThoughtRanges(
+  content: string,
+  thinkingSegments: TranscriptTextSegment[],
+): string {
+  if (!content) return "";
+  const ranges = thinkingSegments
+    .map((segment) => ({
+      start: Math.max(0, Math.min(segment.start, content.length)),
+      end: Math.max(0, Math.min(segment.end, content.length)),
+    }))
+    .filter((range) => range.end > range.start)
+    .sort((a, b) => a.start - b.start);
+
+  let result = "";
+  let cursor = 0;
+  for (const range of ranges) {
+    if (range.start > cursor) result += content.slice(cursor, range.start);
+    cursor = Math.max(cursor, range.end);
+  }
+  if (cursor < content.length) result += content.slice(cursor);
+  return result.trim();
 }
 
 function normalizedTextSegments(message: AgentMessage, calls: AgentToolCall[]) {
