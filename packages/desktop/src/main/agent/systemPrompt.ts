@@ -41,8 +41,23 @@ The host (the Electron main process) is the authority for all state and actions.
   fetch/open-page tool). The ONLY way to access the web, browse pages, search,
   or read documentation is through Meith browser tools (\`navigate\`, \`get_tabs\`,
   \`get_active_tab\`, \`get_browser_state\`, \`take_screenshot\`, and related
-  tab/interaction tools). Any attempt to use a non-Meith web tool will be
-  denied by the host, so always reach for the Meith browser tools directly.
+  tab/interaction tools). This also applies to shell commands: you MUST NOT
+  fetch the web or drive a browser via shell/terminal/exec tools (for example
+  \`curl\`, \`wget\`, \`npx playwright\`, headless Chrome, or \`open <url>\`).
+  Any attempt to use a non-Meith web tool or a web-fetching shell command will
+  be denied by the host, so always reach for the Meith browser tools directly.
+- For version control, use ONLY Meith git tools (\`git_status\`, \`git_diff\`,
+  \`git_stage\`, \`git_commit\`, \`git_branch\`, \`git_log\`, \`git_blame\`, and the
+  other \`git_*\` tools in the catalog). You MUST NOT run \`git\` through
+  shell/terminal/exec tools, and you MUST NOT use provider-native git helpers.
+  The host denies any \`git\` command issued through a non-Meith tool, so reach
+  for the Meith \`git_*\` tools directly.
+- For terminals, dev servers, and long-running processes, use the Meith
+  process tools from the catalog instead of provider-native shell helpers
+  whenever an equivalent Meith tool exists.
+- If the host denies a provider-native tool call, do NOT retry that tool or a
+  variant of it. Switch immediately to the matching Meith tool from the
+  catalog and continue the task with it.
 - Never pass placeholder values such as \`PLACEHOLDER\`, \`TODO\`, \`unknown\`, or
   guessed IDs to tools. If a browser tool needs a \`tabId\`, first call
   \`get_active_tab\` or \`get_tabs\` and use the returned concrete ID.

@@ -169,8 +169,9 @@ export class AcpAdapter implements AgentAdapter {
     const meithToolNames = new Set(host.listTools().map((tool) => tool.name));
     const meithToolCallIds = new Set<string>();
     // The ACP peer can ask the client to approve provider-side tools. Prefer
-    // Meith MCP tools, and deny external web/browsing/search tools so web work
-    // is routed through Meith browser tools without cancelling the whole turn.
+    // Meith MCP tools, and deny external web/browsing/search tools and git
+    // commands (including `git` run through provider shell tools) so that work
+    // is routed through Meith browser/git tools without cancelling the turn.
     rpc.onRequest((method, params) => {
       if (method === "session/request_permission") {
         return {
@@ -575,10 +576,15 @@ export function selectAcpPermissionOption(
     throw new Error("ACP permission request for a Meith tool had no allow option");
   }
 
-  if (isExternalWebPermissionRequest(params, meithToolNames, meithToolCallIds)) {
+  if (
+    isExternalWebPermissionRequest(params, meithToolNames, meithToolCallIds) ||
+    isExternalGitPermissionRequest(params, meithToolNames, meithToolCallIds)
+  ) {
     if (deny) return deny.optionId;
     if (allow) return allow.optionId;
-    throw new Error("ACP web-tool permission request had no allow or deny option");
+    throw new Error(
+      "ACP permission request for a provider-native web/git tool had no allow or deny option",
+    );
   }
 
   if (allow) return allow.optionId;
@@ -724,7 +730,6 @@ function isExternalWebPermissionRequest(
     return false;
   }
   const markers = collectToolMarkers(params);
-  if (markers.length === 0) return false;
 
   const hasExternalWebServer = markers
     .filter((marker) => isServerMarkerKey(marker.key))
@@ -738,7 +743,194 @@ function isExternalWebPermissionRequest(
     .filter((marker) => isToolIdentityMarkerKey(marker.key))
     .some((marker) => isGenericBrowserAction(marker.value));
 
-  return hasExternalWebToolName || (hasExternalWebServer && hasGenericWebAction);
+  if (hasExternalWebToolName || (hasExternalWebServer && hasGenericWebAction)) {
+    return true;
+  }
+  // Web/browser work smuggled through provider shell tools (curl, wget,
+  // playwright CLIs, headless browsers, `open <url>`, ...).
+  return collectCommandStrings(params).some(isWebShellCommand);
+}
+
+/**
+ * True when the ACP peer asks to run git through a provider-native tool: a
+ * tool whose identity looks like a git helper, or a shell/exec tool whose
+ * command payload invokes `git`. Meith exposes first-class `git_*` tools, so
+ * these requests are denied and the model is prompted to use the Meith ones.
+ */
+function isExternalGitPermissionRequest(
+  params: unknown,
+  meithToolNames: ReadonlySet<string>,
+  meithToolCallIds: ReadonlySet<string> = new Set(),
+): boolean {
+  if (isMeithPermissionRequest(params, meithToolNames, meithToolCallIds)) {
+    return false;
+  }
+  const markers = collectToolMarkers(params);
+  const hasGitToolName = markers
+    .filter((marker) => isToolIdentityMarkerKey(marker.key))
+    .some((marker) => isExternalGitToolName(marker.value));
+  if (hasGitToolName) return true;
+  return collectCommandStrings(params).some(isGitShellCommand);
+}
+
+function isExternalGitToolName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  return (
+    normalized === "git" ||
+    normalized.startsWith("git_") ||
+    normalized.startsWith("git-") ||
+    normalized.startsWith("git.") ||
+    normalized.startsWith("git ") ||
+    normalized.endsWith("_git") ||
+    normalized.endsWith("-git")
+  );
+}
+
+/**
+ * Collect strings that look like shell command payloads (`command`, `cmd`,
+ * `script`, `commandLine`, ...) anywhere in a permission request, so git
+ * invocations hidden inside provider shell tools (e.g. Bash `rawInput`) are
+ * detected regardless of the exact request shape.
+ */
+function collectCommandStrings(value: unknown, seen = new WeakSet<object>()): string[] {
+  if (!value || typeof value !== "object") return [];
+  if (seen.has(value)) return [];
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectCommandStrings(item, seen));
+  }
+
+  const commands: string[] = [];
+  const record = value as Record<string, unknown>;
+  for (const [key, child] of Object.entries(record)) {
+    if (typeof child === "string" && isCommandMarkerKey(key)) {
+      commands.push(child);
+    }
+    commands.push(...collectCommandStrings(child, seen));
+  }
+  return commands;
+}
+
+function isCommandMarkerKey(key: string): boolean {
+  return (
+    key === "command" ||
+    key === "cmd" ||
+    key === "script" ||
+    key === "commandLine" ||
+    key === "command_line" ||
+    key === "shellCommand" ||
+    key === "shell_command"
+  );
+}
+
+/**
+ * Split a compound shell command (`&&`, `||`, `;`, `|`, newlines) into
+ * segments, and for each segment return its lowercased tokens with leading
+ * `sudo` / `env` / VAR=value prefixes stripped, so `tokens[0]` is the actual
+ * program being invoked.
+ */
+function shellSegments(command: string): string[][] {
+  return command
+    .split(/(?:&&|\|\||[;|\n])/)
+    .map((segment) => {
+      const tokens = segment.trim().split(/\s+/).filter(Boolean);
+      let index = 0;
+      while (
+        index < tokens.length &&
+        (tokens[index] === "sudo" ||
+          tokens[index] === "env" ||
+          /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index] ?? ""))
+      ) {
+        index += 1;
+      }
+      return tokens.slice(index).map((token) => token.toLowerCase());
+    })
+    .filter((tokens) => tokens.length > 0);
+}
+
+/** Program name with any path prefix stripped (e.g. /usr/bin/git -> git). */
+function programBasename(program: string): string {
+  const lastSlash = Math.max(program.lastIndexOf("/"), program.lastIndexOf("\\"));
+  return lastSlash === -1 ? program : program.slice(lastSlash + 1);
+}
+
+/**
+ * True when a shell command string invokes `git` as a program, in any segment
+ * of a compound command and after leading `sudo` / `env` / VAR=value prefixes.
+ * Substrings like "legit" or paths that merely contain "git" do not match.
+ */
+export function isGitShellCommand(command: string): boolean {
+  return shellSegments(command).some((tokens) => {
+    const program = tokens[0];
+    return program !== undefined && programBasename(program) === "git";
+  });
+}
+
+/** Programs whose primary purpose is fetching from the web. */
+const WEB_FETCH_PROGRAMS = new Set([
+  "curl",
+  "wget",
+  "wget2",
+  "aria2c",
+  "http",
+  "https",
+  "httpie",
+]);
+
+/** Browser binaries and browser-automation CLIs. */
+const BROWSER_PROGRAMS = new Set([
+  "playwright",
+  "puppeteer",
+  "chromium",
+  "chromium-browser",
+  "chrome",
+  "google-chrome",
+  "headless_shell",
+  "firefox",
+  "safari",
+  "msedge",
+  "agent-browser",
+]);
+
+/** Package runners that can launch browser CLIs (`npx playwright ...`). */
+const PACKAGE_RUNNERS = new Set(["npx", "bunx", "dlx"]);
+
+/**
+ * True when a shell command fetches from the web or drives a browser: curl,
+ * wget, and similar fetchers; browser binaries and automation CLIs (including
+ * via `npx` / `pnpm dlx`); or OS URL-openers (`open`, `xdg-open`, `start`)
+ * pointed at an http(s) URL. Meith exposes first-class browser tools, so
+ * these are denied and the model is prompted to use them instead.
+ */
+export function isWebShellCommand(command: string): boolean {
+  return shellSegments(command).some((tokens) => {
+    const program = tokens[0];
+    if (program === undefined) return false;
+    const base = programBasename(program);
+
+    if (WEB_FETCH_PROGRAMS.has(base) || BROWSER_PROGRAMS.has(base)) return true;
+
+    // `npx playwright ...`, `bunx puppeteer ...`, `pnpm dlx playwright ...`
+    const runnerTarget = PACKAGE_RUNNERS.has(base)
+      ? tokens[1]
+      : tokens[1] === "dlx"
+        ? tokens[2]
+        : undefined;
+    if (
+      runnerTarget !== undefined &&
+      BROWSER_PROGRAMS.has(programBasename(runnerTarget))
+    ) {
+      return true;
+    }
+
+    // OS URL-openers only count when aimed at a web URL, so `open file.txt`
+    // and `xdg-open .` stay allowed.
+    if (base === "open" || base === "xdg-open" || base === "start") {
+      return tokens.slice(1).some((token) => /^['"]?https?:\/\//.test(token));
+    }
+    return false;
+  });
 }
 
 function collectToolMarkers(value: unknown, seen = new WeakSet<object>()): ToolMarker[] {
