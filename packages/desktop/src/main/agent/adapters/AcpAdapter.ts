@@ -730,7 +730,6 @@ function isExternalWebPermissionRequest(
     return false;
   }
   const markers = collectToolMarkers(params);
-  if (markers.length === 0) return false;
 
   const hasExternalWebServer = markers
     .filter((marker) => isServerMarkerKey(marker.key))
@@ -744,7 +743,12 @@ function isExternalWebPermissionRequest(
     .filter((marker) => isToolIdentityMarkerKey(marker.key))
     .some((marker) => isGenericBrowserAction(marker.value));
 
-  return hasExternalWebToolName || (hasExternalWebServer && hasGenericWebAction);
+  if (hasExternalWebToolName || (hasExternalWebServer && hasGenericWebAction)) {
+    return true;
+  }
+  // Web/browser work smuggled through provider shell tools (curl, wget,
+  // playwright CLIs, headless browsers, `open <url>`, ...).
+  return collectCommandStrings(params).some(isWebShellCommand);
 }
 
 /**
@@ -821,27 +825,111 @@ function isCommandMarkerKey(key: string): boolean {
 }
 
 /**
+ * Split a compound shell command (`&&`, `||`, `;`, `|`, newlines) into
+ * segments, and for each segment return its lowercased tokens with leading
+ * `sudo` / `env` / VAR=value prefixes stripped, so `tokens[0]` is the actual
+ * program being invoked.
+ */
+function shellSegments(command: string): string[][] {
+  return command
+    .split(/(?:&&|\|\||[;|\n])/)
+    .map((segment) => {
+      const tokens = segment.trim().split(/\s+/).filter(Boolean);
+      let index = 0;
+      while (
+        index < tokens.length &&
+        (tokens[index] === "sudo" ||
+          tokens[index] === "env" ||
+          /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index] ?? ""))
+      ) {
+        index += 1;
+      }
+      return tokens.slice(index).map((token) => token.toLowerCase());
+    })
+    .filter((tokens) => tokens.length > 0);
+}
+
+/** Program name with any path prefix stripped (e.g. /usr/bin/git -> git). */
+function programBasename(program: string): string {
+  const lastSlash = Math.max(program.lastIndexOf("/"), program.lastIndexOf("\\"));
+  return lastSlash === -1 ? program : program.slice(lastSlash + 1);
+}
+
+/**
  * True when a shell command string invokes `git` as a program, in any segment
- * of a compound command (`&&`, `||`, `;`, `|`, newlines) and after leading
- * `sudo` / `env` / VAR=value prefixes. Substrings like "legit" or paths that
- * merely contain "git" do not match.
+ * of a compound command and after leading `sudo` / `env` / VAR=value prefixes.
+ * Substrings like "legit" or paths that merely contain "git" do not match.
  */
 export function isGitShellCommand(command: string): boolean {
-  return command.split(/(?:&&|\|\||[;|\n])/).some((segment) => {
-    const tokens = segment.trim().split(/\s+/).filter(Boolean);
-    let index = 0;
-    while (
-      index < tokens.length &&
-      (tokens[index] === "sudo" ||
-        tokens[index] === "env" ||
-        /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index] ?? ""))
+  return shellSegments(command).some((tokens) => {
+    const program = tokens[0];
+    return program !== undefined && programBasename(program) === "git";
+  });
+}
+
+/** Programs whose primary purpose is fetching from the web. */
+const WEB_FETCH_PROGRAMS = new Set([
+  "curl",
+  "wget",
+  "wget2",
+  "aria2c",
+  "http",
+  "https",
+  "httpie",
+]);
+
+/** Browser binaries and browser-automation CLIs. */
+const BROWSER_PROGRAMS = new Set([
+  "playwright",
+  "puppeteer",
+  "chromium",
+  "chromium-browser",
+  "chrome",
+  "google-chrome",
+  "headless_shell",
+  "firefox",
+  "safari",
+  "msedge",
+  "agent-browser",
+]);
+
+/** Package runners that can launch browser CLIs (`npx playwright ...`). */
+const PACKAGE_RUNNERS = new Set(["npx", "bunx", "dlx"]);
+
+/**
+ * True when a shell command fetches from the web or drives a browser: curl,
+ * wget, and similar fetchers; browser binaries and automation CLIs (including
+ * via `npx` / `pnpm dlx`); or OS URL-openers (`open`, `xdg-open`, `start`)
+ * pointed at an http(s) URL. Meith exposes first-class browser tools, so
+ * these are denied and the model is prompted to use them instead.
+ */
+export function isWebShellCommand(command: string): boolean {
+  return shellSegments(command).some((tokens) => {
+    const program = tokens[0];
+    if (program === undefined) return false;
+    const base = programBasename(program);
+
+    if (WEB_FETCH_PROGRAMS.has(base) || BROWSER_PROGRAMS.has(base)) return true;
+
+    // `npx playwright ...`, `bunx puppeteer ...`, `pnpm dlx playwright ...`
+    const runnerTarget = PACKAGE_RUNNERS.has(base)
+      ? tokens[1]
+      : tokens[1] === "dlx"
+        ? tokens[2]
+        : undefined;
+    if (
+      runnerTarget !== undefined &&
+      BROWSER_PROGRAMS.has(programBasename(runnerTarget))
     ) {
-      index += 1;
+      return true;
     }
-    const program = tokens[index]?.toLowerCase();
-    if (!program) return false;
-    // Match `git` and explicit paths to a git binary (e.g. /usr/bin/git).
-    return program === "git" || program.endsWith("/git") || program.endsWith("\\git");
+
+    // OS URL-openers only count when aimed at a web URL, so `open file.txt`
+    // and `xdg-open .` stay allowed.
+    if (base === "open" || base === "xdg-open" || base === "start") {
+      return tokens.slice(1).some((token) => /^['"]?https?:\/\//.test(token));
+    }
+    return false;
   });
 }
 

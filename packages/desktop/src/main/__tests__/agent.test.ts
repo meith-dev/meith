@@ -9,6 +9,7 @@ import {
   buildAcpPrompt,
   extractMeithToolCallId,
   isGitShellCommand,
+  isWebShellCommand,
   mapSessionUpdate,
   parseAcpConfigOptions,
   selectAcpPermissionOption,
@@ -553,6 +554,75 @@ describe("ACP adapter permission policy", () => {
         gitMeithTools,
       ),
     ).toBe("allow");
+  });
+
+  it("denies provider shell tools that fetch the web with curl", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolCall: {
+            name: "Bash",
+            rawInput: { command: "curl -s https://example.com/api" },
+          },
+          options: [
+            { optionId: "allow", kind: "allow_once" },
+            { optionId: "deny", kind: "reject_once" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("deny");
+  });
+
+  it("denies provider shell tools that launch browser automation", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolName: "shell_command",
+          toolCall: {
+            rawInput: { command: "cd e2e && npx playwright test" },
+          },
+          options: [
+            { optionId: "allow", kind: "allow_once" },
+            { optionId: "deny", kind: "reject_once" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("deny");
+  });
+});
+
+describe("isWebShellCommand", () => {
+  it("matches web fetchers", () => {
+    expect(isWebShellCommand("curl https://example.com")).toBe(true);
+    expect(isWebShellCommand("wget -q https://example.com/file.tgz")).toBe(true);
+    expect(isWebShellCommand("cd /tmp && curl -o out.json http://api.local")).toBe(true);
+    expect(isWebShellCommand("/usr/bin/curl example.com")).toBe(true);
+  });
+
+  it("matches browser binaries and automation CLIs", () => {
+    expect(isWebShellCommand("npx playwright test")).toBe(true);
+    expect(isWebShellCommand("pnpm dlx playwright install")).toBe(true);
+    expect(isWebShellCommand("google-chrome --headless --dump-dom https://x.dev")).toBe(
+      true,
+    );
+    expect(isWebShellCommand("agent-browser snapshot")).toBe(true);
+  });
+
+  it("matches OS URL-openers only when aimed at a web URL", () => {
+    expect(isWebShellCommand("open https://example.com")).toBe(true);
+    expect(isWebShellCommand("xdg-open 'http://localhost:3000'")).toBe(true);
+    expect(isWebShellCommand("open README.md")).toBe(false);
+    expect(isWebShellCommand("xdg-open .")).toBe(false);
+  });
+
+  it("does not match ordinary dev commands", () => {
+    expect(isWebShellCommand("pnpm test --filter desktop")).toBe(false);
+    expect(isWebShellCommand("node scripts/build.mjs")).toBe(false);
+    expect(isWebShellCommand("cat docs/curl-examples.md")).toBe(false);
+    expect(isWebShellCommand("echo curl")).toBe(false);
+    expect(isWebShellCommand("npx tsc --noEmit")).toBe(false);
   });
 });
 
