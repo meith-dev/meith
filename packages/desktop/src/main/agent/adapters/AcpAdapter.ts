@@ -169,8 +169,9 @@ export class AcpAdapter implements AgentAdapter {
     const meithToolNames = new Set(host.listTools().map((tool) => tool.name));
     const meithToolCallIds = new Set<string>();
     // The ACP peer can ask the client to approve provider-side tools. Prefer
-    // Meith MCP tools, and deny external web/browsing/search tools so web work
-    // is routed through Meith browser tools without cancelling the whole turn.
+    // Meith MCP tools, and deny external web/browsing/search tools and git
+    // commands (including `git` run through provider shell tools) so that work
+    // is routed through Meith browser/git tools without cancelling the turn.
     rpc.onRequest((method, params) => {
       if (method === "session/request_permission") {
         return {
@@ -575,10 +576,15 @@ export function selectAcpPermissionOption(
     throw new Error("ACP permission request for a Meith tool had no allow option");
   }
 
-  if (isExternalWebPermissionRequest(params, meithToolNames, meithToolCallIds)) {
+  if (
+    isExternalWebPermissionRequest(params, meithToolNames, meithToolCallIds) ||
+    isExternalGitPermissionRequest(params, meithToolNames, meithToolCallIds)
+  ) {
     if (deny) return deny.optionId;
     if (allow) return allow.optionId;
-    throw new Error("ACP web-tool permission request had no allow or deny option");
+    throw new Error(
+      "ACP permission request for a provider-native web/git tool had no allow or deny option",
+    );
   }
 
   if (allow) return allow.optionId;
@@ -739,6 +745,104 @@ function isExternalWebPermissionRequest(
     .some((marker) => isGenericBrowserAction(marker.value));
 
   return hasExternalWebToolName || (hasExternalWebServer && hasGenericWebAction);
+}
+
+/**
+ * True when the ACP peer asks to run git through a provider-native tool: a
+ * tool whose identity looks like a git helper, or a shell/exec tool whose
+ * command payload invokes `git`. Meith exposes first-class `git_*` tools, so
+ * these requests are denied and the model is prompted to use the Meith ones.
+ */
+function isExternalGitPermissionRequest(
+  params: unknown,
+  meithToolNames: ReadonlySet<string>,
+  meithToolCallIds: ReadonlySet<string> = new Set(),
+): boolean {
+  if (isMeithPermissionRequest(params, meithToolNames, meithToolCallIds)) {
+    return false;
+  }
+  const markers = collectToolMarkers(params);
+  const hasGitToolName = markers
+    .filter((marker) => isToolIdentityMarkerKey(marker.key))
+    .some((marker) => isExternalGitToolName(marker.value));
+  if (hasGitToolName) return true;
+  return collectCommandStrings(params).some(isGitShellCommand);
+}
+
+function isExternalGitToolName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  return (
+    normalized === "git" ||
+    normalized.startsWith("git_") ||
+    normalized.startsWith("git-") ||
+    normalized.startsWith("git.") ||
+    normalized.startsWith("git ") ||
+    normalized.endsWith("_git") ||
+    normalized.endsWith("-git")
+  );
+}
+
+/**
+ * Collect strings that look like shell command payloads (`command`, `cmd`,
+ * `script`, `commandLine`, ...) anywhere in a permission request, so git
+ * invocations hidden inside provider shell tools (e.g. Bash `rawInput`) are
+ * detected regardless of the exact request shape.
+ */
+function collectCommandStrings(value: unknown, seen = new WeakSet<object>()): string[] {
+  if (!value || typeof value !== "object") return [];
+  if (seen.has(value)) return [];
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectCommandStrings(item, seen));
+  }
+
+  const commands: string[] = [];
+  const record = value as Record<string, unknown>;
+  for (const [key, child] of Object.entries(record)) {
+    if (typeof child === "string" && isCommandMarkerKey(key)) {
+      commands.push(child);
+    }
+    commands.push(...collectCommandStrings(child, seen));
+  }
+  return commands;
+}
+
+function isCommandMarkerKey(key: string): boolean {
+  return (
+    key === "command" ||
+    key === "cmd" ||
+    key === "script" ||
+    key === "commandLine" ||
+    key === "command_line" ||
+    key === "shellCommand" ||
+    key === "shell_command"
+  );
+}
+
+/**
+ * True when a shell command string invokes `git` as a program, in any segment
+ * of a compound command (`&&`, `||`, `;`, `|`, newlines) and after leading
+ * `sudo` / `env` / VAR=value prefixes. Substrings like "legit" or paths that
+ * merely contain "git" do not match.
+ */
+export function isGitShellCommand(command: string): boolean {
+  return command.split(/(?:&&|\|\||[;|\n])/).some((segment) => {
+    const tokens = segment.trim().split(/\s+/).filter(Boolean);
+    let index = 0;
+    while (
+      index < tokens.length &&
+      (tokens[index] === "sudo" ||
+        tokens[index] === "env" ||
+        /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index] ?? ""))
+    ) {
+      index += 1;
+    }
+    const program = tokens[index]?.toLowerCase();
+    if (!program) return false;
+    // Match `git` and explicit paths to a git binary (e.g. /usr/bin/git).
+    return program === "git" || program.endsWith("/git") || program.endsWith("\\git");
+  });
 }
 
 function collectToolMarkers(value: unknown, seen = new WeakSet<object>()): ToolMarker[] {

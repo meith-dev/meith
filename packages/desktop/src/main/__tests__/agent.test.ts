@@ -8,6 +8,7 @@ import {
   applyConfigOptions,
   buildAcpPrompt,
   extractMeithToolCallId,
+  isGitShellCommand,
   mapSessionUpdate,
   parseAcpConfigOptions,
   selectAcpPermissionOption,
@@ -467,6 +468,113 @@ describe("ACP adapter permission policy", () => {
         meithTools,
       ),
     ).toBe("decline");
+  });
+
+  it("denies provider shell tools that run git commands", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolCall: {
+            name: "Bash",
+            rawInput: { command: "git push origin main" },
+          },
+          options: [
+            { optionId: "allow", kind: "allow_once" },
+            { optionId: "deny", kind: "reject_once" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("deny");
+  });
+
+  it("denies git hidden inside compound shell commands", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolName: "shell_command",
+          toolCall: {
+            rawInput: { command: "cd packages/app && git commit -m 'wip'" },
+          },
+          options: [
+            { optionId: "allow", kind: "allow_once" },
+            { optionId: "deny", kind: "reject_once" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("deny");
+  });
+
+  it("denies provider-native git helper tools by name", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolCall: { serverName: "provider-vcs", name: "git-commit" },
+          options: [
+            { optionId: "allow", kind: "allow_once" },
+            { optionId: "deny", kind: "reject_once" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("deny");
+  });
+
+  it("still allows non-git shell commands", () => {
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolCall: {
+            name: "Bash",
+            rawInput: { command: "pnpm test --filter desktop" },
+          },
+          options: [
+            { optionId: "allow", kind: "allow_once" },
+            { optionId: "deny", kind: "reject_once" },
+          ],
+        },
+        meithTools,
+      ),
+    ).toBe("allow");
+  });
+
+  it("allows Meith MCP git tools through the permission gate", () => {
+    const gitMeithTools = new Set([...meithTools, "git_commit"]);
+    expect(
+      selectAcpPermissionOption(
+        {
+          toolName: "mcp__meith__git_commit",
+          options: [
+            { optionId: "deny", kind: "reject" },
+            { optionId: "allow", kind: "allow_once" },
+          ],
+        },
+        gitMeithTools,
+      ),
+    ).toBe("allow");
+  });
+});
+
+describe("isGitShellCommand", () => {
+  it("matches plain and compound git invocations", () => {
+    expect(isGitShellCommand("git status")).toBe(true);
+    expect(isGitShellCommand("cd repo; git log --oneline")).toBe(true);
+    expect(isGitShellCommand("npm i || git checkout -- .")).toBe(true);
+    expect(isGitShellCommand("git diff | head -20")).toBe(true);
+  });
+
+  it("matches sudo, env-var, and explicit-path git invocations", () => {
+    expect(isGitShellCommand("sudo git push")).toBe(true);
+    expect(isGitShellCommand("GIT_AUTHOR_NAME=x git commit -m msg")).toBe(true);
+    expect(isGitShellCommand("/usr/bin/git fetch")).toBe(true);
+  });
+
+  it("does not match commands that merely contain the substring git", () => {
+    expect(isGitShellCommand("legit-tool run")).toBe(false);
+    expect(isGitShellCommand("cat docs/git-workflow.md")).toBe(false);
+    expect(isGitShellCommand("pnpm add isomorphic-git")).toBe(false);
+    expect(isGitShellCommand("echo git")).toBe(false);
   });
 });
 
