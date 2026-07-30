@@ -410,3 +410,137 @@ per-request `Actor` via `React.cache`), `proxy.ts` (cookie resolution, no DB),
 and the F18/F19 no-JS Server-Action web layer (register / login / logout /
 reset). All the domain services and both store implementations they need now
 exist and are tested.
+
+### D18 — The build phase is not the production runtime (F02)
+
+**Plan:** F02 — "the app refuses to boot misconfigured"; `AUTH_SECRET` and
+`TICK_SECRET` "required in production".
+
+**Problem.** `next build` forces `NODE_ENV=production`, so the production-only
+rules fired while *compiling*. A build machine legitimately holds no runtime
+secrets, so `pnpm build` could not succeed without them. Both CI and the
+Dockerfile had quietly grown a fake one (`AUTH_SECRET=...-not-used-at-runtime-0`)
+to get past it — and neither actually worked, because each set `AUTH_SECRET` but
+not `TICK_SECRET`, and `DATA_SOURCE=fixture` derives `QUEUE_DRIVER=memory`, which
+the same block rejects. The production build had never passed.
+
+**Decision.** The schema now distinguishes compiling from serving via
+`NEXT_PHASE` (set by `next build` and nothing else). The production rules stand
+down for the build phase only.
+
+**Why this gives up no safety.** The rules are about how the app behaves *in
+service*, and a build produces no behaviour. They are enforced unconditionally
+where it matters: `instrumentation.ts` calls `assertRuntimeEnv()`, which strips
+the build-phase exemption, so a stray `NEXT_PHASE` in a runtime environment
+cannot wave the checks through — a fail-open that would otherwise be silent.
+Verified end-to-end, not just asserted: booting the built server with no secrets
+fails with the full F02 message on both `next start` and the standalone
+entrypoint. The placeholder secrets are gone from CI and the Dockerfile.
+
+### D19 — `logger()` must never be bound at module scope (F02/F09)
+
+`logger()` reads the ambient request context at call time and builds pino
+eagerly. A module-level `const log = logger(...)` therefore did two bad things at
+once: bound an empty context for the process lifetime (so every line it wrote
+lost its `requestId`), and turned *importing* the module into a full environment
+validation — defeating the point of D1's lazy proxy and breaking `next build`,
+whose page-data collection imports server modules with no production secrets.
+
+Fixed at the two call sites, documented on `logger()` itself so the rule reaches
+future ones, and enforced by guard `F02 no-module-scope-logger`. Binding inside a
+function body stays legal; only module scope is banned. Mutation-verified.
+
+## Phase 1
+
+### D20 — The password-reset dev affordance was an account-takeover hole (F19)
+
+**Found while writing the app-layer tests the web layer shipped without.**
+
+`requestResetAction` returned the live reset token to the browser *whenever one
+was issued*, rendered by `ResetRequestForm` as a "Continue to reset your
+password" link. The comment above it read "a real deployment emails it and never
+renders this" — but nothing enforced that. Any visitor who typed a known address
+into the public reset form got back a working single-use token for that account:
+unauthenticated takeover of any user whose email address is known.
+
+**Decision.** The token crosses to the client only when `NODE_ENV` is
+`development`. Gated on `NODE_ENV` rather than on the mail driver or data source
+deliberately — a production board with mail misconfigured must still never hand a
+reset token to whoever typed the address in.
+
+The accompanying `log.info({ resetPath: '/reset/confirm?token=...' })` is gone
+too. Pino's redaction covers `token` keys, but a token interpolated into a URL
+string sails straight past it, and §40 forbids credentials in logs at default
+level.
+
+Both directions are pinned by test, and the mutant (restoring the unconditional
+return) was verified to fail the suite.
+
+### D21 — Identifier case-folding is locale-independent (F17/F18)
+
+`register`, `login`, `requestPasswordReset` and the login lockout bucket all
+folded case with `toLocaleLowerCase()`. With no locale argument that uses the
+*host's* default locale, making a stored `username_lower` a property of the
+machine that wrote it. Under `tr_TR`, `'IVAN'` folds to `'ıvan'` (dotless), so:
+
+- F18's "duplicate username differing only by case is rejected" stops holding —
+  `IVAN` and `Ivan` become two accounts;
+- a row written on one host stops matching on another, and the user cannot log
+  in;
+- the lockout bucket splits, so alternating case doubles the allowed attempts.
+
+**Decision.** One `foldIdentifier()` helper (`packages/accounts/src/case-fold.ts`)
+using locale-independent `toLowerCase()`, used everywhere.
+
+**Enforcement is textual, and that is the point.** A unit test cannot catch this
+— it passes in every locale except Turkish and Azeri, so it would be green on
+every developer machine and in CI. Guard `F17 no-locale-case-fold` bans
+`toLocaleLowerCase()`/`toLocaleUpperCase()` outright; mutation-verified by
+restoring the old call and watching the guard fire.
+
+### D22 — Forum tree: the subtree predicate is the whole feature (F16)
+
+**Plan:** F16 — "Reordering and reparenting must update every descendant's
+`path` in one transaction. Test with a four-level tree."
+
+The schema (materialised `path`, indexes) already existed; `packages/forums` was
+an empty package. The operations half now lives there: `path.ts` (path
+arithmetic), `tree.ts` (`buildTree`), `move.ts` (`planMove`), plus
+`PostgresForumRepository` in `@forum/db`.
+
+**The one thing worth writing down.** A materialised-path implementation is
+almost entirely correct if you get one predicate right and catastrophically
+wrong if you do not. `'1.4'` is a string prefix of `'1.40'`, but `1.40` is a
+*sibling*, not a descendant. Two ways to get this wrong, both natural:
+
+- `path LIKE '1.4%'` as the subtree predicate — drags unrelated siblings into
+  every move, and rejects legal destinations as cycles.
+- `replace(path, oldRoot, newRoot)` to rehang descendants — substitutes every
+  occurrence anywhere in the string, not just the prefix.
+
+So the codebase has exactly one subtree test (`isInSubtree`, comparing on the
+separator) and one rehang (`rehang`, slicing by length), and the SQL uses a
+`VALUES` join over ids computed by the planner rather than any string surgery.
+A prefix-sharing sibling (`1.40` beside `1.4`) is in both the unit fixture and
+the PGlite fixture; the naive-prefix mutant fails four tests across both layers.
+
+**Concurrency.** `move()` re-reads the tree *inside* the transaction and takes
+`pg_advisory_xact_lock` first. Planning against a caller's snapshot is how two
+concurrent moves slip a cycle past validation — each validates against a tree
+that the other is about to change. The lock is transaction-scoped, so it is
+released on rollback too and a failed move cannot wedge the ACP.
+
+**Split into planner + applier** so the entire failure surface (cycles, link
+parents, slug collisions, sibling renumbering, descendant rewrites) is pure and
+testable without a database; the repository only applies a validated plan.
+
+**Orphans are promoted to roots, not dropped** (`buildTree`). Once F21 filters
+the input by visibility, a child the actor may view can outlive a parent they may
+not. Dropping it would make a permission grant vanish silently. Noted as a
+divergence to revisit at F21, which may prefer to filter subtrees whole.
+
+**Deliberately not done in F16** — see progress.md: the tree read is not yet
+cached and tagged. `CacheTags.forumTree()` exists, but `cachedGlobal` is an
+interface in `packages/core/src/cache.ts` with no implementation anywhere, so
+there is no seam to wire it to. Building F10's caching harness is its own
+feature, not a rider on this one.
