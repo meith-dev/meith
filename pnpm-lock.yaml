@@ -232,6 +232,9 @@ importers:
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
+      '@forum/tasks':
+        specifier: workspace:*
+        version: link:../tasks
       drizzle-orm:
         specifier: ^0.44.7
         version: 0.44.7(@electric-sql/pglite@0.5.4)(postgres@3.4.9)

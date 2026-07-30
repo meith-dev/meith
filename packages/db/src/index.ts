@@ -34,6 +34,7 @@ export {
   PostgresBanRepository,
 } from './ban-repos'
 export { PostgresPromotionRepository } from './promotion-repo'
+export { PostgresTaskRepository } from './task-repo'
 export {
   PostgresAdminRepository,
   type GroupSummary,

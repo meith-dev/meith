@@ -27,7 +27,7 @@ what is and is not built.
 ## How this audit was done
 
 Last audited **2026-07-30** (re-audited after F10/F11/F13/F15/F16 landed), against the working tree, not from memory:
-`pnpm verify` (798 tests), `pnpm build`, plus direct inspection of the
+`pnpm verify` (819 tests), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.

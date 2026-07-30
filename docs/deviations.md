@@ -861,3 +861,40 @@ cannot be expressed without naming groups. The boundary it must not cross is
 stated in the config: it may move a user between groups, never conclude anything
 about what a group is permitted to do. Probed both ways — the rule still errors
 in a non-exempt package and is silent inside.
+
+### D31 — The task lease, and a mutant that survived (F06)
+
+`PostgresTaskRepository` lands, so the scheduler finally has storage. `claim` is
+one conditional UPDATE: a read-then-write would reintroduce the race it exists
+to close, and serverless instances share no memory so a JavaScript mutex
+protects nothing.
+
+**The finding worth recording is a mutation that survived.** Removing the lease
+guard (`locked_until is null or locked_until <= now`) from the WHERE clause
+failed *no test* — including the two named after F06's "concurrent ticks don't
+double-run a task" criterion. Both were passing on the *due* check instead:
+`claim` sets `last_run_at = now`, so a second immediate claim is refused for
+being not-yet-due, with or without a lease.
+
+The lease actually matters in a case neither test covered: **a task whose
+runtime exceeds its own interval**. The first claim sets `last_run_at`, so by
+the time the next cron fires the task looks due again, and only a live lease
+says "someone is still running this". Without it a 10-minute task on a
+1-minute interval is re-entered every minute until the instance falls over —
+which is exactly the "slow run plus the next cron fire" F06 calls out. There is
+now a test for it, and the mutant dies.
+
+Third time this session that mutation testing has caught a test whose name
+described a guarantee it did not exercise (see also D30). The pattern is
+consistent: a test written alongside the code tends to assert the path the
+author had in mind, and the *other* reason it passes goes unnoticed.
+
+Two smaller decisions:
+
+- `next_run_at` is computed from `finishedAt`, not from when the task became
+  due. Anchoring to the due time makes an overrunning task fire again
+  immediately and keep doing so — one slow run becomes a busy loop.
+- `ensureRegistered` updates `interval_seconds` on conflict but leaves
+  `last_run_at`, `locked_until` and `consecutive_failures` alone: cadence is
+  code-owned, but a deploy must not reset a task's history or steal a live lease
+  from a tick that is still running.
