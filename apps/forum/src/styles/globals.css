@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+/*
+ * R7 design tokens.
+ *
+ * Every token in the R7 list is defined here as the theme *default*. At runtime
+ * `themes.token_overrides` is resolved on top of these and injected as a single
+ * <style> block in <head> (F26), so a board can be restyled without a deploy.
+ *
+ * Components must never hardcode a colour. A CI grep bans `#`, `rgb(` and
+ * `hsl(` literals in component files precisely so this file stays the only
+ * place colour is decided.
+ *
+ * Palette: 3 neutrals (background/card/border greys), 1 primary (indigo-slate),
+ * 2 accents (amber for pinned/unread, red for destructive/locked).
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Domain-semantic tokens. These carry meaning, not just appearance. */
+  --color-forum-unread: var(--forum-unread);
+  --color-forum-read: var(--forum-read);
+  --color-forum-locked: var(--forum-locked);
+  --color-thread-pinned: var(--thread-pinned);
+  --color-thread-locked: var(--thread-locked);
+  --color-thread-moved: var(--thread-moved);
+  --color-thread-unapproved: var(--thread-unapproved);
+  --color-thread-deleted: var(--thread-deleted);
+  --color-post-highlight: var(--post-highlight);
+  --color-post-own: var(--post-own);
+  --color-post-unapproved: var(--post-unapproved);
+  --color-moderation-pending: var(--moderation-pending);
+  --color-moderation-approved: var(--moderation-approved);
+  --color-moderation-rejected: var(--moderation-rejected);
+  --color-group-admin: var(--group-admin);
+  --color-group-supermod: var(--group-supermod);
+  --color-group-mod: var(--group-mod);
+  --color-group-banned: var(--group-banned);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-mono-stack);
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+
+  /*
+   * Density unit. Classic forums are information-dense; a compact theme sets
+   * this lower and every row inherits the change.
+   */
+  --spacing-density: var(--density-unit);
+}
+
+:root {
+  color-scheme: light;
+
+  --background: oklch(0.976 0.002 265);
+  --foreground: oklch(0.21 0.015 265);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.015 265);
+
+  --primary: oklch(0.45 0.11 264);
+  --primary-foreground: oklch(0.99 0.002 265);
+  --secondary: oklch(0.94 0.006 265);
+  --secondary-foreground: oklch(0.3 0.02 265);
+  --muted: oklch(0.955 0.004 265);
+  --muted-foreground: oklch(0.53 0.017 265);
+  --accent: oklch(0.72 0.15 68);
+  --accent-foreground: oklch(0.24 0.03 68);
+  --destructive: oklch(0.55 0.2 27);
+  --destructive-foreground: oklch(0.99 0.002 265);
+
+  --border: oklch(0.9 0.006 265);
+  --input: oklch(0.9 0.006 265);
+  --ring: oklch(0.45 0.11 264);
+
+  --radius: 0.375rem;
+  --density-unit: 0.25rem;
+  --font-mono-stack: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+
+  /* Read state: unread is emphatic, read recedes. */
+  --forum-unread: oklch(0.45 0.11 264);
+  --forum-read: oklch(0.62 0.012 265);
+  --forum-locked: oklch(0.55 0.09 27);
+
+  --thread-pinned: oklch(0.62 0.14 68);
+  --thread-locked: oklch(0.55 0.09 27);
+  --thread-moved: oklch(0.55 0.02 265);
+  --thread-unapproved: oklch(0.62 0.13 85);
+  --thread-deleted: oklch(0.55 0.16 27);
+
+  --post-highlight: oklch(0.95 0.05 68);
+  --post-own: oklch(0.97 0.014 264);
+  --post-unapproved: oklch(0.96 0.04 85);
+
+  --moderation-pending: oklch(0.65 0.14 85);
+  --moderation-approved: oklch(0.55 0.13 150);
+  --moderation-rejected: oklch(0.55 0.18 27);
+
+  --group-admin: oklch(0.5 0.18 27);
+  --group-supermod: oklch(0.5 0.14 300);
+  --group-mod: oklch(0.47 0.12 220);
+  --group-banned: oklch(0.55 0.02 265);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.19 0.008 265);
+  --foreground: oklch(0.94 0.004 265);
+  --card: oklch(0.235 0.01 265);
+  --card-foreground: oklch(0.94 0.004 265);
+
+  --primary: oklch(0.72 0.1 264);
+  --primary-foreground: oklch(0.18 0.015 265);
+  --secondary: oklch(0.29 0.012 265);
+  --secondary-foreground: oklch(0.92 0.004 265);
+  --muted: oklch(0.27 0.01 265);
+  --muted-foreground: oklch(0.69 0.012 265);
+  --accent: oklch(0.76 0.14 68);
+  --accent-foreground: oklch(0.2 0.02 68);
+  --destructive: oklch(0.65 0.18 27);
+  --destructive-foreground: oklch(0.16 0.01 265);
+
+  --border: oklch(0.32 0.012 265);
+  --input: oklch(0.34 0.014 265);
+  --ring: oklch(0.72 0.1 264);
+
+  --forum-unread: oklch(0.75 0.11 264);
+  --forum-read: oklch(0.5 0.012 265);
+  --forum-locked: oklch(0.62 0.11 27);
+
+  --thread-pinned: oklch(0.76 0.14 68);
+  --thread-locked: oklch(0.62 0.11 27);
+  --thread-moved: oklch(0.6 0.015 265);
+  --thread-unapproved: oklch(0.74 0.13 85);
+  --thread-deleted: oklch(0.64 0.16 27);
+
+  --post-highlight: oklch(0.3 0.05 68);
+  --post-own: oklch(0.25 0.02 264);
+  --post-unapproved: oklch(0.29 0.045 85);
+
+  --moderation-pending: oklch(0.74 0.13 85);
+  --moderation-approved: oklch(0.68 0.13 150);
+  --moderation-rejected: oklch(0.65 0.17 27);
+
+  --group-admin: oklch(0.68 0.17 27);
+  --group-supermod: oklch(0.68 0.13 300);
+  --group-mod: oklch(0.68 0.11 220);
+  --group-banned: oklch(0.55 0.015 265);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+
+    --background: oklch(0.19 0.008 265);
+    --foreground: oklch(0.94 0.004 265);
+    --card: oklch(0.235 0.01 265);
+    --card-foreground: oklch(0.94 0.004 265);
+
+    --primary: oklch(0.72 0.1 264);
+    --primary-foreground: oklch(0.18 0.015 265);
+    --secondary: oklch(0.29 0.012 265);
+    --secondary-foreground: oklch(0.92 0.004 265);
+    --muted: oklch(0.27 0.01 265);
+    --muted-foreground: oklch(0.69 0.012 265);
+    --accent: oklch(0.76 0.14 68);
+    --accent-foreground: oklch(0.2 0.02 68);
+    --destructive: oklch(0.65 0.18 27);
+    --destructive-foreground: oklch(0.16 0.01 265);
+
+    --border: oklch(0.32 0.012 265);
+    --input: oklch(0.34 0.014 265);
+    --ring: oklch(0.72 0.1 264);
+
+    --forum-unread: oklch(0.75 0.11 264);
+    --forum-read: oklch(0.5 0.012 265);
+    --forum-locked: oklch(0.62 0.11 27);
+
+    --thread-pinned: oklch(0.76 0.14 68);
+    --thread-locked: oklch(0.62 0.11 27);
+    --thread-moved: oklch(0.6 0.015 265);
+    --thread-unapproved: oklch(0.74 0.13 85);
+    --thread-deleted: oklch(0.64 0.16 27);
+
+    --post-highlight: oklch(0.3 0.05 68);
+    --post-own: oklch(0.25 0.02 264);
+    --post-unapproved: oklch(0.29 0.045 85);
+
+    --moderation-pending: oklch(0.74 0.13 85);
+    --moderation-approved: oklch(0.68 0.13 150);
+    --moderation-rejected: oklch(0.65 0.17 27);
+
+    --group-admin: oklch(0.68 0.17 27);
+    --group-supermod: oklch(0.68 0.13 300);
+    --group-mod: oklch(0.68 0.11 220);
+    --group-banned: oklch(0.55 0.015 265);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  /* Keyboard focus must always be visible — R5 pages are used without a mouse. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Skip link: visually hidden until focused. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}

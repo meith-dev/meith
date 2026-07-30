@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "themes/*"
+
+# hono is pulled in transitively; pin it to avoid duplicate copies in the graph.
+overrides:
+  hono: 4.12.25

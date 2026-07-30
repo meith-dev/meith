@@ -1,0 +1,16 @@
+{
+  "name": "@forum/drivers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@forum/core": "workspace:*",
+    "@forum/db": "workspace:*",
+    "drizzle-orm": "^0.44.7"
+  },
+  "peerDependencies": {
+    "next": "16.2.6"
+  }
+}

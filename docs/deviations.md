@@ -1,0 +1,412 @@
+# Deviations & decisions
+
+Every entry records a place where the implementation departs from the plan text,
+or where the plan was ambiguous and a choice had to be made. Additions go at the
+bottom of the relevant phase.
+
+## Phase 0
+
+### D1 — `env` is a lazy Proxy, not a validated constant (F02)
+
+**Plan:** "validated once at boot; a missing variable is a startup crash."
+
+**Implemented:** `assertEnv()` validates and memoises; the exported `env` is a
+Proxy that calls it on first property *access*. `apps/forum/instrumentation.ts`
+calls `assertEnv()` at boot, so the startup-crash guarantee is preserved for the
+running app.
+
+**Why:** validating at module load means importing *any* `@forum/core` symbol —
+an error class, a type — detonates in processes that legitimately have no app
+environment. This was not theoretical: `drizzle-kit generate` imports the schema,
+which imports the permission registry from core, purely to diff DDL. With eager
+validation, generating a migration failed demanding `DATABASE_URL`, a variable
+the operator had deliberately not set. Fail-fast is kept where it has value
+(app boot) and dropped where it only breaks tooling.
+
+**Consequence:** `isProduction` / `isTest` became functions rather than
+constants, since a constant would re-introduce load-time validation.
+
+### D2 — Driver defaults are derived from `DATA_SOURCE` (F02)
+
+`DATA_SOURCE` defaults to `postgres` when `DATABASE_URL` is present and
+`fixture` otherwise. `QUEUE_DRIVER` and `CACHE_DRIVER` then default to
+`memory` in fixture mode and `postgres`/`next` in Postgres mode.
+
+Plain zod `.default()` could not express this: defaults are applied before
+`superRefine` runs, so a checkout with no database failed validation demanding a
+`DATABASE_URL` *for the queue* — a variable the operator never configured.
+Resolved in `withDerivedDefaults()` before parsing.
+
+`QUEUE_DRIVER=memory` is rejected outright in production: queued jobs live in
+the heap, so every cold start would silently discard pending e-mail, search
+indexing and notifications with no error anywhere.
+
+### D3 — `searchFloodSeconds` permission removed (F19, R4.2)
+
+MyBB has a per-group `searchfloodtime`. It is deliberately **absent** from the
+permission registry.
+
+R4.2 combines numeric permissions with `MAX`, treating `0` as unlimited. A flood
+*interval* is most permissive at its **smallest** non-zero value, so it cannot
+obey the rule without inverting it for exactly one field — and a combination
+engine with a per-field exception is a bug waiting to happen.
+
+Modelled instead as the board setting `search.flood_seconds` plus the existing
+`canBypassFloodCheck` boolean, which combines correctly under OR. See
+`docs/mybb-parity.md#flood-intervals`.
+
+### D4 — Boundary lint was silently inert; now probe-verified (F10)
+
+The R2 rules reported a clean run while enforcing **nothing**. Two compounding
+causes:
+
+1. `tsConfig` pointed at the root `tsconfig.json`, which contains only
+   `references` — no `paths`. Every `@forum/*` import was therefore
+   unresolvable, and dependency-cruiser recorded `couldNotResolve: true` with
+   the bare specifier as the `resolved` value. Rules matching a *path* could
+   never match. Fixed by pointing at `tsconfig.base.json`, where the aliases
+   live.
+2. Even resolving correctly, the only infra rule matched `^packages/drivers/`.
+   Nothing covered `@forum/db`.
+
+A probe module importing `getDb()` into `packages/forums` passed silently under
+both faults. The merged `domain-no-infra-impl` rule now matches all three shapes
+a workspace import can take (real path, `node_modules` symlink, bare specifier)
+and is verified by probe.
+
+**Standing practice:** a guard that has never been observed to fail is not a
+guard. Before trusting a green boundary-lint run, add a violating probe module,
+confirm the error, then delete it.
+
+### D5 — Path aliases require the target file to exist
+
+Related to D4: an alias pointing at `packages/<name>/src/index.ts` cannot
+resolve until that barrel exists. A package whose barrel is missing looks
+dependency-free to the linter. Each package therefore gets its `src/index.ts`
+when it is created, even if nearly empty.
+
+### D6 — Two partial unique indexes for forum slugs (F16)
+
+Root-level slug uniqueness and sibling slug uniqueness are enforced by *two*
+partial unique indexes (`WHERE parent_id IS NULL` and `WHERE parent_id IS NOT
+NULL`) rather than one composite index on `(parent_id, slug)`.
+
+In Postgres `NULL != NULL`, so a plain unique constraint on `(parent_id, slug)`
+permits unlimited duplicate root-level slugs — the exact collision the
+constraint exists to prevent.
+
+### D7 — `exactOptionalPropertyTypes` shaped several signatures
+
+With this flag an optional property must be *absent*, not
+present-and-undefined. Two consequences worth knowing before adding code:
+
+- Conditional spreads (`...(x ? { k: x } : {})`) widen the inferred type and are
+  rejected. `withRequestContext` builds its context imperatively instead.
+- A field that is genuinely assigned `undefined` to reset it (the
+  `globalThis` database handles) must be typed `T | undefined`, not `T?`.
+
+### D8 — pino `base: null`, not `base: undefined`
+
+`undefined` leaves pino's default `pid`/`hostname` bindings in place; `null` is
+the documented way to drop them. They are noise in a serverless log stream. The
+logger is also built lazily, for the D1 reason.
+
+### D9 — `pnpm lint` had no config and had never run (F01, F12)
+
+`lint` was in the `verify` chain from the start, but no `eslint.config.*` existed.
+ESLint exited non-zero with a config-not-found error which read, in a long chain,
+much like an ordinary lint failure. **Third** inert gate of the same family as D4.
+
+Writing the config surfaced a fourth: the sanctioned
+`eslint-disable-next-line no-restricted-properties` in `packages/core/src/env.ts`
+was reported as an *unused directive*, proving no rule had ever banned
+`process.env` at the AST level. `no-restricted-properties` is now configured, and
+a probe confirms it fires in a domain package.
+
+Both the grep guard and the ESLint rule are kept deliberately. They fail in
+opposite directions:
+
+- `scripts/guards.mjs` flagged `eslint.config.mjs` itself, because that file
+  *mentions* `process.env` as the string subject of the rule banning it. A regex
+  cannot distinguish a property read from a description of one.
+- ESLint only sees files it parses, and a per-line disable comment is reviewable
+  where a regex exemption is not.
+
+`reportUnusedDisableDirectives` is enabled so a suppression that stops being
+necessary becomes a warning rather than lingering as false reassurance.
+
+### D10 — Standing verification practice
+
+D4 and D9 were both "green gate, zero enforcement". Every gate added from here is
+proven by a deliberate violation before it is trusted:
+
+| Gate | Probe used | Observed |
+| --- | --- | --- |
+| `depcruise` R2 | domain module importing `@forum/db` + `next/navigation` | 2 errors |
+| `eslint` F02 | `process.env` read in `packages/forums` | 1 error |
+| `guards` F02 | `process.env` read in `apps/forum/src` | 1 violation |
+| `vitest` outbox crash-safety | `markRelayed` moved before `enqueue` | correct test failed |
+| tick auth | wrong-length and wrong-value secrets | all rejected, no throw |
+
+The outbox mutation is the important one: it failed *exactly* the
+crash-recovery test and no others, which is what distinguishes a real assertion
+from a tautological one.
+
+### D11 — Composition root deferred; CLI trimmed to match (F13)
+
+`tick()`, `relayOutbox()` and `SettingsSnapshot.fromOverrides()` all take their
+repository as a parameter — that is what makes them testable without a database,
+and it is why the 15 passing tests need no Postgres. The corollary is that
+*something* must construct those repositories from either the fixture or
+Postgres. That composition root does not exist yet.
+
+`forum` therefore ships three commands (`env:check`, `migrate`,
+`settings:list`) rather than the six first drafted. `tick`, `queue:drain` and
+`settings:get` are omitted, not stubbed: a `--help` that advertises a command
+which throws is worse than one that omits it. They land with the composition
+root in Phase 1, alongside the account and forum repositories that need the same
+wiring.
+
+`runMigrations()` was genuinely missing from `@forum/db` and has been added. It
+uses `DIRECT_DATABASE_URL` (new, optional, falls back to `DATABASE_URL`) with
+`max: 1`, because drizzle's advisory lock only serialises concurrent deploys if
+every statement runs on one connection — a transaction-mode pooler defeats it.
+
+**Phase 0 gate status:** `guards`, `lint`, `depcruise`, `typecheck`, `test` all
+pass; 59 modules cruised, 15 tests. Each gate probe-verified per D10.
+
+### D12 — ACP access is never emergent from the admin bypass (F20/F21)
+
+A bypass must be explicit, never a side effect of a column (plan F20). The
+control panel is the sharpest instance: the administrator bypass grants every
+action in `ADMIN_ALWAYS`, and `admincp.access` is deliberately **not** in that
+set. It is decided in exactly one place — `canGlobal`, via the
+`canAccessAdminCp` column — so a full administrator whose group lacks that column
+is denied the ACP. In practice an admin group carries it; the point is the
+*mechanism* cannot be reached by a bypass, a super-mod, or a future god-mode flag.
+
+This was found the honest way. Mutation M3 (deleting a special-case
+`admincp.access` early-return) left all 388 matrix cells green, because the
+matrix's eight actors are each either a full admin or a non-staffer — none is a
+delegated ACP staffer, the only actor the deleted line distinguished. Two
+lessons:
+
+1. The early-return was **redundant** with `canGlobal` and was removed. Two code
+   paths deciding the same thing is drift waiting to happen.
+2. The real invariant is "`admincp.access ∉ ADMIN_ALWAYS`". The mutation that
+   *matters* — adding it back — now fails two focused tests in `authorizer.test.ts`
+   (verified). The 388-cell matrix was the wrong instrument for this one property;
+   a four-assertion unit test is the right one.
+
+Writing the first version of that test also caught a latent bug in my own code:
+I had expected the admin bypass to grant the ACP, which would have let an
+administrator lock every non-admin out of a panel they themselves could not
+reach. The test failing against correct code is what surfaced the design
+question at all.
+
+### D13 — F20 group-ID lint rule, and its two false positives
+
+F20 requires a lint rule that fires when a group ID escapes the authorization
+package. Group IDs are bare numbers, so the enforceable proxy is access to the
+two Actor fields that carry them: `no-restricted-properties` bans reads of
+`groupIds` and `primaryGroupId` everywhere, re-enabled only inside
+`packages/authorization/**`. A probe in a domain package fires two errors; the
+same code inside authorization is silent (both verified).
+
+Enabling it immediately flagged `packages/db/src/schema/identity.ts` —
+`index('users_primary_group_idx').on(t.primaryGroupId)`. Naming and indexing a
+persisted column is not branching on a group ID, so schema files are exempt
+(env ban retained). Query/repo code under `packages/db/src` outside `schema/`
+stays covered, so the eventual actor-construction read will need its promised
+per-line disable. Flat config cannot disable one entry of a multi-entry rule, so
+both exemptions re-declare the rule with only the `process.env` restriction
+rather than turning it fully off.
+
+**Phase 1 critical-path status (F20/F21/F22):** authorization package complete;
+425 tests pass (388-cell matrix + 37 focused/unit); combination, tree
+resolution, bypass isolation and the F20 lint rule each probe-verified. Repos,
+sessions and the composition root (D11) remain.
+
+### D14 — Composition root: where the Postgres adapter lives, and lazy loading
+
+The authorizer defines its data needs as a port (`AuthorizationSource`);
+something must supply a Postgres implementation without making the domain depend
+on the database. Two placement decisions:
+
+- **The SQL adapter lives in `@forum/db`, not `@forum/authorization`.**
+  authorization is a domain package (core-only). Implementing a domain port with
+  SQL is exactly the database layer's job, and the edge `db → authorization →
+  core` is acyclic (verified: 72 modules, no cycle). The forum tree uses a
+  dot-path (`parentPath`) inclusive of self, so `ancestorChain` is a single row
+  read plus a parse — no recursive CTE — and both dimensions of the
+  forum-override lookup are filtered in SQL, not post-filtered in JS.
+
+- **The container lives in `apps/forum/src/server`, the app tier.** Only the app
+  may import both `@forum/db` and the domain, so composition belongs there. It
+  selects the source from `env.DATA_SOURCE` and builds the `Authorizer` once. The
+  Postgres branch is loaded through a **synchronous, single-line, twice-disabled
+  `require`** so fixture mode (dev, tests, DB-less preview) never pulls in
+  postgres.js. Building the container in fixture mode opens no socket — that is
+  the whole point of the branch, and the container test asserts it.
+
+The row mappers carry the two subtle rules from D-nothing-yet into code and pin
+them with mutation tests: a group row missing a column falls back to the
+*registry default* (not `undefined`), while a forum-override column that is null
+means **inherit** (dropped from the override), not deny. Mutating null→false
+fails three tests including both inherit cases (verified).
+
+**Process note.** The first full-verify run after this work was **red** and I
+nearly missed it: an `eslint-disable` directive had drifted one line off its
+`require` (the destructuring wrapped), leaving the directive unused *and* the
+require unguarded. Worse, I had piped `pnpm verify` into `grep`, so `$?` reported
+grep's exit, not verify's. Re-running as `pnpm verify > log; echo exit=$?` showed
+the truth. Lesson folded into the D10 practice: **never read a gate's result
+through a pipe** — capture the real exit code.
+
+### D15 — Identity service: ports, in-memory repos, register/login/reset
+
+The `IdentityService` is pure orchestration over four injected repository ports
+(`Account`, `Session`, `CredentialToken`, `LoginAttempt`) plus an injected
+`Clock` and `AuthConfig`, so every rule is testable here with no database. The
+in-memory store is the fixture; the Postgres adapters (next) implement the same
+ports. Security behaviours pinned by 39 tests, two of them mutation-verified
+(neutering the lockout throw, and skipping session-revocation-on-reset, each kill
+a test):
+
+- **Login lockout** is checked *before* any hash work, so a locked bucket costs
+  nothing; the window is driven by the injected clock.
+- **User-enumeration defence**: a missing account still runs a real
+  `verifyPassword` against a genuine throwaway hash (see the bug below), so the
+  timing of "no such user" matches "wrong password".
+- **Rehash-on-login** upgrades an under-policy-but-valid hash to current policy
+  and leaves a current one untouched (tested by minting a real weak argon2id hash
+  via hash-wasm and asserting the stored hash changes, then doesn't).
+- **Reset tokens** are single-use (redemption is a consume, enforced in the
+  repo), TTL-bounded by the clock, and a successful reset **revokes all
+  sessions**. Requesting a new token revokes prior ones.
+
+**Two real bugs the tests caught before they could ship.** Both came from me
+mis-remembering my *own* crypto API written the previous turn:
+
+1. `verifyPassword(password, hash)` was called with the arguments **reversed**
+   (`verifyPassword(encoded, password)`) — every login would have failed to
+   verify. A reversed-argument bug that a "does login succeed?" test caught
+   immediately.
+2. `hashToken` is **async** (SHA-256 via `crypto.subtle.digest`) but I called it
+   synchronously, so the in-memory store keyed sessions and tokens on unresolved
+   `Promise` objects that never compared equal — silently breaking every session
+   lookup and token redemption. The reset tests surfaced it as "invalid or
+   expired" on a freshly-issued token.
+
+   Both are the exact class of error that a "compiles + types pass" check waves
+   through (the second only failed at runtime), and the argument-order one is why
+   the D10 "prove the test has teeth" habit matters: a tautological login test
+   would have masked it.
+
+A third near-bug: my first `dummyHash` for the enumeration defence was a
+hand-fabricated PHC string. It would have been rejected cheaply by the verifier,
+spending *no* time and defeating the whole point. Replaced with a real,
+memoised argon2id hash of a random value.
+
+**F20 disable landed as promised (D13).** Exactly one member-access read —
+`input.primaryGroupId` copying a persisted column into the stored record — trips
+the group-id lint rule. It is transport into the record the actor builder reads,
+not an authorization decision, so it carries the sanctioned per-line
+`eslint-disable-next-line no-restricted-properties` with justification, not a
+package-wide override.
+
+**Identity remaining:** actor construction (user + groups → `Actor`, the read the
+authorizer consumes), the four Postgres repository adapters, and the F18/F19
+no-JS web layer (register/login/reset).
+
+### D16 — Actor construction + Postgres adapters, tested on real Postgres
+
+The actor builder (`packages/db/src/actor-builder.ts`) turns a user id into the
+resolved `Actor` the authorizer consumes: it loads the account row, unions the
+primary group with the secondary memberships (deduped), OR/max-combines their
+permission sets via `combinePermissionSets`, maps DB state → `ActorState`, and
+stamps the `cache_versions[permissions]` counter. The four Postgres repository
+adapters (`account-repos.ts`) implement the `@forum/accounts` ports so the same
+`IdentityService` runs over Postgres in production and the in-memory store in
+unit tests.
+
+**Testing against a real database, not a mock.** These adapters are almost
+entirely SQL semantics — a conditional single-use `UPDATE`, partial-index
+uniqueness, `timestamptz` comparisons, group-union dedup — so a hand-rolled mock
+would "pass" while proving nothing. Instead the tests boot **PGlite** (Postgres
+compiled to WASM) and apply the *actual generated migration SQL* verbatim via a
+`pglite.fixture.ts` helper (a `.fixture.ts`, so the orphan rule ignores it, per
+the D-series precedent). Added `@electric-sql/pglite` as a dev dependency. 16 new
+tests (6 actor + 10 repo). The crown-jewel invariant — single-use `consume` —
+is mutation-verified two ways: dropping the `consumed_at IS NULL` guard makes a
+token redeemable twice (kills "exactly once"), and dropping the expiry guard
+lets an expired token through (kills "refuses expired"). Both mutants die.
+
+**A real behavioural fix reading the schema:** the DB has *two* pre-active
+states, `awaiting_activation` (email) and `awaiting_approval` (admin), but the
+authorizer models only one read-mostly `awaiting_activation`. My first `mapState`
+silently dropped `awaiting_approval` into the `default` → `deleted` bucket, which
+would have made every admin-approval-pending account a null actor (no access at
+all, instead of restricted access). Now both pre-active states collapse to
+`awaiting_activation`.
+
+**F20 firing semantics, pinned precisely (extends D13/D15).** Chasing three
+rounds of red verify taught the exact rule behaviour, now documented at each
+site: `no-restricted-properties` fires on a **value read** (`user.primaryGroupId`)
+and on a **Drizzle column reference** (`users.primaryGroupId` in a select/insert
+map), but **not** on an object-literal key or shorthand property. So the
+transport sites (select column, map row, insert value, read own group to build
+the ladder) each carry a justified per-line disable; object keys don't and must
+not (an over-applied disable trips the "unused directive" error and fails the
+gate — the tooling actively rejects cargo-culted suppressions, which is the
+behaviour we want). Still no package-wide override: authz decisions have no
+business in an infra adapter, and keeping the disables per-line keeps that honest.
+
+### D17 — Session & remember-me core (F17), the security decisions isolated
+
+F17's session logic splits into a *decision* (what to do when a remember-me
+token is replayed) and *plumbing* (cookies, Set-Cookie flags). The decision is
+security-critical and pure, so it lives in a new `SessionService`
+(`packages/accounts/src/session-service.ts`) with its own focused tests; the
+plumbing stays in the app layer (still to come). Ports grew three
+concurrency-shaped operations — `SessionRepository.supersede` (fixation
+defence), `SessionRepository.touchLocation` (the R3.1 location triplet, throttled),
+and a whole `RememberTokenRepository` (issue / rotate / revokeFamily) — each
+implemented twice: reference semantics in `memory-repos.ts`, real SQL in
+`account-repos.ts`, both pinned by the same tests.
+
+**Three invariants, each a conditional write, each mutation-verified:**
+- *Remember-me single-use.* `rotate` is a two-step atomic claim: an `UPDATE ...
+  SET used_at WHERE used_at IS NULL AND revoked_at IS NULL AND not-expired
+  RETURNING`, and only the winner inserts the next token in the family. Dropping
+  the `used_at IS NULL` guard makes a replayed token rotate again — kills the
+  reuse test.
+- *Reuse ⇒ burn the family.* When the claim fails but the row exists and is
+  unexpired, that is a replay of a spent/revoked token — the signature of a
+  stolen cookie. `SessionService.resume` responds by revoking the entire token
+  family *and* every live session for the user: we cannot tell thief from
+  victim, so both re-authenticate. A revoked token re-presented keeps returning
+  `reuse` (not `invalid`), so the breach response is idempotent — the test was
+  wrong here first (asserted `invalid`); the code was right.
+- *Location throttle is the WHERE clause.* `touchLocation` rewrites the row only
+  `WHERE last_seen_at < now - windowSeconds`, so a burst of page views collapses
+  to one write and `RETURNING id` tells the caller whether it happened. The
+  throttle is a property of the method, never the caller. Dropping the predicate
+  makes every call write — kills the throttle test.
+
+**Session fixation.** `supersede(old, new)` points the old row at its
+replacement and revokes it in one `UPDATE`, so a concurrent request never sees a
+superseded-but-live session; login mints a fresh session id rather than reusing
+one, which the rotation test asserts (`sessionToken !== previous`).
+
+16 new tests (4 SessionService over the in-memory store with a fixed clock, 12
+Postgres repo tests over PGlite). Same discipline as D16: real Postgres for the
+SQL-semantic parts, mutation-verified guards, and the `SessionRecord` widened
+(`supersededBySessionId`, `lastSeenAt`) via a shared `SESSION_COLUMNS`/
+`toSessionRecord` pair so select and insert-returning cannot drift.
+
+**Identity remaining:** only the app-layer wiring is left — `context.ts` (lazy
+per-request `Actor` via `React.cache`), `proxy.ts` (cookie resolution, no DB),
+and the F18/F19 no-JS Server-Action web layer (register / login / logout /
+reset). All the domain services and both store implementations they need now
+exist and are tested.

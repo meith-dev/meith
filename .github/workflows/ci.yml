@@ -1,0 +1,133 @@
+# F12 — the gate every change passes.
+#
+# Ordering is deliberate: the cheap, fast-failing checks run first so a trivial
+# mistake does not wait behind a Postgres container. The Postgres-backed job runs
+# in parallel with the static one rather than after it, because the two fail for
+# unrelated reasons and serialising them just doubles feedback time.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the in-flight run obsolete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keeps `next build` from phoning home during CI.
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  static:
+    name: Static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # --frozen-lockfile makes CI fail on an out-of-date lockfile rather than
+      # silently resolving different versions than a developer has locally.
+      - run: pnpm install --frozen-lockfile
+
+      - name: Textual invariants
+        run: pnpm guards
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Architecture boundaries
+        run: pnpm depcruise
+
+      - name: Types
+        run: pnpm typecheck
+
+      - name: Unit and integration tests
+        run: pnpm test
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # The build must succeed with no database reachable: DATA_SOURCE=fixture is
+      # the documented no-Postgres path, and a build that secretly needs a live
+      # connection would break `docker build` and preview deploys.
+      - name: Build
+        run: pnpm build
+        env:
+          DATA_SOURCE: fixture
+          AUTH_SECRET: ci-build-secret-not-used-at-runtime-000000
+          NODE_ENV: production
+
+  migrations:
+    name: Migrations and schema drift
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: forum_test
+        ports: ['5432:5432']
+        # Without this the first migration can race the container's startup.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        run: pnpm --filter @forum/db migrate
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
+
+      # Catches the common drift where someone edits schema.ts but forgets to
+      # generate the migration. A non-empty diff here means the checked-in SQL no
+      # longer reproduces the declared schema.
+      - name: Assert no uncommitted schema drift
+        run: |
+          pnpm --filter @forum/db generate
+          if [ -n "$(git status --porcelain packages/db/drizzle)" ]; then
+            echo "::error::schema.ts changed without a generated migration."
+            git --no-pager diff -- packages/db/drizzle
+            exit 1
+          fi
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
+
+      - name: Postgres-backed tests
+        run: pnpm test
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
+          DATA_SOURCE: postgres

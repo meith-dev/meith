@@ -1,0 +1,24 @@
+{
+  "name": "@forum/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx src/index.ts"
+  },
+  "bin": {
+    "forum": "./dist/index.js"
+  },
+  "dependencies": {
+    "@forum/core": "workspace:*",
+    "@forum/db": "workspace:*",
+    "@forum/settings": "workspace:*",
+    "@forum/tasks": "workspace:*",
+    "@forum/events": "workspace:*",
+    "@forum/drivers": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6"
+  }
+}

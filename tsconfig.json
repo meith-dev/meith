@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "themes/**/*.ts",
+    "themes/**/*.tsx",
+    "apps/cli/**/*.ts",
+    "apps/worker/**/*.ts",
+    "*.ts",
+    "*.mts"
+  ],
+  "exclude": ["node_modules", "**/dist", "**/.next", "apps/forum"]
+}

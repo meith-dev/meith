@@ -1,0 +1,38 @@
+{
+  "name": "forum-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @forum/web dev",
+    "build": "pnpm --filter @forum/web build",
+    "start": "pnpm --filter @forum/web start",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:app": "tsc -p apps/forum/tsconfig.json --noEmit",
+    "depcruise": "depcruise --config .dependency-cruiser.cjs apps packages themes",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "forum": "pnpm --filter @forum/cli start",
+    "format": "prettier --write .",
+    "verify": "pnpm guards && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm test",
+    "guards": "node scripts/guards.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "dependency-cruiser": "^18.1.0",
+    "eslint": "^10.8.0",
+    "globals": "^17.8.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.1",
+    "typescript": "5.7.3",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "hash-wasm": "^4.12.0"
+  }
+}

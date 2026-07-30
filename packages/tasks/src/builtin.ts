@@ -1,0 +1,116 @@
+/**
+ * F06 — the built-in catch-up tasks.
+ *
+ * Each takes its dependencies as arguments so the same definition can run
+ * against Postgres or the fixture. Note none of them look at the wall clock to
+ * decide *what* to do — they read outstanding state, which is what makes a
+ * skipped or doubled tick harmless.
+ */
+
+import type { TaskDefinition } from './types'
+
+/** Work each task delegates to. Implemented in the app layer over @forum/db. */
+export interface TaskWorkers {
+  /** Moves committed outbox rows onto the queue. Returns rows relayed. */
+  relayOutbox(batchSize: number): Promise<number>
+  /** Runs due queue jobs. Returns jobs processed. */
+  drainQueue(batchSize: number): Promise<number>
+  /** Deletes sessions idle past the configured timeout. Returns rows removed. */
+  pruneSessions(): Promise<number>
+  /** Clears expired activation/reset tokens. Returns rows removed. */
+  pruneExpiredTokens(): Promise<number>
+  /** Recomputes drifted forum/thread counters. Returns rows corrected. */
+  reconcileCounters(batchSize: number): Promise<number>
+  /** Promotes users who now meet a promotion rule. Returns users moved. */
+  applyPromotions(batchSize: number): Promise<number>
+}
+
+export function builtinTasks(workers: TaskWorkers): TaskDefinition[] {
+  return [
+    {
+      id: 'outbox.relay',
+      title: 'Relay domain events',
+      description:
+        'Moves committed events from the outbox onto the queue. Runs most ' +
+        'frequently because user-visible side effects (notifications, search ' +
+        'indexing) wait on it.',
+      intervalSeconds: 60,
+      maxDurationSeconds: 30,
+      async run() {
+        const relayed = await workers.relayOutbox(200)
+        return { detail: { relayed } }
+      },
+    },
+
+    {
+      id: 'queue.drain',
+      title: 'Process queued jobs',
+      description:
+        'Executes due jobs. Bounded per run: a large backlog is drained across ' +
+        'several ticks rather than risking a function timeout mid-job.',
+      intervalSeconds: 60,
+      maxDurationSeconds: 45,
+      async run() {
+        const processed = await workers.drainQueue(50)
+        return { detail: { processed } }
+      },
+    },
+
+    {
+      id: 'sessions.prune',
+      title: 'Prune idle sessions',
+      description:
+        'Deletes sessions past the idle timeout. Purely subtractive, so running ' +
+        'it twice removes nothing extra.',
+      intervalSeconds: 3600,
+      maxDurationSeconds: 30,
+      async run() {
+        const removed = await workers.pruneSessions()
+        return { detail: { removed } }
+      },
+    },
+
+    {
+      id: 'tokens.prune',
+      title: 'Prune expired tokens',
+      description: 'Clears spent activation and password-reset tokens.',
+      intervalSeconds: 3600,
+      maxDurationSeconds: 30,
+      async run() {
+        const removed = await workers.pruneExpiredTokens()
+        return { detail: { removed } }
+      },
+    },
+
+    {
+      id: 'counters.reconcile',
+      title: 'Reconcile denormalised counters',
+      description:
+        'Recomputes forum and thread counters from source rows. Counters are ' +
+        'maintained incrementally on the write path for speed; this is the ' +
+        'safety net that repairs drift from a crashed request or a bad import. ' +
+        'Idempotent by construction — it writes a computed truth, not a delta.',
+      intervalSeconds: 21_600,
+      maxDurationSeconds: 60,
+      async run() {
+        const corrected = await workers.reconcileCounters(500)
+        return { detail: { corrected } }
+      },
+    },
+
+    {
+      id: 'promotions.apply',
+      title: 'Apply group promotions',
+      description:
+        'Moves users into groups whose promotion criteria they now meet. ' +
+        'Evaluates current post counts and registration age rather than tracking ' +
+        'thresholds crossed, so a missed run catches up on the next tick.',
+      intervalSeconds: 21_600,
+      maxDurationSeconds: 60,
+      async run() {
+        const promoted = await workers.applyPromotions(500)
+        return { detail: { promoted } }
+      },
+    },
+  ]
+}

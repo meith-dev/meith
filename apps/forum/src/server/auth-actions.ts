@@ -1,0 +1,195 @@
+'use server'
+
+/**
+ * F18/F19 Server Actions: register, login, logout, request-reset, confirm-reset.
+ *
+ * Every action is written for `useActionState` AND for a no-JS form post: each
+ * returns a plain serialisable `FormState` (never throws to the client), reads
+ * from `FormData` (so a native submit works with scripting disabled), and does
+ * its own `redirect()` on success. Progressive enhancement is a hard F18
+ * requirement — the whole auth flow must work with JavaScript turned off — so
+ * there is no client-side validation these depend on.
+ *
+ * Domain errors (`ValidationError`, `ConflictError`, `ForbiddenError`) are the
+ * expected failure channel and are caught and turned into a field/summary
+ * message; anything else rethrows as a real 500.
+ */
+import { redirect } from 'next/navigation'
+
+import {
+  ConflictError,
+  ForbiddenError,
+  ValidationError,
+  isAppError,
+  logger,
+} from '@forum/core'
+
+import { getContainer } from './container'
+import type { FormState } from './auth-form-state'
+import {
+  clearSessionCookies,
+  readSessionToken,
+  setRememberCookie,
+  setSessionCookie,
+} from './session-cookies'
+
+const log = logger({ module: 'auth-actions' })
+
+/** Pull a trimmed string field; '' when absent. */
+function field(form: FormData, name: string): string {
+  const v = form.get(name)
+  return typeof v === 'string' ? v.trim() : ''
+}
+
+/** Turn a thrown domain error into a FormState; rethrow the unexpected. */
+function toFormState(err: unknown, values?: Record<string, string>): FormState {
+  if (
+    err instanceof ValidationError ||
+    err instanceof ConflictError ||
+    err instanceof ForbiddenError
+  ) {
+    return { error: err.message, values }
+  }
+  // Not an expected domain failure: log it and surface a generic message rather
+  // than leaking internals. Rethrowing would blank the form with a 500 page;
+  // for a bad-gateway-class fault that is worse UX than an inline message.
+  if (isAppError(err)) return { error: err.message, values }
+  log.error({ err }, 'unexpected error in auth action')
+  return { error: 'Something went wrong. Please try again.', values }
+}
+
+/**
+ * A coarse per-request lockout bucket. The username is the primary key (so
+ * guessing account A cannot lock account B); we deliberately do NOT mix in IP
+ * here in fixture mode because the demo has no proxy header to trust. The
+ * Postgres path can compose a richer bucket later without touching this action.
+ */
+function loginBucket(identifier: string): string {
+  return `login:${identifier.toLocaleLowerCase()}`
+}
+
+export async function registerAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const username = field(form, 'username')
+  const email = field(form, 'email')
+  const password = field(form, 'password')
+  const values = { username, email }
+
+  const { identity } = getContainer()
+  try {
+    await identity.register({ username, email, password })
+  } catch (err) {
+    return toFormState(err, values)
+  }
+
+  // activationMethod is 'none' in the current config, so the account is usable
+  // immediately — send them to login with a success hint rather than auto-
+  // authenticating, which keeps register and login as separate credentials tests.
+  redirect('/login?registered=1')
+}
+
+export async function loginAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const identifier = field(form, 'identifier')
+  const password = field(form, 'password')
+  const remember = form.get('remember') === 'on'
+  const next = sanitizeNext(field(form, 'next'))
+  const values = { identifier }
+
+  const { identity, sessions } = getContainer()
+
+  try {
+    const result = await identity.login(identifier, password, loginBucket(identifier))
+    await setSessionCookie(result.sessionToken, result.expiresAt)
+
+    if (remember) {
+      // A brand-new remember-me family. This also mints its own short session,
+      // but we already set one from login(); the remember family is what
+      // survives the session's idle expiry, so we only need its token here.
+      const remembered = await sessions.startRemembered(result.account.id)
+      await setRememberCookie(remembered.rememberToken, remembered.rememberExpiresAt)
+    }
+  } catch (err) {
+    return toFormState(err, values)
+  }
+
+  redirect(next)
+}
+
+export async function logoutAction(): Promise<void> {
+  const token = await readSessionToken()
+  if (token) {
+    const { identity } = getContainer()
+    // Best-effort server-side revoke; even if it fails we still clear cookies so
+    // the browser stops presenting the token.
+    try {
+      await identity.logout(token)
+    } catch (err) {
+      log.warn({ err }, 'logout revoke failed; clearing cookies anyway')
+    }
+  }
+  await clearSessionCookies()
+  redirect('/login')
+}
+
+export async function requestResetAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const email = field(form, 'email')
+  const { identity } = getContainer()
+
+  try {
+    const { token } = await identity.requestPasswordReset(email)
+    // The confirmation is IDENTICAL whether or not an account matched — that is
+    // the enumeration defence. In fixture/dev with no mailer we surface the link
+    // so the flow is demonstrable; a real deployment emails it and shows only
+    // the generic notice.
+    if (token) {
+      log.info({ resetPath: `/reset/confirm?token=${token}` }, 'password reset requested')
+    }
+    return {
+      notice:
+        'If an account exists for that email, a password reset link has been sent.',
+      values: token ? { devToken: token } : undefined,
+    }
+  } catch (err) {
+    return toFormState(err, { email })
+  }
+}
+
+export async function confirmResetAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const token = field(form, 'token')
+  const password = field(form, 'password')
+  const confirm = field(form, 'confirm')
+
+  if (password !== confirm) {
+    return { error: 'The two passwords do not match.', values: { token } }
+  }
+
+  const { identity } = getContainer()
+  try {
+    await identity.redeemPasswordReset(token, password)
+  } catch (err) {
+    return toFormState(err, { token })
+  }
+
+  redirect('/login?reset=1')
+}
+
+/**
+ * Only allow same-origin relative redirects after login. An attacker-supplied
+ * `?next=https://evil.example` would otherwise turn the login form into an open
+ * redirect; anything not starting with a single '/' is dropped to the home page.
+ */
+function sanitizeNext(next: string): string {
+  if (next.startsWith('/') && !next.startsWith('//')) return next
+  return '/'
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@forum/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@forum/core": "workspace:*",
+    "drizzle-orm": "^0.44.7",
+    "postgres": "^3.4.7",
+    "@forum/authorization": "workspace:*",
+    "@forum/accounts": "workspace:*"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.6",
+    "@electric-sql/pglite": "^0.5.4"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "check": "drizzle-kit check"
+  }
+}

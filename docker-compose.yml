@@ -1,0 +1,85 @@
+# F04 — a complete self-hosted board: web + Postgres + the cron tick.
+#
+# `docker compose up` should produce a working forum with no other setup, which
+# is the parity claim against MyBB's "upload and run" story.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: forum
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forum}
+      POSTGRES_DB: forum
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U forum -d forum']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build: .
+    # Runs to completion then exits; `web` waits for it so the schema is always
+    # applied before the first request rather than racing it.
+    command: ['node', 'node_modules/.bin/drizzle-kit', 'migrate']
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgres://forum:${POSTGRES_PASSWORD:-forum}@postgres:5432/forum
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      DATABASE_URL: postgres://forum:${POSTGRES_PASSWORD:-forum}@postgres:5432/forum
+      DATA_SOURCE: postgres
+      # Required. Generate with: openssl rand -base64 32
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set}
+      # Guards the tick endpoint, which is publicly routable.
+      TICK_SECRET: ${TICK_SECRET:?TICK_SECRET must be set}
+      QUEUE_DRIVER: postgres
+      CACHE_DRIVER: next
+      FILESTORE_DRIVER: local
+      MAIL_DRIVER: ${MAIL_DRIVER:-log}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+    volumes:
+      - uploads:/app/.uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # Vercel Cron has no self-hosted equivalent, so a tiny sidecar curls the tick
+  # endpoint on the same one-minute cadence vercel.json declares. Keeping the
+  # schedule identical means self-hosted and hosted deployments exercise the same
+  # catch-up code paths.
+  tick:
+    image: alpine:3.20
+    restart: unless-stopped
+    environment:
+      TICK_SECRET: ${TICK_SECRET:?TICK_SECRET must be set}
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl >/dev/null
+        while true; do
+          curl -fsS -m 55 -H "Authorization: Bearer $$TICK_SECRET" \
+            http://web:3000/api/tick >/dev/null 2>&1 \
+            || echo "tick failed at $$(date -Is)"
+          sleep 60
+        done
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  uploads:
