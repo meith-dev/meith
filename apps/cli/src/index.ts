@@ -12,6 +12,14 @@
 
 import process from 'node:process'
 
+import {
+  forumCreate,
+  settingsGet,
+  settingsSet,
+  userCreate,
+  userPromote,
+} from './commands'
+
 interface Command {
   readonly name: string
   readonly summary: string
@@ -143,20 +151,59 @@ const commands: Command[] = [
       return 0
     },
   },
+
+  {
+    name: 'user:create',
+    summary: 'Create a user account. Pipe the password in on stdin.',
+    usage:
+      'echo "<password>" | forum user:create --username <name> --email <addr> [--group <key>]',
+    run: userCreate,
+  },
+
+  {
+    name: 'user:promote',
+    summary: "Change a user's primary group.",
+    usage: 'forum user:promote --user <id|username> --group <key|id>',
+    run: userPromote,
+  },
+
+  {
+    name: 'forum:create',
+    summary: 'Create a category, forum or link.',
+    usage:
+      'forum forum:create --title <title> --slug <slug> [--parent <id>] ' +
+      '[--type category|forum|link] [--description <text>] [--link-url <url>]',
+    run: forumCreate,
+  },
+
+  {
+    name: 'settings:get',
+    summary: 'Print one resolved setting value.',
+    usage: 'forum settings:get <key>',
+    run: settingsGet,
+  },
+
+  {
+    name: 'settings:set',
+    summary: 'Set one setting, validated by the registry.',
+    usage: 'forum settings:set <key> <value>',
+    run: settingsSet,
+  },
 ]
 
+
 /*
- * Deliberately absent: `tick`, `queue:drain` and `settings:get`.
+ * Still deliberately absent: `tick`, `queue:drain` and `cache:clear`.
  *
- * Each needs a repository implementation wired to either Postgres or the
- * fixture — the composition root, which does not exist yet. `tick()`,
- * `relayOutbox()` and `SettingsSnapshot.fromOverrides()` all take their
- * repository as a parameter precisely so they stay testable, which means
- * something has to construct it.
+ * `tick` and `queue:drain` need a `TaskRepository`, which does not exist — the
+ * tick route itself still returns `ran: []` (F06). `cache:clear` needs a cache
+ * an operator could meaningfully clear: MemoryCache dies with the process it
+ * lives in, and NextCache's `revalidateTag` only works inside a Next request, so
+ * the honest implementation bumps `cache_versions` and that belongs with F70's
+ * Recount & Rebuild.
  *
- * Registering them now as commands that throw at runtime would be worse than
- * omitting them: `forum --help` would advertise capabilities the binary does not
- * have. They are added in the same change that introduces the composition root.
+ * Registering them now as commands that throw would be worse than omitting
+ * them: `forum --help` would advertise capabilities the binary does not have.
  */
 
 async function main(): Promise<number> {
@@ -184,7 +231,21 @@ async function main(): Promise<number> {
 
 main()
   .then((code) => process.exit(code))
-  .catch((error: unknown) => {
-    console.error(error instanceof Error ? error.stack : String(error))
+  .catch(async (error: unknown) => {
+    /*
+     * Expected failures print their message and nothing else. A missing --title
+     * or an unset DATABASE_URL is an operator mistake, not a defect, and a stack
+     * trace buries the one line that says how to fix it — it also trains people
+     * to ignore stack traces, so the real ones stop being read.
+     *
+     * Anything unrecognised still prints in full, because that IS a defect.
+     */
+    const { isAppError } = await import('@forum/core')
+
+    if (isAppError(error)) {
+      console.error(error.message)
+    } else {
+      console.error(error instanceof Error ? error.stack : String(error))
+    }
     process.exit(1)
   })

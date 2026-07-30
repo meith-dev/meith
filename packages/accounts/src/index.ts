@@ -42,6 +42,8 @@ export { createMemoryStore } from './memory-repos'
 
 export { foldIdentifier } from './case-fold'
 
+export { DEFAULT_AUTH_POLICY, type AuthPolicy } from './policy'
+
 export type {
   AccountRecord,
   AccountState,

@@ -11,7 +11,7 @@ import 'server-only'
  * `defaultMemberGroupId` and `reservedUsernames` mirror the seed board so a
  * fixture registration lands the new user in the same group a Postgres one would.
  */
-import type { AuthConfig } from '@forum/accounts'
+import { DEFAULT_AUTH_POLICY, type AuthConfig } from '@forum/accounts'
 
 import { SEED_GROUP } from './seed-board'
 
@@ -20,28 +20,15 @@ export const REMEMBER_DAYS = 30
 export const SESSION_IDLE_DAYS = 14
 
 export const AUTH_CONFIG: AuthConfig = {
-  minPasswordLength: 8,
-  usernameMin: 3,
-  usernameMax: 30,
+  /*
+   * Shared with the operator CLI so an account made by `forum user:create`
+   * satisfies exactly the rules the registration form enforces. Only the two
+   * board-level decisions are set here.
+   */
+  ...DEFAULT_AUTH_POLICY,
+  sessionIdleDays: SESSION_IDLE_DAYS,
   // Fixture/demo activates immediately so the Checkpoint 1 flow is one step; a
   // real deployment flips this to 'email' once the outbox (F07) is wired.
   activationMethod: 'none',
-  maxLoginAttempts: 5,
-  lockoutMinutes: 15,
-  sessionIdleDays: SESSION_IDLE_DAYS,
-  resetTokenTtlMinutes: 60,
-  reservedUsernames: [
-    'admin',
-    'administrator',
-    'root',
-    'moderator',
-    'mod',
-    'staff',
-    'system',
-    'guest',
-    'anonymous',
-    'me',
-    'you',
-  ],
   defaultMemberGroupId: SEED_GROUP.registered,
 }

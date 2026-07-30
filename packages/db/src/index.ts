@@ -29,6 +29,11 @@ export { ActorBuilder, type ActorBuilderConfig } from './actor-builder'
 export { PostgresForumRepository } from './forum-repo'
 export { PostgresSettingsRepository } from './settings-repo'
 export {
+  PostgresAdminRepository,
+  type GroupSummary,
+  type UserSummary,
+} from './admin-repo'
+export {
   PostgresAccountRepository,
   PostgresSessionRepository,
   PostgresCredentialTokenRepository,

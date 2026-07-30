@@ -591,3 +591,49 @@ already exists to convert a loose row into a validated `PermissionSet`, and the
 seed test asserts through that mapper rather than around it. Making the columns
 statically typed would need a mapped type over the registry — worth doing, but
 it is a change to F20's foundation and not a rider on a seed migration.
+
+### D24 — The CLI's composition root, and why it is a second one (F13)
+
+`apps/cli` deliberately does not import `apps/forum/src/server/container.ts`.
+That module is `server-only` and reaches for `next/headers`, which has no
+meaning in a plain Node process.
+
+What the two must share is **policy**, not wiring. `DEFAULT_AUTH_POLICY` moved
+into `@forum/accounts` so a user created by `forum user:create` satisfies exactly
+the rules the registration form enforces — otherwise the CLI becomes a way to
+mint accounts the app then rejects, which is the failure the CLI's "thin layer"
+rule exists to prevent. Only the two genuinely board-level decisions
+(`activationMethod`, `defaultMemberGroupId`) are supplied per caller.
+
+**Postgres only.** The fixture store lives in the heap of whichever process is
+running, so `forum user:create` against it would report success and change
+nothing — worse than refusing.
+
+**No SQL in the CLI.** The commands first composed drizzle queries directly,
+which put schema knowledge outside `@forum/db` in violation of R2. They now go
+through `PostgresAdminRepository`, which the ACP's user and group screens
+(F66/F67) will want anyway.
+
+**Passwords come from stdin.** Anything in `argv` is visible in shell history and
+to every user on the box via `ps`. `--password` still works for scripting but
+warns, because a silent insecure default is worse than a noisy one.
+
+**Arguments are validated before the database is opened**, so a missing
+`--title` is reported as a missing `--title` rather than as whatever the
+connection error happens to say.
+
+**Two things this surfaced:**
+
+- The dispatcher printed a full stack trace for every failure, including expected
+  ones. A stack for "you have not set DATABASE_URL" buries the one line that says
+  how to fix it, and trains people to ignore stack traces so the real ones stop
+  being read. Known `AppError`s now print their message alone.
+- `saveSettings` threw a bare `Error` on an invalid value. Both callers key off
+  the error taxonomy — the Server Action turns a `ValidationError` into an inline
+  field message rather than a 500, and the CLI prints it without a stack — so a
+  plain `Error` reached neither and would have surfaced in the ACP (F64) as
+  "Something went wrong". It now throws `ValidationError`.
+
+`task:run` and `cache:clear` are still absent, and deliberately: registering
+commands that throw would make `forum --help` advertise capabilities the binary
+does not have.
