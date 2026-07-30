@@ -30,6 +30,10 @@ export { ActorBuilder, type ActorBuilderConfig } from './actor-builder'
 export { PostgresForumRepository } from './forum-repo'
 export { PostgresSettingsRepository } from './settings-repo'
 export {
+  PostgresBanFilterRepository,
+  PostgresBanRepository,
+} from './ban-repos'
+export {
   PostgresAdminRepository,
   type GroupSummary,
   type UserSummary,
