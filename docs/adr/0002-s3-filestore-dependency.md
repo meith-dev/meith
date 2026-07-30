@@ -1,6 +1,6 @@
 # ADR 0002 — S3FileStore needs a dependency decision
 
-**Status:** Accepted (2026-07-30). Option A — `@aws-sdk/client-s3`, lazy-loaded.
+**Status:** Accepted (2026-07-30), **amended on implementation** — see Amendment.
 
 ## Context
 
@@ -80,3 +80,39 @@ Consequences to hold ourselves to:
 - Presigned URLs are what F42 relies on so a private attachment is not
   downloadable by direct URL; that behaviour needs its own test, not just the
   contract's "either signs or admits it cannot".
+
+
+## Amendment (2026-07-30, on implementation)
+
+The accepted decision said the import "must stay lazy", via the same
+`require()` shape `container.ts` uses for Postgres. Building it disproved that
+condition twice over, so it is replaced rather than quietly dropped.
+
+**A lazy `require()` does not keep anything out of a bundle.** The specifier is
+a literal, so the bundler resolves it statically and includes the module; the
+`require` defers *execution*, not *inclusion*. Measured on a build with
+`FILESTORE_DRIVER=local`: the AWS client was still referenced across server
+chunks, and postgres.js was too — meaning the existing `container.ts` pattern
+never achieved this either.
+
+**And `require()` inside an ESM package throws in plain Node**
+(`Cannot determine intended module format`). It happens to work inside Next,
+whose bundler polyfills it, which is why nothing had caught it — but
+`@forum/drivers` is also used by the CLI and the worker, so
+`FILESTORE_DRIVER=s3` would have failed there at runtime.
+
+**What replaces it:** a static import in `resolve.ts`, plus
+`serverExternalPackages` in `next.config` listing `@aws-sdk/client-s3`,
+`@aws-sdk/s3-request-presigner` and `postgres`. That is the mechanism Next
+actually provides for keeping server-only dependencies out of compiled chunks,
+it works in every runtime, and output tracing still copies the packages into the
+standalone image so Docker keeps working.
+
+**Honest limit on the claim:** the measurable effect is ~370 KB off the server
+chunks and no SDK implementation symbols inlined. "Zero bytes of AWS SDK in a
+local-storage bundle" is not something `grep` can establish, and proving it
+properly needs a bundle analyser — that belongs with F89's performance pass, and
+is recorded there rather than asserted here.
+
+The other conditions stand and are met: `S3FileStore` passes the F05 contract
+suite, and presigned URLs have their own tests.

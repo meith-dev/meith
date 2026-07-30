@@ -80,6 +80,20 @@ export default defineConfig({
      * be a coin flip.
      */
     hookTimeout: 30_000,
+    /*
+     * Fifteen suites now boot their own PGlite — a full Postgres compiled to
+     * WASM, held in process memory. Left unbounded, vitest starts one worker
+     * per core and fifteen WASM databases compete for ten cores, so boot hooks
+     * start missing even a 30s timeout. It failed roughly one run in three.
+     *
+     * Capping workers trades a little wall-clock for a gate that is trustworthy,
+     * which is the right way round: a suite that fails one run in three teaches
+     * people to re-run it, and then a real failure gets re-run too.
+     *
+     * The structural alternative — sharing one database across files — trades
+     * this for cross-file pollution, which is a worse bargain.
+     */
+    maxWorkers: 4,
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**/*.ts'],

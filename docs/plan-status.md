@@ -27,7 +27,7 @@ what is and is not built.
 ## How this audit was done
 
 Last audited **2026-07-30** (re-audited after F10/F11/F13/F15/F16 landed), against the working tree, not from memory:
-`pnpm verify` (841 tests), `pnpm build`, plus direct inspection of the
+`pnpm verify` (864 tests), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -37,7 +37,7 @@ couple of `PARTIAL` rows are an afternoon.
 
 | Phase | Features | DONE | PARTIAL | TODO |
 |---|---|---|---|---|
-| 0 — Skeleton | 14 | 10 | 4 | 0 |
+| 0 — Skeleton | 14 | 11 | 3 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 0 | 2 | 9 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
@@ -47,7 +47,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **20** | **6** | **63** |
+| **Total** | **89** | **21** | **5** | **63** |
 
 ---
 
@@ -59,7 +59,7 @@ couple of `PARTIAL` rows are an afternoon.
 | F02 | Config and environment validation | `DONE` | Zod schema in `packages/core/src/env.ts`; lazy proxy (D1); build-phase vs runtime split (D18). `process.env` confined by guard + ESLint rule. 11 tests. |
 | F03 | Database package | `DONE` | Drizzle + postgres.js (`prepare: false`, small pool), forward-only migrations, transaction helper with rollback-on-throw. **Contradiction resolved 2026-07-30:** F03's "up *and down*" is superseded by invariant 32 — forward-only governs, and recovery is by restore, not reversal (D28). Testcontainers is substituted by PGlite, which runs the real generated SQL. |
 | F04 | Deploy on both targets | `PARTIAL` | Dockerfile (multi-stage, standalone) + `docker-compose.yml`; CI builds the app. **Gap:** CI never *boots* the standalone image, which is the stated acceptance criterion; `apps/worker` is an empty package, so the "same image runs the worker with a flag" path does not exist. |
-| F05 | Driver interfaces | `PARTIAL` | Interfaces + env selection + every shipped implementation. **Contract suite now exists** (`@forum/testkit`) and all four families pass it, including `PostgresQueue` against real Postgres — which exposed that it only worked with postgres.js's result shape and would have broken on the Neon driver F03's seam exists for (D27). **Gap:** no `S3FileStore`; it needs a runtime dependency, which invariant 2 makes a human decision — see [ADR 0002](adr/0002-s3-filestore-dependency.md). F42 attachments are blocked on it. |
+| F05 | Driver interfaces | `DONE`* | Interfaces + env selection + every shipped implementation, all four families passing the shared contract suite — which exposed that `PostgresQueue` only worked with postgres.js's result shape (D27). `S3FileStore` lands per [ADR 0002](adr/0002-s3-filestore-dependency.md), passing the same contract with real presigning, key validation, and miss-is-undefined mapping. *Driven through a fake S3 client: that tests this code, not the SDK. An integration run against MinIO would be the remaining rigour, and belongs with F89. F42 is unblocked. |
 | F06 | System tick and scheduled tasks | `PARTIAL` | **The tick now runs tasks.** `PostgresTaskRepository` (21 tests on real Postgres, concurrent-claim and lease-overrun both mutation-verified), app-tier workers, and `/api/system/tick` calling `tick()`. Five tasks registered; `reconcileCounters` (F38) and `relayOutbox` (no Postgres `OutboxReader` yet) are **omitted rather than stubbed**, and register themselves when their workers appear (D32). Fixture mode returns 503 rather than faking a run. **Gap:** a failing task logs but does not yet raise an admin notification (needs F55); `apps/worker` is still an empty package. |
 | F07 | Outbox and event bus | `DONE` | `outbox` table, transactional write helper, drain-to-queue, retry/backoff/dead-letter. Rollback-suppresses-delivery covered. |
 | F08 | Settings registry | `DONE` | `packages/settings` registry + `settings`/`setting_groups`; typed accessors; migration-seeded defaults. |

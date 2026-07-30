@@ -974,3 +974,40 @@ through one or the other).
 
 Deliberately thin: the theme entry widens at F25 when theme-kit defines the slot
 contract, and `plugins` gains a real element type at F79. Both are additive.
+
+### D34 — The lazy-require pattern does not do what it claims (F05, ADR 0002)
+
+`S3FileStore` lands, and building it disproved the condition ADR 0002 accepted
+the dependency on. Recorded here because the same pattern is used elsewhere in
+this codebase and is equally ineffective there.
+
+**A lazy `require()` with a literal specifier keeps nothing out of a bundle.**
+The bundler resolves it statically and includes the module; `require` defers
+*execution*, not *inclusion*. Measured on a `FILESTORE_DRIVER=local` build: the
+AWS client was referenced across server chunks, and so was postgres.js — which
+means `container.ts`'s Postgres branch (D14) never achieved this either.
+
+**And `require()` in an ESM package throws in plain Node.** It works inside
+Next, whose bundler polyfills it, which is why nothing caught it. But
+`@forum/drivers` is used by the CLI and worker too, so `FILESTORE_DRIVER=s3`
+would have failed there at runtime — found by actually running the resolver
+outside Next rather than trusting the unit tests.
+
+Replaced with a static import plus `serverExternalPackages` in `next.config`
+(`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`, `postgres`). Works in
+every runtime, and output tracing still ships the packages into the standalone
+image.
+
+**What is honestly claimable:** ~370 KB off the server chunks and no SDK
+implementation symbols inlined. "Zero bytes in a local-storage bundle" is not
+something grep can establish; a bundle analyser is F89's job.
+
+**Two other things this feature surfaced:**
+
+- Guard R0 caught *me* writing a raw control-character range into the key
+  validator — the guard added an hour earlier, working on its author.
+- The suite now boots fifteen PGlite instances. Unbounded, vitest starts one
+  worker per core and fifteen WASM databases fight over ten, so boot hooks
+  missed even a 30s timeout about one run in three. `maxWorkers: 4` trades a
+  little wall-clock for a gate that can be trusted — a suite failing one run in
+  three teaches people to re-run it, and then real failures get re-run too.

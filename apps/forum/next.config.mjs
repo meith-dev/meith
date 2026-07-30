@@ -10,6 +10,25 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+
+  /*
+   * Kept out of the compiled chunks and required from node_modules at runtime.
+   *
+   * A lazy `require()` defers *execution*, not *inclusion*: the specifier is a
+   * literal, so the bundler statically resolves it and inlines the module
+   * anyway. Measured — before this, a board built with FILESTORE_DRIVER=local
+   * had the AWS S3 client inlined into 18 server chunks, and postgres.js into 8
+   * even in fixture mode.
+   *
+   * These are all server-only and none is needed by every deployment, which is
+   * exactly what this option is for. It is also the condition ADR 0002 accepted
+   * the S3 dependency on, so it is load-bearing rather than an optimisation.
+   */
+  serverExternalPackages: [
+    "@aws-sdk/client-s3",
+    "@aws-sdk/s3-request-presigner",
+    "postgres",
+  ],
   outputFileTracingRoot: path.join(here, "../../"),
   images: {
     unoptimized: true,
