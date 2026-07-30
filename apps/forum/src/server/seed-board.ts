@@ -18,11 +18,25 @@ import {
 import type { GroupDefaults, MemoryBoard } from '@forum/authorization'
 
 /** Canonical seed groups (must match the seed migration). */
+/**
+ * Ids must match migration `0001_seed_usergroups`, which is asserted by
+ * `seed-usergroups.test.ts`. If they drift, a fixture actor and a Postgres
+ * actor stop resolving to the same permissions and every parity assumption in
+ * the suite quietly stops meaning anything.
+ *
+ * `moderators`, `awaitingActivation` and `banned` have no entry in `SEED_BOARD`
+ * below — the fixture board only models the permission sets the in-memory
+ * authorization tests need. They are named here because code outside the
+ * fixture (the ban service, the promotion guards) has to refer to them by id.
+ */
 export const SEED_GROUP = {
   guest: 1,
   registered: 2,
   administrators: 3,
   superModerators: 4,
+  moderators: 5,
+  awaitingActivation: 6,
+  banned: 7,
 } as const
 
 /** Canonical seed forums. */

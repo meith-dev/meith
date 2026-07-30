@@ -44,6 +44,11 @@ jobs:
       - name: Textual invariants
         run: pnpm guards
 
+      # Proves the guards above are not inert. A rule whose pattern stopped
+      # matching passes `pnpm guards` exactly as loudly as one that works.
+      - name: Textual invariants — probe
+        run: pnpm guards:probe
+
       - name: Lint
         run: pnpm lint
 
@@ -52,6 +57,12 @@ jobs:
 
       - name: Types
         run: pnpm typecheck
+
+      # Separate step because the app tier is excluded from the root tsconfig:
+      # it needs the Next plugin and JSX config from its own. Without this the
+      # entire app (pages, actions, components) goes unchecked until `next build`.
+      - name: Types (app)
+        run: pnpm typecheck:app
 
       - name: Unit and integration tests
         run: pnpm test
@@ -70,15 +81,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      # The build must succeed with no database reachable: DATA_SOURCE=fixture is
-      # the documented no-Postgres path, and a build that secretly needs a live
-      # connection would break `docker build` and preview deploys.
+      # The build must succeed with no database reachable AND no runtime secrets:
+      # DATA_SOURCE=fixture is the documented no-Postgres path, and a build that
+      # secretly needs a live connection or a production secret would break
+      # `docker build` and preview deploys. `next build` sets NODE_ENV=production
+      # and NEXT_PHASE itself; the production-only env rules stand down for the
+      # build phase and are enforced at server startup instead (instrumentation.ts).
       - name: Build
         run: pnpm build
         env:
           DATA_SOURCE: fixture
-          AUTH_SECRET: ci-build-secret-not-used-at-runtime-000000
-          NODE_ENV: production
 
   migrations:
     name: Migrations and schema drift

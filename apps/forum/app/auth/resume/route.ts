@@ -25,10 +25,8 @@ import {
 export const runtime = "nodejs"
 // Per-request only: reads cookies + touches the store. Never collected at build
 // time (which would eagerly evaluate the container and its strict prod env).
-// Same guard the /api/tick and /api/health routes use.
+// Same guard the /api/system/tick and /api/health routes use.
 export const dynamic = "force-dynamic"
-
-const log = logger({ module: "auth-resume" })
 
 /** Only same-origin relative paths may be returned to (open-redirect guard). */
 function safeNext(raw: string | null): string {
@@ -61,7 +59,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   // target. A gated target then re-triggers the proxy's login redirect, while a
   // public one simply renders as a guest — no forced login for a passer-by.
   if (outcome.status === "reuse") {
-    log.warn({ userId: outcome.userId }, "remember-me token reuse detected; family revoked")
+    logger({ module: "auth-resume" }).warn(
+      { userId: outcome.userId },
+      "remember-me token reuse detected; family revoked",
+    )
   }
   await clearSessionCookies()
   redirect(next)

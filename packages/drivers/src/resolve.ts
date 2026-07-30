@@ -19,6 +19,7 @@ import {
 import { MemoryCache } from './cache/memory-cache'
 import { NextCacheDriver } from './cache/next-cache'
 import { LocalFileStore } from './files/local-file-store'
+import { S3FileStore } from './files/s3-file-store'
 import { HttpMailDriver, LogMailDriver } from './mail'
 import { MemoryQueue } from './queue/memory-queue'
 import { PostgresQueue } from './queue/postgres-queue'
@@ -67,10 +68,20 @@ function buildFiles(): FileStore {
     case 'local':
       return new LocalFileStore(env.UPLOADS_DIR)
     case 's3':
-      // Arrives with attachments (Phase 4). Disk covers dev and self-hosting.
-      throw new ConfigurationError(
-        'FILESTORE_DRIVER=s3 is not implemented yet. Use "local".',
-      )
+      /*
+       * Statically imported, and ADR 0002 was amended to say so.
+       *
+       * The ADR originally required a lazy `require()` to keep the AWS client
+       * out of bundles. Two measurements killed that: a literal `require()` is
+       * statically analysable, so the bundler inlines the module anyway (it
+       * defers execution, not inclusion), and `require` inside an ESM package
+       * throws outright in plain Node — which is what the CLI and worker run on.
+       *
+       * What actually keeps it out of the compiled chunks is
+       * `serverExternalPackages` in next.config, where it is listed alongside
+       * postgres. See D34.
+       */
+      return S3FileStore.fromEnv(env)
   }
 }
 

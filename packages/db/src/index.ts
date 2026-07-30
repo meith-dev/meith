@@ -15,6 +15,7 @@ export {
 } from './client'
 
 export { runMigrations } from './migrate'
+export { resultRows } from './result-rows'
 
 export {
   PostgresAuthorizationSource,
@@ -26,6 +27,20 @@ export {
   type PermissionRow,
 } from './permissions-map'
 export { ActorBuilder, type ActorBuilderConfig } from './actor-builder'
+export { PostgresForumRepository } from './forum-repo'
+export { PostgresSettingsRepository } from './settings-repo'
+export {
+  PostgresBanFilterRepository,
+  PostgresBanRepository,
+} from './ban-repos'
+export { PostgresPromotionRepository } from './promotion-repo'
+export { PostgresTaskRepository } from './task-repo'
+export { PostgresMaintenanceRepository } from './maintenance-repo'
+export {
+  PostgresAdminRepository,
+  type GroupSummary,
+  type UserSummary,
+} from './admin-repo'
 export {
   PostgresAccountRepository,
   PostgresSessionRepository,

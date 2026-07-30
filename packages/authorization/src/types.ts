@@ -159,6 +159,17 @@ export interface AuthorizationSource {
   ): Promise<readonly ForumOverride[]>
   /** Every forum ID on the board, used to compute the visible set. */
   allForumIds(): Promise<readonly number[]>
+
+  /**
+   * Every forum's ancestor chain in one call, nearest-first and inclusive —
+   * the same shape `ancestorChain` returns, for the whole board at once.
+   *
+   * Exists because `visibleForumIds` needs the chain for *every* forum, and
+   * asking per forum is an N+1 that scales with the size of the board. Every
+   * list page filters by the visible set, so that cost is multiplied across the
+   * entire product. F21 makes this an explicit acceptance criterion.
+   */
+  allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>>
 }
 
 /**

@@ -105,4 +105,20 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
     const rows = await this.db.select({ id: forums.id }).from(forums)
     return rows.map((r) => r.id)
   }
+
+  /**
+   * Every forum's ancestor chain, in one query.
+   *
+   * The materialised path makes this free: the chain is a parse of a string
+   * already on the row, so reading `(id, path)` for the whole board and
+   * splitting in memory costs exactly one statement no matter how deep or wide
+   * the tree is. Asking per forum is what made `visibleForumIds` an N+1.
+   */
+  async allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>> {
+    const rows = await this.db
+      .select({ id: forums.id, path: forums.path })
+      .from(forums)
+
+    return new Map(rows.map((r) => [r.id, parseAncestorPath(r.path)]))
+  }
 }

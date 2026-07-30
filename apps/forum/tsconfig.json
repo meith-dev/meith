@@ -40,6 +40,16 @@
       "@forum/theme-default/*": ["../../themes/default/src/*"]
     }
   },
+  /*
+   * `.next/types` is emitted by `next build` and validates route signatures, so
+   * it is worth checking when present and matches nothing when absent.
+   *
+   * `.next/dev/types` is deliberately NOT here. It is dev-server output that no
+   * step in `verify` regenerates, so after any route rename it holds dangling
+   * references to files that no longer exist and fails `typecheck:app` for a
+   * reason that has nothing to do with the source. A gate that breaks on a
+   * stale artefact trains people to ignore it.
+   */
   "include": [
     "next-env.d.ts",
     "**/*.ts",
@@ -48,8 +58,7 @@
     "../../packages/**/*.tsx",
     "../../themes/**/*.ts",
     "../../themes/**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

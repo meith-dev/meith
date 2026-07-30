@@ -23,9 +23,11 @@ export interface TaskWorkers {
   reconcileCounters(batchSize: number): Promise<number>
   /** Promotes users who now meet a promotion rule. Returns users moved. */
   applyPromotions(batchSize: number): Promise<number>
+  /** Lifts bans whose expiry has passed, restoring each user's prior group. */
+  expireBans(batchSize: number): Promise<number>
 }
 
-export function builtinTasks(workers: TaskWorkers): TaskDefinition[] {
+function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
   return [
     {
       id: 'outbox.relay',
@@ -112,5 +114,67 @@ export function builtinTasks(workers: TaskWorkers): TaskDefinition[] {
         return { detail: { promoted } }
       },
     },
+
+    {
+      id: 'bans.expire',
+      title: 'Expire temporary bans',
+      description:
+        'Lifts bans whose expiry has passed, restoring each user to the group ' +
+        'they held when banned. Acts on outstanding state rather than on what ' +
+        'expired since the last run, so a skipped day costs a delay and nothing ' +
+        'else, and a doubled tick lifts nothing twice.',
+      /*
+       * Every fifteen minutes rather than hourly: a ban is a *punishment with a
+       * stated end*, and a user still locked out an hour after their ban expired
+       * reasonably concludes it did not work. Cheap — the query is an index scan
+       * over unlifted bans with a past expiry, which is almost always empty.
+       */
+      intervalSeconds: 900,
+      maxDurationSeconds: 30,
+      async run() {
+        const lifted = await workers.expireBans(200)
+        return { detail: { lifted } }
+      },
+    },
   ]
+}
+
+/**
+ * Which worker each task needs.
+ *
+ * A task is only registered when its worker is supplied — see `builtinTasks`.
+ */
+const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
+  'outbox.relay': 'relayOutbox',
+  'queue.drain': 'drainQueue',
+  'sessions.prune': 'pruneSessions',
+  'tokens.prune': 'pruneExpiredTokens',
+  'counters.reconcile': 'reconcileCounters',
+  'promotions.apply': 'applyPromotions',
+  'bans.expire': 'expireBans',
+}
+
+/**
+ * The built-in tasks whose workers actually exist.
+ *
+ * Takes a *partial* worker set and registers only what can run. Some workers
+ * depend on features that are not built yet — `reconcileCounters` needs F38's
+ * counter maintenance to have something to reconcile — and the alternatives are
+ * both worse than filtering:
+ *
+ *  - a stub returning 0 pretends work happened, and the tick would report a
+ *    healthy run of a task that does nothing;
+ *  - a stub that throws makes every tick log a failure and eventually raises an
+ *    admin notification for a task nobody asked for.
+ *
+ * Not registering it means `tasks` holds no row for it, System Health does not
+ * list it, and the day F38 supplies the worker it appears on its own. This is
+ * the same rule the operator CLI follows by omitting commands it cannot honour:
+ * never advertise a capability that is not there.
+ */
+export function builtinTasks(workers: Partial<TaskWorkers>): TaskDefinition[] {
+  const supplied = workers as TaskWorkers
+  return allDefinitions(supplied).filter(
+    (task) => typeof supplied[REQUIRED_WORKER[task.id] as keyof TaskWorkers] === 'function',
+  )
 }

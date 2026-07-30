@@ -4,5 +4,13 @@
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
-  "types": "./src/index.ts"
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@forum/authorization": "workspace:*",
+    "@forum/core": "workspace:*",
+    "@forum/db": "workspace:*",
+    "@forum/drivers": "workspace:*",
+    "@forum/forums": "workspace:*",
+    "drizzle-orm": "^0.44.7"
+  }
 }

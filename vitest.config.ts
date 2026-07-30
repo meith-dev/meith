@@ -59,7 +59,41 @@ export default defineConfig({
      * Postgres-backed suites are opt-in via a separate project so `pnpm test`
      * stays runnable with no database (which is the state of this checkout).
      */
-    env: { NODE_ENV: 'test', DATA_SOURCE: 'fixture' },
+    /*
+     * LOG_LEVEL=fatal because several suites deliberately drive failure paths —
+     * a queue handler that throws, a job that dead-letters — and their
+     * error-level output is expected. Left at the default, a fully passing run
+     * prints error JSON, which teaches everyone to skim past CI output and is
+     * how a real error goes unnoticed. Nothing asserts on log output; a suite
+     * that needs to can override this.
+     */
+    env: { NODE_ENV: 'test', DATA_SOURCE: 'fixture', LOG_LEVEL: 'fatal' },
+    /*
+     * The PGlite suites boot a real Postgres (compiled to WASM) and apply every
+     * migration in `beforeAll`. That is seconds of genuine work, and vitest runs
+     * files in parallel, so several instances boot at once and contend for CPU.
+     *
+     * The 10s default was already marginal and started flaking when the group
+     * seed became a second migration. Raised rather than worked around: the
+     * alternative is sharing one database across files, which trades a slow hook
+     * for cross-file test pollution. A hook that legitimately takes 5s should not
+     * be a coin flip.
+     */
+    hookTimeout: 30_000,
+    /*
+     * Fifteen suites now boot their own PGlite — a full Postgres compiled to
+     * WASM, held in process memory. Left unbounded, vitest starts one worker
+     * per core and fifteen WASM databases compete for ten cores, so boot hooks
+     * start missing even a 30s timeout. It failed roughly one run in three.
+     *
+     * Capping workers trades a little wall-clock for a gate that is trustworthy,
+     * which is the right way round: a suite that fails one run in three teaches
+     * people to re-run it, and then a real failure gets re-run too.
+     *
+     * The structural alternative — sharing one database across files — trades
+     * this for cross-file pollution, which is a worse bargain.
+     */
+    maxWorkers: 4,
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**/*.ts'],

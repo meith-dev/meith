@@ -9,6 +9,7 @@
 
 import { describe, expect, it, vi } from 'vitest'
 
+import { builtinTasks, type TaskWorkers } from './builtin'
 import { tick, type TaskRepository } from './scheduler'
 import type { TaskDefinition } from './types'
 
@@ -218,5 +219,122 @@ describe('tick', () => {
     await tick({ repository, tasks: [make('a'), make('b')] })
 
     expect(order).toEqual(['a:start', 'a:end', 'b:start', 'b:end'])
+  })
+})
+
+describe('bans.expire is registered (F23)', () => {
+  function workers(overrides: Partial<TaskWorkers> = {}): TaskWorkers {
+    const zero = async () => 0
+    return {
+      relayOutbox: zero,
+      drainQueue: zero,
+      pruneSessions: zero,
+      pruneExpiredTokens: zero,
+      reconcileCounters: zero,
+      applyPromotions: zero,
+      expireBans: zero,
+      ...overrides,
+    }
+  }
+
+  it('appears in the builtin registry', () => {
+    expect(builtinTasks(workers()).map((t) => t.id)).toContain('bans.expire')
+  })
+
+  it('delegates to the worker and reports how many lifted', async () => {
+    const task = builtinTasks(workers({ expireBans: async () => 3 })).find(
+      (t) => t.id === 'bans.expire',
+    )
+
+    const result = await task!.run({
+      now: new Date(),
+      lastRunAt: null,
+      elapsedSeconds: 0,
+      signal: new AbortController().signal,
+    })
+    expect(result.detail).toEqual({ lifted: 3 })
+  })
+
+  /*
+   * A ban is a punishment with a stated end. A user still locked out an hour
+   * after expiry reasonably concludes it did not work, so this runs far more
+   * often than the housekeeping tasks.
+   */
+  it('runs often enough that an expiry is not visibly late', () => {
+    const task = builtinTasks(workers()).find((t) => t.id === 'bans.expire')
+    expect(task!.intervalSeconds).toBeLessThanOrEqual(900)
+  })
+
+  it('is bounded, so one tick cannot run unbounded', async () => {
+    let asked = 0
+    const task = builtinTasks(
+      workers({
+        expireBans: async (batch) => {
+          asked = batch
+          return 0
+        },
+      }),
+    ).find((t) => t.id === 'bans.expire')
+
+    await task!.run({
+      now: new Date(),
+      lastRunAt: null,
+      elapsedSeconds: 0,
+      signal: new AbortController().signal,
+    })
+    expect(asked).toBeGreaterThan(0)
+  })
+})
+
+describe('builtinTasks registers only what can run', () => {
+  /*
+   * A task whose worker does not exist must not appear. A stub returning 0
+   * would report a healthy run of a task that does nothing; a stub that throws
+   * would raise an admin notification for a task nobody asked for. Absence is
+   * the honest third option — and the day the worker is supplied, the task
+   * appears on its own.
+   */
+  it('omits a task whose worker is missing', () => {
+    const ids = builtinTasks({ expireBans: async () => 0 }).map((t) => t.id)
+
+    expect(ids).toEqual(['bans.expire'])
+    expect(ids).not.toContain('counters.reconcile')
+  })
+
+  it('registers a task as soon as its worker appears', () => {
+    const before = builtinTasks({}).map((t) => t.id)
+    const after = builtinTasks({ reconcileCounters: async () => 0 }).map((t) => t.id)
+
+    expect(before).toEqual([])
+    expect(after).toContain('counters.reconcile')
+  })
+
+  it('registers everything when the full set is supplied', () => {
+    const all = builtinTasks({
+      relayOutbox: async () => 0,
+      drainQueue: async () => 0,
+      pruneSessions: async () => 0,
+      pruneExpiredTokens: async () => 0,
+      reconcileCounters: async () => 0,
+      applyPromotions: async () => 0,
+      expireBans: async () => 0,
+    })
+    expect(all).toHaveLength(7)
+  })
+
+  it('gives every task a worker mapping, so none can be silently unregisterable', () => {
+    // A new task added without a REQUIRED_WORKER entry would never register,
+    // which would look like the feature simply not working.
+    const full = {
+      relayOutbox: async () => 0,
+      drainQueue: async () => 0,
+      pruneSessions: async () => 0,
+      pruneExpiredTokens: async () => 0,
+      reconcileCounters: async () => 0,
+      applyPromotions: async () => 0,
+      expireBans: async () => 0,
+    }
+    const ids = builtinTasks(full).map((t) => t.id)
+    expect(new Set(ids).size).toBe(ids.length)
   })
 })

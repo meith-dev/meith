@@ -1,6 +1,7 @@
 export {
   env,
   assertEnv,
+  assertRuntimeEnv,
   parseEnv,
   resetEnvForTests,
   isProduction,
@@ -59,7 +60,21 @@ export {
   stampRequestId,
   type RequestContext,
 } from "./logger"
-export { CacheTags, GLOBAL_TAGS, type CacheTag, type CachedGlobalOptions } from "./cache"
+export {
+  defineForumConfig,
+  type ForumConfig,
+  type InstalledPlugin,
+  type InstalledTheme,
+} from './config'
+
+export {
+  CacheTags,
+  GLOBAL_TAGS,
+  cachedGlobal,
+  globalCacheKey,
+  type CacheTag,
+  type CachedGlobalOptions,
+} from "./cache"
 export { timingSafeEqualString } from "./crypto"
 export type { Clock } from "./clock"
 export { systemClock, fixedClock } from "./clock"

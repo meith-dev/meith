@@ -3,7 +3,13 @@ import type { Metadata, Viewport } from "next"
 import { Inter, Source_Serif_4 } from "next/font/google"
 
 import { env } from "@forum/core"
-import { BROWSER_THEME_COLOR } from "@forum/theme-default"
+/*
+ * Read through the registry, not from the theme package directly (invariant 6).
+ * Importing `@forum/theme-default` here would hardcode *which* theme the shell
+ * uses, so installing a second one would mean editing the layout — exactly the
+ * retrofit `forum.config.ts` exists to avoid.
+ */
+import forumConfig from "../forum.config"
 
 import "@/styles/globals.css"
 
@@ -19,6 +25,13 @@ const sourceSerif = Source_Serif_4({
   variable: "--font-source-serif",
 })
 
+/*
+ * The board's theme. Resolved at module load from the static registry, so the
+ * bundler sees exactly one theme and nothing is looked up at request time.
+ * Per-board overrides from the `themes` table arrive with F26.
+ */
+const activeTheme = forumConfig.themes[forumConfig.defaultTheme]!
+
 export const metadata: Metadata = {
   title: {
     default: "Forum",
@@ -29,13 +42,18 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: "light dark",
-  themeColor: [
-    {
-      media: "(prefers-color-scheme: light)",
-      color: BROWSER_THEME_COLOR.light,
-    },
-    { media: "(prefers-color-scheme: dark)", color: BROWSER_THEME_COLOR.dark },
-  ],
+  themeColor: activeTheme.browserThemeColor
+    ? [
+        {
+          media: "(prefers-color-scheme: light)",
+          color: activeTheme.browserThemeColor.light,
+        },
+        {
+          media: "(prefers-color-scheme: dark)",
+          color: activeTheme.browserThemeColor.dark,
+        },
+      ]
+    : undefined,
 }
 
 export default function RootLayout({

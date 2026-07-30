@@ -20,9 +20,12 @@ import {
   ConflictError,
   ForbiddenError,
   ValidationError,
+  env,
   isAppError,
   logger,
 } from '@forum/core'
+
+import { foldIdentifier } from '@forum/accounts'
 
 import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
@@ -32,8 +35,6 @@ import {
   setRememberCookie,
   setSessionCookie,
 } from './session-cookies'
-
-const log = logger({ module: 'auth-actions' })
 
 /** Pull a trimmed string field; '' when absent. */
 function field(form: FormData, name: string): string {
@@ -54,7 +55,7 @@ function toFormState(err: unknown, values?: Record<string, string>): FormState {
   // than leaking internals. Rethrowing would blank the form with a 500 page;
   // for a bad-gateway-class fault that is worse UX than an inline message.
   if (isAppError(err)) return { error: err.message, values }
-  log.error({ err }, 'unexpected error in auth action')
+  logger({ module: 'auth-actions' }).error({ err }, 'unexpected error in auth action')
   return { error: 'Something went wrong. Please try again.', values }
 }
 
@@ -65,7 +66,10 @@ function toFormState(err: unknown, values?: Record<string, string>): FormState {
  * Postgres path can compose a richer bucket later without touching this action.
  */
 function loginBucket(identifier: string): string {
-  return `login:${identifier.toLocaleLowerCase()}`
+  // Same folding the account lookup uses, and for the same reason: a
+  // locale-dependent fold would let an attacker alternate case to get two
+  // independent lockout buckets for one account. See `foldIdentifier`.
+  return `login:${foldIdentifier(identifier)}`
 }
 
 export async function registerAction(
@@ -129,7 +133,10 @@ export async function logoutAction(): Promise<void> {
     try {
       await identity.logout(token)
     } catch (err) {
-      log.warn({ err }, 'logout revoke failed; clearing cookies anyway')
+      logger({ module: 'auth-actions' }).warn(
+        { err },
+        'logout revoke failed; clearing cookies anyway',
+      )
     }
   }
   await clearSessionCookies()
@@ -143,20 +150,32 @@ export async function requestResetAction(
   const email = field(form, 'email')
   const { identity } = getContainer()
 
+  // Identical whether or not an account matched — that is the enumeration
+  // defence, so it is built once and returned on every path below.
+  const notice =
+    'If an account exists for that email, a password reset link has been sent.'
+
   try {
     const { token } = await identity.requestPasswordReset(email)
-    // The confirmation is IDENTICAL whether or not an account matched — that is
-    // the enumeration defence. In fixture/dev with no mailer we surface the link
-    // so the flow is demonstrable; a real deployment emails it and shows only
-    // the generic notice.
-    if (token) {
-      log.info({ resetPath: `/reset/confirm?token=${token}` }, 'password reset requested')
+
+    /*
+     * The token is a bearer credential: whoever holds it owns the account. It
+     * goes to the browser ONLY in development, where there is no mailer and the
+     * alternative is a flow nobody can exercise.
+     *
+     * Gated on NODE_ENV rather than on the mail driver or the data source: a
+     * production board with mail misconfigured must still never hand a reset
+     * token to whoever typed the address into the form. Anything short of this
+     * is unauthenticated account takeover for any address an attacker knows.
+     *
+     * It is deliberately not logged either — pino's redaction covers `token`
+     * keys, but a token interpolated into a URL string sails straight through,
+     * and F02/§40 forbids credentials in logs at default level.
+     */
+    if (token && env.NODE_ENV === 'development') {
+      return { notice, values: { devToken: token } }
     }
-    return {
-      notice:
-        'If an account exists for that email, a password reset link has been sent.',
-      values: token ? { devToken: token } : undefined,
-    }
+    return { notice }
   } catch (err) {
     return toFormState(err, { email })
   }

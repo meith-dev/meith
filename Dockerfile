@@ -50,11 +50,11 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# The build must not require a database. AUTH_SECRET is supplied because F02
-# validates the environment at boot and the build imports that module; it is a
-# build-time placeholder and is replaced by the real value at runtime.
+# The build must require neither a database nor any production secret: no
+# placeholder AUTH_SECRET is baked into this layer. F02's production rules stand
+# down for the build phase (see NEXT_PHASE in packages/core/src/env.ts) and are
+# enforced unconditionally when the server boots, in the runtime stage.
 ENV DATA_SOURCE=fixture
-ENV AUTH_SECRET=build-time-placeholder-replaced-at-runtime-0
 
 RUN pnpm --filter @forum/web build
 

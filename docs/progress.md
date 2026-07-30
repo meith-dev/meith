@@ -2,18 +2,47 @@
 
 Running log of what is complete and what the next action is, per plan §6.
 
+**Three files, three jobs — keep them in their lanes:**
+
+| File | Answers | Shape |
+|---|---|---|
+| [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per plan feature. The tracking table. |
+| `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D34. |
+
+Update `plan-status.md` in the same PR as the feature. If the two disagree,
+`plan-status.md` is the one that gets audited against the tree — trust it and fix
+this file.
+
 ## Gate state (all green)
 
-`pnpm verify` → exit 0: textual invariants, dependency-cruiser (83 modules, 0
-violations), typecheck, 508 tests (28 against real Postgres via PGlite). Every
-gate is probe-verified per D10 — a gate that has never been observed to fail is
-not trusted.
+`pnpm verify` → exit 0: textual invariants + **guard probes**, dependency-cruiser
+(144 modules, 0 violations), typecheck (root **and** app), **864 tests** (a large
+share against real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
+production environment. Three consecutive green runs after capping worker
+concurrency — fifteen PGlite instances were saturating ten cores and failing
+roughly one run in three (D34).
+
+**Gate holes closed this pass:**
+
+- The root `tsconfig.json` excludes `apps/forum`, so the whole app tier was
+  type-checked by nothing but `next build` — which was not in `verify` and had
+  itself never passed. Both now run `typecheck:app` (D18/D19).
+- `pnpm guards` passing proved nothing: a rule whose pattern stopped matching
+  passes as loudly as one that works. `pnpm guards:probe` now runs every guard
+  against a must-match and a must-not-match sample, so both an inert rule and one
+  broadened into uselessness fail CI (D10 made permanent).
+- The PGlite fixture applied only `0000`, so a second migration would have been
+  invisible to every integration test. It now reads the journal (D23).
 
 ## Complete
 
 - **Phase 0 (F01–F14)** — workspace, env, db package + migrator, drivers, tick,
-  outbox, settings, logging/errors, cache tags + boundary lint, testkit, CI, CLI
+  outbox, settings, logging/errors, cache tags + boundary lint, CI, CLI
   (3 real commands), docs. Checkpoint 0 reached. See D1–D11.
+  **Two of these are thinner than this line previously claimed:** F11's testkit
+  is an empty package, and F10 has tag names but no cache implementation. Both
+  are itemised under NEXT ACTION rather than left implied here.
 - **Phase 1 permission core (F20/F21/F22)** — `@forum/authorization`: pure
   `Authorizer`, R4.2 combination, ancestor-chain resolution, logged bypasses,
   388-cell matrix gate + focused unit/mutation tests, F20 group-ID lint rule.
@@ -52,25 +81,86 @@ not trusted.
   - 16 tests; remember single-use, reuse→burn, and the location throttle all
     mutation-verified. See D17.
 
+- **Identity app layer (F17 wiring, F18/F19 web layer)** — `context.ts`
+  (`getActor()` via `React.cache`, guest fallback), `proxy.ts` (cookie triage
+  only, no DB), `/auth/resume` (remember-me rotation in the Node runtime),
+  Server Actions + no-JS forms for register / login / logout / reset.
+  15 app-layer tests covering the acceptance criteria the domain suites cannot
+  see: session fixation, open-redirect (`//evil` included), lockout refusing the
+  *correct* password, single-use reset, case-insensitive login. Two real
+  security bugs found and fixed in the process — see **D20** (reset token
+  returned to the browser: account takeover) and **D21** (locale-dependent
+  identifier folding). Both mutation-verified.
+
+- **Forum tree operations (F16)** — `@forum/forums`: path arithmetic,
+  `buildTree`, `planMove`/`planCreate`, `CachedForumRepository`, plus
+  `PostgresForumRepository`. One-query tree read (now *measured*), four-level
+  reparent, derived-path create, tag-invalidated caching. See **D22** — the
+  prefix-sharing-sibling trap (`1.40` vs `1.4`) is the whole feature.
+- **F10 caching harness** — `cachedGlobal` implemented (it was an interface with
+  no implementation), and **every textual guard is now probed** by
+  `pnpm guards:probe` against a must-match and a must-not-match sample, so an
+  inert *or* an over-broad rule fails CI. See D25.
+- **F11 testkit** — deterministic seeder + the **query-budget helper**. It found
+  a 32-query N+1 in `visibleForumIds` within an hour (**D26**).
+- **F13 operator CLI** — eight commands; a board can be set up end to end.
+  Passwords read from stdin, never `argv`. See D24.
+- **F14** — `docs/nextjs-conventions.md`, the deliverable that did not exist.
+- **F15 group ladder** — seeded by migration `0001`. It **had never been seeded
+  at all**: the initial migration contains zero INSERTs, so a fresh Postgres
+  board had no groups and registration would have failed on a foreign key (D23).
+- **F21 forum permissions** — four-level resolution now tested over real
+  Postgres, and `visibleForumIds` reduced from 32 queries to a constant 3 (D26).
+- **F05 driver contract suite** — all four driver families pass a shared
+  contract. It immediately exposed that `PostgresQueue` only worked with
+  postgres.js's result shape and would have broken on the Neon driver F03's seam
+  exists for (**D27**).
+- **F23 bans and ban filters** — expiry restores the *captured* group, filters
+  apply at both registration and login, and filter ordering avoids a
+  user-enumeration oracle (**D29**).
+- **F24 group promotions** — `@forum/groups` (was empty): rule evaluation with
+  three safety guards (never lift a ban, never demote, never re-apply),
+  preview/apply sharing one evaluation, keyset paging (**D30**).
+- **F06 the tick actually runs** — `PostgresTaskRepository` plus app-tier
+  workers; `/api/system/tick` calls `tick()` instead of returning `ran: []`.
+  Tasks whose workers do not exist are **omitted rather than stubbed** (**D32**).
+- **`forum.config.ts`** — the build-time registry, read by `layout.tsx` so it is
+  load-bearing, plus a guard banning runtime filesystem scans (**D33**).
+- **F05 `S3FileStore`** — per ADR 0002, passing the shared contract with real
+  presigning. Measuring it disproved the ADR's own lazy-require condition, which
+  was amended rather than quietly dropped (**D34**).
+
+**Phase 1 is complete: 10 of 10.**
+
 ## NEXT ACTION — resume here
 
-Finish the **Identity** task. Only the app-layer wiring is left — every domain
-service and both store implementations it calls now exist and are tested.
+**F25 · theme-kit** opens Phase 2, and the plan is emphatic it must exist before
+any page is built — retrofitting a slot API over finished pages does not work.
+`forum.config.ts` is already in place for it to register against.
 
-1. **F17 wiring** — `apps/forum/src/server/context.ts`: lazy per-request `Actor`
-   via `React.cache`, built through `ActorBuilder` + the container's data source.
-   `proxy.ts` resolves the session cookie only (NO DB in the proxy — it just
-   reads the cookie and forwards). Call `SessionService.resume` on a
-   remember-me cookie when the session cookie is absent. Set-Cookie flags:
-   HttpOnly, Secure, SameSite=Lax, `__Host-` prefix.
-2. **F18 register / F19 login·logout·reset web layer** — Server Actions with
-   `useActionState`, progressive-enhancement-only forms (must work with JS
-   disabled). Wire to `IdentityService` + `SessionService` +
-   `createPostgresAccountStore`. Integration tests over Postgres: fixation (new
-   session id on login), reuse detection, no-write-in-window, lockout.
+Build: the slot registry with the full R6 slot list, each slot declaring
+**server or client kind** with a lint rule that fails the build on a crossing,
+`defineTheme()` with `extends` inheritance, and typed serialisable view models.
+The rule is not optional — if `PostBit` ever becomes a client component the whole
+post list ships to the browser and the product's main advantage is gone.
 
-Then: **Forum tree (F16)** and **wire authorizer to repos end-to-end**
-(`visibleForumIds`, `forumMatrix` over Postgres) — the last two todo items.
+Smaller things now unblocked, in rough order of value:
+
+1. **`forum task:run`** — the CLI command was blocked on `TaskRepository`, which
+   now exists. Small, and gives operators a way to force a tick.
+2. **F04** — CI never boots the standalone image, and `apps/worker` is empty, so
+   the self-hosting path is unverified and rots quietly while everyone develops
+   on Vercel. This is F04's stated acceptance criterion.
+3. **A Postgres `OutboxReader`** — the last missing task worker besides F38's
+   counters; `outbox.relay` registers itself the moment it exists.
+
+Still outstanding and worth keeping visible:
+
+- **F35's no-JS Playwright run does not exist.** The auth forms are written for
+  it, but "works with JavaScript disabled" is a claim, not a measurement.
+- A failing task logs but does not raise an admin notification (needs F55).
+- Permission columns are generated into a `Record<string, …>`, so
+  `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.
 
 **Test harness note:** integration tests now use PGlite via `createTestDb()` in
 `packages/db/src/pglite.fixture.ts` — boot once per suite, clear mutable tables
@@ -78,7 +168,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D17). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D34). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant); (b) runtime-only bugs a
 compile/typecheck waved through but tests caught (reversed `verifyPassword` args,

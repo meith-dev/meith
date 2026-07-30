@@ -8,6 +8,7 @@
  * should not take the whole board down.
  */
 
+import { ValidationError } from '@forum/core'
 import { SETTING_DEFINITION_BY_KEY, SETTING_DEFINITIONS } from './definitions'
 import type { SettingDefinition, SettingKey, SettingValue } from './definitions'
 
@@ -189,7 +190,14 @@ export async function saveSettings(
   }
 
   if (errors.length > 0) {
-    throw new Error(`Invalid settings: ${errors.join(' ')}`)
+    /*
+     * A ValidationError, not a bare Error: this is a user supplying a bad value,
+     * and both callers key off the taxonomy. The Server Action turns it into an
+     * inline field message rather than a 500, and the CLI prints the message
+     * without a stack. A plain Error reaches neither and surfaces as
+     * "Something went wrong".
+     */
+    throw new ValidationError(`Invalid settings: ${errors.join(' ')}`)
   }
 
   if (toWrite.size > 0) await repository.save(toWrite)

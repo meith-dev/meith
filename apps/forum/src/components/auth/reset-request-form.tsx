@@ -14,8 +14,10 @@ export function ResetRequestForm() {
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormNotice message={state.notice} />
       <FormError message={state.error} />
-      {/* Dev-only affordance: with no mailer wired, surface the reset link so the
-          flow is demonstrable. A real deployment emails it and never renders this. */}
+      {/* Development-only affordance. `devToken` is only ever populated when
+          NODE_ENV is development (see requestResetAction); outside development the
+          server never sends it, so this branch cannot render a live reset token to
+          a visitor. The check there is the security boundary — not this one. */}
       {devToken ? (
         <a
           href={`/reset/confirm?token=${devToken}`}

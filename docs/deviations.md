@@ -410,3 +410,604 @@ per-request `Actor` via `React.cache`), `proxy.ts` (cookie resolution, no DB),
 and the F18/F19 no-JS Server-Action web layer (register / login / logout /
 reset). All the domain services and both store implementations they need now
 exist and are tested.
+
+### D18 — The build phase is not the production runtime (F02)
+
+**Plan:** F02 — "the app refuses to boot misconfigured"; `AUTH_SECRET` and
+`TICK_SECRET` "required in production".
+
+**Problem.** `next build` forces `NODE_ENV=production`, so the production-only
+rules fired while *compiling*. A build machine legitimately holds no runtime
+secrets, so `pnpm build` could not succeed without them. Both CI and the
+Dockerfile had quietly grown a fake one (`AUTH_SECRET=...-not-used-at-runtime-0`)
+to get past it — and neither actually worked, because each set `AUTH_SECRET` but
+not `TICK_SECRET`, and `DATA_SOURCE=fixture` derives `QUEUE_DRIVER=memory`, which
+the same block rejects. The production build had never passed.
+
+**Decision.** The schema now distinguishes compiling from serving via
+`NEXT_PHASE` (set by `next build` and nothing else). The production rules stand
+down for the build phase only.
+
+**Why this gives up no safety.** The rules are about how the app behaves *in
+service*, and a build produces no behaviour. They are enforced unconditionally
+where it matters: `instrumentation.ts` calls `assertRuntimeEnv()`, which strips
+the build-phase exemption, so a stray `NEXT_PHASE` in a runtime environment
+cannot wave the checks through — a fail-open that would otherwise be silent.
+Verified end-to-end, not just asserted: booting the built server with no secrets
+fails with the full F02 message on both `next start` and the standalone
+entrypoint. The placeholder secrets are gone from CI and the Dockerfile.
+
+### D19 — `logger()` must never be bound at module scope (F02/F09)
+
+`logger()` reads the ambient request context at call time and builds pino
+eagerly. A module-level `const log = logger(...)` therefore did two bad things at
+once: bound an empty context for the process lifetime (so every line it wrote
+lost its `requestId`), and turned *importing* the module into a full environment
+validation — defeating the point of D1's lazy proxy and breaking `next build`,
+whose page-data collection imports server modules with no production secrets.
+
+Fixed at the two call sites, documented on `logger()` itself so the rule reaches
+future ones, and enforced by guard `F02 no-module-scope-logger`. Binding inside a
+function body stays legal; only module scope is banned. Mutation-verified.
+
+## Phase 1
+
+### D20 — The password-reset dev affordance was an account-takeover hole (F19)
+
+**Found while writing the app-layer tests the web layer shipped without.**
+
+`requestResetAction` returned the live reset token to the browser *whenever one
+was issued*, rendered by `ResetRequestForm` as a "Continue to reset your
+password" link. The comment above it read "a real deployment emails it and never
+renders this" — but nothing enforced that. Any visitor who typed a known address
+into the public reset form got back a working single-use token for that account:
+unauthenticated takeover of any user whose email address is known.
+
+**Decision.** The token crosses to the client only when `NODE_ENV` is
+`development`. Gated on `NODE_ENV` rather than on the mail driver or data source
+deliberately — a production board with mail misconfigured must still never hand a
+reset token to whoever typed the address in.
+
+The accompanying `log.info({ resetPath: '/reset/confirm?token=...' })` is gone
+too. Pino's redaction covers `token` keys, but a token interpolated into a URL
+string sails straight past it, and §40 forbids credentials in logs at default
+level.
+
+Both directions are pinned by test, and the mutant (restoring the unconditional
+return) was verified to fail the suite.
+
+### D21 — Identifier case-folding is locale-independent (F17/F18)
+
+`register`, `login`, `requestPasswordReset` and the login lockout bucket all
+folded case with `toLocaleLowerCase()`. With no locale argument that uses the
+*host's* default locale, making a stored `username_lower` a property of the
+machine that wrote it. Under `tr_TR`, `'IVAN'` folds to `'ıvan'` (dotless), so:
+
+- F18's "duplicate username differing only by case is rejected" stops holding —
+  `IVAN` and `Ivan` become two accounts;
+- a row written on one host stops matching on another, and the user cannot log
+  in;
+- the lockout bucket splits, so alternating case doubles the allowed attempts.
+
+**Decision.** One `foldIdentifier()` helper (`packages/accounts/src/case-fold.ts`)
+using locale-independent `toLowerCase()`, used everywhere.
+
+**Enforcement is textual, and that is the point.** A unit test cannot catch this
+— it passes in every locale except Turkish and Azeri, so it would be green on
+every developer machine and in CI. Guard `F17 no-locale-case-fold` bans
+`toLocaleLowerCase()`/`toLocaleUpperCase()` outright; mutation-verified by
+restoring the old call and watching the guard fire.
+
+### D22 — Forum tree: the subtree predicate is the whole feature (F16)
+
+**Plan:** F16 — "Reordering and reparenting must update every descendant's
+`path` in one transaction. Test with a four-level tree."
+
+The schema (materialised `path`, indexes) already existed; `packages/forums` was
+an empty package. The operations half now lives there: `path.ts` (path
+arithmetic), `tree.ts` (`buildTree`), `move.ts` (`planMove`), plus
+`PostgresForumRepository` in `@forum/db`.
+
+**The one thing worth writing down.** A materialised-path implementation is
+almost entirely correct if you get one predicate right and catastrophically
+wrong if you do not. `'1.4'` is a string prefix of `'1.40'`, but `1.40` is a
+*sibling*, not a descendant. Two ways to get this wrong, both natural:
+
+- `path LIKE '1.4%'` as the subtree predicate — drags unrelated siblings into
+  every move, and rejects legal destinations as cycles.
+- `replace(path, oldRoot, newRoot)` to rehang descendants — substitutes every
+  occurrence anywhere in the string, not just the prefix.
+
+So the codebase has exactly one subtree test (`isInSubtree`, comparing on the
+separator) and one rehang (`rehang`, slicing by length), and the SQL uses a
+`VALUES` join over ids computed by the planner rather than any string surgery.
+A prefix-sharing sibling (`1.40` beside `1.4`) is in both the unit fixture and
+the PGlite fixture; the naive-prefix mutant fails four tests across both layers.
+
+**Concurrency.** `move()` re-reads the tree *inside* the transaction and takes
+`pg_advisory_xact_lock` first. Planning against a caller's snapshot is how two
+concurrent moves slip a cycle past validation — each validates against a tree
+that the other is about to change. The lock is transaction-scoped, so it is
+released on rollback too and a failed move cannot wedge the ACP.
+
+**Split into planner + applier** so the entire failure surface (cycles, link
+parents, slug collisions, sibling renumbering, descendant rewrites) is pure and
+testable without a database; the repository only applies a validated plan.
+
+**Orphans are promoted to roots, not dropped** (`buildTree`). Once F21 filters
+the input by visibility, a child the actor may view can outlive a parent they may
+not. Dropping it would make a permission grant vanish silently. Noted as a
+divergence to revisit at F21, which may prefer to filter subtrees whole.
+
+**Deliberately not done in F16** — see progress.md: the tree read is not yet
+cached and tagged. `CacheTags.forumTree()` exists, but `cachedGlobal` is an
+interface in `packages/core/src/cache.ts` with no implementation anywhere, so
+there is no seam to wire it to. Building F10's caching harness is its own
+feature, not a rider on this one.
+
+### D23 — The group ladder was never seeded (F15)
+
+**Found while wiring the CLI's `user:create`.** F15's acceptance is "default
+groups present after migration with documented permission defaults". They were
+not: `0000_initial_schema.sql` contains **zero INSERT statements**. The seven
+groups existed only in `apps/forum/src/server/seed-board.ts`, which is the
+in-memory fixture board — so a fresh Postgres deployment had an empty
+`usergroups` table, and the first registration would have failed on the
+`users.primary_group_id` foreign key.
+
+The schema had always anticipated this: `usergroups.key` is commented "stable
+machine name, migrations and seeds key off this", and `permission-columns.ts`
+says in as many words that "the seed migration then sets the real per-group
+values". The migration was simply never written.
+
+**Decision.** `0001_seed_usergroups.sql`, hand-written because this is *data*
+and drizzle-kit only diffs structure. Every permission column is NOT NULL with a
+deny-by-default fallback, so each group lists only what it **grants** — meaning a
+permission added in a later release lands denied everywhere until a migration
+grants it deliberately, which is the safe direction.
+
+Ids are explicit and pinned by test: `ActorBuilder` is constructed with
+`guestGroupId: 1` and `AUTH_CONFIG.defaultMemberGroupId` is the registered
+group, and the fixture board uses the same numbering. If they drift, a fixture
+actor and a Postgres actor stop resolving identically and every parity
+assumption in the test suite quietly stops meaning anything.
+
+**Two traps this surfaced, both now covered:**
+
+- **Explicit ids do not advance the identity sequence.** Without a `setval`, the
+  first group an administrator creates collides on id 1. The same applies to any
+  seed or import preserving upstream ids (F85) — it bit the forum-tree test
+  fixture in the same session, from the same cause.
+- **The PGlite fixture only applied `0000`.** It named one file, so a second
+  migration would have been invisible to every integration test. It now reads
+  the journal — the same list the real runner applies — so a migration that is
+  checked in but never registered fails in tests exactly as it would in
+  production, rather than being silently picked up by a glob.
+
+**Not typed, deliberately noted:** the permission columns are generated into a
+`Record<string, …>`, so drizzle's inferred row type does not carry them and
+`usergroups.canView` is not statically checked anywhere. `permissions-map.ts`
+already exists to convert a loose row into a validated `PermissionSet`, and the
+seed test asserts through that mapper rather than around it. Making the columns
+statically typed would need a mapped type over the registry — worth doing, but
+it is a change to F20's foundation and not a rider on a seed migration.
+
+### D24 — The CLI's composition root, and why it is a second one (F13)
+
+`apps/cli` deliberately does not import `apps/forum/src/server/container.ts`.
+That module is `server-only` and reaches for `next/headers`, which has no
+meaning in a plain Node process.
+
+What the two must share is **policy**, not wiring. `DEFAULT_AUTH_POLICY` moved
+into `@forum/accounts` so a user created by `forum user:create` satisfies exactly
+the rules the registration form enforces — otherwise the CLI becomes a way to
+mint accounts the app then rejects, which is the failure the CLI's "thin layer"
+rule exists to prevent. Only the two genuinely board-level decisions
+(`activationMethod`, `defaultMemberGroupId`) are supplied per caller.
+
+**Postgres only.** The fixture store lives in the heap of whichever process is
+running, so `forum user:create` against it would report success and change
+nothing — worse than refusing.
+
+**No SQL in the CLI.** The commands first composed drizzle queries directly,
+which put schema knowledge outside `@forum/db` in violation of R2. They now go
+through `PostgresAdminRepository`, which the ACP's user and group screens
+(F66/F67) will want anyway.
+
+**Passwords come from stdin.** Anything in `argv` is visible in shell history and
+to every user on the box via `ps`. `--password` still works for scripting but
+warns, because a silent insecure default is worse than a noisy one.
+
+**Arguments are validated before the database is opened**, so a missing
+`--title` is reported as a missing `--title` rather than as whatever the
+connection error happens to say.
+
+**Two things this surfaced:**
+
+- The dispatcher printed a full stack trace for every failure, including expected
+  ones. A stack for "you have not set DATABASE_URL" buries the one line that says
+  how to fix it, and trains people to ignore stack traces so the real ones stop
+  being read. Known `AppError`s now print their message alone.
+- `saveSettings` threw a bare `Error` on an invalid value. Both callers key off
+  the error taxonomy — the Server Action turns a `ValidationError` into an inline
+  field message rather than a 500, and the CLI prints it without a stack — so a
+  plain `Error` reached neither and would have surfaced in the ACP (F64) as
+  "Something went wrong". It now throws `ValidationError`.
+
+`task:run` and `cache:clear` are still absent, and deliberately: registering
+commands that throw would make `forum --help` advertise capabilities the binary
+does not have.
+
+### D25 — Query budgets are measured at the driver; the seeder's scale is a parameter (F11)
+
+**The budget helper.** Counting is done by wrapping PGlite's `query`, not
+drizzle's logger. The budget a list page must meet is *round trips*; drizzle's
+logger reports what it intended to run, and would miss a raw `execute`, a
+lazily-awaited builder, or a query drizzle issues on your behalf. The counter is
+installed after the migration so schema setup does not count against a test.
+
+Failures print the SQL grouped and counted (`3× select …`), because "expected 41
+to be <= 3" says there is a problem but not where. The first version truncated
+each statement to 160 characters — and drizzle selects every column explicitly,
+so the table name sits *after* a 900-character column list and was always cut
+off, reporting forty repetitions of an indistinguishable `select "id", "key",
+…`. It now elides from the middle.
+
+Mutation-verified: an N+1 injected into `PostgresForumRepository.listAll` fails
+the budget assertion. F16's "tree read is one query regardless of depth" is now
+a measurement against a genuinely nested seeded board rather than a claim about
+the code.
+
+**The seeder's scale is a parameter, and that is the honest part.** F11's target
+is 50 forums / 100k threads / 2M posts / 20k users. That is a real-Postgres
+workload: PGlite is Postgres compiled to WASM holding the database in process
+memory, and 2M posts would exhaust the heap long before finishing. So
+`SMOKE_SCALE` (12 forums / 120 threads) runs in every test run and `FULL_SCALE`
+is the plan's number, pointed at a real database for F89's performance pass.
+Recording this rather than quietly shipping a small seeder under the plan's
+heading — the difference matters, because an index that looks fine at 120
+threads is exactly what F11 exists to catch.
+
+Determinism is the seeder's contract: a fixed-seed PRNG, asserted by rebuilding
+a second database and comparing every thread title and sticky flag. A seeded
+board that varied per run would make every budget assertion a coin flip, and
+three green runs would teach everyone to re-run a failure rather than read it.
+
+Per-row cost is avoided deliberately — one shared precomputed Argon2id hash
+(hashing 20k passwords at the real cost factor proves nothing the crypto suite
+does not already cover), batched multi-row inserts, and forum paths accumulated
+in memory rather than read back per forum.
+
+### D26 — `visibleForumIds` was an N+1; it is now three queries, not one (F21)
+
+**Found by the query-budget helper within an hour of building it.** F21's
+acceptance says "`visibleForumIds` is one query". It was **32** on a 15-forum
+board: the implementation looped over every forum asking for that forum's
+ancestor chain and its overrides — two round trips each.
+
+This is the worst possible place for an N+1. Every list page on the board
+filters by the visible set (invariant 25), so the cost multiplies across the
+entire product, and it grows with the number of forums — the one dimension a
+busy board keeps increasing.
+
+**Fix.** `AuthorizationSource` grew `allAncestorChains()`, which the materialised
+path makes free: the chain is a parse of a string already on the row, so reading
+`(id, path)` for the whole board is one statement at any depth or width.
+Resolution is now three queries — chains, group defaults, all overrides for
+those groups — and then pure in-memory work.
+
+**Why three and not the literal one the plan asks for.** The combination rules
+(R4.2's OR/max/AND across groups, and first-non-null up the ancestor chain) are
+domain logic. Expressing them in SQL would move the permission model into the
+database, where F20's "nothing outside `@forum/authorization` knows what a group
+id is" stops being enforceable, and where the F22 matrix could no longer drive
+it. The property that actually matters is that the cost is **constant**, and
+that is asserted directly by comparing a 15-forum board against a 65-forum one —
+a bare budget of 3 would still pass on a tiny fixture with a per-forum walk.
+
+**Also closed here:** F21's "four-level tree with overrides at levels 2 and 4"
+had only ever been exercised through the in-memory fixture, which proves the
+rules but not the wiring. There is now a Postgres test over a real four-level
+tree, including the case that separates a correct resolver from one that merely
+works — a level-3 forum with no row of its own must inherit level 2's denial
+rather than fall back to the group default, because falling back silently
+exposes the child of a private forum. It also asserts that `visibleForumIds` and
+`forumMatrix` agree, since a disagreement shows up as a forum you can see in a
+listing but cannot open.
+
+### D27 — The queue only worked with one driver's result shape (F05)
+
+**Found by the driver contract suite on its first run.** F05 asks for "a contract
+test suite every implementation must pass"; there was none, so `PostgresQueue` —
+the *default* queue driver — had never been executed against a real database at
+all. Pointing the new suite at PGlite failed immediately with `rows.map is not a
+function`.
+
+Drizzle's raw `execute()` returns whatever the underlying driver returns, and
+they disagree: `postgres.js` (what the app runs) yields an array-like of rows,
+while `node-postgres`, PGlite and **Neon's serverless driver** yield
+`{ rows: [...] }`. `PostgresQueue` read the first shape behind an
+`as unknown as ReadonlyArray<…>` cast.
+
+That cast is the real defect. It *asserts* a shape rather than checking one, so
+the compiler could not warn about the exact thing that would break — and F03
+built the `DbDriver` seam specifically so Neon could slot in later. The queue
+would have failed on that swap, at runtime, in production, on the code path that
+delivers email and notifications.
+
+Fixed with `resultRows()` in `@forum/db`, which accepts either shape and is now
+the sanctioned way to read rows from `execute()`. The query builder is
+unaffected — it normalises internally.
+
+**The wider point:** every implementation passed its own tests before this. The
+contract suite is what makes "no conditional feature code downstream" true
+rather than aspirational, because it is the only thing that checks the
+implementations actually agree.
+
+Also set `LOG_LEVEL=fatal` for the test run. Several suites deliberately drive
+failure paths, and their expected error-level output made a fully passing run
+print error JSON — which teaches everyone to skim past CI output, and is how a
+real error goes unnoticed.
+
+### D28 — Migrations are forward-only; F03's "up and down" is superseded (F03)
+
+F03's acceptance asks that "migrations run up **and down** against a
+Testcontainers Postgres". Invariant 32 says "migrations are forward-only and
+checked in". Both are normative and they contradict each other; this was flagged
+rather than guessed, and **decided on 2026-07-30: invariant 32 governs.**
+
+Reasoning, recorded so it is not relitigated:
+
+- A down migration that drops a column is a data-loss button pointed at a live
+  board, run by an operator who is already having a bad day.
+- Some migrations genuinely cannot be reversed — a destructive backfill has
+  nothing to restore from — so a "reversible migrations" guarantee would be
+  partial, and a partial guarantee is worse than none because people rely on it.
+- Recovery from a bad migration is a restore, which F88's backup-and-restore
+  runbook owns.
+
+Testcontainers is also substituted, by PGlite: it runs the actual generated
+migration SQL in a real Postgres (compiled to WASM), which is what the
+requirement was protecting — that migrations are exercised against Postgres
+semantics rather than a mock — without needing Docker in every test run.
+
+### D29 — Bans: what gets captured, and when filters are checked (F23)
+
+**Restore-on-expiry.** F23 requires that an expired ban restores the *prior*
+group, not the default. The group is therefore captured at ban time and written
+back verbatim — a moderator banned for a week returns a moderator. Restoring the
+default instead is a silent demotion that nobody notices until that person tries
+to do their job. Mutation-verified: restoring a hardcoded default fails both
+restore tests.
+
+The capture and the move are in one transaction with the session revocation,
+because the four writes only mean something together. A ban that records the row
+but leaves the session alive is a label; one that moves the group without
+capturing the previous value strands the user permanently.
+
+`previous_primary_group_id` is `ON DELETE SET NULL`, so a group deleted mid-ban
+leaves nothing to restore. Writing null back would violate
+`users.primary_group_id`'s NOT NULL, so the ban lifts and the group is left
+alone — safer than guessing a group and silently granting it.
+
+`expireDue` also bumps `permission_version`. Without it a lifted ban leaves the
+user holding banned-group permissions for the cache's lifetime, so the ban
+silently outlives its own expiry.
+
+**Filter ordering is a security decision, not an implementation detail.** IP
+filters run first, before any hashing: there is no enumeration risk (the address
+is the caller's own) and an abusive network should not get to spend the board's
+Argon2 budget. Username and email filters run only *after* the password has
+verified — checking them up front would answer "is this account filtered?" to
+anyone who can type a username, which is exactly the enumeration oracle that
+login's dummy-hash path exists to prevent. There is a test asserting a wrong
+password yields the generic credential error rather than the filter message.
+
+**Patterns are globs, not regexes** — the same call F37 makes about custom
+BBCode, for the same reason: accepting a regex from an ACP form hands whoever
+holds that screen a denial of service via catastrophic backtracking. Every
+non-wildcard character is escaped (so `*@spam.example` cannot also match
+`*@spamXexample`) and patterns are anchored (so `spam` does not match
+`notspammer`). A bare `*` is rejected: it would lock out the administrator who
+typed it.
+
+**Messages leak nothing.** Ban messages surface `publicReason` and never
+`reason`, which is staff-facing and routinely holds notes about linked accounts.
+Filter messages name neither the pattern nor the field, which would be a map for
+evading them.
+
+**Still open:** `bans.expire` is registered in the task registry but nothing runs
+it — F06's tick returns `ran: []` and no `TaskRepository` exists. F23 stays
+PARTIAL for that reason rather than being marked done on a task that cannot fire.
+
+### D30 — Promotions: the guards are the feature (F24)
+
+An automatic group move is a privilege change nobody approves individually — it
+runs on a timer, against every user, forever. So the interesting question is not
+"who qualifies" but "who must this never touch". Three guards, all in the pure
+evaluator and all mutation-verified:
+
+1. **Never lift a ban.** A banned user with 100 posts and a "100 posts →
+   Veteran" rule would otherwise be silently un-banned by a cron job.
+   Un-banning belongs to a moderator, via F23.
+2. **Never demote.** A rule is a floor, not an assignment. An administrator who
+   satisfies "10 posts → Registered" must not be moved *down* into it, which is
+   exactly what a naive matches-then-set does.
+3. **Never re-apply.** Someone already in the target group yields no outcome,
+   which is what makes the task idempotent rather than merely harmless to
+   repeat.
+
+**Mutation testing corrected a test that was lying.** Removing guard 2 initially
+failed only one assertion — the Postgres test named "never demotes an
+administrator" still passed, because administrators are in `protectedGroupIds`
+and guard 1 was catching them. The test proved nothing about ranking. It now
+uses a non-protected but higher-ranked group, and removing guard 2 fails at both
+layers. A test whose name describes a guard it does not exercise is worse than
+no test, because it is counted as coverage.
+
+**Keyset paging, not OFFSET.** Applying a promotion changes the rows being
+paged: with OFFSET, moving a user shifts every later row up one and the next
+page silently skips somebody. It presents as "some people never get promoted"
+and is near-impossible to reproduce by hand.
+
+**Preview and apply share one evaluation** and differ only in whether outcomes
+are written. An ACP preview computed by separate code would eventually disagree
+with what applying actually does, which is the one thing a dry run must never do.
+
+**F20 lint scope.** `@forum/groups` is exempted from the group-ID rule, like
+`@forum/authorization`. The rule bans deciding what someone may *do* by
+comparing group ids; this package decides which group a user *belongs to*, which
+cannot be expressed without naming groups. The boundary it must not cross is
+stated in the config: it may move a user between groups, never conclude anything
+about what a group is permitted to do. Probed both ways — the rule still errors
+in a non-exempt package and is silent inside.
+
+### D31 — The task lease, and a mutant that survived (F06)
+
+`PostgresTaskRepository` lands, so the scheduler finally has storage. `claim` is
+one conditional UPDATE: a read-then-write would reintroduce the race it exists
+to close, and serverless instances share no memory so a JavaScript mutex
+protects nothing.
+
+**The finding worth recording is a mutation that survived.** Removing the lease
+guard (`locked_until is null or locked_until <= now`) from the WHERE clause
+failed *no test* — including the two named after F06's "concurrent ticks don't
+double-run a task" criterion. Both were passing on the *due* check instead:
+`claim` sets `last_run_at = now`, so a second immediate claim is refused for
+being not-yet-due, with or without a lease.
+
+The lease actually matters in a case neither test covered: **a task whose
+runtime exceeds its own interval**. The first claim sets `last_run_at`, so by
+the time the next cron fires the task looks due again, and only a live lease
+says "someone is still running this". Without it a 10-minute task on a
+1-minute interval is re-entered every minute until the instance falls over —
+which is exactly the "slow run plus the next cron fire" F06 calls out. There is
+now a test for it, and the mutant dies.
+
+Third time this session that mutation testing has caught a test whose name
+described a guarantee it did not exercise (see also D30). The pattern is
+consistent: a test written alongside the code tends to assert the path the
+author had in mind, and the *other* reason it passes goes unnoticed.
+
+Two smaller decisions:
+
+- `next_run_at` is computed from `finishedAt`, not from when the task became
+  due. Anchoring to the due time makes an overrunning task fire again
+  immediately and keep doing so — one slow run becomes a busy loop.
+- `ensureRegistered` updates `interval_seconds` on conflict but leaves
+  `last_run_at`, `locked_until` and `consecutive_failures` alone: cadence is
+  code-owned, but a deploy must not reset a task's history or steal a live lease
+  from a tick that is still running.
+
+### D32 — A task that cannot run is not registered (F06)
+
+The tick now executes. `PostgresTaskRepository` supplies the storage,
+`task-workers.ts` supplies the work, and `/api/system/tick` calls `tick()`
+instead of returning `ran: []`.
+
+**Two workers still have no implementation, and are omitted rather than
+stubbed.** `reconcileCounters` needs F38 — there are no maintained counters to
+reconcile — and `relayOutbox` needs an `OutboxReader`/`RelayTarget` over
+Postgres that `@forum/db` does not have yet.
+
+`builtinTasks` therefore takes a *partial* worker set and registers only the
+tasks whose workers exist. The alternatives are both worse:
+
+- a stub returning 0 pretends work happened, and the tick reports a healthy run
+  of a task that does nothing — which is precisely how this endpoint looked
+  healthy while executing nothing at all;
+- a stub that throws makes every tick log a failure and eventually raises an
+  admin notification for a task nobody asked for.
+
+Not registering means `tasks` holds no row for it, F70's System Health will not
+list it, and the day the worker appears the task registers itself. Same rule the
+operator CLI follows by omitting `task:run`: never advertise a capability that
+is not there.
+
+**Fixture mode has no scheduler at all**, and the route returns 503 saying so.
+The tick's guarantee is that a task is not run twice, which needs durable
+cross-instance state; an in-memory task table would let two instances each
+believe they held the claim. Returning `ran: []` would have been
+indistinguishable from "ran, nothing to do" — the exact ambiguity that let this
+endpoint look fine for weeks.
+
+**The tick returns 200 even when a task failed.** The tick itself succeeded; a
+non-2xx would make the platform retry the whole drain, re-running every healthy
+task to chase one broken one. The failure is in the body and in the log.
+
+### D33 — `forum.config.ts`, and why the scan ban is the substance (invariant 6)
+
+Invariant 6 says everything installable is registered in `forum.config.ts` and
+nothing is discovered by filesystem scan at runtime. The file did not exist;
+themes were imported directly by the layout and drivers resolved from env.
+
+Built now, before F25, on the reasoning that a registry retrofitted over
+finished pages does not work — the same argument the plan makes about slot APIs.
+
+**The scan ban is the part that matters**, and it is not a style preference:
+
+- a serverless bundle contains only what the bundler could see statically, so a
+  `readdir` over `themes/` is empty in production while working perfectly on the
+  machine that wrote it;
+- it makes the installed set unknowable at build time, so nothing can be
+  type-checked against it and a broken plugin is a 500 rather than a compile
+  error;
+- it makes "what is installed" a property of the filesystem, which differs
+  between a developer's machine, CI and production.
+
+Guard `R1 no-runtime-filesystem-scan` now bans `readdir`/`globSync`/`opendir` in
+app and package code, allowing `scripts/`, the CLI, the testkit and the
+migration runner — all of which legitimately read a real filesystem outside the
+request path. Probed both ways.
+
+**The registry is load-bearing, not decorative.** `layout.tsx` reads its
+theme-colour through `forumConfig` rather than importing `@forum/theme-default`,
+so installing a second theme does not mean editing the layout. Verified in the
+built output: the tokens in the registry are the values in the rendered
+`<meta name="theme-color">`.
+
+`defineForumConfig` validates the two things that would otherwise fail far from
+their cause — a `defaultTheme` naming a theme that is not installed (a blank
+board with no error), and a theme registered under a key that disagrees with its
+own (`themes[key].key !== key`, which breaks every lookup that round-trips
+through one or the other).
+
+Deliberately thin: the theme entry widens at F25 when theme-kit defines the slot
+contract, and `plugins` gains a real element type at F79. Both are additive.
+
+### D34 — The lazy-require pattern does not do what it claims (F05, ADR 0002)
+
+`S3FileStore` lands, and building it disproved the condition ADR 0002 accepted
+the dependency on. Recorded here because the same pattern is used elsewhere in
+this codebase and is equally ineffective there.
+
+**A lazy `require()` with a literal specifier keeps nothing out of a bundle.**
+The bundler resolves it statically and includes the module; `require` defers
+*execution*, not *inclusion*. Measured on a `FILESTORE_DRIVER=local` build: the
+AWS client was referenced across server chunks, and so was postgres.js — which
+means `container.ts`'s Postgres branch (D14) never achieved this either.
+
+**And `require()` in an ESM package throws in plain Node.** It works inside
+Next, whose bundler polyfills it, which is why nothing caught it. But
+`@forum/drivers` is used by the CLI and worker too, so `FILESTORE_DRIVER=s3`
+would have failed there at runtime — found by actually running the resolver
+outside Next rather than trusting the unit tests.
+
+Replaced with a static import plus `serverExternalPackages` in `next.config`
+(`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`, `postgres`). Works in
+every runtime, and output tracing still ships the packages into the standalone
+image.
+
+**What is honestly claimable:** ~370 KB off the server chunks and no SDK
+implementation symbols inlined. "Zero bytes in a local-storage bundle" is not
+something grep can establish; a bundle analyser is F89's job.
+
+**Two other things this feature surfaced:**
+
+- Guard R0 caught *me* writing a raw control-character range into the key
+  validator — the guard added an hour earlier, working on its author.
+- The suite now boots fifteen PGlite instances. Unbounded, vitest starts one
+  worker per core and fifteen WASM databases fight over ten, so boot hooks
+  missed even a 30s timeout about one run in three. `maxWorkers: 4` trades a
+  little wall-clock for a gate that can be trusted — a suite failing one run in
+  three teaches people to re-run it, and then real failures get re-run too.
