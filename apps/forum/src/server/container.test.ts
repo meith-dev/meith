@@ -95,13 +95,13 @@ describe('getContainer (fixture mode)', () => {
     expect(authorizer.can(admin, 'admincp.access', {})).toBe(true)
   })
 
-  it('rebuilds an HMR-stale container that predates the thread/post read ports', () => {
+  it('rebuilds an HMR-stale container that predates a newly-added post method', () => {
     const current = getContainer()
     const key = Symbol.for('@forum/forum.container')
     ;(globalThis as Record<symbol, unknown>)[key] = {
       ...current,
-      threads: { listForum: current.threads.listForum },
-      posts: undefined,
+      threads: current.threads,
+      posts: { listThread: current.posts.listThread },
     }
 
     const rebuilt = getContainer()

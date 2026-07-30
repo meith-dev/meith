@@ -38,6 +38,21 @@ function toPost(row: {
 export class PostgresPostRepository implements PostRepository {
   constructor(private readonly db: Database) {}
 
+  async findVisibleById(threadId: number, postId: number): Promise<number | null> {
+    const rows = await this.db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(
+        and(
+          eq(posts.threadId, threadId),
+          eq(posts.id, postId),
+          eq(posts.visibility, 'visible'),
+        ),
+      )
+      .limit(1)
+    return rows[0]?.id ?? null
+  }
+
   async listThread(
     threadId: number,
     options: { readonly afterId?: number; readonly limit: number },

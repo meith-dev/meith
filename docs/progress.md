@@ -164,13 +164,19 @@ roughly one run in three (D34).
   statement while retaining their absolute thread number; the plain-text
   fallback escapes raw content before the theme inserts it as HTML. BBCode,
   replies, and post actions remain unadvertised until their owning features.
+- **F32 read tracking** — member read state is stored as forum timestamps plus
+  per-thread last-post markers. The index receives computed unread forum ids;
+  forum rows compare their last post against both watermarks. Native POST forms
+  mark all, one forum, or the last post on a thread page, and all targets are
+  re-authorised at the route before writing. The state read is a constant three
+  statements and a late tab cannot move a marker backwards.
 
 ## NEXT ACTION — resume here
 
-**F32 · read tracking** is next: the `forums_read` and `threads_read` tables
-exist, but no repository or request path records a member's watermark yet.
-Keep guests stateless; the first implementation should use the existing
-per-forum and per-thread tables rather than adding a second read-state shape.
+**F33 · member profile** is next: profile links are still intentionally null,
+because the theme has no route to send them to. It needs one profile read and a
+`MemberProfile` slot; keep deleted authors as plain names rather than linking a
+dead account.
 
 The counters the index renders are still never written: `forums.thread_count`,
 `post_count`, and the last-post triplet are read by F29 and maintained by nobody

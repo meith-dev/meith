@@ -62,6 +62,10 @@ export default async function ThreadPage({
     page: postPage,
     pageNumber: page,
     nextHref,
+    markReadAction:
+      actor.userId === null || postPage.rows.at(-1) === undefined
+        ? null
+        : `/api/read/thread/${thread.id}?post=${postPage.rows.at(-1)!.id}`,
     now: new Date(),
   })
 

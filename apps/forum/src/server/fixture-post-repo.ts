@@ -8,6 +8,10 @@ import { SEED_POST_ROWS } from './seed-board'
 export class FixturePostRepository implements PostRepository {
   constructor(private readonly rows: readonly PostListingRow[] = SEED_POST_ROWS) {}
 
+  async findVisibleById(threadId: number, postId: number): Promise<number | null> {
+    return this.rows.some((row) => row.threadId === threadId && row.id === postId) ? postId : null
+  }
+
   async listThread(
     threadId: number,
     options: { readonly afterId?: number; readonly limit: number },

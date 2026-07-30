@@ -76,6 +76,8 @@ describe('PostgresPostRepository.listThread', () => {
 
     expect(first.rows.map((post) => [post.id, post.number])).toEqual([[1, 1], [2, 2]])
     expect(second.rows.map((post) => [post.id, post.number])).toEqual([[3, 3], [4, 4]])
+    expect(await repo.findVisibleById(1, 1)).toBe(1)
+    expect(await repo.findVisibleById(1, 99)).toBeNull()
   })
 
   it('costs one statement at both small and larger thread sizes', async () => {

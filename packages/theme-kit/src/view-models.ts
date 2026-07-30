@@ -369,6 +369,8 @@ export interface ThreadViewModel {
   readonly thread: ThreadRowModel
   readonly forum: LinkModel
   readonly replyHref: string | null
+  /** F32: a native POST target for the last visible post on this page. */
+  readonly markReadAction: string | null
   readonly regions: {
     /** One `PostBit` per post on this page. */
     readonly posts: ReactNode

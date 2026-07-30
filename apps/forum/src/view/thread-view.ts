@@ -60,6 +60,7 @@ export interface ThreadViewInput {
   readonly page: PostPage
   readonly pageNumber: number
   readonly nextHref: string | null
+  readonly markReadAction?: string | null
   readonly now: Date
 }
 
@@ -76,6 +77,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
       forum: { label: input.forum.title, href: forumHref(input.forum) },
       // F40/F45 own reply routes and the enhancement island.
       replyHref: null,
+      markReadAction: input.markReadAction ?? null,
     },
     posts: input.page.rows.map((entry) => post(entry, input.thread, input.now)),
     pagination: {

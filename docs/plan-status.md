@@ -39,7 +39,7 @@ couple of `PARTIAL` rows are an afternoon.
 |---|---|---|---|---|
 | 0 — Skeleton | 14 | 11 | 3 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
-| 2 — Themes and reading | 11 | 4 | 3 | 4 |
+| 2 — Themes and reading | 11 | 5 | 3 | 3 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
@@ -47,7 +47,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **25** | **6** | **58** |
+| **Total** | **89** | **26** | **6** | **57** |
 
 ---
 
@@ -110,7 +110,7 @@ packages are empty.
 | F29 | Board index | `DONE` | Category blocks, forum rows with counters, last post, subforum links, and the empty-forum and deleted-author paths. `listListing()` is one query regardless of forum count or depth, asserted by F11's budget helper across **two board sizes** and mutation-verified against an injected N+1; it is deliberately excluded from the forum-tree cache, pinned by two tests (D38). Visibility filters subtrees **whole** — answering open question 5 — with the orphan pass iterated to a fixed point so a grandchild cannot surface. Renders in fixture mode against `FixtureForumRepository`, whose writes throw rather than pretend. |
 | F30 | Forum display | `DONE` | `/forum/[id]-[slug]` validates a visible forum before reading it, renders `ForumDisplay` + `ThreadRow`/`SubforumList`/`Pagination` slots, and uses an opaque keyset cursor over sticky / last-post time / id. `PostgresThreadRepository` makes one partial-index-backed statement per page; a real-PGlite budget test covers 3 and 50 threads, and the equal-timestamp tie-breaker is tested. Fixture mode has the same paged read. |
 | F31 | Thread view | `DONE` | `/thread/[id]-[slug]` resolves the visible forum matrix before it reads posts, then composes `ThreadView`, `PostBit`, `PostActions`, and `Pagination`. `PostgresPostRepository` keyset-pages the R3.5 visible-post index in one statement while retaining absolute post numbers across pages; PGlite tests cover 3 and 50 posts, pagination numbering, and hidden-post exclusion. Until F36, raw text is escaped into the trusted plain-text HTML fallback. Fixture mode has the same read path. |
-| F32 | Read tracking | `TODO` | `forums_read` / `threads_read` tables exist. |
+| F32 | Read tracking | `DONE` | `PostgresReadStateRepository` reads forum watermarks, thread markers, and unread forum ids in a constant three statements; a real-PGlite test proves the budget and prevents a slower tab from regressing the marker. Index and forum rows show unread state. POST-only routes mark all visible forums, one forum, or the last visible post in a thread; the post target is revalidated against the visible thread before it writes. Guests and fixture mode remain stateless. |
 | F33 | Member profile | `TODO` | |
 | F34 | Error and redirect pages | `PARTIAL` | Themed `error.tsx` / `not-found.tsx` exist (F09); the MyBB-style redirect interstitial does not. |
 | F35 | No-JS and accessibility pass | `TODO` | **No Playwright suite exists.** "Works with JavaScript disabled" is currently a claim about F18/F19, not a measurement. |

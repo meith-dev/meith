@@ -38,16 +38,19 @@ export const metadata: Metadata = { title: "Forums" }
  */
 export default async function BoardIndexPage() {
   const actor = await getActor()
-  const { forums, authorizer } = getContainer()
+  const { forums, authorizer, readState } = getContainer()
 
-  const [rows, visible] = await Promise.all([
+  const [rows, visible, read] = await Promise.all([
     forums.listListing(),
     authorizer.visibleForumIds(actor),
+    actor.userId === null || readState === null ? Promise.resolve(null) : readState.forUser(actor.userId),
   ])
 
   const view = buildBoardIndexView({
     rows,
     visibleForumIds: new Set(visible),
+    ...(read === null ? {} : { unreadForumIds: read.unreadForumIds }),
+    markAllReadAction: read === null ? null : '/api/read/all',
     /*
      * One clock for the whole render. Calling `new Date()` per row would let a
      * page straddle midnight and render "Today" above "Yesterday" for posts a

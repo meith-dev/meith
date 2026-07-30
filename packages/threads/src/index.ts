@@ -6,3 +6,4 @@ export type {
   ThreadListingRow,
   ThreadPage,
 } from "./types";
+export type { ReadState, ReadStateRepository } from './read-state'

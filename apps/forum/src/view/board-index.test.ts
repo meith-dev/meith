@@ -211,6 +211,19 @@ describe('buildBoardIndexView', () => {
     expect(view([forum({ id: 1 })], [1]).index.markAllReadAction).toBeNull()
   })
 
+  it('marks the supplied unread forums and exposes the native mark-all target', () => {
+    const result = buildBoardIndexView({
+      rows: [forum({ id: 1 })],
+      visibleForumIds: new Set([1]),
+      unreadForumIds: new Set([1]),
+      markAllReadAction: '/api/read/all',
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+
+    expect(result.blocks[0]?.block.category.isUnread).toBe(true)
+    expect(result.index.markAllReadAction).toBe('/api/read/all')
+  })
+
   it('renders an empty board as no blocks rather than throwing', () => {
     expect(view([], []).blocks).toEqual([])
   })

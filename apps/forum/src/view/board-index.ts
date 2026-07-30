@@ -39,6 +39,10 @@ export interface BoardIndexInput {
   readonly rows: readonly ForumListingRow[]
   /** From `Authorizer.visibleForumIds` (F21). */
   readonly visibleForumIds: ReadonlySet<number>
+  /** F32: forums with at least one visible unread thread. */
+  readonly unreadForumIds?: ReadonlySet<number>
+  /** Null for guests and fixture mode. */
+  readonly markAllReadAction?: string | null
   /** Injected so "Today" is testable and identical across one render. */
   readonly now: Date
 }
@@ -89,6 +93,7 @@ function toLastPost(row: ForumListingRow, now: Date): LastPostModel | null {
 function toForumRow(
   node: ForumNode<ForumListingRow>,
   now: Date,
+  unreadForumIds: ReadonlySet<number> | undefined,
 ): ForumRowModel {
   return {
     id: node.id,
@@ -99,8 +104,7 @@ function toForumRow(
     threadCount: node.threadCount,
     postCount: node.postCount,
     lastPost: toLastPost(node, now),
-    // F32. A guest has no read state, and nothing tracks it yet for anyone.
-    isUnread: false,
+    isUnread: unreadForumIds?.has(node.id) ?? false,
     subforums: node.children.map(
       (child): LinkModel => ({ label: child.title, href: hrefFor(child) }),
     ),
@@ -166,12 +170,11 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
 
   return {
     index: {
-      // F32's "mark all read" needs read tracking to exist before it can act.
-      markAllReadAction: null,
+      markAllReadAction: input.markAllReadAction ?? null,
     },
     blocks: tree.map((node) => ({
-      block: { category: toForumRow(node, input.now) },
-      forums: node.children.map((child) => toForumRow(child, input.now)),
+      block: { category: toForumRow(node, input.now, input.unreadForumIds) },
+      forums: node.children.map((child) => toForumRow(child, input.now, input.unreadForumIds)),
     })),
   }
 }

@@ -34,10 +34,13 @@ export default async function ForumPage({
     notFound();
 
   const actor = await getActor();
-  const { forums, threads, authorizer } = getContainer();
-  const [rows, visible] = await Promise.all([
+  const { forums, threads, authorizer, readState } = getContainer();
+  const [rows, visible, read] = await Promise.all([
     forums.listListing(),
     authorizer.visibleForumIds(actor),
+    actor.userId === null || readState === null
+      ? Promise.resolve(null)
+      : readState.forUser(actor.userId),
   ]);
   const forum = rows.find((row) => row.id === id);
   if (!forum || forum.type !== "forum" || !visible.includes(id)) notFound();
@@ -62,6 +65,8 @@ export default async function ForumPage({
     page: threadPage,
     pageNumber: page,
     nextHref,
+    readState: read,
+    markReadAction: read === null ? null : `/api/read/forum/${id}`,
     now: new Date(),
   });
 

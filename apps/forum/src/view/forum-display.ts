@@ -8,7 +8,7 @@ import type {
   SubforumListModel,
   ThreadRowModel,
 } from "@forum/theme-kit";
-import type { ThreadListingRow, ThreadPage } from "@forum/threads";
+import type { ReadState, ThreadListingRow, ThreadPage } from "@forum/threads";
 
 import { forumHref } from "./board-index";
 import { formatTime } from "./time";
@@ -51,7 +51,17 @@ function forum(row: ForumListingRow): ForumRowModel {
   };
 }
 
-export function threadRowModel(row: ThreadListingRow, now: Date): ThreadRowModel {
+export function threadRowModel(
+  row: ThreadListingRow,
+  now: Date,
+  readState: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null = null,
+): ThreadRowModel {
+  const last = row.lastPost;
+  const isUnread =
+    last !== null &&
+    readState !== null &&
+    last.postId > (readState.threadLastPostId.get(row.id) ?? 0) &&
+    last.at > (readState.forumReadAt.get(row.forumId) ?? new Date(0));
   return {
     id: row.id,
     title: row.title,
@@ -66,7 +76,7 @@ export function threadRowModel(row: ThreadListingRow, now: Date): ThreadRowModel
     viewCount: row.viewCount,
     isSticky: row.isSticky,
     isLocked: row.isLocked,
-    isUnread: false,
+    isUnread,
     isMoved: row.isMoved,
     lastPost: lastPost(row.lastPost, row, now),
   };
@@ -78,6 +88,8 @@ export interface ForumDisplayInput {
   readonly page: ThreadPage;
   readonly pageNumber: number;
   readonly nextHref: string | null;
+  readonly readState?: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null;
+  readonly markReadAction?: string | null;
   readonly now: Date;
 }
 
@@ -94,15 +106,15 @@ export function buildForumDisplayView(
   return {
     display: {
       forum: forum(input.forum),
-      // F39/F32 own these write endpoints. Do not link to routes that do not exist.
+      // F39 owns new-thread creation. F32 supplies the native read form target.
       newThreadHref: null,
-      markReadAction: null,
+      markReadAction: input.markReadAction ?? null,
     },
     subforums:
       input.subforums.length === 0
         ? null
         : { forums: input.subforums.map(forum) },
-    threads: input.page.rows.map((row) => threadRowModel(row, input.now)),
+    threads: input.page.rows.map((row) => threadRowModel(row, input.now, input.readState ?? null)),
     pagination: {
       page: input.pageNumber,
       // Cursor pagination deliberately does not run a count query just to show a total.
