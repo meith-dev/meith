@@ -1,9 +1,9 @@
 # Plan status
 
-Feature-by-feature status against `forum-platform-build-plan.md`. This is the
+Feature-by-feature status against [`roadmap.md`](./roadmap.md). This is the
 tracking file: **one row per plan feature, always**. `progress.md` says what to do
-next in prose, `deviations.md` records decisions and divergences, and this says
-what is and is not built.
+next in prose, `deviations.md` records decisions and divergences, and the roadmap
+defines scope, dependencies, and acceptance criteria.
 
 ## How to use it
 
@@ -26,7 +26,7 @@ what is and is not built.
 
 ## How this audit was done
 
-Last audited **2026-07-30** (re-audited after F27/F29 landed), against the working tree, not from memory:
+Last audited **2026-07-30** (re-audited after F35 landed), against the working tree, not from memory:
 `pnpm verify` (931 tests), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
@@ -85,21 +85,20 @@ couple of `PARTIAL` rows are an afternoon.
 | F19 | Login, logout, password reset | `DONE` | Four flows as no-JS Server Actions; Postgres-backed lockout; single-use expiring reset tokens. D20 fixed a reset-token leak to the browser. |
 | F20 | Permission engine — global layer | `DONE` | `@forum/authorization`: pure `Authorizer`, R4.2 combination (OR / max-with-0 / AND), logged bypasses, `permission_version`. Group-ID lint rule live (D13). |
 | F21 | Forum permissions and moderator rights | `DONE` | Nullable-column inheritance, ancestor walk over `path`, `forum_moderators`, `visibleForumIds`. Four-level resolution with overrides at levels 2 and 4 now tested **over real Postgres**, including that a level-3 forum with no row inherits the denial rather than falling back to the group default. `visibleForumIds` was a 32-query N+1 and is now a constant 3, asserted by comparing two board sizes (D26). |
-| F22 | ⛔ GATE — Permission matrix suite | `GATE` — green | 388-cell table-driven cross product over actors × contexts × actions; fixture reviewed. Currently exercises the in-memory source; re-run against Postgres when F21's wiring lands. |
+| F22 | ⛔ GATE — Permission matrix suite | `GATE` — green | 388-cell table-driven cross product over actors × contexts × actions; fixture reviewed. The matrix exercises the fixture source, while F21's matching repository/resolution cases are also proven against real Postgres. |
 | F23 | Bans and ban filters | `DONE`* | `BanService` + Postgres repositories, glob ban filters applied at **both** registration and login, and `bans.expire` now genuinely runs on the tick. Both acceptance criteria met and mutation-verified: expiry restores the *captured* group, not the default (D29). *No ACP or CLI surface for creating a ban yet — that is F54/F67's screen, not a gap in the mechanism. |
 | F24 | Group promotions | `DONE`* | `@forum/groups` (was an empty package): pure rule evaluation with three safety guards, `PromotionService` with preview/apply sharing one evaluation, `group_promotions` table (migration `0002`), Postgres repository with keyset paging, and `promotions.apply` now genuinely runs on the tick. Both acceptance criteria met and mutation-verified (D30). *No ACP surface for editing rules — that is F66's screen. |
 
-> **Checkpoint 1** — substantially reached: register / activate / log in / log out
-> / reset all work without JavaScript, the tree exists with per-group overrides,
-> and F22 proves resolution. Outstanding: F23, F24, and F21's end-to-end wiring.
+> **Checkpoint 1** — reached: register / activate / log in / log out / reset all
+> work without JavaScript, the tree exists with per-group overrides, and F22
+> proves resolution.
 
 ## Phase 2 — Themes and reading the board
 
-F25 is done and F27 has started; the rest is `TODO`. `packages/theme-kit` holds
-the slot registry, the view-model contract and `defineTheme`; `themes/default`
-fills the five shell slots the auth screens render. `packages/ui` is still
-effectively empty (one file). `threads`/`posts` tables exist in the migration; the
-packages are empty.
+F25 and F29–F35 are done; F27/F28 are partial and F26 remains `TODO`.
+`packages/theme-kit` holds the slot registry, the view-model contract and
+`defineTheme`; `themes/default` renders the board and auth shell. The content
+tables/indexes exist, while content writers and the BBCode package begin in F36.
 
 | ID | Feature | Status | Note |
 |---|---|---|---|
@@ -117,89 +116,126 @@ packages are empty.
 
 ## Phase 3 — Posting
 
-All `TODO`. `posts`, `post_revisions`, `threads`, `thread_prefixes`,
-`thread_subscriptions` tables exist; `packages/posts` and `packages/threads` are
-empty; there is no `packages/bbcode`.
+`posts`, `post_revisions`, `threads`, `thread_prefixes`, and
+`thread_subscriptions` tables exist; writers and `packages/bbcode` do not.
 
-| ID | Feature | ID | Feature |
+| ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
-| F36 | BBCode package | F42 | Attachments |
-| F37 | Smilies and custom BBCode | F43 | Polls and ratings |
-| F38 | Counter maintenance and recount | F44 | Drafts |
-| F39 | New thread | F45 | Editor islands |
-| F40 | Reply and quote | F46 | Anti-spam and flood control |
-| F41 | Edit and delete own posts | | |
+| F36 | BBCode package | `TODO` | No `packages/bbcode`; roadmap defines AST/sanitisation/cache requirements. |
+| F37 | Smilies and custom BBCode | `TODO` | Depends on F36; no management or declarative code support. |
+| F38 | Counter maintenance and recount | `TODO` | Counters exist but no writer/recount; the index fixture supplies display values only. |
+| F39 | New thread | `TODO` | No content command, action, or no-JS form. |
+| F40 | Reply and quote | `TODO` | Depends on F39; no reply path. |
+| F41 | ⛔ GATE — Edit and delete own posts | `TODO` | No revisions/deletion command; blocks content mutation beyond its boundary. |
+| F42 | Attachments | `TODO` | FileStore exists; no attachment schema/handler/serving path. |
+| F43 | Polls and ratings | `TODO` | No poll/rating schema or command. |
+| F44 | Drafts | `TODO` | No draft schema or form. |
+| F45 | Editor islands | `TODO` | No enhancement islands; server forms must land first. |
+| F46 | Anti-spam and flood control | `TODO` | No captcha/rate-limit commands beyond existing auth lockout. |
 
 ## Phase 4 — Moderation
 
-All `TODO`. F47 is a ⛔ gate (visibility model enforcement) and blocks the phase.
-
-F47 gate · F48 moderation queue · F49 reports · F50 thread tools ·
-F51 merge and split · F52 inline moderation · F53 warnings · F54 ModCP
+| ID | Feature | Status | Evidence / gap |
+|---|---|---|---|
+| F47 | ⛔ GATE — Visibility model enforcement | `TODO` | Read paths have local visible predicates; no central enforcement or leak suite. |
+| F48 | Moderation queue | `TODO` | No queue commands or bulk workflow. |
+| F49 | Reports | `TODO` | No report schema or routes. |
+| F50 | Thread tools | `TODO` | No moderator content mutations or audit writes. |
+| F51 | Merge and split | `TODO` | No test-first multi-thread operation. |
+| F52 | Inline moderation | `TODO` | No listing selection/action form. |
+| F53 | Warnings | `TODO` | No warning model or expiry task. |
+| F54 | Moderator CP | `TODO` | No ModCP route group or rights-aware screens. |
 
 ## Phase 5 — Members and social
 
-All `TODO`. No `notifications`, `private_messages`, `pm_recipients`,
-`user_relations` or custom-field tables yet.
+No `notifications`, `private_messages`, `pm_recipients`, `user_relations`, or
+custom-field tables exist yet.
 
-F55 notifications and email · F56 subscriptions and digests · F57 UserCP ·
-F58 avatars and signatures · F59 custom profile fields · F60 private messaging ·
-F61 buddy and ignore lists · F62 reputation
+| ID | Feature | Status | Evidence / gap |
+|---|---|---|---|
+| F55 | Notification infrastructure and email | `TODO` | Drivers/outbox exist; no notification/mail domain flow. |
+| F56 | Subscriptions and digests | `TODO` | No subscriptions or digest tasks. |
+| F57 | User CP | `TODO` | Auth settings exist; no member self-service route group. |
+| F58 | Avatars and signatures | `TODO` | Depends on F42/F57; no profile media/signature support. |
+| F59 | Custom profile fields | `TODO` | No field definitions/values/visibility logic. |
+| F60 | Private messaging | `TODO` | No PM schema or route. |
+| F61 | Buddy and ignore lists | `TODO` | No relation model or server-side suppression. |
+| F62 | Reputation | `TODO` | No reputation model/log/recount. |
 
 ## Phase 6 — Admin control panel
 
-All `TODO`. `admin_log` and `themes` tables exist; there is no `/admin` route group.
+`admin_log` and `themes` tables exist; there is no `/admin` route group.
 
-F63 ACP shell and auth · F64 settings UI · F65 forum management and permission
-matrix editor · F66 group management · F67 user management · F68 theme manager ·
-F69 plugin manager · F70 tools and system health · F71 content administration
+| ID | Feature | Status | Evidence / gap |
+|---|---|---|---|
+| F63 | ACP shell and authentication | `TODO` | No `/admin` routes or separate admin-auth step. |
+| F64 | Settings UI | `TODO` | Typed registry exists; no registry-driven ACP UI. |
+| F65 | Forum management and permission matrix editor | `TODO` | Repositories exist; no management/matrix screen. |
+| F66 | Group management | `TODO` | Group/promotion mechanics exist; no ACP workflow. |
+| F67 | User management | `TODO` | Account repositories exist; no management workflow. |
+| F68 | Theme manager | `TODO` | Themes table exists; runtime overrides and ACP editor are absent. |
+| F69 | Plugin manager | `TODO` | `forum.config.ts` exists; plugin kit/management absent. |
+| F70 | Tools, maintenance and system health | `TODO` | Partial CLI/tick exists; no ACP maintenance/health surface. |
+| F71 | Content administration | `TODO` | Depends on F37/F42; no content-management surfaces. |
 
 ## Phase 7 — Search, discovery, syndication
 
-All `TODO`. No `tsvector` column, no `search_sessions` table, no
-`packages/search` contents.
+No `tsvector` column, `search_sessions` table, or `packages/search` contents.
 
-F72 Postgres FTS · F73 search UI · F74 discovery shortcuts · F75 who's online and
-statistics · F76 feeds, sitemap, metadata
+| ID | Feature | Status | Evidence / gap |
+|---|---|---|---|
+| F72 | Postgres full-text search | `TODO` | No FTS index/provider/reindex task. |
+| F73 | Search UI | `TODO` | No query UI or stored result sessions. |
+| F74 | Discovery shortcuts | `TODO` | No new/today/my/unanswered queries. |
+| F75 | Who's online and statistics | `TODO` | No online presence/rollup screens or task. |
+| F76 | Feeds, sitemap, and metadata | `TODO` | No feeds, sitemap, robots, or social metadata. |
 
 ## Phase 8 — Public APIs
 
-All `TODO`. `packages/plugin-kit` does not exist; `theme-kit` is empty.
+`packages/theme-kit` is the active F25 foundation, but its public contract is
+not frozen; `packages/plugin-kit` does not exist.
 
-F77 theme-kit v1 freeze · F78 second theme · F79 plugin-kit v1 ·
-F80 reference plugin · F81 public REST API and webhooks
+| ID | Feature | Status | Evidence / gap |
+|---|---|---|---|
+| F77 | theme-kit v1 freeze | `TODO` | Slots exist; generated public docs and deprecation policy do not. |
+| F78 | Second theme | `TODO` | Only the default theme exists. |
+| F79 | plugin-kit v1 | `TODO` | No lifecycle/hook/UI extension package. |
+| F80 | Reference plugin | `TODO` | Depends on F79; no reference plugin. |
+| F81 | Public REST API and webhooks | `TODO` | No token API or outbound webhook path. |
 
 ## Phase 9 — Ship it
 
-All `TODO`.
-
-F82 `create-forum` CLI · F83 install wizard · F84 upgrade path · F85 MyBB
-importer · F86 legacy passwords and URLs · F87 BBCode parity pass ·
-F88 documentation · F89 performance pass
+| ID | Feature | Status | Evidence / gap |
+|---|---|---|---|
+| F82 | `create-forum` CLI | `TODO` | Existing operator CLI is not a project scaffold. |
+| F83 | Install wizard | `TODO` | No `/install` preflight/setup/self-disable flow. |
+| F84 | Upgrade path | `TODO` | Migrator exists; no versioned core/plugin upgrade command. |
+| F85 | MyBB importer | `TODO` | No importer or legacy-ID mapping. |
+| F86 | Legacy passwords and URLs | `TODO` | No MyBB hash/URL compatibility layer. |
+| F87 | BBCode parity pass | `TODO` | Depends on F36/F85 corpus/import work. |
+| F88 | Documentation | `TODO` | Core docs exist; deploy/operator/theme/plugin/restore guide set is incomplete. |
+| F89 | Performance pass | `TODO` | Query budgets exist; 2M-post load/p95 evidence does not. |
 
 ---
 
 ## Open questions for a human
 
-Per plan §"Stop and ask a human when" and rule 6 — these are not being
+Per [`roadmap.md`](./roadmap.md)'s working rules — these are not being
 reinterpreted unilaterally.
 
-1. **The plan says "84 features" but numbers them F01–F89 with no gaps.** Phase
-   spans are 14 + 10 + 11 + 11 + 8 + 8 + 9 + 5 + 5 + 8 = **89**. Either the
-   headline count or the numbering is off. This file tracks all 89.
-2. ~~**F03 vs invariant 32.**~~ **Resolved 2026-07-30:** invariant 32 governs.
+1. ~~**F03 vs invariant 32.**~~ **Resolved 2026-07-30:** invariant 32 governs.
    Forward-only; F03's "up and down" acceptance is superseded. A down migration
    that drops a column is a data-loss button on a live board, and some
    migrations (a destructive backfill) cannot be reversed at all, so the
    guarantee would be partial and therefore misleading. Recovery is by restore —
    F88's backup runbook is the documented answer.
-3. ~~**F06 route path.**~~ Resolved: renamed to `/api/system/tick`, with
+2. ~~**F06 route path.**~~ Resolved: renamed to `/api/system/tick`, with
    `vercel.json` and the compose tick loop updated.
-4. ~~**`forum.config.ts`**~~ **Done 2026-07-30.** Minimal registry (themes +
+3. ~~**`forum.config.ts`**~~ **Done 2026-07-30.** Minimal registry (themes +
    plugins), read by `layout.tsx` so it is load-bearing rather than decorative,
    plus guard `R1 no-runtime-filesystem-scan` enforcing the half of invariant 6
    that actually bites on serverless. See D33.
-5. ~~**Orphan forums in `buildTree`**~~ **Resolved 2026-07-30 at F29:** subtrees
+4. ~~**Orphan forums in `buildTree`**~~ **Resolved 2026-07-30 at F29:** subtrees
    are filtered **whole**. A forum the viewer cannot see takes its descendants
    with it, because promoting a visible child to top level leaks the existence
    and name of a hidden category's children and makes the board's shape depend on

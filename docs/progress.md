@@ -1,12 +1,13 @@
 # Progress
 
-Running log of what is complete and what the next action is, per plan §6.
+Running log of what is complete and what the next action is, per the roadmap.
 
 **Three files, three jobs — keep them in their lanes:**
 
 | File | Answers | Shape |
 |---|---|---|
-| [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per plan feature. The tracking table. |
+| [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
+| [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
 | [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D38. |
 
