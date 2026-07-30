@@ -9,7 +9,18 @@ export interface PostListingRow {
   readonly authorUsername: string
   readonly authorPostCount: number
   readonly authorJoinedAt: Date | null
+  /** The raw BBCode. Still carried: a stale render is rebuilt from it (F36). */
   readonly message: string
+  /**
+   * The stored render, and the renderer version that produced it.
+   *
+   * Read together or not at all — `messageHtml` without `renderVersion` is HTML
+   * of unknown provenance, which is the one thing a body must never be. The
+   * pair satisfies `RenderablePost` in `@forum/bbcode`; `postBodyHtml` is what
+   * decides between them.
+   */
+  readonly messageHtml: string | null
+  readonly renderVersion: number
   readonly isFirstPost: boolean
   readonly visibility: 'visible'
   readonly createdAt: Date

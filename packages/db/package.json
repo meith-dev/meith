@@ -8,6 +8,7 @@
   "dependencies": {
     "@forum/accounts": "workspace:*",
     "@forum/authorization": "workspace:*",
+    "@forum/bbcode": "workspace:*",
     "@forum/core": "workspace:*",
     "@forum/events": "workspace:*",
     "@forum/forums": "workspace:*",

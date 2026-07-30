@@ -51,6 +51,7 @@ const unusedDeps = {
   },
   recount: { run: async () => ({ corrected: 0 }) },
   threadViews: { flush: async () => 0 },
+  renderBackfill: { run: async () => ({ rendered: 0 }) },
 }
 
 let rollUpAncestors: ReturnType<typeof vi.fn<(postId: number) => Promise<boolean>>>

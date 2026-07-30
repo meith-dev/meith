@@ -1,4 +1,5 @@
 /** F31's pure thread-view model. */
+import { postBodyHtml } from '@forum/bbcode'
 import type { ForumRow } from '@forum/forums'
 import type { PaginationModel, PostBitModel, ThreadViewModel } from '@forum/theme-kit'
 import type { PostListingRow, PostPage } from '@forum/posts'
@@ -8,21 +9,6 @@ import { forumHref } from './board-index'
 import { threadRowModel } from './forum-display'
 import { memberHref } from './member-profile'
 import { formatTime } from './time'
-
-function plainTextHtml(message: string): string {
-  return message
-    .replace(/[&<>"']/g, (character) => {
-      const escaped: Record<string, string> = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      }
-      return escaped[character]!
-    })
-    .replace(/\n/g, '<br>\n')
-}
 
 function post(
   post: PostListingRow,
@@ -45,8 +31,15 @@ function post(
       signatureHtml: null,
       isOnline: false,
     },
-    // F36 replaces this safe plain-text fallback with the BBCode renderer.
-    bodyHtml: plainTextHtml(post.message),
+    /*
+     * The only place a post body becomes markup (F36). `postBodyHtml` prefers
+     * the render stored with the post and falls back to rendering the raw
+     * BBCode here when that render is missing or was produced by an older
+     * version of the renderer — so a body is never shown by a renderer other
+     * than the current one, and never fails to be shown because a task has not
+     * caught up.
+     */
+    bodyHtml: postBodyHtml(post),
     postedAt: formatTime(post.createdAt, now),
     editedNote: null,
     isFirstPost: post.isFirstPost,

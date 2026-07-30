@@ -9,6 +9,8 @@
  */
 import { sql } from 'drizzle-orm'
 
+import { renderBBCode } from '@forum/bbcode'
+
 import type {
   CreatedThread,
   ForumPostingTarget,
@@ -80,15 +82,16 @@ export class PostgresThreadWriteRepository
       ) as Array<{ id: number }>
       const threadId = Number(threadRows[0]!.id)
 
+      const body = renderBBCode(record.message)
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
-             visibility, is_first_post, created_at)
+             message_html, render_version, visibility, is_first_post, created_at)
           values
             (${threadId}, ${record.forumId}, ${record.authorUserId},
-             ${record.authorUsername}, ${record.message}, ${record.visibility},
-             true, ${record.createdAt})
+             ${record.authorUsername}, ${record.message}, ${body.html},
+             ${body.version}, ${record.visibility}, true, ${record.createdAt})
           returning id
         `),
       ) as Array<{ id: number }>
@@ -200,15 +203,16 @@ export class PostgresThreadWriteRepository
   /** The reply write. Same transaction shape as `create`, one row shorter. */
   async createReply(record: NewReplyRecord): Promise<{ postId: number }> {
     return this.db.transaction(async (tx) => {
+      const body = renderBBCode(record.message)
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
-             visibility, is_first_post, created_at)
+             message_html, render_version, visibility, is_first_post, created_at)
           values
             (${record.threadId}, ${record.forumId}, ${record.authorUserId},
-             ${record.authorUsername}, ${record.message}, ${record.visibility},
-             false, ${record.createdAt})
+             ${record.authorUsername}, ${record.message}, ${body.html},
+             ${body.version}, ${record.visibility}, false, ${record.createdAt})
           returning id
         `),
       ) as Array<{ id: number }>

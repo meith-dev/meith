@@ -100,6 +100,9 @@ importers:
       '@forum/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../../packages/bbcode
       '@forum/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -206,6 +209,8 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/bbcode: {}
+
   packages/core:
     dependencies:
       pino:
@@ -223,6 +228,9 @@ importers:
       '@forum/authorization':
         specifier: workspace:*
         version: link:../authorization
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../bbcode
       '@forum/core':
         specifier: workspace:*
         version: link:../core
@@ -241,6 +249,9 @@ importers:
       '@forum/tasks':
         specifier: workspace:*
         version: link:../tasks
+      '@forum/threads':
+        specifier: workspace:*
+        version: link:../threads
       drizzle-orm:
         specifier: ^0.44.7
         version: 0.44.7(@electric-sql/pglite@0.5.4)(postgres@3.4.9)
@@ -347,7 +358,11 @@ importers:
         specifier: ^19.2.3
         version: 19.2.14
 
-  packages/threads: {}
+  packages/threads:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/ui:
     dependencies:

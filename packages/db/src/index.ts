@@ -48,6 +48,10 @@ export {
   type RecountPhase,
   type RecountRun,
 } from './counter-recount'
+export {
+  PostgresRenderBackfill,
+  type RenderBackfillRun,
+} from './render-backfill'
 export { PostgresOutboxReader } from './outbox-repo'
 export {
   PostgresBanFilterRepository,

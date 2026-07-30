@@ -21,6 +21,8 @@ function toPost(row: {
   authorPostCount: number | null
   authorJoinedAt: Date | null
   message: string
+  messageHtml: string | null
+  renderVersion: number
   isFirstPost: boolean
   createdAt: Date
 }): PostListingRow {
@@ -34,6 +36,8 @@ function toPost(row: {
     authorPostCount: row.authorPostCount ?? 0,
     authorJoinedAt: row.authorJoinedAt,
     message: row.message,
+    messageHtml: row.messageHtml,
+    renderVersion: Number(row.renderVersion),
     isFirstPost: row.isFirstPost,
     visibility: 'visible',
     createdAt: row.createdAt,
@@ -103,6 +107,8 @@ export class PostgresPostRepository implements PostRepository {
         authorPostCount: users.postCount,
         authorJoinedAt: users.createdAt,
         message: posts.message,
+        messageHtml: posts.messageHtml,
+        renderVersion: posts.renderVersion,
         isFirstPost: posts.isFirstPost,
         createdAt: posts.createdAt,
       })

@@ -1593,3 +1593,116 @@ the stated price of not counting.
   the interval is not a per-forum grant — and administrators are in
   `ADMIN_ALWAYS` for it, since an administrator waiting fifteen seconds while
   clearing a spam wave is obstructed by a defence aimed at somebody else.
+
+### D44 — Rendering BBCode, and where the rendered HTML lives (F36)
+
+Post bodies were stored raw and rendered by `plainTextHtml` in
+`src/view/thread-view.ts` — a deliberate placeholder, and the only place raw
+text became markup. `@forum/bbcode` replaces it. Four decisions are worth
+recording, and one of them is the reason the package is a scanner rather than
+the obvious pile of regular expressions.
+
+#### The renderer never sanitises, because it never parses HTML
+
+There is no sanitising step. The pipeline is `tokenise → parse → render`, and
+the output string is assembled from three sources only: literals in
+`tags.ts`, values that passed a validator (`safeUrl`, the colour pattern, the
+size enum), and strings that went through `escapeHtml`. Attacker-controlled
+markup never exists in the output to be cleaned, so there is no "did the
+sanitiser miss a vector" question — a vector would have to survive escaping.
+
+This is why `[color]` is safe to support at all. Its value lands inside a
+`style` attribute, the one attribute where escaping alone would not be enough
+(`;` opens a second declaration), so the pattern admits no punctuation
+whatsoever: `#rgb`, `#rrggbb`, or a bare keyword. `red;background:url(…)`
+renders as unstyled text, and `[size]` avoids the question entirely by emitting
+a class from a fixed set of seven rather than a length.
+
+`security.test.ts` asserts the property rather than a blocklist: **every `<` in
+the output is one this package wrote.** It scans the output, matches each tag
+against the complete set of markup the renderer may emit, and rejects anything
+else — then does the same for 4,000 generated inputs built from tag fragments,
+brackets, quotes and scheme-shaped strings, from a fixed seed so a failure
+reproduces. "No `<script>` appears" is the check that lets the next unlisted
+vector through.
+
+#### A scanner, not regular expressions
+
+MyBB renders BBCode with successive regex passes, which is why `[b]` inside
+`[code]` bolds, why nesting has no bound, and why several of its historical
+security reports read "the pattern matched something it should not have". A
+scanner puts the decision "does this `[` start a tag" in one function that can
+be tested on its own — and it is not obvious: `[oh no [b]bold[/b]` must bold,
+which only happens if the scanner gives up on the outer bracket instead of
+swallowing to the first `]`.
+
+The tokeniser knows exactly one thing about the tag set — which tags take a raw
+body — because `[code][/b][/code]` cannot be tokenised correctly without it.
+Finding that closing tag uses a case-insensitive regex rather than `indexOf`
+over a lowercased copy, because lowercasing can change a string's *length*
+(`İ`.toLowerCase() is two code units) and every index is then used to slice the
+original. One Turkish capital earlier in a post would have split a body
+mid-character; there is a test with that character in it.
+
+#### Malformed input degrades, and never throws or disappears
+
+Two rules, both lossless:
+
+- **Never emit unbalanced output.** `[b][i]x[/b]` closes `[i]` implicitly, as an
+  HTML parser would, so the renderer cannot produce a `<strong>` that escapes
+  its post and bolds the rest of the page.
+- **Never let an unclosed tag swallow the thread.** A tag still open at the end
+  is *demoted*: its opening tag becomes the literal text it looks like and its
+  children stay where they were written. Someone who types `[b]` and forgets the
+  close sees `[b]`, not a post where every word after it is bold.
+
+The limits follow the same rule. Past the depth limit a tag stays text; past the
+node budget the remaining source becomes one text node; past the input limit the
+tail is text. Nothing in the package throws and nothing is dropped, because a
+body that fails to render is a thread page that 500s for everyone who opens it,
+and a body that renders half of itself is a data-loss bug reported as "my post
+is cut off".
+
+#### The stored render, and why the version column is the important half
+
+Rendering fifty posts on every load of every thread is work worth avoiding, so
+`posts.message_html` holds the HTML and `posts.render_version` holds the
+renderer version that produced it. The version is what makes the cache safe:
+
+- **Reads never trust an old render.** `postBodyHtml` uses the stored HTML only
+  when its version matches `RENDER_VERSION`, and otherwise renders live. A test
+  pins this with a stored `<script>` tag at an older version, which must not
+  reach the page.
+- **Invalidation is a constant.** Bumping `RENDER_VERSION` invalidates every
+  stored render on the board at once. An escaping fix therefore takes effect on
+  deploy, everywhere, with no migration over the largest table on the board and
+  no waiting for a sweep.
+- **The sweep is the cheapest component in the family.** Unlike F38's recount,
+  `posts.render_backfill` needs no cursor: "what is left" is a predicate on the
+  row (`render_version <> current`), so a run that dies leaves the rest exactly
+  as stale as it was and the next run finds it by asking again. Two concurrent
+  runs write the same bytes. It is one `select` and one `update` per run
+  whatever the batch holds — asserted with F11's budget helper, because the
+  obvious per-post update turns a 200-post batch into 201 round trips.
+
+The write path renders inside the same transaction as the insert, in
+`@forum/db` rather than in the composer. That is a small purity cost — the
+package that owns SQL now calls a renderer — bought for a structural guarantee:
+`posts` is only written from one module, so no post can exist without its
+render, and no future writer (F41's edit, F85's importer) can forget to supply
+one.
+
+#### Smaller things
+
+- **The fixture board stores no renders.** Every `SEED_POST_ROWS` entry carries
+  `messageHtml: null`, so the e2e board exercises the live path — and the
+  Playwright suite now asserts the *tags*, not the words, which is the first
+  browser-level proof of any Phase 3 feature (the composer still has no fixture
+  writer; see F39/F40's standing gap).
+- **A quote's `pid` is parsed and dropped.** Turning it into a link needs the
+  thread the post lives in, and a post id alone can address a post in a forum
+  the reader cannot see. A quote header that 404s for half the board is worse
+  than one without a link.
+- **Bare URLs are not auto-linked.** MyBB linkifies loose `http://…` in post
+  text. Recorded as a parity decision rather than done quietly — see
+  `mybb-parity.md#bbcode-coverage`.

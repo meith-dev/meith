@@ -41,6 +41,8 @@ export interface TaskWorkerDeps {
   readonly recount: { run(batchSize: number): Promise<{ corrected: number }> }
   /** F38's view buffer. */
   readonly threadViews: { flush(limit: number): Promise<number> }
+  /** F36's stale-render sweep. */
+  readonly renderBackfill: { run(batchSize: number): Promise<{ rendered: number }> }
 }
 
 /**
@@ -126,6 +128,11 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
 
     async flushThreadViews(batchSize) {
       return deps.threadViews.flush(batchSize)
+    },
+
+    async backfillPostRenders(batchSize) {
+      const { rendered } = await deps.renderBackfill.run(batchSize)
+      return rendered
     },
 
     async pruneSessions() {

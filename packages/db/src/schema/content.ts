@@ -183,8 +183,22 @@ export const posts = pgTable(
 
     /** Optional per-post subject; most posts inherit the thread title. */
     subject: text('subject'),
-    /** Raw BBCode as typed. Rendering happens at read time (F28). */
+    /** Raw BBCode as typed. The source of truth; the columns below cache it. */
     message: text('message').notNull(),
+
+    /**
+     * `message` rendered by `@forum/bbcode`, and the renderer version that did
+     * it (F36).
+     *
+     * Null, or a version other than the current one, means "render it live" —
+     * never an error and never a reason to hide a post. Bumping the renderer's
+     * version constant therefore invalidates every stored render on the board
+     * at once, which is what makes an escaping fix deployable without a
+     * migration over the largest table there is. `posts.render_backfill`
+     * rewrites the stale rows behind the read path.
+     */
+    messageHtml: text('message_html'),
+    renderVersion: smallint('render_version').notNull().default(0),
 
     visibility: text('visibility').notNull().default('visible'),
 
@@ -228,6 +242,13 @@ export const posts = pgTable(
     index('posts_thread_all_idx').on(t.threadId, t.id),
 
     index('posts_author_idx').on(t.authorUserId, t.createdAt.desc()),
+
+    /*
+     * F36's backfill: "the next N posts not at version X, by id". Version
+     * first, so once the board is current the answer is an index seek that
+     * finds nothing rather than a scan of every post to discover the same.
+     */
+    index('posts_render_version_idx').on(t.renderVersion, t.id),
     // Moderation queue: unapproved content for a set of forums.
     index('posts_forum_visibility_idx')
       .on(t.forumId, t.createdAt.desc())

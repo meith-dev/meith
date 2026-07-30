@@ -271,3 +271,80 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
+/*
+ * F36 — the BBCode renderer's output.
+ *
+ * `@forum/bbcode` emits a fixed, closed set of class names and nothing else:
+ * no inline styling beyond `[color]`, which is the author's own choice and has
+ * no token to defer to. Everything below is therefore the *theme's* say in what
+ * a quote or a code block looks like, expressed in tokens so a runtime override
+ * (F26) reaches it like any other surface.
+ */
+.bb-quote {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--border);
+  background-color: var(--secondary);
+  border-radius: var(--radius);
+}
+
+.bb-quote-author {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.875em;
+  font-style: normal;
+  color: var(--muted-foreground);
+}
+
+.bb-code {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  overflow-x: auto;
+  background-color: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875em;
+  /* `pre` already preserves newlines; wrapping long lines would hide overflow. */
+  white-space: pre;
+}
+
+.bb-list {
+  margin: 0.5rem 0 0.5rem 1.5rem;
+  list-style-position: outside;
+}
+
+ul.bb-list {
+  list-style-type: disc;
+}
+
+ol.bb-list {
+  list-style-type: decimal;
+}
+
+ol.bb-list-a {
+  list-style-type: lower-alpha;
+}
+
+ol.bb-list-i {
+  list-style-type: lower-roman;
+}
+
+/* An oversized image must not widen the thread and force a horizontal scroll. */
+.bb-image {
+  max-width: 100%;
+  height: auto;
+}
+
+/*
+ * Seven steps, relative to the surrounding text rather than absolute, so a post
+ * sized 7 inside a quote stays proportionate and a theme that changes its base
+ * size takes these with it.
+ */
+.bb-size-1 { font-size: 0.7em; }
+.bb-size-2 { font-size: 0.85em; }
+.bb-size-3 { font-size: 1em; }
+.bb-size-4 { font-size: 1.15em; }
+.bb-size-5 { font-size: 1.35em; }
+.bb-size-6 { font-size: 1.6em; }
+.bb-size-7 { font-size: 2em; }

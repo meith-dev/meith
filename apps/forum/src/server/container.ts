@@ -230,7 +230,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
@@ -271,6 +271,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
             counters: new PostgresContentCounterRepository(db),
           }),
           recount: new PostgresCounterRecount(db),
+          renderBackfill: new PostgresRenderBackfill(db),
           threadViews,
         }),
       ),

@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D43. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D44. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -19,7 +19,7 @@ this file.
 
 `pnpm verify` → exit 0: textual invariants + **guard probes**, the **slot
 server/client boundary** check + its probe, dependency-cruiser (241 modules, 0
-violations), typecheck (root **and** app), **1058 tests** (a large share against
+violations), typecheck (root **and** app), **1159 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -209,37 +209,57 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   view-model props, and for the gap: fixture mode has no writer, so the no-JS
   proof is `FormData`-driven action tests rather than the browser suite.
 
+- **F36 BBCode** — post bodies are markup. `@forum/bbcode` is a scanner, not a
+  pile of regular expressions, and its safety argument is that it *constructs*
+  its output rather than sanitising one: every character comes from a tag
+  literal, a validated attribute, or `escapeHtml`. The suite asserts that
+  property directly — every `<` in the output is one the package wrote — over a
+  35-payload corpus and 4,000 seeded-fuzz inputs, with a second fuzz pass
+  proving no word is ever lost. Malformed input degrades and never throws: a
+  crossed tag closes implicitly, an unclosed one is demoted to the text it looks
+  like, and every limit turns markup into text rather than raising. The stored
+  render lives on `posts` with the version that produced it, so bumping
+  `RENDER_VERSION` invalidates every render on the board at once and an escaping
+  fix ships without a migration; `posts.render_backfill` sweeps the stale rows
+  behind it, cursor-free. F40's quote is a quote block as of this change. See
+  **D44**, and `mybb-parity.md` for what is deliberately not supported.
+
 - **F40 reply and quote** — a thread can be answered. `ReplyComposer` adds what
   F39's rules cannot see (locked threads, `allow_replies`, a thread that is no
   longer visible) and reports a race rather than enforcing one: the reply is
   written either way. Quoting is a link with a server-resolved prefill, so it
   works with scripting off, and the quoted post is re-read thread-scoped so
   `?quote=` cannot lift a post out of a forum the quoter may not read. See
-  **D43**, including why the quote is BBCode nothing renders yet and why the
+  **D43**, including why the quote is BBCode (F36 renders it now) and why the
   redirect sometimes opens a page at the reply rather than in context.
 
 ## NEXT ACTION — resume here
 
-**F36 · BBCode** is the next thing worth doing, ahead of F41 in value if not in
-number. Post bodies are stored raw and every surface that shows one — the thread
-view, both previews, and F40's quote, which currently displays its own markup —
-is waiting on the same renderer. The roadmap wants a tokeniser, AST, renderer
-and sanitiser with limits, a fuzz corpus, and cached HTML with lazy
-invalidation; the seam it plugs into is `plainTextHtml` in
-`src/view/thread-view.ts`, which is deliberately the only place raw text becomes
-markup today.
+**F41 · edit and delete own posts** is the next thing, and it is a ⛔ gate: it
+blocks every content mutation beyond its boundary, which is all of Phase 4. It
+is what `post_revisions` and the `visibility` transitions have been waiting for,
+and it owns the counter half F38 left explicitly to it — approving or deleting
+content is the transition that applies or reverses the counters a held post
+never wrote. F36 leaves it one extra obligation, small and easy to forget: an
+edit rewrites `message`, so it must rewrite `message_html`/`render_version` in
+the same statement. The backfill would eventually repair a miss, which is
+exactly why a test has to catch it instead.
 
-**F41 · edit and delete own posts** is the gate that follows, and it is what
-`post_revisions` and the `visibility` transitions have been waiting for. It also
-owns the counter half F38 left explicitly to it: approving or deleting content
-is the transition that applies or reverses the counters a held post never wrote.
+**F37 · smilies and custom BBCode** is now unblocked and cheap. F36 left the
+seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
+declarative entry rather than an admin-supplied regular expression, and
+per-forum capability toggles are a filtered registry. `font`, `align` and
+`video` are parked there by parity decision.
 
-Still unresolved and now blocking browser-level coverage of everything in
+Still unresolved and still blocking browser-level coverage of *writing* in
 Phase 3: **the e2e board cannot post.** The Playwright suite runs against
 fixture mode, which has no writer, so no browser test covers posting or replying
-without JavaScript. Either the e2e harness gains a real database or the fixture
-gains a content store; D38's "fixture writes throw" rule was written for
-*structure*, and content is the second time it has cost coverage.
+without JavaScript. F36 narrowed it rather than closed it — reading a rendered
+body is now proven in the browser, because fixture rows deliberately store no
+render and so exercise the live path. Either the e2e harness gains a real
+database or the fixture gains a content store; D38's "fixture writes throw" rule
+was written for *structure*, and content is the second time it has cost
+coverage.
 
 Still worth settling:
 
@@ -272,7 +292,7 @@ Smaller things still unblocked, in rough order of value:
 Still outstanding and worth keeping visible:
 
 - A failing task logs but does not raise an admin notification (needs F55) — now
-  eight tasks wide rather than five.
+  nine tasks wide rather than five.
 - Permission columns are generated into a `Record<string, …>`, so
   `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.
 - **Deleting or renaming a route breaks `typecheck:app`** until `next build`
@@ -291,7 +311,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D43). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D44). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

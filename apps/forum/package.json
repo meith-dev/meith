@@ -19,6 +19,7 @@
     "@forum/events": "workspace:*",
     "@forum/forums": "workspace:*",
     "@forum/groups": "workspace:*",
+    "@forum/bbcode": "workspace:*",
     "@forum/posts": "workspace:*",
     "@forum/settings": "workspace:*",
     "@forum/shared": "workspace:*",

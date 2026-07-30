@@ -71,3 +71,56 @@ importer code can translate a legacy column name in one place.
 makes it possible to grant a trusted role read access to the panel without also
 handing it the ability to bypass every forum permission on the board — and makes
 the audit log meaningful, because a bypass entry now implies a specific field.
+
+---
+
+## BBCode coverage
+
+**MyBB** ships `b i u s color size font align url email img quote code php list
+hr video` plus smilies, admin-defined custom tags, and automatic linkification
+of bare URLs in post text.
+
+**We** ship, at F36: `b i u s color size url email img quote code list *`.
+Absent for now: `font`, `align`, `hr`, `video`, `php`, and auto-linking.
+
+**Why.** Each absentee is either owned by a later feature or is a decision:
+
+- `font` and `align` are presentation an author dictates over the theme's
+  typography and layout. They are cheap to add and belong with F37's per-forum
+  capability toggles, where a board can decide whether members may override the
+  theme at all.
+- `video` embeds third-party markup, which is the one thing this renderer's
+  construction argument does not cover. It needs a provider allowlist and a
+  privacy decision (an embed is a request to another host from every reader's
+  browser), so it waits for F37 rather than arriving as an exception.
+- `php` is `code` with a syntax highlighter. Two tags that differ only in
+  highlighting is a parity artefact, not a feature; when highlighting exists it
+  will be an attribute on `code`.
+- **Auto-linking is the real divergence.** MyBB turns a bare `http://…` in post
+  text into a link. We do not: every link on the board is one an author asked
+  for with `[url]`. Linkifying text means the renderer decides where a run of
+  text ends, which is the ambiguity behind "the trailing full stop is part of my
+  link" — and it makes every pasted string a live link, which is a spam
+  affordance rather than a feature. An imported MyBB post keeps its bare URL as
+  text.
+
+**Cost.** An imported board's posts render slightly plainer: bare URLs are not
+clickable, and `[font]`/`[align]`/`[video]` show as literal text until F37.
+F87's corpus pass is where every remaining difference becomes an entry here.
+
+---
+
+## Unclosed and mismatched BBCode
+
+**MyBB**'s regex passes leave an unmatched `[b]` as literal text, and can emit
+unbalanced HTML for crossed tags such as `[b][i]x[/b]`.
+
+**We** demote an unclosed tag to literal text — matching MyBB's visible result —
+but close crossed tags implicitly, so `[b][i]x[/b]y` renders as
+`<strong><em>x</em></strong>y` rather than unbalanced markup.
+
+**Why.** The visible outcome for the common mistake is the same, and the
+divergence only appears in the case where MyBB's output is invalid HTML whose
+rendering is browser-dependent. Unbalanced output from a post body is also the
+shape that lets formatting escape a post and affect the rest of the page, so
+this one is not negotiable regardless of parity.
