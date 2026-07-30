@@ -61,6 +61,13 @@ export {
   type RequestContext,
 } from "./logger"
 export {
+  defineForumConfig,
+  type ForumConfig,
+  type InstalledPlugin,
+  type InstalledTheme,
+} from './config'
+
+export {
   CacheTags,
   GLOBAL_TAGS,
   cachedGlobal,

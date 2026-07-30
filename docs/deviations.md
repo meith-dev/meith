@@ -934,3 +934,43 @@ endpoint look fine for weeks.
 **The tick returns 200 even when a task failed.** The tick itself succeeded; a
 non-2xx would make the platform retry the whole drain, re-running every healthy
 task to chase one broken one. The failure is in the body and in the log.
+
+### D33 — `forum.config.ts`, and why the scan ban is the substance (invariant 6)
+
+Invariant 6 says everything installable is registered in `forum.config.ts` and
+nothing is discovered by filesystem scan at runtime. The file did not exist;
+themes were imported directly by the layout and drivers resolved from env.
+
+Built now, before F25, on the reasoning that a registry retrofitted over
+finished pages does not work — the same argument the plan makes about slot APIs.
+
+**The scan ban is the part that matters**, and it is not a style preference:
+
+- a serverless bundle contains only what the bundler could see statically, so a
+  `readdir` over `themes/` is empty in production while working perfectly on the
+  machine that wrote it;
+- it makes the installed set unknowable at build time, so nothing can be
+  type-checked against it and a broken plugin is a 500 rather than a compile
+  error;
+- it makes "what is installed" a property of the filesystem, which differs
+  between a developer's machine, CI and production.
+
+Guard `R1 no-runtime-filesystem-scan` now bans `readdir`/`globSync`/`opendir` in
+app and package code, allowing `scripts/`, the CLI, the testkit and the
+migration runner — all of which legitimately read a real filesystem outside the
+request path. Probed both ways.
+
+**The registry is load-bearing, not decorative.** `layout.tsx` reads its
+theme-colour through `forumConfig` rather than importing `@forum/theme-default`,
+so installing a second theme does not mean editing the layout. Verified in the
+built output: the tokens in the registry are the values in the rendered
+`<meta name="theme-color">`.
+
+`defineForumConfig` validates the two things that would otherwise fail far from
+their cause — a `defaultTheme` naming a theme that is not installed (a blank
+board with no error), and a theme registered under a key that disagrees with its
+own (`themes[key].key !== key`, which breaks every lookup that round-trips
+through one or the other).
+
+Deliberately thin: the theme entry widens at F25 when theme-kit defines the slot
+contract, and `plugins` gains a real element type at F79. Both are additive.

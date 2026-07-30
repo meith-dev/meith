@@ -45,6 +45,28 @@ export const GUARDS = [
     },
   },
   {
+    id: 'R1 no-runtime-filesystem-scan',
+    why:
+      'Invariant 6: everything installable is registered in forum.config.ts, and ' +
+      'nothing is discovered by scanning a directory at runtime. A serverless ' +
+      'bundle contains only what the bundler could see statically, so a readdir ' +
+      'over themes/ or plugins/ is empty in production while working perfectly ' +
+      'on the developer machine that wrote it. It also makes the installed set ' +
+      'unknowable at build time, so a broken plugin is a 500 rather than a ' +
+      'compile error. Import it in forum.config.ts instead.',
+    files: /\.(ts|tsx)$/,
+    pattern: /\b(readdir|readdirSync|globSync|opendir|opendirSync)\s*\(/,
+    /*
+     * scripts/ and the CLI run on a real filesystem outside the request path,
+     * and the migration runner legitimately reads its own directory.
+     */
+    allow: /^(scripts\/|apps\/cli\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts)/,
+    probe: {
+      violates: "const themes = await readdir('./themes')",
+      clean: "import themes from './forum.config'",
+    },
+  },
+  {
     id: 'F02 single-env-reader',
     why:
       'process.env may only be read in packages/core/src/env.ts. A stray read is a ' +

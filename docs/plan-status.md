@@ -27,7 +27,7 @@ what is and is not built.
 ## How this audit was done
 
 Last audited **2026-07-30** (re-audited after F10/F11/F13/F15/F16 landed), against the working tree, not from memory:
-`pnpm verify` (833 tests), `pnpm build`, plus direct inspection of the
+`pnpm verify` (841 tests), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -193,9 +193,10 @@ reinterpreted unilaterally.
    F88's backup runbook is the documented answer.
 3. ~~**F06 route path.**~~ Resolved: renamed to `/api/system/tick`, with
    `vercel.json` and the compose tick loop updated.
-4. **`forum.config.ts`** — **Resolved 2026-07-30:** build a minimal one (theme
-   and driver registration) *before* F25, so theme-kit does not hardcode theme
-   selection and then need retrofitting. Tracked as work, not a question.
+4. ~~**`forum.config.ts`**~~ **Done 2026-07-30.** Minimal registry (themes +
+   plugins), read by `layout.tsx` so it is load-bearing rather than decorative,
+   plus guard `R1 no-runtime-filesystem-scan` enforcing the half of invariant 6
+   that actually bites on serverless. See D33.
 5. **Orphan forums in `buildTree`** are promoted to roots rather than dropped
    (D22). Once F21 filters by visibility, a visible child of a hidden parent
    surfaces at top level. Confirm at F21 whether subtrees should instead be
