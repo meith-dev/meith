@@ -74,6 +74,22 @@ const GUARDS = [
     allow: /^packages\/testkit\//,
   },
   {
+    id: 'F17 no-locale-case-fold',
+    why:
+      'Identifier case-folding must be locale-independent: use foldIdentifier() ' +
+      '(packages/accounts/src/case-fold.ts), never toLocaleLowerCase(). With no ' +
+      'locale argument the fold depends on the *host*, so under tr_TR "IVAN" ' +
+      'becomes "ıvan" — F18\'s duplicate-username-by-case check stops holding, ' +
+      'and a username_lower written on one host stops matching on another. A ' +
+      'unit test cannot catch this because it passes in every other locale, ' +
+      'which is exactly why the rule is enforced textually here.',
+    files: /\.(ts|tsx)$/,
+    pattern: /toLocale(Lower|Upper)Case\s*\(\s*\)/,
+    // The rule's own definition and the test that documents the hazard both
+    // have to name the banned call to be about it.
+    allow: /^(packages\/accounts\/src\/case-fold\.ts|.*\.test\.ts)/,
+  },
+  {
     id: 'F02 no-module-scope-logger',
     why:
       'Bind the logger where you log, not at module scope. A module-level ' +

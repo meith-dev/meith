@@ -40,6 +40,8 @@ export {
 
 export { createMemoryStore } from './memory-repos'
 
+export { foldIdentifier } from './case-fold'
+
 export type {
   AccountRecord,
   AccountState,

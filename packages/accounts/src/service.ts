@@ -18,6 +18,7 @@ import {
   verifyPassword,
 } from './crypto/password'
 import { generateToken, hashToken } from './crypto/tokens'
+import { foldIdentifier } from './case-fold'
 import type { AccountStore, AuthConfig, Clock, AccountRecord } from './ports'
 
 export interface IdentityDeps {
@@ -71,8 +72,8 @@ export class IdentityService {
   async register(input: RegisterInput): Promise<RegisterResult> {
     const username = input.username.trim()
     const email = input.email.trim()
-    const usernameLower = username.toLocaleLowerCase()
-    const emailLower = email.toLocaleLowerCase()
+    const usernameLower = foldIdentifier(username)
+    const emailLower = foldIdentifier(email)
 
     this.assertUsername(username, usernameLower)
     this.assertEmail(email)
@@ -149,7 +150,7 @@ export class IdentityService {
       }
     }
 
-    const idLower = identifier.trim().toLocaleLowerCase()
+    const idLower = foldIdentifier(identifier)
     const account =
       (await this.store.accounts.findByUsernameLower(idLower)) ??
       (await this.store.accounts.findByEmailLower(idLower))
@@ -215,9 +216,7 @@ export class IdentityService {
    * how enumeration is avoided at the boundary.
    */
   async requestPasswordReset(email: string): Promise<ResetRequest> {
-    const account = await this.store.accounts.findByEmailLower(
-      email.trim().toLocaleLowerCase(),
-    )
+    const account = await this.store.accounts.findByEmailLower(foldIdentifier(email))
     if (!account) return { token: null, userId: null }
 
     // Invalidate outstanding reset tokens so only the newest email works.
