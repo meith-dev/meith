@@ -21,15 +21,32 @@
  * `defineConfig` in tooling everywhere, and for the same reason: it gives
  * editors and `tsc` something to check without a schema at runtime.
  *
- * Deliberately minimal. The theme entry widens at F25 when `theme-kit` defines
- * the slot contract, and `plugins` gains a real element type at F79. Both are
- * additive: a registry that exists and is thin can grow, whereas a registry
- * retrofitted over finished pages cannot — which is the whole argument for
- * landing this before the first themed page.
+ * `plugins` gains a real element type at F79.
+ *
+ * ## Why the theme's slot map arrives as a type parameter (F25)
+ *
+ * A registered theme now carries its `ThemeDefinition` — the slot map the app
+ * resolves and renders. That type lives in `@forum/theme-kit`, and `@forum/core`
+ * is the bottom of the stack: `core-depends-on-nothing` in the
+ * dependency-cruiser config makes importing a sibling an error, and rightly, or
+ * the graph has no floor.
+ *
+ * The alternatives were to declare the slot map here as
+ * `Record<string, unknown>` and have every reader cast it — casts being exactly
+ * what this file's `defineForumConfig` exists to avoid — or to move the slot
+ * contract into core, which would put React component types in the package the
+ * CLI and the worker import. A type parameter costs nothing at runtime, is
+ * inferred from the config so no call site spells it out, and keeps core's
+ * dependency list empty.
  */
 
-/** What the registry knows about a theme today. F25 widens this. */
-export interface InstalledTheme {
+/**
+ * What the registry knows about a theme.
+ *
+ * @typeParam TTheme - the theme's slot definition, `@forum/theme-kit`'s
+ * `ThemeDefinition` in practice. Inferred; never written by hand.
+ */
+export interface InstalledTheme<TTheme = unknown> {
   /** Stable key. Used in URLs, settings and `themes.token_overrides`. */
   readonly key: string
   readonly title: string
@@ -43,6 +60,14 @@ export interface InstalledTheme {
   }
   /** `<meta name="theme-color">`, light and dark. */
   readonly browserThemeColor?: { readonly light: string; readonly dark: string } | undefined
+  /**
+   * The theme's slot definition (F25).
+   *
+   * Optional because a token-only theme is a legitimate thing to register — F26's
+   * per-board restyling changes colours without touching markup — and because a
+   * theme that fills no slots should not have to say `slots: {}`.
+   */
+  readonly theme?: TTheme | undefined
 }
 
 /**
@@ -54,9 +79,9 @@ export interface InstalledPlugin {
   readonly enabled?: boolean | undefined
 }
 
-export interface ForumConfig {
+export interface ForumConfig<TTheme = unknown> {
   /** Every installed theme, keyed by its `key`. */
-  readonly themes: Readonly<Record<string, InstalledTheme>>
+  readonly themes: Readonly<Record<string, InstalledTheme<TTheme>>>
   /** Which theme a board uses when it has no preference stored. */
   readonly defaultTheme: string
   readonly plugins?: readonly InstalledPlugin[] | undefined
@@ -71,7 +96,7 @@ export interface ForumConfig {
  * `themes[key].key !== key` and breaks every lookup that round-trips through
  * one or the other.
  */
-export function defineForumConfig(config: ForumConfig): ForumConfig {
+export function defineForumConfig<TTheme>(config: ForumConfig<TTheme>): ForumConfig<TTheme> {
   const keys = Object.keys(config.themes)
 
   if (keys.length === 0) {

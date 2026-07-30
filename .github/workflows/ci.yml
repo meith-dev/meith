@@ -49,6 +49,15 @@ jobs:
       - name: Textual invariants — probe
         run: pnpm guards:probe
 
+      # F25: a server-kind slot implemented by a "use client" module compiles,
+      # renders identically and ships the whole subtree to the browser. Only a
+      # static check catches it, and only a probe proves the check still works.
+      - name: Slot server/client boundary
+        run: pnpm slots:check
+
+      - name: Slot server/client boundary — probe
+        run: pnpm slots:probe
+
       - name: Lint
         run: pnpm lint
 

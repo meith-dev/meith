@@ -1011,3 +1011,176 @@ something grep can establish; a bundle analyser is F89's job.
   missed even a 30s timeout about one run in three. `maxWorkers: 4` trades a
   little wall-clock for a gate that can be trusted — a suite failing one run in
   three teaches people to re-run it, and then real failures get re-run too.
+
+## Phase 2
+
+### D35 — theme-kit: three enforcement layers, and what each one cannot catch (F25)
+
+`@forum/theme-kit` was an empty package with a `package.json`. It now holds the
+slot registry, the view-model contract, and `defineTheme`/`resolveTheme`.
+
+**The R6 slot list is derived, not transcribed.** This repository does not carry
+the plan text, so the 25 slots in `packages/theme-kit/src/slots.ts` were derived
+from the pages Phases 2–3 actually build (F27–F35, F39–F45) and cross-checked
+against MyBB's template names. Recorded here because it is a genuine divergence
+risk rather than a decision: **where R6 disagrees, R6 wins and the registry
+changes.** Adding or renaming a slot is a small, mechanical edit — the registry
+is one object, and `tsc` names every consequence.
+
+#### The server/client boundary is checked three times, because one check is not enough
+
+The failure being defended against is specific: `PostBit` renders once per post,
+and as a client component the entire post list is serialised into the page
+payload and hydrated. It compiles, it renders identically, and it is invisible in
+review.
+
+| Layer | Catches | Blind to |
+|---|---|---|
+| `SlotComponent<K>` resolving kind to a different signature | an `async` client slot (a server-only construct) | a synchronous component in a `"use client"` file — it satisfies both signatures |
+| `defineTheme` rejecting a client reference in a server slot | anything the bundler marked `$$typeof: react.client.reference` | everything outside an RSC build: under vitest and in the CLI nothing carries a marker |
+| `scripts/slot-kinds.mjs` | the actual case — a `"use client"` directive at the top of a server slot's module | a slot map it cannot statically read, which is why that is an error |
+
+The third is the one that matters, and it **refuses to guess**: if a slot's value
+is not a bare imported identifier, the check fails and asks for that form. A
+checker that skips what it cannot parse is how a boundary erodes — one clever
+manifest and the rule is off for that theme forever, while still reporting green.
+Both directions are errors: a *client* slot implemented by a server module never
+becomes interactive, which looks correct in a screenshot and does nothing when
+clicked.
+
+It also fails when it finds **zero** manifests. Its first hour of life it
+reported "0 theme manifests, every slot matches its declared kind" — a green tick
+for having checked nothing, which is the same class of bug as the inert guards in
+D10 and the unresolvable depcruise paths in `.dependency-cruiser.cjs`.
+
+Probed both ways, per D10: crossing caught, inert island caught, unreadable map
+caught, unregistered slot name caught, clean theme spared, `'use client'` inside
+a comment not mistaken for a directive.
+
+#### Slots are flat: a slot never renders another slot
+
+`ThreadView` does not call `PostBit`; the page does, and hands `ThreadView` the
+rendered list as `regions.posts`. Two reasons, one mechanical and one about
+inheritance:
+
+- rendering a slot needs the *resolved theme*, and there is no way to obtain one
+  inside a slot — React Context is not available to Server Components, and
+  threading the theme through props would put a map of functions inside a
+  contract whose entire point is that it holds none;
+- if `ThreadView` imported `PostBit` directly, a child theme overriding `PostBit`
+  would be ignored inside its parent's `ThreadView` — inheritance that works for
+  some slots and silently not others is worse than none.
+
+So exactly one place resolves slots (the page or layout), and an override applies
+everywhere. **The cost, stated:** a theme can restyle within a region and reorder
+the regions it is handed, but cannot invent a new relationship between two slots
+without overriding the container. F77 revisits it if a real theme needs more.
+
+#### View models are JSON-shaped, and the constraint is a compile-time proof
+
+`Serialisable<T>` rejects anything that is not JSON-shaped, and
+`_PlainDataCheck` applies it to every slot model. The reason is not that React
+cannot serialise a `Date` — React 19 can — but that a view model has three
+consumers and only the JSON subset survives all three: a server slot, a client
+slot across the RSC boundary, and F81's REST API, which returns view models as
+JSON. A `Date` additionally pushes formatting into every theme, and formatting is
+timezone-dependent, so a theme calling `toLocaleString()` renders one string on
+the server and another in the browser — a hydration mismatch visible only to
+users outside the server's zone. Timestamps therefore cross as `TimeModel`: the
+machine value for `<time datetime>` plus the label the app already formatted.
+
+`PaginationModel` is where this bites first. The obvious API — a page count and a
+function to build an href — is impossible, so the app resolves the window and
+hands over links. Which also means paging is plain anchors and works with
+JavaScript disabled (R5).
+
+**A clause was deleted for being unkillable.** `Serialisable` originally named
+`Date | RegExp | Promise | Map | Set` in a branch of its own. No mutation could
+make that branch matter: every one of those types exposes its API as *methods*,
+so the function clause already rejects them. A clause no test can kill is a
+clause that will quietly stop being true, so it went, and the reasoning is in the
+type's doc comment instead. `view-models.type-test.ts` proves the remaining
+constraint has teeth in both directions — `@ts-expect-error` fails loudly as an
+"unused directive" if the check ever stops firing, and it does: flipping the
+function clause from `never` to `T` fails `pnpm typecheck` immediately.
+
+#### The registry entry is generic, not `unknown`
+
+A registered theme now carries its `ThemeDefinition`, whose type lives in
+`@forum/theme-kit` — and `@forum/core` may not import a sibling
+(`core-depends-on-nothing`, or the graph has no floor). `InstalledTheme<TTheme>`
+takes it as a type parameter, inferred from `forum.config.ts` so no call site
+spells it out. The alternatives were `Record<string, unknown>` plus a cast at
+every reader — casts being what `defineForumConfig` exists to avoid — or moving
+React component types into the package the CLI and worker import.
+
+#### Two things that would have shipped broken, and were only found by rendering
+
+- **Tailwind never scanned the theme package.** Tailwind v4's automatic source
+  detection covers the directory it is invoked from — `apps/forum` — and
+  `themes/` is a separate workspace package outside it. Every class a theme slot
+  used was dropped from the generated stylesheet, with a green build and no
+  warning: the page simply renders unstyled. Fixed with `@source` directives in
+  `globals.css`, and **measured both ways** — with them, `border-l-4`,
+  `max-w-5xl` and `border-moderation-approved` are in the built CSS; with them
+  removed, all three are absent and the build is still green.
+- **vitest could not import a `.tsx` at all.** `tsconfig.base.json` sets
+  `jsx: "preserve"` (correct — Next does the transform), which left oxc handing
+  vitest raw JSX: "content contains invalid JS syntax". Note the option is `oxc`,
+  not `esbuild`: Vite 8 transforms with oxc and silently ignores the `esbuild`
+  key, which was set first and changed nothing.
+
+#### Deliberately incomplete, and honest about it
+
+`themes/default` fills five slots — the shell the auth screens render — and
+leaves twenty unimplemented because the pages they belong to are not built.
+`resolveTheme` reports `missing` rather than throwing, and `requireSlot` names the
+slot and the inheritance chain if a page asks for one that is absent. The
+alternative, twenty placeholder components, is D32's rule broken: never advertise
+a capability that is not there. `assertComplete` exists for F77's freeze.
+
+The same rule shaped `src/view/shell.ts`: `profileHref` is `null` (F33 builds
+`/member/[id]`), the member link list is empty (profile F33, UserCP F57, admin
+F63, and log out is a POST to a Server Action, not a link), and unread counts are
+`0` (F55). An empty user panel is the accurate rendering of a board with no member
+pages; a link to a 404 in the header of every page is not.
+
+### D36 — The typed token mirror had drifted completely (F25/F26)
+
+`themes/default/src/tokens.ts` carried a comment promising "keeping both in sync
+is checked by a test in Phase 2 (theme-kit), which parses globals.css and asserts
+the key sets match exactly". Writing that test (`apps/forum/src/styles/tokens.test.ts`)
+found the two had drifted past recognition:
+
+- the mirror named **four tokens the CSS does not define** — `popover`,
+  `popover-foreground`, `forum-pinned`, `forum-staff`;
+- it **omitted fifteen the CSS does** define, including every `thread-*`,
+  `post-*`, `moderation-*` and `group-*` token;
+- **every single value differed.** `--background` was `oklch(0.985 0.002 250)` in
+  the mirror and `oklch(0.976 0.002 265)` in the CSS.
+
+Nothing failed, because nothing compared them. The consequence is not cosmetic:
+F26 validates `themes.token_overrides` against `TOKEN_NAMES`, so a board
+overriding `thread-pinned` would have been told the token does not exist, while
+an override of `forum-pinned` would have been accepted and applied to a variable
+no stylesheet reads. `BROWSER_THEME_COLOR` was two hex values from an older
+palette, which is what a phone renders around the page.
+
+Fixed by regenerating the mirror from `globals.css` verbatim — the CSS is what
+paints, so it is the source of truth — and by writing the promised test as an
+**exact string** comparison. A tolerant comparison ("both oklch, close enough")
+is the same drift taking longer.
+
+Three tokens (`radius`, `density-unit`, `font-mono-stack`) are legitimately absent
+from the `.dark` block: geometry and the font stack are not scheme-dependent.
+They are listed in `SCHEME_INDEPENDENT_TOKENS`, and the test asserts that the set
+of tokens missing from `.dark` is *exactly* that list — so any other omission
+fails, because a token silently keeping its light value in dark mode (a pale
+`--border` on a dark background) is a visual bug rather than a choice.
+
+**One gap left open deliberately.** Nothing checks `BROWSER_THEME_COLOR` against
+the `background` token; the test only enforces the format (`#rrggbb`, because
+Safari ignores `oklch()` there). An exact assertion needs OKLCH → sRGB conversion
+in code, which belongs with F26 since an *overridden* background has to be
+converted too. Until then, changing `background` means recomputing those two
+values by hand.

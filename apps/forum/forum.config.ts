@@ -14,6 +14,7 @@ import { defineForumConfig } from '@forum/core'
 import {
   BROWSER_THEME_COLOR,
   DARK_TOKENS,
+  defaultTheme,
   LIGHT_TOKENS,
 } from '@forum/theme-default'
 
@@ -24,6 +25,12 @@ export default defineForumConfig({
       title: 'Default',
       tokens: { light: LIGHT_TOKENS, dark: DARK_TOKENS },
       browserThemeColor: BROWSER_THEME_COLOR,
+      /*
+       * The slot map (F25). Layouts resolve the board's theme through this entry,
+       * so installing a second theme is a line here and a redeploy — never an
+       * edit to a layout that has a theme's components imported into it.
+       */
+      theme: defaultTheme,
     },
   },
   defaultTheme: 'default',

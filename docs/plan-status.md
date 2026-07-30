@@ -26,8 +26,8 @@ what is and is not built.
 
 ## How this audit was done
 
-Last audited **2026-07-30** (re-audited after F10/F11/F13/F15/F16 landed), against the working tree, not from memory:
-`pnpm verify` (864 tests), `pnpm build`, plus direct inspection of the
+Last audited **2026-07-30** (re-audited after F25 landed), against the working tree, not from memory:
+`pnpm verify` (902 tests), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -39,7 +39,7 @@ couple of `PARTIAL` rows are an afternoon.
 |---|---|---|---|---|
 | 0 — Skeleton | 14 | 11 | 3 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
-| 2 — Themes and reading | 11 | 0 | 2 | 9 |
+| 2 — Themes and reading | 11 | 1 | 3 | 7 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
@@ -47,7 +47,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **21** | **5** | **63** |
+| **Total** | **89** | **22** | **6** | **61** |
 
 ---
 
@@ -95,15 +95,17 @@ couple of `PARTIAL` rows are an afternoon.
 
 ## Phase 2 — Themes and reading the board
 
-All `TODO`. `packages/theme-kit` and `packages/ui` are effectively empty (one
-file in `ui`); `themes/default` exists as a token source consumed by the auth
-pages. `threads`/`posts` tables exist in the migration; the packages are empty.
+F25 is done and F27 has started; the rest is `TODO`. `packages/theme-kit` holds
+the slot registry, the view-model contract and `defineTheme`; `themes/default`
+fills the five shell slots the auth screens render. `packages/ui` is still
+effectively empty (one file). `threads`/`posts` tables exist in the migration; the
+packages are empty.
 
 | ID | Feature | Status | Note |
 |---|---|---|---|
-| F25 | theme-kit foundation | `TODO` | Slot registry + server/client kind lint. Build **before** any page — the plan is explicit that retrofitting fails. |
-| F26 | Token pipeline and runtime overrides | `TODO` | `themes` table exists. |
-| F27 | Default theme — shell | `TODO` | |
+| F25 | theme-kit foundation | `DONE` | 25-slot registry, each declaring server or client kind; `SlotComponent<K>` resolves the kind to a *different* signature (an `async` client slot does not compile); `defineTheme` rejects a bundler-marked client reference in a server slot; `scripts/slot-kinds.mjs` catches the case neither can — a `"use client"` module behind a server slot — fails on a slot map it cannot statically read, and fails on **zero** manifests. Probed both ways and mutation-verified against the real theme. `defineTheme`/`resolveTheme` with `extends` (nearest-wins over a three-level chain, cycle and duplicate-key rejection), typed JSON-shaped view models with a two-sided compile-time proof (`view-models.type-test.ts`). Slots are flat by design — a slot never renders another slot; see **D35** for why and what it costs. Load-bearing: `themes/default` fills five slots and `app/(auth)/layout.tsx` renders through them. **The slot list is derived rather than transcribed from R6 — D35 records that R6 wins where it disagrees.** |
+| F26 | Token pipeline and runtime overrides | `TODO` | `themes` table exists. Prerequisite closed: the typed token mirror had drifted from `globals.css` completely — four tokens that do not exist, fifteen missing, every value stale — which would have made override validation reject valid tokens and accept dead ones. Regenerated and now pinned by an exact-match test (**D36**). Still open for F26: nothing checks `BROWSER_THEME_COLOR` against the `background` token, which needs OKLCH → sRGB in code. |
+| F27 | Default theme — shell | `PARTIAL` | Five slots exist and render on the auth screens: `Shell`, `Header`, `UserPanel`, `Footer`, `Notice`, plus the first `src/view/` builders. Tailwind now scans `themes/` — it never did, so every class a theme slot used was silently absent from the stylesheet (D35). **Gap:** `Navigation`, `BoardStats`, `WhoIsOnline` and the board-page slots are unimplemented, since the pages are not built; the shell has no board-wide layout yet because there is no board page to put it on. |
 | F28 | Threads and posts schema | `PARTIAL` | Tables and `visibility` columns exist; partial indexes and the seeder do not. |
 | F29 | Board index | `TODO` | Needs F11's query-budget helper to be signed off. |
 | F30 | Forum display | `TODO` | |

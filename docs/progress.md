@@ -8,7 +8,7 @@ Running log of what is complete and what the next action is, per plan §6.
 |---|---|---|
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per plan feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D34. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D37. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -16,9 +16,10 @@ this file.
 
 ## Gate state (all green)
 
-`pnpm verify` → exit 0: textual invariants + **guard probes**, dependency-cruiser
-(144 modules, 0 violations), typecheck (root **and** app), **864 tests** (a large
-share against real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
+`pnpm verify` → exit 0: textual invariants + **guard probes**, the **slot
+server/client boundary** check + its probe, dependency-cruiser (157 modules, 0
+violations), typecheck (root **and** app), **902 tests** (a large share against
+real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
 roughly one run in three (D34).
@@ -132,19 +133,41 @@ roughly one run in three (D34).
 
 **Phase 1 is complete: 10 of 10.**
 
+- **F25 theme-kit** — the 25-slot registry (each slot declaring server or client
+  kind), JSON-shaped view models with a two-sided compile-time proof, and
+  `defineTheme`/`resolveTheme` with `extends`. The kind rule is enforced three
+  times because no single layer catches the real case; `pnpm slots:check` is the
+  one that does, and it fails on a slot map it cannot read *and* on finding zero
+  manifests. `themes/default` fills five shell slots and `app/(auth)/layout.tsx`
+  renders through them, so the machinery is load-bearing rather than declared.
+  See **D35** — including why slots are flat (a slot never renders another slot)
+  and the two things that would have shipped broken: Tailwind never scanned
+  `themes/`, and vitest could not import a `.tsx` at all.
+- **The token mirror was entirely stale (D36)** — `tokens.ts` promised a sync
+  test "in Phase 2"; writing it found four tokens that do not exist in the CSS,
+  fifteen missing, and every value from an older palette. F26 would have
+  validated database overrides against it.
+
 ## NEXT ACTION — resume here
 
-**F25 · theme-kit** opens Phase 2, and the plan is emphatic it must exist before
-any page is built — retrofitting a slot API over finished pages does not work.
-`forum.config.ts` is already in place for it to register against.
+**F27 · default theme shell** is the natural next step, and it is now a small
+one: five slots exist, `src/view/shell.ts` has the first view-model builders, and
+the composition pattern is written down in `docs/nextjs-conventions.md`. What is
+missing is a *board* layout to host the shell — which means F27 and **F29 board
+index** land together, with F11's query-budget helper asserting the index's query
+count from the first commit rather than after it is slow.
 
-Build: the slot registry with the full R6 slot list, each slot declaring
-**server or client kind** with a lint rule that fails the build on a crossing,
-`defineTheme()` with `extends` inheritance, and typed serialisable view models.
-The rule is not optional — if `PostBit` ever becomes a client component the whole
-post list ships to the browser and the product's main advantage is gone.
+Two things to settle while building it, both already visible:
 
-Smaller things now unblocked, in rough order of value:
+1. **`ViewerModel.username` is always `null`.** `Actor` carries permissions, not
+   profile data (F20, correctly), so a greeting costs a user read. Decide whether
+   the board index — which reads the user row anyway for unread state — supplies
+   it, or whether the session carries a display name.
+2. **The board title is a constant** (`BOARD_TITLE` in `src/view/shell.ts`).
+   F08's settings registry exists; wiring `board.name` through is a few lines and
+   removes the placeholder.
+
+Smaller things still unblocked, in rough order of value:
 
 1. **`forum task:run`** — the CLI command was blocked on `TaskRepository`, which
    now exists. Small, and gives operators a way to force a tick.
@@ -161,6 +184,10 @@ Still outstanding and worth keeping visible:
 - A failing task logs but does not raise an admin notification (needs F55).
 - Permission columns are generated into a `Record<string, …>`, so
   `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.
+- **`BROWSER_THEME_COLOR` is not checked against the `background` token** (D36).
+  Only its format is. An exact check needs OKLCH → sRGB conversion in code, which
+  belongs with F26; until then, changing `background` means recomputing two hex
+  values by hand.
 
 **Test harness note:** integration tests now use PGlite via `createTestDb()` in
 `packages/db/src/pglite.fixture.ts` — boot once per suite, clear mutable tables
@@ -168,7 +195,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D34). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D37). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant); (b) runtime-only bugs a
 compile/typecheck waved through but tests caught (reversed `verifyPassword` args,

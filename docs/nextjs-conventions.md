@@ -19,6 +19,11 @@ apps/forum/
   src/view/             Typed page view models (the theme-facing contract)
   src/components/       App-specific components; theme slots live in themes/
   proxy.ts              Cookie triage. NOT authorization.
+
+themes/default/
+  src/theme.ts          The manifest: defineTheme({ slots: { … } })
+  src/slots/            One file per slot. Its "use client" status is checked.
+  src/tokens.ts         The typed mirror of globals.css. Kept in sync by a test.
 ```
 
 A file under `app/` should be short enough to read in one screen. If a page is
@@ -181,10 +186,65 @@ Read `packages/core/src/cache.ts` before caching anything.
 
 ---
 
+## Theme slots
+
+Read `packages/theme-kit/src/slots.ts` before adding a page.
+
+**Every slot declares `server` or `client`, and there are two client slots.** Both
+are editor islands. Adding a third means editing a test that argues against it
+(`slots.test.ts`) — deliberate friction, because a client slot is bytes shipped to
+every viewer of the page it appears on.
+
+`pnpm slots:check` fails the build if a server slot's module starts with
+`"use client"`, *and* if a client slot's module does not. The second direction
+matters: such an island renders once and never becomes interactive, which looks
+correct in a screenshot and does nothing when clicked.
+
+**A slot never renders another slot.** The page resolves both and passes the
+rendered one in:
+
+```tsx
+const ThreadView = requireSlot(theme, 'ThreadView')
+const PostBit = requireSlot(theme, 'PostBit')
+
+<ThreadView
+  thread={vm.thread}
+  forum={vm.forum}
+  replyHref={vm.replyHref}
+  regions={{
+    posts: vm.posts.map((post) => <PostBit key={post.id} post={post} regions={{ actions: … }} />),
+    pagination: <Pagination {...vm.pagination} />,
+    quickReply: null,
+  }}
+/>
+```
+
+If `ThreadView` imported `PostBit` itself, a child theme overriding `PostBit`
+would be ignored inside the parent's `ThreadView`. One place resolves slots, so an
+override applies everywhere. See D35.
+
+**Write the slot map literally in the manifest**, one bare imported identifier per
+slot. A map built by spreading cannot be statically checked, and `slots:check`
+fails rather than skipping it.
+
+---
+
 ## View models
 
 Every page has a typed view model in `src/view/`. Pages resolve params, build a
 view model, and hand it to components; they do not pass rows around.
+
+**View models are JSON-shaped**: no `Date`, no `Map`, no functions. `theme-kit`
+proves this at compile time for every slot model. The reason is not React — it is
+that a view model is also F81's API payload, and that a `Date` pushes formatting
+into every theme, where it becomes a timezone-dependent hydration mismatch. A
+timestamp crosses as `TimeModel` (`iso` + a preformatted `label`); paging crosses
+as resolved hrefs, never a function that builds them.
+
+**Never link to a route that does not exist.** `buildUserPanelModel` returns an
+empty link list for a member because profile (F33), UserCP (F57) and admin (F63)
+are not built. That is the accurate rendering of the board as it is; a header link
+to a 404 on every page is not.
 
 **Never expose a database row to a component or an API response.** Row shapes
 change with migrations, and a component reading `row.password_hash` because it
@@ -215,8 +275,11 @@ adding a field is minor, renaming or removing one needs a deprecation cycle.
 
 ## Before opening a PR
 
-`pnpm verify` — guards, guard probes, lint, dependency-cruiser, both typechecks,
-tests. `pnpm build` if you touched anything under `app/`.
+`pnpm verify` — guards, guard probes, the slot boundary check and its probe,
+lint, dependency-cruiser, both typechecks, tests. `pnpm build` if you touched
+anything under `app/` — and if you touched a theme, check the class you used is
+actually in the built CSS: Tailwind scans `themes/` only because `globals.css`
+says so, and a missing `@source` is a green build that renders unstyled (D35).
 
 Update `docs/plan-status.md` in the same PR as the feature. A feature is `DONE`
 only when its acceptance criteria are met *and* the Definition of Done holds;

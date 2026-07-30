@@ -1,6 +1,23 @@
 @import "tailwindcss";
 
 /*
+ * Theme and UI packages must be scanned for class names (F25).
+ *
+ * Tailwind v4 detects sources automatically, but only under the directory it is
+ * invoked from — here `apps/forum`. `themes/` and `packages/ui/` are separate
+ * workspace packages outside that tree, so every class a theme slot uses was
+ * being dropped from the generated stylesheet. Nothing fails when that happens:
+ * the build is green, the classes are simply absent, and the page renders
+ * unstyled with no error anywhere to explain why.
+ *
+ * Paths are relative to this file, and deliberately not the `node_modules`
+ * symlinks: scanning through a symlinked workspace package is inconsistent
+ * between pnpm layouts.
+ */
+@source "../../../../themes";
+@source "../../../../packages/ui/src";
+
+/*
  * R7 design tokens.
  *
  * Every token in the R7 list is defined here as the theme *default*. At runtime

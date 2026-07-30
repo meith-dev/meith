@@ -328,7 +328,18 @@ importers:
         specifier: ^0.44.7
         version: 0.44.7(@electric-sql/pglite@0.5.4)(postgres@3.4.9)
 
-  packages/theme-kit: {}
+  packages/theme-kit:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.14
 
   packages/threads: {}
 
@@ -360,7 +371,18 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
 
-  themes/default: {}
+  themes/default:
+    dependencies:
+      '@forum/theme-kit':
+        specifier: workspace:*
+        version: link:../../packages/theme-kit
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.14
 
 packages:
 

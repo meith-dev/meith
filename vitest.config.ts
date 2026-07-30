@@ -38,6 +38,24 @@ function aliasesFromTsconfig(): Record<string, string> {
 }
 
 export default defineConfig({
+  /*
+   * F25: transform JSX here rather than inheriting `jsx: "preserve"` from
+   * tsconfig.base.json.
+   *
+   * `preserve` is correct for the build — Next does the transform — but it means
+   * esbuild hands vitest untransformed JSX, and importing any `.tsx` fails with
+   * "content contains invalid JS syntax". That made a theme slot untestable, and
+   * unreachable even indirectly: the token sync test imports the theme's barrel,
+   * which now re-exports its slot components.
+   *
+   * `automatic` matches what Next uses, so a component behaves the same under
+   * test as in the app.
+   *
+   * It has to be `oxc`, not `esbuild`: Vite 8 transforms with oxc, and the
+   * `esbuild` key is silently ignored — it was set first and changed nothing,
+   * which is worth knowing before anyone copies the older recipe back in.
+   */
+  oxc: { jsx: { runtime: 'automatic', importSource: 'react' } },
   resolve: {
     alias: {
       ...aliasesFromTsconfig(),

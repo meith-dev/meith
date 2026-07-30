@@ -46,6 +46,11 @@ module.exports = {
            * have no non-test importer and are not dead code.
            */
           '\\.(fixture|test)\\.ts$',
+          /*
+           * `*.type-test.ts` is checked by `tsc`, not by vitest: its assertions
+           * are `@ts-expect-error` directives. It has no importer by design.
+           */
+          '\\.type-test\\.ts$',
           '(^|/)tsconfig\\.json$',
           '(^|/)(babel|webpack)\\.config\\.(js|cjs|mjs|ts|json)$',
           /*
