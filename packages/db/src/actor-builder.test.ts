@@ -4,7 +4,7 @@
  * actually OR/max-combined (R4.2) after a real join, that DB lifecycle states
  * map correctly, and that the permission_version cache key is read.
  */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ActorBuilder } from './actor-builder'
 import { createTestDb, type TestDb } from './pglite.fixture'
@@ -12,11 +12,31 @@ import { cacheVersions, usergroups, userGroupMemberships, users } from './schema
 
 let h: TestDb
 
-beforeEach(async () => {
+/*
+ * Boot once, clear between tests — the harness convention in progress.md.
+ * Creating a database per test applies every migration per test, which got slow
+ * enough to trip the hook timeout once the group seed (0001) landed.
+ */
+beforeAll(async () => {
   h = await createTestDb()
 })
-afterEach(async () => {
+afterAll(async () => {
   await h.close()
+})
+
+beforeEach(async () => {
+  /*
+   * Order matters: memberships and users reference groups.
+   *
+   * These cases build bespoke permission sets to exercise the combination
+   * rules, so they own the group table outright rather than layering on top of
+   * migration 0001's seeded ladder — otherwise a change to the board's default
+   * permissions would silently rewrite what this suite asserts.
+   */
+  await h.db.delete(userGroupMemberships)
+  await h.db.delete(users)
+  await h.db.delete(usergroups)
+  await h.db.delete(cacheVersions)
 })
 
 /** Insert a group and return its id. Permission flags default off unless set. */

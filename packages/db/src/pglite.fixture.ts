@@ -28,10 +28,26 @@ export interface TestDb {
   close(): Promise<void>
 }
 
+/**
+ * Every migration, in journal order.
+ *
+ * Reads the journal rather than globbing or naming one file: the journal is
+ * what the real runner applies, so a migration that is checked in but never
+ * registered fails here exactly as it would in production, instead of being
+ * silently picked up by a glob and passing.
+ */
 function migrationSql(): string {
   const here = path.dirname(fileURLToPath(import.meta.url))
-  const file = path.resolve(here, '..', 'migrations', '0000_initial_schema.sql')
-  return readFileSync(file, 'utf8')
+  const dir = path.resolve(here, '..', 'migrations')
+
+  const journal = JSON.parse(
+    readFileSync(path.join(dir, 'meta', '_journal.json'), 'utf8'),
+  ) as { entries: { idx: number; tag: string }[] }
+
+  return [...journal.entries]
+    .sort((a, b) => a.idx - b.idx)
+    .map((entry) => readFileSync(path.join(dir, `${entry.tag}.sql`), 'utf8'))
+    .join('\n')
 }
 
 /**

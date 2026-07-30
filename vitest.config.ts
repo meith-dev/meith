@@ -60,6 +60,18 @@ export default defineConfig({
      * stays runnable with no database (which is the state of this checkout).
      */
     env: { NODE_ENV: 'test', DATA_SOURCE: 'fixture' },
+    /*
+     * The PGlite suites boot a real Postgres (compiled to WASM) and apply every
+     * migration in `beforeAll`. That is seconds of genuine work, and vitest runs
+     * files in parallel, so several instances boot at once and contend for CPU.
+     *
+     * The 10s default was already marginal and started flaking when the group
+     * seed became a second migration. Raised rather than worked around: the
+     * alternative is sharing one database across files, which trades a slow hook
+     * for cross-file test pollution. A hook that legitimately takes 5s should not
+     * be a coin flip.
+     */
+    hookTimeout: 30_000,
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**/*.ts'],

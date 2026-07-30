@@ -23,12 +23,10 @@ describe('Postgres account repositories', () => {
     h = await createTestDb()
     store = createPostgresAccountStore(h.db)
 
-    await h.db.insert(usergroups).values({
-      id: 2,
-      key: 'registered',
-      title: 'Registered',
-      isSystem: true,
-    })
+    // The 'registered' group now arrives with migration 0001, so this no longer
+    // creates it — it just asserts the seed the repositories depend on is there.
+    const seeded = await h.db.select({ id: usergroups.id }).from(usergroups)
+    expect(seeded.map((g) => g.id)).toContain(2)
     const acc = await store.accounts.create({
       username: 'Alice',
       usernameLower: 'alice',
