@@ -231,6 +231,7 @@ describe('bans.expire is registered (F23)', () => {
       pruneSessions: zero,
       pruneExpiredTokens: zero,
       reconcileCounters: zero,
+      flushThreadViews: zero,
       applyPromotions: zero,
       expireBans: zero,
       ...overrides,
@@ -286,6 +287,20 @@ describe('bans.expire is registered (F23)', () => {
   })
 })
 
+/** Every worker the built-in list names. One place to add the next one. */
+function fullWorkerSet(): TaskWorkers {
+  return {
+    relayOutbox: async () => 0,
+    drainQueue: async () => 0,
+    pruneSessions: async () => 0,
+    pruneExpiredTokens: async () => 0,
+    reconcileCounters: async () => 0,
+    flushThreadViews: async () => 0,
+    applyPromotions: async () => 0,
+    expireBans: async () => 0,
+  }
+}
+
 describe('builtinTasks registers only what can run', () => {
   /*
    * A task whose worker does not exist must not appear. A stub returning 0
@@ -310,31 +325,18 @@ describe('builtinTasks registers only what can run', () => {
   })
 
   it('registers everything when the full set is supplied', () => {
-    const all = builtinTasks({
-      relayOutbox: async () => 0,
-      drainQueue: async () => 0,
-      pruneSessions: async () => 0,
-      pruneExpiredTokens: async () => 0,
-      reconcileCounters: async () => 0,
-      applyPromotions: async () => 0,
-      expireBans: async () => 0,
-    })
-    expect(all).toHaveLength(7)
+    const all = builtinTasks(fullWorkerSet())
+    expect(all).toHaveLength(8)
   })
 
   it('gives every task a worker mapping, so none can be silently unregisterable', () => {
     // A new task added without a REQUIRED_WORKER entry would never register,
-    // which would look like the feature simply not working.
-    const full = {
-      relayOutbox: async () => 0,
-      drainQueue: async () => 0,
-      pruneSessions: async () => 0,
-      pruneExpiredTokens: async () => 0,
-      reconcileCounters: async () => 0,
-      applyPromotions: async () => 0,
-      expireBans: async () => 0,
-    }
-    const ids = builtinTasks(full).map((t) => t.id)
+    // which would look like the feature simply not working. Comparing against
+    // the worker set rather than a hard-coded number means adding a task
+    // without its mapping fails here instead of quietly registering nothing.
+    const ids = builtinTasks(fullWorkerSet()).map((t) => t.id)
+
     expect(new Set(ids).size).toBe(ids.length)
+    expect(ids).toHaveLength(Object.keys(fullWorkerSet()).length)
   })
 })

@@ -39,6 +39,7 @@ import { builtinTasks, type TaskDefinition, type TaskRepository } from '@forum/t
 import { drivers } from '@forum/drivers'
 
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
+import { buildEventRegistry } from './event-handlers'
 import { FixtureActorSource } from './fixture-actor-source'
 import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
@@ -70,6 +71,12 @@ export interface Container {
   readonly readState: ReadStateRepository | null
   /** Public profile lookup; deleted accounts deliberately do not resolve. */
   readonly memberProfiles: MemberProfileRepository
+  /**
+   * Buffered thread views (F38). `null` in fixture mode, which has no durable
+   * store to buffer into — and a view count that resets on restart is worse
+   * than an absent one, because it looks maintained.
+   */
+  readonly threadViews: ThreadViewRecorder | null
   /** Fixture data revision; makes HMR replace repositories holding old seed rows. */
   readonly fixtureDataVersion: number | null
   /**
@@ -82,6 +89,11 @@ export interface Container {
    */
   readonly scheduler: SchedulerBundle | null
   readonly dataSource: 'fixture' | 'postgres'
+}
+
+/** The half of F38's view buffer a request path is allowed to touch. */
+export interface ThreadViewRecorder {
+  record(threadId: number): Promise<void>
 }
 
 /** Everything `/api/system/tick` needs to do a real run. */
@@ -141,6 +153,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
+    threadViews: null,
     fixtureDataVersion: FIXTURE_DATA_VERSION,
     ...identityServices(store),
     // See SchedulerBundle: a tick without durable, cross-instance state cannot
@@ -200,11 +213,12 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
   const store: AccountStore = createPostgresAccountStore(db)
+  const threadViews = new PostgresThreadViewBuffer(db)
   return {
     authorizationSource,
     authorizer: new Authorizer(authorizationSource, { onBypass }),
@@ -217,6 +231,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     posts: new PostgresPostRepository(db),
     readState: new PostgresReadStateRepository(db),
     memberProfiles: new PostgresMemberProfileRepository(db),
+    threadViews,
     fixtureDataVersion: null,
     ...identityServices(store),
     scheduler: {
@@ -233,6 +248,12 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
           promotions: new PostgresPromotionRepository(db),
           guards: defaultPromotionGuards(),
           maintenance: new PostgresMaintenanceRepository(db),
+          outbox: new PostgresOutboxReader(db),
+          events: buildEventRegistry({
+            counters: new PostgresContentCounterRepository(db),
+          }),
+          recount: new PostgresCounterRecount(db),
+          threadViews,
         }),
       ),
     },
@@ -256,6 +277,7 @@ export function getContainer(): Container {
     typeof cached.posts?.listThread !== 'function' ||
     typeof cached.posts?.findVisibleById !== 'function' ||
     cached.readState === undefined ||
+    cached.threadViews === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

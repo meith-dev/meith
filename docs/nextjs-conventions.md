@@ -186,6 +186,36 @@ Read `packages/core/src/cache.ts` before caching anything.
 
 ---
 
+## Counters and event handlers
+
+A denormalised counter has three obligations, and a change that adds one has to
+satisfy all three (R5, and F38 is the worked example):
+
+- **Write it in the transaction that writes the content.** Counters and the row
+  they describe move together or not at all. `applyCreatedContentCounters()`
+  takes the caller's transaction handle for exactly this reason — it has no
+  ambient database handle to reach for.
+- **Emit the event in the same transaction.** Anything that cannot be afforded
+  inside the request — an ancestor walk, a fan-out — goes through the outbox, so
+  a rolled-back write emits nothing.
+- **Give it a recount.** Incremental maintenance drifts. Every counter needs a
+  path back to a computed truth, batched and resumable (`PostgresCounterRecount`).
+  A counter with no recount is a number that is wrong forever after one crash.
+
+Event handlers live in `src/server/event-handlers.ts` and are built per
+container, never registered onto a module-level singleton — registration throws
+on a duplicate id, and a dev server re-evaluating the module would hit that on
+its second pass.
+
+**Handlers are idempotent, without exception.** The relay marks an outbox row
+dispatched after the enqueue returns and the queue re-runs a job whose worker
+died mid-handler, so every handler is delivered at least once and sometimes
+twice. A handler that writes a *computed* value gets this for free; one that
+applies a **delta** must record what it has applied — F38's roll-up ledger is
+the pattern to copy.
+
+---
+
 ## Theme slots
 
 Read `packages/theme-kit/src/slots.ts` before adding a page.

@@ -36,9 +36,18 @@ export { PostgresSettingsRepository } from './settings-repo'
 export { PostgresThemeRepository, type ThemeRuntimeRecord } from './theme-repo'
 export {
   applyCreatedContentCounters,
+  rollUpAncestorCounters,
   PostgresContentCounterRepository,
   type CreatedContent,
 } from './content-counters'
+export { PostgresThreadViewBuffer } from './thread-views'
+export {
+  PostgresCounterRecount,
+  RECOUNT_PHASES,
+  type RecountPhase,
+  type RecountRun,
+} from './counter-recount'
+export { PostgresOutboxReader } from './outbox-repo'
 export {
   PostgresBanFilterRepository,
   PostgresBanRepository,

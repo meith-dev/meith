@@ -9,6 +9,7 @@
     "@forum/accounts": "workspace:*",
     "@forum/authorization": "workspace:*",
     "@forum/core": "workspace:*",
+    "@forum/events": "workspace:*",
     "@forum/forums": "workspace:*",
     "@forum/groups": "workspace:*",
     "@forum/settings": "workspace:*",

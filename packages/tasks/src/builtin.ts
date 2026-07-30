@@ -21,6 +21,8 @@ export interface TaskWorkers {
   pruneExpiredTokens(): Promise<number>
   /** Recomputes drifted forum/thread counters. Returns rows corrected. */
   reconcileCounters(batchSize: number): Promise<number>
+  /** Folds buffered thread views into `threads.view_count`. Returns threads updated. */
+  flushThreadViews(batchSize: number): Promise<number>
   /** Promotes users who now meet a promotion rule. Returns users moved. */
   applyPromotions(batchSize: number): Promise<number>
   /** Lifts bans whose expiry has passed, restoring each user's prior group. */
@@ -101,6 +103,27 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
     },
 
     {
+      id: 'views.flush',
+      title: 'Flush buffered thread views',
+      description:
+        'Applies buffered view counts to their threads. Views are buffered on ' +
+        'the write path so a busy thread does not rewrite the row behind the ' +
+        'listing index on every page view; this is where they land. Bounded, ' +
+        'and a skipped run only delays the numbers.',
+      /*
+       * Five minutes is a view count being wrong by at most five minutes, which
+       * nobody can observe, against one `threads` update per thread per five
+       * minutes instead of one per reader.
+       */
+      intervalSeconds: 300,
+      maxDurationSeconds: 30,
+      async run() {
+        const flushed = await workers.flushThreadViews(500)
+        return { detail: { flushed } }
+      },
+    },
+
+    {
       id: 'promotions.apply',
       title: 'Apply group promotions',
       description:
@@ -150,6 +173,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'sessions.prune': 'pruneSessions',
   'tokens.prune': 'pruneExpiredTokens',
   'counters.reconcile': 'reconcileCounters',
+  'views.flush': 'flushThreadViews',
   'promotions.apply': 'applyPromotions',
   'bans.expire': 'expireBans',
 }
@@ -157,10 +181,9 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
 /**
  * The built-in tasks whose workers actually exist.
  *
- * Takes a *partial* worker set and registers only what can run. Some workers
- * depend on features that are not built yet — `reconcileCounters` needs F38's
- * counter maintenance to have something to reconcile — and the alternatives are
- * both worse than filtering:
+ * Takes a *partial* worker set and registers only what can run. A worker whose
+ * feature does not exist yet is simply absent, and the alternatives are both
+ * worse than filtering:
  *
  *  - a stub returning 0 pretends work happened, and the tick would report a
  *    healthy run of a task that does nothing;
@@ -168,9 +191,10 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
  *    admin notification for a task nobody asked for.
  *
  * Not registering it means `tasks` holds no row for it, System Health does not
- * list it, and the day F38 supplies the worker it appears on its own. This is
- * the same rule the operator CLI follows by omitting commands it cannot honour:
- * never advertise a capability that is not there.
+ * list it, and the day its worker exists it appears on its own — which is how
+ * `counters.reconcile` and `outbox.relay` arrived with F38. This is the same
+ * rule the operator CLI follows by omitting commands it cannot honour: never
+ * advertise a capability that is not there.
  */
 export function builtinTasks(workers: Partial<TaskWorkers>): TaskDefinition[] {
   const supplied = workers as TaskWorkers

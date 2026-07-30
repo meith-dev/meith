@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D38. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D41. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -18,12 +18,13 @@ this file.
 ## Gate state (all green)
 
 `pnpm verify` → exit 0: textual invariants + **guard probes**, the **slot
-server/client boundary** check + its probe, dependency-cruiser (172 modules, 0
-violations), typecheck (root **and** app), **931 tests** (a large share against
+server/client boundary** check + its probe, dependency-cruiser (226 modules, 0
+violations), typecheck (root **and** app), **983 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
-roughly one run in three (D34).
+roughly one run in three (D34) — and after raising the *test* timeout, which
+F38's four extra database suites pushed the Argon2id lockout test past (D41).
 
 **Gate holes closed this pass:**
 
@@ -185,20 +186,35 @@ roughly one run in three (D34).
   JavaScript. It also caught and fixed the skip-link focus target and the
   insecure development `__Host-` cookie rejection.
 
+- **F38 counter maintenance and recount** — complete. The direct write (D40) now
+  has the other three parts around it: the `post.created` event reaches a
+  consumer, ancestors are rolled up by path prefix and cannot be double-counted
+  on replay, thread views are buffered out of the listing index and flushed by a
+  task, and `PostgresCounterRecount` walks threads → forums → users in bounded
+  batches from a stored cursor, writing computed truth. A deliberately corrupted
+  board converges; a second sweep corrects nothing. See **D41**, including the
+  one definition of "counts" the recount and the writer had to agree on, and the
+  two things this turned up: the outbox had no Postgres reader at all, so the
+  event was being written to nothing, and the CI schema-drift step inspects a
+  directory that does not exist.
+
 ## NEXT ACTION — resume here
 
-**F38 · counter maintenance and recount** has its transaction primitive:
-`applyCreatedContentCounters()` updates direct forum, thread, and author
-counters plus last-post pointers, and writes `post.created` in the same
-transaction. The rollback test proves it cannot leave an outbox event or counters
-behind after a failed content write.
+**F39 · new thread** is the next feature in order, and F38 was its last
+dependency: the counters, the event path, and the repair tool are all in place
+before anything writes content. It needs a no-JS form, a Server Action that
+re-authorises `thread.create` against the forum matrix, a domain command that
+inserts thread + opening post and calls `applyCreatedContentCounters()` **in one
+transaction**, and the redirect to the new thread.
 
-F38 remains partial: F39/F40 must call it, and ancestor roll-up, buffered views,
-and the bounded resumable recount are still missing.
+Its stated dependency on F36 (BBCode) is real for rendering but not for writing:
+F31 already escapes raw text into the plain-text fallback, so a thread created
+now renders correctly and gains formatting when F36 lands. Either order works —
+F36 first is the roadmap's order; F39 first is what makes the board usable and
+what finally exercises the counters against a real request.
 
-The counters the index renders now have an atomic write seam, but no route creates
-content yet. Until F39 uses it, a real board still has no normal way to populate
-those values.
+Until then, a real board still has no normal way to create content: the write
+path is proven by tests rather than by use.
 
 Still worth settling (unchanged from F25):
 
@@ -211,16 +227,22 @@ Still worth settling (unchanged from F25):
 Smaller things still unblocked, in rough order of value:
 
 1. **`forum task:run`** — the CLI command was blocked on `TaskRepository`, which
-   now exists. Small, and gives operators a way to force a tick.
+   now exists. Small, and gives operators a way to force a tick, which matters
+   more now that eight real tasks are registered.
 2. **F04** — CI never boots the standalone image, and `apps/worker` is empty, so
    the self-hosting path is unverified and rots quietly while everyone develops
    on Vercel. This is F04's stated acceptance criterion.
-3. **A Postgres `OutboxReader`** — the last missing task worker besides F38's
-   counters; `outbox.relay` registers itself the moment it exists.
+3. **The schema-drift CI step is inert** — it inspects `packages/db/drizzle`,
+   which does not exist (migrations live in `packages/db/migrations`), so it has
+   always passed vacuously. Pointing it at the real directory fails today for a
+   real reason: the drizzle meta snapshot has been stale since `0002`, so
+   `generate` wants to re-create tables that already exist. Repairing the
+   snapshot and fixing the path belong together (D41).
 
 Still outstanding and worth keeping visible:
 
-- A failing task logs but does not raise an admin notification (needs F55).
+- A failing task logs but does not raise an admin notification (needs F55) — now
+  eight tasks wide rather than five.
 - Permission columns are generated into a `Record<string, …>`, so
   `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.
 - **Deleting or renaming a route breaks `typecheck:app`** until `next build`
@@ -239,9 +261,10 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D38). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D41). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
-`process.env` rule, untested ACP invariant); (b) runtime-only bugs a
+`process.env` rule, untested ACP invariant, and now the schema-drift step
+pointed at a directory that does not exist — D41); (b) runtime-only bugs a
 compile/typecheck waved through but tests caught (reversed `verifyPassword` args,
 unawaited async `hashToken` — D15; `awaiting_approval` mis-mapped to a null actor
 — D16); (c) real Postgres (PGlite) over mocks for SQL-semantic tests (D16).

@@ -22,6 +22,13 @@
       "when": 1785355592465,
       "tag": "0002_group_promotions",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785355593465,
+      "tag": "0003_counter_maintenance",
+      "breakpoints": true
     }
   ]
 }

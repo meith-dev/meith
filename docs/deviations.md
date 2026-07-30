@@ -1349,3 +1349,101 @@ which prevents a late-arriving older reply from moving a thread or forum
 backwards. This was caught by the real Postgres test using equal timestamps;
 the initial implementation left the thread pointer null while the forum pointer
 looked correct.
+
+### D41 — Where each counter becomes true, and how it gets back (F38)
+
+F38 promised four things: atomic counters, an outbox ancestor roll-up, buffered
+views, and a batched resumable recount. The first landed with D40. The other
+three each forced a decision.
+
+#### Forum counters are subtree-inclusive, and only the posting forum is exact
+
+A category with no threads of its own must still show totals, so a forum's
+counters cover its whole subtree. That leaves the question of *when* each row
+becomes true, and the answer differs by distance:
+
+- the **posting forum** is updated inside the content transaction, because the
+  page the author is redirected to must already agree with what they just did;
+- **ancestors** are updated from the `post.created` event, because a post four
+  levels deep would otherwise make every reply write four more rows inside the
+  request, and the depth is unbounded.
+
+So a category can lag its children by one tick. That is visible only as a count
+being briefly low, never as a wrong tree — and the alternative, computing the
+totals at read time, is the aggregate over the whole board that the denormalised
+columns exist to avoid.
+
+#### The roll-up carries a ledger because delivery is at-least-once
+
+The relay marks an outbox row dispatched *after* the enqueue returns, and the
+queue re-runs a job whose worker died mid-handler. Both are deliberate: a
+duplicate is recoverable and a lost event is not. But a roll-up is a delta, and
+replaying `+1` against five ancestors is exactly the drift the recount exists to
+repair.
+
+`content_counter_rollups` holds one row per post whose ancestors have been
+counted, inserted in the same transaction as the update. A redelivered event
+finds it and does nothing. This is deliberately not a boolean on `posts`: that
+would make every roll-up a second write to the hottest table on the board, and
+the ledger is also the natural place for F41 to record a visibility transition
+that has already been applied.
+
+#### Views are buffered, and losing them is the accepted trade
+
+`threads` carries the R3.5 listing index. Incrementing `view_count` in place
+makes every page view a write to the row the busiest read path sorts on. Views
+are therefore counted in `thread_view_buffer` and folded in by a task every five
+minutes.
+
+An unflushed buffer lost to a restore loses those views. That is acceptable for
+this counter and no other, for a reason worth stating: `view_count` is the only
+counter on the board that **cannot be recomputed from source rows**. Nothing
+records who viewed what, so the recount below has nothing to say about it — which
+is also why it is the one number nobody can audit and nothing depends on.
+
+#### The recount writes truth, in phases, from a stored cursor
+
+It runs threads → forums → users, bounded by batch size, resuming from
+`counter_recount_state`. Two consequences are load-bearing:
+
+- it writes a **computed value, never a delta**, so interrupting it mid-sweep is
+  harmless and a second sweep over a healthy board corrects nothing — which is
+  what makes a rising `corrected` total a real signal of drift rather than noise;
+- it advances the phase on a *short* batch rather than an empty one, saving one
+  wasted run per phase per sweep at no cost, because re-reading rows has no
+  side effects by construction.
+
+Threads run before forums because forum totals aggregate the same post rows, so
+one sweep leaves the two consistent instead of one sweep apart.
+
+**One definition of "counts" throughout:** a post counts when the post is visible
+*and its thread is*. A visible post inside a soft-deleted thread counts nowhere —
+not for its forum, not for its author. The incremental writer never sees that
+case (new content is always visible), so the two only had to be reconciled here.
+The per-user aggregate needed a `FILTER` rather than a `WHERE` to say it: with a
+`WHERE`, an author whose every post sits in a deleted thread drops out of the
+aggregate entirely and the update leaves exactly the stale count it was meant to
+fix. That is now a test.
+
+#### Smaller things this turned up
+
+- **`post.created` was being written to nothing.** The outbox had no Postgres
+  reader, so the relay could not run, so nothing consumed the event D40's
+  primitive commits. `PostgresOutboxReader` plus handler dispatch in the queue
+  drain closes it, and `outbox.relay` registers itself as a result. A claim bumps
+  `attempts` and gives up after ten, so a poison event stops blocking the backlog
+  behind it while staying visible to an operator.
+- **The schema-drift CI step checks a directory that does not exist.** It runs
+  `drizzle-kit generate` and then inspects `packages/db/drizzle`, but migrations
+  live in `packages/db/migrations`, so the step has always passed vacuously.
+  Pointing it at the real directory would fail today for a real reason: the meta
+  snapshot has been stale since `0002`, which was hand-written like `0003`, so
+  `generate` wants to re-create tables that already exist. Recorded rather than
+  patched — repairing the snapshot is its own change, and a guard that fails for
+  the wrong reason is no better than one that never fires (D10).
+- **The default 5s test timeout stopped being enough.** Four more PGlite suites
+  pushed `loginAction`'s lockout test — which hashes a password per attempt at
+  the configured Argon2id cost — past it under a full run while passing alone.
+  Raised to 20s with the reasoning D34 used for the worker cap: a gate that
+  fails one run in a few teaches people to re-run, and then a real failure gets
+  re-run too.

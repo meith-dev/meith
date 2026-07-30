@@ -297,6 +297,29 @@ export const threadsRead = pgTable(
   ],
 )
 
+/**
+ * Buffered thread views (F38).
+ *
+ * Every thread page view is an increment here, and a scheduled task folds the
+ * pending totals into `threads.view_count`. The indirection exists because
+ * `threads` carries the listing index (R3.5): incrementing `view_count` in
+ * place makes every view a write to the row the busiest read path sorts on, and
+ * on a popular thread that is a stream of dead tuples behind the index for a
+ * number nothing on the board depends on.
+ */
+export const threadViewBuffer = pgTable(
+  'thread_view_buffer',
+  {
+    threadId: integer('thread_id')
+      .primaryKey()
+      .references(() => threads.id, { onDelete: 'cascade' }),
+    /** Views recorded since the last flush. */
+    pending: integer('pending').notNull().default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('thread_view_buffer_updated_idx').on(t.updatedAt)],
+)
+
 export const threadSubscriptions = pgTable(
   'thread_subscriptions',
   {

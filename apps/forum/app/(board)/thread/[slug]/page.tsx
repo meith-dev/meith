@@ -41,7 +41,7 @@ export default async function ThreadPage({
   if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
 
   const actor = await getActor()
-  const { forums, posts, threads, authorizer } = getContainer()
+  const { forums, posts, threads, authorizer, threadViews } = getContainer()
   const thread = await threads.findVisibleById(id)
   if (!thread) notFound()
 
@@ -49,6 +49,17 @@ export default async function ThreadPage({
   if (!forum || forum.type !== 'forum') notFound()
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) notFound()
+
+  /*
+   * Count the view only after the permission check, and only on the first page:
+   * paging through a long thread is one visit, and a viewer who cannot see the
+   * thread has not viewed it. The write is buffered (F38) rather than applied to
+   * `threads`, and a failure is swallowed — a view counter is never a reason to
+   * fail a page that has already been authorised and read.
+   */
+  if (threadViews && after === undefined) {
+    await threadViews.record(thread.id).catch(() => undefined)
+  }
 
   const postPage = await posts.listThread(
     thread.id,

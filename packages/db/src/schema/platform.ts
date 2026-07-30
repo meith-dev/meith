@@ -306,3 +306,44 @@ export const adminLog = pgTable(
     index('admin_log_action_idx').on(t.action, t.createdAt.desc()),
   ],
 )
+
+/**
+ * Roll-up ledger (F38).
+ *
+ * Ancestor counters are deltas applied by an event handler, and the outbox
+ * relay is at-least-once by design (F07) — a redelivered `post.created` would
+ * add the same post to every ancestor a second time. Inserting the post id here
+ * inside the same transaction as the update makes the roll-up idempotent
+ * against replay: the insert either wins and the counters move, or it conflicts
+ * and the handler does nothing.
+ *
+ * This is a ledger, not a queue: rows are never claimed or deleted, and it is
+ * pruned only when its post is.
+ */
+export const contentCounterRollups = pgTable('content_counter_rollups', {
+  postId: integer('post_id').primaryKey(),
+  appliedAt: timestamp('applied_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * Recount progress (F38).
+ *
+ * A recount over the target data volume (2M posts) cannot finish inside one
+ * serverless invocation, so it runs as a bounded batch per tick and stores
+ * where it got to. `phase` is which counter family is being rebuilt and
+ * `cursor` the last id completed within it; together they are the resume point.
+ *
+ * Keyed rather than a single implicit row so F70's on-demand "Recount &
+ * Rebuild" can track its own scan without racing the scheduled one.
+ */
+export const counterRecountState = pgTable('counter_recount_state', {
+  id: text('id').primaryKey(),
+  /** 'threads' | 'forums' | 'users' — see the recount's phase order. */
+  phase: text('phase').notNull().default('threads'),
+  cursor: integer('cursor').notNull().default(0),
+  /** Completed sweeps of all three phases. Operator visibility only. */
+  passes: integer('passes').notNull().default(0),
+  /** Rows corrected across all runs. A steadily rising number means drift. */
+  corrected: integer('corrected').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
