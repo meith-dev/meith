@@ -23,8 +23,26 @@ import { fileURLToPath } from 'node:url'
 import type { Database } from './client'
 import * as schema from './schema'
 
+/**
+ * Counts SQL statements actually sent to the database.
+ *
+ * Wrapping the *driver* rather than drizzle's logger is deliberate: the budget
+ * a list page has to meet is round trips, and drizzle's logger reports what it
+ * intended to run. Anything that reaches Postgres — a raw `execute`, a lazily
+ * awaited builder, a query drizzle issues on your behalf — is counted here and
+ * would be missed there.
+ */
+export interface QueryLog {
+  /** Statements since the last `reset()`. */
+  readonly count: number
+  /** The SQL itself, for a failure message that says *what* ran. */
+  readonly statements: readonly string[]
+  reset(): void
+}
+
 export interface TestDb {
   readonly db: Database
+  readonly queries: QueryLog
   close(): Promise<void>
 }
 
@@ -63,6 +81,22 @@ export async function createTestDb(): Promise<TestDb> {
   const sql = migrationSql().split('--> statement-breakpoint').join('\n')
   await client.exec(sql)
 
+  const statements: string[] = []
+
+  /*
+   * Installed after the migration so schema setup does not count against a
+   * test's budget. Only `query` is wrapped: `exec` runs multi-statement scripts
+   * and is used for setup, never by drizzle's query builder.
+   */
+  const originalQuery = client.query.bind(client)
+  ;(client as unknown as { query: typeof originalQuery }).query = ((
+    sqlText: string,
+    ...rest: unknown[]
+  ) => {
+    statements.push(sqlText)
+    return (originalQuery as (...a: unknown[]) => unknown)(sqlText, ...rest)
+  }) as typeof originalQuery
+
   const db = drizzle(client, {
     schema,
     casing: 'snake_case',
@@ -70,6 +104,17 @@ export async function createTestDb(): Promise<TestDb> {
 
   return {
     db,
+    queries: {
+      get count() {
+        return statements.length
+      },
+      get statements() {
+        return [...statements]
+      },
+      reset() {
+        statements.length = 0
+      },
+    },
     async close() {
       await client.close()
     },

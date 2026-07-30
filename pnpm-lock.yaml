@@ -295,7 +295,20 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/testkit: {}
+  packages/testkit:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+      '@forum/db':
+        specifier: workspace:*
+        version: link:../db
+      '@forum/forums':
+        specifier: workspace:*
+        version: link:../forums
+      drizzle-orm:
+        specifier: ^0.44.7
+        version: 0.44.7(@electric-sql/pglite@0.5.4)(postgres@3.4.9)
 
   packages/theme-kit: {}
 

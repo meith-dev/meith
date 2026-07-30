@@ -637,3 +637,43 @@ connection error happens to say.
 `task:run` and `cache:clear` are still absent, and deliberately: registering
 commands that throw would make `forum --help` advertise capabilities the binary
 does not have.
+
+### D25 — Query budgets are measured at the driver; the seeder's scale is a parameter (F11)
+
+**The budget helper.** Counting is done by wrapping PGlite's `query`, not
+drizzle's logger. The budget a list page must meet is *round trips*; drizzle's
+logger reports what it intended to run, and would miss a raw `execute`, a
+lazily-awaited builder, or a query drizzle issues on your behalf. The counter is
+installed after the migration so schema setup does not count against a test.
+
+Failures print the SQL grouped and counted (`3× select …`), because "expected 41
+to be <= 3" says there is a problem but not where. The first version truncated
+each statement to 160 characters — and drizzle selects every column explicitly,
+so the table name sits *after* a 900-character column list and was always cut
+off, reporting forty repetitions of an indistinguishable `select "id", "key",
+…`. It now elides from the middle.
+
+Mutation-verified: an N+1 injected into `PostgresForumRepository.listAll` fails
+the budget assertion. F16's "tree read is one query regardless of depth" is now
+a measurement against a genuinely nested seeded board rather than a claim about
+the code.
+
+**The seeder's scale is a parameter, and that is the honest part.** F11's target
+is 50 forums / 100k threads / 2M posts / 20k users. That is a real-Postgres
+workload: PGlite is Postgres compiled to WASM holding the database in process
+memory, and 2M posts would exhaust the heap long before finishing. So
+`SMOKE_SCALE` (12 forums / 120 threads) runs in every test run and `FULL_SCALE`
+is the plan's number, pointed at a real database for F89's performance pass.
+Recording this rather than quietly shipping a small seeder under the plan's
+heading — the difference matters, because an index that looks fine at 120
+threads is exactly what F11 exists to catch.
+
+Determinism is the seeder's contract: a fixed-seed PRNG, asserted by rebuilding
+a second database and comparing every thread title and sticky flag. A seeded
+board that varied per run would make every budget assertion a coin flip, and
+three green runs would teach everyone to re-run a failure rather than read it.
+
+Per-row cost is avoided deliberately — one shared precomputed Argon2id hash
+(hashing 20k passwords at the real cost factor proves nothing the crypto suite
+does not already cover), batched multi-row inserts, and forum paths accumulated
+in memory rather than read back per forum.

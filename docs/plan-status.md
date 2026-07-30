@@ -26,8 +26,8 @@ what is and is not built.
 
 ## How this audit was done
 
-Last audited **2026-07-30** (re-audited after F10/F16 landed), against the working tree, not from memory:
-`pnpm verify` (595 tests, 24 files), `pnpm build`, plus direct inspection of the
+Last audited **2026-07-30** (re-audited after F10/F11/F13/F15/F16 landed), against the working tree, not from memory:
+`pnpm verify` (662 tests), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -65,7 +65,7 @@ couple of `PARTIAL` rows are an afternoon.
 | F08 | Settings registry | `DONE` | `packages/settings` registry + `settings`/`setting_groups`; typed accessors; migration-seeded defaults. |
 | F09 | Errors, logging, error pages | `DONE` | Pino + request-id context, error taxonomy, `error.tsx`/`not-found.tsx`. Redaction covers credentials — tightened in D20 after a token reached the logs via a URL string. |
 | F10 | Caching policy harness | `DONE`* | `CacheTags` registry, both drivers, and `cachedGlobal` — read-through, tag-invalidated, driver injected. Guard now catches `getActor`/`getUserId` inside a cached region, and **every guard is probed** by `pnpm guards:probe` against a must-match and a must-not-match sample, so an inert or over-broad rule fails CI. *The "member then guest, guest never gets a cached body" test needs pages that do not exist until F29/F31; it is listed there, not silently skipped. |
-| F11 | Boundary lint and testkit | `PARTIAL` | `dependency-cruiser` enforces R2 (119 modules, 0 violations) and is probe-verified. **Gap:** `packages/testkit` contains **only `package.json`** — no harness, no factories, no deterministic seeder (50 forums / 100k threads / 2M posts / 20k users), **no query-budget assertion helper**. The Definition of Done requires that helper on every list page. |
+| F11 | Boundary lint and testkit | `PARTIAL` | `dependency-cruiser` enforces R2 (127 modules, 0 violations), probe-verified. `@forum/testkit` now has the deterministic seeder (fixed-seed PRNG, batched inserts, genuinely nested tree) and the **query-budget helper**, which counts statements at the driver and names the repeated SQL so an N+1 is identifiable. Mutation-verified: an injected N+1 in `listAll` fails the budget. F16's "one query regardless of depth" is now measured rather than claimed. **Gap:** the harness is PGlite, not Testcontainers, and `FULL_SCALE` (2M posts) is defined but only runnable against real Postgres — PGlite holds the database in process memory. `SMOKE_SCALE` runs in CI. Factories beyond the seeder are not built. |
 | F12 | CI pipeline | `DONE` | Three jobs: static checks (guards, lint, depcruise, both typechecks, tests), production build, migrations + drift + Postgres tests. Runtime not yet measured against the 12-minute budget. |
 | F13 | Operator CLI (v0) | `PARTIAL` | Eight commands: `env:check`, `migrate`, `settings:list|get|set`, `user:create`, `user:promote`, `forum:create`. A board can now be set up end to end — migrate, create an admin, promote them, create forums, set settings. Passwords are read from stdin, not `argv`. **Gap:** `task:run` needs F06's missing `TaskRepository`; `cache:clear` needs a cross-process cache to clear (MemoryCache dies with its process, `revalidateTag` only works inside a Next request) and belongs with F70. |
 | F14 | Conventions document | `PARTIAL` | `docs/deviations.md`, `docs/mybb-parity.md`, `docs/adr/` exist and are maintained. **Gap:** `docs/nextjs-conventions.md` — the actual deliverable — does not exist. |
