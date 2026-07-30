@@ -15,8 +15,9 @@
     "test:e2e": "playwright test",
     "forum": "pnpm --filter @forum/cli start",
     "format": "prettier --write .",
-    "verify": "pnpm guards && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm test",
-    "guards": "node scripts/guards.mjs"
+    "verify": "pnpm guards && pnpm guards:probe && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm test",
+    "guards": "node scripts/guards.mjs",
+    "guards:probe": "node scripts/guards-probe.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",

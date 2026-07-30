@@ -44,6 +44,11 @@ jobs:
       - name: Textual invariants
         run: pnpm guards
 
+      # Proves the guards above are not inert. A rule whose pattern stopped
+      # matching passes `pnpm guards` exactly as loudly as one that works.
+      - name: Textual invariants — probe
+        run: pnpm guards:probe
+
       - name: Lint
         run: pnpm lint
 
