@@ -17,6 +17,7 @@ import {
 } from '@forum/core'
 import type { GroupDefaults, MemoryBoard } from '@forum/authorization'
 import type { ForumListingRow } from '@forum/forums'
+import type { PostListingRow } from '@forum/posts'
 import type { ThreadListingRow } from '@forum/threads'
 
 /** Canonical seed groups (must match the seed migration). */
@@ -286,5 +287,37 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
       at: new Date('2026-07-29T17:18:00Z'),
     },
     lastPostAt: new Date('2026-07-29T17:18:00Z'),
+  },
+]
+
+/** Visible posts for the fixture thread view (F31). */
+export const SEED_POST_ROWS: readonly PostListingRow[] = [
+  {
+    id: 133,
+    threadId: 22,
+    forumId: SEED_FORUM.general,
+    number: 1,
+    authorUserId: 1,
+    authorUsername: 'admin',
+    authorPostCount: 42,
+    authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
+    message: 'Tell us what you are reading this week.',
+    isFirstPost: true,
+    visibility: 'visible',
+    createdAt: new Date('2026-07-28T09:00:00Z'),
+  },
+  {
+    id: 143,
+    threadId: 22,
+    forumId: SEED_FORUM.general,
+    number: 2,
+    authorUserId: null,
+    authorUsername: 'departed',
+    authorPostCount: 0,
+    authorJoinedAt: null,
+    message: 'I just started a mystery novel.',
+    isFirstPost: false,
+    visibility: 'visible',
+    createdAt: new Date('2026-07-30T08:41:00Z'),
   },
 ]

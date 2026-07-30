@@ -33,6 +33,11 @@ export class FixtureThreadRepository implements ThreadRepository {
     private readonly rows: readonly ThreadListingRow[] = SEED_THREAD_ROWS,
   ) {}
 
+  async findVisibleById(id: number): Promise<ThreadListingRow | null> {
+    const row = this.rows.find((entry) => entry.id === id)
+    return row ? { ...row } : null
+  }
+
   async listForum(
     forumId: number,
     options: { readonly after?: ThreadCursor; readonly limit: number },

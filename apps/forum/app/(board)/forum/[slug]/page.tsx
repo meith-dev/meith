@@ -41,6 +41,9 @@ export default async function ForumPage({
   ]);
   const forum = rows.find((row) => row.id === id);
   if (!forum || forum.type !== "forum" || !visible.includes(id)) notFound();
+  const matrix = await authorizer.forumMatrix(actor, id);
+  if (!authorizer.can(actor, "thread.view", { forumId: id, forum: matrix }))
+    notFound();
 
   const threadPage = await threads.listForum(
     id,

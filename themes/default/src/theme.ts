@@ -29,6 +29,9 @@ import { UserPanel } from './slots/user-panel'
 import { Pagination } from './slots/pagination'
 import { SubforumList } from './slots/subforum-list'
 import { ThreadRow } from './slots/thread-row'
+import { ThreadView } from './slots/thread-view'
+import { PostBit } from './slots/post-bit'
+import { PostActions } from './slots/post-actions'
 
 export const defaultTheme = defineTheme({
   key: 'default',
@@ -49,5 +52,9 @@ export const defaultTheme = defineTheme({
     ThreadRow,
     SubforumList,
     Pagination,
+
+    ThreadView,
+    PostBit,
+    PostActions,
   },
 })

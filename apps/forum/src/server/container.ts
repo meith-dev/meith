@@ -32,6 +32,7 @@ import {
 } from '@forum/authorization'
 import { env, logger } from '@forum/core'
 import { CachedForumRepository, type ForumRepository } from '@forum/forums'
+import type { PostRepository } from '@forum/posts'
 import type { ThreadRepository } from '@forum/threads'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@forum/tasks'
 import { drivers } from '@forum/drivers'
@@ -39,6 +40,7 @@ import { drivers } from '@forum/drivers'
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
 import { FixtureForumRepository } from './fixture-forum-repo'
+import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
 import { SEED_BOARD } from './seed-board'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
@@ -60,6 +62,8 @@ export interface Container {
   readonly forums: ForumRepository
   /** Keyset-paged thread listing (F30). */
   readonly threads: ThreadRepository
+  /** Keyset-paged visible posts (F31). */
+  readonly posts: PostRepository
   /**
    * The scheduler's storage and the tasks that can actually run (F06).
    *
@@ -126,6 +130,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     actorSource: new FixtureActorSource(store),
     forums: cached(new FixtureForumRepository()),
     threads: new FixtureThreadRepository(),
+    posts: new FixturePostRepository(),
     ...identityServices(store),
     // See SchedulerBundle: a tick without durable, cross-instance state cannot
     // honour its concurrency guarantee, so fixture mode has no scheduler.
@@ -184,7 +189,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresPostRepository } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
@@ -198,6 +203,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     actorSource: new ActorBuilder(db, { guestGroupId: 1 }),
     forums: cached(new PostgresForumRepository(db)),
     threads: new PostgresThreadRepository(db),
+    posts: new PostgresPostRepository(db),
     ...identityServices(store),
     scheduler: {
       repository: new PostgresTaskRepository(db),
@@ -223,10 +229,21 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
 /** Resolve the process-wide container, building it on first use. */
 export function getContainer(): Container {
   const g = globalThis as GlobalWithContainer
-  if (!g[GLOBAL_KEY]) {
+  const cached = g[GLOBAL_KEY] as Partial<Container> | undefined
+  /*
+   * Dev HMR retains globalThis. A newly-added repository method therefore
+   * leaves the old implementation behind unless this checks the shape the
+   * current routes actually need. Production creates a fresh process, so this
+   * is only a cheap compatibility guard for a live dev server.
+   */
+  if (
+    !cached ||
+    typeof cached.threads?.findVisibleById !== 'function' ||
+    typeof cached.posts?.listThread !== 'function'
+  ) {
     g[GLOBAL_KEY] = build()
   }
-  return g[GLOBAL_KEY]
+  return g[GLOBAL_KEY] as Container
 }
 
 /** Convenience: the shared Authorizer. */

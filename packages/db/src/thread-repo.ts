@@ -81,6 +81,35 @@ function rowToListing(row: {
 export class PostgresThreadRepository implements ThreadRepository {
   constructor(private readonly db: Database) {}
 
+  async findVisibleById(id: number): Promise<ThreadListingRow | null> {
+    const rows = await this.db
+      .select({
+        id: threads.id,
+        forumId: threads.forumId,
+        title: threads.title,
+        slug: threads.slug,
+        prefixLabel: threadPrefixes.label,
+        prefixToken: threadPrefixes.token,
+        authorUserId: threads.authorUserId,
+        authorUsername: threads.authorUsername,
+        replyCount: threads.replyCount,
+        viewCount: threads.viewCount,
+        isSticky: threads.isSticky,
+        isLocked: threads.isLocked,
+        movedToThreadId: threads.movedToThreadId,
+        lastPostId: threads.lastPostId,
+        lastPostUserId: threads.lastPostUserId,
+        lastPostUsername: threads.lastPostUsername,
+        lastPostAt: threads.lastPostAt,
+      })
+      .from(threads)
+      .leftJoin(threadPrefixes, eq(threads.prefixId, threadPrefixes.id))
+      .where(and(eq(threads.id, id), eq(threads.visibility, 'visible')))
+      .limit(1)
+    const row = rows[0]
+    return row ? rowToListing(row) : null
+  }
+
   async listForum(
     forumId: number,
     options: { readonly after?: ThreadCursor; readonly limit: number },

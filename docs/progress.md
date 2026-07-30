@@ -159,12 +159,18 @@ roughly one run in three (D34).
   the theme. The first thread read is an opaque-cursor keyset query over sticky,
   last-post time, and id; it is one statement at both 3 and 50 rows, and the
   equal-timestamp tie-breaker is tested against real Postgres.
+- **F31 thread view** — `/thread/[id]-[slug]` checks `thread.view` against the
+  resolved forum matrix before rendering. Posts keyset-page by id in one
+  statement while retaining their absolute thread number; the plain-text
+  fallback escapes raw content before the theme inserts it as HTML. BBCode,
+  replies, and post actions remain unadvertised until their owning features.
 
 ## NEXT ACTION — resume here
 
-**F31 · thread view** is next: repeat the route → container → pure view model →
-slot composition pattern for `/thread/[id]-[slug]`. `posts` is still empty, so
-it needs the first keyset-paged post read over the existing visible-post index.
+**F32 · read tracking** is next: the `forums_read` and `threads_read` tables
+exist, but no repository or request path records a member's watermark yet.
+Keep guests stateless; the first implementation should use the existing
+per-forum and per-thread tables rather than adding a second read-state shape.
 
 The counters the index renders are still never written: `forums.thread_count`,
 `post_count`, and the last-post triplet are read by F29 and maintained by nobody

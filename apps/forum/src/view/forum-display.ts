@@ -13,7 +13,7 @@ import type { ThreadListingRow, ThreadPage } from "@forum/threads";
 import { forumHref } from "./board-index";
 import { formatTime } from "./time";
 
-function threadHref(row: ThreadListingRow): string {
+export function threadHref(row: ThreadListingRow): string {
   return `/thread/${row.id}-${row.slug}`;
 }
 
@@ -51,7 +51,7 @@ function forum(row: ForumListingRow): ForumRowModel {
   };
 }
 
-function thread(row: ThreadListingRow, now: Date): ThreadRowModel {
+export function threadRowModel(row: ThreadListingRow, now: Date): ThreadRowModel {
   return {
     id: row.id,
     title: row.title,
@@ -102,7 +102,7 @@ export function buildForumDisplayView(
       input.subforums.length === 0
         ? null
         : { forums: input.subforums.map(forum) },
-    threads: input.page.rows.map((row) => thread(row, input.now)),
+    threads: input.page.rows.map((row) => threadRowModel(row, input.now)),
     pagination: {
       page: input.pageNumber,
       // Cursor pagination deliberately does not run a count query just to show a total.
