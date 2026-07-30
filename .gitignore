@@ -6,8 +6,18 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Environment variables
-.env*.local
+# Environment variables. The previous `.env*.local` missed a plain `.env`, which
+# is the file people actually put a real AUTH_SECRET in. Ignore the lot and
+# re-include the tracked template.
+.env
+.env.*
+!.env.example
+
+# Generated: tsc writes .tsbuildinfo for each typecheck project, and next build
+# regenerates next-env.d.ts. Committing either produces stale-cache confusion
+# and diff noise.
+*.tsbuildinfo
+next-env.d.ts
 
 # Common ignores
 node_modules
