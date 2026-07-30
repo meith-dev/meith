@@ -118,3 +118,33 @@ describe('forum-scoped action without a resolved matrix', () => {
     expect(() => auth.can(actorWith({}), 'thread.post', { forumId: 1 })).toThrow()
   })
 })
+
+describe('flood.bypass (F39/F40)', () => {
+  /*
+   * Global, and outside the F22 matrix by construction: the flood interval is a
+   * board setting rather than a per-forum grant — see
+   * docs/mybb-parity.md#flood-intervals. That is exactly the shape of gap this
+   * file exists for, so the three cases live here.
+   */
+  it('is granted by the permission, without any forum context', () => {
+    const actor = actorWith({ canBypassFloodCheck: true })
+
+    expect(new Authorizer(source).can(actor, 'flood.bypass')).toBe(true)
+  })
+
+  it('is denied to an ordinary member', () => {
+    expect(new Authorizer(source).can(actorWith({}), 'flood.bypass')).toBe(false)
+  })
+
+  it('is force-granted to an administrator, and logged like any bypass', () => {
+    const onBypass = vi.fn()
+    const admin = actorWith({ isAdministrator: true })
+
+    // An administrator waiting fifteen seconds while clearing a spam wave is
+    // being obstructed by a defence aimed at somebody else.
+    expect(new Authorizer(source, { onBypass }).can(admin, 'flood.bypass')).toBe(true)
+    expect(onBypass).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'administrator', action: 'flood.bypass' }),
+    )
+  })
+})

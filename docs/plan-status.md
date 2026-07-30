@@ -26,8 +26,8 @@ defines scope, dependencies, and acceptance criteria.
 
 ## How this audit was done
 
-Last audited **2026-07-30** (re-audited after F39 landed), against the working tree, not from memory:
-`pnpm verify` (1026 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
+Last audited **2026-07-30** (re-audited after F40 landed), against the working tree, not from memory:
+`pnpm verify` (1058 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -40,14 +40,14 @@ couple of `PARTIAL` rows are an afternoon.
 | 0 — Skeleton | 14 | 11 | 3 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 9 | 2 | 0 |
-| 3 — Posting | 11 | 2 | 0 | 9 |
+| 3 — Posting | 11 | 3 | 0 | 8 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
 | 6 — Admin CP | 9 | 0 | 0 | 9 |
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **29** | **5** | **55** |
+| **Total** | **89** | **30** | **5** | **54** |
 
 ---
 
@@ -119,8 +119,9 @@ tables/indexes exist, while content writers and the BBCode package begin in F36.
 `posts`, `post_revisions`, `threads`, `thread_prefixes` and
 `thread_subscriptions` now have their first writer: F38 supplied the counters,
 the event path and the repair tool, and F39 is the route that uses them. A
-registered member can start a thread. `packages/bbcode` still does not exist,
-so post bodies are stored and rendered as escaped plain text.
+registered member can start a thread and reply to one. `packages/bbcode` still
+does not exist, so post bodies are stored raw and rendered as escaped plain
+text — including the BBCode a quote prefills.
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
@@ -128,7 +129,7 @@ so post bodies are stored and rendered as escaped plain text.
 | F37 | Smilies and custom BBCode | `TODO` | Depends on F36; no management or declarative code support. |
 | F38 | Counter maintenance and recount | `DONE`* | All four parts. `applyCreatedContentCounters()` writes direct forum, thread and author counters plus last-post pointers atomically with the `post.created` event (D40). The event now has a consumer: `PostgresOutboxReader` + handler dispatch in the queue drain deliver it to `counters.rollup`, which adds the post to every ancestor by path prefix — separator included, so a text-prefix sibling is not an ancestor (mutation-verified) — and is idempotent against replay through a ledger row written in the same transaction. Views are buffered in `thread_view_buffer` and folded in by `views.flush`. `PostgresCounterRecount` writes computed truth in bounded batches across threads → forums → users, resuming from a stored cursor; a deliberately corrupted board converges, a second sweep corrects nothing, and it converges at a batch size of one. 30 tests — 26 against real Postgres, plus four app-tier ones over a real queue that cover the seam no database test can see: that a relayed job's `kind` is the handler id the drain looks up. Four mutants killed (broadened path prefix, removed ledger gate, cursor that never advances, flush that replaces instead of adds). See **D41**. *No route creates content yet, so the write path is proven by tests rather than by use — F39 is the first caller. |
 | F39 | New thread | `DONE`* | `ThreadComposer` in `@forum/threads` holds the rules (forum shape, title/message limits, prefix scope, flood interval, moderation decision, slug); `PostgresThreadWriteRepository` writes thread + opening post + counters + event in **one transaction**, proven by a rollback test on real PGlite. `createThreadAction` re-authorises `thread.view` **and** `thread.post` for itself — both mutation-verified, the second by a member who may read a forum and not post in it — reads a native `FormData` submit, keeps the draft on a rejected one, and redirects. A held thread lands on its forum with a notice instead of a 404 on its own post. `/forum/[id]-[slug]/new` renders the new `PostForm` slot; the link appears only where the actor may post. Settings are read for the first time (`posting.flood_seconds`, `posting.max_length`). 43 tests. See **D42**. *No browser-level no-JS proof: the Playwright suite runs against the fixture board, which has no writer, so posting is covered by `FormData`-driven action tests instead. F45's editor island and F36's BBCode are deliberately absent — the plain textarea is the whole path.|
-| F40 | Reply and quote | `TODO` | Depends on F39; no reply path. |
+| F40 | Reply and quote | `DONE`* | `ReplyComposer` refuses what F39's rules cannot see — a locked thread (moderators excepted, mutation-verified), a forum that takes threads but not replies, a thread that is not visible — and reports a race without enforcing it: the reply is written either way, and the comparison happens after the write so a same-moment reply cannot decide the answer. `createReply` reuses the one-transaction shape with `isNewThread: false`, asserted on real PGlite against the counter a reply must *not* move. Quoting is a link to the reply page with a server-resolved prefill, so it needs no JavaScript, and the quoted post is re-read thread-scoped so `?quote=` cannot paste a post out of a forum the quoter may not read. The redirect anchors to the new post, opening a page at it once the thread outgrows one. 32 tests. See **D43**. *Same gap as F39: fixture mode has no writer, so the browser suite cannot cover posting. `QuickReply` remains F45's island. |
 | F41 | ⛔ GATE — Edit and delete own posts | `TODO` | No revisions/deletion command; blocks content mutation beyond its boundary. |
 | F42 | Attachments | `TODO` | FileStore exists; no attachment schema/handler/serving path. |
 | F43 | Polls and ratings | `TODO` | No poll/rating schema or command. |

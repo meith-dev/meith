@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D42. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D43. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -18,8 +18,8 @@ this file.
 ## Gate state (all green)
 
 `pnpm verify` → exit 0: textual invariants + **guard probes**, the **slot
-server/client boundary** check + its probe, dependency-cruiser (237 modules, 0
-violations), typecheck (root **and** app), **1026 tests** (a large share against
+server/client boundary** check + its probe, dependency-cruiser (241 modules, 0
+violations), typecheck (root **and** app), **1058 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -209,26 +209,37 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   view-model props, and for the gap: fixture mode has no writer, so the no-JS
   proof is `FormData`-driven action tests rather than the browser suite.
 
+- **F40 reply and quote** — a thread can be answered. `ReplyComposer` adds what
+  F39's rules cannot see (locked threads, `allow_replies`, a thread that is no
+  longer visible) and reports a race rather than enforcing one: the reply is
+  written either way. Quoting is a link with a server-resolved prefill, so it
+  works with scripting off, and the quoted post is re-read thread-scoped so
+  `?quote=` cannot lift a post out of a forum the quoter may not read. See
+  **D43**, including why the quote is BBCode nothing renders yet and why the
+  redirect sometimes opens a page at the reply rather than in context.
+
 ## NEXT ACTION — resume here
 
-**F40 · reply and quote** is next in feature order and is now a small feature:
-`ThreadComposer` already has the shape a reply needs, `applyCreatedContentCounters`
-already handles `isNewThread: false` (reply counts, forum post count, last-post
-pointers), and the composer page and slot exist. What F40 adds is a reply route
-and action, quote attribution, and the race notice when someone else replied
-while the box was open.
+**F36 · BBCode** is the next thing worth doing, ahead of F41 in value if not in
+number. Post bodies are stored raw and every surface that shows one — the thread
+view, both previews, and F40's quote, which currently displays its own markup —
+is waiting on the same renderer. The roadmap wants a tokeniser, AST, renderer
+and sanitiser with limits, a fuzz corpus, and cached HTML with lazy
+invalidation; the seam it plugs into is `plainTextHtml` in
+`src/view/thread-view.ts`, which is deliberately the only place raw text becomes
+markup today.
 
-Two things are worth settling with it or just after:
+**F41 · edit and delete own posts** is the gate that follows, and it is what
+`post_revisions` and the `visibility` transitions have been waiting for. It also
+owns the counter half F38 left explicitly to it: approving or deleting content
+is the transition that applies or reverses the counters a held post never wrote.
 
-1. **F36 · BBCode.** Post bodies are stored raw and rendered as escaped plain
-   text. Every surface that shows a post — thread view, preview, and F40's quote
-   — is waiting on the same renderer, and quoting is the first place where the
-   absence is visibly wrong rather than merely plain.
-2. **The e2e board cannot post.** The Playwright suite runs against fixture
-   mode, which has no writer, so no browser test covers posting without
-   JavaScript. Either the e2e harness gains a real database or the fixture gains
-   a content store; D38's "fixture writes throw" rule was written for *structure*
-   and this is the first time it has cost coverage.
+Still unresolved and now blocking browser-level coverage of everything in
+Phase 3: **the e2e board cannot post.** The Playwright suite runs against
+fixture mode, which has no writer, so no browser test covers posting or replying
+without JavaScript. Either the e2e harness gains a real database or the fixture
+gains a content store; D38's "fixture writes throw" rule was written for
+*structure*, and content is the second time it has cost coverage.
 
 Still worth settling:
 
@@ -280,7 +291,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D42). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D43). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

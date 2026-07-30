@@ -7,8 +7,7 @@ import { getActor } from "@/server/context";
 import { activeTheme } from "@/server/theme";
 import { decodeForumCursor, encodeForumCursor } from "@/view/forum-cursor";
 import { buildForumDisplayView } from "@/view/forum-display";
-
-const THREADS_PER_PAGE = 25;
+import { THREADS_PER_PAGE } from "@/view/paging";
 
 export const metadata: Metadata = { title: "Forum" };
 

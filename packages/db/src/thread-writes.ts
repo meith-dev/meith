@@ -12,7 +12,10 @@ import { sql } from 'drizzle-orm'
 import type {
   CreatedThread,
   ForumPostingTarget,
+  NewReplyRecord,
   NewThreadRecord,
+  ReplyTarget,
+  ReplyWriteRepository,
   ThreadWriteRepository,
 } from '@forum/threads'
 
@@ -20,15 +23,17 @@ import type { Database } from './client'
 import { applyCreatedContentCounters } from './content-counters'
 import { resultRows } from './result-rows'
 
-export class PostgresThreadWriteRepository implements ThreadWriteRepository {
+export class PostgresThreadWriteRepository
+  implements ThreadWriteRepository, ReplyWriteRepository
+{
   constructor(private readonly db: Database) {}
 
   /** The posting flags plus the slug the redirect needs, in one row. */
   async postingRules(forumId: number): Promise<ForumPostingTarget | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select id, type, slug, is_open, allow_threads, requires_prefix,
-               moderate_new_threads
+        select id, type, slug, is_open, allow_threads, allow_replies,
+               requires_prefix, moderate_new_threads, moderate_new_posts
           from forums where id = ${forumId}
       `),
     ) as Array<{
@@ -37,8 +42,10 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository {
       slug: string
       is_open: boolean
       allow_threads: boolean
+      allow_replies: boolean
       requires_prefix: boolean
       moderate_new_threads: boolean
+      moderate_new_posts: boolean
     }>
 
     const row = rows[0]
@@ -50,8 +57,10 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository {
       slug: row.slug,
       isOpen: row.is_open,
       allowThreads: row.allow_threads,
+      allowReplies: row.allow_replies,
       requiresPrefix: row.requires_prefix,
       moderateNewThreads: row.moderate_new_threads,
+      moderateNewPosts: row.moderate_new_posts,
     }
   }
 
@@ -122,6 +131,117 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository {
       }
 
       return { threadId, postId, slug: record.slug, visibility: record.visibility }
+    })
+  }
+
+  /**
+   * The thread's posting state (F40).
+   *
+   * `last_post_id` comes from the thread row rather than a `max(id)` over posts:
+   * it is maintained by the same transaction that writes a post (D40), so it is
+   * exactly as current as the listing that told the author what they had seen.
+   */
+  async replyTarget(threadId: number): Promise<ReplyTarget | null> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select t.id, t.slug, t.title, t.is_locked, t.visibility, t.last_post_id,
+               t.reply_count,
+               f.id as forum_id, f.type as forum_type, f.slug as forum_slug,
+               f.is_open, f.allow_threads, f.allow_replies, f.requires_prefix,
+               f.moderate_new_threads, f.moderate_new_posts
+          from threads t
+          join forums f on f.id = t.forum_id
+         where t.id = ${threadId}
+      `),
+    ) as Array<{
+      id: number
+      slug: string
+      title: string
+      is_locked: boolean
+      visibility: 'visible' | 'unapproved' | 'deleted'
+      last_post_id: number | null
+      reply_count: number
+      forum_id: number
+      forum_type: 'category' | 'forum' | 'link'
+      forum_slug: string
+      is_open: boolean
+      allow_threads: boolean
+      allow_replies: boolean
+      requires_prefix: boolean
+      moderate_new_threads: boolean
+      moderate_new_posts: boolean
+    }>
+
+    const row = rows[0]
+    if (!row) return null
+
+    return {
+      threadId: Number(row.id),
+      slug: row.slug,
+      title: row.title,
+      isLocked: row.is_locked,
+      visibility: row.visibility,
+      lastPostId: row.last_post_id === null ? null : Number(row.last_post_id),
+      replyCount: Number(row.reply_count),
+      forum: {
+        id: Number(row.forum_id),
+        type: row.forum_type,
+        slug: row.forum_slug,
+        isOpen: row.is_open,
+        allowThreads: row.allow_threads,
+        allowReplies: row.allow_replies,
+        requiresPrefix: row.requires_prefix,
+        moderateNewThreads: row.moderate_new_threads,
+        moderateNewPosts: row.moderate_new_posts,
+      },
+    }
+  }
+
+  /** The reply write. Same transaction shape as `create`, one row shorter. */
+  async createReply(record: NewReplyRecord): Promise<{ postId: number }> {
+    return this.db.transaction(async (tx) => {
+      const postRows = resultRows(
+        await tx.execute(sql`
+          insert into posts
+            (thread_id, forum_id, author_user_id, author_username, message,
+             visibility, is_first_post, created_at)
+          values
+            (${record.threadId}, ${record.forumId}, ${record.authorUserId},
+             ${record.authorUsername}, ${record.message}, ${record.visibility},
+             false, ${record.createdAt})
+          returning id
+        `),
+      ) as Array<{ id: number }>
+      const postId = Number(postRows[0]!.id)
+
+      if (record.visibility === 'visible') {
+        await applyCreatedContentCounters(tx, {
+          postId,
+          threadId: record.threadId,
+          forumId: record.forumId,
+          authorId: record.authorUserId,
+          authorUsername: record.authorUsername,
+          threadTitle: record.threadTitle,
+          createdAt: record.createdAt,
+          /*
+           * The one difference that matters: a reply raises the thread's reply
+           * count and the forum's post count, and raises no thread count
+           * anywhere. Getting this wrong inflates every ancestor's thread total
+           * by one per reply, which no reader would ever question.
+           */
+          isNewThread: false,
+        })
+      }
+
+      if (record.subscribe) {
+        await tx.execute(sql`
+          insert into thread_subscriptions (user_id, thread_id, notify_via)
+          values (${record.authorUserId}, ${record.threadId}, 'notification')
+          on conflict (user_id, thread_id) do nothing
+        `)
+      }
+
+      return { postId }
     })
   }
 

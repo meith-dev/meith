@@ -53,8 +53,10 @@ const FORUM: ForumPostingRules = {
   type: 'forum',
   isOpen: true,
   allowThreads: true,
+  allowReplies: true,
   requiresPrefix: false,
   moderateNewThreads: false,
+  moderateNewPosts: false,
 }
 
 const AUTHOR = { userId: 1, username: 'ada' }

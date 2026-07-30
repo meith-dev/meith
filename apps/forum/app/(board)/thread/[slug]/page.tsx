@@ -6,9 +6,8 @@ import { requireSlot } from '@forum/theme-kit'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { activeTheme } from '@/server/theme'
+import { POSTS_PER_PAGE } from '@/view/paging'
 import { buildThreadView } from '@/view/thread-view'
-
-const POSTS_PER_PAGE = 20
 
 export const metadata: Metadata = { title: 'Thread' }
 
@@ -32,7 +31,7 @@ export default async function ThreadPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ after?: string; page?: string }>
+  searchParams: Promise<{ after?: string; page?: string; replied?: string; posted?: string }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
   const id = threadId(slug)
@@ -41,7 +40,7 @@ export default async function ThreadPage({
   if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
 
   const actor = await getActor()
-  const { forums, posts, threads, authorizer, threadViews } = getContainer()
+  const { forums, posts, threads, authorizer, threadViews, threadWrites } = getContainer()
   const thread = await threads.findVisibleById(id)
   if (!thread) notFound()
 
@@ -68,8 +67,19 @@ export default async function ThreadPage({
   const nextHref = postPage.nextAfterId === null
     ? null
     : `/thread/${thread.id}-${thread.slug}?after=${postPage.nextAfterId}&page=${page + 1}`
+  /*
+   * The reply link is offered only where the actor may actually use it, and a
+   * locked thread offers it to nobody but a moderator — the same answer the
+   * action gives, computed twice because a link is not authorisation.
+   */
+  const canReply =
+    threadWrites !== null &&
+    authorizer.can(actor, 'reply.post', { forumId: forum.id, forum: matrix }) &&
+    (!thread.isLocked || authorizer.can(actor, 'content.viewUnapproved', { forumId: forum.id, forum: matrix }))
+
   const view = buildThreadView({
     thread,
+    replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
     forum,
     page: postPage,
     pageNumber: page,
@@ -82,12 +92,29 @@ export default async function ThreadPage({
   })
 
   const ThreadView = requireSlot(activeTheme, 'ThreadView')
+  const Notice = requireSlot(activeTheme, 'Notice')
   const PostBit = requireSlot(activeTheme, 'PostBit')
   const PostActions = requireSlot(activeTheme, 'PostActions')
   const Pagination = requireSlot(activeTheme, 'Pagination')
 
+  const notice =
+    query.replied === 'race'
+      ? 'Somebody else replied while you were writing. Your reply was posted below theirs.'
+      : query.posted === 'moderated'
+        ? 'Your reply was posted and is waiting for a moderator to approve it.'
+        : null
+
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
+      {notice !== null && (
+        <div className="px-6 pt-6">
+          <Notice
+            kind="info"
+            message={notice}
+            dismissHref={`/thread/${thread.id}-${thread.slug}`}
+          />
+        </div>
+      )}
       <ThreadView
         {...view.view}
         regions={{

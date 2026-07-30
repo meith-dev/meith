@@ -15,7 +15,11 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { ThreadComposer } from '@forum/threads'
+import { ReplyComposer, ThreadComposer } from '@forum/threads'
+
+// Relative, not `@/`: this module is exercised directly by vitest, which
+// resolves only the workspace aliases from tsconfig.base.json.
+import { POSTS_PER_PAGE } from '../view/paging'
 
 import { getActor } from './context'
 import { getContainer } from './container'
@@ -125,7 +129,13 @@ export async function createThreadAction(
          * one that decides they need not join it.
          */
         bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', target),
-        bypassesFlood: authorizer.can(actor, 'content.viewUnapproved', target),
+        /*
+         * A board setting plus one boolean permission, not a per-group
+         * interval — the parity decision in
+         * `docs/mybb-parity.md#flood-intervals`, asked through `can()` so no
+         * permission field escapes `@forum/authorization`.
+         */
+        bypassesFlood: authorizer.can(actor, 'flood.bypass'),
       },
       { userId: actor.userId, username: await authorName(actor.userId) },
       forum,
@@ -144,6 +154,119 @@ export async function createThreadAction(
     redirect(`/forum/${forum.id}-${forum.slug}?posted=moderated`)
   }
   redirect(`/thread/${created.threadId}-${created.slug}`)
+}
+
+/**
+ * F40 — the reply.
+ *
+ * The same adapter shape as `createThreadAction`, and the same two-step
+ * authorisation: `thread.view` decides whether this thread may be known to
+ * exist, `reply.post` whether it may be added to. What differs is the redirect,
+ * which has to land the author on the page their reply is actually on.
+ */
+export async function createReplyAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const threadId = positiveInt(field(form, 'threadId'))
+  const message = field(form, 'message')
+  const subscribe = checkbox(form, 'subscribe')
+  const seenLastPostId = positiveInt(field(form, 'seenLastPostId'))
+  const values = { message, seenLastPostId: field(form, 'seenLastPostId') }
+
+  if (threadId === null) return { error: 'That thread does not exist.', values }
+
+  if (field(form, 'intent') === 'preview') {
+    return { notice: 'preview', values }
+  }
+
+  const actor = await getActor()
+  const { authorizer, threadWrites } = getContainer()
+
+  if (threadWrites === null) {
+    return {
+      error: 'This board is running on in-memory sample data, so it cannot accept posts.',
+      values,
+    }
+  }
+
+  const settings = await getSettings()
+  let created
+  try {
+    const target = await threadWrites.replyTarget(threadId)
+    if (!target) throw new ValidationError('That thread does not exist.')
+
+    const forumId = target.forum.id
+    const scope = { forumId, forum: await authorizer.forumMatrix(actor, forumId) }
+    if (!authorizer.can(actor, 'thread.view', scope)) {
+      throw new ValidationError('That thread does not exist.')
+    }
+    authorizer.require(actor, 'reply.post', scope)
+
+    if (actor.userId === null) {
+      throw new ForbiddenError('You must be logged in to post.')
+    }
+
+    const composer = new ReplyComposer({
+      posts: threadWrites,
+      config: {
+        floodSeconds: settings.get('posting.flood_seconds'),
+        maxLength: settings.get('posting.max_length'),
+      },
+    })
+
+    created = await composer.create(
+      {
+        message,
+        subscribe,
+        seenLastPostId,
+        bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', scope),
+        bypassesFlood: authorizer.can(actor, 'flood.bypass'),
+        /*
+         * Replying to a locked thread is a moderator act. `content.viewDeleted`
+         * would be the wrong test — seeing removed content says nothing about
+         * writing — so this uses the same "handles the queue" permission the
+         * moderation bypass does.
+         */
+        bypassesLock: authorizer.can(actor, 'content.viewUnapproved', scope),
+      },
+      { userId: actor.userId, username: await authorName(actor.userId) },
+      target,
+    )
+  } catch (err) {
+    return toFormState(err, values)
+  }
+
+  const thread = `/thread/${created.threadId}-${created.slug}`
+  if (created.visibility === 'unapproved') {
+    redirect(`${thread}?posted=moderated`)
+  }
+  redirect(`${thread}${replyAnchor(created)}`)
+}
+
+/**
+ * Where to send the author to see their own reply.
+ *
+ * Posts page forward by id (F31), so there is no cheap "which page is post N
+ * on" — answering it exactly needs a count query the keyset design exists to
+ * avoid. Two cases cover it honestly: while the reply fits on the first page,
+ * the anchor alone lands on it in context; past that, a cursor one below the
+ * reply opens a page that begins with it. The second loses the posts above,
+ * which is the price of not counting.
+ */
+function replyAnchor(created: {
+  postId: number
+  repliesBefore: number
+  raced: boolean
+}): string {
+  const query: string[] = []
+  if (created.repliesBefore + 1 >= POSTS_PER_PAGE && created.postId > 1) {
+    query.push(`after=${created.postId - 1}`)
+  }
+  if (created.raced) query.push('replied=race')
+
+  const search = query.length === 0 ? '' : `?${query.join('&')}`
+  return `${search}#post-${created.postId}`
 }
 
 /**

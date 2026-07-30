@@ -19,3 +19,10 @@ export interface PostPage {
   readonly rows: readonly PostListingRow[]
   readonly nextAfterId: number | null
 }
+
+/** The subset a quote needs (F40). Never the whole listing row. */
+export interface QuotablePost {
+  readonly id: number
+  readonly authorUsername: string
+  readonly message: string
+}

@@ -19,8 +19,10 @@ export interface ForumPostingRules {
   readonly type: 'category' | 'forum' | 'link'
   readonly isOpen: boolean
   readonly allowThreads: boolean
+  readonly allowReplies: boolean
   readonly requiresPrefix: boolean
   readonly moderateNewThreads: boolean
+  readonly moderateNewPosts: boolean
 }
 
 export interface ThreadAuthor {

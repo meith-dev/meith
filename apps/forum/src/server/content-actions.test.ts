@@ -22,7 +22,10 @@ import type { Actor } from '@forum/authorization'
 import type {
   CreatedThread,
   ForumPostingTarget,
+  NewReplyRecord,
   NewThreadRecord,
+  ReplyTarget,
+  ReplyWriteRepository,
   ThreadWriteRepository,
 } from '@forum/threads'
 
@@ -46,7 +49,7 @@ vi.mock('./context', () => ({
   getActor: async () => actorRef.current,
 }))
 
-const { createThreadAction } = await import('./content-actions')
+const { createReplyAction, createThreadAction } = await import('./content-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import(
   './seed-board'
@@ -54,9 +57,35 @@ const { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_FORUM, SEED_GROUP } = await impor
 
 const CONTAINER_KEY = Symbol.for('@forum/forum.container')
 
-class FakeWrites implements ThreadWriteRepository {
+class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
   readonly written: NewThreadRecord[] = []
+  readonly replies: NewReplyRecord[] = []
+  /** The thread `replyTarget` describes; overridden per test. */
+  thread: Partial<ReplyTarget> = {}
   constructor(private readonly rules: Partial<ForumPostingTarget> = {}) {}
+
+  async replyTarget(threadId: number): Promise<ReplyTarget | null> {
+    if (threadId === 4242) return null
+    const forum = (await this.postingRules(
+      this.thread.forum?.id ?? SEED_FORUM.general,
+    ))!
+    return {
+      threadId,
+      slug: 'hello',
+      title: 'Hello',
+      isLocked: false,
+      visibility: 'visible',
+      lastPostId: 31,
+      replyCount: 1,
+      ...this.thread,
+      forum,
+    }
+  }
+
+  async createReply(record: NewReplyRecord): Promise<{ postId: number }> {
+    this.replies.push(record)
+    return { postId: 99 }
+  }
 
   async postingRules(forumId: number): Promise<ForumPostingTarget | null> {
     if (forumId === 4242) return null
@@ -66,8 +95,10 @@ class FakeWrites implements ThreadWriteRepository {
       slug: 'general',
       isOpen: true,
       allowThreads: true,
+      allowReplies: true,
       requiresPrefix: false,
       moderateNewThreads: false,
+      moderateNewPosts: false,
       ...this.rules,
     }
   }
@@ -302,5 +333,85 @@ describe('createThreadAction', () => {
     const state = await createThreadAction(EMPTY_STATE, form(VALID))
 
     expect(state.error).toMatch(/sample data/)
+  })
+})
+
+describe('createReplyAction', () => {
+  const REPLY = { threadId: '20', message: 'Quite so.', seenLastPostId: '31' }
+
+  it('posts the reply and returns to the thread, anchored to it', async () => {
+    const to = await redirectOf(createReplyAction(EMPTY_STATE, form(REPLY)))
+
+    expect(to).toBe('/thread/20-hello#post-99')
+    expect(writes.replies[0]).toMatchObject({
+      threadId: 20,
+      forumId: SEED_FORUM.general,
+      message: 'Quite so.',
+      authorUserId: 1,
+      authorUsername: 'ada',
+      visibility: 'visible',
+    })
+  })
+
+  it('says so when somebody replied while the form was open', async () => {
+    const to = await redirectOf(
+      createReplyAction(EMPTY_STATE, form({ ...REPLY, seenLastPostId: '30' })),
+    )
+
+    // The reply is written either way; the notice is a courtesy, not a lock.
+    expect(to).toBe('/thread/20-hello?replied=race#post-99')
+    expect(writes.replies).toHaveLength(1)
+  })
+
+  it('opens a page at the reply once the thread is longer than one', async () => {
+    writes.thread = { replyCount: 40 }
+
+    const to = await redirectOf(createReplyAction(EMPTY_STATE, form(REPLY)))
+
+    // Posts page forward by id, so there is no cheap "which page is post N on".
+    // A cursor one below the reply opens a page that begins with it.
+    expect(to).toBe('/thread/20-hello?after=98#post-99')
+  })
+
+  it('refuses a member who may read a thread but not reply to it', async () => {
+    writes.thread = { forum: { id: SEED_FORUM.announcements } as ReplyTarget['forum'] }
+
+    const state = await createReplyAction(EMPTY_STATE, form(REPLY))
+
+    expect(state.error).toBeTruthy()
+    expect(writes.replies).toEqual([])
+  })
+
+  it('refuses a locked thread, and lets a moderator through', async () => {
+    writes.thread = { isLocked: true }
+    expect((await createReplyAction(EMPTY_STATE, form(REPLY))).error).toMatch(/locked/)
+
+    actorRef.current = await actorFor(SEED_GROUP.superModerators, 1)
+    await redirectOf(createReplyAction(EMPTY_STATE, form(REPLY)))
+    expect(writes.replies).toHaveLength(1)
+  })
+
+  it('refuses a thread that does not exist', async () => {
+    const state = await createReplyAction(EMPTY_STATE, form({ ...REPLY, threadId: '4242' }))
+
+    expect(state.error).toBe('That thread does not exist.')
+  })
+
+  it('previews without writing anything', async () => {
+    const state = await createReplyAction(
+      EMPTY_STATE,
+      form({ ...REPLY, intent: 'preview' }),
+    )
+
+    expect(state.notice).toBe('preview')
+    expect(writes.replies).toEqual([])
+  })
+
+  it('keeps the draft when the message is rejected', async () => {
+    const state = await createReplyAction(EMPTY_STATE, form({ ...REPLY, message: '' }))
+
+    expect(state.error).toBeTruthy()
+    expect(state.values?.message).toBe('')
+    expect(writes.replies).toEqual([])
   })
 })

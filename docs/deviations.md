@@ -1520,3 +1520,76 @@ rather than a migration.
   registration without JavaScript but cannot yet prove posting. The action's
   own tests drive it with `FormData`, which is exactly what a native submit
   sends, so the no-JS path is covered by test rather than by browser.
+
+### D43 — Replying, quoting, and where a reply lands (F40)
+
+A reply reuses everything F39 built — length limits, flood interval, moderation
+decision, one transaction for post plus counters — so `ReplyComposer` differs
+from `ThreadComposer` only in what can refuse it and in one counter. Three
+things needed deciding.
+
+#### The race is reported, never enforced
+
+The reply form carries the newest post the author had seen. On submit the
+composer compares it with the thread's current one and reports the difference;
+it does not block the write. Refusing would cost somebody their reply to protect
+them from an overlap that is usually harmless, and the alternative flow — hold
+the text, show what arrived, ask them to confirm — is a second round trip that
+still cannot promise nobody replies during it.
+
+The comparison happens *after* the write on purpose. Checking first makes a
+reply that lands in the same moment decide the answer, which is the race it is
+supposed to be describing.
+
+#### A quote is a prefilled textarea, resolved on the server
+
+Quoting is a link to the reply page with `?quote=<id>`, so it works with
+scripting off — no button that edits a textarea, no island. The quoted post is
+re-read through a thread-scoped visible-post lookup rather than trusted from the
+query string: without the thread in the lookup, `?quote=<id>` is a way to paste
+any post on the board — including one from a forum the quoter cannot read — into
+a forum where everyone can.
+
+It emits BBCode (`[quote='ada' pid='12']…[/quote]`) even though nothing renders
+it yet. Bodies are stored raw and rendered at read time, so a quote written
+today shows its own markup until F36 lands and becomes a real quote block the
+moment it does. A plain-text convention would be wrong forever and would need
+migrating. The attributes match MyBB's, so F85's importer and F87's corpus pass
+see one format. The quoted body goes in verbatim — escaping it here would
+corrupt the quote of a post that itself contains markup, and rendering is where
+escaping belongs.
+
+#### Landing the author on their own reply
+
+Posts page forward by id (F31), so "which page is post N on" has no cheap
+answer — getting it exactly right needs the count query the keyset design exists
+to avoid. Two cases cover it honestly: while the reply fits on the first page,
+the anchor alone lands on it in context; past that, a cursor one below the reply
+opens a page beginning with it. The second loses the posts above, and that is
+the stated price of not counting.
+
+#### Smaller things
+
+- **`moderate_new_posts`, not `moderate_new_threads`.** A forum can hold replies
+  while letting threads through, and the columns have existed since F16 with
+  nothing reading them. Both are now read, and the reply path uses the one that
+  is about replies.
+- **A locked thread is a moderator's to answer.** The bypass is the same "deals
+  with the queue" permission the moderation bypass uses, tested by a mutant that
+  hands it to everyone.
+- **Replies raise no thread count anywhere.** `applyCreatedContentCounters`
+  takes `isNewThread: false`, and the PGlite test asserts the counter that must
+  *not* move: getting it wrong inflates every ancestor's thread total by one per
+  reply, which no reader would ever question.
+- **`POSTS_PER_PAGE` moved out of its route.** The reply redirect needs the page
+  size from outside the page, and two files disagreeing about it would send
+  people to the wrong page.
+- **The flood bypass was reading the wrong permission.** F39 shipped with
+  `content.viewUnapproved` standing in for it, which is a silent divergence from
+  a decision already on record: `docs/mybb-parity.md#flood-intervals` says the
+  interval is a board setting plus the `canBypassFloodCheck` boolean. That
+  boolean had no way to be asked for, so the posting path could not use it. It
+  now has a global `flood.bypass` action — outside the F22 forum matrix, because
+  the interval is not a per-forum grant — and administrators are in
+  `ADMIN_ALWAYS` for it, since an administrator waiting fifteen seconds while
+  clearing a spam wave is obstructed by a defence aimed at somebody else.

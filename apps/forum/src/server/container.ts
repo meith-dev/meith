@@ -36,6 +36,7 @@ import { CachedForumRepository, type ForumRepository } from '@forum/forums'
 import type { PostRepository } from '@forum/posts'
 import type {
   ReadStateRepository,
+  ReplyWriteRepository,
   ThreadRepository,
   ThreadWriteRepository,
 } from '@forum/threads'
@@ -70,12 +71,16 @@ export interface Container {
   /** Keyset-paged thread listing (F30). */
   readonly threads: ThreadRepository
   /**
-   * The posting write path (F39). `null` in fixture mode, which serves sample
-   * data from memory and would lose a thread on restart — the same refusal
-   * `FixtureForumRepository` makes for structure (D38). The composer route and
-   * its link are absent rather than broken when this is null.
+   * The posting write path — new threads (F39) and replies (F40). One object
+   * because both write a post and both read the same forum flags; splitting
+   * them would mean two adapters over the same three tables.
+   *
+   * `null` in fixture mode, which serves sample data from memory and would lose
+   * a thread on restart — the same refusal `FixtureForumRepository` makes for
+   * structure (D38). The composer and reply routes, and the links to them, are
+   * absent rather than broken when this is null.
    */
-  readonly threadWrites: ThreadWriteRepository | null
+  readonly threadWrites: (ThreadWriteRepository & ReplyWriteRepository) | null
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */

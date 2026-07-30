@@ -1,7 +1,12 @@
 /** Postgres thread-view listing (F31). */
 import { and, asc, eq, gt, sql } from 'drizzle-orm'
 
-import type { PostListingRow, PostPage, PostRepository } from '@forum/posts'
+import type {
+  PostListingRow,
+  PostPage,
+  PostRepository,
+  QuotablePost,
+} from '@forum/posts'
 
 import type { Database } from './client'
 import { posts, users } from './schema'
@@ -37,6 +42,27 @@ function toPost(row: {
 
 export class PostgresPostRepository implements PostRepository {
   constructor(private readonly db: Database) {}
+
+  /** F40's quote source: one visible post in one thread, body included. */
+  async findQuotable(threadId: number, postId: number): Promise<QuotablePost | null> {
+    const rows = await this.db
+      .select({
+        id: posts.id,
+        authorUsername: posts.authorUsername,
+        message: posts.message,
+      })
+      .from(posts)
+      .where(
+        and(
+          eq(posts.id, postId),
+          eq(posts.threadId, threadId),
+          eq(posts.visibility, 'visible'),
+        ),
+      )
+      .limit(1)
+
+    return rows[0] ?? null
+  }
 
   async findVisibleById(threadId: number, postId: number): Promise<number | null> {
     const rows = await this.db

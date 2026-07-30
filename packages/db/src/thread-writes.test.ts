@@ -137,6 +137,100 @@ describe('PostgresThreadWriteRepository.create', () => {
   })
 })
 
+describe('PostgresThreadWriteRepository replies (F40)', () => {
+  it('raises the reply and post counts without inventing a thread', async () => {
+    const thread = await repo.create(RECORD)
+    const at = new Date(AT.getTime() + 60_000)
+
+    const { postId } = await repo.createReply({
+      threadId: thread.threadId,
+      forumId: FORUM,
+      threadTitle: RECORD.title,
+      message: 'Quite so.',
+      authorUserId: 1,
+      authorUsername: 'ada',
+      visibility: 'visible',
+      subscribe: false,
+      createdAt: at,
+    })
+
+    const [row] = await db.select().from(threads).where(eq(threads.id, thread.threadId))
+    expect(row).toMatchObject({
+      replyCount: 1,
+      firstPostId: thread.postId,
+      lastPostId: postId,
+      lastPostAt: at,
+    })
+
+    // The counter that a reply must *not* move. Getting this wrong inflates
+    // every ancestor's thread total by one per reply.
+    const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
+    expect(forum).toMatchObject({ threadCount: 1, postCount: 2, lastPostId: postId })
+
+    const [user] = await db.select().from(users).where(eq(users.id, 1))
+    expect(user).toMatchObject({ threadCount: 1, postCount: 2 })
+
+    // One event per post, so the ancestor roll-up sees the reply too.
+    expect(await db.select({ topic: outbox.topic }).from(outbox)).toHaveLength(2)
+  })
+
+  it('holds an unapproved reply out of every counter', async () => {
+    const thread = await repo.create(RECORD)
+    await repo.createReply({
+      threadId: thread.threadId,
+      forumId: FORUM,
+      threadTitle: RECORD.title,
+      message: 'Held.',
+      authorUserId: 1,
+      authorUsername: 'ada',
+      visibility: 'unapproved',
+      subscribe: false,
+      createdAt: new Date(AT.getTime() + 60_000),
+    })
+
+    const [row] = await db.select().from(threads).where(eq(threads.id, thread.threadId))
+    expect(row).toMatchObject({ replyCount: 0, lastPostId: thread.postId })
+    const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
+    expect(forum).toMatchObject({ postCount: 1 })
+  })
+
+  it('subscribes the replier when asked', async () => {
+    const thread = await repo.create(RECORD)
+    await repo.createReply({
+      threadId: thread.threadId,
+      forumId: FORUM,
+      threadTitle: RECORD.title,
+      message: 'Subscribe me.',
+      authorUserId: 1,
+      authorUsername: 'ada',
+      visibility: 'visible',
+      subscribe: true,
+      createdAt: new Date(AT.getTime() + 60_000),
+    })
+
+    expect(await db.select().from(threadSubscriptions)).toHaveLength(1)
+  })
+
+  it('reports the thread the reply form needs', async () => {
+    const thread = await repo.create(RECORD)
+
+    expect(await repo.replyTarget(thread.threadId)).toMatchObject({
+      threadId: thread.threadId,
+      slug: 'hello-there',
+      title: 'Hello there',
+      isLocked: false,
+      visibility: 'visible',
+      lastPostId: thread.postId,
+      replyCount: 0,
+      forum: { id: FORUM, allowReplies: true, moderateNewPosts: false },
+    })
+  })
+
+  it('has no target for a thread that does not exist', async () => {
+    expect(await repo.replyTarget(4242)).toBeNull()
+  })
+})
+
 describe('PostgresThreadWriteRepository.lastPostAt', () => {
   it('is null for an author who has never posted', async () => {
     expect(await repo.lastPostAt(1)).toBeNull()

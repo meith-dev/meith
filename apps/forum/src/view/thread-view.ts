@@ -24,7 +24,12 @@ function plainTextHtml(message: string): string {
     .replace(/\n/g, '<br>\n')
 }
 
-function post(post: PostListingRow, thread: ThreadListingRow, now: Date): PostBitModel {
+function post(
+  post: PostListingRow,
+  thread: ThreadListingRow,
+  now: Date,
+  replyHref: string | null,
+): PostBitModel {
   return {
     id: post.id,
     number: post.number,
@@ -47,7 +52,12 @@ function post(post: PostListingRow, thread: ThreadListingRow, now: Date): PostBi
     isFirstPost: post.isFirstPost,
     visibility: post.visibility,
     actions: {
-      quoteHref: null,
+      /*
+       * Quoting is the reply form with a prefill, so it is the same route and
+       * the same permission — there is no separate "may quote" to resolve, and
+       * an actor who cannot reply is offered neither.
+       */
+      quoteHref: replyHref === null ? null : `${replyHref}?quote=${post.id}`,
       editHref: null,
       reportHref: null,
       moderateHref: null,
@@ -62,6 +72,8 @@ export interface ThreadViewInput {
   readonly pageNumber: number
   readonly nextHref: string | null
   readonly markReadAction?: string | null
+  /** Where the reply form lives, or `null` when this viewer may not reply. */
+  readonly replyHref?: string | null
   readonly now: Date
 }
 
@@ -76,11 +88,12 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
     view: {
       thread: threadRowModel(input.thread, input.now),
       forum: { label: input.forum.title, href: forumHref(input.forum) },
-      // F40/F45 own reply routes and the enhancement island.
-      replyHref: null,
+      replyHref: input.replyHref ?? null,
       markReadAction: input.markReadAction ?? null,
     },
-    posts: input.page.rows.map((entry) => post(entry, input.thread, input.now)),
+    posts: input.page.rows.map((entry) =>
+      post(entry, input.thread, input.now, input.replyHref ?? null),
+    ),
     pagination: {
       page: input.pageNumber,
       pageCount: input.pageNumber,

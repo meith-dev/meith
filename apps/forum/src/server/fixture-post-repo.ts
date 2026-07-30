@@ -1,6 +1,11 @@
 import 'server-only'
 
-import type { PostListingRow, PostPage, PostRepository } from '@forum/posts'
+import type {
+  PostListingRow,
+  PostPage,
+  PostRepository,
+  QuotablePost,
+} from '@forum/posts'
 
 import { SEED_POST_ROWS } from './seed-board'
 
@@ -10,6 +15,13 @@ export class FixturePostRepository implements PostRepository {
 
   async findVisibleById(threadId: number, postId: number): Promise<number | null> {
     return this.rows.some((row) => row.threadId === threadId && row.id === postId) ? postId : null
+  }
+
+  async findQuotable(threadId: number, postId: number): Promise<QuotablePost | null> {
+    const row = this.rows.find((entry) => entry.threadId === threadId && entry.id === postId)
+    return row === undefined
+      ? null
+      : { id: row.id, authorUsername: row.authorUsername, message: row.message }
   }
 
   async listThread(

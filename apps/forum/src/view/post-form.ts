@@ -18,3 +18,21 @@ export function buildNewThreadView(
     errorMessage: input.errorMessage ?? null,
   }
 }
+
+export interface ReplyViewInput {
+  readonly thread: { readonly id: number; readonly title: string; readonly slug: string }
+  readonly errorMessage?: string | null
+}
+
+/** The reply page's frame. Same slot, different heading and cancel target. */
+export function buildReplyView(
+  input: ReplyViewInput,
+): Omit<PostFormModel, 'regions'> {
+  return {
+    mode: 'reply',
+    heading: `Reply to ${input.thread.title}`,
+    cancelHref: `/thread/${input.thread.id}-${input.thread.slug}`,
+    cancelLabel: 'Back to the thread',
+    errorMessage: input.errorMessage ?? null,
+  }
+}
