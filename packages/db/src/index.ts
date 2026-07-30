@@ -35,6 +35,11 @@ export { PostgresMemberProfileRepository } from './member-profile-repo'
 export { PostgresSettingsRepository } from './settings-repo'
 export { PostgresThemeRepository, type ThemeRuntimeRecord } from './theme-repo'
 export {
+  applyCreatedContentCounters,
+  PostgresContentCounterRepository,
+  type CreatedContent,
+} from './content-counters'
+export {
   PostgresBanFilterRepository,
   PostgresBanRepository,
 } from './ban-repos'

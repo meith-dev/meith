@@ -1334,3 +1334,18 @@ The runtime still validates the raw database record. Unknown keys, non-string
 values, declaration injection, style-block escapes, and external CSS fetches
 fail loudly rather than becoming stored XSS. The validation functions are the
 same narrow seam F68 will call before saving.
+
+### D40 — Opening posts must override a thread's default last-post timestamp (F38)
+
+`threads.last_post_at` is non-null and defaults to insertion time so F30 can
+sort a newly created thread before the opening post exists. The transaction that
+inserts the opening post may carry an earlier application timestamp (imports and
+deterministic tests do), so treating it like an ordinary "newer post wins"
+comparison can leave `last_post_id` null forever.
+
+The shared counter primitive therefore always writes the opening post's
+`first_post_id` and last-post fields. Replies still use timestamp/id ordering,
+which prevents a late-arriving older reply from moving a thread or forum
+backwards. This was caught by the real Postgres test using equal timestamps;
+the initial implementation left the thread pointer null while the forum pointer
+looked correct.

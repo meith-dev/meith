@@ -187,14 +187,18 @@ roughly one run in three (D34).
 
 ## NEXT ACTION — resume here
 
-**F38 · counter maintenance and recount** is the next content prerequisite.
-The index reads `forums.thread_count`, `post_count`, and the last-post triplet,
-but no writer owns them yet. F38 is where a post mutation gains its atomic local
-update, outbox ancestor roll-up, and repair path.
+**F38 · counter maintenance and recount** has its transaction primitive:
+`applyCreatedContentCounters()` updates direct forum, thread, and author
+counters plus last-post pointers, and writes `post.created` in the same
+transaction. The rollback test proves it cannot leave an outbox event or counters
+behind after a failed content write.
 
-The counters the index renders are still never written: `forums.thread_count`,
-`post_count`, and the last-post triplet are read by F29 and maintained by nobody
-until **F38**. On a real board they stay at zero; the fixture board fakes them.
+F38 remains partial: F39/F40 must call it, and ancestor roll-up, buffered views,
+and the bounded resumable recount are still missing.
+
+The counters the index renders now have an atomic write seam, but no route creates
+content yet. Until F39 uses it, a real board still has no normal way to populate
+those values.
 
 Still worth settling (unchanged from F25):
 

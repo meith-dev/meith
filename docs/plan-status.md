@@ -40,14 +40,14 @@ couple of `PARTIAL` rows are an afternoon.
 | 0 — Skeleton | 14 | 11 | 3 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 9 | 2 | 0 |
-| 3 — Posting | 11 | 0 | 0 | 11 |
+| 3 — Posting | 11 | 0 | 1 | 10 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
 | 6 — Admin CP | 9 | 0 | 0 | 9 |
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **27** | **5** | **57** |
+| **Total** | **89** | **27** | **6** | **56** |
 
 ---
 
@@ -123,7 +123,7 @@ tables/indexes exist, while content writers and the BBCode package begin in F36.
 |---|---|---|---|
 | F36 | BBCode package | `TODO` | No `packages/bbcode`; roadmap defines AST/sanitisation/cache requirements. |
 | F37 | Smilies and custom BBCode | `TODO` | Depends on F36; no management or declarative code support. |
-| F38 | Counter maintenance and recount | `TODO` | Counters exist but no writer/recount; the index fixture supplies display values only. |
+| F38 | Counter maintenance and recount | `PARTIAL` | `applyCreatedContentCounters()` is the shared transaction primitive for F39/F40: direct forum, thread and author counters plus last-post pointers update atomically with an outbox `post.created` event; rollback is tested against real Postgres. **Gap:** no post command calls it yet; ancestor roll-up consumer, buffered views, and batched resumable recount are still absent. |
 | F39 | New thread | `TODO` | No content command, action, or no-JS form. |
 | F40 | Reply and quote | `TODO` | Depends on F39; no reply path. |
 | F41 | ⛔ GATE — Edit and delete own posts | `TODO` | No revisions/deletion command; blocks content mutation beyond its boundary. |
