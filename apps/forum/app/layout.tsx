@@ -9,7 +9,8 @@ import { env } from "@forum/core"
  * uses, so installing a second one would mean editing the layout — exactly the
  * retrofit `forum.config.ts` exists to avoid.
  */
-import forumConfig from "../forum.config"
+import { ThemeRuntimeStyle } from "@/components/shell/theme-runtime-style"
+import { getThemeRuntimeStyle } from "@/server/theme-runtime"
 
 import "@/styles/globals.css"
 
@@ -25,13 +26,6 @@ const sourceSerif = Source_Serif_4({
   variable: "--font-source-serif",
 })
 
-/*
- * The board's theme. Resolved at module load from the static registry, so the
- * bundler sees exactly one theme and nothing is looked up at request time.
- * Per-board overrides from the `themes` table arrive with F26.
- */
-const activeTheme = forumConfig.themes[forumConfig.defaultTheme]!
-
 export const metadata: Metadata = {
   title: {
     default: "Forum",
@@ -40,20 +34,21 @@ export const metadata: Metadata = {
   description: "A discussion board.",
 }
 
-export const viewport: Viewport = {
-  colorScheme: "light dark",
-  themeColor: activeTheme.browserThemeColor
-    ? [
-        {
-          media: "(prefers-color-scheme: light)",
-          color: activeTheme.browserThemeColor.light,
-        },
-        {
-          media: "(prefers-color-scheme: dark)",
-          color: activeTheme.browserThemeColor.dark,
-        },
-      ]
-    : undefined,
+export async function generateViewport(): Promise<Viewport> {
+  const { browserThemeColor } = await getThemeRuntimeStyle()
+  return {
+    colorScheme: "light dark",
+    themeColor: [
+      {
+        media: "(prefers-color-scheme: light)",
+        color: browserThemeColor.light,
+      },
+      {
+        media: "(prefers-color-scheme: dark)",
+        color: browserThemeColor.dark,
+      },
+    ],
+  }
 }
 
 export default function RootLayout({
@@ -63,6 +58,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${sourceSerif.variable} bg-background`}>
+      <head>
+        <ThemeRuntimeStyle />
+      </head>
       <body className="font-sans antialiased">
         {children}
         {env.NODE_ENV === "production" && <Analytics />}

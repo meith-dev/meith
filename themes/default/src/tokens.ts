@@ -185,11 +185,9 @@ export const DARK_TOKENS: Record<TokenName, string> = {
  *
  * These are the `background` token converted to sRGB: OKLCH → OKLab → linear
  * sRGB → gamma-encoded. They were previously `#f7f7f8`/`#1c1e24`, which matched
- * an older palette and no longer matched anything. **Nothing checks this pair
- * against the tokens** — an exact assertion needs the colour conversion in code,
- * which belongs with F26's override pipeline (it has to convert an overridden
- * background too). Until then, changing `background` means recomputing these by
- * hand, and the test only checks the format.
+ * an older palette and no longer matched anything. F26's runtime conversion is
+ * also used by the exact-match test, so changing `background` cannot leave this
+ * browser-chrome pair stale.
  */
 export const BROWSER_THEME_COLOR = {
   light: '#f6f7f8',

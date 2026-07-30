@@ -33,6 +33,7 @@ export { PostgresPostRepository } from './post-repo'
 export { PostgresReadStateRepository } from './read-state-repo'
 export { PostgresMemberProfileRepository } from './member-profile-repo'
 export { PostgresSettingsRepository } from './settings-repo'
+export { PostgresThemeRepository, type ThemeRuntimeRecord } from './theme-repo'
 export {
   PostgresBanFilterRepository,
   PostgresBanRepository,

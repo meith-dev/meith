@@ -29,6 +29,7 @@ import {
   SCHEME_INDEPENDENT_TOKENS,
   TOKEN_NAMES,
 } from '@forum/theme-default'
+import { colorToHex } from '../server/theme-style'
 
 const CSS = readFileSync(
   resolve(dirname(fileURLToPath(import.meta.url)), 'globals.css'),
@@ -101,16 +102,10 @@ describe('dark values', () => {
 })
 
 describe('browser theme colour', () => {
-  /*
-   * Format only, and the reason is recorded rather than hidden: asserting these
-   * *match* `background` needs an OKLCH → sRGB conversion in code, which arrives
-   * with F26's override pipeline because an overridden background has to be
-   * converted too. Until then this catches the mistake that actually breaks it —
-   * putting an `oklch()` string here, which Safari ignores, leaving the browser
-   * chrome unstyled with no error anywhere.
-   */
-  it('is plain sRGB hex, which is all Safari accepts', () => {
-    expect(BROWSER_THEME_COLOR.light).toMatch(/^#[0-9a-f]{6}$/)
-    expect(BROWSER_THEME_COLOR.dark).toMatch(/^#[0-9a-f]{6}$/)
+  it('matches its background tokens in Safari-safe sRGB hex', () => {
+    expect(BROWSER_THEME_COLOR).toEqual({
+      light: colorToHex(LIGHT_TOKENS.background),
+      dark: colorToHex(DARK_TOKENS.background),
+    })
   })
 })

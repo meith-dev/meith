@@ -1317,3 +1317,20 @@ apart.
   `@forum/testkit`, which surfaced the moment a package test imported it — that
   config compiles `packages/**`, tests included. Added, with a note that the list
   is duplicated and both copies need editing.
+
+### D39 — Theme overrides are one map for both schemes (F26)
+
+`themes.token_overrides` was already a flat token-to-value JSON object. It is
+therefore applied after both the light and dark defaults, including the
+system-dark fallback selector. This preserves the existing schema and means a
+`background` override also produces one browser-chrome colour for both schemes.
+
+Per-scheme administrator overrides would require a migration to a shape such as
+`{ light: { … }, dark: { … } }`, a migration/import decision, and an ACP editor.
+Nothing currently writes this table — that belongs to F68 — so inventing a
+second JSON format now would create migration work without a user-facing use.
+
+The runtime still validates the raw database record. Unknown keys, non-string
+values, declaration injection, style-block escapes, and external CSS fetches
+fail loudly rather than becoming stored XSS. The validation functions are the
+same narrow seam F68 will call before saving.

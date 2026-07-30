@@ -187,9 +187,10 @@ roughly one run in three (D34).
 
 ## NEXT ACTION — resume here
 
-**F26 · token pipeline and runtime overrides** is next. The token mirror is
-accurate, but stored theme overrides are not yet validated, loaded, or applied
-at runtime.
+**F38 · counter maintenance and recount** is the next content prerequisite.
+The index reads `forums.thread_count`, `post_count`, and the last-post triplet,
+but no writer owns them yet. F38 is where a post mutation gains its atomic local
+update, outbox ancestor roll-up, and repair path.
 
 The counters the index renders are still never written: `forums.thread_count`,
 `post_count`, and the last-post triplet are read by F29 and maintained by nobody
@@ -223,10 +224,10 @@ Still outstanding and worth keeping visible:
 - **`apps/forum/tsconfig.json` hand-copies the workspace path aliases** from
   `tsconfig.base.json` — TypeScript replaces `paths` rather than merging, so a
   new package must be added in both places.
-- **`BROWSER_THEME_COLOR` is not checked against the `background` token** (D36).
-  Only its format is. An exact check needs OKLCH → sRGB conversion in code, which
-  belongs with F26; until then, changing `background` means recomputing two hex
-  values by hand.
+- **F26 runtime overrides** now validate raw token JSON, reject stylesheet
+  escapes/network fetches in custom CSS, cache the tagged database read, and
+  derive browser chrome colours from the effective background. The default token
+  mirror is asserted against that conversion (D39).
 
 **Test harness note:** integration tests now use PGlite via `createTestDb()` in
 `packages/db/src/pglite.fixture.ts` — boot once per suite, clear mutable tables
