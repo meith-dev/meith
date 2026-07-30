@@ -26,8 +26,8 @@ defines scope, dependencies, and acceptance criteria.
 
 ## How this audit was done
 
-Last audited **2026-07-30** (re-audited after F38 closed), against the working tree, not from memory:
-`pnpm verify` (983 tests), `pnpm build`, plus direct inspection of the
+Last audited **2026-07-30** (re-audited after F39 landed), against the working tree, not from memory:
+`pnpm verify` (1026 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -40,14 +40,14 @@ couple of `PARTIAL` rows are an afternoon.
 | 0 — Skeleton | 14 | 11 | 3 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 9 | 2 | 0 |
-| 3 — Posting | 11 | 1 | 0 | 10 |
+| 3 — Posting | 11 | 2 | 0 | 9 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
 | 6 — Admin CP | 9 | 0 | 0 | 9 |
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **28** | **5** | **56** |
+| **Total** | **89** | **29** | **5** | **55** |
 
 ---
 
@@ -62,7 +62,7 @@ couple of `PARTIAL` rows are an afternoon.
 | F05 | Driver interfaces | `DONE`* | Interfaces + env selection + every shipped implementation, all four families passing the shared contract suite — which exposed that `PostgresQueue` only worked with postgres.js's result shape (D27). `S3FileStore` lands per [ADR 0002](adr/0002-s3-filestore-dependency.md), passing the same contract with real presigning, key validation, and miss-is-undefined mapping. *Driven through a fake S3 client: that tests this code, not the SDK. An integration run against MinIO would be the remaining rigour, and belongs with F89. F42 is unblocked. |
 | F06 | System tick and scheduled tasks | `PARTIAL` | **The tick now runs tasks.** `PostgresTaskRepository` (21 tests on real Postgres, concurrent-claim and lease-overrun both mutation-verified), app-tier workers, and `/api/system/tick` calling `tick()`. **All eight built-in tasks are now registered**: F38 supplied `reconcileCounters` and `flushThreadViews`, and `relayOutbox` gained its Postgres `OutboxReader`, so the omit-rather-than-stub rule (D32) currently omits nothing. Fixture mode returns 503 rather than faking a run. **Gap:** a failing task logs but does not yet raise an admin notification (needs F55); `apps/worker` is still an empty package. |
 | F07 | Outbox and event bus | `DONE` | `outbox` table, transactional write helper, drain-to-queue, retry/backoff/dead-letter. Rollback-suppresses-delivery covered. The relay is no longer theoretical: `PostgresOutboxReader` claims with `FOR UPDATE SKIP LOCKED`, the queue drain dispatches a job's `kind` as a handler id, and F38's roll-up is its first consumer (D41). |
-| F08 | Settings registry | `DONE` | `packages/settings` registry + `settings`/`setting_groups`; typed accessors; migration-seeded defaults. |
+| F08 | Settings registry | `DONE` | `packages/settings` registry + `settings`/`setting_groups`; typed accessors; migration-seeded defaults. **Now actually read**: F39's `getSettings()` resolves overrides through the tagged global cache, so `posting.flood_seconds` and `posting.max_length` change board behaviour (D42). Before that, a `forum settings:set` wrote a row nothing consulted. |
 | F09 | Errors, logging, error pages | `DONE` | Pino + request-id context, error taxonomy, `error.tsx`/`not-found.tsx`. Redaction covers credentials — tightened in D20 after a token reached the logs via a URL string. |
 | F10 | Caching policy harness | `DONE`* | `CacheTags` registry, both drivers, and `cachedGlobal` — read-through, tag-invalidated, driver injected. Guard now catches `getActor`/`getUserId` inside a cached region, and **every guard is probed** by `pnpm guards:probe` against a must-match and a must-not-match sample, so an inert or over-broad rule fails CI. *The "member then guest, guest never gets a cached body" test needs pages that do not exist until F29/F31; it is listed there, not silently skipped. |
 | F11 | Boundary lint and testkit | `PARTIAL` | `dependency-cruiser` enforces R2 (127 modules, 0 violations), probe-verified. `@forum/testkit` now has the deterministic seeder (fixed-seed PRNG, batched inserts, genuinely nested tree) and the **query-budget helper**, which counts statements at the driver and names the repeated SQL so an N+1 is identifiable. Mutation-verified: an injected N+1 in `listAll` fails the budget. F16's "one query regardless of depth" is now measured rather than claimed. **Gap:** the harness is PGlite, not Testcontainers, and `FULL_SCALE` (2M posts) is defined but only runnable against real Postgres — PGlite holds the database in process memory. `SMOKE_SCALE` runs in CI. Factories beyond the seeder are not built. |
@@ -102,7 +102,7 @@ tables/indexes exist, while content writers and the BBCode package begin in F36.
 
 | ID | Feature | Status | Note |
 |---|---|---|---|
-| F25 | theme-kit foundation | `DONE` | 25-slot registry, each declaring server or client kind; `SlotComponent<K>` resolves the kind to a *different* signature (an `async` client slot does not compile); `defineTheme` rejects a bundler-marked client reference in a server slot; `scripts/slot-kinds.mjs` catches the case neither can — a `"use client"` module behind a server slot — fails on a slot map it cannot statically read, and fails on **zero** manifests. Probed both ways and mutation-verified against the real theme. `defineTheme`/`resolveTheme` with `extends` (nearest-wins over a three-level chain, cycle and duplicate-key rejection), typed JSON-shaped view models with a two-sided compile-time proof (`view-models.type-test.ts`). Slots are flat by design — a slot never renders another slot; see **D35** for why and what it costs. Load-bearing: `themes/default` fills five slots and `app/(auth)/layout.tsx` renders through them. **The slot list is derived rather than transcribed from R6 — D35 records that R6 wins where it disagrees.** |
+| F25 | theme-kit foundation | `DONE`* | 25-slot registry, each declaring server or client kind; `SlotComponent<K>` resolves the kind to a *different* signature (an `async` client slot does not compile); `defineTheme` rejects a bundler-marked client reference in a server slot; `scripts/slot-kinds.mjs` catches the case neither can — a `"use client"` module behind a server slot — fails on a slot map it cannot statically read, and fails on **zero** manifests. Probed both ways and mutation-verified against the real theme. `defineTheme`/`resolveTheme` with `extends` (nearest-wins over a three-level chain, cycle and duplicate-key rejection), typed JSON-shaped view models with a two-sided compile-time proof (`view-models.type-test.ts`). Slots are flat by design — a slot never renders another slot; see **D35** for why and what it costs. Load-bearing: `themes/default` fills five slots and `app/(auth)/layout.tsx` renders through them. **The slot list is derived rather than transcribed from R6 — D35 records that R6 wins where it disagrees.** *`PostFormModel` changed shape at F39: the form element is a region, because it carries a Server Action reference and those never cross the theme contract (D42). The contract freeze is F77. |
 | F26 | Token pipeline and runtime overrides | `DONE` | `PostgresThemeRepository` reads only `token_overrides`/`custom_css`; `getThemeRuntimeStyle()` is tagged with `theme:<key>` through Next's distributed cache and injects one server-rendered cascade after compiled defaults. Token keys/values and custom CSS are validated when loaded; the reusable validators are the F68 write seam. Browser chrome colours are derived from effective `background` values by tested OKLCH→sRGB conversion, and the default-theme pair is now exact-match tested. |
 | F27 | Default theme — shell | `PARTIAL` | Six shell slots — `Shell`, `Header`, `UserPanel`, `Navigation`, `Footer`, `Notice` — composed once in `PageShell` and rendered by both the board and auth route groups, so the auth screens are part of the board rather than a separate unstyled island. Skip link, header, breadcrumb, footer stating the timestamp zone; log out is a POST form the app renders into the panel slot (D38). Tailwind now scans `themes/` — it never did (D35). **Gap:** `BoardStats` and `WhoIsOnline` need F75; the ACP shell is F63. |
 | F28 | Threads and posts schema | `PARTIAL` | Tables, `visibility` columns, and R3.5 partial indexes exist; a content seeder and writers do not. The `forums` counters and last-post triplet the board index reads now have both a maintainer and a repair path (F38); what is still missing is a route that creates content (F39) and the realistic 2M-post seed with `EXPLAIN` evidence this row promises. |
@@ -116,17 +116,18 @@ tables/indexes exist, while content writers and the BBCode package begin in F36.
 
 ## Phase 3 — Posting
 
-`posts`, `post_revisions`, `threads`, `thread_prefixes`, and
-`thread_subscriptions` tables exist; writers and `packages/bbcode` do not.
-F38 is complete, so the counters, the event path and the repair tool are in
-place before the first thing that writes content.
+`posts`, `post_revisions`, `threads`, `thread_prefixes` and
+`thread_subscriptions` now have their first writer: F38 supplied the counters,
+the event path and the repair tool, and F39 is the route that uses them. A
+registered member can start a thread. `packages/bbcode` still does not exist,
+so post bodies are stored and rendered as escaped plain text.
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
 | F36 | BBCode package | `TODO` | No `packages/bbcode`; roadmap defines AST/sanitisation/cache requirements. |
 | F37 | Smilies and custom BBCode | `TODO` | Depends on F36; no management or declarative code support. |
 | F38 | Counter maintenance and recount | `DONE`* | All four parts. `applyCreatedContentCounters()` writes direct forum, thread and author counters plus last-post pointers atomically with the `post.created` event (D40). The event now has a consumer: `PostgresOutboxReader` + handler dispatch in the queue drain deliver it to `counters.rollup`, which adds the post to every ancestor by path prefix — separator included, so a text-prefix sibling is not an ancestor (mutation-verified) — and is idempotent against replay through a ledger row written in the same transaction. Views are buffered in `thread_view_buffer` and folded in by `views.flush`. `PostgresCounterRecount` writes computed truth in bounded batches across threads → forums → users, resuming from a stored cursor; a deliberately corrupted board converges, a second sweep corrects nothing, and it converges at a batch size of one. 30 tests — 26 against real Postgres, plus four app-tier ones over a real queue that cover the seam no database test can see: that a relayed job's `kind` is the handler id the drain looks up. Four mutants killed (broadened path prefix, removed ledger gate, cursor that never advances, flush that replaces instead of adds). See **D41**. *No route creates content yet, so the write path is proven by tests rather than by use — F39 is the first caller. |
-| F39 | New thread | `TODO` | No content command, action, or no-JS form. |
+| F39 | New thread | `DONE`* | `ThreadComposer` in `@forum/threads` holds the rules (forum shape, title/message limits, prefix scope, flood interval, moderation decision, slug); `PostgresThreadWriteRepository` writes thread + opening post + counters + event in **one transaction**, proven by a rollback test on real PGlite. `createThreadAction` re-authorises `thread.view` **and** `thread.post` for itself — both mutation-verified, the second by a member who may read a forum and not post in it — reads a native `FormData` submit, keeps the draft on a rejected one, and redirects. A held thread lands on its forum with a notice instead of a 404 on its own post. `/forum/[id]-[slug]/new` renders the new `PostForm` slot; the link appears only where the actor may post. Settings are read for the first time (`posting.flood_seconds`, `posting.max_length`). 43 tests. See **D42**. *No browser-level no-JS proof: the Playwright suite runs against the fixture board, which has no writer, so posting is covered by `FormData`-driven action tests instead. F45's editor island and F36's BBCode are deliberately absent — the plain textarea is the whole path.|
 | F40 | Reply and quote | `TODO` | Depends on F39; no reply path. |
 | F41 | ⛔ GATE — Edit and delete own posts | `TODO` | No revisions/deletion command; blocks content mutation beyond its boundary. |
 | F42 | Attachments | `TODO` | FileStore exists; no attachment schema/handler/serving path. |

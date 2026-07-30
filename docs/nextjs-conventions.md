@@ -130,6 +130,20 @@ written:
 **Islands enhance; they never enable.** If removing a client component breaks a
 page, it was not an island. Write the server path first and the island second.
 
+### Forms that live in a theme slot
+
+A page whose whole content is a form — the composer, and every editor after it —
+splits in two: the **theme** renders the page around it, the **app** renders the
+`<form>` into a region. The reason is mechanical rather than stylistic: the form
+element carries a Server Action reference, and those are not plain data, so they
+never cross the theme contract (D38, D42). Controls are built from the shared
+token-styled primitives in `src/components/auth/form-controls.tsx`, which is
+what keeps an app-owned form looking like part of the theme.
+
+A slot model should not carry a prop no theme can fill. If a value only exists
+after a submit — a preview of what was typed, a per-field error — it belongs
+inside the form region, not in the view model.
+
 ---
 
 ## Errors

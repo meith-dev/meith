@@ -6,10 +6,10 @@
  * binding to its module to check which side of the server/client boundary the
  * implementation is on, and a slot map assembled dynamically cannot be checked.
  *
- * **This theme is deliberately incomplete.** Nine slots are filled — the shell
- * (F27) and the board index (F29) — and the rest are unimplemented because the
- * pages they belong to are not built (F30–F35, F39–F45). That is the normal state
- * for this phase: `resolveTheme` reports what is missing and `requireSlot` names
+ * **This theme is deliberately incomplete.** The shell (F27), the reading
+ * surfaces (F29–F34) and the composer (F39) are filled; the rest are
+ * unimplemented because the pages they belong to are not built (F40–F45). That
+ * is the normal state for this phase: `resolveTheme` reports what is missing and `requireSlot` names
  * the slot if a page asks for one that is not there, rather than a theme shipping
  * placeholder components that look like features.
  */
@@ -31,6 +31,7 @@ import { SubforumList } from './slots/subforum-list'
 import { ThreadRow } from './slots/thread-row'
 import { ThreadView } from './slots/thread-view'
 import { PostBit } from './slots/post-bit'
+import { PostForm } from './slots/post-form'
 import { PostActions } from './slots/post-actions'
 import { MemberProfile } from './slots/member-profile'
 import { RedirectNotice } from './slots/redirect-notice'
@@ -59,6 +60,8 @@ export const defaultTheme = defineTheme({
     ThreadView,
     PostBit,
     PostActions,
+
+    PostForm,
 
     MemberProfile,
 

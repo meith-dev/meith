@@ -29,6 +29,7 @@ export {
 export { ActorBuilder, type ActorBuilderConfig } from './actor-builder'
 export { PostgresForumRepository } from './forum-repo'
 export { PostgresThreadRepository } from './thread-repo'
+export { PostgresThreadWriteRepository } from './thread-writes'
 export { PostgresPostRepository } from './post-repo'
 export { PostgresReadStateRepository } from './read-state-repo'
 export { PostgresMemberProfileRepository } from './member-profile-repo'

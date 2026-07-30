@@ -1447,3 +1447,76 @@ fix. That is now a test.
   Raised to 20s with the reasoning D34 used for the worker cap: a gate that
   fails one run in a few teaches people to re-run, and then a real failure gets
   re-run too.
+
+### D42 — The composer's form belongs to the app, not the theme (F39)
+
+`PostFormModel` was registered in F25 with value props — `action`, `subject`,
+`message`, `prefixes`, `submitLabel` — on the assumption that a theme would
+render the whole form from data. Building it showed that shape cannot work.
+
+A composer submits to a Server Action, and a Server Action reference is **not
+plain data**. D38 already settled what follows: such references never cross the
+theme contract, which is why logging out is a form the app renders into the user
+panel slot rather than a `LinkModel`. The alternative — posting to a Route
+Handler so `action` could stay a string — costs the author their draft on every
+validation error, because a handler can only redirect and a redirect cannot
+carry a post body back.
+
+So the model now carries the page (heading, cancel target, route-level error)
+and `regions.form` carries the app-rendered `<form>`. The theme still owns
+everything visible around it, and the auth screens already establish the
+pattern: app-owned forms, built from token-styled controls, framed by theme
+slots.
+
+`previewHtml` was dropped rather than kept as a field no theme could fill.
+Preview state is what the author just typed and it comes back through the
+action's result, so it renders inside the form region; when F36 can turn BBCode
+into sanitised HTML on the server, rendering the preview becomes a slot concern
+and the field returns. Until then the preview escapes its input and shows plain
+text — the same fallback F31 uses for post bodies, and for the same reason.
+
+This is a public-contract change, which F77 is the freeze for. Nothing outside
+`themes/default` implements the slot yet, so the cost is a documented decision
+rather than a migration.
+
+#### What else F39 settled
+
+- **Moderation is a visibility, not a queue.** A held thread is written with
+  `visibility: 'unapproved'`, moves no counter and emits no event. Approval
+  (F48) is the transition that applies them. Writing the counters now and
+  correcting them at approval would show the board a thread count for content
+  nobody can read.
+- **A held thread redirects to its forum, not to itself.** Sending the author to
+  a thread that is invisible to them is a 404 on their own post. The forum says
+  what happened, and the notice's dismiss link is the same URL without the
+  parameter — no JavaScript, no state.
+- **Flood control is measured from the author's last post**, including posts
+  awaiting approval. A serverless instance holds no memory between requests, so
+  an in-process counter would let one post through per instance; the database
+  already knows when they last posted. Counting held posts matters because
+  otherwise moderation is the cheapest way to flood.
+- **Preview never writes and never reads.** It returns only what was submitted,
+  before authorisation, because previewing your own draft asks nothing of the
+  board.
+- **Settings are finally read.** `posting.flood_seconds` and
+  `posting.max_length` are the first settings any request path consults: the
+  registry, its migration and its CLI commands all existed, but an operator
+  changing a value changed nothing. `getSettings()` reads them through F10's
+  tagged global cache with a short TTL — a CLI write happens in another process
+  and cannot invalidate the tag, so the entry has to expire on its own.
+
+#### Smaller things this turned up
+
+- **The posting flags were not in any read model.** `is_open`, `allow_threads`,
+  `requires_prefix` and `moderate_new_threads` exist as columns that no read
+  path selects. Rather than widening `ForumRow` — which the index, the listing
+  and the thread view all use, and none of which care — the posting port reads
+  them itself. A read model that grows a column per screen ends up a table dump.
+- **Fixture mode has no composer at all.** `threadWrites` is null there, the
+  route 404s and the "New thread" link is absent, following D38's rule for
+  forum writes and D32's for tasks: never advertise a capability that is not
+  there. The cost is real and is recorded as F39's gap — the no-JS Playwright
+  suite runs against the fixture board, so it can prove reading and
+  registration without JavaScript but cannot yet prove posting. The action's
+  own tests drive it with `FormData`, which is exactly what a native submit
+  sends, so the no-JS path is covered by test rather than by browser.
