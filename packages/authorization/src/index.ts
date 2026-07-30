@@ -16,3 +16,5 @@ export type {
   Target,
   Visible,
 } from './types'
+/** F47's vocabulary, re-exported so a caller needs one import. */
+export { PUBLIC_CONTENT, type ContentScope } from '@forum/core'

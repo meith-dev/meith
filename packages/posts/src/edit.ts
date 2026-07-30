@@ -38,6 +38,8 @@ export interface PostEditTarget {
   readonly thread: {
     readonly id: number
     readonly slug: string
+    /** Carried so the edit page needs no second read of the thread (F47). */
+    readonly title: string
     readonly isLocked: boolean
     readonly visibility: 'visible' | 'unapproved' | 'deleted'
   }

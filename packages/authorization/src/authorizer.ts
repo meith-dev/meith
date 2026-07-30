@@ -8,7 +8,12 @@
  * touch data. This split is what lets the F22 matrix drive `can()` directly with
  * fixture data.
  */
-import { ForbiddenError, type ForumPermissions } from '@forum/core'
+import {
+  ForbiddenError,
+  contentScopeFrom,
+  type ContentScope,
+  type ForumPermissions,
+} from '@forum/core'
 
 import { resolveForumMatrix, indexOverrides } from './resolve'
 import type {
@@ -184,6 +189,25 @@ export class Authorizer {
       if (matrix.canView === true) visible.push(forumId)
     }
     return visible
+  }
+
+  /**
+   * Which content states this actor may see in this forum (F47).
+   *
+   * The **only** producer of a `ContentScope`. Every viewer-facing read takes
+   * one and no read names a visibility state itself, so "who can see removed
+   * content" is answered once, by the permission model, instead of by each
+   * query's own predicate. `pnpm guards` fails the build on the alternative.
+   *
+   * Synchronous and pure like the rest of `can()`: the caller supplies the
+   * already-resolved forum matrix, so this adds no queries to a page that has
+   * already resolved one.
+   */
+  contentScope(actor: Actor, target: Target): ContentScope {
+    return contentScopeFrom({
+      seesUnapproved: this.can(actor, 'content.viewUnapproved', target),
+      seesDeleted: this.can(actor, 'content.viewDeleted', target),
+    })
   }
 
   /** Drop rows in forums the actor cannot view. Synchronous: caller supplies the visible set. */

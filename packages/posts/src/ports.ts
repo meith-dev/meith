@@ -1,8 +1,17 @@
+import type { ContentScope } from '@forum/core'
+
 import type { PostPage, QuotablePost } from './types'
 
 /** SQL-free seam for the thread-view post read (F31). */
 export interface PostRepository {
-  /** An exact visible post, used to validate a mark-read target (F32). */
+  /**
+   * An exact **public** post, used to validate a mark-read target (F32).
+   *
+   * Deliberately not scoped. Marking a thread read to a post nobody else can
+   * see would set a watermark that moves backwards the moment the post is
+   * removed, and a moderator's read state is not a different feature from
+   * everyone else's.
+   */
   findVisibleById(threadId: number, postId: number): Promise<number | null>
 
   /**
@@ -15,13 +24,12 @@ export interface PostRepository {
   findQuotable(threadId: number, postId: number): Promise<QuotablePost | null>
 
   /**
-   * One page of a thread's posts.
+   * One page of a thread's posts, within the scope this actor may see (F47).
    *
-   * The two `include` flags widen the read, and they are two rather than one
-   * because `content.viewDeleted` and `content.viewUnapproved` are two
-   * permissions: a role that reviews the queue is not automatically a role that
-   * reads what was removed. They are the caller's decision — resolved from the
-   * matrix, never inferred here.
+   * Required and undefaulted: a caller that has not decided what this viewer
+   * may see has not finished authorising, and a default would make the omission
+   * invisible — which is precisely the failure this gate exists to make
+   * impossible.
    *
    * Post numbering follows whichever set the reader is shown, so a moderator's
    * "#4" can differ from a member's. The alternative is gaps in the numbering,
@@ -32,8 +40,7 @@ export interface PostRepository {
     options: {
       readonly afterId?: number
       readonly limit: number
-      readonly includeDeleted?: boolean
-      readonly includeUnapproved?: boolean
+      readonly scope: ContentScope
     },
   ): Promise<PostPage>
 }

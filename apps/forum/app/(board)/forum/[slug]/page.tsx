@@ -47,12 +47,18 @@ export default async function ForumPage({
   if (!authorizer.can(actor, "thread.view", { forumId: id, forum: matrix }))
     notFound();
 
-  const threadPage = await threads.listForum(
-    id,
-    after === undefined
-      ? { limit: THREADS_PER_PAGE }
-      : { after, limit: THREADS_PER_PAGE },
-  );
+  /*
+   * F47: what this actor may see, decided once by the permission model. The
+   * listing does not know the word "visible" — it is handed the states it may
+   * return, which is what makes "does this page leak the queue" a question with
+   * one answer instead of one per query.
+   */
+  const scope = authorizer.contentScope(actor, { forumId: id, forum: matrix });
+  const threadPage = await threads.listForum(id, {
+    ...(after === undefined ? {} : { after }),
+    limit: THREADS_PER_PAGE,
+    scope,
+  });
   const nextHref = threadPage.nextCursor
     ? `/forum/${id}-${forum.slug}?after=${encodeForumCursor(threadPage.nextCursor)}&page=${page + 1}`
     : null;

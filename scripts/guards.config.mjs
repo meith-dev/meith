@@ -208,5 +208,41 @@ export const GUARDS = [
       clean: "import { redirect } from './navigation'",
     },
   },
+  {
+    id: 'R3 no-adhoc-content-visibility',
+    why:
+      'F47: no query may name a visibility state. Every viewer-facing read takes a ' +
+      'ContentScope from Authorizer.contentScope and turns it into SQL with ' +
+      "visibleIn() in packages/db/src/visibility.ts. A hand-written " +
+      "`visibility = 'visible'` is how the twentieth read path ships without one — " +
+      'or ships with `<> \'deleted\'`, which lets the moderation queue out to the ' +
+      'public while looking like a filter. The exempt files are the counter and ' +
+      'write paths, where naming a state is the definition of the work (D41) rather ' +
+      'than a decision about a reader.',
+    files: /^(packages\/db\/src\/[^/]+\.tsx?|apps\/forum\/(app|src)\/.*\.tsx?)$/,
+    /*
+     * Query-shaped only, on purpose. A domain rule saying "a deleted post cannot
+     * be edited" and a view model deciding whether to offer Restore both compare
+     * a state legitimately — they act on a row that has already been filtered.
+     * The rule this guard enforces is narrower and checkable: a *query* never
+     * names a state.
+     */
+    pattern:
+      /\beq\(\s*\w+\.visibility\s*,|\bvisibility\b\s*(=|<>)\s*['"]|\bvisibility\b\s+in\s*\(/,
+    allow:
+      /^packages\/db\/src\/(visibility|visibility-counters|content-counters|counter-recount|post-writes|thread-writes)\.ts$|\.test\.ts$/,
+    probe: {
+      violates: ".where(and(eq(posts.threadId, id), eq(posts.visibility, 'visible')))",
+      clean: '.where(and(eq(posts.threadId, id), visibleIn(posts.visibility, scope)))',
+    },
+    /*
+     * Two more legal shapes. The write path compares a state against a *value*
+     * rather than a literal, and the vocabulary itself has to be able to say the
+     * word — an exemption nobody probes is one that quietly widens.
+     */
+    alsoClean: [
+      'update posts set visibility = ${record.to} where id = ${id}',
+      "const states = scope.states.includes('deleted')",
+    ],
+  },
 ]
-

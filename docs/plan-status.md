@@ -26,8 +26,8 @@ defines scope, dependencies, and acceptance criteria.
 
 ## How this audit was done
 
-Last audited **2026-07-30** (re-audited after F41 landed), against the working tree, not from memory:
-`pnpm verify` (1229 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
+Last audited **2026-07-30** (re-audited after F47 landed), against the working tree, not from memory:
+`pnpm verify` (1249 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -41,13 +41,13 @@ couple of `PARTIAL` rows are an afternoon.
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 9 | 2 | 0 |
 | 3 — Posting | 11 | 5 | 0 | 6 |
-| 4 — Moderation | 8 | 0 | 0 | 8 |
+| 4 — Moderation | 8 | 1 | 0 | 7 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
 | 6 — Admin CP | 9 | 0 | 0 | 9 |
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **32** | **5** | **52** |
+| **Total** | **89** | **33** | **5** | **51** |
 
 ---
 
@@ -138,10 +138,13 @@ F41 gate is green, which unblocks Phase 4.
 
 ## Phase 4 — Moderation
 
+The gate is green, so the rest of the phase is unblocked. No moderation
+*surface* exists yet — every row below is a screen or a command, not a mechanism.
+
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
-| F47 | ⛔ GATE — Visibility model enforcement | `TODO` | **Unblocked**: F41 is green, so the transitions exist to enforce against. Read paths still carry local visible predicates — F41 added a second one to `listThread` — and there is no central filter and no leak suite. That duplication is now the argument for this feature rather than a note about it. |
-| F48 | Moderation queue | `TODO` | No queue commands or bulk workflow. |
+| F47 | ⛔ GATE — Visibility model enforcement | `GATE` — green | One `ContentScope`, produced only by `Authorizer.contentScope` and turned into SQL only by `visibleIn` (`packages/db/src/visibility.ts`). **The scope is a required, undefaulted argument**, so an unauthorised read is a compile error rather than an audit — which is what found every call site including the fixtures and the seed data. Guard `R3 no-adhoc-content-visibility` fires on any *query-shaped* mention of the column outside the counter/write modules, probed both ways with two `alsoClean` exemption samples; it found two real hits on its first run (the unread computation's own predicate, and the flood check's `<> 'deleted'`). The leak suite is a **property** — every read path × every scope, every returned row is in the scope handed in — plus exact-set assertions so it cannot pass by returning nothing; 20 tests, four mutants killed including a numbering subquery that counted the whole table (numbering is a disclosure: `#4` on a three-post page names hidden content). `locateForum` is the one deliberately unscoped lookup and returns an id, never a row. **Not covered by tests because they do not exist yet:** feeds (F76) and search (F72) — the guard is what will catch them. See **D46**. |
+| F48 | Moderation queue | `TODO` | **Unblocked**: F47 is green and F41 wrote the transition, so approval is `unapproved → visible` through counter code that is already tested. What is missing is the queue read, the screen and the chunked bulk workflow. |
 | F49 | Reports | `TODO` | No report schema or routes. |
 | F50 | Thread tools | `TODO` | No moderator content mutations or audit writes. |
 | F51 | Merge and split | `TODO` | No test-first multi-thread operation. |

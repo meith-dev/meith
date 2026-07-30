@@ -8,7 +8,6 @@ import {
   EditPostForm,
   RestorePostForm,
 } from '@/components/content/edit-post-form'
-import { getContainer } from '@/server/container'
 import { resolvePostScope } from '@/server/post-scope'
 import { activeTheme } from '@/server/theme'
 import { buildEditView } from '@/view/post-form'
@@ -49,7 +48,6 @@ export default async function EditPostPage({
   const post = postId(query.post)
   if (thread === null || post === null) notFound()
 
-  const { threads } = getContainer()
   const scope = await resolvePostScope(thread, post)
   if (scope === null) notFound()
 
@@ -62,11 +60,17 @@ export default async function EditPostPage({
   const mayManage = isDeleted ? scope.mayRestore : scope.mayEdit || scope.mayDelete
   if (!mayManage) notFound()
 
-  const row = await threads.findVisibleById(thread)
-  if (!row) notFound()
-
+  /*
+   * No second read of the thread. `resolvePostScope` already resolved it with
+   * the post, and reading it again would be a second visibility decision made
+   * somewhere else — which is exactly what F47 exists to stop.
+   */
   const view = buildEditView({
-    thread: { id: row.id, title: row.title, slug: row.slug },
+    thread: {
+      id: scope.target.thread.id,
+      title: scope.target.thread.title,
+      slug: scope.target.thread.slug,
+    },
     postId: post,
     isDeleted,
   })

@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D45. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D46. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -17,9 +17,10 @@ this file.
 
 ## Gate state (all green)
 
-`pnpm verify` → exit 0: textual invariants + **guard probes**, the **slot
+`pnpm verify` → exit 0: textual invariants (now **nine** guards, F47's included)
++ **guard probes**, the **slot
 server/client boundary** check + its probe, dependency-cruiser (241 modules, 0
-violations), typecheck (root **and** app), **1229 tests** (a large share against
+violations), typecheck (root **and** app), **1249 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -248,16 +249,30 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   post cannot be deleted on its own and what the fixture board had wrong about
   its own permission ladder.
 
+- **F47 visibility model enforcement — the second gate is green.** There was
+  never a missing check; there were five hand-written answers to "which content
+  may this reader see", with no way to tell from any one of them whether the
+  other four agreed. Now there is one `ContentScope`, produced only by
+  `Authorizer.contentScope` and turned into SQL only by `visibleIn`, and the
+  scope is a **required, undefaulted argument** — so an unauthorised read is a
+  compile error rather than an audit. Guard `R3 no-adhoc-content-visibility`
+  bans any query-shaped mention of the column outside the counter and write
+  paths, and found two real hits on its first run. The leak suite is a property
+  (every path × every scope, every row inside the scope handed in) plus
+  exact-set assertions so it cannot pass by returning nothing. See **D46**,
+  including why numbering is a disclosure and why `locateForum` returns an id
+  and never a row.
+
 ## NEXT ACTION — resume here
 
-**F47 · visibility model enforcement** is the next thing, and it is the other ⛔
-gate: nothing in Phase 4 starts until it is green. F41 both unblocked it and
-made the case for it — `listThread` now carries a *second* local visible
-predicate, next to the ones in the thread repository, the forum listing and the
-quote lookup. The feature is a central filter every read path goes through, a
-lint rule banning ad-hoc visibility checks, and a leak suite that proves no
-list, count, feed or search result reveals content the viewer may not see.
-Write the leak suite first: it is the part that says whether the filter works.
+**F48 · the moderation queue** is the next thing, and both gates it waited on
+are now green. The mechanism is done: approval is `unapproved → visible`, which
+is F41's counter path, already tested in both directions and idempotent against
+replay. What is missing is a *queue read* — "everything awaiting approval in the
+forums I moderate", which is the first list on the board scoped by moderator
+rights rather than by view permission — a screen, and the chunked bulk workflow
+the roadmap asks for. Add its read path as a row in F47's leak table when you
+write it; that is now the cheapest part.
 
 **F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
 seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
@@ -265,13 +280,12 @@ declarative entry rather than an admin-supplied regular expression, and
 per-forum capability toggles are a filtered registry. `font`, `align` and
 `video` are parked there by parity decision.
 
-**F48 · the moderation queue** is the first thing F41 makes cheap rather than
-possible: approval is a `unapproved → visible` transition, which is the counter
-path F41 already wrote and tested. What it needs is the screen and the bulk
-workflow, not the mechanics.
+**F49–F54** follow it, and none of them needs new mechanics either: every
+moderator action in Phase 4 is one of F41's two transitions performed by a
+different actor, or a thread-level equivalent that F50 has to write once.
 
 Still unresolved and still blocking browser-level coverage of *writing* in
-Phase 3: **the e2e board cannot post.** The Playwright suite runs against
+Phase 3 (and now of moderation too): **the e2e board cannot post.** The Playwright suite runs against
 fixture mode, which has no writer, so no browser test covers posting or replying
 without JavaScript. F36 narrowed it rather than closed it — reading a rendered
 body is now proven in the browser, because fixture rows deliberately store no
@@ -280,7 +294,7 @@ database or the fixture gains a content store; D38's "fixture writes throw" rule
 was written for *structure*, and content is the second time it has cost
 coverage.
 
-Also worth knowing: the F22 matrix needed **no new columns** for this feature.
+Also worth knowing: the F22 matrix needed **no new columns** for F41 or F47.
 `post.editOwn`, `post.editOthers`, `post.deleteOwn`, `post.softDelete` and
 `content.viewDeleted` were all declared and covered when the gate was written,
 so the regression net F22 demands for a new permission-sensitive path was
@@ -336,7 +350,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D45). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D46). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

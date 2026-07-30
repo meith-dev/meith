@@ -39,7 +39,8 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
       await this.db.execute(sql`
         select p.id, p.thread_id, p.forum_id, p.author_user_id, p.subject, p.message,
                p.visibility, p.is_first_post, p.revision_count, p.created_at,
-               t.slug as thread_slug, t.is_locked, t.visibility as thread_visibility,
+               t.slug as thread_slug, t.title as thread_title, t.is_locked,
+               t.visibility as thread_visibility,
                f.slug as forum_slug, f.is_open
           from posts p
           join threads t on t.id = p.thread_id
@@ -58,6 +59,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
       revision_count: number
       created_at: Date
       thread_slug: string
+      thread_title: string
       is_locked: boolean
       thread_visibility: 'visible' | 'unapproved' | 'deleted'
       forum_slug: string
@@ -83,6 +85,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
       thread: {
         id: Number(row.thread_id),
         slug: row.thread_slug,
+        title: row.thread_title,
         isLocked: row.is_locked,
         visibility: row.thread_visibility,
       },

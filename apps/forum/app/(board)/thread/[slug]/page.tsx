@@ -48,13 +48,25 @@ export default async function ThreadPage({
   const actor = await getActor()
   const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites } =
     getContainer()
-  const thread = await threads.findVisibleById(id)
-  if (!thread) notFound()
+  /*
+   * Locate, authorise, then read — in that order, and the order is the whole
+   * point. The scope cannot be built before the forum is known and the forum
+   * cannot be known before the thread is located, so `locateForum` returns the
+   * one field permissions need and nothing else. The thread itself is read
+   * exactly once, inside the scope this actor turns out to have, so a moderator
+   * sees a hidden thread and nobody else learns it exists.
+   */
+  const forumId = await threads.locateForum(id)
+  if (forumId === null) notFound()
 
-  const forum = await forums.findById(thread.forumId)
+  const forum = await forums.findById(forumId)
   if (!forum || forum.type !== 'forum') notFound()
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) notFound()
+
+  const scope = authorizer.contentScope(actor, { forumId: forum.id, forum: matrix })
+  const thread = await threads.findById(id, scope)
+  if (!thread) notFound()
 
   /*
    * Count the view only after the permission check, and only on the first page:
@@ -68,26 +80,14 @@ export default async function ThreadPage({
   }
 
   /*
-   * Two permissions, two flags. A role that reviews the queue is not
-   * automatically a role that reads what was removed, so `content.viewDeleted`
-   * and `content.viewUnapproved` widen the read independently. Everyone else's
-   * page never contains the row: filtering in the theme would put the body in
-   * the HTML and hide it with CSS, which F33 already refused to do for profile
-   * fields.
+   * The same scope the thread was read with. Everyone else's page never
+   * contains the row — filtering in the theme would put the body in the HTML
+   * and hide it with CSS, which F33 already refused to do for profile fields.
    */
-  const viewsDeleted = authorizer.can(actor, 'content.viewDeleted', {
-    forumId: forum.id,
-    forum: matrix,
-  })
-  const viewsUnapproved = authorizer.can(actor, 'content.viewUnapproved', {
-    forumId: forum.id,
-    forum: matrix,
-  })
   const postPage = await posts.listThread(thread.id, {
     ...(after === undefined ? {} : { afterId: after }),
     limit: POSTS_PER_PAGE,
-    includeDeleted: viewsDeleted,
-    includeUnapproved: viewsUnapproved,
+    scope,
   })
   const nextHref = postPage.nextAfterId === null
     ? null

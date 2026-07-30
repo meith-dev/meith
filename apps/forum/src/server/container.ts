@@ -303,7 +303,7 @@ export function getContainer(): Container {
    */
   if (
     !cached ||
-    typeof cached.threads?.findVisibleById !== 'function' ||
+    typeof cached.threads?.locateForum !== 'function' ||
     typeof cached.posts?.listThread !== 'function' ||
     typeof cached.posts?.findVisibleById !== 'function' ||
     cached.readState === undefined ||

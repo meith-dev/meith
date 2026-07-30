@@ -14,6 +14,7 @@
  * database (R10, F22).
  */
 import type {
+  ContentVisibility,
   ForumPermissions,
   PermissionSet,
 } from '@forum/core'
@@ -89,8 +90,14 @@ export type Action =
    */
   | 'flood.bypass'
 
-/** The visibility state of a piece of content (mirrors the DB enum). */
-export type ContentVisibility = 'visible' | 'unapproved' | 'deleted'
+/**
+ * The visibility state of a piece of content.
+ *
+ * Re-exported from `@forum/core` rather than declared again: F47 made the
+ * states and the scope built from them a single shared vocabulary, and two
+ * structurally-identical declarations are how they drift.
+ */
+export type { ContentVisibility }
 
 /**
  * What an action is being performed *on*.

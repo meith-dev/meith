@@ -1842,3 +1842,106 @@ reads as a bug on every thread that has ever been moderated.
   the renderer; all three forms now show `@forum/bbcode`'s own output, produced
   on the server by the same function that renders the post, so the preview
   cannot drift from the result.
+
+### D46 — One scope, produced once and consumed once (F47)
+
+The second ⛔ gate, and the one that had to be built *after* enough read paths
+existed to show what the problem actually is. It is not that a check was
+missing anywhere — it is that by F41 there were five separate hand-written
+answers to "which content may this reader see", in five queries, with no way to
+tell from any one of them whether the other four agreed.
+
+#### The rule is about queries, not comparisons
+
+`visibility` is compared in plenty of legitimate places: a domain rule refusing
+to edit a deleted post, a view model deciding whether to offer Restore, the
+recount defining what "counts" means (D41). None of those is a leak risk,
+because each acts on a row that has already been filtered — or, in the recount's
+case, is not showing anything to anybody.
+
+So the enforceable rule is narrower and exact: **no query may name a visibility
+state.** Every viewer-facing read takes a `ContentScope`, produced in exactly
+one place (`Authorizer.contentScope`) and turned into SQL in exactly one place
+(`visibleIn`). `pnpm guards` fires on any query-shaped mention of the column
+outside the counter and write modules, and it is probed both ways like every
+other guard — including two `alsoClean` samples for the exemptions, because an
+exemption nobody probes is one that quietly widens.
+
+The guard found two real hits on its first run: the unread computation in
+`read-state-repo.ts` was filtering with its own `eq(threads.visibility,
+'visible')`, and the flood check's "when did this author last post" was using
+`<> 'deleted'`. The first is now a scope; the second is a write-path rule and is
+exempt by name.
+
+#### The scope is required and undefaulted
+
+`listThread(id, { limit, scope })` — no default, no optional. That is the design
+decision the whole gate rests on: a caller that has not decided what this viewer
+may see has not finished authorising, and a default would make the omission
+invisible. Making it required turned an audit into a compile error, and the
+compiler then found every call site including the ones in the fixture
+repositories and the seed data.
+
+The fixture repositories apply the same predicate rather than assuming their
+sample rows are all visible, so a fixture-mode leak would be a fixture-mode bug
+rather than an untested path.
+
+#### Locate, authorise, read
+
+The thread page had a genuine ordering problem: the scope cannot be built before
+the forum is known, the forum cannot be known before the thread is found, and
+reading the thread unscoped to find out is exactly what the gate forbids.
+
+Three options, and only one is honest. Reading the thread with an all-states
+scope makes the escape hatch a supported feature. Reading it publicly first and
+retrying wider means two reads and a subtle bug when they disagree. What it does
+instead is `locateForum(threadId)` — a deliberately unscoped lookup that returns
+a **forum id and nothing else**. A forum id is not content: it confirms nothing
+a reader could not learn by being refused, and the `thread.view` check that
+immediately follows decides whether they learn even that. The thread itself is
+then read exactly once, in the scope this actor turns out to have.
+
+#### Numbering is a disclosure
+
+`#4` on a page where the reader can see three posts tells them content exists
+that they are not allowed to know about — the same fact the filter exists to
+withhold, arriving as an integer instead of a body. So "how many came before"
+uses the reader's scope, not the table, and the leak suite pins it with a cursor
+placed *past* the hidden posts, because with the cursor before them the correct
+and incorrect answers are the same number. That subtlety is why the first
+version of the test passed against a deliberately broken query.
+
+#### The leak suite is a property, not a list of expectations
+
+The central assertion is: for every read path × every scope, every row that
+comes back is in the scope that was handed in. That is satisfiable by a path
+that returns nothing, so each scope is *also* pinned to the exact set it should
+see — together they say "no more" and "no less".
+
+It is a table because the next read path should be a row rather than a new file,
+and because a path that cannot be expressed as "takes a scope, returns rows" is
+a path that does not take a scope — which is the thing the guard refuses to let
+exist. Four mutants killed: a `visibleIn` that stops filtering, an unread
+computation that counts hidden threads, a quote lookup that follows the reader's
+scope, and a numbering subquery that counts the whole table.
+
+#### Smaller things
+
+- **`visibleIn` emits `=` for the single-state case, not `in (…)`.** An `in`
+  list of one is a correct query that stops matching the R3.5 partial indexes
+  (`… WHERE visibility = 'visible'`) that every listing on the board depends on.
+- **It is an allowlist, never `<> 'deleted'`.** A negative predicate is one new
+  state away from letting that state through, and R3.3 reserves the right to add
+  one.
+- **Three paths are public whoever is asking**, and each says so by naming
+  `PUBLIC_CONTENT` rather than by writing a literal: the quote lookup (quoting
+  republishes a body, so a moderator quoting removed content would put it back
+  in front of everybody, with their name on it), the mark-read target (a
+  watermark set to a hidden post moves backwards the moment it is removed), and
+  the unread computation.
+- **`ContentVisibility` was declared twice** — once in `@forum/core` and once in
+  `@forum/authorization`. The second is now a re-export; two structurally
+  identical declarations is how a shared vocabulary drifts.
+- **`ThreadListingRow` gained `visibility`.** A listing that can contain hidden
+  rows has to say which ones they are, or the theme cannot mark them and the
+  leak suite cannot check itself.

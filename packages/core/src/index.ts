@@ -78,3 +78,11 @@ export {
 export { timingSafeEqualString } from "./crypto"
 export type { Clock } from "./clock"
 export { systemClock, fixedClock } from "./clock"
+export {
+  CONTENT_VISIBILITY,
+  PUBLIC_CONTENT,
+  contentScopeFrom,
+  isPublicScope,
+  type ContentScope,
+  type ContentVisibility,
+} from './visibility'

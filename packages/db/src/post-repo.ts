@@ -2,6 +2,7 @@
 import { and, asc, eq, gt, sql, type SQL } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
+import { PUBLIC_CONTENT, type ContentScope } from '@forum/core'
 import type {
   PostListingRow,
   PostPage,
@@ -11,6 +12,7 @@ import type {
 
 import type { Database } from './client'
 import { posts, users } from './schema'
+import { visibleIn } from './visibility'
 
 const editors = alias(users, 'editors')
 
@@ -70,7 +72,12 @@ export class PostgresPostRepository implements PostRepository {
         and(
           eq(posts.id, postId),
           eq(posts.threadId, threadId),
-          eq(posts.visibility, 'visible'),
+          /*
+           * Public, whoever is asking. Quoting is how a post is put back in
+           * front of everybody, so a moderator quoting a removed post would
+           * republish it — with the moderator's name on it.
+           */
+          visibleIn(posts.visibility, PUBLIC_CONTENT),
         ),
       )
       .limit(1)
@@ -86,7 +93,7 @@ export class PostgresPostRepository implements PostRepository {
         and(
           eq(posts.threadId, threadId),
           eq(posts.id, postId),
-          eq(posts.visibility, 'visible'),
+          visibleIn(posts.visibility, PUBLIC_CONTENT),
         ),
       )
       .limit(1)
@@ -98,8 +105,7 @@ export class PostgresPostRepository implements PostRepository {
     options: {
       readonly afterId?: number
       readonly limit: number
-      readonly includeDeleted?: boolean
-      readonly includeUnapproved?: boolean
+      readonly scope: ContentScope
     },
   ): Promise<PostPage> {
     /*
@@ -107,12 +113,7 @@ export class PostgresPostRepository implements PostRepository {
      * subquery. Two spellings of it is how a moderator's page ends up numbered
      * from the member's set — off by exactly the number of hidden posts above.
      */
-    const states = [
-      sql`'visible'`,
-      ...(options.includeDeleted === true ? [sql`'deleted'`] : []),
-      ...(options.includeUnapproved === true ? [sql`'unapproved'`] : []),
-    ]
-    const visible: SQL = sql`${posts.visibility} in (${sql.join(states, sql`, `)})`
+    const visible: SQL = visibleIn(posts.visibility, options.scope)
 
     const beforeCount = options.afterId
       ? sql<number>`(

@@ -152,7 +152,11 @@ function installContainer(
     authorizer: new Authorizer(source, {}),
     threadWrites: writes,
     postWrites: null,
-    threads: { findVisibleById: async () => null, listForum: async () => ({ rows: [], nextCursor: null }) },
+    threads: {
+      locateForum: async () => null,
+      findById: async () => null,
+      listForum: async () => ({ rows: [], nextCursor: null }),
+    },
     posts: {
       findVisibleById: async () => null,
       listThread: async () => ({ rows: [], nextAfterId: null }),
@@ -458,7 +462,7 @@ class FakePostWrites implements PostWriteRepository {
         createdAt: new Date('2026-07-30T11:00:00Z'),
         ...this.post,
       },
-      thread: { id: 20, slug: 'hello', isLocked: false, visibility: 'visible' },
+      thread: { id: 20, slug: 'hello', title: 'Hello', isLocked: false, visibility: 'visible' },
       forum: { id: this.forumId, slug: 'general', isOpen: true },
     }
   }

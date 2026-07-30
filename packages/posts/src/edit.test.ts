@@ -61,7 +61,14 @@ function target(overrides: {
       createdAt: new Date('2026-07-30T11:00:00Z'),
       ...overrides.post,
     },
-    thread: { id: 20, slug: 'hello', isLocked: false, visibility: 'visible', ...overrides.thread },
+    thread: {
+      id: 20,
+      slug: 'hello',
+      title: 'Hello',
+      isLocked: false,
+      visibility: 'visible',
+      ...overrides.thread,
+    },
     forum: { id: 4, slug: 'general', isOpen: true, ...overrides.forum },
   }
 }

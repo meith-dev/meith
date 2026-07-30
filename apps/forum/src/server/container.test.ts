@@ -109,7 +109,7 @@ describe('getContainer (fixture mode)', () => {
     const rebuilt = getContainer()
 
     expect(rebuilt).not.toBe(current)
-    expect(typeof rebuilt.threads.findVisibleById).toBe('function')
+    expect(typeof rebuilt.threads.locateForum).toBe('function')
     expect(typeof rebuilt.posts.listThread).toBe('function')
     expect(typeof rebuilt.memberProfiles.findPublicById).toBe('function')
     expect(rebuilt.fixtureDataVersion).not.toBe(-1)

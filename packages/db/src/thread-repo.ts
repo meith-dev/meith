@@ -1,6 +1,7 @@
-/** Postgres forum-display listing (F30). */
+/** Postgres forum-display listing (F30), scoped by F47. */
 import { and, desc, eq, lt, or } from "drizzle-orm";
 
+import type { ContentScope } from "@forum/core";
 import type {
   ThreadCursor,
   ThreadListingRow,
@@ -10,6 +11,7 @@ import type {
 
 import type { Database } from "./client";
 import { threadPrefixes, threads } from "./schema";
+import { visibleIn } from "./visibility";
 
 /**
  * The R3.5 partial index begins `(forum_id, is_sticky DESC, last_post_at DESC)`.
@@ -41,6 +43,7 @@ function rowToListing(row: {
   authorUsername: string;
   replyCount: number;
   viewCount: number;
+  visibility: string;
   isSticky: boolean;
   isLocked: boolean;
   movedToThreadId: number | null;
@@ -62,6 +65,7 @@ function rowToListing(row: {
     authorUsername: row.authorUsername,
     replyCount: row.replyCount,
     viewCount: row.viewCount,
+    visibility: row.visibility as ThreadListingRow["visibility"],
     isSticky: row.isSticky,
     isLocked: row.isLocked,
     isMoved: row.movedToThreadId !== null,
@@ -81,7 +85,17 @@ function rowToListing(row: {
 export class PostgresThreadRepository implements ThreadRepository {
   constructor(private readonly db: Database) {}
 
-  async findVisibleById(id: number): Promise<ThreadListingRow | null> {
+  /** The forum id alone, unscoped — see the port for why this one is. */
+  async locateForum(threadId: number): Promise<number | null> {
+    const rows = await this.db
+      .select({ forumId: threads.forumId })
+      .from(threads)
+      .where(eq(threads.id, threadId))
+      .limit(1);
+    return rows[0]?.forumId ?? null;
+  }
+
+  async findById(id: number, scope: ContentScope): Promise<ThreadListingRow | null> {
     const rows = await this.db
       .select({
         id: threads.id,
@@ -94,6 +108,7 @@ export class PostgresThreadRepository implements ThreadRepository {
         authorUsername: threads.authorUsername,
         replyCount: threads.replyCount,
         viewCount: threads.viewCount,
+        visibility: threads.visibility,
         isSticky: threads.isSticky,
         isLocked: threads.isLocked,
         movedToThreadId: threads.movedToThreadId,
@@ -104,7 +119,7 @@ export class PostgresThreadRepository implements ThreadRepository {
       })
       .from(threads)
       .leftJoin(threadPrefixes, eq(threads.prefixId, threadPrefixes.id))
-      .where(and(eq(threads.id, id), eq(threads.visibility, 'visible')))
+      .where(and(eq(threads.id, id), visibleIn(threads.visibility, scope)))
       .limit(1)
     const row = rows[0]
     return row ? rowToListing(row) : null
@@ -112,7 +127,11 @@ export class PostgresThreadRepository implements ThreadRepository {
 
   async listForum(
     forumId: number,
-    options: { readonly after?: ThreadCursor; readonly limit: number },
+    options: {
+      readonly after?: ThreadCursor
+      readonly limit: number
+      readonly scope: ContentScope
+    },
   ): Promise<ThreadPage> {
     const rows = await this.db
       .select({
@@ -126,6 +145,7 @@ export class PostgresThreadRepository implements ThreadRepository {
         authorUsername: threads.authorUsername,
         replyCount: threads.replyCount,
         viewCount: threads.viewCount,
+        visibility: threads.visibility,
         isSticky: threads.isSticky,
         isLocked: threads.isLocked,
         movedToThreadId: threads.movedToThreadId,
@@ -139,7 +159,7 @@ export class PostgresThreadRepository implements ThreadRepository {
       .where(
         and(
           eq(threads.forumId, forumId),
-          eq(threads.visibility, "visible"),
+          visibleIn(threads.visibility, options.scope),
           ...(options.after ? [after(options.after)] : []),
         ),
       )
