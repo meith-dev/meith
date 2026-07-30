@@ -37,7 +37,7 @@ couple of `PARTIAL` rows are an afternoon.
 
 | Phase | Features | DONE | PARTIAL | TODO |
 |---|---|---|---|---|
-| 0 — Skeleton | 14 | 9 | 5 | 0 |
+| 0 — Skeleton | 14 | 10 | 4 | 0 |
 | 1 — Identity, tree, permissions | 10 | 8 | 0 | 2 |
 | 2 — Themes and reading | 11 | 0 | 2 | 9 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
@@ -47,7 +47,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **17** | **7** | **65** |
+| **Total** | **89** | **18** | **6** | **65** |
 
 ---
 
@@ -57,7 +57,7 @@ couple of `PARTIAL` rows are an afternoon.
 |---|---|---|---|
 | F01 | Monorepo and Next.js scaffold | `DONE` | Workspaces + Turborepo; `next` pinned exact `16.2.6`, `react` `19.2.0` — no caret. `strict` + `noUncheckedIndexedAccess` on in `tsconfig.base.json`. |
 | F02 | Config and environment validation | `DONE` | Zod schema in `packages/core/src/env.ts`; lazy proxy (D1); build-phase vs runtime split (D18). `process.env` confined by guard + ESLint rule. 11 tests. |
-| F03 | Database package | `PARTIAL` | Drizzle + postgres.js, forward-only migration, transaction helper. **Gap:** acceptance asks for "migrations run up *and down*", which contradicts invariant 32 (forward-only) — see Open questions. No Testcontainers; PGlite is used instead. |
+| F03 | Database package | `DONE` | Drizzle + postgres.js (`prepare: false`, small pool), forward-only migrations, transaction helper with rollback-on-throw. **Contradiction resolved 2026-07-30:** F03's "up *and down*" is superseded by invariant 32 — forward-only governs, and recovery is by restore, not reversal (D28). Testcontainers is substituted by PGlite, which runs the real generated SQL. |
 | F04 | Deploy on both targets | `PARTIAL` | Dockerfile (multi-stage, standalone) + `docker-compose.yml`; CI builds the app. **Gap:** CI never *boots* the standalone image, which is the stated acceptance criterion; `apps/worker` is an empty package, so the "same image runs the worker with a flag" path does not exist. |
 | F05 | Driver interfaces | `PARTIAL` | Interfaces + env selection + every shipped implementation. **Contract suite now exists** (`@forum/testkit`) and all four families pass it, including `PostgresQueue` against real Postgres — which exposed that it only worked with postgres.js's result shape and would have broken on the Neon driver F03's seam exists for (D27). **Gap:** no `S3FileStore`; it needs a runtime dependency, which invariant 2 makes a human decision — see [ADR 0002](adr/0002-s3-filestore-dependency.md). F42 attachments are blocked on it. |
 | F06 | System tick and scheduled tasks | `PARTIAL` | `packages/tasks` registry + scheduler (concurrent-claim logic tested), secret-guarded route now at the spec path `/api/system/tick`, `vercel.json` cron + a compose tick loop. **Gap:** the route does not actually *run* anything — it returns `ran: []`. No `TaskRepository` implementation exists, and the `TaskWorkers` it would need are partly blocked on later features (`reconcileCounters` on F38, `applyPromotions` on F24). `apps/worker` is an empty package. |
@@ -185,15 +185,17 @@ reinterpreted unilaterally.
 1. **The plan says "84 features" but numbers them F01–F89 with no gaps.** Phase
    spans are 14 + 10 + 11 + 11 + 8 + 8 + 9 + 5 + 5 + 8 = **89**. Either the
    headline count or the numbering is off. This file tracks all 89.
-2. **F03 vs invariant 32.** F03's acceptance asks that "migrations run up **and
-   down**"; invariant 32 says "migrations are forward-only and checked in". Down
-   migrations are currently not written. Assumed the invariant wins — confirm.
+2. ~~**F03 vs invariant 32.**~~ **Resolved 2026-07-30:** invariant 32 governs.
+   Forward-only; F03's "up and down" acceptance is superseded. A down migration
+   that drops a column is a data-loss button on a live board, and some
+   migrations (a destructive backfill) cannot be reversed at all, so the
+   guarantee would be partial and therefore misleading. Recovery is by restore —
+   F88's backup runbook is the documented answer.
 3. ~~**F06 route path.**~~ Resolved: renamed to `/api/system/tick`, with
    `vercel.json` and the compose tick loop updated.
-4. **`forum.config.ts` does not exist** (invariant 6 — "everything installable is
-   registered in `forum.config.ts`; nothing discovered by filesystem scan"). It
-   has no consumers until F69/F79, but themes and drivers are already selected in
-   code and would need to move.
+4. **`forum.config.ts`** — **Resolved 2026-07-30:** build a minimal one (theme
+   and driver registration) *before* F25, so theme-kit does not hardcode theme
+   selection and then need retrofitting. Tracked as work, not a question.
 5. **Orphan forums in `buildTree`** are promoted to roots rather than dropped
    (D22). Once F21 filters by visibility, a visible child of a hidden parent
    surfaces at top level. Confirm at F21 whether subtrees should instead be

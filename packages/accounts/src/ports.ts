@@ -7,6 +7,8 @@
  * reset logic runs identically against a database and against a Map.
  */
 
+import type { BanFilter } from './ban-filter'
+
 /** Lifecycle state persisted on the user row. */
 export type AccountState = 'active' | 'awaiting_activation' | 'banned'
 
@@ -193,4 +195,66 @@ export interface AccountStore {
   readonly tokens: CredentialTokenRepository
   readonly loginAttempts: LoginAttemptRepository
   readonly remember: RememberTokenRepository
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Bans (F23)
+ * ------------------------------------------------------------------ */
+
+export interface BanRecord {
+  readonly id: number
+  readonly userId: number
+  readonly reason: string | null
+  readonly publicReason: string | null
+  /** The group the user held when banned. Restored verbatim on expiry. */
+  readonly previousPrimaryGroupId: number | null
+  /** Null = permanent. */
+  readonly expiresAt: Date | null
+  readonly liftedAt: Date | null
+}
+
+export interface CreateBanInput {
+  readonly userId: number
+  readonly bannedByUserId: number | null
+  readonly reason: string | null
+  readonly publicReason: string | null
+  readonly expiresAt: Date | null
+  /** The group to move the user into. */
+  readonly bannedGroupId: number
+  readonly now: Date
+}
+
+export interface BanRepository {
+  /** The user's active (unlifted) ban, or null. */
+  findActive(userId: number): Promise<BanRecord | null>
+
+  /**
+   * Record the ban, capture the user's current primary group, move them to the
+   * banned group and revoke their sessions — **atomically**.
+   *
+   * All four or none: a ban that records the row but leaves the session alive is
+   * not a ban, and one that moves the group without capturing the previous value
+   * makes the restore-on-expiry guarantee unkeepable.
+   */
+  create(input: CreateBanInput): Promise<BanRecord>
+
+  /** Lift a ban and restore the captured group. */
+  lift(banId: number, now: Date): Promise<void>
+
+  /**
+   * Lift every ban whose expiry has passed, restoring each user's captured
+   * group. Returns how many were lifted. Bounded by `limit` so one tick cannot
+   * run unbounded (invariant 18).
+   */
+  expireDue(now: Date, limit: number): Promise<number>
+}
+
+/* ------------------------------------------------------------------ *
+ * Ban filters (F23)
+ * ------------------------------------------------------------------ */
+
+export interface BanFilterRepository {
+  /** Every filter. The set is small and read on every registration. */
+  listAll(): Promise<readonly BanFilter[]>
 }

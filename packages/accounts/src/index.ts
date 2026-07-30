@@ -27,6 +27,7 @@ export {
   type IdentityDeps,
   type RegisterInput,
   type RegisterResult,
+  type RequestContext,
   type LoginResult,
   type ResetRequest,
 } from './service'
@@ -44,7 +45,24 @@ export { foldIdentifier } from './case-fold'
 
 export { DEFAULT_AUTH_POLICY, type AuthPolicy } from './policy'
 
+export {
+  BAN_FILTER_TYPES,
+  assertUsableFilter,
+  matchBanFilter,
+  type BanFilter,
+  type BanFilterSubject,
+  type BanFilterType,
+} from './ban-filter'
+
+export { BanService, type BanInput, type BanServiceDeps } from './ban-service'
+
+export { MemoryBanFilters, MemoryBans } from './memory-bans'
+
 export type {
+  BanRecord,
+  BanRepository,
+  BanFilterRepository,
+  CreateBanInput,
   AccountRecord,
   AccountState,
   AccountStore,

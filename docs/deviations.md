@@ -748,3 +748,25 @@ Also set `LOG_LEVEL=fatal` for the test run. Several suites deliberately drive
 failure paths, and their expected error-level output made a fully passing run
 print error JSON — which teaches everyone to skim past CI output, and is how a
 real error goes unnoticed.
+
+### D28 — Migrations are forward-only; F03's "up and down" is superseded (F03)
+
+F03's acceptance asks that "migrations run up **and down** against a
+Testcontainers Postgres". Invariant 32 says "migrations are forward-only and
+checked in". Both are normative and they contradict each other; this was flagged
+rather than guessed, and **decided on 2026-07-30: invariant 32 governs.**
+
+Reasoning, recorded so it is not relitigated:
+
+- A down migration that drops a column is a data-loss button pointed at a live
+  board, run by an operator who is already having a bad day.
+- Some migrations genuinely cannot be reversed — a destructive backfill has
+  nothing to restore from — so a "reversible migrations" guarantee would be
+  partial, and a partial guarantee is worse than none because people rely on it.
+- Recovery from a bad migration is a restore, which F88's backup-and-restore
+  runbook owns.
+
+Testcontainers is also substituted, by PGlite: it runs the actual generated
+migration SQL in a real Postgres (compiled to WASM), which is what the
+requirement was protecting — that migrations are exercised against Postgres
+semantics rather than a mock — without needing Docker in every test run.

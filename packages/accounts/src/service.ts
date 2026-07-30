@@ -18,14 +18,33 @@ import {
   verifyPassword,
 } from './crypto/password'
 import { generateToken, hashToken } from './crypto/tokens'
+import { matchBanFilter, type BanFilterSubject } from './ban-filter'
 import { foldIdentifier } from './case-fold'
-import type { AccountStore, AuthConfig, Clock, AccountRecord } from './ports'
+import type {
+  AccountStore,
+  AuthConfig,
+  BanFilterRepository,
+  Clock,
+  AccountRecord,
+} from './ports'
 
 export interface IdentityDeps {
   readonly store: AccountStore
   readonly config: AuthConfig
   /** Defaults to `() => new Date()`; injected in tests. */
   readonly clock?: Clock
+  /**
+   * F23 ban filters. Optional: a board with none configured, and the fixture
+   * path, simply do not supply it. When present it is consulted on **both**
+   * registration and login — a filter added after someone signed up has to stop
+   * them coming back, or it only keeps out people who were never here.
+   */
+  readonly banFilters?: BanFilterRepository
+}
+
+/** Request-scoped facts a filter may match on. */
+export interface RequestContext {
+  readonly ip?: string | undefined
 }
 
 export interface RegisterInput {
@@ -63,17 +82,26 @@ export class IdentityService {
   private readonly config: AuthConfig
   private readonly now: Clock
 
+  /** Optional (F23): absent on a board with no filters, and in the fixture path. */
+  private readonly banFilters: BanFilterRepository | undefined
+
   constructor(deps: IdentityDeps) {
     this.store = deps.store
     this.config = deps.config
     this.now = deps.clock ?? (() => new Date())
+    this.banFilters = deps.banFilters
   }
 
-  async register(input: RegisterInput): Promise<RegisterResult> {
+  async register(
+    input: RegisterInput,
+    context: RequestContext = {},
+  ): Promise<RegisterResult> {
     const username = input.username.trim()
     const email = input.email.trim()
     const usernameLower = foldIdentifier(username)
     const emailLower = foldIdentifier(email)
+
+    await this.assertNotFiltered({ username, email, ip: context.ip })
 
     this.assertUsername(username, usernameLower)
     this.assertEmail(email)
@@ -135,8 +163,16 @@ export class IdentityService {
     identifier: string,
     password: string,
     bucket: string,
+    context: RequestContext = {},
   ): Promise<LoginResult> {
     const at = this.now()
+
+    /*
+     * 0. IP filters first, before any hashing. There is no enumeration risk —
+     *    the address is the caller's own — and blocking early is the point: an
+     *    abusive network should not get to spend our Argon2 budget.
+     */
+    await this.assertNotFiltered({ ip: context.ip })
 
     // 1. Lockout check FIRST — before any hashing — so a locked bucket cannot be
     //    used as a hashing oracle or CPU sink.
@@ -177,6 +213,18 @@ export class IdentityService {
       throw new ForbiddenError('This account is not yet activated.')
     }
 
+    /*
+     * Username and email filters are checked *here*, after the password has
+     * already been proven, and deliberately not earlier. Checking them up front
+     * would answer "is this account filtered?" to anyone who can type a
+     * username — a user-enumeration oracle, and this method goes to some length
+     * elsewhere (the dummy hash) to avoid being exactly that.
+     *
+     * A filter added after someone registered has to stop them coming back, or
+     * it only keeps out people who were never here.
+     */
+    await this.assertNotFiltered({ username: account.username, email: account.email })
+
     // 3. Success. Clear the bucket and transparently upgrade a stale hash (F17).
     await this.store.loginAttempts.record(bucket, true, at)
     await this.store.loginAttempts.clear(bucket)
@@ -187,6 +235,24 @@ export class IdentityService {
     }
 
     return this.startSession(account, at)
+  }
+
+  /**
+   * Refuse a subject matched by a ban filter (F23).
+   *
+   * A no-op when no filter repository was supplied, so a board with no filters
+   * pays nothing. The message names neither the pattern nor the field: telling
+   * someone *which* rule caught them is a map for evading it.
+   */
+  private async assertNotFiltered(subject: BanFilterSubject): Promise<void> {
+    if (!this.banFilters) return
+
+    const match = matchBanFilter(await this.banFilters.listAll(), subject)
+    if (match) {
+      throw new ForbiddenError(
+        'This account cannot be used on this board. Contact an administrator if you believe this is a mistake.',
+      )
+    }
   }
 
   async logout(sessionToken: string): Promise<void> {

@@ -3,11 +3,15 @@
  * store with an injected clock, so lockout windows and token expiry are tested
  * deterministically without sleeping or a database.
  */
+import { ForbiddenError, ValidationError } from '@forum/core'
 import { argon2id } from 'hash-wasm'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { rejectionMessage } from './test-support.fixture'
+
 import { hashToken } from './crypto/tokens'
 import { createMemoryStore } from './memory-repos'
+import { MemoryBanFilters } from './memory-bans'
 import { IdentityService } from './service'
 import type { AccountStore, AuthConfig } from './ports'
 
@@ -342,5 +346,114 @@ describe('resolveSession', () => {
     const { token } = await service.requestPasswordReset('alice@example.com')
     await service.redeemPasswordReset(token!, 'a brand new password')
     expect(await service.resolveSession(login.sessionToken)).toBeNull()
+  })
+})
+
+describe('ban filters block registration and login (F23)', () => {
+  const CREDS = { username: 'newcomer', email: 'newcomer@spam.example', password: 'long-enough-pw' }
+
+  function serviceWith(filters: MemoryBanFilters) {
+    return new IdentityService({
+      store: createMemoryStore(),
+      config: BASE_CONFIG,
+      banFilters: filters,
+    })
+  }
+
+  it('blocks a filtered email at registration', async () => {
+    const filters = new MemoryBanFilters()
+    filters.add('email', '*@spam.example')
+
+    await expect(serviceWith(filters).register(CREDS)).rejects.toThrow(ForbiddenError)
+  })
+
+  it('blocks a filtered username at registration', async () => {
+    const filters = new MemoryBanFilters()
+    filters.add('username', 'newcom*')
+
+    await expect(serviceWith(filters).register(CREDS)).rejects.toThrow(ForbiddenError)
+  })
+
+  it('blocks a filtered IP at registration', async () => {
+    const filters = new MemoryBanFilters()
+    filters.add('ip', '192.0.2.*')
+
+    await expect(
+      serviceWith(filters).register(CREDS, { ip: '192.0.2.44' }),
+    ).rejects.toThrow(ForbiddenError)
+  })
+
+  it('lets an unfiltered registration through', async () => {
+    const filters = new MemoryBanFilters()
+    filters.add('email', '*@other.example')
+
+    await expect(serviceWith(filters).register(CREDS)).resolves.toBeDefined()
+  })
+
+  /*
+   * The half that is easy to forget. A filter added *after* someone registered
+   * has to stop them coming back — otherwise it only keeps out people who were
+   * never here, which is not what an administrator adding it expects.
+   */
+  it('blocks an existing account at login once a filter matches it', async () => {
+    const filters = new MemoryBanFilters()
+    const service = serviceWith(filters)
+
+    await service.register(CREDS)
+    await expect(
+      service.login(CREDS.username, CREDS.password, 'bucket'),
+    ).resolves.toBeDefined()
+
+    filters.add('email', '*@spam.example')
+
+    await expect(
+      service.login(CREDS.username, CREDS.password, 'bucket2'),
+    ).rejects.toThrow(ForbiddenError)
+  })
+
+  it('blocks a filtered IP at login before spending any hashing budget', async () => {
+    const filters = new MemoryBanFilters()
+    filters.add('ip', '192.0.2.*')
+    const service = serviceWith(filters)
+
+    await expect(
+      service.login('anyone', 'whatever', 'bucket', { ip: '192.0.2.9' }),
+    ).rejects.toThrow(ForbiddenError)
+  })
+
+  /*
+   * Checking username/email filters before the password verifies would answer
+   * "is this account filtered?" to anyone who can type a username — an
+   * enumeration oracle, which login goes to some length elsewhere to avoid.
+   */
+  it('does not reveal a filter to someone with the wrong password', async () => {
+    const filters = new MemoryBanFilters()
+    const service = serviceWith(filters)
+    await service.register(CREDS)
+    filters.add('email', '*@spam.example')
+
+    const attempt = () => service.login(CREDS.username, 'wrong-password', 'bucket3')
+
+    // The generic credential error, not the filter message — otherwise the
+    // response distinguishes "filtered" from "wrong password" and becomes the
+    // enumeration oracle this ordering exists to prevent.
+    await expect(attempt()).rejects.toThrow(ValidationError)
+    expect(await rejectionMessage(attempt())).toMatch(/Incorrect username or password/)
+  })
+
+  it('names neither the pattern nor the field, which would map a way around it', async () => {
+    const filters = new MemoryBanFilters()
+    filters.add('email', '*@spam.example')
+
+    const message = await rejectionMessage(serviceWith(filters)
+      .register(CREDS))
+
+    expect(message).not.toContain('spam.example')
+    expect(message).not.toContain('email')
+  })
+
+  it('does nothing when no filter repository is supplied', async () => {
+    const service = new IdentityService({ store: createMemoryStore(), config: BASE_CONFIG })
+    await expect(service.register(CREDS)).resolves.toBeDefined()
   })
 })

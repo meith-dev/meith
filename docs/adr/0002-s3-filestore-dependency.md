@@ -1,6 +1,6 @@
 # ADR 0002 — S3FileStore needs a dependency decision
 
-**Status:** Proposed — blocked on a human decision (invariant 2).
+**Status:** Accepted (2026-07-30). Option A — `@aws-sdk/client-s3`, lazy-loaded.
 
 ## Context
 
@@ -66,5 +66,17 @@ took the same view on password hashing).
 
 ## Decision
 
-**Pending.** F05 stays `PARTIAL` until this is answered, and F42 is blocked on
-it. Recorded rather than decided unilaterally, per the plan's stop-and-ask rule.
+**Option A.** `@aws-sdk/client-s3` is added as a runtime dependency of
+`@forum/drivers`, confined to `src/files/s3-file-store.ts` and reached only when
+`FILESTORE_DRIVER=s3`, via the same lazy-require shape `container.ts` uses for
+the Postgres branch. A board on local storage never loads it.
+
+Consequences to hold ourselves to:
+
+- The import must stay lazy. A static top-level import would pull the client
+  into every bundle, including boards that will never use S3 — which is the
+  entire reason this was a decision rather than an obvious yes.
+- `S3FileStore` must pass the F05 contract suite like every other driver.
+- Presigned URLs are what F42 relies on so a private attachment is not
+  downloadable by direct URL; that behaviour needs its own test, not just the
+  contract's "either signs or admits it cannot".
