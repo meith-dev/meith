@@ -99,7 +99,17 @@ export default defineConfig({
      */
     hookTimeout: 30_000,
     /*
-     * Fifteen suites now boot their own PGlite — a full Postgres compiled to
+     * The 5s default is a *test* timeout, and it is not generous enough for the
+     * Argon2id paths under load. `loginAction`'s lockout test hashes a password
+     * per attempt at the configured cost while several PGlite suites hold the
+     * other workers, and it began timing out at 5s once F38 added four more
+     * database suites — passing on its own, failing one run in a few in a full
+     * one. Raised rather than left as a re-run: same reasoning as the worker cap
+     * below. Still far below any plausible genuine hang.
+     */
+    testTimeout: 20_000,
+    /*
+     * Nineteen suites now boot their own PGlite — a full Postgres compiled to
      * WASM, held in process memory. Left unbounded, vitest starts one worker
      * per core and fifteen WASM databases compete for ten cores, so boot hooks
      * start missing even a 30s timeout. It failed roughly one run in three.

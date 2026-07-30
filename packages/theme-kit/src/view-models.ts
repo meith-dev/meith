@@ -390,16 +390,36 @@ export interface ThreadViewModel {
  * function could not cross to a client island, and a URL is what a native form
  * needs anyway. The app's `<form action={serverAction}>` wraps the slot.
  */
+/**
+ * The composer page (F39).
+ *
+ * The form *element* is a region rather than a set of value props, and that is
+ * a deliberate reversal of this model's first shape. A composer submits to a
+ * Server Action, and a Server Action reference is not plain data — D38 settled
+ * that such references never cross the theme contract, which is why logging out
+ * is also a form the app renders into a slot. So the theme owns the page around
+ * the form (heading, error, preview, where "cancel" goes) and the app owns the
+ * controls. See D42.
+ */
 export interface PostFormModel {
   readonly mode: 'thread' | 'reply' | 'edit'
-  readonly action: string
-  readonly subject: string
-  readonly message: string
-  readonly prefixes: readonly PrefixModel[]
+  /** e.g. "Post a new thread in General". */
+  readonly heading: string
+  /** Where a cancel link returns to — the forum, or the thread being replied to. */
+  readonly cancelHref: string
+  readonly cancelLabel: string
   readonly errorMessage: string | null
-  readonly submitLabel: string
-  readonly previewHtml: string | null
+  /*
+   * There is no `previewHtml` here yet, and its absence is deliberate. Preview
+   * state belongs to the submitted form — it is what the author just typed —
+   * so it renders inside the form region, where the action's result actually
+   * lands. When F36 can turn BBCode into HTML on the server, the rendered
+   * preview becomes a slot concern and this model gains the field. Carrying it
+   * now would be a prop no theme could ever fill.
+   */
   readonly regions: {
+    /** The app-rendered `<form>` carrying the Server Action and its controls. */
+    readonly form: ReactNode
     /**
      * The `EditorToolbar` island, or `null`. A `null` here must leave a working
      * plain-textarea form: the island enhances, it never enables (R5).

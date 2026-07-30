@@ -36,6 +36,12 @@ either subject to the board interval or exempt from it. Reintroducing
 granularity later means adding a `numeric-min` kind to
 `packages/core/src/permissions.ts` and one row per actor to the F22 fixture.
 
+**Live since F39/F40.** `posting.flood_seconds` is read by the posting path and
+the exemption is asked for as the global action `flood.bypass`, so no permission
+field escapes `@forum/authorization` (R4). Administrators bypass it like any
+other action; the F22 forum matrix does not carry a column for it, because the
+interval is a board setting rather than a per-forum grant.
+
 ---
 
 ## Permission field naming

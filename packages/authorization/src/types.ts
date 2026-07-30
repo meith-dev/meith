@@ -78,6 +78,16 @@ export type Action =
   | 'pm.use'
   | 'modcp.access'
   | 'admincp.access'
+  /**
+   * Exempt from the between-posts flood interval (F39/F40).
+   *
+   * Global, and deliberately not in the F22 forum matrix: the interval is a
+   * board setting rather than a per-forum grant, which is the parity decision
+   * recorded in `docs/mybb-parity.md#flood-intervals`. It exists as an action so
+   * the posting path can ask `can()` instead of reading a permission field —
+   * group and permission reasoning does not leave this package (R4).
+   */
+  | 'flood.bypass'
 
 /** The visibility state of a piece of content (mirrors the DB enum). */
 export type ContentVisibility = 'visible' | 'unapproved' | 'deleted'

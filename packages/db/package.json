@@ -9,10 +9,12 @@
     "@forum/accounts": "workspace:*",
     "@forum/authorization": "workspace:*",
     "@forum/core": "workspace:*",
+    "@forum/events": "workspace:*",
     "@forum/forums": "workspace:*",
     "@forum/groups": "workspace:*",
     "@forum/settings": "workspace:*",
     "@forum/tasks": "workspace:*",
+    "@forum/threads": "workspace:*",
     "drizzle-orm": "^0.44.7",
     "postgres": "^3.4.7"
   },

@@ -72,6 +72,14 @@ const ADMIN_ALWAYS: ReadonlySet<Action> = new Set<Action>([
   'profile.view',
   'memberlist.view',
   'pm.use',
+  /*
+   * An administrator is not rate-limited between posts. The interval exists to
+   * slow down abuse, and an administrator who has to wait fifteen seconds while
+   * clearing a spam wave is being obstructed by a defence aimed at somebody
+   * else. Logged like every other bypass, and cheap to audit — a post is not a
+   * hot path.
+   */
+  'flood.bypass',
 ])
 
 export class Authorizer {
@@ -271,6 +279,8 @@ export class Authorizer {
         return actor.global.canAccessModCp === true
       case 'admincp.access':
         return actor.global.canAccessAdminCp === true
+      case 'flood.bypass':
+        return actor.global.canBypassFloodCheck === true
       default:
         return false
     }

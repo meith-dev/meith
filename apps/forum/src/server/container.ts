@@ -34,11 +34,17 @@ import {
 import { env, logger } from '@forum/core'
 import { CachedForumRepository, type ForumRepository } from '@forum/forums'
 import type { PostRepository } from '@forum/posts'
-import type { ReadStateRepository, ThreadRepository } from '@forum/threads'
+import type {
+  ReadStateRepository,
+  ReplyWriteRepository,
+  ThreadRepository,
+  ThreadWriteRepository,
+} from '@forum/threads'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@forum/tasks'
 import { drivers } from '@forum/drivers'
 
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
+import { buildEventRegistry } from './event-handlers'
 import { FixtureActorSource } from './fixture-actor-source'
 import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
@@ -64,12 +70,29 @@ export interface Container {
   readonly forums: ForumRepository
   /** Keyset-paged thread listing (F30). */
   readonly threads: ThreadRepository
+  /**
+   * The posting write path — new threads (F39) and replies (F40). One object
+   * because both write a post and both read the same forum flags; splitting
+   * them would mean two adapters over the same three tables.
+   *
+   * `null` in fixture mode, which serves sample data from memory and would lose
+   * a thread on restart — the same refusal `FixtureForumRepository` makes for
+   * structure (D38). The composer and reply routes, and the links to them, are
+   * absent rather than broken when this is null.
+   */
+  readonly threadWrites: (ThreadWriteRepository & ReplyWriteRepository) | null
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
   readonly readState: ReadStateRepository | null
   /** Public profile lookup; deleted accounts deliberately do not resolve. */
   readonly memberProfiles: MemberProfileRepository
+  /**
+   * Buffered thread views (F38). `null` in fixture mode, which has no durable
+   * store to buffer into — and a view count that resets on restart is worse
+   * than an absent one, because it looks maintained.
+   */
+  readonly threadViews: ThreadViewRecorder | null
   /** Fixture data revision; makes HMR replace repositories holding old seed rows. */
   readonly fixtureDataVersion: number | null
   /**
@@ -82,6 +105,11 @@ export interface Container {
    */
   readonly scheduler: SchedulerBundle | null
   readonly dataSource: 'fixture' | 'postgres'
+}
+
+/** The half of F38's view buffer a request path is allowed to touch. */
+export interface ThreadViewRecorder {
+  record(threadId: number): Promise<void>
 }
 
 /** Everything `/api/system/tick` needs to do a real run. */
@@ -138,9 +166,11 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     actorSource: new FixtureActorSource(store),
     forums: cached(new FixtureForumRepository()),
     threads: new FixtureThreadRepository(),
+    threadWrites: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
+    threadViews: null,
     fixtureDataVersion: FIXTURE_DATA_VERSION,
     ...identityServices(store),
     // See SchedulerBundle: a tick without durable, cross-instance state cannot
@@ -200,11 +230,12 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
   const store: AccountStore = createPostgresAccountStore(db)
+  const threadViews = new PostgresThreadViewBuffer(db)
   return {
     authorizationSource,
     authorizer: new Authorizer(authorizationSource, { onBypass }),
@@ -214,9 +245,11 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     actorSource: new ActorBuilder(db, { guestGroupId: 1 }),
     forums: cached(new PostgresForumRepository(db)),
     threads: new PostgresThreadRepository(db),
+    threadWrites: new PostgresThreadWriteRepository(db),
     posts: new PostgresPostRepository(db),
     readState: new PostgresReadStateRepository(db),
     memberProfiles: new PostgresMemberProfileRepository(db),
+    threadViews,
     fixtureDataVersion: null,
     ...identityServices(store),
     scheduler: {
@@ -233,6 +266,12 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
           promotions: new PostgresPromotionRepository(db),
           guards: defaultPromotionGuards(),
           maintenance: new PostgresMaintenanceRepository(db),
+          outbox: new PostgresOutboxReader(db),
+          events: buildEventRegistry({
+            counters: new PostgresContentCounterRepository(db),
+          }),
+          recount: new PostgresCounterRecount(db),
+          threadViews,
         }),
       ),
     },
@@ -256,6 +295,8 @@ export function getContainer(): Container {
     typeof cached.posts?.listThread !== 'function' ||
     typeof cached.posts?.findVisibleById !== 'function' ||
     cached.readState === undefined ||
+    cached.threadViews === undefined ||
+    cached.threadWrites === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

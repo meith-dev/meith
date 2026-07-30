@@ -1349,3 +1349,247 @@ which prevents a late-arriving older reply from moving a thread or forum
 backwards. This was caught by the real Postgres test using equal timestamps;
 the initial implementation left the thread pointer null while the forum pointer
 looked correct.
+
+### D41 — Where each counter becomes true, and how it gets back (F38)
+
+F38 promised four things: atomic counters, an outbox ancestor roll-up, buffered
+views, and a batched resumable recount. The first landed with D40. The other
+three each forced a decision.
+
+#### Forum counters are subtree-inclusive, and only the posting forum is exact
+
+A category with no threads of its own must still show totals, so a forum's
+counters cover its whole subtree. That leaves the question of *when* each row
+becomes true, and the answer differs by distance:
+
+- the **posting forum** is updated inside the content transaction, because the
+  page the author is redirected to must already agree with what they just did;
+- **ancestors** are updated from the `post.created` event, because a post four
+  levels deep would otherwise make every reply write four more rows inside the
+  request, and the depth is unbounded.
+
+So a category can lag its children by one tick. That is visible only as a count
+being briefly low, never as a wrong tree — and the alternative, computing the
+totals at read time, is the aggregate over the whole board that the denormalised
+columns exist to avoid.
+
+#### The roll-up carries a ledger because delivery is at-least-once
+
+The relay marks an outbox row dispatched *after* the enqueue returns, and the
+queue re-runs a job whose worker died mid-handler. Both are deliberate: a
+duplicate is recoverable and a lost event is not. But a roll-up is a delta, and
+replaying `+1` against five ancestors is exactly the drift the recount exists to
+repair.
+
+`content_counter_rollups` holds one row per post whose ancestors have been
+counted, inserted in the same transaction as the update. A redelivered event
+finds it and does nothing. This is deliberately not a boolean on `posts`: that
+would make every roll-up a second write to the hottest table on the board, and
+the ledger is also the natural place for F41 to record a visibility transition
+that has already been applied.
+
+#### Views are buffered, and losing them is the accepted trade
+
+`threads` carries the R3.5 listing index. Incrementing `view_count` in place
+makes every page view a write to the row the busiest read path sorts on. Views
+are therefore counted in `thread_view_buffer` and folded in by a task every five
+minutes.
+
+An unflushed buffer lost to a restore loses those views. That is acceptable for
+this counter and no other, for a reason worth stating: `view_count` is the only
+counter on the board that **cannot be recomputed from source rows**. Nothing
+records who viewed what, so the recount below has nothing to say about it — which
+is also why it is the one number nobody can audit and nothing depends on.
+
+#### The recount writes truth, in phases, from a stored cursor
+
+It runs threads → forums → users, bounded by batch size, resuming from
+`counter_recount_state`. Two consequences are load-bearing:
+
+- it writes a **computed value, never a delta**, so interrupting it mid-sweep is
+  harmless and a second sweep over a healthy board corrects nothing — which is
+  what makes a rising `corrected` total a real signal of drift rather than noise;
+- it advances the phase on a *short* batch rather than an empty one, saving one
+  wasted run per phase per sweep at no cost, because re-reading rows has no
+  side effects by construction.
+
+Threads run before forums because forum totals aggregate the same post rows, so
+one sweep leaves the two consistent instead of one sweep apart.
+
+**One definition of "counts" throughout:** a post counts when the post is visible
+*and its thread is*. A visible post inside a soft-deleted thread counts nowhere —
+not for its forum, not for its author. The incremental writer never sees that
+case (new content is always visible), so the two only had to be reconciled here.
+The per-user aggregate needed a `FILTER` rather than a `WHERE` to say it: with a
+`WHERE`, an author whose every post sits in a deleted thread drops out of the
+aggregate entirely and the update leaves exactly the stale count it was meant to
+fix. That is now a test.
+
+#### Smaller things this turned up
+
+- **`post.created` was being written to nothing.** The outbox had no Postgres
+  reader, so the relay could not run, so nothing consumed the event D40's
+  primitive commits. `PostgresOutboxReader` plus handler dispatch in the queue
+  drain closes it, and `outbox.relay` registers itself as a result. A claim bumps
+  `attempts` and gives up after ten, so a poison event stops blocking the backlog
+  behind it while staying visible to an operator.
+- **The schema-drift CI step checks a directory that does not exist.** It runs
+  `drizzle-kit generate` and then inspects `packages/db/drizzle`, but migrations
+  live in `packages/db/migrations`, so the step has always passed vacuously.
+  Pointing it at the real directory would fail today for a real reason: the meta
+  snapshot has been stale since `0002`, which was hand-written like `0003`, so
+  `generate` wants to re-create tables that already exist. Recorded rather than
+  patched — repairing the snapshot is its own change, and a guard that fails for
+  the wrong reason is no better than one that never fires (D10).
+- **The default 5s test timeout stopped being enough.** Four more PGlite suites
+  pushed `loginAction`'s lockout test — which hashes a password per attempt at
+  the configured Argon2id cost — past it under a full run while passing alone.
+  Raised to 20s with the reasoning D34 used for the worker cap: a gate that
+  fails one run in a few teaches people to re-run, and then a real failure gets
+  re-run too.
+
+### D42 — The composer's form belongs to the app, not the theme (F39)
+
+`PostFormModel` was registered in F25 with value props — `action`, `subject`,
+`message`, `prefixes`, `submitLabel` — on the assumption that a theme would
+render the whole form from data. Building it showed that shape cannot work.
+
+A composer submits to a Server Action, and a Server Action reference is **not
+plain data**. D38 already settled what follows: such references never cross the
+theme contract, which is why logging out is a form the app renders into the user
+panel slot rather than a `LinkModel`. The alternative — posting to a Route
+Handler so `action` could stay a string — costs the author their draft on every
+validation error, because a handler can only redirect and a redirect cannot
+carry a post body back.
+
+So the model now carries the page (heading, cancel target, route-level error)
+and `regions.form` carries the app-rendered `<form>`. The theme still owns
+everything visible around it, and the auth screens already establish the
+pattern: app-owned forms, built from token-styled controls, framed by theme
+slots.
+
+`previewHtml` was dropped rather than kept as a field no theme could fill.
+Preview state is what the author just typed and it comes back through the
+action's result, so it renders inside the form region; when F36 can turn BBCode
+into sanitised HTML on the server, rendering the preview becomes a slot concern
+and the field returns. Until then the preview escapes its input and shows plain
+text — the same fallback F31 uses for post bodies, and for the same reason.
+
+This is a public-contract change, which F77 is the freeze for. Nothing outside
+`themes/default` implements the slot yet, so the cost is a documented decision
+rather than a migration.
+
+#### What else F39 settled
+
+- **Moderation is a visibility, not a queue.** A held thread is written with
+  `visibility: 'unapproved'`, moves no counter and emits no event. Approval
+  (F48) is the transition that applies them. Writing the counters now and
+  correcting them at approval would show the board a thread count for content
+  nobody can read.
+- **A held thread redirects to its forum, not to itself.** Sending the author to
+  a thread that is invisible to them is a 404 on their own post. The forum says
+  what happened, and the notice's dismiss link is the same URL without the
+  parameter — no JavaScript, no state.
+- **Flood control is measured from the author's last post**, including posts
+  awaiting approval. A serverless instance holds no memory between requests, so
+  an in-process counter would let one post through per instance; the database
+  already knows when they last posted. Counting held posts matters because
+  otherwise moderation is the cheapest way to flood.
+- **Preview never writes and never reads.** It returns only what was submitted,
+  before authorisation, because previewing your own draft asks nothing of the
+  board.
+- **Settings are finally read.** `posting.flood_seconds` and
+  `posting.max_length` are the first settings any request path consults: the
+  registry, its migration and its CLI commands all existed, but an operator
+  changing a value changed nothing. `getSettings()` reads them through F10's
+  tagged global cache with a short TTL — a CLI write happens in another process
+  and cannot invalidate the tag, so the entry has to expire on its own.
+
+#### Smaller things this turned up
+
+- **The posting flags were not in any read model.** `is_open`, `allow_threads`,
+  `requires_prefix` and `moderate_new_threads` exist as columns that no read
+  path selects. Rather than widening `ForumRow` — which the index, the listing
+  and the thread view all use, and none of which care — the posting port reads
+  them itself. A read model that grows a column per screen ends up a table dump.
+- **Fixture mode has no composer at all.** `threadWrites` is null there, the
+  route 404s and the "New thread" link is absent, following D38's rule for
+  forum writes and D32's for tasks: never advertise a capability that is not
+  there. The cost is real and is recorded as F39's gap — the no-JS Playwright
+  suite runs against the fixture board, so it can prove reading and
+  registration without JavaScript but cannot yet prove posting. The action's
+  own tests drive it with `FormData`, which is exactly what a native submit
+  sends, so the no-JS path is covered by test rather than by browser.
+
+### D43 — Replying, quoting, and where a reply lands (F40)
+
+A reply reuses everything F39 built — length limits, flood interval, moderation
+decision, one transaction for post plus counters — so `ReplyComposer` differs
+from `ThreadComposer` only in what can refuse it and in one counter. Three
+things needed deciding.
+
+#### The race is reported, never enforced
+
+The reply form carries the newest post the author had seen. On submit the
+composer compares it with the thread's current one and reports the difference;
+it does not block the write. Refusing would cost somebody their reply to protect
+them from an overlap that is usually harmless, and the alternative flow — hold
+the text, show what arrived, ask them to confirm — is a second round trip that
+still cannot promise nobody replies during it.
+
+The comparison happens *after* the write on purpose. Checking first makes a
+reply that lands in the same moment decide the answer, which is the race it is
+supposed to be describing.
+
+#### A quote is a prefilled textarea, resolved on the server
+
+Quoting is a link to the reply page with `?quote=<id>`, so it works with
+scripting off — no button that edits a textarea, no island. The quoted post is
+re-read through a thread-scoped visible-post lookup rather than trusted from the
+query string: without the thread in the lookup, `?quote=<id>` is a way to paste
+any post on the board — including one from a forum the quoter cannot read — into
+a forum where everyone can.
+
+It emits BBCode (`[quote='ada' pid='12']…[/quote]`) even though nothing renders
+it yet. Bodies are stored raw and rendered at read time, so a quote written
+today shows its own markup until F36 lands and becomes a real quote block the
+moment it does. A plain-text convention would be wrong forever and would need
+migrating. The attributes match MyBB's, so F85's importer and F87's corpus pass
+see one format. The quoted body goes in verbatim — escaping it here would
+corrupt the quote of a post that itself contains markup, and rendering is where
+escaping belongs.
+
+#### Landing the author on their own reply
+
+Posts page forward by id (F31), so "which page is post N on" has no cheap
+answer — getting it exactly right needs the count query the keyset design exists
+to avoid. Two cases cover it honestly: while the reply fits on the first page,
+the anchor alone lands on it in context; past that, a cursor one below the reply
+opens a page beginning with it. The second loses the posts above, and that is
+the stated price of not counting.
+
+#### Smaller things
+
+- **`moderate_new_posts`, not `moderate_new_threads`.** A forum can hold replies
+  while letting threads through, and the columns have existed since F16 with
+  nothing reading them. Both are now read, and the reply path uses the one that
+  is about replies.
+- **A locked thread is a moderator's to answer.** The bypass is the same "deals
+  with the queue" permission the moderation bypass uses, tested by a mutant that
+  hands it to everyone.
+- **Replies raise no thread count anywhere.** `applyCreatedContentCounters`
+  takes `isNewThread: false`, and the PGlite test asserts the counter that must
+  *not* move: getting it wrong inflates every ancestor's thread total by one per
+  reply, which no reader would ever question.
+- **`POSTS_PER_PAGE` moved out of its route.** The reply redirect needs the page
+  size from outside the page, and two files disagreeing about it would send
+  people to the wrong page.
+- **The flood bypass was reading the wrong permission.** F39 shipped with
+  `content.viewUnapproved` standing in for it, which is a silent divergence from
+  a decision already on record: `docs/mybb-parity.md#flood-intervals` says the
+  interval is a board setting plus the `canBypassFloodCheck` boolean. That
+  boolean had no way to be asked for, so the posting path could not use it. It
+  now has a global `flood.bypass` action — outside the F22 forum matrix, because
+  the interval is not a per-forum grant — and administrators are in
+  `ADMIN_ALWAYS` for it, since an administrator waiting fifteen seconds while
+  clearing a spam wave is obstructed by a defence aimed at somebody else.

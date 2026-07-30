@@ -16,6 +16,11 @@ import 'server-only'
 import type { TaskWorkers } from '@forum/tasks'
 import { BanService, type BanRepository } from '@forum/accounts'
 import { PromotionService, type PromotionGuards } from '@forum/groups'
+import {
+  relayOutbox as runOutboxRelay,
+  type EventRegistry,
+  type OutboxReader,
+} from '@forum/events'
 import type { QueueDriver } from '@forum/core'
 
 import { SEED_GROUP } from './seed-board'
@@ -29,6 +34,13 @@ export interface TaskWorkerDeps {
     pruneSessions(now: Date, limit?: number): Promise<number>
     pruneExpiredTokens(now: Date, limit?: number): Promise<number>
   }
+  /** The outbox's read side, and the handlers its events fan out to (F07). */
+  readonly outbox: OutboxReader
+  readonly events: EventRegistry
+  /** F38's bounded resumable recount. */
+  readonly recount: { run(batchSize: number): Promise<{ corrected: number }> }
+  /** F38's view buffer. */
+  readonly threadViews: { flush(limit: number): Promise<number> }
 }
 
 /**
@@ -53,15 +65,10 @@ export function defaultPromotionGuards(): PromotionGuards {
 /**
  * Build the worker set.
  *
- * Deliberately **partial**. Two workers have no implementation yet and are
- * omitted rather than stubbed:
- *
- *  - `reconcileCounters` needs F38 — there are no maintained counters to
- *    reconcile, so a stub would report a healthy run of nothing;
- *  - `relayOutbox` needs an `OutboxReader`/`RelayTarget` over Postgres, which
- *    `@forum/db` does not implement yet.
- *
- * Each appears as a registered task the moment its worker does.
+ * Still typed as **partial**: `builtinTasks` registers a task only when its
+ * worker is present, and that filter is what keeps an unimplemented feature off
+ * the System Health screen instead of showing it as a healthy run of nothing
+ * (D32). Every worker the built-in task list names now exists.
  */
 export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
   const bans = new BanService({ bans: deps.bans, bannedGroupId: SEED_GROUP.banned })
@@ -71,17 +78,54 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
   })
 
   return {
+    /**
+     * Move committed events onto the queue.
+     *
+     * The relay enqueues one job per (event, handler) pair, keyed by
+     * `outbox:<row>:<handler>`, and only marks the row dispatched once the
+     * enqueue has returned. Dying in between re-relays the event, which the
+     * key deduplicates and — where it cannot, because the first job already
+     * ran — the handler's own idempotency absorbs.
+     */
+    async relayOutbox(batchSize) {
+      const { claimed } = await runOutboxRelay({
+        reader: deps.outbox,
+        target: {
+          async enqueue(jobs) {
+            for (const job of jobs) {
+              await deps.queue.enqueue(job.name, job.payload, {
+                dedupeKey: job.idempotencyKey,
+              })
+            }
+          },
+        },
+        handlerIdsFor: (event) => deps.events.handlerIdsFor(event),
+        batchSize,
+      })
+      return claimed
+    },
+
     async drainQueue(batchSize) {
-      const { processed } = await deps.queue.drain(batchSize, async () => {
-        /*
-         * Handler dispatch arrives with the outbox relay: until events are
-         * relayed onto the queue there is nothing enqueued to dispatch, so a
-         * handler registry here would have no callers. Draining still matters —
-         * it is what proves the queue is wired and drains anything a test or
-         * the CLI enqueues.
-         */
+      /*
+       * A relayed job's `kind` *is* the handler id — that is the whole contract
+       * between the relay and this drain. An unknown id is a no-op rather than a
+       * throw: a rolling deploy can leave jobs naming a handler this build
+       * removed, and retrying those forever would eventually dead-letter every
+       * one of them for no reason.
+       */
+      const { processed } = await deps.queue.drain(batchSize, async (job) => {
+        await deps.events.dispatch(job.kind, job.payload)
       })
       return processed
+    },
+
+    async reconcileCounters(batchSize) {
+      const { corrected } = await deps.recount.run(batchSize)
+      return corrected
+    },
+
+    async flushThreadViews(batchSize) {
+      return deps.threadViews.flush(batchSize)
     },
 
     async pruneSessions() {

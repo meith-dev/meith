@@ -130,6 +130,20 @@ written:
 **Islands enhance; they never enable.** If removing a client component breaks a
 page, it was not an island. Write the server path first and the island second.
 
+### Forms that live in a theme slot
+
+A page whose whole content is a form — the composer, and every editor after it —
+splits in two: the **theme** renders the page around it, the **app** renders the
+`<form>` into a region. The reason is mechanical rather than stylistic: the form
+element carries a Server Action reference, and those are not plain data, so they
+never cross the theme contract (D38, D42). Controls are built from the shared
+token-styled primitives in `src/components/auth/form-controls.tsx`, which is
+what keeps an app-owned form looking like part of the theme.
+
+A slot model should not carry a prop no theme can fill. If a value only exists
+after a submit — a preview of what was typed, a per-field error — it belongs
+inside the form region, not in the view model.
+
 ---
 
 ## Errors
@@ -183,6 +197,36 @@ Read `packages/core/src/cache.ts` before caching anything.
   clears it again. `CachedForumRepository` pins this ordering with a test.
 - A cached region may not read `cookies()`, `headers()`, `getActor()` or
   `getUserId()` — guarded by `F10 no-request-state-in-cache`.
+
+---
+
+## Counters and event handlers
+
+A denormalised counter has three obligations, and a change that adds one has to
+satisfy all three (R5, and F38 is the worked example):
+
+- **Write it in the transaction that writes the content.** Counters and the row
+  they describe move together or not at all. `applyCreatedContentCounters()`
+  takes the caller's transaction handle for exactly this reason — it has no
+  ambient database handle to reach for.
+- **Emit the event in the same transaction.** Anything that cannot be afforded
+  inside the request — an ancestor walk, a fan-out — goes through the outbox, so
+  a rolled-back write emits nothing.
+- **Give it a recount.** Incremental maintenance drifts. Every counter needs a
+  path back to a computed truth, batched and resumable (`PostgresCounterRecount`).
+  A counter with no recount is a number that is wrong forever after one crash.
+
+Event handlers live in `src/server/event-handlers.ts` and are built per
+container, never registered onto a module-level singleton — registration throws
+on a duplicate id, and a dev server re-evaluating the module would hit that on
+its second pass.
+
+**Handlers are idempotent, without exception.** The relay marks an outbox row
+dispatched after the enqueue returns and the queue re-runs a job whose worker
+died mid-handler, so every handler is delivered at least once and sometimes
+twice. A handler that writes a *computed* value gets this for free; one that
+applies a **delta** must record what it has applied — F38's roll-up ledger is
+the pattern to copy.
 
 ---
 

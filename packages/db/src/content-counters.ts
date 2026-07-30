@@ -3,6 +3,7 @@ import type { SQLWrapper } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
+import { resultRows } from './result-rows'
 
 /** The content write has already inserted before this is called. */
 export interface CreatedContent {
@@ -96,11 +97,108 @@ export async function applyCreatedContentCounters(
   `)
 }
 
+/**
+ * Add a created post to its forum's **ancestors**.
+ *
+ * Forum counters are subtree-inclusive: a category shows the totals of
+ * everything beneath it, which is what makes the board index's category rows
+ * mean anything. The posting forum is counted synchronously (above) because the
+ * page the author lands on must be right; ancestors are counted here, from the
+ * `post.created` event, because a post four levels deep would otherwise make
+ * every reply update four rows inside the request.
+ *
+ * Idempotent against replay. The outbox relay is at-least-once by construction
+ * (F07), and this is a delta — so the ledger insert and the update share one
+ * transaction, and a redelivered event finds its post id already present and
+ * changes nothing. Returns whether the roll-up was applied by *this* call.
+ */
+export async function rollUpAncestorCounters(
+  db: Database,
+  postId: number,
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    /*
+     * Claim and filter in one statement. No row comes back in three distinct
+     * cases — already rolled up, post deleted since the event was written, post
+     * not visible (moderated) — and all three mean the same thing here. A
+     * post that is approved later is counted by F41's visibility transition,
+     * not by re-running this.
+     */
+    const claimed = await tx.execute(sql`
+      insert into content_counter_rollups (post_id)
+      select p.id from posts p
+       where p.id = ${postId} and p.visibility = 'visible'
+      on conflict (post_id) do nothing
+      returning post_id
+    `)
+    if (resultRows(claimed).length === 0) return false
+
+    const found = await tx.execute(sql`
+      select p.thread_id, p.forum_id, p.author_user_id, p.author_username,
+             p.created_at, p.is_first_post, t.title as thread_title
+        from posts p
+        join threads t on t.id = p.thread_id
+       where p.id = ${postId}
+    `)
+    const post = resultRows(found)[0] as
+      | {
+          thread_id: number
+          forum_id: number
+          author_user_id: number | null
+          author_username: string
+          created_at: Date
+          is_first_post: boolean
+          thread_title: string
+        }
+      | undefined
+    if (!post) return false
+
+    /*
+     * Same ordering as the direct write — timestamp, then post id as the
+     * tie-breaker — so a reply that arrives late with an older timestamp cannot
+     * drag a category's last-post column backwards.
+     */
+    const ancestorNewer = sql`f.last_post_at is null or f.last_post_id is null
+      or f.last_post_at < ${post.created_at}
+      or (f.last_post_at = ${post.created_at} and f.last_post_id < ${postId})`
+
+    /*
+     * Ancestors are the forums whose path is a proper prefix of this forum's,
+     * terminated by a separator. The trailing dot is not decoration: without it
+     * `1.4` matches `1.40`'s path and a sibling subtree inherits the count —
+     * the same prefix trap D22 documents for the tree itself.
+     */
+    await tx.execute(sql`
+      update forums f
+         set post_count = f.post_count + 1,
+             thread_count = f.thread_count + ${post.is_first_post ? 1 : 0},
+             last_post_id = case when ${ancestorNewer} then ${postId} else f.last_post_id end,
+             last_post_thread_id = case when ${ancestorNewer} then ${post.thread_id} else f.last_post_thread_id end,
+             last_post_thread_title = case when ${ancestorNewer} then ${post.thread_title} else f.last_post_thread_title end,
+             last_post_user_id = case when ${ancestorNewer} then ${post.author_user_id} else f.last_post_user_id end,
+             last_post_username = case when ${ancestorNewer} then ${post.author_username} else f.last_post_username end,
+             last_post_at = case when ${ancestorNewer} then ${post.created_at} else f.last_post_at end,
+             updated_at = now()
+        from forums child
+       where child.id = ${post.forum_id}
+         and f.id <> child.id
+         and child.path like f.path || '.%'
+    `)
+
+    return true
+  })
+}
+
 /** Convenience for an operational import; request writers use the function above. */
 export class PostgresContentCounterRepository {
   constructor(private readonly db: Database) {}
 
   async recordCreated(content: CreatedContent): Promise<void> {
     await this.db.transaction((tx) => applyCreatedContentCounters(tx, content))
+  }
+
+  /** Applies one `post.created` event to the posting forum's ancestors. */
+  async rollUpAncestors(postId: number): Promise<boolean> {
+    return rollUpAncestorCounters(this.db, postId)
   }
 }

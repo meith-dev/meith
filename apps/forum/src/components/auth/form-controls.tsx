@@ -60,6 +60,8 @@ interface FieldProps {
   required?: boolean | undefined
   defaultValue?: string | undefined
   minLength?: number | undefined
+  /** Mirrors a server-side limit; never the only enforcement of one. */
+  maxLength?: number | undefined
   hint?: string | undefined
 }
 
@@ -71,6 +73,7 @@ export function Field({
   required = true,
   defaultValue,
   minLength,
+  maxLength,
   hint,
 }: FieldProps) {
   const hintId = hint ? `${name}-hint` : undefined
@@ -84,6 +87,7 @@ export function Field({
         required={required}
         defaultValue={defaultValue}
         minLength={minLength}
+        maxLength={maxLength}
         aria-describedby={hintId}
         className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
       />

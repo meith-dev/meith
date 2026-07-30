@@ -29,6 +29,7 @@ export {
 export { ActorBuilder, type ActorBuilderConfig } from './actor-builder'
 export { PostgresForumRepository } from './forum-repo'
 export { PostgresThreadRepository } from './thread-repo'
+export { PostgresThreadWriteRepository } from './thread-writes'
 export { PostgresPostRepository } from './post-repo'
 export { PostgresReadStateRepository } from './read-state-repo'
 export { PostgresMemberProfileRepository } from './member-profile-repo'
@@ -36,9 +37,18 @@ export { PostgresSettingsRepository } from './settings-repo'
 export { PostgresThemeRepository, type ThemeRuntimeRecord } from './theme-repo'
 export {
   applyCreatedContentCounters,
+  rollUpAncestorCounters,
   PostgresContentCounterRepository,
   type CreatedContent,
 } from './content-counters'
+export { PostgresThreadViewBuffer } from './thread-views'
+export {
+  PostgresCounterRecount,
+  RECOUNT_PHASES,
+  type RecountPhase,
+  type RecountRun,
+} from './counter-recount'
+export { PostgresOutboxReader } from './outbox-repo'
 export {
   PostgresBanFilterRepository,
   PostgresBanRepository,

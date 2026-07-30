@@ -89,6 +89,11 @@ export interface ForumDisplayInput {
   readonly page: ThreadPage;
   readonly pageNumber: number;
   readonly nextHref: string | null;
+  /**
+   * Where the composer lives, or `null` when this viewer may not post here —
+   * a link nobody may follow is an invitation to a 404 (F39).
+   */
+  readonly newThreadHref?: string | null;
   readonly readState?: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null;
   readonly markReadAction?: string | null;
   readonly now: Date;
@@ -107,8 +112,7 @@ export function buildForumDisplayView(
   return {
     display: {
       forum: forum(input.forum),
-      // F39 owns new-thread creation. F32 supplies the native read form target.
-      newThreadHref: null,
+      newThreadHref: input.newThreadHref ?? null,
       markReadAction: input.markReadAction ?? null,
     },
     subforums:
