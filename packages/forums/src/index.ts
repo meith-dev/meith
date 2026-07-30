@@ -29,8 +29,10 @@ export type { ForumRepository } from './ports'
 
 export {
   FORUM_TYPES,
+  type ForumListingRow,
   type ForumNode,
   type ForumRow,
+  type LastPostSummary,
   type ForumType,
   type MovePlan,
   type MoveTarget,

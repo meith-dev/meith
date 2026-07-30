@@ -16,6 +16,7 @@ import {
   type PermissionSet,
 } from '@forum/core'
 import type { GroupDefaults, MemoryBoard } from '@forum/authorization'
+import type { ForumListingRow } from '@forum/forums'
 
 /** Canonical seed groups (must match the seed migration). */
 /**
@@ -41,6 +42,17 @@ export const SEED_GROUP = {
 
 /** Canonical seed forums. */
 export const SEED_FORUM = {
+  /**
+   * The category the two top-level forums sit under (F29).
+   *
+   * A category is a forum row of `type: 'category'`: it holds no threads and
+   * renders as the heading of a block on the index. It carries no permission
+   * overrides, so it changes no resolution — every ancestor walk through it
+   * finds no row and inherits, which is the nullable-column inheritance F21
+   * already tests. It exists so the fixture board has the shape a real board
+   * has, rather than two orphan forums the index has to invent a heading for.
+   */
+  community: 10,
   announcements: 100,
   general: 200,
   generalOffTopic: 201, // child of general
@@ -99,12 +111,19 @@ const ANNOUNCEMENT_READONLY: Partial<ForumPermissions> = {
 
 export const SEED_BOARD: MemoryBoard = {
   groups: GROUPS,
+  /*
+   * Nearest-first and inclusive, per the port contract. Every chain now ends at
+   * the category, which is what makes the ancestor walk in the fixture match the
+   * one Postgres derives from `path`.
+   */
   chains: {
-    [SEED_FORUM.announcements]: [SEED_FORUM.announcements],
-    [SEED_FORUM.general]: [SEED_FORUM.general],
+    [SEED_FORUM.community]: [SEED_FORUM.community],
+    [SEED_FORUM.announcements]: [SEED_FORUM.announcements, SEED_FORUM.community],
+    [SEED_FORUM.general]: [SEED_FORUM.general, SEED_FORUM.community],
     [SEED_FORUM.generalOffTopic]: [
       SEED_FORUM.generalOffTopic,
       SEED_FORUM.general,
+      SEED_FORUM.community,
     ],
   },
   overrides: [
@@ -120,3 +139,105 @@ export const SEED_BOARD: MemoryBoard = {
     },
   ],
 }
+
+/* ------------------------------------------------------------------ *
+ * Forum rows (F29)
+ * ------------------------------------------------------------------ */
+
+/**
+ * The demo board's forum rows, with the counters and last-post triplet the
+ * index renders.
+ *
+ * Fixed timestamps rather than `Date.now()` offsets: a fixture whose dates move
+ * with the clock makes "2 hours ago" render differently on every run, so a
+ * snapshot or a screenshot diff is never stable, and a test that happens to pass
+ * at 09:00 fails at midnight. The board index formats these in UTC (see
+ * `src/view/time.ts`), so what is rendered is a function of this file alone.
+ *
+ * `path` and `depth` are spelled out to match what Postgres would derive, so
+ * switching `DATA_SOURCE` changes the data source and nothing else — the same
+ * reason the group ids mirror the seed migration.
+ */
+export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
+  {
+    id: SEED_FORUM.community,
+    type: 'category',
+    title: 'Community',
+    slug: 'community',
+    description: null,
+    parentId: null,
+    path: '10',
+    depth: 0,
+    displayOrder: 1,
+    linkUrl: null,
+    // A category holds no threads; its counters are always zero.
+    threadCount: 0,
+    postCount: 0,
+    lastPost: null,
+  },
+  {
+    id: SEED_FORUM.announcements,
+    type: 'forum',
+    title: 'Announcements',
+    slug: 'announcements',
+    description: 'Board news and release notes. Staff post, everyone reads.',
+    parentId: SEED_FORUM.community,
+    path: '10.100',
+    depth: 1,
+    displayOrder: 1,
+    linkUrl: null,
+    threadCount: 4,
+    postCount: 11,
+    lastPost: {
+      postId: 11,
+      threadId: 4,
+      threadTitle: 'Version 0.1 is live',
+      userId: 1,
+      username: 'admin',
+      at: new Date('2026-07-29T14:05:00Z'),
+    },
+  },
+  {
+    id: SEED_FORUM.general,
+    type: 'forum',
+    title: 'General Discussion',
+    slug: 'general',
+    description: 'Anything and everything.',
+    parentId: SEED_FORUM.community,
+    path: '10.200',
+    depth: 1,
+    displayOrder: 2,
+    linkUrl: null,
+    threadCount: 27,
+    postCount: 143,
+    lastPost: {
+      postId: 143,
+      threadId: 22,
+      threadTitle: 'What are you reading this week?',
+      /*
+       * A deleted account: the id is gone, the name survives. The row must still
+       * render — this is the case that turns a listing into a crash if the view
+       * model assumes an author is always linkable.
+       */
+      userId: null,
+      username: 'departed',
+      at: new Date('2026-07-30T08:41:00Z'),
+    },
+  },
+  {
+    id: SEED_FORUM.generalOffTopic,
+    type: 'forum',
+    title: 'Off Topic',
+    slug: 'off-topic',
+    description: 'Everything else.',
+    parentId: SEED_FORUM.general,
+    path: '10.200.201',
+    depth: 2,
+    displayOrder: 1,
+    linkUrl: null,
+    // No posts yet: the empty-state path through the row, deliberately present.
+    threadCount: 0,
+    postCount: 0,
+    lastPost: null,
+  },
+]

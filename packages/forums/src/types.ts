@@ -44,6 +44,37 @@ export type ForumNode<T extends TreeShaped = ForumRow> = T & {
   readonly children: readonly ForumNode<T>[]
 }
 
+/**
+ * The denormalised "last post in this forum" triplet (F29).
+ *
+ * Carried on `forums` rather than derived, because deriving it means a
+ * correlated subquery per forum on the board index — the page every visitor
+ * loads first. `username` is stored alongside `userId` so a deleted account
+ * still renders a name instead of blanking the row; `userId` goes null and the
+ * name stays.
+ */
+export interface LastPostSummary {
+  readonly postId: number
+  readonly threadId: number
+  readonly threadTitle: string
+  /** `null` once the account is deleted. `username` survives. */
+  readonly userId: number | null
+  readonly username: string
+  readonly at: Date
+}
+
+/**
+ * A forum row with the volatile columns a listing shows (F29).
+ *
+ * Kept separate from `ForumRow` on purpose — see `ForumRepository.listListing`
+ * for why these two reads must not share a cache entry.
+ */
+export interface ForumListingRow extends ForumRow {
+  readonly threadCount: number
+  readonly postCount: number
+  readonly lastPost: LastPostSummary | null
+}
+
 /** Everything needed to create a forum. `path`/`depth` are derived, never given. */
 export interface NewForum {
   readonly type: ForumType

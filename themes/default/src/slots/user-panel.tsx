@@ -17,6 +17,7 @@ export function UserPanel({
   links,
   unreadNotifications,
   unreadMessages,
+  children,
 }: UserPanelModel) {
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -44,6 +45,9 @@ export function UserPanel({
           {link.label}
         </a>
       ))}
+
+      {/* Account controls the app owns — the log-out form. */}
+      {children}
     </div>
   )
 }

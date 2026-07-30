@@ -17,7 +17,13 @@
 import { CacheTags, cachedGlobal, type CacheDriver } from '@forum/core'
 
 import type { ForumRepository } from './ports'
-import type { ForumRow, MovePlan, MoveTarget, NewForum } from './types'
+import type {
+  ForumListingRow,
+  ForumRow,
+  MovePlan,
+  MoveTarget,
+  NewForum,
+} from './types'
 
 /** One key, one tag: the tree is read and invalidated as a single unit. */
 const TREE_KEY = ['forum-tree'] as const
@@ -34,6 +40,24 @@ export class CachedForumRepository implements ForumRepository {
       { key: TREE_KEY, tags: [CacheTags.forumTree()] },
       () => this.inner.listAll(),
     )
+  }
+
+  /**
+   * **Deliberately not cached, and this class is where that decision is
+   * enforced.**
+   *
+   * The counters and last-post columns change on every post. Caching them under
+   * the forum-tree tag would mean invalidating the tree on every reply, which
+   * makes the tag worthless for the structural read it exists to serve — and
+   * caching them under a tag of their own means a cache entry that is stale
+   * within seconds and a second thing to remember to invalidate from the posting
+   * path.
+   *
+   * A decorator that silently *added* caching here would be the worst outcome:
+   * a board index showing yesterday's reply counts, with nothing to point at.
+   */
+  async listListing(): Promise<ForumListingRow[]> {
+    return this.inner.listListing()
   }
 
   /**

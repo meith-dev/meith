@@ -1,0 +1,30 @@
+import 'server-only'
+
+/**
+ * The board's resolved theme (F25/F27).
+ *
+ * Resolved once at module load from the static registry: the `extends` chain
+ * cannot change at runtime, so doing this per request would be work with no
+ * possible different answer.
+ *
+ * Every layout and page reads the theme *here*, never by importing
+ * `@forum/theme-default` — invariant 6, and the practical reason is that
+ * installing a second theme must be a line in `forum.config.ts` and a redeploy,
+ * not an edit to every file that renders a slot.
+ */
+import { resolveTheme, type ResolvedTheme } from '@forum/theme-kit'
+
+import forumConfig from '../../forum.config'
+
+/**
+ * The `!`s are load-bearing rather than lazy.
+ *
+ * `defineForumConfig` has already proven `defaultTheme` names a registered
+ * theme. `theme` is optional in the registry because a token-only theme is
+ * legitimate (F26 restyles a board without touching markup) — but a board whose
+ * active theme fills no slots cannot render a page at all, so failing at boot
+ * with a clear stack is right. The alternative is a blank page at request time.
+ */
+export const activeTheme: ResolvedTheme = resolveTheme(
+  forumConfig.themes[forumConfig.defaultTheme]!.theme!,
+)

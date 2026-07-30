@@ -20,9 +20,11 @@
 import { asc, eq, sql } from 'drizzle-orm'
 
 import type {
+  ForumListingRow,
   ForumRepository,
   ForumRow,
   ForumType,
+  LastPostSummary,
   MovePlan,
   MoveTarget,
   NewForum,
@@ -58,8 +60,31 @@ const FORUM_COLUMNS = {
   linkUrl: forums.linkUrl,
 } as const
 
+/**
+ * The listing read's extra columns (F29): counters and the last-post triplet.
+ *
+ * Spread onto `FORUM_COLUMNS` rather than replacing it, so the two reads cannot
+ * drift on the structural half — and still listed explicitly, so adding a column
+ * to `forums` does not silently widen either.
+ */
+const FORUM_LISTING_COLUMNS = {
+  ...FORUM_COLUMNS,
+  threadCount: forums.threadCount,
+  postCount: forums.postCount,
+  lastPostId: forums.lastPostId,
+  lastPostThreadId: forums.lastPostThreadId,
+  lastPostThreadTitle: forums.lastPostThreadTitle,
+  lastPostUserId: forums.lastPostUserId,
+  lastPostUsername: forums.lastPostUsername,
+  lastPostAt: forums.lastPostAt,
+} as const
+
 type SelectedForum = {
   [K in keyof typeof FORUM_COLUMNS]: unknown
+}
+
+type SelectedListingForum = {
+  [K in keyof typeof FORUM_LISTING_COLUMNS]: unknown
 }
 
 /** `type` is a text column; the domain models it as a union. */
@@ -75,6 +100,31 @@ function toForumRow(row: SelectedForum): ForumRow {
     depth: row.depth as number,
     displayOrder: row.displayOrder as number,
     linkUrl: (row.linkUrl ?? null) as string | null,
+  }
+}
+
+/**
+ * The last-post triplet is present or absent as a unit.
+ *
+ * A forum with no posts has every one of these columns null. Requiring the two
+ * ids *and* the timestamp before building a summary means a partially-written
+ * row — which a counter bug or a half-finished import can produce — renders as
+ * "no posts yet" rather than as a link to post `null`.
+ */
+function toLastPost(row: SelectedListingForum): LastPostSummary | null {
+  const postId = row.lastPostId as number | null
+  const threadId = row.lastPostThreadId as number | null
+  const at = row.lastPostAt as Date | null
+
+  if (postId === null || threadId === null || at === null) return null
+
+  return {
+    postId,
+    threadId,
+    threadTitle: (row.lastPostThreadTitle ?? '') as string,
+    userId: (row.lastPostUserId ?? null) as number | null,
+    username: (row.lastPostUsername ?? '') as string,
+    at,
   }
 }
 
@@ -94,6 +144,32 @@ export class PostgresForumRepository implements ForumRepository {
       .from(forums)
       .orderBy(asc(forums.displayOrder), asc(forums.id))
     return rows.map(toForumRow)
+  }
+
+  /**
+   * The board index's read: every forum with its counters and last post, in one
+   * query regardless of depth (F29).
+   *
+   * There is no join. Counters and the last-post triplet are denormalised onto
+   * `forums`, so the alternative — a correlated subquery or a lateral join per
+   * forum against `posts` — would put the largest table on the board in the path
+   * of the page every visitor loads first. Keeping those columns correct is the
+   * posting path's job (F38); keeping this read to one statement is this
+   * method's, and `forum-repo.listing.test.ts` asserts it against two board
+   * sizes so an N+1 cannot hide behind a small fixture.
+   */
+  async listListing(): Promise<ForumListingRow[]> {
+    const rows = await this.db
+      .select(FORUM_LISTING_COLUMNS)
+      .from(forums)
+      .orderBy(asc(forums.displayOrder), asc(forums.id))
+
+    return rows.map((row) => ({
+      ...toForumRow(row),
+      threadCount: row.threadCount as number,
+      postCount: row.postCount as number,
+      lastPost: toLastPost(row),
+    }))
   }
 
   async findById(id: number): Promise<ForumRow | null> {

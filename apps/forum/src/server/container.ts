@@ -31,11 +31,13 @@ import {
   type BypassEvent,
 } from '@forum/authorization'
 import { env, logger } from '@forum/core'
+import { CachedForumRepository, type ForumRepository } from '@forum/forums'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@forum/tasks'
 import { drivers } from '@forum/drivers'
 
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
+import { FixtureForumRepository } from './fixture-forum-repo'
 import { SEED_BOARD } from './seed-board'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 
@@ -49,6 +51,11 @@ export interface Container {
   readonly identity: IdentityService
   /** Remember-me families + session rotation (F17). */
   readonly sessions: SessionService
+  /**
+   * The forum tree (F16), cached for the structural read and uncached for the
+   * listing read — see `ForumRepository.listListing`.
+   */
+  readonly forums: ForumRepository
   /**
    * The scheduler's storage and the tasks that can actually run (F06).
    *
@@ -113,12 +120,26 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     authorizationSource,
     authorizer: new Authorizer(authorizationSource, { onBypass }),
     actorSource: new FixtureActorSource(store),
+    forums: cached(new FixtureForumRepository()),
     ...identityServices(store),
     // See SchedulerBundle: a tick without durable, cross-instance state cannot
     // honour its concurrency guarantee, so fixture mode has no scheduler.
     scheduler: null,
     dataSource: 'fixture',
   }
+}
+
+/**
+ * Both branches wrap their repository in the same cache decorator.
+ *
+ * Caching is a *policy*, which is why it is applied here rather than inside
+ * either repository: the fixture path gets identical behaviour, so a caching bug
+ * shows up in the app-tier tests instead of only against Postgres. The decorator
+ * caches the structural tree read and deliberately passes the listing read
+ * straight through — see `CachedForumRepository.listListing`.
+ */
+function cached(inner: ForumRepository): ForumRepository {
+  return new CachedForumRepository(inner, drivers().cache)
 }
 
 /**
@@ -158,7 +179,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
@@ -170,6 +191,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     // == 1), which the seed migration also uses — so fixture and Postgres guests
     // resolve the same group.
     actorSource: new ActorBuilder(db, { guestGroupId: 1 }),
+    forums: cached(new PostgresForumRepository(db)),
     ...identityServices(store),
     scheduler: {
       repository: new PostgresTaskRepository(db),

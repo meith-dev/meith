@@ -289,6 +289,16 @@ export interface UserPanelModel {
   /** F55. `0` when there is nothing to show. */
   readonly unreadNotifications: number
   readonly unreadMessages: number
+  /**
+   * Account controls the app supplies — today, the log-out form.
+   *
+   * Log out cannot be a `LinkModel`: it is a POST to a Server Action, because a
+   * GET that ends a session is fired by every prefetcher and link scanner that
+   * touches the page. A Server Action reference is also not plain data and could
+   * never cross this contract, so the app renders the form and the theme decides
+   * where in the panel it sits.
+   */
+  readonly children?: ReactNode
 }
 
 export interface NavigationModel {

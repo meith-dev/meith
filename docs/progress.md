@@ -8,7 +8,7 @@ Running log of what is complete and what the next action is, per plan §6.
 |---|---|---|
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per plan feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D37. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D38. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -17,8 +17,8 @@ this file.
 ## Gate state (all green)
 
 `pnpm verify` → exit 0: textual invariants + **guard probes**, the **slot
-server/client boundary** check + its probe, dependency-cruiser (157 modules, 0
-violations), typecheck (root **and** app), **902 tests** (a large share against
+server/client boundary** check + its probe, dependency-cruiser (172 modules, 0
+violations), typecheck (root **and** app), **931 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -138,8 +138,8 @@ roughly one run in three (D34).
   `defineTheme`/`resolveTheme` with `extends`. The kind rule is enforced three
   times because no single layer catches the real case; `pnpm slots:check` is the
   one that does, and it fails on a slot map it cannot read *and* on finding zero
-  manifests. `themes/default` fills five shell slots and `app/(auth)/layout.tsx`
-  renders through them, so the machinery is load-bearing rather than declared.
+  manifests. `themes/default` fills the shell slots and the auth layout renders
+  through them, so the machinery is load-bearing rather than declared.
   See **D35** — including why slots are flat (a slot never renders another slot)
   and the two things that would have shipped broken: Tailwind never scanned
   `themes/`, and vitest could not import a `.tsx` at all.
@@ -148,24 +148,38 @@ roughly one run in three (D34).
   fifteen missing, and every value from an older palette. F26 would have
   validated database overrides against it.
 
+- **F27 board shell + F29 board index** — the first real page. `PageShell`
+  composes six slots once and both route groups render through it, so the auth
+  screens are part of the board. The index reads counters and last post in one
+  query (budget-asserted across two board sizes, mutation-verified), filters
+  invisible **subtrees whole** — closing open question 5 — and is cached nowhere,
+  because every row depends on who is asking. See **D38**.
+
 ## NEXT ACTION — resume here
 
-**F27 · default theme shell** is the natural next step, and it is now a small
-one: five slots exist, `src/view/shell.ts` has the first view-model builders, and
-the composition pattern is written down in `docs/nextjs-conventions.md`. What is
-missing is a *board* layout to host the shell — which means F27 and **F29 board
-index** land together, with F11's query-budget helper asserting the index's query
-count from the first commit rather than after it is slow.
+**F30 · forum display** is the next page and the pattern is now set: read through
+the container, build a view model in `src/view/`, resolve slots, compose. It needs
+`ThreadRow`, `SubforumList` and `Pagination` in the theme, a `/forum/[slug]` route
+whose slug is `id-slug` (already what the index links to), and the first *paged*
+read — which is where the query budget matters more than it did here.
 
-Two things to settle while building it, both already visible:
+Two things it will force, both currently placeholders:
 
-1. **`ViewerModel.username` is always `null`.** `Actor` carries permissions, not
-   profile data (F20, correctly), so a greeting costs a user read. Decide whether
-   the board index — which reads the user row anyway for unread state — supplies
-   it, or whether the session carries a display name.
-2. **The board title is a constant** (`BOARD_TITLE` in `src/view/shell.ts`).
-   F08's settings registry exists; wiring `board.name` through is a few lines and
-   removes the placeholder.
+1. **`threads` has no repository at all.** `packages/threads` is empty. F30 needs
+   a keyset-paged listing read against the R3.5 partial index, which exists.
+2. **The counters the index renders are never written.** `forums.thread_count`,
+   `post_count` and the last-post triplet are read by F29 and maintained by
+   nobody until **F38**. On a real board they stay at zero. The fixture board
+   fakes them, which is fine for a fixture and is exactly the kind of thing that
+   looks finished and is not.
+
+Still worth settling (unchanged from F25):
+
+- **`ViewerModel.username` is always `null`.** `Actor` carries permissions, not
+  profile data. The board index reads no user row, so nothing here forced the
+  issue; F33's profile page will.
+- **The board title is a constant** (`BOARD_TITLE` in `src/view/shell.ts`). F08's
+  settings registry exists; wiring `board.name` through is a few lines.
 
 Smaller things still unblocked, in rough order of value:
 
@@ -184,6 +198,11 @@ Still outstanding and worth keeping visible:
 - A failing task logs but does not raise an admin notification (needs F55).
 - Permission columns are generated into a `Record<string, …>`, so
   `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.
+- **Deleting or renaming a route breaks `typecheck:app`** until `next build`
+  runs, because `.next/types/validator.ts` still imports the removed page.
+- **`apps/forum/tsconfig.json` hand-copies the workspace path aliases** from
+  `tsconfig.base.json` — TypeScript replaces `paths` rather than merging, so a
+  new package must be added in both places.
 - **`BROWSER_THEME_COLOR` is not checked against the `background` token** (D36).
   Only its format is. An exact check needs OKLCH → sRGB conversion in code, which
   belongs with F26; until then, changing `background` means recomputing two hex
@@ -195,7 +214,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D37). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D38). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant); (b) runtime-only bugs a
 compile/typecheck waved through but tests caught (reversed `verifyPassword` args,

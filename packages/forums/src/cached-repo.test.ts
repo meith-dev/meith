@@ -40,17 +40,26 @@ function row(id: number): ForumRow {
   }
 }
 
-function innerRepo(rows: ForumRow[]): ForumRepository & { listAll: ReturnType<typeof vi.fn> } {
+function innerRepo(
+  rows: ForumRow[],
+): ForumRepository & {
+  listAll: ReturnType<typeof vi.fn>
+  listListing: ReturnType<typeof vi.fn>
+} {
   const listAll = vi.fn().mockImplementation(() => Promise.resolve(rows))
+  const listListing = vi.fn().mockImplementation(() =>
+    Promise.resolve(rows.map((r) => ({ ...r, threadCount: 0, postCount: 0, lastPost: null }))),
+  )
   const repo: ForumRepository = {
     listAll: listAll as unknown as ForumRepository['listAll'],
+    listListing: listListing as unknown as ForumRepository['listListing'],
     findById: (id: number) => Promise.resolve(rows.find((r) => r.id === id) ?? null),
     create: (input) =>
       Promise.resolve({ ...rows[0], ...input, id: 999, path: '999', depth: 0 } as ForumRow),
     applyMove: () => Promise.resolve(),
     move: () => Promise.resolve(),
   }
-  return Object.assign(repo, { listAll })
+  return Object.assign(repo, { listAll, listListing })
 }
 
 describe('CachedForumRepository', () => {
@@ -127,5 +136,43 @@ describe('CachedForumRepository', () => {
     expect(set).toHaveBeenCalledWith(expect.any(String), [row(1)], {
       tags: [CacheTags.forumTree()],
     })
+  })
+
+  /*
+   * The listing read carries counters that change on every post. Caching it
+   * under the forum-tree tag would mean invalidating the tree on every reply,
+   * making the tag worthless for the structural read it exists to serve; caching
+   * it under a tag of its own means an entry that is stale within seconds and a
+   * second thing the posting path must remember to clear.
+   *
+   * Both of those are easy to "fix" by adding two lines to the decorator, which
+   * is exactly why the decision is pinned by a test rather than left as a
+   * comment. See ForumRepository.listListing.
+   */
+  it('never caches the listing read', async () => {
+    const cache = cacheDriver()
+    const set = vi.spyOn(cache, 'set')
+    const inner = innerRepo([row(1)])
+    const repo = new CachedForumRepository(inner, cache)
+
+    await repo.listListing()
+    await repo.listListing()
+
+    expect(inner.listListing).toHaveBeenCalledTimes(2)
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('does not serve the listing read from the cached tree', async () => {
+    const cache = cacheDriver()
+    const inner = innerRepo([row(1)])
+    const repo = new CachedForumRepository(inner, cache)
+
+    // Populate the structural cache first: a decorator that answered the
+    // listing read from it would return rows with no counters at all.
+    await repo.listAll()
+    const listing = await repo.listListing()
+
+    expect(listing[0]).toHaveProperty('threadCount')
+    expect(inner.listListing).toHaveBeenCalledTimes(1)
   })
 })

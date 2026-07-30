@@ -1228,3 +1228,92 @@ widening the pattern back to `/process\.env/` fails the probe by name.
 so there is no configuration for the Edge runtime to validate. Verified by running
 `next dev`: no warnings, and the fixture-mode boot line still prints, which is
 proof the Node branch ran.
+
+### D38 — The board index, and the open question it closes (F27/F29)
+
+Phase 2's first real page. Three decisions worth recording.
+
+#### Open question 5 is answered: subtrees are filtered whole
+
+`plan-status.md` asked whether a visible child of a hidden parent should surface
+at top level (D22 noted `buildTree` promotes orphans to roots) or whether F21
+should filter subtrees whole. **Whole.** A forum the viewer cannot see takes its
+descendants with it.
+
+Promoting the child leaks structure — a private category's children appearing as
+top-level blocks tells a guest both that they exist and roughly what they are
+called — and it renders a board whose *shape* depends on who is looking, which no
+administrator can reason about or test.
+
+The filter is iterated to a fixed point rather than applied once: a grandchild
+whose parent was dropped *for being orphaned* (not by the visibility filter) has
+to go too, and one pass leaves it behind as a top-level block. That is the same
+leak one level deeper and much easier to miss, so it has its own test.
+
+The cost, stated: a visible forum under a hidden parent is unreachable from the
+index. That is the correct reading of "the parent is hidden"; F65's ACP should
+surface such a forum as misconfigured rather than the index papering over it.
+
+#### The listing read is deliberately uncached, and a test says so
+
+`forums` carries denormalised counters and a last-post triplet, so the index is
+one query with no join — the alternative, a correlated subquery per forum against
+`posts`, puts the largest table on the board in the path of the page every
+visitor loads first. The budget test asserts one statement across **two board
+sizes**, because with a single fixture "one query" and "one query per forum" are
+the same number. Mutation-verified: an injected per-row `findById` fails it and
+the helper names the repeated SQL.
+
+But `ForumRepository` now has two reads, and only `listAll` is cached.
+`CachedForumRepository.listListing` passes straight through, with two tests
+pinning it. Counters change on every post: caching them under the forum-tree tag
+would mean invalidating the tree on every reply — making the tag worthless for
+the structural read it exists to serve — and caching them under a tag of their own
+means an entry stale within seconds plus a second thing the posting path must
+remember to clear. Both are two lines away in the decorator, which is exactly why
+the decision is a test rather than a comment.
+
+**The page itself is not cached at all.** Every row depends on who is asking
+(`visibleForumIds` per actor, F32's unread marks per user). A cached
+permission-filtered index is precisely the leak F10's harness exists to prevent.
+
+#### Timestamps are formatted once, server-side, in a zone the page names
+
+A theme calling `toLocaleString()` renders one string on the server and another
+in the browser, because they are in different timezones — a hydration mismatch
+visible only to users outside the server's zone, which means it survives review,
+CI, and the author's machine. So `formatTime` produces both halves of `TimeModel`
+and the footer states the zone.
+
+That zone is **UTC** until F57 gives members a timezone setting — chosen over the
+server's local zone, which is an accident of where the board is deployed and
+would silently change what every timestamp says after a region migration.
+
+`now` is a parameter, not `Date.now()`: "Today" is relative, so a formatter that
+reads the clock cannot be tested without freezing time globally and changes its
+answer at midnight. The page passes one clock for the whole render, so a page
+straddling midnight cannot print "Today" above "Yesterday" for posts a second
+apart.
+
+#### Smaller things this turned up
+
+- **Log out had no home.** It lived on the placeholder page this feature deleted,
+  and it cannot be a `LinkModel`: a GET that ends a session is fired by every
+  prefetcher and link scanner that touches the page, and a Server Action
+  reference is not plain data so it can never cross the theme contract. The panel
+  slot gained `children`, and the app renders the form into it.
+- **The fixture board grew a category.** The two forums were roots with no
+  heading, so the index had to invent one. `type: 'category'` carries no
+  overrides and changes no resolution — every ancestor walk through it finds no
+  row and inherits, which is F21's nullable-column inheritance.
+- **Fixture writes throw.** `FixtureForumRepository` serves real reads so the
+  board renders with no database, and refuses `create`/`move` — a fixture that
+  accepted them would let someone build a board in the dev UI and lose it on
+  restart. Same rule as the scheduler in fixture mode (D32).
+- **`typecheck:app` breaks after deleting a route** until `next build` runs:
+  `.next/types/validator.ts` still imports the removed page. Known trade-off (the
+  tsconfig comment covers the dev-types half of it); the fix is to rebuild.
+- **`apps/forum/tsconfig.json` hand-copies the path aliases** and was missing
+  `@forum/testkit`, which surfaced the moment a package test imported it — that
+  config compiles `packages/**`, tests included. Added, with a note that the list
+  is duplicated and both copies need editing.
