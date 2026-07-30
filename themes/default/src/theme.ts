@@ -33,6 +33,8 @@ import { ThreadView } from './slots/thread-view'
 import { PostBit } from './slots/post-bit'
 import { PostActions } from './slots/post-actions'
 import { MemberProfile } from './slots/member-profile'
+import { RedirectNotice } from './slots/redirect-notice'
+import { ErrorNotice } from './slots/error-notice'
 
 export const defaultTheme = defineTheme({
   key: 'default',
@@ -59,5 +61,8 @@ export const defaultTheme = defineTheme({
     PostActions,
 
     MemberProfile,
+
+    RedirectNotice,
+    ErrorNotice,
   },
 })

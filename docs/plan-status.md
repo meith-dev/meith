@@ -39,7 +39,7 @@ couple of `PARTIAL` rows are an afternoon.
 |---|---|---|---|---|
 | 0 — Skeleton | 14 | 11 | 3 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
-| 2 — Themes and reading | 11 | 6 | 3 | 2 |
+| 2 — Themes and reading | 11 | 7 | 2 | 2 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
@@ -112,7 +112,7 @@ packages are empty.
 | F31 | Thread view | `DONE` | `/thread/[id]-[slug]` resolves the visible forum matrix before it reads posts, then composes `ThreadView`, `PostBit`, `PostActions`, and `Pagination`. `PostgresPostRepository` keyset-pages the R3.5 visible-post index in one statement while retaining absolute post numbers across pages; PGlite tests cover 3 and 50 posts, pagination numbering, and hidden-post exclusion. Until F36, raw text is escaped into the trusted plain-text HTML fallback. Fixture mode has the same read path. |
 | F32 | Read tracking | `DONE` | `PostgresReadStateRepository` reads forum watermarks, thread markers, and unread forum ids in a constant three statements; a real-PGlite test proves the budget and prevents a slower tab from regressing the marker. Index and forum rows show unread state. POST-only routes mark all visible forums, one forum, or the last visible post in a thread; the post target is revalidated against the visible thread before it writes. Guests and fixture mode remain stateless. |
 | F33 | Member profile | `DONE` | `/member/[id]` validates its numeric target, checks `profile.view`, and reads only public profile fields through the composition root. Deleted accounts return 404 while their historical author names remain plain text. The default `MemberProfile` slot renders identity and stats; profile links now work from the shell, listings, threads, and posts. Fixture mode supplies the same route with an admin profile; the Postgres adapter is covered on real PGlite. |
-| F34 | Error and redirect pages | `PARTIAL` | Themed `error.tsx` / `not-found.tsx` exist (F09); the MyBB-style redirect interstitial does not. |
+| F34 | Error and redirect pages | `DONE` | Database-free `not-found.tsx` renders the `ErrorNotice` slot; the required client error boundary presents a generic token-styled fallback without leaking exception details. `/redirect` renders `RedirectNotice`, uses a two-second meta refresh, and includes a real link for no-JS clients. Its target is constrained to a same-origin path, with `/` as the safe fallback; focused tests cover the open-redirect boundary. |
 | F35 | No-JS and accessibility pass | `TODO` | **No Playwright suite exists.** "Works with JavaScript disabled" is currently a claim about F18/F19, not a measurement. |
 
 ## Phase 3 — Posting

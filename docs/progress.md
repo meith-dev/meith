@@ -175,12 +175,16 @@ roughly one run in three (D34).
   accounts 404 and remain plain author names; live authors now link consistently
   from the shell, listing, thread, and post views. Fixture and Postgres paths are
   both present, with the latter verified against PGlite.
+- **F34 error and redirect pages** — the database-free 404 body renders through
+  `ErrorNotice`; the required client error boundary uses the same token styling
+  without exposing exception details. `/redirect` renders `RedirectNotice` with
+  a two-second meta refresh and a real fallback link, rejecting off-board targets.
 
 ## NEXT ACTION — resume here
 
-**F34 · error and redirect pages** is next. The themed error and not-found
-pages exist already; the missing piece is the MyBB-style redirect interstitial
-through the existing `RedirectNotice` slot.
+**F35 · no-JS and accessibility pass** is next. The native forms are designed
+for it, but no Playwright run proves JavaScript-disabled flows or checks the
+board's key keyboard and screen-reader paths.
 
 The counters the index renders are still never written: `forums.thread_count`,
 `post_count`, and the last-post triplet are read by F29 and maintained by nobody
