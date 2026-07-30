@@ -20,7 +20,12 @@
  */
 import { NextResponse, type NextRequest } from 'next/server'
 
-import { REMEMBER_COOKIE, SESSION_COOKIE } from './src/server/cookies'
+import {
+  DEV_REMEMBER_COOKIE,
+  DEV_SESSION_COOKIE,
+  REMEMBER_COOKIE,
+  SESSION_COOKIE,
+} from './src/server/cookies'
 
 /** Route prefixes that require a logged-in user. Everything else is public. */
 const PROTECTED_PREFIXES = ['/settings', '/messages', '/modcp', '/admincp']
@@ -36,8 +41,8 @@ function isProtected(pathname: string): boolean {
 
 export function proxy(req: NextRequest): NextResponse {
   const { pathname, search } = req.nextUrl
-  const hasSession = req.cookies.has(SESSION_COOKIE)
-  const hasRemember = req.cookies.has(REMEMBER_COOKIE)
+  const hasSession = req.cookies.has(SESSION_COOKIE) || req.cookies.has(DEV_SESSION_COOKIE)
+  const hasRemember = req.cookies.has(REMEMBER_COOKIE) || req.cookies.has(DEV_REMEMBER_COOKIE)
 
   // A live session cookie: nothing to do, let it through. (Validity is checked
   // server-side; presence is all the proxy judges.)

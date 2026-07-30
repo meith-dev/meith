@@ -24,6 +24,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.51.1",
     "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "^4.1.10",
     "dependency-cruiser": "^18.1.0",

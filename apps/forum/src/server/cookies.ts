@@ -12,6 +12,17 @@
  */
 export const SESSION_COOKIE = '__Host-fs_session'
 export const REMEMBER_COOKIE = '__Host-fs_remember'
+export const DEV_SESSION_COOKIE = 'fs_session'
+export const DEV_REMEMBER_COOKIE = 'fs_remember'
+
+/** `__Host-` requires Secure; use plain names only on local HTTP development. */
+export function sessionCookieName(secure: boolean): string {
+  return secure ? SESSION_COOKIE : DEV_SESSION_COOKIE
+}
+
+export function rememberCookieName(secure: boolean): string {
+  return secure ? REMEMBER_COOKIE : DEV_REMEMBER_COOKIE
+}
 
 export interface CookieAttrs {
   readonly httpOnly: boolean

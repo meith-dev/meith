@@ -14,10 +14,10 @@ import { cookies } from 'next/headers'
 import { env } from '@forum/core'
 
 import {
-  REMEMBER_COOKIE,
-  SESSION_COOKIE,
   clearedCookie,
+  rememberCookieName,
   rememberCookie,
+  sessionCookieName,
   sessionCookie,
 } from './cookies'
 
@@ -37,7 +37,8 @@ export async function setSessionCookie(
   expiresAt: Date,
 ): Promise<void> {
   const jar = await cookies()
-  jar.set(SESSION_COOKIE, token, sessionCookie(expiresAt, secure()))
+  const isSecure = secure()
+  jar.set(sessionCookieName(isSecure), token, sessionCookie(expiresAt, isSecure))
 }
 
 export async function setRememberCookie(
@@ -45,23 +46,25 @@ export async function setRememberCookie(
   expiresAt: Date,
 ): Promise<void> {
   const jar = await cookies()
-  jar.set(REMEMBER_COOKIE, token, rememberCookie(expiresAt, secure()))
+  const isSecure = secure()
+  jar.set(rememberCookieName(isSecure), token, rememberCookie(expiresAt, isSecure))
 }
 
 export async function clearSessionCookies(): Promise<void> {
   const jar = await cookies()
-  jar.set(SESSION_COOKIE, '', clearedCookie(secure()))
-  jar.set(REMEMBER_COOKIE, '', clearedCookie(secure()))
+  const isSecure = secure()
+  jar.set(sessionCookieName(isSecure), '', clearedCookie(isSecure))
+  jar.set(rememberCookieName(isSecure), '', clearedCookie(isSecure))
 }
 
 /** Read the current remember-me token (route-handler use). */
 export async function readRememberToken(): Promise<string | undefined> {
   const jar = await cookies()
-  return jar.get(REMEMBER_COOKIE)?.value
+  return jar.get(rememberCookieName(secure()))?.value
 }
 
 /** Read the current session token (logout needs it to revoke server-side). */
 export async function readSessionToken(): Promise<string | undefined> {
   const jar = await cookies()
-  return jar.get(SESSION_COOKIE)?.value
+  return jar.get(sessionCookieName(secure()))?.value
 }

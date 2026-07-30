@@ -21,6 +21,7 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/.next/**',
+      '**/.next-e2e/**',
       '**/dist/**',
       '**/drizzle/**',
       'user_read_only_context/**',

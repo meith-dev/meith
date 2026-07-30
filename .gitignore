@@ -22,4 +22,7 @@ next-env.d.ts
 # Common ignores
 node_modules
 .next/
+.next-e2e/
 .DS_Store
+playwright-report/
+test-results/

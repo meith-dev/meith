@@ -179,12 +179,16 @@ roughly one run in three (D34).
   `ErrorNotice`; the required client error boundary uses the same token styling
   without exposing exception details. `/redirect` renders `RedirectNotice` with
   a two-second meta refresh and a real fallback link, rejecting off-board targets.
+- **F35 no-JS and accessibility** — a Playwright CI suite now proves the fixture
+  board’s thread link, registration, login, session, and profile link without
+  JavaScript. It also caught and fixed the skip-link focus target and the
+  insecure development `__Host-` cookie rejection.
 
 ## NEXT ACTION — resume here
 
-**F35 · no-JS and accessibility pass** is next. The native forms are designed
-for it, but no Playwright run proves JavaScript-disabled flows or checks the
-board's key keyboard and screen-reader paths.
+**F26 · token pipeline and runtime overrides** is next. The token mirror is
+accurate, but stored theme overrides are not yet validated, loaded, or applied
+at runtime.
 
 The counters the index renders are still never written: `forums.thread_count`,
 `post_count`, and the last-post triplet are read by F29 and maintained by nobody
@@ -210,8 +214,6 @@ Smaller things still unblocked, in rough order of value:
 
 Still outstanding and worth keeping visible:
 
-- **F35's no-JS Playwright run does not exist.** The auth forms are written for
-  it, but "works with JavaScript disabled" is a claim, not a measurement.
 - A failing task logs but does not raise an admin notification (needs F55).
 - Permission columns are generated into a `Record<string, …>`, so
   `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.

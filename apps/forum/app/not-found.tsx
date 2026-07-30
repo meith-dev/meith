@@ -6,7 +6,7 @@ export default function NotFound() {
   const ErrorNotice = requireSlot(activeTheme, 'ErrorNotice')
 
   return (
-    <main id="board-content" className="flex flex-1 items-center justify-center px-6 py-12">
+    <main id="board-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-6 py-12">
       <ErrorNotice
         status={404}
         title="Page not found"

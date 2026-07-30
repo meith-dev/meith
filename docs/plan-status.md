@@ -39,7 +39,7 @@ couple of `PARTIAL` rows are an afternoon.
 |---|---|---|---|---|
 | 0 — Skeleton | 14 | 11 | 3 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
-| 2 — Themes and reading | 11 | 7 | 2 | 2 |
+| 2 — Themes and reading | 11 | 8 | 2 | 1 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
@@ -113,7 +113,7 @@ packages are empty.
 | F32 | Read tracking | `DONE` | `PostgresReadStateRepository` reads forum watermarks, thread markers, and unread forum ids in a constant three statements; a real-PGlite test proves the budget and prevents a slower tab from regressing the marker. Index and forum rows show unread state. POST-only routes mark all visible forums, one forum, or the last visible post in a thread; the post target is revalidated against the visible thread before it writes. Guests and fixture mode remain stateless. |
 | F33 | Member profile | `DONE` | `/member/[id]` validates its numeric target, checks `profile.view`, and reads only public profile fields through the composition root. Deleted accounts return 404 while their historical author names remain plain text. The default `MemberProfile` slot renders identity and stats; profile links now work from the shell, listings, threads, and posts. Fixture mode supplies the same route with an admin profile; the Postgres adapter is covered on real PGlite. |
 | F34 | Error and redirect pages | `DONE` | Database-free `not-found.tsx` renders the `ErrorNotice` slot; the required client error boundary presents a generic token-styled fallback without leaking exception details. `/redirect` renders `RedirectNotice`, uses a two-second meta refresh, and includes a real link for no-JS clients. Its target is constrained to a same-origin path, with `/` as the safe fallback; focused tests cover the open-redirect boundary. |
-| F35 | No-JS and accessibility pass | `TODO` | **No Playwright suite exists.** "Works with JavaScript disabled" is currently a claim about F18/F19, not a measurement. |
+| F35 | No-JS and accessibility pass | `DONE` | Playwright now runs in CI against an isolated fixture dev server. With JavaScript disabled it follows an index thread link, registers, logs in, receives a session cookie, and sees the profile link. A keyboard check proves the skip link is first, moves focus to `#board-content`, and exposed the missing `tabIndex`; every existing target now supports focus. Development uses non-`__Host-` cookie names because the browser rejects an insecure `__Host-` cookie, while production keeps the secure prefix. |
 
 ## Phase 3 — Posting
 

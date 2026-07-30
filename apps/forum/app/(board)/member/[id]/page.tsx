@@ -29,7 +29,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
   const MemberProfile = requireSlot(activeTheme, 'MemberProfile')
   return (
-    <main id="board-content" className="flex-1">
+    <main id="board-content" tabIndex={-1} className="flex-1">
       <MemberProfile {...buildMemberProfileView(profile, new Date())} />
     </main>
   )

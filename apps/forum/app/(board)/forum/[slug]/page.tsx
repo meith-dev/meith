@@ -76,7 +76,7 @@ export default async function ForumPage({
   const Pagination = requireSlot(activeTheme, "Pagination");
 
   return (
-    <main id="board-content" className="flex-1">
+    <main id="board-content" tabIndex={-1} className="flex-1">
       <ForumDisplay
         {...view.display}
         regions={{

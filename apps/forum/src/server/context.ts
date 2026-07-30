@@ -20,9 +20,10 @@ import { cache } from 'react'
 import { cookies } from 'next/headers'
 
 import type { Actor } from '@forum/authorization'
+import { env } from '@forum/core'
 
 import { getContainer } from './container'
-import { SESSION_COOKIE } from './cookies'
+import { sessionCookieName } from './cookies'
 
 /**
  * Resolve the current actor. Falls back to the guest principal whenever there is
@@ -33,7 +34,7 @@ export const getActor = cache(async (): Promise<Actor> => {
   const { identity, actorSource } = getContainer()
 
   const jar = await cookies()
-  const token = jar.get(SESSION_COOKIE)?.value
+  const token = jar.get(sessionCookieName(env.NODE_ENV !== 'development'))?.value
 
   if (token) {
     const resolved = await identity.resolveSession(token)

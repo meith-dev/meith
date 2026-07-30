@@ -10,6 +10,8 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  // Lets the isolated Playwright dev server run beside a developer's `.next`.
+  distDir: process.env.FORUM_DIST_DIR ?? ".next",
 
   /*
    * Kept out of the compiled chunks and required from node_modules at runtime.

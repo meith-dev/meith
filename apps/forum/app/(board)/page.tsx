@@ -64,7 +64,7 @@ export default async function BoardIndexPage() {
   const ForumRow = requireSlot(activeTheme, "ForumRow")
 
   return (
-    <main id="board-content" className="flex-1">
+    <main id="board-content" tabIndex={-1} className="flex-1">
       <BoardIndex
         {...view.index}
         regions={{
