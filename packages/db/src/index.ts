@@ -33,6 +33,7 @@ export {
   PostgresBanFilterRepository,
   PostgresBanRepository,
 } from './ban-repos'
+export { PostgresPromotionRepository } from './promotion-repo'
 export {
   PostgresAdminRepository,
   type GroupSummary,

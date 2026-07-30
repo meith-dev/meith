@@ -226,6 +226,9 @@ importers:
       '@forum/forums':
         specifier: workspace:*
         version: link:../forums
+      '@forum/groups':
+        specifier: workspace:*
+        version: link:../groups
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings

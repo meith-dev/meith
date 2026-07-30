@@ -15,6 +15,13 @@
       "when": 1785355591465,
       "tag": "0001_seed_usergroups",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785355592465,
+      "tag": "0002_group_promotions",
+      "breakpoints": true
     }
   ]
 }

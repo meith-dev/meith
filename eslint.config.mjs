@@ -207,6 +207,35 @@ export default tseslint.config(
     },
   },
 
+  /*
+   * F24's promotion engine is group *administration*, which is a different
+   * thing from the group-ID logic F20 bans.
+   *
+   * The rule exists to stop code deciding what someone may *do* by comparing
+   * group ids — `if (user.primaryGroupId === 3) allowAdmin()`. @forum/groups
+   * decides which group a user *belongs to*, which cannot be expressed without
+   * naming groups: a promotion rule is literally "users in group X with N posts
+   * move to group Y".
+   *
+   * The boundary it must not cross: this package may move a user between
+   * groups, but must never conclude anything about what a group is permitted to
+   * do. Its "never demote" guard takes a caller-supplied rank map and draws no
+   * permission conclusion from it — that stays with the Authorizer.
+   */
+  {
+    files: ['packages/groups/**'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'process',
+          property: 'env',
+          message: 'Read configuration from `env` in @forum/core instead (F02).',
+        },
+      ],
+    },
+  },
+
   {
     /*
      * Drizzle schema files *define* the primary_group_id column and index it.

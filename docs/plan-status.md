@@ -27,7 +27,7 @@ what is and is not built.
 ## How this audit was done
 
 Last audited **2026-07-30** (re-audited after F10/F11/F13/F15/F16 landed), against the working tree, not from memory:
-`pnpm verify` (765 tests), `pnpm build`, plus direct inspection of the
+`pnpm verify` (798 tests), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -38,7 +38,7 @@ couple of `PARTIAL` rows are an afternoon.
 | Phase | Features | DONE | PARTIAL | TODO |
 |---|---|---|---|---|
 | 0 — Skeleton | 14 | 10 | 4 | 0 |
-| 1 — Identity, tree, permissions | 10 | 8 | 1 | 1 |
+| 1 — Identity, tree, permissions | 10 | 8 | 2 | 0 |
 | 2 — Themes and reading | 11 | 0 | 2 | 9 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
@@ -47,7 +47,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **18** | **7** | **64** |
+| **Total** | **89** | **18** | **8** | **63** |
 
 ---
 
@@ -87,7 +87,7 @@ couple of `PARTIAL` rows are an afternoon.
 | F21 | Forum permissions and moderator rights | `DONE` | Nullable-column inheritance, ancestor walk over `path`, `forum_moderators`, `visibleForumIds`. Four-level resolution with overrides at levels 2 and 4 now tested **over real Postgres**, including that a level-3 forum with no row inherits the denial rather than falling back to the group default. `visibleForumIds` was a 32-query N+1 and is now a constant 3, asserted by comparing two board sizes (D26). |
 | F22 | ⛔ GATE — Permission matrix suite | `GATE` — green | 388-cell table-driven cross product over actors × contexts × actions; fixture reviewed. Currently exercises the in-memory source; re-run against Postgres when F21's wiring lands. |
 | F23 | Bans and ban filters | `PARTIAL` | `BanService` (ban / lift / expireDue / assertNotBanned) + Postgres repositories, and glob ban filters applied at **both** registration and login. Both acceptance criteria met and mutation-verified: expiry restores the *captured* group, not the default (D29). `bans.expire` is registered in the task registry. **Gap:** the registry entry cannot actually run — F06's tick still returns `ran: []` and there is no `TaskRepository`, so no scheduled task executes yet. No ACP or CLI surface for creating bans. |
-| F24 | Group promotions | `TODO` | No `group_promotions` table, no rule evaluation, no task. |
+| F24 | Group promotions | `PARTIAL` | `@forum/groups` (was an empty package): pure rule evaluation with three safety guards, `PromotionService` with preview/apply sharing one evaluation, `group_promotions` table (migration `0002`), Postgres repository with keyset paging. Both acceptance criteria met and mutation-verified: a dry run writes nothing, and repeat runs are no-ops (D30). **Gap:** `promotions.apply` is registered but, like `bans.expire`, nothing runs it — F06's tick returns `ran: []`. No ACP surface for editing rules (F66). |
 
 > **Checkpoint 1** — substantially reached: register / activate / log in / log out
 > / reset all work without JavaScript, the tree exists with per-group overrides,

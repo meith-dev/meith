@@ -442,3 +442,42 @@ export const banFilters = pgTable(
     uniqueIndex('ban_filters_type_pattern_key').on(t.type, t.pattern),
   ],
 )
+
+
+/**
+ * F24 — automatic group promotion rules.
+ *
+ * Every criterion column is nullable and means "no constraint" when null, so a
+ * rule can say "everyone in this group" without sentinel thresholds that would
+ * need special-casing at each read. The safety rules — never lift a ban, never
+ * demote, never re-apply — live in `@forum/groups`, not here: they are policy,
+ * and the database cannot express "is this a demotion" without knowing the
+ * group ladder's ranking.
+ */
+export const groupPromotions = pgTable(
+  'group_promotions',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    title: text('title').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    /** Evaluation order; the first matching rule wins, so this is policy. */
+    displayOrder: integer('display_order').notNull().default(0),
+
+    minPostCount: integer('min_post_count'),
+    minReputation: integer('min_reputation'),
+    minDaysRegistered: integer('min_days_registered'),
+
+    /** Null = any group. */
+    fromPrimaryGroupId: integer('from_primary_group_id').references(() => usergroups.id, {
+      onDelete: 'cascade',
+    }),
+    toPrimaryGroupId: integer('to_primary_group_id')
+      .notNull()
+      .references(() => usergroups.id, { onDelete: 'cascade' }),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('group_promotions_order_idx').on(t.displayOrder, t.id)],
+)

@@ -819,3 +819,45 @@ evading them.
 **Still open:** `bans.expire` is registered in the task registry but nothing runs
 it — F06's tick returns `ran: []` and no `TaskRepository` exists. F23 stays
 PARTIAL for that reason rather than being marked done on a task that cannot fire.
+
+### D30 — Promotions: the guards are the feature (F24)
+
+An automatic group move is a privilege change nobody approves individually — it
+runs on a timer, against every user, forever. So the interesting question is not
+"who qualifies" but "who must this never touch". Three guards, all in the pure
+evaluator and all mutation-verified:
+
+1. **Never lift a ban.** A banned user with 100 posts and a "100 posts →
+   Veteran" rule would otherwise be silently un-banned by a cron job.
+   Un-banning belongs to a moderator, via F23.
+2. **Never demote.** A rule is a floor, not an assignment. An administrator who
+   satisfies "10 posts → Registered" must not be moved *down* into it, which is
+   exactly what a naive matches-then-set does.
+3. **Never re-apply.** Someone already in the target group yields no outcome,
+   which is what makes the task idempotent rather than merely harmless to
+   repeat.
+
+**Mutation testing corrected a test that was lying.** Removing guard 2 initially
+failed only one assertion — the Postgres test named "never demotes an
+administrator" still passed, because administrators are in `protectedGroupIds`
+and guard 1 was catching them. The test proved nothing about ranking. It now
+uses a non-protected but higher-ranked group, and removing guard 2 fails at both
+layers. A test whose name describes a guard it does not exercise is worse than
+no test, because it is counted as coverage.
+
+**Keyset paging, not OFFSET.** Applying a promotion changes the rows being
+paged: with OFFSET, moving a user shifts every later row up one and the next
+page silently skips somebody. It presents as "some people never get promoted"
+and is near-impossible to reproduce by hand.
+
+**Preview and apply share one evaluation** and differ only in whether outcomes
+are written. An ACP preview computed by separate code would eventually disagree
+with what applying actually does, which is the one thing a dry run must never do.
+
+**F20 lint scope.** `@forum/groups` is exempted from the group-ID rule, like
+`@forum/authorization`. The rule bans deciding what someone may *do* by
+comparing group ids; this package decides which group a user *belongs to*, which
+cannot be expressed without naming groups. The boundary it must not cross is
+stated in the config: it may move a user between groups, never conclude anything
+about what a group is permitted to do. Probed both ways — the rule still errors
+in a non-exempt package and is silent inside.
