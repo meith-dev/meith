@@ -8,14 +8,18 @@
  */
 
 export async function register(): Promise<void> {
-  const { assertEnv } = await import('@forum/core')
+  const { assertRuntimeEnv } = await import('@forum/core')
 
   /*
    * Throwing from register() aborts server startup, which is the intent: a
    * server missing AUTH_SECRET must not accept traffic and mint unsigned
    * sessions.
+   *
+   * `assertRuntimeEnv`, not `assertEnv`: this is the one place that knows a
+   * server is starting rather than a build running, so the production rules are
+   * enforced here unconditionally — a stray NEXT_PHASE cannot wave them through.
    */
-  const env = assertEnv()
+  const env = assertRuntimeEnv()
 
   if (env.DATA_SOURCE === 'fixture') {
     // eslint-disable-next-line no-console -- pre-logger boot diagnostic

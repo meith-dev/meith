@@ -1,6 +1,7 @@
 export {
   env,
   assertEnv,
+  assertRuntimeEnv,
   parseEnv,
   resetEnvForTests,
   isProduction,

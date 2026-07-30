@@ -33,6 +33,20 @@ const envSchema = z
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
     /**
+     * Set by `next build`, and by nothing else. Not application configuration:
+     * it is how this schema tells "compiling the app" apart from "serving the
+     * app".
+     *
+     * `next build` forces NODE_ENV=production, so without this distinction the
+     * production-only rules below would demand runtime secrets from a build
+     * machine that has no business holding them — CI would need AUTH_SECRET
+     * merely to typecheck and prerender. The rules still apply with full force
+     * when the server actually boots: `instrumentation.ts` calls `assertEnv()`
+     * in `register()`, where NEXT_PHASE is absent.
+     */
+    NEXT_PHASE: z.string().optional(),
+
+    /**
      * Which repository implementation backs the domain packages.
      * `fixture` is an in-memory, deterministically seeded implementation used for
      * local development and the test suite; `postgres` uses Drizzle + postgres.js.
@@ -154,7 +168,12 @@ const envSchema = z
       })
     }
 
-    if (value.NODE_ENV === "production") {
+    /*
+     * Guarded on the build phase, not just NODE_ENV: these are the rules about
+     * how the app will *behave in service*, and a build produces no behaviour.
+     * See the NEXT_PHASE field above.
+     */
+    if (value.NODE_ENV === "production" && value.NEXT_PHASE !== "phase-production-build") {
       /*
        * A memory queue in production silently drops every queued job on each
        * cold start — e-mail, search indexing, notifications all vanish with no
@@ -228,8 +247,22 @@ function withDerivedDefaults(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   }
 }
 
-function load(rawSource: NodeJS.ProcessEnv): Env {
+/**
+ * `ignoreBuildPhase` makes the production rules unskippable, whatever NEXT_PHASE
+ * says. Used by the server-boot path: a build flag that somehow reaches a
+ * running server must not quietly switch off the checks that keep it from
+ * serving traffic without secrets.
+ */
+interface LoadOptions {
+  readonly ignoreBuildPhase?: boolean
+}
+
+function load(rawSource: NodeJS.ProcessEnv, options: LoadOptions = {}): Env {
+  // `withDerivedDefaults` returns a fresh object, so this never mutates the
+  // caller's environment.
   const source = withDerivedDefaults(rawSource)
+  if (options.ignoreBuildPhase) delete source.NEXT_PHASE
+
   const parsed = envSchema.safeParse(source)
 
   if (!parsed.success) {
@@ -243,8 +276,8 @@ function load(rawSource: NodeJS.ProcessEnv): Env {
  * Exported for tests, which need to assert that specific malformed inputs are
  * rejected with a message naming the offending variable.
  */
-export function parseEnv(source: NodeJS.ProcessEnv): Env {
-  return load(source)
+export function parseEnv(source: NodeJS.ProcessEnv, options: LoadOptions = {}): Env {
+  return load(source, options)
 }
 
 let cached: Env | undefined
@@ -260,6 +293,25 @@ export function assertEnv(): Env {
     // eslint-disable-next-line no-restricted-properties -- this module is the sanctioned reader
     cached = load(process.env)
   }
+  return cached
+}
+
+/**
+ * Boot-time validation for a server that is about to accept traffic.
+ *
+ * Differs from `assertEnv()` in one way that matters: the production-only rules
+ * cannot be stood down here. `assertEnv()` honours NEXT_PHASE so that `next
+ * build` can compile without runtime secrets — but a *server* has no legitimate
+ * reason to be in the build phase, and treating a stray NEXT_PHASE as licence to
+ * skip the AUTH_SECRET check would fail open, silently, in production.
+ *
+ * Always re-validates rather than trusting a memoised value, since a lenient
+ * parse may already have been cached by an earlier `env` read.
+ */
+export function assertRuntimeEnv(): Env {
+  // eslint-disable-next-line no-restricted-properties -- this module is the sanctioned reader
+  const validated = load(process.env, { ignoreBuildPhase: true })
+  cached ??= validated
   return cached
 }
 
