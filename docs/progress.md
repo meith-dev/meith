@@ -17,9 +17,9 @@ this file.
 ## Gate state (all green)
 
 `pnpm verify` → exit 0: textual invariants + **guard probes**, dependency-cruiser
-(122 modules, 0 violations), typecheck (root **and** app), 614 tests (against
-real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret production
-environment.
+(133 modules, 0 violations), typecheck (root **and** app), **765 tests** (a large
+share against real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
+production environment.
 
 **Gate holes closed this pass:**
 
@@ -90,48 +90,66 @@ environment.
   returned to the browser: account takeover) and **D21** (locale-dependent
   identifier folding). Both mutation-verified.
 
-- **Forum tree operations (F16)** — `@forum/forums` (was an empty package; the
-  schema already existed): `path.ts` arithmetic, `buildTree`, and `planMove`
-  (cycles, link-parents, slug collisions, dense sibling renumbering), plus
-  `PostgresForumRepository` in `@forum/db` — one-query tree read, and moves
-  applied in one transaction under `pg_advisory_xact_lock` with the tree
-  re-read inside it. 34 tests, 10 of them on real Postgres. Both stated
-  acceptance criteria met: a four-level reparent rewrites every descendant, and
-  the tree read is one query regardless of depth. See **D22** — the
-  prefix-sharing-sibling trap (`1.40` vs `1.4`) is the whole feature, and the
-  naive-prefix mutant fails four tests across both layers.
+- **Forum tree operations (F16)** — `@forum/forums`: path arithmetic,
+  `buildTree`, `planMove`/`planCreate`, `CachedForumRepository`, plus
+  `PostgresForumRepository`. One-query tree read (now *measured*), four-level
+  reparent, derived-path create, tag-invalidated caching. See **D22** — the
+  prefix-sharing-sibling trap (`1.40` vs `1.4`) is the whole feature.
+- **F10 caching harness** — `cachedGlobal` implemented (it was an interface with
+  no implementation), and **every textual guard is now probed** by
+  `pnpm guards:probe` against a must-match and a must-not-match sample, so an
+  inert *or* an over-broad rule fails CI. See D25.
+- **F11 testkit** — deterministic seeder + the **query-budget helper**. It found
+  a 32-query N+1 in `visibleForumIds` within an hour (**D26**).
+- **F13 operator CLI** — eight commands; a board can be set up end to end.
+  Passwords read from stdin, never `argv`. See D24.
+- **F14** — `docs/nextjs-conventions.md`, the deliverable that did not exist.
+- **F15 group ladder** — seeded by migration `0001`. It **had never been seeded
+  at all**: the initial migration contains zero INSERTs, so a fresh Postgres
+  board had no groups and registration would have failed on a foreign key (D23).
+- **F21 forum permissions** — four-level resolution now tested over real
+  Postgres, and `visibleForumIds` reduced from 32 queries to a constant 3 (D26).
+- **F05 driver contract suite** — all four driver families pass a shared
+  contract. It immediately exposed that `PostgresQueue` only worked with
+  postgres.js's result shape and would have broken on the Neon driver F03's seam
+  exists for (**D27**).
+- **F23 bans and ban filters** (domain + Postgres + task registration) —
+  expiry restores the *captured* group, filters apply at both registration and
+  login, and filter ordering is chosen to avoid a user-enumeration oracle
+  (**D29**). Still PARTIAL: nothing runs the task yet.
 
 ## NEXT ACTION — resume here
 
-**Close Phase 1, then unblock Phase 2.**
+Phase 1 has **one feature left**: **F24 group promotions**. Then the two
+decisions taken on 2026-07-30 that are now unblocked work rather than questions:
 
-1. **F21 end-to-end** — wire `visibleForumIds` and `forumMatrix` through the
-   container over Postgres, then re-run F22's matrix gate against real data
-   instead of the in-memory source. The Postgres adapter exists and is tested;
-   what is missing is the wiring. This closes Phase 1 alongside F23/F24.
-2. **F11's testkit** — `packages/testkit` still contains only a `package.json`.
-   The deterministic seeder and the **query-budget assertion helper** do not
-   exist, and the Definition of Done requires that helper on every list page, so
-   **F29's board index cannot be signed off without it**. This is the single
-   biggest blocker to starting Phase 2 honestly.
-3. **F13's CLI** — `user:create`, `user:promote`, `forum:create`,
-   `settings:get|set`. The repositories they need now all exist
-   (`createPostgresAccountStore`, `PostgresForumRepository.create`,
-   `PostgresSettingsRepository`) and the group ladder is seeded, so this is
-   assembly rather than design. `task:run` stays blocked on F06.
+1. **F24 · Group promotions** — rule evaluation (post count, reputation,
+   registration age, current group), the `promotions.apply` task, and a dry-run
+   mode for the ACP. `applyPromotions` already exists as a `TaskWorkers` slot.
+   Closes Phase 1.
+2. **`forum.config.ts`** — a minimal build-time registry (themes + drivers)
+   **before F25**, so theme-kit does not hardcode theme selection and then need
+   retrofitting. Decided 2026-07-30.
+3. **`S3FileStore`** — [ADR 0002](./adr/0002-s3-filestore-dependency.md) accepted:
+   `@aws-sdk/client-s3`, lazy-loaded behind `FILESTORE_DRIVER=s3`, and it must
+   pass the F05 contract suite. Unblocks F42.
 
-Per-feature status for everything else lives in
-[`plan-status.md`](./plan-status.md), re-audited 2026-07-30. Still outstanding
-and worth keeping visible:
+Then Phase 2 opens with **F25 theme-kit**, which the plan is emphatic must exist
+before any page is built.
 
-- **F06's tick route does not run anything** — it returns `ran: []`. Needs a
-  `TaskRepository` implementation, and its `TaskWorkers` are partly blocked on
-  F38 (`reconcileCounters`) and F24 (`applyPromotions`).
-- No `forum.config.ts` (invariant 6 — the build-time registry).
+Per-feature status lives in [`plan-status.md`](./plan-status.md). The gaps that
+most affect what can honestly be signed off:
+
+- **F06's tick runs nothing** — it returns `ran: []`. It needs a
+  `TaskRepository`, and its `TaskWorkers` are partly blocked on F38
+  (`reconcileCounters`). This is why F23 is PARTIAL despite being built:
+  `bans.expire` is registered but cannot fire.
+- **F04** — CI never boots the standalone image, and `apps/worker` is empty, so
+  the self-hosting path is unverified and rots quietly.
 - No Playwright/no-JS run (F35). The auth forms are written for it, but "works
   with JavaScript disabled" is a claim, not a measurement.
 - Permission columns are generated into a `Record<string, …>`, so
-  `usergroups.canView` is not statically typed anywhere (D23).
+  `usergroups.canView` is not statically typed anywhere (D23). Three casts so far.
 
 **Test harness note:** integration tests now use PGlite via `createTestDb()` in
 `packages/db/src/pglite.fixture.ts` — boot once per suite, clear mutable tables
