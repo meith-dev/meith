@@ -22,6 +22,7 @@ import {
   SessionService,
   createMemoryStore,
   type AccountStore,
+  type MemberProfileRepository,
 } from '@forum/accounts'
 import {
   Authorizer,
@@ -40,6 +41,7 @@ import { drivers } from '@forum/drivers'
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
 import { FixtureForumRepository } from './fixture-forum-repo'
+import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
 import { SEED_BOARD } from './seed-board'
@@ -66,6 +68,8 @@ export interface Container {
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
   readonly readState: ReadStateRepository | null
+  /** Public profile lookup; deleted accounts deliberately do not resolve. */
+  readonly memberProfiles: MemberProfileRepository
   /**
    * The scheduler's storage and the tasks that can actually run (F06).
    *
@@ -134,6 +138,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     threads: new FixtureThreadRepository(),
     posts: new FixturePostRepository(),
     readState: null,
+    memberProfiles: new FixtureMemberProfileRepository(),
     ...identityServices(store),
     // See SchedulerBundle: a tick without durable, cross-instance state cannot
     // honour its concurrency guarantee, so fixture mode has no scheduler.
@@ -192,7 +197,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresPostRepository, PostgresReadStateRepository } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
@@ -208,6 +213,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     threads: new PostgresThreadRepository(db),
     posts: new PostgresPostRepository(db),
     readState: new PostgresReadStateRepository(db),
+    memberProfiles: new PostgresMemberProfileRepository(db),
     ...identityServices(store),
     scheduler: {
       repository: new PostgresTaskRepository(db),
@@ -246,6 +252,7 @@ export function getContainer(): Container {
     typeof cached.posts?.listThread !== 'function' ||
     typeof cached.posts?.findVisibleById !== 'function' ||
     cached.readState === undefined ||
+    typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')
   ) {
     g[GLOBAL_KEY] = build()

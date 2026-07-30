@@ -32,6 +32,7 @@ import { ThreadRow } from './slots/thread-row'
 import { ThreadView } from './slots/thread-view'
 import { PostBit } from './slots/post-bit'
 import { PostActions } from './slots/post-actions'
+import { MemberProfile } from './slots/member-profile'
 
 export const defaultTheme = defineTheme({
   key: 'default',
@@ -56,5 +57,7 @@ export const defaultTheme = defineTheme({
     ThreadView,
     PostBit,
     PostActions,
+
+    MemberProfile,
   },
 })

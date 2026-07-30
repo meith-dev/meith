@@ -25,7 +25,7 @@ export function ThreadRow({ thread }: ThreadRowSlotModel) {
           {thread.isUnread && <span className="sr-only">(new posts)</span>}
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Started by {thread.author.username}
+          Started by {thread.author.profileHref === null ? thread.author.username : <a href={thread.author.profileHref} className="hover:text-foreground">{thread.author.username}</a>}
         </p>
       </div>
       <dl className="flex shrink-0 gap-4 text-xs whitespace-nowrap text-muted-foreground sm:w-32">
@@ -50,7 +50,7 @@ export function ThreadRow({ thread }: ThreadRowSlotModel) {
               Last post
             </a>
             <span>
-              by {thread.lastPost.author.username},{" "}
+              by {thread.lastPost.author.profileHref === null ? thread.lastPost.author.username : <a href={thread.lastPost.author.profileHref} className="hover:text-foreground">{thread.lastPost.author.username}</a>},{" "}
               <time dateTime={thread.lastPost.at.iso}>
                 {thread.lastPost.at.label}
               </time>

@@ -16,6 +16,8 @@
 import type { Actor } from '@forum/authorization'
 import type { FooterModel, HeaderModel, LinkModel, UserPanelModel, ViewerModel } from '@forum/theme-kit'
 
+import { memberHref } from './member-profile'
+
 /** The board's name until F08's `board.name` setting is wired into the shell. */
 export const BOARD_TITLE = 'Forum'
 
@@ -52,13 +54,7 @@ export function buildViewerModel(
     isGuest,
     userId: actor.userId,
     username: options.displayName ?? null,
-    /*
-     * `null` until F33 builds `/member/[id]`. Composing the URL now would put a
-     * link to a 404 in the header of every page — the same rule the tick follows
-     * by not registering a task whose worker does not exist (D32): never
-     * advertise a capability that is not there.
-     */
-    profileHref: null,
+    profileHref: actor.userId === null ? null : memberHref(actor.userId),
     // F58. No avatar pipeline yet, and a broken <img> is worse than none.
     avatarUrl: null,
     canAccessAdminCp: options.canAccessAdminCp ?? false,
@@ -88,15 +84,11 @@ export function buildHeaderModel(
  * The user panel's links.
  *
  * **Only routes that exist.** A guest gets sign-in and register, which are built
- * (F18/F19). A member gets none yet: their profile is F33, the UserCP is F57, and
- * the admin panel is F63 — and log out is not a link at all, it is a POST to a
+ * (F18/F19). A member gets their profile; the UserCP is F57, and the admin panel
+ * is F63 — and log out is not a link at all, it is a POST to a
  * Server Action, so it cannot be one. `canAccessAdminCp` still crosses in the
  * viewer model because it is part of the contract themes are written against; it
  * simply has nothing to point at until F63.
- *
- * The member branch therefore looks empty, and that is the accurate rendering of
- * a board with no member pages. It fills in as those features land, without this
- * function's shape changing.
  */
 export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
   const links: readonly LinkModel[] = viewer.isGuest
@@ -104,7 +96,9 @@ export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
         { label: 'Sign in', href: '/login' },
         { label: 'Register', href: '/register' },
       ]
-    : []
+    : viewer.profileHref === null
+      ? []
+      : [{ label: 'Profile', href: viewer.profileHref }]
 
   return {
     viewer,

@@ -31,6 +31,7 @@ export { PostgresForumRepository } from './forum-repo'
 export { PostgresThreadRepository } from './thread-repo'
 export { PostgresPostRepository } from './post-repo'
 export { PostgresReadStateRepository } from './read-state-repo'
+export { PostgresMemberProfileRepository } from './member-profile-repo'
 export { PostgresSettingsRepository } from './settings-repo'
 export {
   PostgresBanFilterRepository,

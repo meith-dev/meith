@@ -11,6 +11,7 @@ import type {
 import type { ReadState, ThreadListingRow, ThreadPage } from "@forum/threads";
 
 import { forumHref } from "./board-index";
+import { memberHref } from "./member-profile";
 import { formatTime } from "./time";
 
 export function threadHref(row: ThreadListingRow): string {
@@ -31,7 +32,7 @@ function lastPost(
   return {
     threadTitle: thread.title,
     href: `${threadHref(thread)}#post-${post.postId}`,
-    author: { userId: post.userId, username: post.username, profileHref: null },
+    author: { userId: post.userId, username: post.username, profileHref: post.userId === null ? null : memberHref(post.userId) },
     at: formatTime(post.at, now),
   };
 }
@@ -70,7 +71,7 @@ export function threadRowModel(
     author: {
       userId: row.authorUserId,
       username: row.authorUsername,
-      profileHref: null,
+      profileHref: row.authorUserId === null ? null : memberHref(row.authorUserId),
     },
     replyCount: row.replyCount,
     viewCount: row.viewCount,

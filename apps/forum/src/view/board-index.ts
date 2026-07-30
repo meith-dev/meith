@@ -34,6 +34,7 @@ import type {
 } from '@forum/theme-kit'
 
 import { formatTime } from './time'
+import { memberHref } from './member-profile'
 
 export interface BoardIndexInput {
   readonly rows: readonly ForumListingRow[]
@@ -79,12 +80,7 @@ function toLastPost(row: ForumListingRow, now: Date): LastPostModel | null {
     author: {
       userId: last.userId,
       username: last.username,
-      /*
-       * `null` for a deleted account — and `null` for everyone else too until
-       * F33 builds `/member/[id]`. The name still renders; only the link is
-       * withheld.
-       */
-      profileHref: null,
+      profileHref: last.userId === null ? null : memberHref(last.userId),
     },
     at: formatTime(last.at, now),
   }

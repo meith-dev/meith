@@ -64,6 +64,8 @@ export type {
   BanFilterRepository,
   CreateBanInput,
   AccountRecord,
+  MemberProfileRecord,
+  MemberProfileRepository,
   AccountState,
   AccountStore,
   AccountRepository,

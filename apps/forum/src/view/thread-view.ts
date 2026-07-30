@@ -6,6 +6,7 @@ import type { ThreadListingRow } from '@forum/threads'
 
 import { forumHref } from './board-index'
 import { threadRowModel } from './forum-display'
+import { memberHref } from './member-profile'
 import { formatTime } from './time'
 
 function plainTextHtml(message: string): string {
@@ -31,7 +32,7 @@ function post(post: PostListingRow, thread: ThreadListingRow, now: Date): PostBi
     author: {
       userId: post.authorUserId,
       username: post.authorUsername,
-      profileHref: null,
+      profileHref: post.authorUserId === null ? null : memberHref(post.authorUserId),
       avatarUrl: null,
       title: null,
       postCount: post.authorPostCount,

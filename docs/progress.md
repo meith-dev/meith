@@ -170,13 +170,17 @@ roughly one run in three (D34).
   mark all, one forum, or the last post on a thread page, and all targets are
   re-authorised at the route before writing. The state read is a constant three
   statements and a late tab cannot move a marker backwards.
+- **F33 member profile** — `/member/[id]` authorises `profile.view`, reads the
+  public profile subset, and renders the existing `MemberProfile` slot. Deleted
+  accounts 404 and remain plain author names; live authors now link consistently
+  from the shell, listing, thread, and post views. Fixture and Postgres paths are
+  both present, with the latter verified against PGlite.
 
 ## NEXT ACTION — resume here
 
-**F33 · member profile** is next: profile links are still intentionally null,
-because the theme has no route to send them to. It needs one profile read and a
-`MemberProfile` slot; keep deleted authors as plain names rather than linking a
-dead account.
+**F34 · error and redirect pages** is next. The themed error and not-found
+pages exist already; the missing piece is the MyBB-style redirect interstitial
+through the existing `RedirectNotice` slot.
 
 The counters the index renders are still never written: `forums.thread_count`,
 `post_count`, and the last-post triplet are read by F29 and maintained by nobody

@@ -47,6 +47,21 @@ export interface AccountRepository {
   setState(userId: number, state: AccountState): Promise<void>
 }
 
+/** The public subset of a member account, with no credential or contact data. */
+export interface MemberProfileRecord {
+  readonly id: number
+  readonly username: string
+  readonly title: string | null
+  readonly postCount: number
+  readonly createdAt: Date
+  readonly lastActiveAt: Date | null
+}
+
+export interface MemberProfileRepository {
+  /** Returns null for a deleted account: its historical attribution remains, not its profile. */
+  findPublicById(id: number): Promise<MemberProfileRecord | null>
+}
+
 export interface SessionRecord {
   readonly id: number
   readonly userId: number

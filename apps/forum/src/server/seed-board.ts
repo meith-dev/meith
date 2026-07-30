@@ -19,6 +19,7 @@ import type { GroupDefaults, MemoryBoard } from '@forum/authorization'
 import type { ForumListingRow } from '@forum/forums'
 import type { PostListingRow } from '@forum/posts'
 import type { ThreadListingRow } from '@forum/threads'
+import type { MemberProfileRecord } from '@forum/accounts'
 
 /** Canonical seed groups (must match the seed migration). */
 /**
@@ -69,6 +70,7 @@ const READ = {
   canViewThreads: true,
   canViewOthersThreads: true,
   canSearch: true,
+  canViewProfiles: true,
 } as const
 
 const POST = {
@@ -319,5 +321,17 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     isFirstPost: false,
     visibility: 'visible',
     createdAt: new Date('2026-07-30T08:41:00Z'),
+  },
+]
+
+/** Public fixture profiles. Deleted post authors deliberately have no row here. */
+export const SEED_MEMBER_PROFILES: readonly MemberProfileRecord[] = [
+  {
+    id: 1,
+    username: 'admin',
+    title: 'Administrators',
+    postCount: 42,
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    lastActiveAt: new Date('2026-07-30T08:41:00Z'),
   },
 ]

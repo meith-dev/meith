@@ -50,14 +50,8 @@ describe('buildViewerModel', () => {
     expect(buildViewerModel(member).userId).toBe(42)
   })
 
-  /*
-   * F33 builds `/member/[id]`. Until it exists, composing the URL would put a
-   * link to a 404 in the header of every page — so the model says `null` and the
-   * theme renders no link. Delete this test when F33 lands and the builder starts
-   * returning an href.
-   */
-  it('does not invent a profile href before F33 exists', () => {
-    expect(buildViewerModel(member).profileHref).toBeNull()
+  it('links a member to the profile route', () => {
+    expect(buildViewerModel(member).profileHref).toBe('/member/42')
   })
 
   /*
@@ -83,13 +77,10 @@ describe('buildUserPanelModel', () => {
     expect(panel.links.map((l) => l.href)).toEqual(['/login', '/register'])
   })
 
-  /*
-   * A member gets nothing yet: profile is F33, UserCP is F57, admin is F63, and
-   * log out is a POST to a Server Action rather than a link. An empty list is the
-   * accurate rendering of a board with no member pages.
-   */
-  it('offers a member only routes that exist — which is none yet', () => {
-    expect(buildUserPanelModel(buildViewerModel(member)).links).toEqual([])
+  it('offers the member profile route', () => {
+    expect(buildUserPanelModel(buildViewerModel(member)).links).toEqual([
+      { label: 'Profile', href: '/member/42' },
+    ])
   })
 
   it('reports no unread counts until F55', () => {

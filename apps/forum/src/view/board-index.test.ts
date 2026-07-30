@@ -154,6 +154,7 @@ describe('buildBoardIndexView', () => {
     expect(last.href).toBe('/thread/7#post-99')
     expect(last.at.label).toBe('Today, 09:14')
     expect(last.author.username).toBe('ada')
+    expect(last.author.profileHref).toBe('/member/3')
   })
 
   /*
