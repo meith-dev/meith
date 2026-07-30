@@ -17,9 +17,11 @@ this file.
 ## Gate state (all green)
 
 `pnpm verify` → exit 0: textual invariants + **guard probes**, dependency-cruiser
-(133 modules, 0 violations), typecheck (root **and** app), **765 tests** (a large
+(144 modules, 0 violations), typecheck (root **and** app), **864 tests** (a large
 share against real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
-production environment.
+production environment. Three consecutive green runs after capping worker
+concurrency — fifteen PGlite instances were saturating ten cores and failing
+roughly one run in three (D34).
 
 **Gate holes closed this pass:**
 
@@ -113,43 +115,52 @@ production environment.
   contract. It immediately exposed that `PostgresQueue` only worked with
   postgres.js's result shape and would have broken on the Neon driver F03's seam
   exists for (**D27**).
-- **F23 bans and ban filters** (domain + Postgres + task registration) —
-  expiry restores the *captured* group, filters apply at both registration and
-  login, and filter ordering is chosen to avoid a user-enumeration oracle
-  (**D29**). Still PARTIAL: nothing runs the task yet.
+- **F23 bans and ban filters** — expiry restores the *captured* group, filters
+  apply at both registration and login, and filter ordering avoids a
+  user-enumeration oracle (**D29**).
+- **F24 group promotions** — `@forum/groups` (was empty): rule evaluation with
+  three safety guards (never lift a ban, never demote, never re-apply),
+  preview/apply sharing one evaluation, keyset paging (**D30**).
+- **F06 the tick actually runs** — `PostgresTaskRepository` plus app-tier
+  workers; `/api/system/tick` calls `tick()` instead of returning `ran: []`.
+  Tasks whose workers do not exist are **omitted rather than stubbed** (**D32**).
+- **`forum.config.ts`** — the build-time registry, read by `layout.tsx` so it is
+  load-bearing, plus a guard banning runtime filesystem scans (**D33**).
+- **F05 `S3FileStore`** — per ADR 0002, passing the shared contract with real
+  presigning. Measuring it disproved the ADR's own lazy-require condition, which
+  was amended rather than quietly dropped (**D34**).
+
+**Phase 1 is complete: 10 of 10.**
 
 ## NEXT ACTION — resume here
 
-Phase 1 has **one feature left**: **F24 group promotions**. Then the two
-decisions taken on 2026-07-30 that are now unblocked work rather than questions:
+**F25 · theme-kit** opens Phase 2, and the plan is emphatic it must exist before
+any page is built — retrofitting a slot API over finished pages does not work.
+`forum.config.ts` is already in place for it to register against.
 
-1. **F24 · Group promotions** — rule evaluation (post count, reputation,
-   registration age, current group), the `promotions.apply` task, and a dry-run
-   mode for the ACP. `applyPromotions` already exists as a `TaskWorkers` slot.
-   Closes Phase 1.
-2. **`forum.config.ts`** — a minimal build-time registry (themes + drivers)
-   **before F25**, so theme-kit does not hardcode theme selection and then need
-   retrofitting. Decided 2026-07-30.
-3. **`S3FileStore`** — [ADR 0002](./adr/0002-s3-filestore-dependency.md) accepted:
-   `@aws-sdk/client-s3`, lazy-loaded behind `FILESTORE_DRIVER=s3`, and it must
-   pass the F05 contract suite. Unblocks F42.
+Build: the slot registry with the full R6 slot list, each slot declaring
+**server or client kind** with a lint rule that fails the build on a crossing,
+`defineTheme()` with `extends` inheritance, and typed serialisable view models.
+The rule is not optional — if `PostBit` ever becomes a client component the whole
+post list ships to the browser and the product's main advantage is gone.
 
-Then Phase 2 opens with **F25 theme-kit**, which the plan is emphatic must exist
-before any page is built.
+Smaller things now unblocked, in rough order of value:
 
-Per-feature status lives in [`plan-status.md`](./plan-status.md). The gaps that
-most affect what can honestly be signed off:
+1. **`forum task:run`** — the CLI command was blocked on `TaskRepository`, which
+   now exists. Small, and gives operators a way to force a tick.
+2. **F04** — CI never boots the standalone image, and `apps/worker` is empty, so
+   the self-hosting path is unverified and rots quietly while everyone develops
+   on Vercel. This is F04's stated acceptance criterion.
+3. **A Postgres `OutboxReader`** — the last missing task worker besides F38's
+   counters; `outbox.relay` registers itself the moment it exists.
 
-- **F06's tick runs nothing** — it returns `ran: []`. It needs a
-  `TaskRepository`, and its `TaskWorkers` are partly blocked on F38
-  (`reconcileCounters`). This is why F23 is PARTIAL despite being built:
-  `bans.expire` is registered but cannot fire.
-- **F04** — CI never boots the standalone image, and `apps/worker` is empty, so
-  the self-hosting path is unverified and rots quietly.
-- No Playwright/no-JS run (F35). The auth forms are written for it, but "works
-  with JavaScript disabled" is a claim, not a measurement.
+Still outstanding and worth keeping visible:
+
+- **F35's no-JS Playwright run does not exist.** The auth forms are written for
+  it, but "works with JavaScript disabled" is a claim, not a measurement.
+- A failing task logs but does not raise an admin notification (needs F55).
 - Permission columns are generated into a `Record<string, …>`, so
-  `usergroups.canView` is not statically typed anywhere (D23). Three casts so far.
+  `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.
 
 **Test harness note:** integration tests now use PGlite via `createTestDb()` in
 `packages/db/src/pglite.fixture.ts` — boot once per suite, clear mutable tables
