@@ -6,6 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
+    "@forum/authorization": "workspace:*",
     "@forum/core": "workspace:*",
     "@forum/db": "workspace:*",
     "@forum/forums": "workspace:*",

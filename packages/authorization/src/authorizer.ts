@@ -144,17 +144,35 @@ export class Authorizer {
       return [...(await this.source.allForumIds())]
     }
 
-    const forumIds = await this.source.allForumIds()
+    /*
+     * Three queries, and crucially a *constant* three: the whole board's
+     * ancestor chains, the actor's group defaults, and every override for those
+     * groups. Resolution then happens in memory.
+     *
+     * This used to walk per forum — two queries each — which is an N+1 that
+     * grows with the board. Every list page filters by this set, so the cost was
+     * multiplied across the entire product; F21 makes it an explicit acceptance
+     * criterion and the testkit's budget assertion now holds it.
+     *
+     * It is three rather than literally one because the combination rules
+     * (R4.2's OR/max/AND across groups, and first-non-null up the ancestor
+     * chain) are domain logic. Pushing them into SQL would put the permission
+     * model in the database, where F20's "nothing outside this package knows
+     * what a group id is" stops being enforceable. See D26.
+     */
+    const chains = await this.source.allAncestorChains()
     const groups = await this.source.groupDefaults(actor.groupIds)
-    const visible: number[] = []
 
-    // Resolve each forum's canView. Super-mods see every forum they could view;
-    // canView still applies to them (a hidden staff forum stays hidden until a
-    // group grants canView), which matches MyBB.
-    for (const forumId of forumIds) {
-      const chain = await this.source.ancestorChain(forumId)
-      const overrides = await this.source.forumOverrides(chain, actor.groupIds)
-      const matrix = resolveForumMatrix(chain, groups, indexOverrides(overrides))
+    const everyForumInvolved = [...new Set([...chains.values()].flat())]
+    const overrides = indexOverrides(
+      await this.source.forumOverrides(everyForumInvolved, actor.groupIds),
+    )
+
+    const visible: number[] = []
+    // canView still applies to super-moderators: a hidden staff forum stays
+    // hidden until a group grants canView, which matches MyBB.
+    for (const [forumId, chain] of chains) {
+      const matrix = resolveForumMatrix(chain, groups, overrides)
       if (matrix.canView === true) visible.push(forumId)
     }
     return visible

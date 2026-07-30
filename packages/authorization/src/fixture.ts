@@ -190,6 +190,11 @@ export class MemoryAuthorizationSource implements AuthorizationSource {
   async allForumIds(): Promise<number[]> {
     return [FORUM.public, FORUM.publicSub, FORUM.private, FORUM.password]
   }
+
+  async allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>> {
+    const ids = await this.allForumIds()
+    return new Map(ids.map((id) => [id, CHAINS[id] ?? []]))
+  }
 }
 
 /* ----------------------------- Actors ----------------------------- */

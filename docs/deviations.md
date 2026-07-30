@@ -677,3 +677,40 @@ Per-row cost is avoided deliberately — one shared precomputed Argon2id hash
 (hashing 20k passwords at the real cost factor proves nothing the crypto suite
 does not already cover), batched multi-row inserts, and forum paths accumulated
 in memory rather than read back per forum.
+
+### D26 — `visibleForumIds` was an N+1; it is now three queries, not one (F21)
+
+**Found by the query-budget helper within an hour of building it.** F21's
+acceptance says "`visibleForumIds` is one query". It was **32** on a 15-forum
+board: the implementation looped over every forum asking for that forum's
+ancestor chain and its overrides — two round trips each.
+
+This is the worst possible place for an N+1. Every list page on the board
+filters by the visible set (invariant 25), so the cost multiplies across the
+entire product, and it grows with the number of forums — the one dimension a
+busy board keeps increasing.
+
+**Fix.** `AuthorizationSource` grew `allAncestorChains()`, which the materialised
+path makes free: the chain is a parse of a string already on the row, so reading
+`(id, path)` for the whole board is one statement at any depth or width.
+Resolution is now three queries — chains, group defaults, all overrides for
+those groups — and then pure in-memory work.
+
+**Why three and not the literal one the plan asks for.** The combination rules
+(R4.2's OR/max/AND across groups, and first-non-null up the ancestor chain) are
+domain logic. Expressing them in SQL would move the permission model into the
+database, where F20's "nothing outside `@forum/authorization` knows what a group
+id is" stops being enforceable, and where the F22 matrix could no longer drive
+it. The property that actually matters is that the cost is **constant**, and
+that is asserted directly by comparing a 15-forum board against a 65-forum one —
+a bare budget of 3 would still pass on a tiny fixture with a per-forum walk.
+
+**Also closed here:** F21's "four-level tree with overrides at levels 2 and 4"
+had only ever been exercised through the in-memory fixture, which proves the
+rules but not the wiring. There is now a Postgres test over a real four-level
+tree, including the case that separates a correct resolver from one that merely
+works — a level-3 forum with no row of its own must inherit level 2's denial
+rather than fall back to the group default, because falling back silently
+exposes the child of a private forum. It also asserts that `visibleForumIds` and
+`forumMatrix` agree, since a disagreement shows up as a forum you can see in a
+listing but cannot open.

@@ -68,4 +68,10 @@ export class InMemoryAuthorizationSource implements AuthorizationSource {
   async allForumIds(): Promise<readonly number[]> {
     return Object.keys(this.board.chains).map((k) => Number(k))
   }
+
+  async allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>> {
+    return new Map(
+      Object.entries(this.board.chains).map(([id, chain]) => [Number(id), chain]),
+    )
+  }
 }

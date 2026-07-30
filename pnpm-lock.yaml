@@ -297,6 +297,9 @@ importers:
 
   packages/testkit:
     dependencies:
+      '@forum/authorization':
+        specifier: workspace:*
+        version: link:../authorization
       '@forum/core':
         specifier: workspace:*
         version: link:../core
