@@ -59,7 +59,15 @@ export default defineConfig({
      * Postgres-backed suites are opt-in via a separate project so `pnpm test`
      * stays runnable with no database (which is the state of this checkout).
      */
-    env: { NODE_ENV: 'test', DATA_SOURCE: 'fixture' },
+    /*
+     * LOG_LEVEL=fatal because several suites deliberately drive failure paths —
+     * a queue handler that throws, a job that dead-letters — and their
+     * error-level output is expected. Left at the default, a fully passing run
+     * prints error JSON, which teaches everyone to skim past CI output and is
+     * how a real error goes unnoticed. Nothing asserts on log output; a suite
+     * that needs to can override this.
+     */
+    env: { NODE_ENV: 'test', DATA_SOURCE: 'fixture', LOG_LEVEL: 'fatal' },
     /*
      * The PGlite suites boot a real Postgres (compiled to WASM) and apply every
      * migration in `beforeAll`. That is seconds of genuine work, and vitest runs

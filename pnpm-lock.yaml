@@ -306,6 +306,9 @@ importers:
       '@forum/db':
         specifier: workspace:*
         version: link:../db
+      '@forum/drivers':
+        specifier: workspace:*
+        version: link:../drivers
       '@forum/forums':
         specifier: workspace:*
         version: link:../forums

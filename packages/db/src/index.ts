@@ -15,6 +15,7 @@ export {
 } from './client'
 
 export { runMigrations } from './migrate'
+export { resultRows } from './result-rows'
 
 export {
   PostgresAuthorizationSource,

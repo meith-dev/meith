@@ -9,7 +9,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { type Job, type EnqueueOptions, type QueueDriver, logger } from '@forum/core'
-import { getDb, jobs, type Database } from '@forum/db'
+import { getDb, jobs, type Database, resultRows } from '@forum/db'
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
 
 /**
@@ -147,7 +147,7 @@ export class PostgresQueue implements QueueDriver {
       RETURNING id, kind, payload, attempts, correlation_id
     `)
 
-    return (rows as unknown as ReadonlyArray<Record<string, unknown>>).map((r) => {
+    return resultRows(rows).map((r) => {
       const job: Job = {
         id: String(r.id),
         kind: String(r.kind),

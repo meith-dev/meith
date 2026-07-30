@@ -714,3 +714,37 @@ rather than fall back to the group default, because falling back silently
 exposes the child of a private forum. It also asserts that `visibleForumIds` and
 `forumMatrix` agree, since a disagreement shows up as a forum you can see in a
 listing but cannot open.
+
+### D27 — The queue only worked with one driver's result shape (F05)
+
+**Found by the driver contract suite on its first run.** F05 asks for "a contract
+test suite every implementation must pass"; there was none, so `PostgresQueue` —
+the *default* queue driver — had never been executed against a real database at
+all. Pointing the new suite at PGlite failed immediately with `rows.map is not a
+function`.
+
+Drizzle's raw `execute()` returns whatever the underlying driver returns, and
+they disagree: `postgres.js` (what the app runs) yields an array-like of rows,
+while `node-postgres`, PGlite and **Neon's serverless driver** yield
+`{ rows: [...] }`. `PostgresQueue` read the first shape behind an
+`as unknown as ReadonlyArray<…>` cast.
+
+That cast is the real defect. It *asserts* a shape rather than checking one, so
+the compiler could not warn about the exact thing that would break — and F03
+built the `DbDriver` seam specifically so Neon could slot in later. The queue
+would have failed on that swap, at runtime, in production, on the code path that
+delivers email and notifications.
+
+Fixed with `resultRows()` in `@forum/db`, which accepts either shape and is now
+the sanctioned way to read rows from `execute()`. The query builder is
+unaffected — it normalises internally.
+
+**The wider point:** every implementation passed its own tests before this. The
+contract suite is what makes "no conditional feature code downstream" true
+rather than aspirational, because it is the only thing that checks the
+implementations actually agree.
+
+Also set `LOG_LEVEL=fatal` for the test run. Several suites deliberately drive
+failure paths, and their expected error-level output made a fully passing run
+print error JSON — which teaches everyone to skim past CI output, and is how a
+real error goes unnoticed.

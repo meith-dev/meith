@@ -27,7 +27,7 @@ what is and is not built.
 ## How this audit was done
 
 Last audited **2026-07-30** (re-audited after F10/F11/F13/F15/F16 landed), against the working tree, not from memory:
-`pnpm verify` (662 tests), `pnpm build`, plus direct inspection of the
+`pnpm verify` (705 tests), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -37,7 +37,7 @@ couple of `PARTIAL` rows are an afternoon.
 
 | Phase | Features | DONE | PARTIAL | TODO |
 |---|---|---|---|---|
-| 0 — Skeleton | 14 | 8 | 6 | 0 |
+| 0 — Skeleton | 14 | 9 | 5 | 0 |
 | 1 — Identity, tree, permissions | 10 | 8 | 0 | 2 |
 | 2 — Themes and reading | 11 | 0 | 2 | 9 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
@@ -47,7 +47,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **16** | **8** | **65** |
+| **Total** | **89** | **17** | **7** | **65** |
 
 ---
 
@@ -59,7 +59,7 @@ couple of `PARTIAL` rows are an afternoon.
 | F02 | Config and environment validation | `DONE` | Zod schema in `packages/core/src/env.ts`; lazy proxy (D1); build-phase vs runtime split (D18). `process.env` confined by guard + ESLint rule. 11 tests. |
 | F03 | Database package | `PARTIAL` | Drizzle + postgres.js, forward-only migration, transaction helper. **Gap:** acceptance asks for "migrations run up *and down*", which contradicts invariant 32 (forward-only) — see Open questions. No Testcontainers; PGlite is used instead. |
 | F04 | Deploy on both targets | `PARTIAL` | Dockerfile (multi-stage, standalone) + `docker-compose.yml`; CI builds the app. **Gap:** CI never *boots* the standalone image, which is the stated acceptance criterion; `apps/worker` is an empty package, so the "same image runs the worker with a flag" path does not exist. |
-| F05 | Driver interfaces | `PARTIAL` | `QueueDriver`/`CacheDriver`/`FileStore`/`MailDriver` + `resolve.ts` from env. `MemoryQueue`, `PostgresQueue` (`FOR UPDATE SKIP LOCKED`), `MemoryCache`, `NextCache`, `LocalFileStore`, `HttpMailDriver`/`LogMailDriver`. **Gap:** no `S3FileStore`, named as a *default* in the plan, and no contract test suite. |
+| F05 | Driver interfaces | `PARTIAL` | Interfaces + env selection + every shipped implementation. **Contract suite now exists** (`@forum/testkit`) and all four families pass it, including `PostgresQueue` against real Postgres — which exposed that it only worked with postgres.js's result shape and would have broken on the Neon driver F03's seam exists for (D27). **Gap:** no `S3FileStore`; it needs a runtime dependency, which invariant 2 makes a human decision — see [ADR 0002](adr/0002-s3-filestore-dependency.md). F42 attachments are blocked on it. |
 | F06 | System tick and scheduled tasks | `PARTIAL` | `packages/tasks` registry + scheduler (concurrent-claim logic tested), secret-guarded route now at the spec path `/api/system/tick`, `vercel.json` cron + a compose tick loop. **Gap:** the route does not actually *run* anything — it returns `ran: []`. No `TaskRepository` implementation exists, and the `TaskWorkers` it would need are partly blocked on later features (`reconcileCounters` on F38, `applyPromotions` on F24). `apps/worker` is an empty package. |
 | F07 | Outbox and event bus | `DONE` | `outbox` table, transactional write helper, drain-to-queue, retry/backoff/dead-letter. Rollback-suppresses-delivery covered. |
 | F08 | Settings registry | `DONE` | `packages/settings` registry + `settings`/`setting_groups`; typed accessors; migration-seeded defaults. |
@@ -68,7 +68,7 @@ couple of `PARTIAL` rows are an afternoon.
 | F11 | Boundary lint and testkit | `PARTIAL` | `dependency-cruiser` enforces R2 (127 modules, 0 violations), probe-verified. `@forum/testkit` now has the deterministic seeder (fixed-seed PRNG, batched inserts, genuinely nested tree) and the **query-budget helper**, which counts statements at the driver and names the repeated SQL so an N+1 is identifiable. Mutation-verified: an injected N+1 in `listAll` fails the budget. F16's "one query regardless of depth" is now measured rather than claimed. **Gap:** the harness is PGlite, not Testcontainers, and `FULL_SCALE` (2M posts) is defined but only runnable against real Postgres — PGlite holds the database in process memory. `SMOKE_SCALE` runs in CI. Factories beyond the seeder are not built. |
 | F12 | CI pipeline | `DONE` | Three jobs: static checks (guards, lint, depcruise, both typechecks, tests), production build, migrations + drift + Postgres tests. Runtime not yet measured against the 12-minute budget. |
 | F13 | Operator CLI (v0) | `PARTIAL` | Eight commands: `env:check`, `migrate`, `settings:list|get|set`, `user:create`, `user:promote`, `forum:create`. A board can now be set up end to end — migrate, create an admin, promote them, create forums, set settings. Passwords are read from stdin, not `argv`. **Gap:** `task:run` needs F06's missing `TaskRepository`; `cache:clear` needs a cross-process cache to clear (MemoryCache dies with its process, `revalidateTag` only works inside a Next request) and belongs with F70. |
-| F14 | Conventions document | `PARTIAL` | `docs/deviations.md`, `docs/mybb-parity.md`, `docs/adr/` exist and are maintained. **Gap:** `docs/nextjs-conventions.md` — the actual deliverable — does not exist. |
+| F14 | Conventions document | `DONE` | `docs/nextjs-conventions.md`: where Server Actions live, the `"use client"` rule and why `PostBit` can never cross it, the action-to-command adapter shape, `redirect()` outside the `try`, cache-tag rules, view-model naming, and the testing conventions. Grounded in real file paths, and each rule names the failure it prevents. |
 
 > **Checkpoint 0** — not fully reached. The app deploys and `pnpm build` is green
 > from a zero-secret environment, but no cron drives the tick and the CLI cannot

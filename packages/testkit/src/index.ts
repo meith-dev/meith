@@ -20,6 +20,14 @@ export {
 } from './query-budget'
 
 export {
+  cacheDriverContract,
+  fileStoreContract,
+  mailDriverContract,
+  queueDriverContract,
+  type DriverFactory,
+} from './driver-contracts'
+
+export {
   seedBoard,
   FULL_SCALE,
   SMOKE_SCALE,

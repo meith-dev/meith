@@ -8,7 +8,7 @@ Running log of what is complete and what the next action is, per plan §6.
 |---|---|---|
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per plan feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D26. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D27. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -139,7 +139,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D26). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D27). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant); (b) runtime-only bugs a
 compile/typecheck waved through but tests caught (reversed `verifyPassword` args,
