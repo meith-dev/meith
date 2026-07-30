@@ -14,8 +14,26 @@ export interface PostRepository {
    */
   findQuotable(threadId: number, postId: number): Promise<QuotablePost | null>
 
+  /**
+   * One page of a thread's posts.
+   *
+   * The two `include` flags widen the read, and they are two rather than one
+   * because `content.viewDeleted` and `content.viewUnapproved` are two
+   * permissions: a role that reviews the queue is not automatically a role that
+   * reads what was removed. They are the caller's decision — resolved from the
+   * matrix, never inferred here.
+   *
+   * Post numbering follows whichever set the reader is shown, so a moderator's
+   * "#4" can differ from a member's. The alternative is gaps in the numbering,
+   * which reads as a bug on every thread that has ever been moderated.
+   */
   listThread(
     threadId: number,
-    options: { readonly afterId?: number; readonly limit: number },
+    options: {
+      readonly afterId?: number
+      readonly limit: number
+      readonly includeDeleted?: boolean
+      readonly includeUnapproved?: boolean
+    },
   ): Promise<PostPage>
 }

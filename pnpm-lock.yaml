@@ -301,7 +301,11 @@ importers:
 
   packages/groups: {}
 
-  packages/posts: {}
+  packages/posts:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/settings:
     dependencies:

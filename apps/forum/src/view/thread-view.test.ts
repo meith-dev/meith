@@ -56,6 +56,9 @@ describe('buildThreadView', () => {
             message: '<script>alert(1)</script>\nHello',
             messageHtml: null,
             renderVersion: 0,
+            editedAt: null,
+            editedByUsername: null,
+            editReason: null,
             isFirstPost: true,
             visibility: 'visible',
             createdAt: new Date('2026-07-30T08:41:00Z'),
@@ -94,6 +97,9 @@ function bodyOf(post: Partial<PostListingRow> & Pick<PostListingRow, 'message'>)
           authorJoinedAt: null,
           messageHtml: null,
           renderVersion: 0,
+          editedAt: null,
+          editedByUsername: null,
+          editReason: null,
           isFirstPost: true,
           visibility: 'visible',
           createdAt: new Date('2026-07-30T08:41:00Z'),
@@ -138,5 +144,144 @@ describe('the post body (F36)', () => {
         renderVersion: RENDER_VERSION - 1,
       }),
     ).toBe('safe')
+  })
+})
+
+describe('post affordances (F41)', () => {
+  const MEMBER = {
+    viewerUserId: 7,
+    editOwn: true,
+    editOthers: false,
+    softDelete: false,
+    editWindowMinutes: 0,
+    bypassesWindow: false,
+  }
+
+  function actionsFor(
+    post: Partial<PostListingRow>,
+    capabilities: Partial<typeof MEMBER> = {},
+  ) {
+    const view = buildThreadView({
+      thread,
+      forum,
+      capabilities: { ...MEMBER, ...capabilities },
+      page: {
+        rows: [
+          {
+            id: 4,
+            threadId: 3,
+            forumId: 2,
+            number: 1,
+            authorUserId: 7,
+            authorUsername: 'ada',
+            authorPostCount: 1,
+            authorJoinedAt: null,
+            message: 'body',
+            messageHtml: null,
+            renderVersion: 0,
+            editedAt: null,
+            editedByUsername: null,
+            editReason: null,
+            isFirstPost: false,
+            visibility: 'visible',
+            createdAt: new Date('2026-07-30T08:41:00Z'),
+            ...post,
+          },
+        ],
+        nextAfterId: null,
+      },
+      pageNumber: 1,
+      nextHref: null,
+      replyHref: '/thread/3-hello/reply',
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+    return view.posts[0]!
+  }
+
+  it('offers Edit on your own post', () => {
+    expect(actionsFor({}).actions.editHref).toBe('/thread/3-hello/edit?post=4')
+  })
+
+  it('does not offer Edit on somebody else"s', () => {
+    expect(actionsFor({ authorUserId: 99 }).actions.editHref).toBeNull()
+  })
+
+  it('offers Edit on somebody else"s to a moderator', () => {
+    expect(
+      actionsFor({ authorUserId: 99 }, { editOthers: true }).actions.editHref,
+    ).toBe('/thread/3-hello/edit?post=4')
+  })
+
+  it('offers nothing to a guest', () => {
+    const view = buildThreadView({
+      thread,
+      forum,
+      page: {
+        rows: [
+          {
+            id: 4,
+            threadId: 3,
+            forumId: 2,
+            number: 1,
+            authorUserId: 7,
+            authorUsername: 'ada',
+            authorPostCount: 1,
+            authorJoinedAt: null,
+            message: 'body',
+            messageHtml: null,
+            renderVersion: 0,
+            editedAt: null,
+            editedByUsername: null,
+            editReason: null,
+            isFirstPost: false,
+            visibility: 'visible',
+            createdAt: new Date('2026-07-30T08:41:00Z'),
+          },
+        ],
+        nextAfterId: null,
+      },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+    expect(view.posts[0]!.actions).toMatchObject({ editHref: null, restoreHref: null })
+  })
+
+  /*
+   * The window is enforced by `PostEditor`; repeating it here only decides
+   * whether to *offer* a link that the next screen would refuse.
+   */
+  it('hides Edit once the window has closed, and keeps it for a moderator', () => {
+    const stale = { createdAt: new Date('2026-07-30T08:00:00Z') }
+    expect(actionsFor(stale, { editWindowMinutes: 30 }).actions.editHref).toBeNull()
+    expect(
+      actionsFor(stale, { editWindowMinutes: 30, bypassesWindow: true }).actions.editHref,
+    ).toBe('/thread/3-hello/edit?post=4')
+  })
+
+  it('offers Restore instead of Edit on a deleted post', () => {
+    const post = actionsFor({ visibility: 'deleted' }, { softDelete: true })
+    expect(post.actions).toMatchObject({
+      editHref: null,
+      restoreHref: '/thread/3-hello/edit?post=4',
+    })
+  })
+
+  /*
+   * A deleted post's body is on the page only because a moderator is reading
+   * it. Offering to quote it would put it back in front of everybody.
+   */
+  it('does not offer to quote a post nobody else can see', () => {
+    expect(actionsFor({ visibility: 'deleted' }, { softDelete: true }).actions.quoteHref).toBeNull()
+    expect(actionsFor({}).actions.quoteHref).toBe('/thread/3-hello/reply?quote=4')
+  })
+
+  it('carries the edit notice through to the theme', () => {
+    const post = actionsFor({
+      editedAt: new Date('2026-07-30T08:55:00Z'),
+      editedByUsername: 'ada',
+      editReason: 'typo',
+    })
+    expect(post.editedNote).toMatch(/^Last edited by ada on .+: typo$/)
   })
 })

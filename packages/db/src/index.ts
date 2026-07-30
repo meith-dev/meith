@@ -52,6 +52,14 @@ export {
   PostgresRenderBackfill,
   type RenderBackfillRun,
 } from './render-backfill'
+export { PostgresPostWriteRepository } from './post-writes'
+export {
+  applyAncestorVisibilityChange,
+  applyVisibilityChangeCounters,
+  repairForumLastPostChain,
+  repairThreadLastPost,
+  type VisibilityChange,
+} from './visibility-counters'
 export { PostgresOutboxReader } from './outbox-repo'
 export {
   PostgresBanFilterRepository,

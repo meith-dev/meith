@@ -124,3 +124,44 @@ divergence only appears in the case where MyBB's output is invalid HTML whose
 rendering is browser-dependent. Unbalanced output from a post body is also the
 shape that lets formatting escape a post and affect the rest of the page, so
 this one is not negotiable regardless of parity.
+
+---
+
+## Deleting the first post of a thread
+
+**MyBB** lets a member with `candeleteposts` delete any of their own posts,
+including the opening one; deleting it leaves the thread's remaining replies in
+place under a first post that no longer exists.
+
+**We** refuse it, with a message pointing at thread deletion instead.
+
+**Why.** The opening post *is* the thread as far as every listing is concerned —
+it supplies `first_post_id`, and the thread's title, author and counters are
+told from it. The two ways to allow the click both lose: deleting only the post
+leaves a thread with a title, a reply count and nothing to read, and quietly
+deleting the whole thread means "delete my post" removes other people's replies
+without saying so. Refusing and naming the alternative is the only option that
+does what it says.
+
+**Cost.** Until F50's thread tools exist, a member who wants their thread gone
+has to ask a moderator. An imported MyBB thread whose first post was deleted
+arrives with a first post that is soft-deleted rather than missing, which the
+moderator view shows and the member view skips.
+
+---
+
+## Editing a post you no longer own the window for
+
+**MyBB** hides the edit control once `edittimelimit` has passed and refuses the
+submission server-side.
+
+**We** do the same, with one difference worth stating: the window is a
+**numeric permission**, so R4.2's combination applies — `0` means unlimited and
+beats every other value across a user's groups. A member in a 30-minute group
+and an unlimited group gets unlimited.
+
+**Why.** It is the same rule every other numeric on the board follows, and the
+alternative (minimum-wins) would need a fourth combination kind for one field —
+the trap already recorded under *flood-intervals*, where minimum-wins genuinely
+is correct and the field was therefore modelled as a setting instead. An edit
+window is an *allowance*, so MAX is the right rule and no special case is needed.

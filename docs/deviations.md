@@ -1706,3 +1706,139 @@ one.
 - **Bare URLs are not auto-linked.** MyBB linkifies loose `http://…` in post
   text. Recorded as a parity decision rather than done quietly — see
   `mybb-parity.md#bbcode-coverage`.
+
+### D45 — Editing, deleting, and the counters that have to come back (F41)
+
+The ⛔ gate for content mutation. Everything downstream of it — the moderation
+queue, thread tools, merge and split — is a different actor performing one of
+the two transitions defined here, so both are written once, in
+`@forum/posts`, with their counter consequences attached rather than left to
+each caller.
+
+#### A deletion is not a creation with a minus sign
+
+F38 wrote the counters a created post moves, and F41 was always going to have to
+reverse them. It is not the same code negated, for one reason: some of what F38
+writes is not a counter. `post_count` is a delta and reverses arithmetically;
+`last_post_id` is a **pointer**, and the reverse of "this post is now the
+newest" is not "subtract one" — it is "find what the newest is now".
+
+So counts are adjusted and pointers are recomputed, and the two get different
+guarantees. Counts on the direct forum, thread and author are written in the
+caller's transaction; ancestor counts ride the event, as F38's do. Pointers on
+the **whole path** are recomputed synchronously, because a board index linking
+to a post that no longer exists is worse than a count being a minute late.
+
+The repair walks deepest-first and takes each forum's pointer to be the newest
+of (its own visible threads) and (its children's already-correct pointers) —
+subtree-inclusive by induction, two indexed reads and one update per level. It
+runs on *every* visibility change rather than only when the changed post
+happened to be a pointer, because deciding that costs about as much as doing it
+and getting it subtly wrong is silent. A mutant that repairs only the posting
+forum, and one that walks the chain top-down, are both killed by tests.
+
+#### The ledger already answered the idempotency question
+
+`content_counter_rollups` was F38's replay guard for creation. Read as **"this
+post is currently counted in its ancestors"** it answers delete and restore too,
+with no new table and no sequence number: a redelivered delete finds no ledger
+row and does nothing, a redelivered restore finds one and does nothing.
+
+The handler reads the post's *current* visibility rather than trusting the
+event's `visible` flag, which makes it convergent rather than merely idempotent:
+delivery is at-least-once and unordered, and a delete/restore pair arriving
+backwards would otherwise leave the ancestors permanently one out. There is a
+test that delivers exactly that pair in the wrong order.
+
+#### `unapproved → deleted` moves nothing
+
+The case a "deleting always decrements" implementation gets wrong. Every counter
+on the board means *visible* content (D41), so a post in the queue was never
+counted and rejecting it must not subtract. Getting this wrong walks every total
+down by one per rejected post — invisible until a recount, and indistinguishable
+from ordinary drift. It is its own test, and its own killed mutant.
+
+The same definition decides the edit path: `requiresApprovalOnEdit` sending a
+visible post back to the queue is a `visible → unapproved` transition, so it
+goes through exactly the same counter code as a deletion. There is only one
+place where a post stops counting.
+
+#### The opening post is the thread
+
+Soft-deleting the first post of a thread is refused, with a message saying to
+delete the thread instead. Both alternatives are worse: deleting only the post
+leaves a thread with a title, a reply count and nothing to read, and silently
+deleting the thread means a member clicking "delete my post" removes everybody
+else's replies. Deleting a thread is F50's tool, which can move the thread's
+counters as one act.
+
+#### Where the edit window applies, and where it does not
+
+`editTimeLimitMinutes` is a numeric permission, so R4.2's rule holds: **0 is
+unlimited and beats every other value across groups.** It applies to your own
+post only. Someone editing another member's post is doing so under
+`post.editOthers`, which is a moderation power — and a moderator who cannot fix
+a two-year-old post because its author's window closed is a rule aimed at the
+wrong person. Both spellings of "not mine" are tested: the explicit bypass, and
+simply not being the author.
+
+The view model re-checks the window, and only to decide whether to *offer* the
+link. Enforcement is `PostEditor`'s; this is the difference between hiding a
+control and granting one.
+
+#### An unchanged body writes nothing
+
+No revision, no edit notice, no counter. A revision recording no change is noise
+in the history the next moderator has to read, and an edit notice on a post
+nobody edited is a false accusation in public.
+
+#### Two forms, not two buttons
+
+Delete is a separate `<form>` from the edit form rather than a second submit
+button on it, and both matter with scripting off: a submit inside the edit form
+would carry the whole draft, so "delete" would mean "save my unsaved changes,
+then delete" — and a form's default submission (Enter in the textarea) picks its
+*first* submit button, which must never be the destructive one. Both are POST
+Server Actions: a GET that deletes a post is one prefetch away from deleting the
+board.
+
+#### Hidden posts are filtered in the query, not in the theme
+
+A moderator sees deleted and unapproved posts with a banner; everyone else's
+page never contains the row. Two `include` flags rather than one, because
+`content.viewDeleted` and `content.viewUnapproved` are two permissions — a role
+that reviews the queue is not automatically one that reads what was removed.
+Filtering in the theme would put the body in the HTML and hide it with CSS,
+which F33 already refused to do for profile fields.
+
+Post numbering follows whichever set the reader is shown, so a moderator's "#4"
+can differ from a member's. The alternative is gaps in the numbering, which
+reads as a bug on every thread that has ever been moderated.
+
+#### Smaller things
+
+- **The fixture board's Registered group did not match the seeded one.** Three
+  negative permission fields (`requiresThreadApproval`, `requiresPostApproval`,
+  `requiresApprovalOnEdit`) were absent from `seed-board.ts`, so the fixture
+  inherited `emptyPermissionSet()`'s fallback — which for a negative field is
+  the *restrictive* value (R4.2) — while migration `0001` seeds all three
+  `false`. Nothing read them until F41, at which point every edit on the fixture
+  board went silently to a queue that has no screen. Found by a test that
+  expected a redirect to the post and got one to `?posted=moderated`.
+- **`resolvePostScope` is not a Server Action.** It lives in its own
+  `server-only` module because a `'use server'` file publishes every export as a
+  callable endpoint, and this one returns a post's stored body with the
+  permissions around it.
+- **Restoring always returns a post to `visible`**, even one that was
+  `unapproved` when it was deleted — the prior state is not stored. It requires
+  `post.softDelete` *and* `content.viewDeleted`, both moderation powers, so the
+  restore is a review decision rather than an accident. F48's queue is where a
+  post's approval state becomes something to move deliberately.
+- **The edit rewrites `message_html` in the same statement as `message`.** F36's
+  backfill would eventually repair a miss, which is exactly why it cannot be
+  relied on: a current-version render is *trusted*, so until the sweep ran every
+  reader would be served the pre-edit body.
+- **Previews now render.** F36 shipped without wiring the composer preview to
+  the renderer; all three forms now show `@forum/bbcode`'s own output, produced
+  on the server by the same function that renders the post, so the preview
+  cannot drift from the result.

@@ -31,7 +31,13 @@ export default async function ThreadPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ after?: string; page?: string; replied?: string; posted?: string }>
+  searchParams: Promise<{
+    after?: string
+    page?: string
+    replied?: string
+    posted?: string
+    post?: string
+  }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
   const id = threadId(slug)
@@ -40,7 +46,8 @@ export default async function ThreadPage({
   if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
 
   const actor = await getActor()
-  const { forums, posts, threads, authorizer, threadViews, threadWrites } = getContainer()
+  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites } =
+    getContainer()
   const thread = await threads.findVisibleById(id)
   if (!thread) notFound()
 
@@ -60,10 +67,28 @@ export default async function ThreadPage({
     await threadViews.record(thread.id).catch(() => undefined)
   }
 
-  const postPage = await posts.listThread(
-    thread.id,
-    after === undefined ? { limit: POSTS_PER_PAGE } : { afterId: after, limit: POSTS_PER_PAGE },
-  )
+  /*
+   * Two permissions, two flags. A role that reviews the queue is not
+   * automatically a role that reads what was removed, so `content.viewDeleted`
+   * and `content.viewUnapproved` widen the read independently. Everyone else's
+   * page never contains the row: filtering in the theme would put the body in
+   * the HTML and hide it with CSS, which F33 already refused to do for profile
+   * fields.
+   */
+  const viewsDeleted = authorizer.can(actor, 'content.viewDeleted', {
+    forumId: forum.id,
+    forum: matrix,
+  })
+  const viewsUnapproved = authorizer.can(actor, 'content.viewUnapproved', {
+    forumId: forum.id,
+    forum: matrix,
+  })
+  const postPage = await posts.listThread(thread.id, {
+    ...(after === undefined ? {} : { afterId: after }),
+    limit: POSTS_PER_PAGE,
+    includeDeleted: viewsDeleted,
+    includeUnapproved: viewsUnapproved,
+  })
   const nextHref = postPage.nextAfterId === null
     ? null
     : `/thread/${thread.id}-${thread.slug}?after=${postPage.nextAfterId}&page=${page + 1}`
@@ -77,8 +102,35 @@ export default async function ThreadPage({
     authorizer.can(actor, 'reply.post', { forumId: forum.id, forum: matrix }) &&
     (!thread.isLocked || authorizer.can(actor, 'content.viewUnapproved', { forumId: forum.id, forum: matrix }))
 
+  /*
+   * F41's affordances, resolved once. `post.editOwn` and `post.deleteOwn` are
+   * asked with the *viewer* as owner so the matrix answers the own-content
+   * question; the per-post decision of whether this actually is their post is
+   * the view model's, and every one of these is re-asked by the action that
+   * acts on it.
+   */
+  const own = { forumId: forum.id, forum: matrix, ownerId: actor.userId }
+  const others = { forumId: forum.id, forum: matrix, ownerId: -1 }
+  /*
+   * Every affordance is also gated on there being somewhere to write, the same
+   * way the reply link is: fixture mode has no post writer (D38), and an Edit
+   * link that leads to a 404 is worse than no link at all.
+   */
+  const writable = postWrites !== null
+  const capabilities = {
+    viewerUserId: actor.userId,
+    editOwn: writable && authorizer.can(actor, 'post.editOwn', own),
+    editOthers: writable && authorizer.can(actor, 'post.editOthers', others),
+    softDelete: writable && authorizer.can(actor, 'post.softDelete', own),
+    editWindowMinutes: Number(matrix.editTimeLimitMinutes ?? 0),
+    bypassesWindow:
+      authorizer.can(actor, 'post.editOthers', others) ||
+      authorizer.can(actor, 'content.viewUnapproved', own),
+  }
+
   const view = buildThreadView({
     thread,
+    capabilities,
     replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
     forum,
     page: postPage,
@@ -101,8 +153,12 @@ export default async function ThreadPage({
     query.replied === 'race'
       ? 'Somebody else replied while you were writing. Your reply was posted below theirs.'
       : query.posted === 'moderated'
-        ? 'Your reply was posted and is waiting for a moderator to approve it.'
-        : null
+        ? 'Your post is waiting for a moderator to approve it.'
+        : query.post === 'deleted'
+          ? 'That post has been deleted.'
+          : query.post === 'unchanged'
+            ? 'Nothing changed — that post was already in this state.'
+            : null
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">

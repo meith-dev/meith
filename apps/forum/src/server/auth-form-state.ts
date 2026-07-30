@@ -15,6 +15,15 @@ export interface FormState {
   readonly notice?: string | undefined
   /** Echoed back so a no-JS re-render keeps what the user typed (never the password). */
   readonly values?: Record<string, string> | undefined
+  /**
+   * A rendered preview of the submitted body (F36/F41).
+   *
+   * Trusted HTML, and only ever `@forum/bbcode`'s own output — which is why it
+   * is a distinct field rather than an entry in `values`: everything in
+   * `values` is echoed back into a form control as text, and one field that is
+   * inserted as markup instead must not be reachable by the same name.
+   */
+  readonly preview?: string | undefined
 }
 
 export const EMPTY_STATE: FormState = {}

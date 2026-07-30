@@ -236,6 +236,14 @@ export interface PostAuthorModel extends UserRefModel {
 export interface PostActionsModel {
   readonly quoteHref: string | null
   readonly editHref: string | null
+  /**
+   * Where a soft-deleted post is put back (F41).
+   *
+   * A separate field rather than a second meaning for `editHref`, because the
+   * two are never both offered: a deleted post cannot be edited, and a visible
+   * one has nothing to restore. A theme that renders both gets exactly one.
+   */
+  readonly restoreHref: string | null
   readonly reportHref: string | null
   /** Present for moderators only; F52 fills it in. */
   readonly moderateHref: string | null

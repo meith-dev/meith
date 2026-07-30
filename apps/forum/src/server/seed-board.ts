@@ -44,7 +44,7 @@ export const SEED_GROUP = {
 } as const
 
 /** Bump when the read-only fixture rows change so a live dev container refreshes. */
-export const FIXTURE_DATA_VERSION = 2
+export const FIXTURE_DATA_VERSION = 3
 
 /** Canonical seed forums. */
 export const SEED_FORUM = {
@@ -81,6 +81,28 @@ const POST = {
   canPostThreads: true,
   canPostReplies: true,
   canSubscribe: true,
+  /*
+   * F41. A member who cannot correct their own typo is not a forum, so this is
+   * the baseline every real board ships with — and the fixture has to have it
+   * for the edit affordances to appear at all. The *window* is the permission
+   * that limits it (`editTimeLimitMinutes`), and it is 0 here: unlimited.
+   */
+  canEditOwnPosts: true,
+  canDeleteOwnPosts: true,
+  /*
+   * The three negative fields, matching migration `0001_seed_usergroups`.
+   *
+   * They were missing here, and the fixture inherited `emptyPermissionSet()`'s
+   * fallback — which for a negative field is the *restrictive* value (R4.2), so
+   * the fixture's Registered group required approval for everything while the
+   * seeded Postgres group required approval for nothing. Nothing read them
+   * until F41, at which point every edit on the fixture board silently went to
+   * a queue that has no screen. The fixture claims to mirror the seeded ladder;
+   * now it does.
+   */
+  requiresThreadApproval: false,
+  requiresPostApproval: false,
+  requiresApprovalOnEdit: false,
 } as const
 
 const GROUPS: GroupDefaults[] = [
@@ -332,6 +354,9 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
       'The rules live at [url=/forum/100-announcements]Announcements[/url].',
     messageHtml: null,
     renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: true,
     visibility: 'visible',
     createdAt: new Date('2026-07-29T09:00:00Z'),
@@ -348,6 +373,9 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     message: 'Thanks for joining us for the first release.',
     messageHtml: null,
     renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: false,
     visibility: 'visible',
     createdAt: new Date('2026-07-29T14:05:00Z'),
@@ -364,6 +392,9 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     message: 'Show us the place where you make things.',
     messageHtml: null,
     renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: true,
     visibility: 'visible',
     createdAt: new Date('2026-07-29T12:00:00Z'),
@@ -380,6 +411,9 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     message: "[quote='admin' pid='121']Show us the place where you make things.[/quote]\nA standing desk and a notebook are all I need.",
     messageHtml: null,
     renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: false,
     visibility: 'visible',
     createdAt: new Date('2026-07-29T17:18:00Z'),
@@ -396,6 +430,9 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     message: 'Tell us what you are reading this week.',
     messageHtml: null,
     renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: true,
     visibility: 'visible',
     createdAt: new Date('2026-07-28T09:00:00Z'),
@@ -412,6 +449,9 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     message: 'I just started a mystery novel.',
     messageHtml: null,
     renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: false,
     visibility: 'visible',
     createdAt: new Date('2026-07-30T08:41:00Z'),

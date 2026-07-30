@@ -14,7 +14,9 @@
  */
 import { redirect } from 'next/navigation'
 
+import { renderBBCode } from '@forum/bbcode'
 import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
+import { PostEditor, type PostWriteRepository } from '@forum/posts'
 import { ReplyComposer, ThreadComposer } from '@forum/threads'
 
 // Relative, not `@/`: this module is exercised directly by vitest, which
@@ -23,6 +25,7 @@ import { POSTS_PER_PAGE } from '../view/paging'
 
 import { getActor } from './context'
 import { getContainer } from './container'
+import { resolvePostScope } from './post-scope'
 import { getSettings } from './settings'
 import type { FormState } from './auth-form-state'
 
@@ -44,7 +47,7 @@ function positiveInt(value: string): number | null {
 /** Turn a thrown domain error into a FormState; log and generalise the rest. */
 function toFormState(err: unknown, values: Record<string, string>): FormState {
   if (isAppError(err)) return { error: err.message, values }
-  logger({ module: 'content-actions' }).error({ err }, 'unexpected error creating a thread')
+  logger({ module: 'content-actions' }).error({ err }, 'unexpected error writing content')
   return { error: 'Something went wrong. Please try again.', values }
 }
 
@@ -67,7 +70,7 @@ export async function createThreadAction(
    * *only* what the user typed, so it cannot become a way to read anything.
    */
   if (field(form, 'intent') === 'preview') {
-    return { notice: 'preview', values }
+    return { notice: 'preview', values, preview: renderBBCode(message).html }
   }
 
   const actor = await getActor()
@@ -177,7 +180,7 @@ export async function createReplyAction(
   if (threadId === null) return { error: 'That thread does not exist.', values }
 
   if (field(form, 'intent') === 'preview') {
-    return { notice: 'preview', values }
+    return { notice: 'preview', values, preview: renderBBCode(message).html }
   }
 
   const actor = await getActor()
@@ -281,4 +284,144 @@ async function authorName(userId: number): Promise<string> {
   const profile = await getContainer().memberProfiles.findPublicById(userId)
   if (!profile) throw new ForbiddenError('Your account can no longer post.')
   return profile.username
+}
+
+/* ------------------------------------------------------------------ *
+ * F41 — editing, deleting and restoring a post
+ * ------------------------------------------------------------------ */
+
+/** Build the editor with the board's shared posting limits. */
+async function postEditor(posts: PostWriteRepository): Promise<PostEditor> {
+  const settings = await getSettings()
+  return new PostEditor({
+    posts,
+    config: { maxLength: settings.get('posting.max_length') },
+  })
+}
+
+export async function editPostAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const threadId = positiveInt(field(form, 'threadId'))
+  const postId = positiveInt(field(form, 'postId'))
+  const message = field(form, 'message')
+  const reason = field(form, 'reason')
+  const values = { message, reason }
+
+  if (threadId === null || postId === null) {
+    return { error: 'That post does not exist.', values }
+  }
+
+  if (field(form, 'intent') === 'preview') {
+    return { notice: 'preview', values, preview: renderBBCode(message).html }
+  }
+
+  const { postWrites } = getContainer()
+  if (postWrites === null) {
+    return {
+      error: 'This board is running on in-memory sample data, so it cannot accept edits.',
+      values,
+    }
+  }
+
+  let edited
+  let scope
+  try {
+    scope = await resolvePostScope(threadId, postId)
+    if (scope === null) throw new ValidationError('That post does not exist.')
+    if (!scope.mayEdit) throw new ForbiddenError('You cannot edit that post.')
+
+    const actor = await getActor()
+    if (actor.userId === null) {
+      throw new ForbiddenError('You must be logged in to edit a post.')
+    }
+
+    const editor = await postEditor(postWrites)
+    edited = await editor.edit(
+      { message, reason, capabilities: scope.capabilities },
+      actor.userId,
+      scope.target,
+    )
+  } catch (err) {
+    return toFormState(err, values)
+  }
+
+  const thread = `/thread/${edited.threadId}-${edited.threadSlug}`
+  if (edited.heldForApproval) {
+    // The post exists but nothing can see it, so the anchor would land on
+    // nothing. Say what happened at the top of the thread instead.
+    redirect(`${thread}?posted=moderated`)
+  }
+  redirect(`${thread}#post-${edited.postId}`)
+}
+
+export async function deletePostAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  return moveVisibility(form, 'deleted')
+}
+
+export async function restorePostAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  return moveVisibility(form, 'visible')
+}
+
+/**
+ * The two visibility moves share everything but their permission and verb.
+ *
+ * Both are POST-only Server Actions rather than links: a GET that deletes a
+ * post is one prefetch or one crawler away from deleting the board.
+ */
+async function moveVisibility(
+  form: FormData,
+  to: 'deleted' | 'visible',
+): Promise<FormState> {
+  const threadId = positiveInt(field(form, 'threadId'))
+  const postId = positiveInt(field(form, 'postId'))
+  if (threadId === null || postId === null) {
+    return { error: 'That post does not exist.' }
+  }
+
+  const { postWrites } = getContainer()
+  if (postWrites === null) {
+    return {
+      error: 'This board is running on in-memory sample data, so it cannot accept changes.',
+    }
+  }
+
+  let moved
+  try {
+    const scope = await resolvePostScope(threadId, postId)
+    if (scope === null) throw new ValidationError('That post does not exist.')
+
+    const actor = await getActor()
+    if (actor.userId === null) {
+      throw new ForbiddenError('You must be logged in to do that.')
+    }
+
+    const editor = await postEditor(postWrites)
+    if (to === 'deleted') {
+      if (!scope.mayDelete) throw new ForbiddenError('You cannot delete that post.')
+      moved = await editor.softDelete(actor.userId, scope.target, {
+        bypassesLock: scope.bypassesLock,
+      })
+    } else {
+      if (!scope.mayRestore) throw new ForbiddenError('You cannot restore that post.')
+      moved = await editor.restore(actor.userId, scope.target)
+    }
+  } catch (err) {
+    return toFormState(err, {})
+  }
+
+  const thread = `/thread/${moved.threadId}-${moved.threadSlug}`
+  /*
+   * A move that changed nothing is a double submit, not an error. Saying so
+   * beats a silent redirect that looks identical to the first one working.
+   */
+  if (!moved.changed) redirect(`${thread}?post=unchanged`)
+  redirect(to === 'deleted' ? `${thread}?post=deleted` : `${thread}#post-${moved.postId}`)
 }

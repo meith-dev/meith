@@ -26,7 +26,12 @@ export class FixturePostRepository implements PostRepository {
 
   async listThread(
     threadId: number,
-    options: { readonly afterId?: number; readonly limit: number },
+    options: {
+      readonly afterId?: number
+      readonly limit: number
+      readonly includeDeleted?: boolean
+      readonly includeUnapproved?: boolean
+    },
   ): Promise<PostPage> {
     const matches = this.rows
       .filter((row) => row.threadId === threadId && (options.afterId === undefined || row.id > options.afterId))

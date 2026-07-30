@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D44. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D45. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -19,7 +19,7 @@ this file.
 
 `pnpm verify` → exit 0: textual invariants + **guard probes**, the **slot
 server/client boundary** check + its probe, dependency-cruiser (241 modules, 0
-violations), typecheck (root **and** app), **1159 tests** (a large share against
+violations), typecheck (root **and** app), **1229 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -233,23 +233,42 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   **D43**, including why the quote is BBCode (F36 renders it now) and why the
   redirect sometimes opens a page at the reply rather than in context.
 
+- **F41 edit and delete own posts — the gate is green.** `PostEditor` owns both
+  transitions and `PostgresPostWriteRepository` writes the revision, the post,
+  its render and every counter in one transaction. The half F38 left explicitly
+  to this feature is done, and it is not F38 negated: counts reverse
+  arithmetically, but `last_post_id` is a *pointer*, so the whole ancestor chain
+  is recomputed bottom-up in the same transaction. `unapproved → deleted` moves
+  nothing — the silent drift a "delete always decrements" version causes — and
+  F38's roll-up ledger, re-read as "currently counted in ancestors", makes
+  delete and restore idempotent with no new table; the handler reads the row
+  rather than the event, so an out-of-order delete/restore pair converges. A
+  moderator sees hidden posts with a banner because the *query* includes them,
+  not because the theme hides anything. See **D45**, including why the opening
+  post cannot be deleted on its own and what the fixture board had wrong about
+  its own permission ladder.
+
 ## NEXT ACTION — resume here
 
-**F41 · edit and delete own posts** is the next thing, and it is a ⛔ gate: it
-blocks every content mutation beyond its boundary, which is all of Phase 4. It
-is what `post_revisions` and the `visibility` transitions have been waiting for,
-and it owns the counter half F38 left explicitly to it — approving or deleting
-content is the transition that applies or reverses the counters a held post
-never wrote. F36 leaves it one extra obligation, small and easy to forget: an
-edit rewrites `message`, so it must rewrite `message_html`/`render_version` in
-the same statement. The backfill would eventually repair a miss, which is
-exactly why a test has to catch it instead.
+**F47 · visibility model enforcement** is the next thing, and it is the other ⛔
+gate: nothing in Phase 4 starts until it is green. F41 both unblocked it and
+made the case for it — `listThread` now carries a *second* local visible
+predicate, next to the ones in the thread repository, the forum listing and the
+quote lookup. The feature is a central filter every read path goes through, a
+lint rule banning ad-hoc visibility checks, and a leak suite that proves no
+list, count, feed or search result reveals content the viewer may not see.
+Write the leak suite first: it is the part that says whether the filter works.
 
-**F37 · smilies and custom BBCode** is now unblocked and cheap. F36 left the
+**F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
 seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
 declarative entry rather than an admin-supplied regular expression, and
 per-forum capability toggles are a filtered registry. `font`, `align` and
 `video` are parked there by parity decision.
+
+**F48 · the moderation queue** is the first thing F41 makes cheap rather than
+possible: approval is a `unapproved → visible` transition, which is the counter
+path F41 already wrote and tested. What it needs is the screen and the bulk
+workflow, not the mechanics.
 
 Still unresolved and still blocking browser-level coverage of *writing* in
 Phase 3: **the e2e board cannot post.** The Playwright suite runs against
@@ -260,6 +279,12 @@ render and so exercise the live path. Either the e2e harness gains a real
 database or the fixture gains a content store; D38's "fixture writes throw" rule
 was written for *structure*, and content is the second time it has cost
 coverage.
+
+Also worth knowing: the F22 matrix needed **no new columns** for this feature.
+`post.editOwn`, `post.editOthers`, `post.deleteOwn`, `post.softDelete` and
+`content.viewDeleted` were all declared and covered when the gate was written,
+so the regression net F22 demands for a new permission-sensitive path was
+already there. The new paths are covered by their own action tests instead.
 
 Still worth settling:
 
@@ -311,7 +336,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D44). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D45). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

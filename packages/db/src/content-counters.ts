@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { applyAncestorVisibilityChange } from './visibility-counters'
 
 /** The content write has already inserted before this is called. */
 export interface CreatedContent {
@@ -200,5 +201,10 @@ export class PostgresContentCounterRepository {
   /** Applies one `post.created` event to the posting forum's ancestors. */
   async rollUpAncestors(postId: number): Promise<boolean> {
     return rollUpAncestorCounters(this.db, postId)
+  }
+
+  /** Applies one `post.visibility_changed` event to the same ancestors (F41). */
+  async applyVisibilityChange(postId: number): Promise<boolean> {
+    return applyAncestorVisibilityChange(this.db, postId)
   }
 }

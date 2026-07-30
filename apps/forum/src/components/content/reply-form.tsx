@@ -38,10 +38,15 @@ export function ReplyForm({
           className="rounded-md border border-border bg-muted/40 px-3 py-2"
         >
           <h2 className="mb-1 text-sm font-medium text-muted-foreground">Preview</h2>
-          {/* Text, not HTML: there is no renderer or sanitiser until F36. */}
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {state.values?.message}
-          </p>
+          {/*
+            The renderer's own output (F36), produced on the server by the same
+            function that renders the post — so what the preview shows is what
+            the thread will show, rather than an approximation that drifts.
+          */}
+          <div
+            className="text-sm leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: state.preview ?? "" }}
+          />
         </section>
       )}
 
