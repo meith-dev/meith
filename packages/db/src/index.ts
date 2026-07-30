@@ -26,6 +26,7 @@ export {
   type PermissionRow,
 } from './permissions-map'
 export { ActorBuilder, type ActorBuilderConfig } from './actor-builder'
+export { PostgresForumRepository } from './forum-repo'
 export {
   PostgresAccountRepository,
   PostgresSessionRepository,
