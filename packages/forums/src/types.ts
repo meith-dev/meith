@@ -44,6 +44,20 @@ export type ForumNode<T extends TreeShaped = ForumRow> = T & {
   readonly children: readonly ForumNode<T>[]
 }
 
+/** Everything needed to create a forum. `path`/`depth` are derived, never given. */
+export interface NewForum {
+  readonly type: ForumType
+  readonly title: string
+  readonly slug: string
+  readonly description?: string | undefined
+  /** `null` creates a top-level row. */
+  readonly parentId: number | null
+  /** Required for `type: 'link'`, meaningless otherwise. */
+  readonly linkUrl?: string | undefined
+  /** Omit to append after existing siblings. */
+  readonly displayOrder?: number | undefined
+}
+
 /** Where a forum is being moved to, and where among its new siblings. */
 export interface MoveTarget {
   /** `null` moves the forum to the top level. */

@@ -544,3 +544,50 @@ cached and tagged. `CacheTags.forumTree()` exists, but `cachedGlobal` is an
 interface in `packages/core/src/cache.ts` with no implementation anywhere, so
 there is no seam to wire it to. Building F10's caching harness is its own
 feature, not a rider on this one.
+
+### D23 — The group ladder was never seeded (F15)
+
+**Found while wiring the CLI's `user:create`.** F15's acceptance is "default
+groups present after migration with documented permission defaults". They were
+not: `0000_initial_schema.sql` contains **zero INSERT statements**. The seven
+groups existed only in `apps/forum/src/server/seed-board.ts`, which is the
+in-memory fixture board — so a fresh Postgres deployment had an empty
+`usergroups` table, and the first registration would have failed on the
+`users.primary_group_id` foreign key.
+
+The schema had always anticipated this: `usergroups.key` is commented "stable
+machine name, migrations and seeds key off this", and `permission-columns.ts`
+says in as many words that "the seed migration then sets the real per-group
+values". The migration was simply never written.
+
+**Decision.** `0001_seed_usergroups.sql`, hand-written because this is *data*
+and drizzle-kit only diffs structure. Every permission column is NOT NULL with a
+deny-by-default fallback, so each group lists only what it **grants** — meaning a
+permission added in a later release lands denied everywhere until a migration
+grants it deliberately, which is the safe direction.
+
+Ids are explicit and pinned by test: `ActorBuilder` is constructed with
+`guestGroupId: 1` and `AUTH_CONFIG.defaultMemberGroupId` is the registered
+group, and the fixture board uses the same numbering. If they drift, a fixture
+actor and a Postgres actor stop resolving identically and every parity
+assumption in the test suite quietly stops meaning anything.
+
+**Two traps this surfaced, both now covered:**
+
+- **Explicit ids do not advance the identity sequence.** Without a `setval`, the
+  first group an administrator creates collides on id 1. The same applies to any
+  seed or import preserving upstream ids (F85) — it bit the forum-tree test
+  fixture in the same session, from the same cause.
+- **The PGlite fixture only applied `0000`.** It named one file, so a second
+  migration would have been invisible to every integration test. It now reads
+  the journal — the same list the real runner applies — so a migration that is
+  checked in but never registered fails in tests exactly as it would in
+  production, rather than being silently picked up by a glob.
+
+**Not typed, deliberately noted:** the permission columns are generated into a
+`Record<string, …>`, so drizzle's inferred row type does not carry them and
+`usergroups.canView` is not statically checked anywhere. `permissions-map.ts`
+already exists to convert a loose row into a validated `PermissionSet`, and the
+seed test asserts through that mapper rather than around it. Making the columns
+statically typed would need a mapped type over the registry — worth doing, but
+it is a change to F20's foundation and not a rider on a seed migration.

@@ -42,12 +42,15 @@ function row(id: number): ForumRow {
 
 function innerRepo(rows: ForumRow[]): ForumRepository & { listAll: ReturnType<typeof vi.fn> } {
   const listAll = vi.fn().mockImplementation(() => Promise.resolve(rows))
-  return {
-    listAll,
+  const repo: ForumRepository = {
+    listAll: listAll as unknown as ForumRepository['listAll'],
     findById: (id: number) => Promise.resolve(rows.find((r) => r.id === id) ?? null),
+    create: (input) =>
+      Promise.resolve({ ...rows[0], ...input, id: 999, path: '999', depth: 0 } as ForumRow),
     applyMove: () => Promise.resolve(),
     move: () => Promise.resolve(),
-  } as ForumRepository & { listAll: ReturnType<typeof vi.fn> }
+  }
+  return Object.assign(repo, { listAll })
 }
 
 describe('CachedForumRepository', () => {

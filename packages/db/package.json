@@ -10,6 +10,7 @@
     "@forum/authorization": "workspace:*",
     "@forum/core": "workspace:*",
     "@forum/forums": "workspace:*",
+    "@forum/settings": "workspace:*",
     "drizzle-orm": "^0.44.7",
     "postgres": "^3.4.7"
   },

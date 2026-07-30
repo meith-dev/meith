@@ -2,7 +2,7 @@
  * The repository seam (R2: domain packages declare interfaces, `@forum/db`
  * implements them and is the only package that opens a connection).
  */
-import type { ForumRow, MovePlan, MoveTarget } from './types'
+import type { ForumRow, MovePlan, MoveTarget, NewForum } from './types'
 
 export interface ForumRepository {
   /**
@@ -13,6 +13,12 @@ export interface ForumRepository {
   listAll(): Promise<ForumRow[]>
 
   findById(id: number): Promise<ForumRow | null>
+
+  /**
+   * Create a forum, deriving `path` from the parent inside the same
+   * transaction that assigns the id. Returns the created row.
+   */
+  create(input: NewForum): Promise<ForumRow>
 
   /**
    * Apply a validated `MovePlan` atomically.

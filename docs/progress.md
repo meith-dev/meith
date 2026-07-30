@@ -8,7 +8,7 @@ Running log of what is complete and what the next action is, per plan §6.
 |---|---|---|
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per plan feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D22. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D23. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -16,16 +16,22 @@ this file.
 
 ## Gate state (all green)
 
-`pnpm verify` → exit 0: textual invariants, dependency-cruiser (112 modules, 0
-violations), typecheck (root **and** app — see below), 579 tests (28 against real
-Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret production
-environment. Every gate is probe-verified per D10 — a gate that has never been
-observed to fail is not trusted.
+`pnpm verify` → exit 0: textual invariants + **guard probes**, dependency-cruiser
+(122 modules, 0 violations), typecheck (root **and** app), 614 tests (against
+real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret production
+environment.
 
-**Two gate holes closed.** The root `tsconfig.json` excludes `apps/forum`, so the
-entire app tier — pages, actions, components — was type-checked by nothing but
-`next build`, which was not in `verify` and had itself never passed. `verify` and
-CI now both run `typecheck:app`. See D18/D19.
+**Gate holes closed this pass:**
+
+- The root `tsconfig.json` excludes `apps/forum`, so the whole app tier was
+  type-checked by nothing but `next build` — which was not in `verify` and had
+  itself never passed. Both now run `typecheck:app` (D18/D19).
+- `pnpm guards` passing proved nothing: a rule whose pattern stopped matching
+  passes as loudly as one that works. `pnpm guards:probe` now runs every guard
+  against a must-match and a must-not-match sample, so both an inert rule and one
+  broadened into uselessness fail CI (D10 made permanent).
+- The PGlite fixture applied only `0000`, so a second migration would have been
+  invisible to every integration test. It now reads the journal (D23).
 
 ## Complete
 
@@ -97,34 +103,35 @@ CI now both run `typecheck:app`. See D18/D19.
 
 ## NEXT ACTION — resume here
 
-**Finish F16's remaining item, then F21 end-to-end.**
+**Close Phase 1, then unblock Phase 2.**
 
-1. **Tree read cached and tagged (F16, blocked on F10).** `CacheTags.forumTree()`
-   exists, but `cachedGlobal` is an *interface with no implementation* —
-   `packages/core/src/cache.ts` declares `CachedGlobalOptions` and nothing in the
-   workspace references it. The `MemoryCache`/`NextCache` drivers exist, so the
-   missing piece is the seam between them and the tag registry. That is F10's
-   harness, and it should be built as its own step rather than inlined here.
-2. **Wire the authorizer to the repos end-to-end** — `visibleForumIds` and
-   `forumMatrix` over Postgres, then re-run F22's matrix gate against real data
-   rather than the in-memory source. This closes Phase 1.
+1. **F21 end-to-end** — wire `visibleForumIds` and `forumMatrix` through the
+   container over Postgres, then re-run F22's matrix gate against real data
+   instead of the in-memory source. The Postgres adapter exists and is tested;
+   what is missing is the wiring. This closes Phase 1 alongside F23/F24.
+2. **F11's testkit** — `packages/testkit` still contains only a `package.json`.
+   The deterministic seeder and the **query-budget assertion helper** do not
+   exist, and the Definition of Done requires that helper on every list page, so
+   **F29's board index cannot be signed off without it**. This is the single
+   biggest blocker to starting Phase 2 honestly.
+3. **F13's CLI** — `user:create`, `user:promote`, `forum:create`,
+   `settings:get|set`. The repositories they need now all exist
+   (`createPostgresAccountStore`, `PostgresForumRepository.create`,
+   `PostgresSettingsRepository`) and the group ladder is seeded, so this is
+   assembly rather than design. `task:run` stays blocked on F06.
 
-Every known gap is now itemised per-feature in [`plan-status.md`](./plan-status.md),
-which was audited against the working tree on 2026-07-30. The five that most
-affect what can honestly be signed off next:
+Per-feature status for everything else lives in
+[`plan-status.md`](./plan-status.md), re-audited 2026-07-30. Still outstanding
+and worth keeping visible:
 
-- **`packages/testkit` is an empty package — only `package.json`.** F11 was
-  previously recorded complete here; the harness, the deterministic seeder and
-  the **query-budget assertion helper** do not exist. The Definition of Done
-  requires that helper on every list page, so F29's board index cannot be signed
-  off until it lands.
-- **F10's `cachedGlobal` is an interface with no implementation.** Blocks F16's
-  tree caching and every later cached read.
-- The tick route is `/api/tick`; F06 and R1 both say `/api/system/tick`, and
-  there is no `vercel.json`, so nothing schedules it.
+- **F06's tick route does not run anything** — it returns `ran: []`. Needs a
+  `TaskRepository` implementation, and its `TaskWorkers` are partly blocked on
+  F38 (`reconcileCounters`) and F24 (`applyPromotions`).
 - No `forum.config.ts` (invariant 6 — the build-time registry).
-- No Playwright/no-JS run (F35). The forms are written for it, but "works with
-  JavaScript disabled" is a claim, not a measurement.
+- No Playwright/no-JS run (F35). The auth forms are written for it, but "works
+  with JavaScript disabled" is a claim, not a measurement.
+- Permission columns are generated into a `Record<string, …>`, so
+  `usergroups.canView` is not statically typed anywhere (D23).
 
 **Test harness note:** integration tests now use PGlite via `createTestDb()` in
 `packages/db/src/pglite.fixture.ts` — boot once per suite, clear mutable tables
@@ -132,7 +139,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D22). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D23). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant); (b) runtime-only bugs a
 compile/typecheck waved through but tests caught (reversed `verifyPassword` args,

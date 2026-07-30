@@ -27,6 +27,7 @@ export {
 } from './permissions-map'
 export { ActorBuilder, type ActorBuilderConfig } from './actor-builder'
 export { PostgresForumRepository } from './forum-repo'
+export { PostgresSettingsRepository } from './settings-repo'
 export {
   PostgresAccountRepository,
   PostgresSessionRepository,

@@ -36,6 +36,16 @@ async function seedTree(): Promise<void> {
     { id: 12, type: 'forum', title: 'Deep', slug: 'deep', parentId: 9, path: '1.4.9.12', depth: 3, displayOrder: 0 },
     { id: 40, type: 'forum', title: 'Forty', slug: 'forty', parentId: 1, path: '1.40', depth: 1, displayOrder: 1 },
   ])
+
+  /*
+   * Explicit ids bypass the identity sequence, so without this the next
+   * `default` insert starts at 1 and collides. The same trap waits for any
+   * seed or import that preserves upstream ids (F85) — advancing the sequence
+   * is part of writing explicit ids, not a test-only concern.
+   */
+  await db.execute(
+    sql`select setval(pg_get_serial_sequence('forums', 'id'), (select max(id) from forums))`,
+  )
 }
 
 async function pathsById(): Promise<Map<number, { path: string; depth: number; parentId: number | null }>> {
@@ -180,5 +190,74 @@ describe('planMove over live rows', () => {
   it('plans from what the repository actually returns', async () => {
     const plan = planMove(await repo.listAll(), 9, { newParentId: 2 })
     expect(plan.pathUpdates.map((u) => u.path).sort()).toEqual(['2.9', '2.9.12'])
+  })
+})
+
+describe('create', () => {
+  it('derives the path from the id the database assigns', async () => {
+    const created = await repo.create({
+      type: 'forum',
+      title: 'Support',
+      slug: 'support',
+      parentId: 1,
+    })
+
+    expect(created.path).toBe(`1.${created.id}`)
+    expect(created.depth).toBe(1)
+    expect(created.parentId).toBe(1)
+
+    // And it is durable, not just the returned object.
+    expect((await pathsById()).get(created.id)?.path).toBe(`1.${created.id}`)
+  })
+
+  it('creates a root forum', async () => {
+    const created = await repo.create({ type: 'category', title: 'Meta', slug: 'meta', parentId: null })
+    expect(created.path).toBe(String(created.id))
+    expect(created.depth).toBe(0)
+  })
+
+  it('appends after existing siblings', async () => {
+    const created = await repo.create({ type: 'forum', title: 'Third', slug: 'third', parentId: 1 })
+    // 1 already has children 4 (order 0) and 40 (order 1).
+    expect(created.displayOrder).toBe(2)
+  })
+
+  it('rejects a duplicate sibling slug without leaving a partial row', async () => {
+    const before = (await repo.listAll()).length
+    await expect(
+      repo.create({ type: 'forum', title: 'Dup', slug: 'general', parentId: 1 }),
+    ).rejects.toThrow()
+    expect((await repo.listAll()).length).toBe(before)
+  })
+
+  it('rejects an unusable slug', async () => {
+    await expect(
+      repo.create({ type: 'forum', title: 'Bad', slug: 'Not A Slug', parentId: 1 }),
+    ).rejects.toThrow()
+  })
+
+  it('refuses to nest under a link', async () => {
+    const link = await repo.create({
+      type: 'link',
+      title: 'Rules',
+      slug: 'rules',
+      parentId: null,
+      linkUrl: 'https://example.com/rules',
+    })
+    await expect(
+      repo.create({ type: 'forum', title: 'Nope', slug: 'nope', parentId: link.id }),
+    ).rejects.toThrow()
+  })
+
+  it('requires a linkUrl for a link forum', async () => {
+    await expect(
+      repo.create({ type: 'link', title: 'Bare', slug: 'bare', parentId: null }),
+    ).rejects.toThrow()
+  })
+
+  it('produces a forum that is immediately movable', async () => {
+    const created = await repo.create({ type: 'forum', title: 'Support', slug: 'support', parentId: 1 })
+    await repo.move(created.id, { newParentId: 2 })
+    expect((await pathsById()).get(created.id)?.path).toBe(`2.${created.id}`)
   })
 })

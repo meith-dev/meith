@@ -11,12 +11,15 @@
     "forum": "./dist/index.js"
   },
   "dependencies": {
+    "@forum/accounts": "workspace:*",
+    "@forum/authorization": "workspace:*",
     "@forum/core": "workspace:*",
     "@forum/db": "workspace:*",
-    "@forum/settings": "workspace:*",
-    "@forum/tasks": "workspace:*",
+    "@forum/drivers": "workspace:*",
     "@forum/events": "workspace:*",
-    "@forum/drivers": "workspace:*"
+    "@forum/forums": "workspace:*",
+    "@forum/settings": "workspace:*",
+    "@forum/tasks": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.6"

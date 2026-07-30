@@ -78,8 +78,8 @@ couple of `PARTIAL` rows are an afternoon.
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
-| F15 | Users and usergroups schema | `DONE` | `users`, `usergroups`, `user_group_memberships` + seeded group ladder; primary/secondary groups with display flag. |
-| F16 | Forum tree schema | `DONE` | Schema (materialised `path`, indexes) + `@forum/forums` (`buildTree`, `planMove`, `CachedForumRepository`) + `PostgresForumRepository`. Four-level reparent, one-query read, and tag-invalidated caching all proven; 40 tests, 10 on real Postgres (D22). |
+| F15 | Users and usergroups schema | `DONE` | `users`, `usergroups`, `user_group_memberships`; primary/secondary groups with display flag. The group ladder is seeded by migration `0001_seed_usergroups` — **it was previously not seeded at all** (the initial migration contains zero INSERTs), so a fresh Postgres board had no groups and registration would have failed on a foreign key. 11 tests pin the ids, the ACP/bypass split, and the sequence advance. See D23. |
+| F16 | Forum tree schema | `DONE` | Schema (materialised `path`, indexes) + `@forum/forums` (`buildTree`, `planMove`, `planCreate`, `CachedForumRepository`) + `PostgresForumRepository` (`listAll`/`findById`/`create`/`move`). Four-level reparent, one-query read, derived-path create, and tag-invalidated caching all proven; 48 tests, 18 on real Postgres (D22). |
 | F17 | Password hashing, sessions, request context | `DONE` | Argon2id via hash-wasm (ADR 0001); opaque sessions, rotation on login, remember-me with reuse→family-burn; `proxy.ts` cookie-only; `getActor()` via `React.cache`. Fixation + location-throttle mutation-verified. |
 | F18 | Registration and activation | `DONE` | Server Action + no-JS form; validation, reserved names, case-insensitive uniqueness (D21). All three activation modes covered in the domain suite. |
 | F19 | Login, logout, password reset | `DONE` | Four flows as no-JS Server Actions; Postgres-backed lockout; single-use expiring reset tokens. D20 fixed a reset-token leak to the browser. |

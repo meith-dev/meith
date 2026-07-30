@@ -25,8 +25,9 @@ import type {
   ForumType,
   MovePlan,
   MoveTarget,
+  NewForum,
 } from '@forum/forums'
-import { planMove } from '@forum/forums'
+import { childPath, planCreate, planMove } from '@forum/forums'
 
 import type { Database } from './client'
 import { forums } from './schema'
@@ -103,6 +104,52 @@ export class PostgresForumRepository implements ForumRepository {
       .limit(1)
     const row = rows[0]
     return row ? toForumRow(row) : null
+  }
+
+  /**
+   * Insert, then fill in `path` from the id the database just assigned.
+   *
+   * Both statements are in one transaction under the forest lock: `path` is
+   * NOT NULL, so the row is briefly written with a placeholder and corrected
+   * before commit. No reader can observe the intermediate value, and a failure
+   * between the two leaves no row at all rather than one with a bogus path.
+   */
+  async create(input: NewForum): Promise<ForumRow> {
+    return this.db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(${FOREST_LOCK_KEY})`)
+
+      const rows = (await tx.select(FORUM_COLUMNS).from(forums)).map(toForumRow)
+      const plan = planCreate(rows, input)
+
+      const inserted = await tx
+        .insert(forums)
+        .values({
+          type: input.type,
+          title: input.title.trim(),
+          slug: input.slug,
+          description: input.description ?? null,
+          parentId: plan.parentId,
+          linkUrl: input.linkUrl ?? null,
+          displayOrder: plan.displayOrder,
+          depth: plan.depth,
+          // Corrected immediately below, once the id exists.
+          path: '',
+        })
+        .returning({ id: forums.id })
+
+      const id = inserted[0]?.id
+      if (id === undefined) throw new Error('Forum insert returned no id')
+
+      const path = childPath(plan.parentPath, id)
+      await tx.update(forums).set({ path }).where(eq(forums.id, id))
+
+      const created = await tx
+        .select(FORUM_COLUMNS)
+        .from(forums)
+        .where(eq(forums.id, id))
+        .limit(1)
+      return toForumRow(created[0] as SelectedForum)
+    })
   }
 
   /**

@@ -17,7 +17,7 @@
 import { CacheTags, cachedGlobal, type CacheDriver } from '@forum/core'
 
 import type { ForumRepository } from './ports'
-import type { ForumRow, MovePlan, MoveTarget } from './types'
+import type { ForumRow, MovePlan, MoveTarget, NewForum } from './types'
 
 /** One key, one tag: the tree is read and invalidated as a single unit. */
 const TREE_KEY = ['forum-tree'] as const
@@ -46,6 +46,12 @@ export class CachedForumRepository implements ForumRepository {
    */
   async findById(id: number): Promise<ForumRow | null> {
     return (await this.listAll()).find((row) => row.id === id) ?? null
+  }
+
+  async create(input: NewForum): Promise<ForumRow> {
+    const created = await this.inner.create(input)
+    await this.invalidate()
+    return created
   }
 
   async move(forumId: number, target: MoveTarget): Promise<void> {

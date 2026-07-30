@@ -21,6 +21,7 @@ export {
 export { buildTree, flattenTree } from './tree'
 
 export { planMove } from './move'
+export { planCreate, type CreatePlan } from './create'
 
 export { CachedForumRepository } from './cached-repo'
 
@@ -33,6 +34,7 @@ export {
   type ForumType,
   type MovePlan,
   type MoveTarget,
+  type NewForum,
   type PathUpdate,
   type TreeShaped,
 } from './types'
