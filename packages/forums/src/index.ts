@@ -22,6 +22,8 @@ export { buildTree, flattenTree } from './tree'
 
 export { planMove } from './move'
 
+export { CachedForumRepository } from './cached-repo'
+
 export type { ForumRepository } from './ports'
 
 export {
