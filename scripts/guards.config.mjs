@@ -73,7 +73,17 @@ export const GUARDS = [
       'config value that is never validated and blows up at request time in prod ' +
       'instead of at boot.',
     files: /\.(ts|tsx|mjs)$/,
-    pattern: /process\.env/,
+    /*
+     * `NEXT_RUNTIME` is exempt, and it is the only exemption.
+     *
+     * It is not configuration: Next replaces it with a string literal during
+     * each per-runtime compilation, and reading it literally is what lets the
+     * Edge build drop a Node-only branch. Routed through `env` in @forum/core it
+     * would become a runtime value, the branch would stay reachable, and
+     * `apps/forum/instrumentation.ts` would go back to failing to compile for
+     * Edge — silently, as a warning. Every real config read stays banned.
+     */
+    pattern: /process\.env(?!\.NEXT_RUNTIME\b)/,
     /*
      * `eslint.config.mjs` is exempt because it *mentions* process.env as the
      * subject of the no-restricted-properties rule that bans it. This grep
@@ -91,6 +101,12 @@ export const GUARDS = [
       violates: "const url = process.env.DATABASE_URL",
       clean: "import { env } from '@forum/core'\nconst url = env.DATABASE_URL",
     },
+    /*
+     * A second clean sample for the NEXT_RUNTIME carve-out. One `clean` cannot
+     * prove both that the rule still bans reads and that it spares this one, and
+     * an exemption nobody probes is an exemption that quietly widens.
+     */
+    alsoClean: ["if (process.env.NEXT_RUNTIME !== 'nodejs') return"],
   },
   {
     id: 'R7 no-hardcoded-colour',
@@ -118,9 +134,12 @@ export const GUARDS = [
      * `getActor`/`getUserId` matter as much as the raw request APIs: a cached
      * region that resolves the viewer is the same bug one layer up, and it is
      * the likelier spelling now that context.ts exists. F10's acceptance asks
-     * for a lint rule that fires on a deliberately-broken fixture — see
-     * scripts/fixtures/broken-cache-actor.ts.fixture, which `pnpm guards:probe`
-     * feeds through this rule to prove it is not inert.
+     * for a rule that fires on a deliberately-broken sample; that sample is the
+     * `probe` below, which `pnpm guards:probe` feeds through this rule to prove
+     * it is not inert. (This comment previously cited
+     * `scripts/fixtures/broken-cache-actor.ts.fixture`, a file that has never
+     * existed — a stale pointer in a guard's own documentation is how the next
+     * person concludes the probe is missing and writes a second one.)
      */
     pattern:
       /['"]use cache['"][\s\S]{0,2000}?\b(cookies|headers|draftMode|getActor|getUserId)\s*\(/,

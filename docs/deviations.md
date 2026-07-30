@@ -1184,3 +1184,47 @@ Safari ignores `oklch()` there). An exact assertion needs OKLCH → sRGB convers
 in code, which belongs with F26 since an *overridden* background has to be
 converted too. Until then, changing `background` means recomputing those two
 values by hand.
+
+### D37 — `register()` was never running in the Edge runtime (F02)
+
+`proxy.ts` means Next compiles `instrumentation.ts` twice, once per runtime. The
+Edge copy imported `@forum/core`'s barrel, which reaches `node:crypto` (the
+constant-time compare) and `node:async_hooks` + pino (logging) — none of which
+exist on Edge. The Edge compilation therefore failed, **as a warning**:
+
+```
+A Node.js module is loaded ('node:crypto') which is not supported in the Edge Runtime.
+  Import trace: Edge Instrumentation: core/src/crypto.ts → core/src/index.ts → instrumentation.ts
+```
+
+So F02's fail-fast check simply did not run in one of the two runtimes, and the
+dev log looked identical either way — the exact failure mode D10 exists for, in
+the file whose whole job is to make a misconfigured deploy die loudly.
+
+Fixed with the per-runtime branch Next documents:
+
+```ts
+if (process.env.NEXT_RUNTIME !== 'nodejs') return
+```
+
+**`process.env` is read literally here on purpose**, and it is the one place that
+is correct. Next replaces `NEXT_RUNTIME` with a string literal during each
+compilation, so the Edge build evaluates `'edge' !== 'nodejs'` and drops the
+dynamic import as unreachable. Reading it through `env` in `@forum/core` — what
+F02 requires for everything else — would make it a runtime value, leave the
+import reachable, and bring the warning straight back.
+
+Guard `F02 single-env-reader` therefore exempts **this variable only**
+(`/process\.env(?!\.NEXT_RUNTIME\b)/`) rather than exempting the file, which is
+what the guard's own comment had deliberately avoided doing. Every other read
+stays banned, including elsewhere in this same file.
+
+That exemption needed a second clean sample to be worth anything: one `clean`
+cannot prove both that a rule still fires and that its carve-out holds. Guards now
+support `alsoClean`, and the probe checks every sample. Mutation-verified —
+widening the pattern back to `/process\.env/` fails the probe by name.
+
+**Nothing is lost on Edge.** `proxy.ts` reads cookie names and nothing else (F17),
+so there is no configuration for the Edge runtime to validate. Verified by running
+`next dev`: no warnings, and the fixture-mode boot line still prints, which is
+proof the Node branch ran.

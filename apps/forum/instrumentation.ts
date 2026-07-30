@@ -8,6 +8,31 @@
  */
 
 export async function register(): Promise<void> {
+  /*
+   * Node runtime only, and the guard has to be written exactly like this.
+   *
+   * Next compiles `instrumentation.ts` once per runtime, and `proxy.ts` means
+   * there is an Edge compilation too. `@forum/core`'s barrel reaches
+   * `node:crypto` (constant-time compare) and `node:async_hooks` + pino
+   * (logging), none of which exist on Edge — so the Edge copy of this module
+   * failed to compile, and the failure was a *warning*: `register()` simply
+   * never ran there. A fail-fast check that silently does not run in one runtime
+   * is worse than none, because the log looks the same either way.
+   *
+   * `process.env.NEXT_RUNTIME` is replaced with a literal during each
+   * compilation, so in the Edge build this reads `'edge' !== 'nodejs'` and the
+   * dynamic import below becomes unreachable and is dropped. Reading it through
+   * `env` in @forum/core would defeat that — the value would be computed at
+   * runtime, the import would stay reachable, and the warning would come back.
+   * That is why F02's single-env-reader rule exempts this one variable: it is a
+   * build-time bundler token, not board configuration.
+   *
+   * Nothing is lost on Edge. `proxy.ts` reads cookie names and nothing else —
+   * it has no configuration to validate, by design (F17).
+   */
+  // eslint-disable-next-line no-restricted-properties -- build-time runtime token, not config; see above
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return
+
   const { assertRuntimeEnv } = await import('@forum/core')
 
   /*

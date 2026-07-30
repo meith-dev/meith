@@ -49,14 +49,22 @@ for (const guard of GUARDS) {
     )
   }
 
-  guard.pattern.lastIndex = 0
-  if (guard.pattern.test(clean)) {
-    fail(
-      guard.id,
-      `is TOO BROAD: it matches a sample that is meant to be legal.\n` +
-        `  sample:  ${JSON.stringify(clean)}\n` +
-        `  pattern: ${guard.pattern}`,
-    )
+  /*
+   * `alsoClean` carries the extra legal samples a rule with a carve-out needs.
+   * A single `clean` cannot prove both that a rule still fires and that each of
+   * its exemptions holds, and an exemption nobody probes is one that quietly
+   * widens until the rule means nothing.
+   */
+  for (const sample of [clean, ...(guard.alsoClean ?? [])]) {
+    guard.pattern.lastIndex = 0
+    if (guard.pattern.test(sample)) {
+      fail(
+        guard.id,
+        `is TOO BROAD: it matches a sample that is meant to be legal.\n` +
+          `  sample:  ${JSON.stringify(sample)}\n` +
+          `  pattern: ${guard.pattern}`,
+      )
+    }
   }
 }
 
