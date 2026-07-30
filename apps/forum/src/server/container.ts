@@ -44,7 +44,7 @@ import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
-import { SEED_BOARD } from './seed-board'
+import { FIXTURE_DATA_VERSION, SEED_BOARD } from './seed-board'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 
 /** The services the app resolves from the container. */
@@ -70,6 +70,8 @@ export interface Container {
   readonly readState: ReadStateRepository | null
   /** Public profile lookup; deleted accounts deliberately do not resolve. */
   readonly memberProfiles: MemberProfileRepository
+  /** Fixture data revision; makes HMR replace repositories holding old seed rows. */
+  readonly fixtureDataVersion: number | null
   /**
    * The scheduler's storage and the tasks that can actually run (F06).
    *
@@ -139,6 +141,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
+    fixtureDataVersion: FIXTURE_DATA_VERSION,
     ...identityServices(store),
     // See SchedulerBundle: a tick without durable, cross-instance state cannot
     // honour its concurrency guarantee, so fixture mode has no scheduler.
@@ -214,6 +217,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     posts: new PostgresPostRepository(db),
     readState: new PostgresReadStateRepository(db),
     memberProfiles: new PostgresMemberProfileRepository(db),
+    fixtureDataVersion: null,
     ...identityServices(store),
     scheduler: {
       repository: new PostgresTaskRepository(db),
@@ -253,6 +257,7 @@ export function getContainer(): Container {
     typeof cached.posts?.findVisibleById !== 'function' ||
     cached.readState === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
+    (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')
   ) {
     g[GLOBAL_KEY] = build()

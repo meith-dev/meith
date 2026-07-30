@@ -13,7 +13,8 @@ const POSTS_PER_PAGE = 20
 export const metadata: Metadata = { title: 'Thread' }
 
 function threadId(value: string): number | null {
-  const match = /^(\d+)-/.exec(value)
+  // Index last-post links carry only the stable id; thread listings add a slug.
+  const match = /^(\d+)(?:-|$)/.exec(value)
   if (!match) return null
   const id = Number(match[1])
   return Number.isSafeInteger(id) && id > 0 ? id : null

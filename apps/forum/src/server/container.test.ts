@@ -95,7 +95,7 @@ describe('getContainer (fixture mode)', () => {
     expect(authorizer.can(admin, 'admincp.access', {})).toBe(true)
   })
 
-  it('rebuilds an HMR-stale container that predates a newly-added repository', () => {
+  it('rebuilds an HMR-stale container that predates a newly-added repository or fixture rows', () => {
     const current = getContainer()
     const key = Symbol.for('@forum/forum.container')
     ;(globalThis as Record<symbol, unknown>)[key] = {
@@ -103,6 +103,7 @@ describe('getContainer (fixture mode)', () => {
       threads: current.threads,
       posts: { listThread: current.posts.listThread },
       memberProfiles: {},
+      fixtureDataVersion: -1,
     }
 
     const rebuilt = getContainer()
@@ -111,5 +112,6 @@ describe('getContainer (fixture mode)', () => {
     expect(typeof rebuilt.threads.findVisibleById).toBe('function')
     expect(typeof rebuilt.posts.listThread).toBe('function')
     expect(typeof rebuilt.memberProfiles.findPublicById).toBe('function')
+    expect(rebuilt.fixtureDataVersion).not.toBe(-1)
   })
 })
