@@ -96,6 +96,20 @@ export function baseLogger(): pino.Logger {
 /**
  * The logger every module should use. Automatically decorated with whatever
  * request/job context is active, so call sites never thread an ID by hand.
+ *
+ * Call this *at the point of logging* — never `const log = logger(...)` at
+ * module scope. Two things break if you hoist it:
+ *
+ *  1. The context is read here, once. A module-level instance binds whatever
+ *     was ambient at import time — nothing — so every line it writes for the
+ *     rest of the process is missing its requestId.
+ *  2. It builds pino eagerly, which reads `env.LOG_LEVEL` through the
+ *     validating proxy. That turns importing the module into an environment
+ *     validation, which is exactly what `env`'s lazy proxy exists to avoid —
+ *     and it fails `next build`, whose page-data collection imports server
+ *     modules in an environment with no production secrets.
+ *
+ * Binding inside a function body is fine; it is only module scope that hurts.
  */
 export function logger(bindings: Record<string, unknown> = {}) {
   const context = storage.getStore()

@@ -33,8 +33,6 @@ import {
   setSessionCookie,
 } from './session-cookies'
 
-const log = logger({ module: 'auth-actions' })
-
 /** Pull a trimmed string field; '' when absent. */
 function field(form: FormData, name: string): string {
   const v = form.get(name)
@@ -54,7 +52,7 @@ function toFormState(err: unknown, values?: Record<string, string>): FormState {
   // than leaking internals. Rethrowing would blank the form with a 500 page;
   // for a bad-gateway-class fault that is worse UX than an inline message.
   if (isAppError(err)) return { error: err.message, values }
-  log.error({ err }, 'unexpected error in auth action')
+  logger({ module: 'auth-actions' }).error({ err }, 'unexpected error in auth action')
   return { error: 'Something went wrong. Please try again.', values }
 }
 
@@ -129,7 +127,10 @@ export async function logoutAction(): Promise<void> {
     try {
       await identity.logout(token)
     } catch (err) {
-      log.warn({ err }, 'logout revoke failed; clearing cookies anyway')
+      logger({ module: 'auth-actions' }).warn(
+        { err },
+        'logout revoke failed; clearing cookies anyway',
+      )
     }
   }
   await clearSessionCookies()
@@ -150,7 +151,10 @@ export async function requestResetAction(
     // so the flow is demonstrable; a real deployment emails it and shows only
     // the generic notice.
     if (token) {
-      log.info({ resetPath: `/reset/confirm?token=${token}` }, 'password reset requested')
+      logger({ module: 'auth-actions' }).info(
+        { resetPath: `/reset/confirm?token=${token}` },
+        'password reset requested',
+      )
     }
     return {
       notice:

@@ -74,6 +74,23 @@ const GUARDS = [
     allow: /^packages\/testkit\//,
   },
   {
+    id: 'F02 no-module-scope-logger',
+    why:
+      'Bind the logger where you log, not at module scope. A module-level ' +
+      'instance captures the request context once at import time (i.e. empty), ' +
+      'so every line it writes is missing its requestId — and it builds pino ' +
+      'eagerly, which reads env.LOG_LEVEL and turns merely importing the module ' +
+      'into an environment validation. That is what breaks `next build`, whose ' +
+      'page-data collection imports server modules with no production secrets.',
+    files: /\.(ts|tsx)$/,
+    /*
+     * Anchored to column 0: module scope is exactly what has no indentation, so
+     * this catches the hoisted binding while leaving `const log = logger(...)`
+     * inside a function body alone — which is fine and is what container.ts does.
+     */
+    pattern: /^(export\s+)?(const|let|var)\s+\w+\s*=\s*(await\s+)?logger\(/m,
+  },
+  {
     id: 'R2 no-next-in-domain',
     why:
       'Domain packages must not import next/*. Enforced structurally by ' +
