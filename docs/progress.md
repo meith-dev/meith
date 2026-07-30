@@ -154,24 +154,21 @@ roughly one run in three (D34).
   query (budget-asserted across two board sizes, mutation-verified), filters
   invisible **subtrees whole** — closing open question 5 — and is cached nowhere,
   because every row depends on who is asking. See **D38**.
+- **F30 forum display** — `/forum/[id]-[slug]` resolves a visible forum, then
+  renders `ForumDisplay`, `SubforumList`, `ThreadRow`, and `Pagination` through
+  the theme. The first thread read is an opaque-cursor keyset query over sticky,
+  last-post time, and id; it is one statement at both 3 and 50 rows, and the
+  equal-timestamp tie-breaker is tested against real Postgres.
 
 ## NEXT ACTION — resume here
 
-**F30 · forum display** is the next page and the pattern is now set: read through
-the container, build a view model in `src/view/`, resolve slots, compose. It needs
-`ThreadRow`, `SubforumList` and `Pagination` in the theme, a `/forum/[slug]` route
-whose slug is `id-slug` (already what the index links to), and the first *paged*
-read — which is where the query budget matters more than it did here.
+**F31 · thread view** is next: repeat the route → container → pure view model →
+slot composition pattern for `/thread/[id]-[slug]`. `posts` is still empty, so
+it needs the first keyset-paged post read over the existing visible-post index.
 
-Two things it will force, both currently placeholders:
-
-1. **`threads` has no repository at all.** `packages/threads` is empty. F30 needs
-   a keyset-paged listing read against the R3.5 partial index, which exists.
-2. **The counters the index renders are never written.** `forums.thread_count`,
-   `post_count` and the last-post triplet are read by F29 and maintained by
-   nobody until **F38**. On a real board they stay at zero. The fixture board
-   fakes them, which is fine for a fixture and is exactly the kind of thing that
-   looks finished and is not.
+The counters the index renders are still never written: `forums.thread_count`,
+`post_count`, and the last-post triplet are read by F29 and maintained by nobody
+until **F38**. On a real board they stay at zero; the fixture board fakes them.
 
 Still worth settling (unchanged from F25):
 

@@ -17,6 +17,7 @@ import {
 } from '@forum/core'
 import type { GroupDefaults, MemoryBoard } from '@forum/authorization'
 import type { ForumListingRow } from '@forum/forums'
+import type { ThreadListingRow } from '@forum/threads'
 
 /** Canonical seed groups (must match the seed migration). */
 /**
@@ -239,5 +240,51 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
     threadCount: 0,
     postCount: 0,
     lastPost: null,
+  },
+]
+
+/** Threads for the fixture forum display (F30). */
+export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
+  {
+    id: 22,
+    forumId: SEED_FORUM.general,
+    title: 'What are you reading this week?',
+    slug: 'what-are-you-reading-this-week',
+    prefix: { label: 'Weekly', token: null },
+    authorUserId: null,
+    authorUsername: 'departed',
+    replyCount: 18,
+    viewCount: 241,
+    isSticky: true,
+    isLocked: false,
+    isMoved: false,
+    lastPost: {
+      postId: 143,
+      userId: null,
+      username: 'departed',
+      at: new Date('2026-07-30T08:41:00Z'),
+    },
+    lastPostAt: new Date('2026-07-30T08:41:00Z'),
+  },
+  {
+    id: 21,
+    forumId: SEED_FORUM.general,
+    title: 'Show us your desk setup',
+    slug: 'show-us-your-desk-setup',
+    prefix: null,
+    authorUserId: 1,
+    authorUsername: 'admin',
+    replyCount: 7,
+    viewCount: 116,
+    isSticky: false,
+    isLocked: false,
+    isMoved: false,
+    lastPost: {
+      postId: 132,
+      userId: 1,
+      username: 'admin',
+      at: new Date('2026-07-29T17:18:00Z'),
+    },
+    lastPostAt: new Date('2026-07-29T17:18:00Z'),
   },
 ]

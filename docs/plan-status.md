@@ -39,7 +39,7 @@ couple of `PARTIAL` rows are an afternoon.
 |---|---|---|---|---|
 | 0 — Skeleton | 14 | 11 | 3 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
-| 2 — Themes and reading | 11 | 2 | 3 | 6 |
+| 2 — Themes and reading | 11 | 3 | 3 | 5 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
@@ -47,7 +47,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **23** | **6** | **60** |
+| **Total** | **89** | **24** | **6** | **59** |
 
 ---
 
@@ -106,9 +106,9 @@ packages are empty.
 | F25 | theme-kit foundation | `DONE` | 25-slot registry, each declaring server or client kind; `SlotComponent<K>` resolves the kind to a *different* signature (an `async` client slot does not compile); `defineTheme` rejects a bundler-marked client reference in a server slot; `scripts/slot-kinds.mjs` catches the case neither can — a `"use client"` module behind a server slot — fails on a slot map it cannot statically read, and fails on **zero** manifests. Probed both ways and mutation-verified against the real theme. `defineTheme`/`resolveTheme` with `extends` (nearest-wins over a three-level chain, cycle and duplicate-key rejection), typed JSON-shaped view models with a two-sided compile-time proof (`view-models.type-test.ts`). Slots are flat by design — a slot never renders another slot; see **D35** for why and what it costs. Load-bearing: `themes/default` fills five slots and `app/(auth)/layout.tsx` renders through them. **The slot list is derived rather than transcribed from R6 — D35 records that R6 wins where it disagrees.** |
 | F26 | Token pipeline and runtime overrides | `TODO` | `themes` table exists. Prerequisite closed: the typed token mirror had drifted from `globals.css` completely — four tokens that do not exist, fifteen missing, every value stale — which would have made override validation reject valid tokens and accept dead ones. Regenerated and now pinned by an exact-match test (**D36**). Still open for F26: nothing checks `BROWSER_THEME_COLOR` against the `background` token, which needs OKLCH → sRGB in code. |
 | F27 | Default theme — shell | `PARTIAL` | Six shell slots — `Shell`, `Header`, `UserPanel`, `Navigation`, `Footer`, `Notice` — composed once in `PageShell` and rendered by both the board and auth route groups, so the auth screens are part of the board rather than a separate unstyled island. Skip link, header, breadcrumb, footer stating the timestamp zone; log out is a POST form the app renders into the panel slot (D38). Tailwind now scans `themes/` — it never did (D35). **Gap:** `BoardStats` and `WhoIsOnline` need F75; the ACP shell is F63. |
-| F28 | Threads and posts schema | `PARTIAL` | Tables and `visibility` columns exist; partial indexes and the seeder do not. The board index reads `forums`' denormalised counters and last-post triplet, which nothing writes yet — F38 is what makes them true. |
+| F28 | Threads and posts schema | `PARTIAL` | Tables, `visibility` columns, and R3.5 partial indexes exist; a content seeder and writers do not. The board index reads `forums`' denormalised counters and last-post triplet, which nothing writes yet — F38 is what makes them true. |
 | F29 | Board index | `DONE` | Category blocks, forum rows with counters, last post, subforum links, and the empty-forum and deleted-author paths. `listListing()` is one query regardless of forum count or depth, asserted by F11's budget helper across **two board sizes** and mutation-verified against an injected N+1; it is deliberately excluded from the forum-tree cache, pinned by two tests (D38). Visibility filters subtrees **whole** — answering open question 5 — with the orphan pass iterated to a fixed point so a grandchild cannot surface. Renders in fixture mode against `FixtureForumRepository`, whose writes throw rather than pretend. |
-| F30 | Forum display | `TODO` | |
+| F30 | Forum display | `DONE` | `/forum/[id]-[slug]` validates a visible forum before reading it, renders `ForumDisplay` + `ThreadRow`/`SubforumList`/`Pagination` slots, and uses an opaque keyset cursor over sticky / last-post time / id. `PostgresThreadRepository` makes one partial-index-backed statement per page; a real-PGlite budget test covers 3 and 50 threads, and the equal-timestamp tie-breaker is tested. Fixture mode has the same paged read. |
 | F31 | Thread view | `TODO` | |
 | F32 | Read tracking | `TODO` | `forums_read` / `threads_read` tables exist. |
 | F33 | Member profile | `TODO` | |
