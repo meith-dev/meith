@@ -9,6 +9,9 @@ import { timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
 
 import { env, logger, withRequestContext } from '@forum/core'
+import { tick } from '@forum/tasks'
+
+import { getContainer } from '@/server/container'
 
 /**
  * The tick touches the database and must never be cached or prerendered.
@@ -63,16 +66,49 @@ export async function GET(request: Request): Promise<NextResponse> {
       }
     }
 
+    const { scheduler } = getContainer()
+
     /*
-     * Task execution is not wired up yet: it needs the repository implementations
-     * that land with the fixture/Postgres data layer. Returning the registered
-     * task list keeps the endpoint verifiable (and its auth testable) without
-     * pretending work happened.
+     * Fixture mode has no scheduler (see SchedulerBundle). Saying so plainly
+     * beats returning `ran: []`, which is indistinguishable from "ran and there
+     * was nothing to do" — the reading that let this endpoint look healthy while
+     * executing nothing for weeks.
+     */
+    if (!scheduler) {
+      return NextResponse.json(
+        {
+          ok: false,
+          ran: [],
+          reason:
+            'No scheduler: DATA_SOURCE is "fixture". The tick needs durable, ' +
+            'cross-instance state to guarantee a task is not run twice.',
+        },
+        { status: 503 },
+      )
+    }
+
+    const outcomes = await tick({
+      repository: scheduler.repository,
+      tasks: scheduler.tasks,
+      onError: (taskId, error) => {
+        // A failing task must be loud rather than dying silently (F06). The
+        // admin notification lands with F55; the log is what exists today.
+        logger({ module: 'tick' }).error({ taskId, err: error }, 'scheduled task failed')
+      },
+    })
+
+    const failed = outcomes.filter((o) => o.status === 'failed')
+
+    /*
+     * 200 even when a task failed: the tick itself did its job, and returning
+     * non-2xx would make the platform retry the *whole* drain — re-running every
+     * healthy task to chase one broken one. The failure is in the body and in
+     * the log.
      */
     return NextResponse.json({
-      ok: true,
-      ran: [],
-      note: 'Scheduler wiring lands with the data layer; auth path is live.',
+      ok: failed.length === 0,
+      ran: outcomes,
+      registered: scheduler.tasks.length,
     })
   })
 }

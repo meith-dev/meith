@@ -31,10 +31,13 @@ import {
   type BypassEvent,
 } from '@forum/authorization'
 import { env, logger } from '@forum/core'
+import { builtinTasks, type TaskDefinition, type TaskRepository } from '@forum/tasks'
+import { drivers } from '@forum/drivers'
 
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
 import { SEED_BOARD } from './seed-board'
+import { defaultPromotionGuards, taskWorkers } from './task-workers'
 
 /** The services the app resolves from the container. */
 export interface Container {
@@ -46,7 +49,22 @@ export interface Container {
   readonly identity: IdentityService
   /** Remember-me families + session rotation (F17). */
   readonly sessions: SessionService
+  /**
+   * The scheduler's storage and the tasks that can actually run (F06).
+   *
+   * `null` in fixture mode: the tick's whole job is durable, cross-instance
+   * work, and an in-memory task table would let two instances run the same
+   * task while each believed it held the claim. A tick with no database is
+   * better refused than faked.
+   */
+  readonly scheduler: SchedulerBundle | null
   readonly dataSource: 'fixture' | 'postgres'
+}
+
+/** Everything `/api/system/tick` needs to do a real run. */
+export interface SchedulerBundle {
+  readonly repository: TaskRepository
+  readonly tasks: readonly TaskDefinition[]
 }
 
 /*
@@ -96,6 +114,9 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     authorizer: new Authorizer(authorizationSource, { onBypass }),
     actorSource: new FixtureActorSource(store),
     ...identityServices(store),
+    // See SchedulerBundle: a tick without durable, cross-instance state cannot
+    // honour its concurrency guarantee, so fixture mode has no scheduler.
+    scheduler: null,
     dataSource: 'fixture',
   }
 }
@@ -137,7 +158,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
@@ -150,6 +171,23 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     // resolve the same group.
     actorSource: new ActorBuilder(db, { guestGroupId: 1 }),
     ...identityServices(store),
+    scheduler: {
+      repository: new PostgresTaskRepository(db),
+      /*
+       * A *partial* worker set: `builtinTasks` registers only what can run, so
+       * a task whose worker does not exist yet is absent rather than stubbed.
+       * See task-workers.ts and D32.
+       */
+      tasks: builtinTasks(
+        taskWorkers({
+          queue: drivers().queue,
+          bans: new PostgresBanRepository(db),
+          promotions: new PostgresPromotionRepository(db),
+          guards: defaultPromotionGuards(),
+          maintenance: new PostgresMaintenanceRepository(db),
+        }),
+      ),
+    },
     dataSource: 'postgres',
   }
 }

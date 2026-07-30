@@ -285,3 +285,56 @@ describe('bans.expire is registered (F23)', () => {
     expect(asked).toBeGreaterThan(0)
   })
 })
+
+describe('builtinTasks registers only what can run', () => {
+  /*
+   * A task whose worker does not exist must not appear. A stub returning 0
+   * would report a healthy run of a task that does nothing; a stub that throws
+   * would raise an admin notification for a task nobody asked for. Absence is
+   * the honest third option — and the day the worker is supplied, the task
+   * appears on its own.
+   */
+  it('omits a task whose worker is missing', () => {
+    const ids = builtinTasks({ expireBans: async () => 0 }).map((t) => t.id)
+
+    expect(ids).toEqual(['bans.expire'])
+    expect(ids).not.toContain('counters.reconcile')
+  })
+
+  it('registers a task as soon as its worker appears', () => {
+    const before = builtinTasks({}).map((t) => t.id)
+    const after = builtinTasks({ reconcileCounters: async () => 0 }).map((t) => t.id)
+
+    expect(before).toEqual([])
+    expect(after).toContain('counters.reconcile')
+  })
+
+  it('registers everything when the full set is supplied', () => {
+    const all = builtinTasks({
+      relayOutbox: async () => 0,
+      drainQueue: async () => 0,
+      pruneSessions: async () => 0,
+      pruneExpiredTokens: async () => 0,
+      reconcileCounters: async () => 0,
+      applyPromotions: async () => 0,
+      expireBans: async () => 0,
+    })
+    expect(all).toHaveLength(7)
+  })
+
+  it('gives every task a worker mapping, so none can be silently unregisterable', () => {
+    // A new task added without a REQUIRED_WORKER entry would never register,
+    // which would look like the feature simply not working.
+    const full = {
+      relayOutbox: async () => 0,
+      drainQueue: async () => 0,
+      pruneSessions: async () => 0,
+      pruneExpiredTokens: async () => 0,
+      reconcileCounters: async () => 0,
+      applyPromotions: async () => 0,
+      expireBans: async () => 0,
+    }
+    const ids = builtinTasks(full).map((t) => t.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+})

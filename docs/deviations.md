@@ -898,3 +898,39 @@ Two smaller decisions:
   `last_run_at`, `locked_until` and `consecutive_failures` alone: cadence is
   code-owned, but a deploy must not reset a task's history or steal a live lease
   from a tick that is still running.
+
+### D32 — A task that cannot run is not registered (F06)
+
+The tick now executes. `PostgresTaskRepository` supplies the storage,
+`task-workers.ts` supplies the work, and `/api/system/tick` calls `tick()`
+instead of returning `ran: []`.
+
+**Two workers still have no implementation, and are omitted rather than
+stubbed.** `reconcileCounters` needs F38 — there are no maintained counters to
+reconcile — and `relayOutbox` needs an `OutboxReader`/`RelayTarget` over
+Postgres that `@forum/db` does not have yet.
+
+`builtinTasks` therefore takes a *partial* worker set and registers only the
+tasks whose workers exist. The alternatives are both worse:
+
+- a stub returning 0 pretends work happened, and the tick reports a healthy run
+  of a task that does nothing — which is precisely how this endpoint looked
+  healthy while executing nothing at all;
+- a stub that throws makes every tick log a failure and eventually raises an
+  admin notification for a task nobody asked for.
+
+Not registering means `tasks` holds no row for it, F70's System Health will not
+list it, and the day the worker appears the task registers itself. Same rule the
+operator CLI follows by omitting `task:run`: never advertise a capability that
+is not there.
+
+**Fixture mode has no scheduler at all**, and the route returns 503 saying so.
+The tick's guarantee is that a task is not run twice, which needs durable
+cross-instance state; an in-memory task table would let two instances each
+believe they held the claim. Returning `ran: []` would have been
+indistinguishable from "ran, nothing to do" — the exact ambiguity that let this
+endpoint look fine for weeks.
+
+**The tick returns 200 even when a task failed.** The tick itself succeeded; a
+non-2xx would make the platform retry the whole drain, re-running every healthy
+task to chase one broken one. The failure is in the body and in the log.

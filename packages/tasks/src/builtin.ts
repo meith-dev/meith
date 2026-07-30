@@ -27,7 +27,7 @@ export interface TaskWorkers {
   expireBans(batchSize: number): Promise<number>
 }
 
-export function builtinTasks(workers: TaskWorkers): TaskDefinition[] {
+function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
   return [
     {
       id: 'outbox.relay',
@@ -137,4 +137,44 @@ export function builtinTasks(workers: TaskWorkers): TaskDefinition[] {
       },
     },
   ]
+}
+
+/**
+ * Which worker each task needs.
+ *
+ * A task is only registered when its worker is supplied — see `builtinTasks`.
+ */
+const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
+  'outbox.relay': 'relayOutbox',
+  'queue.drain': 'drainQueue',
+  'sessions.prune': 'pruneSessions',
+  'tokens.prune': 'pruneExpiredTokens',
+  'counters.reconcile': 'reconcileCounters',
+  'promotions.apply': 'applyPromotions',
+  'bans.expire': 'expireBans',
+}
+
+/**
+ * The built-in tasks whose workers actually exist.
+ *
+ * Takes a *partial* worker set and registers only what can run. Some workers
+ * depend on features that are not built yet — `reconcileCounters` needs F38's
+ * counter maintenance to have something to reconcile — and the alternatives are
+ * both worse than filtering:
+ *
+ *  - a stub returning 0 pretends work happened, and the tick would report a
+ *    healthy run of a task that does nothing;
+ *  - a stub that throws makes every tick log a failure and eventually raises an
+ *    admin notification for a task nobody asked for.
+ *
+ * Not registering it means `tasks` holds no row for it, System Health does not
+ * list it, and the day F38 supplies the worker it appears on its own. This is
+ * the same rule the operator CLI follows by omitting commands it cannot honour:
+ * never advertise a capability that is not there.
+ */
+export function builtinTasks(workers: Partial<TaskWorkers>): TaskDefinition[] {
+  const supplied = workers as TaskWorkers
+  return allDefinitions(supplied).filter(
+    (task) => typeof supplied[REQUIRED_WORKER[task.id] as keyof TaskWorkers] === 'function',
+  )
 }

@@ -27,7 +27,7 @@ what is and is not built.
 ## How this audit was done
 
 Last audited **2026-07-30** (re-audited after F10/F11/F13/F15/F16 landed), against the working tree, not from memory:
-`pnpm verify` (819 tests), `pnpm build`, plus direct inspection of the
+`pnpm verify` (833 tests), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -38,7 +38,7 @@ couple of `PARTIAL` rows are an afternoon.
 | Phase | Features | DONE | PARTIAL | TODO |
 |---|---|---|---|---|
 | 0 — Skeleton | 14 | 10 | 4 | 0 |
-| 1 — Identity, tree, permissions | 10 | 8 | 2 | 0 |
+| 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 0 | 2 | 9 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
@@ -47,7 +47,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **18** | **8** | **63** |
+| **Total** | **89** | **20** | **6** | **63** |
 
 ---
 
@@ -60,7 +60,7 @@ couple of `PARTIAL` rows are an afternoon.
 | F03 | Database package | `DONE` | Drizzle + postgres.js (`prepare: false`, small pool), forward-only migrations, transaction helper with rollback-on-throw. **Contradiction resolved 2026-07-30:** F03's "up *and down*" is superseded by invariant 32 — forward-only governs, and recovery is by restore, not reversal (D28). Testcontainers is substituted by PGlite, which runs the real generated SQL. |
 | F04 | Deploy on both targets | `PARTIAL` | Dockerfile (multi-stage, standalone) + `docker-compose.yml`; CI builds the app. **Gap:** CI never *boots* the standalone image, which is the stated acceptance criterion; `apps/worker` is an empty package, so the "same image runs the worker with a flag" path does not exist. |
 | F05 | Driver interfaces | `PARTIAL` | Interfaces + env selection + every shipped implementation. **Contract suite now exists** (`@forum/testkit`) and all four families pass it, including `PostgresQueue` against real Postgres — which exposed that it only worked with postgres.js's result shape and would have broken on the Neon driver F03's seam exists for (D27). **Gap:** no `S3FileStore`; it needs a runtime dependency, which invariant 2 makes a human decision — see [ADR 0002](adr/0002-s3-filestore-dependency.md). F42 attachments are blocked on it. |
-| F06 | System tick and scheduled tasks | `PARTIAL` | `packages/tasks` registry + scheduler (concurrent-claim logic tested), secret-guarded route now at the spec path `/api/system/tick`, `vercel.json` cron + a compose tick loop. **Gap:** the route does not actually *run* anything — it returns `ran: []`. No `TaskRepository` implementation exists, and the `TaskWorkers` it would need are partly blocked on later features (`reconcileCounters` on F38, `applyPromotions` on F24). `apps/worker` is an empty package. |
+| F06 | System tick and scheduled tasks | `PARTIAL` | **The tick now runs tasks.** `PostgresTaskRepository` (21 tests on real Postgres, concurrent-claim and lease-overrun both mutation-verified), app-tier workers, and `/api/system/tick` calling `tick()`. Five tasks registered; `reconcileCounters` (F38) and `relayOutbox` (no Postgres `OutboxReader` yet) are **omitted rather than stubbed**, and register themselves when their workers appear (D32). Fixture mode returns 503 rather than faking a run. **Gap:** a failing task logs but does not yet raise an admin notification (needs F55); `apps/worker` is still an empty package. |
 | F07 | Outbox and event bus | `DONE` | `outbox` table, transactional write helper, drain-to-queue, retry/backoff/dead-letter. Rollback-suppresses-delivery covered. |
 | F08 | Settings registry | `DONE` | `packages/settings` registry + `settings`/`setting_groups`; typed accessors; migration-seeded defaults. |
 | F09 | Errors, logging, error pages | `DONE` | Pino + request-id context, error taxonomy, `error.tsx`/`not-found.tsx`. Redaction covers credentials — tightened in D20 after a token reached the logs via a URL string. |
@@ -86,8 +86,8 @@ couple of `PARTIAL` rows are an afternoon.
 | F20 | Permission engine — global layer | `DONE` | `@forum/authorization`: pure `Authorizer`, R4.2 combination (OR / max-with-0 / AND), logged bypasses, `permission_version`. Group-ID lint rule live (D13). |
 | F21 | Forum permissions and moderator rights | `DONE` | Nullable-column inheritance, ancestor walk over `path`, `forum_moderators`, `visibleForumIds`. Four-level resolution with overrides at levels 2 and 4 now tested **over real Postgres**, including that a level-3 forum with no row inherits the denial rather than falling back to the group default. `visibleForumIds` was a 32-query N+1 and is now a constant 3, asserted by comparing two board sizes (D26). |
 | F22 | ⛔ GATE — Permission matrix suite | `GATE` — green | 388-cell table-driven cross product over actors × contexts × actions; fixture reviewed. Currently exercises the in-memory source; re-run against Postgres when F21's wiring lands. |
-| F23 | Bans and ban filters | `PARTIAL` | `BanService` (ban / lift / expireDue / assertNotBanned) + Postgres repositories, and glob ban filters applied at **both** registration and login. Both acceptance criteria met and mutation-verified: expiry restores the *captured* group, not the default (D29). `bans.expire` is registered in the task registry. **Gap:** the registry entry cannot actually run — F06's tick still returns `ran: []` and there is no `TaskRepository`, so no scheduled task executes yet. No ACP or CLI surface for creating bans. |
-| F24 | Group promotions | `PARTIAL` | `@forum/groups` (was an empty package): pure rule evaluation with three safety guards, `PromotionService` with preview/apply sharing one evaluation, `group_promotions` table (migration `0002`), Postgres repository with keyset paging. Both acceptance criteria met and mutation-verified: a dry run writes nothing, and repeat runs are no-ops (D30). **Gap:** `promotions.apply` is registered but, like `bans.expire`, nothing runs it — F06's tick returns `ran: []`. No ACP surface for editing rules (F66). |
+| F23 | Bans and ban filters | `DONE`* | `BanService` + Postgres repositories, glob ban filters applied at **both** registration and login, and `bans.expire` now genuinely runs on the tick. Both acceptance criteria met and mutation-verified: expiry restores the *captured* group, not the default (D29). *No ACP or CLI surface for creating a ban yet — that is F54/F67's screen, not a gap in the mechanism. |
+| F24 | Group promotions | `DONE`* | `@forum/groups` (was an empty package): pure rule evaluation with three safety guards, `PromotionService` with preview/apply sharing one evaluation, `group_promotions` table (migration `0002`), Postgres repository with keyset paging, and `promotions.apply` now genuinely runs on the tick. Both acceptance criteria met and mutation-verified (D30). *No ACP surface for editing rules — that is F66's screen. |
 
 > **Checkpoint 1** — substantially reached: register / activate / log in / log out
 > / reset all work without JavaScript, the tree exists with per-group overrides,
