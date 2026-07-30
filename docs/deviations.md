@@ -770,3 +770,52 @@ Testcontainers is also substituted, by PGlite: it runs the actual generated
 migration SQL in a real Postgres (compiled to WASM), which is what the
 requirement was protecting — that migrations are exercised against Postgres
 semantics rather than a mock — without needing Docker in every test run.
+
+### D29 — Bans: what gets captured, and when filters are checked (F23)
+
+**Restore-on-expiry.** F23 requires that an expired ban restores the *prior*
+group, not the default. The group is therefore captured at ban time and written
+back verbatim — a moderator banned for a week returns a moderator. Restoring the
+default instead is a silent demotion that nobody notices until that person tries
+to do their job. Mutation-verified: restoring a hardcoded default fails both
+restore tests.
+
+The capture and the move are in one transaction with the session revocation,
+because the four writes only mean something together. A ban that records the row
+but leaves the session alive is a label; one that moves the group without
+capturing the previous value strands the user permanently.
+
+`previous_primary_group_id` is `ON DELETE SET NULL`, so a group deleted mid-ban
+leaves nothing to restore. Writing null back would violate
+`users.primary_group_id`'s NOT NULL, so the ban lifts and the group is left
+alone — safer than guessing a group and silently granting it.
+
+`expireDue` also bumps `permission_version`. Without it a lifted ban leaves the
+user holding banned-group permissions for the cache's lifetime, so the ban
+silently outlives its own expiry.
+
+**Filter ordering is a security decision, not an implementation detail.** IP
+filters run first, before any hashing: there is no enumeration risk (the address
+is the caller's own) and an abusive network should not get to spend the board's
+Argon2 budget. Username and email filters run only *after* the password has
+verified — checking them up front would answer "is this account filtered?" to
+anyone who can type a username, which is exactly the enumeration oracle that
+login's dummy-hash path exists to prevent. There is a test asserting a wrong
+password yields the generic credential error rather than the filter message.
+
+**Patterns are globs, not regexes** — the same call F37 makes about custom
+BBCode, for the same reason: accepting a regex from an ACP form hands whoever
+holds that screen a denial of service via catastrophic backtracking. Every
+non-wildcard character is escaped (so `*@spam.example` cannot also match
+`*@spamXexample`) and patterns are anchored (so `spam` does not match
+`notspammer`). A bare `*` is rejected: it would lock out the administrator who
+typed it.
+
+**Messages leak nothing.** Ban messages surface `publicReason` and never
+`reason`, which is staff-facing and routinely holds notes about linked accounts.
+Filter messages name neither the pattern nor the field, which would be a map for
+evading them.
+
+**Still open:** `bans.expire` is registered in the task registry but nothing runs
+it — F06's tick returns `ran: []` and no `TaskRepository` exists. F23 stays
+PARTIAL for that reason rather than being marked done on a task that cannot fire.

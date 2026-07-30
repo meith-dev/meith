@@ -23,6 +23,8 @@ export interface TaskWorkers {
   reconcileCounters(batchSize: number): Promise<number>
   /** Promotes users who now meet a promotion rule. Returns users moved. */
   applyPromotions(batchSize: number): Promise<number>
+  /** Lifts bans whose expiry has passed, restoring each user's prior group. */
+  expireBans(batchSize: number): Promise<number>
 }
 
 export function builtinTasks(workers: TaskWorkers): TaskDefinition[] {
@@ -110,6 +112,28 @@ export function builtinTasks(workers: TaskWorkers): TaskDefinition[] {
       async run() {
         const promoted = await workers.applyPromotions(500)
         return { detail: { promoted } }
+      },
+    },
+
+    {
+      id: 'bans.expire',
+      title: 'Expire temporary bans',
+      description:
+        'Lifts bans whose expiry has passed, restoring each user to the group ' +
+        'they held when banned. Acts on outstanding state rather than on what ' +
+        'expired since the last run, so a skipped day costs a delay and nothing ' +
+        'else, and a doubled tick lifts nothing twice.',
+      /*
+       * Every fifteen minutes rather than hourly: a ban is a *punishment with a
+       * stated end*, and a user still locked out an hour after their ban expired
+       * reasonably concludes it did not work. Cheap — the query is an index scan
+       * over unlifted bans with a past expiry, which is almost always empty.
+       */
+      intervalSeconds: 900,
+      maxDurationSeconds: 30,
+      async run() {
+        const lifted = await workers.expireBans(200)
+        return { detail: { lifted } }
       },
     },
   ]
