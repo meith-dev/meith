@@ -73,7 +73,7 @@ services:
         apk add --no-cache curl >/dev/null
         while true; do
           curl -fsS -m 55 -H "Authorization: Bearer $$TICK_SECRET" \
-            http://web:3000/api/tick >/dev/null 2>&1 \
+            http://web:3000/api/system/tick >/dev/null 2>&1 \
             || echo "tick failed at $$(date -Is)"
           sleep 60
         done

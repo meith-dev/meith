@@ -26,8 +26,8 @@ what is and is not built.
 
 ## How this audit was done
 
-Last audited **2026-07-30**, against the working tree, not from memory:
-`pnpm verify` (579 tests, 22 files), `pnpm build`, plus direct inspection of the
+Last audited **2026-07-30** (re-audited after F10/F16 landed), against the working tree, not from memory:
+`pnpm verify` (595 tests, 24 files), `pnpm build`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -37,8 +37,8 @@ couple of `PARTIAL` rows are an afternoon.
 
 | Phase | Features | DONE | PARTIAL | TODO |
 |---|---|---|---|---|
-| 0 — Skeleton | 14 | 6 | 8 | 0 |
-| 1 — Identity, tree, permissions | 10 | 6 | 2 | 2 |
+| 0 — Skeleton | 14 | 7 | 7 | 0 |
+| 1 — Identity, tree, permissions | 10 | 7 | 1 | 2 |
 | 2 — Themes and reading | 11 | 0 | 2 | 9 |
 | 3 — Posting | 11 | 0 | 0 | 11 |
 | 4 — Moderation | 8 | 0 | 0 | 8 |
@@ -47,7 +47,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **12** | **12** | **65** |
+| **Total** | **89** | **14** | **10** | **65** |
 
 ---
 
@@ -59,12 +59,12 @@ couple of `PARTIAL` rows are an afternoon.
 | F02 | Config and environment validation | `DONE` | Zod schema in `packages/core/src/env.ts`; lazy proxy (D1); build-phase vs runtime split (D18). `process.env` confined by guard + ESLint rule. 11 tests. |
 | F03 | Database package | `PARTIAL` | Drizzle + postgres.js, forward-only migration, transaction helper. **Gap:** acceptance asks for "migrations run up *and down*", which contradicts invariant 32 (forward-only) — see Open questions. No Testcontainers; PGlite is used instead. |
 | F04 | Deploy on both targets | `PARTIAL` | Dockerfile (multi-stage, standalone) + `docker-compose.yml`; CI builds the app. **Gap:** CI never *boots* the standalone image, which is the stated acceptance criterion; `apps/worker` is an empty package, so the "same image runs the worker with a flag" path does not exist. |
-| F05 | Driver interfaces | `PARTIAL` | `QueueDriver`/`CacheDriver`/`FileStore`/`MailDriver` + `resolve.ts` from env. `MemoryQueue`, `PostgresQueue` (`FOR UPDATE SKIP LOCKED`), `MemoryCache`, `NextCache`, `LocalFileStore`. **Gap:** no `S3FileStore` and no `HttpMailDriver` — both named as *defaults* in the plan. No contract test suite. |
-| F06 | System tick and scheduled tasks | `PARTIAL` | `packages/tasks` registry + scheduler, secret-guarded route, `tasks`/`task_log` tables. **Gap:** route is `/api/tick`; F06 and R1 both specify `/api/system/tick`. No `vercel.json`, so nothing schedules it. No worker loop. |
+| F05 | Driver interfaces | `PARTIAL` | `QueueDriver`/`CacheDriver`/`FileStore`/`MailDriver` + `resolve.ts` from env. `MemoryQueue`, `PostgresQueue` (`FOR UPDATE SKIP LOCKED`), `MemoryCache`, `NextCache`, `LocalFileStore`, `HttpMailDriver`/`LogMailDriver`. **Gap:** no `S3FileStore`, named as a *default* in the plan, and no contract test suite. |
+| F06 | System tick and scheduled tasks | `PARTIAL` | `packages/tasks` registry + scheduler (concurrent-claim logic tested), secret-guarded route now at the spec path `/api/system/tick`, `vercel.json` cron + a compose tick loop. **Gap:** the route does not actually *run* anything — it returns `ran: []`. No `TaskRepository` implementation exists, and the `TaskWorkers` it would need are partly blocked on later features (`reconcileCounters` on F38, `applyPromotions` on F24). `apps/worker` is an empty package. |
 | F07 | Outbox and event bus | `DONE` | `outbox` table, transactional write helper, drain-to-queue, retry/backoff/dead-letter. Rollback-suppresses-delivery covered. |
 | F08 | Settings registry | `DONE` | `packages/settings` registry + `settings`/`setting_groups`; typed accessors; migration-seeded defaults. |
 | F09 | Errors, logging, error pages | `DONE` | Pino + request-id context, error taxonomy, `error.tsx`/`not-found.tsx`. Redaction covers credentials — tightened in D20 after a token reached the logs via a URL string. |
-| F10 | Caching policy harness | `PARTIAL` | `CacheTags` registry (every tag spelled once) and both cache drivers exist. **Gap:** `cachedGlobal` is an *interface with no implementation* — `CachedGlobalOptions` is referenced nowhere in the workspace. No "no actor in a cached route" lint rule. This blocks F16's tree caching. |
+| F10 | Caching policy harness | `DONE`* | `CacheTags` registry, both drivers, and `cachedGlobal` — read-through, tag-invalidated, driver injected. Guard now catches `getActor`/`getUserId` inside a cached region, and **every guard is probed** by `pnpm guards:probe` against a must-match and a must-not-match sample, so an inert or over-broad rule fails CI. *The "member then guest, guest never gets a cached body" test needs pages that do not exist until F29/F31; it is listed there, not silently skipped. |
 | F11 | Boundary lint and testkit | `PARTIAL` | `dependency-cruiser` enforces R2 (119 modules, 0 violations) and is probe-verified. **Gap:** `packages/testkit` contains **only `package.json`** — no harness, no factories, no deterministic seeder (50 forums / 100k threads / 2M posts / 20k users), **no query-budget assertion helper**. The Definition of Done requires that helper on every list page. |
 | F12 | CI pipeline | `DONE` | Three jobs: static checks (guards, lint, depcruise, both typechecks, tests), production build, migrations + drift + Postgres tests. Runtime not yet measured against the 12-minute budget. |
 | F13 | Operator CLI (v0) | `PARTIAL` | `apps/cli` dispatcher with `env:check`, `migrate`, `settings:list`. **Gap:** plan asks for `user create`, `user promote`, `forum create`, `settings set`, `task run`, `cache clear`. Acceptance ("a usable board can be set up entirely from the CLI") does not hold. |
@@ -79,7 +79,7 @@ couple of `PARTIAL` rows are an afternoon.
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
 | F15 | Users and usergroups schema | `DONE` | `users`, `usergroups`, `user_group_memberships` + seeded group ladder; primary/secondary groups with display flag. |
-| F16 | Forum tree schema | `PARTIAL` | Schema (materialised `path`, indexes) + `@forum/forums` (`buildTree`, `planMove`) + `PostgresForumRepository`. Four-level reparent and one-query read both proven, 34 tests, 10 on real Postgres (D22). **Gap:** tree read is not cached/tagged — blocked on F10's missing `cachedGlobal`. |
+| F16 | Forum tree schema | `DONE` | Schema (materialised `path`, indexes) + `@forum/forums` (`buildTree`, `planMove`, `CachedForumRepository`) + `PostgresForumRepository`. Four-level reparent, one-query read, and tag-invalidated caching all proven; 40 tests, 10 on real Postgres (D22). |
 | F17 | Password hashing, sessions, request context | `DONE` | Argon2id via hash-wasm (ADR 0001); opaque sessions, rotation on login, remember-me with reuse→family-burn; `proxy.ts` cookie-only; `getActor()` via `React.cache`. Fixation + location-throttle mutation-verified. |
 | F18 | Registration and activation | `DONE` | Server Action + no-JS form; validation, reserved names, case-insensitive uniqueness (D21). All three activation modes covered in the domain suite. |
 | F19 | Login, logout, password reset | `DONE` | Four flows as no-JS Server Actions; Postgres-backed lockout; single-use expiring reset tokens. D20 fixed a reset-token leak to the browser. |
@@ -188,9 +188,8 @@ reinterpreted unilaterally.
 2. **F03 vs invariant 32.** F03's acceptance asks that "migrations run up **and
    down**"; invariant 32 says "migrations are forward-only and checked in". Down
    migrations are currently not written. Assumed the invariant wins — confirm.
-3. **F06 route path.** Built as `/api/tick`; F06 and R1 both say
-   `/api/system/tick`. Worth renaming now, before `vercel.json` and any docs
-   reference it.
+3. ~~**F06 route path.**~~ Resolved: renamed to `/api/system/tick`, with
+   `vercel.json` and the compose tick loop updated.
 4. **`forum.config.ts` does not exist** (invariant 6 — "everything installable is
    registered in `forum.config.ts`; nothing discovered by filesystem scan"). It
    has no consumers until F69/F79, but themes and drivers are already selected in

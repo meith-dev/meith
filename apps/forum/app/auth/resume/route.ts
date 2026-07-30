@@ -25,7 +25,7 @@ import {
 export const runtime = "nodejs"
 // Per-request only: reads cookies + touches the store. Never collected at build
 // time (which would eagerly evaluate the container and its strict prod env).
-// Same guard the /api/tick and /api/health routes use.
+// Same guard the /api/system/tick and /api/health routes use.
 export const dynamic = "force-dynamic"
 
 /** Only same-origin relative paths may be returned to (open-redirect guard). */
