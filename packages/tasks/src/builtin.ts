@@ -34,6 +34,13 @@ export interface TaskWorkers {
    * belonged to. Returns warnings lapsed.
    */
   expireWarnings(batchSize: number): Promise<number>
+  /**
+   * Tells members who follow a thread or forum "as it happens" about posts they
+   * have not been told about. Returns members notified.
+   */
+  notifySubscribers(batchSize: number): Promise<number>
+  /** Sends the daily and weekly digests that are due. Returns members notified. */
+  sendDigests(batchSize: number): Promise<number>
 }
 
 function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
@@ -215,6 +222,44 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         return { detail: { expired } }
       },
     },
+    {
+      id: 'subscriptions.instant',
+      title: 'Notify subscribers',
+      description:
+        'Tells members who follow a thread or forum "as it happens" about ' +
+        'posts that have arrived since they were last told. Runs on the ' +
+        'shortest interval the scheduler has, which is what "instant" means ' +
+        'here: fanning out inside the posting request would put an unbounded ' +
+        'loop — one permission check per subscriber — on the board\'s hottest ' +
+        'write, and couple posting to the mail provider being up. Each ' +
+        "subscription carries a watermark, so a skipped tick delays a " +
+        'notification and never loses one.',
+      intervalSeconds: 60,
+      maxDurationSeconds: 45,
+      async run() {
+        const notified = await workers.notifySubscribers(50)
+        return { detail: { notified } }
+      },
+    },
+
+    {
+      id: 'subscriptions.digest',
+      title: 'Send subscription digests',
+      description:
+        'Sends the daily and weekly digests that are due. The clock is per ' +
+        'member and per cadence rather than per run, so somebody who ' +
+        'subscribed on Sunday gets their first weekly digest a week later — ' +
+        'not at whatever moment the board tick happened to fire. Hourly, ' +
+        'because a digest that is due is a query that finds nobody most of the ' +
+        'time, and asking often is what keeps "daily" within an hour of the ' +
+        'same time each day.',
+      intervalSeconds: 3_600,
+      maxDurationSeconds: 60,
+      async run() {
+        const notified = await workers.sendDigests(50)
+        return { detail: { notified } }
+      },
+    },
   ]
 }
 
@@ -234,6 +279,8 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'promotions.apply': 'applyPromotions',
   'bans.expire': 'expireBans',
   'warnings.expire': 'expireWarnings',
+  'subscriptions.instant': 'notifySubscribers',
+  'subscriptions.digest': 'sendDigests',
 }
 
 /**

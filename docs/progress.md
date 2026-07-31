@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D55. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D56. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -19,11 +19,12 @@ this file.
 
 `pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
 + **guard probes**, the **slot server/client boundary** check + its probe,
-dependency-cruiser (351 modules, 0 violations), typecheck (root **and** app),
-**1973 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+dependency-cruiser (369 modules, 0 violations), typecheck (root **and** app),
+**2046 tests** (a large share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
-`/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications` and
-`/notifications/preferences` in the route table. Three consecutive green runs after capping worker
+`/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
+`/notifications/preferences`, `/subscriptions` and `/unsubscribe` in the route
+table. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
 roughly one run in three (D34) — and after raising the *test* timeout, which
 F38's four extra database suites pushed the Argon2id lockout test past (D41).
@@ -394,20 +395,57 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   asserts F36's property; "themed" is the board's name, links and accent token,
   which is what e-mail can actually carry. See **D55** and four parity entries.
 
+- **F56 subscriptions and digests.** The other half of the notification story,
+  and the feature that finally reads two tables the board has been writing since
+  Phase 3: F39's "subscribe to this thread" checkbox has been inserting rows for
+  months with nothing on the other end.
+
+  `notify_via` becomes `mode`, and the change is the point: it held a *channel*,
+  F55 settled channels board-wide, and what a subscription is left to say is
+  **how often** — instant, daily, weekly, or never. Renamed rather than added
+  beside, because a vestigial column nothing reads is a thing everybody has to
+  reason about forever.
+
+  **Progress is a watermark, not a queue.** Each subscription remembers the last
+  post its owner was told about, so "what is outstanding" is a range query. A
+  tick that never ran changes when somebody is told, not whether; a missed week
+  is one bigger digest. The alternative — pending rows written inside the
+  posting transaction, one per subscriber — is an unbounded fan-out on the
+  board's hottest write. Two details carry the feature and both are
+  mutation-verified: the watermark is seeded when you subscribe (following a
+  400-post thread must not produce a digest of 400 posts) and is *not* reset
+  when you change cadence. **The second one was a weak test first**: it passed
+  against a deliberately broken implementation because the fixture never moved
+  the thread's own last-post pointer, so "reset" and "leave alone" produced the
+  same number. The test now moves it, and the mutant dies.
+
+  One runner serves all three cadences, because three code paths would be three
+  places to advance a watermark wrongly. Instant raises one notification per
+  *thread* under F55's dedupe key — five replies are one row and one e-mail —
+  and digests raise one per member per period with no key at all, because two
+  digests are two periods. Permission is re-resolved per member at notify time
+  through the Authorizer: a subscription is not a standing grant, and a forum
+  can go private long after somebody followed it.
+
+  The unsubscribe link is stateless (an HMAC over who/scope/which, no table) and
+  its **GET does nothing** — scanners and mail clients fetch every URL in a
+  message, so acting on the GET means members are unsubscribed by their own spam
+  filter. See **D56** and four parity entries, including why "instant" honestly
+  means "within a tick".
+
 ## NEXT ACTION — resume here
 
-**Phase 5 has started: F55 is done, one of eight.** The board can tell somebody
-something. F06's last acceptance clause is met with it (a failing task raises an
-admin notification rather than only logging), F53's warned member is told, and
-F49's reporter learns the outcome.
+**Phase 5 is two of eight.** F55 gave the board a way to tell somebody
+something; F56 gave it the thing most worth telling them, and closed the loop on
+a checkbox that had been writing rows since Phase 3.
 
-**F56 · subscriptions and digests** is the right next feature, and F55 was built
-to be its floor: `thread_subscriptions` is *written* by F39/F40's composer and
-**read by nothing**, the kind registry takes a new entry declaratively, and the
-raise path, preferences screen and mail renderer are already there. Two things F56 owns and
-F55 deliberately did not build: the digest task (instant / daily / weekly is a
-batching decision over the same rows) and the **no-login unsubscribe link**,
-which needs a signed token and a route — half of one is worse than none.
+**F57 · the UserCP** is the right next feature, and two finished things are
+waiting on it in the ordinary way rather than as gaps. `/subscriptions` and
+`/notifications/preferences` are member self-service screens with no home —
+F57's route group is where they belong, alongside profile, options, timezone and
+paging. The timezone one is worth naming: `view/time.ts` has formatted every
+timestamp on the board in UTC since F29 and says so in the footer, precisely
+because per-member timezones are F57's.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -483,6 +521,12 @@ Still outstanding and worth keeping visible:
   is closed; telling the forum's moderators needs `moderatedForumIds` inverted,
   which means resolving the forum matrix per *group* rather than per actor. It
   is named in D55 and in F49's row rather than left to be discovered.
+- **The notifier costs an actor build per member per run.** F56 resolves
+  `visibleForumIds` through the Authorizer for every member it notifies, which
+  is the only correct answer (F47) and is bounded at 50 members per run. On a
+  board where thousands follow something busy, that ceiling is what to raise
+  first — and the query budget helper (F11) is how to find out whether it
+  matters before changing it.
 - **`ViewerModel.canAccessModCp` is group-level only**, so the shell's ModCP
   link does not appear for a per-forum appointee even though `/modcp` admits
   them. Answering it properly costs the tree on every page render.
@@ -499,7 +543,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D55). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D56). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

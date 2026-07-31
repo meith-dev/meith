@@ -90,6 +90,37 @@ export const NOTIFICATION_KINDS = [
     emailConfigurable: true,
   },
   {
+    id: 'subscription.reply',
+    title: 'A thread you follow gets a reply',
+    description:
+      'Somebody replies in a thread or forum you follow and asked to hear ' +
+      'about as it happens.',
+    audience: 'member',
+    /*
+     * On by default: following a thread is an explicit request to be told, and
+     * the member who does not want e-mail about it has two ways out — this
+     * switch, or the digest cadence on the subscription itself.
+     */
+    emailByDefault: true,
+    emailConfigurable: true,
+  },
+  {
+    id: 'subscription.digest',
+    title: 'Your daily or weekly digest is ready',
+    description:
+      'A summary of what arrived in the threads and forums you follow on a ' +
+      'digest cadence.',
+    audience: 'member',
+    /*
+     * On by default, and the one kind where switching e-mail off is nearly a
+     * contradiction: a digest exists to be sent. It stays configurable because
+     * the on-site summary is still worth having for somebody who reads the
+     * board daily and wants no mail at all.
+     */
+    emailByDefault: true,
+    emailConfigurable: true,
+  },
+  {
     id: 'system.task_failed',
     title: 'A scheduled task fails',
     description:

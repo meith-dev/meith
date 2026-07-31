@@ -20,6 +20,7 @@ const DOMAIN = [
   'moderation',
   'notifications',
   'settings',
+  'subscriptions',
   'events',
   'tasks',
 ].join('|')

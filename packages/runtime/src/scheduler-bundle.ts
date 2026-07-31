@@ -8,7 +8,7 @@
  * appears as a healthy run of nothing.
  */
 import type { MailDriver, QueueDriver } from '@forum/core'
-import { logger } from '@forum/core'
+import { env, logger } from '@forum/core'
 import {
   getDb,
   PostgresBanRepository,
@@ -22,14 +22,20 @@ import {
   PostgresTaskRepository,
   PostgresThreadViewBuffer,
   PostgresWarningRepository,
+  PostgresSubscriptionRepository,
+  PostgresAuthorizationSource,
+  ActorBuilder,
   type Database,
 } from '@forum/db'
+import { Authorizer } from '@forum/authorization'
 import { deliverNotificationEmail, NotificationService } from '@forum/notifications'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@forum/tasks'
 
 import { buildEventRegistry } from './event-handlers'
+import { SEED_GROUP } from './groups'
 import { resolveMailBrand } from './mail-brand'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
+import { visibleForumSource } from './visible-forums'
 
 export interface SchedulerBundle {
   readonly repository: TaskRepository
@@ -110,6 +116,28 @@ export function buildSchedulerBundle(deps: {
         renderBackfill: new PostgresRenderBackfill(db),
         threadViews,
         warnings: new PostgresWarningRepository(db),
+        /*
+         * F56. The notifier needs the Authorizer, because "which forums may
+         * this member still see" is a permission question and a task is not
+         * allowed a second answer to it (F47). Built here rather than shared
+         * with the request path's container: the tick can run in a process that
+         * has no container at all — the worker and the CLI both do.
+         */
+        subscriptions: {
+          repository: new PostgresSubscriptionRepository(db),
+          notifications: new NotificationService({ notifications }),
+          forums: visibleForumSource({
+            authorizer: new Authorizer(new PostgresAuthorizationSource(db), {}),
+            actors: new ActorBuilder(db, { guestGroupId: SEED_GROUP.guest }),
+          }),
+          /*
+           * The board's own secret signs the unsubscribe links. Absent on a
+           * board that has not configured one, in which case the messages carry
+           * no one-click link rather than an unsigned endpoint that would take
+           * a user id from a query string.
+           */
+          unsubscribeSecret: env.AUTH_SECRET ?? null,
+        },
       }),
     ),
   }

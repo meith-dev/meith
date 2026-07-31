@@ -233,6 +233,8 @@ describe('bans.expire is registered (F23)', () => {
       reconcileCounters: zero,
       flushThreadViews: zero,
       backfillPostRenders: zero,
+      notifySubscribers: zero,
+      sendDigests: zero,
       expireWarnings: zero,
       applyPromotions: zero,
       expireBans: zero,
@@ -298,6 +300,8 @@ function fullWorkerSet(): TaskWorkers {
     pruneExpiredTokens: async () => 0,
     reconcileCounters: async () => 0,
     flushThreadViews: async () => 0,
+    notifySubscribers: async () => 0,
+    sendDigests: async () => 0,
     backfillPostRenders: async () => 0,
     expireWarnings: async () => 0,
     applyPromotions: async () => 0,
@@ -330,7 +334,7 @@ describe('builtinTasks registers only what can run', () => {
 
   it('registers everything when the full set is supplied', () => {
     const all = builtinTasks(fullWorkerSet())
-    expect(all).toHaveLength(10)
+    expect(all).toHaveLength(12)
   })
 
   it('gives every task a worker mapping, so none can be silently unregisterable', () => {

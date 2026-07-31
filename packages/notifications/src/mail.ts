@@ -56,6 +56,9 @@ export interface RenderedMail {
 /** Where a member manages what they receive. Referenced from every message. */
 const PREFERENCES_PATH = '/notifications/preferences'
 
+/** F56's no-login unsubscribe route. */
+const UNSUBSCRIBE_PATH = '/unsubscribe'
+
 /** Join an origin and a board-relative path, or return null when there is none. */
 function absolute(brand: MailBrand, path: string | null): string | null {
   if (brand.boardUrl === '' || path === null) return null
@@ -73,6 +76,17 @@ export function renderNotificationMail(input: {
   const boardName = brand.boardName === '' ? 'the forum' : brand.boardName
   const target = absolute(brand, view.href)
   const preferences = absolute(brand, PREFERENCES_PATH)
+  /*
+   * F56. A signed one-click link, when the notification carried a token. It
+   * matters most for exactly the messages that carry one: somebody who followed
+   * a thread two years ago and cannot remember doing it needs a way out that is
+   * not "log in and find the screen", or they click "this is spam" instead —
+   * which costs the whole board's deliverability, not just their own mail.
+   */
+  const unsubscribe =
+    view.unsubscribeToken === null
+      ? null
+      : absolute(brand, `${UNSUBSCRIBE_PATH}?token=${encodeURIComponent(view.unsubscribeToken)}`)
 
   /*
    * The board's name prefixes every subject. Filters and threading are built on
@@ -96,8 +110,15 @@ export function renderNotificationMail(input: {
       : `You are receiving this because you have an account on ${boardName}.\n` +
         `Change which e-mails you receive: ${preferences}`,
   )
+  if (unsubscribe !== null) {
+    textLines.push(`Unsubscribe without signing in: ${unsubscribe}`)
+  }
 
-  return { subject, text: textLines.join('\n'), html: html(view, brand, boardName, recipientName, target, preferences) }
+  return {
+    subject,
+    text: textLines.join('\n'),
+    html: html(view, brand, boardName, recipientName, target, preferences, unsubscribe),
+  }
 }
 
 function html(
@@ -107,6 +128,7 @@ function html(
   recipientName: string,
   target: string | null,
   preferences: string | null,
+  unsubscribe: string | null,
 ): string {
   /*
    * Table-free, inline-styled, and deliberately plain. Every construct here is
@@ -145,6 +167,9 @@ function html(
       (preferences === null
         ? 'Change which e-mails you receive from your notification preferences.'
         : `<a href="${escapeAttribute(preferences)}" style="color:#666">Change which e-mails you receive</a>.`) +
+      (unsubscribe === null
+        ? ''
+        : ` <a href="${escapeAttribute(unsubscribe)}" style="color:#666">Unsubscribe</a>.`) +
       `</p>`,
     `</div>`,
   )

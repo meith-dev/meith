@@ -281,6 +281,9 @@ importers:
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
+      '@forum/subscriptions':
+        specifier: workspace:*
+        version: link:../subscriptions
       '@forum/tasks':
         specifier: workspace:*
         version: link:../tasks
@@ -404,6 +407,12 @@ importers:
       zod:
         specifier: ^4.4.3
         version: 4.4.3
+
+  packages/subscriptions:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/tasks:
     dependencies:

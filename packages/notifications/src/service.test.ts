@@ -252,6 +252,8 @@ describe('preferences', () => {
     expect(rows.map((r) => [r.kind, r.email, r.isDefault])).toEqual([
       ['warning.received', true, true],
       ['report.actioned', false, true],
+      ['subscription.reply', true, true],
+      ['subscription.digest', true, true],
     ])
   })
 

@@ -93,6 +93,7 @@ export function installTestContainer(
     warningBans: null,
     modcp: null,
     notifications: null,
+    subscriptions: null,
     readState: null,
     threadViews: null,
     scheduler: null,

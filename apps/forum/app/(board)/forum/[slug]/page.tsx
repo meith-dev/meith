@@ -8,7 +8,9 @@ import { getContainer } from "@/server/container";
 import { getActor } from "@/server/context";
 import { activeTheme } from "@/server/theme";
 import { decodeForumCursor, encodeForumCursor } from "@/view/forum-cursor";
+import { FollowForm } from "@/components/account/subscription-forms";
 import { buildForumDisplayView } from "@/view/forum-display";
+import { buildSubscriptionsView } from "@/view/subscriptions";
 import {
   INLINE_FORM_ID,
   anyInlineTool,
@@ -144,6 +146,15 @@ export default async function ForumPage({
     now: new Date(),
   });
 
+  /* F56, same shape as the thread page's control. */
+  const { subscriptions } = getContainer();
+  const followMode =
+    subscriptions === null || actor.userId === null
+      ? null
+      : await subscriptions.modeFor(actor.userId, "forum", forum.id);
+  const followOffered = subscriptions !== null && actor.userId !== null;
+  const followModes = buildSubscriptionsView({ rows: [], now: new Date() }).modes;
+
   const ForumDisplay = requireSlot(activeTheme, "ForumDisplay");
   const Notice = requireSlot(activeTheme, "Notice");
   const ThreadRow = requireSlot(activeTheme, "ThreadRow");
@@ -169,6 +180,18 @@ export default async function ForumPage({
             kind="info"
             message={notice}
             dismissHref={`/forum/${id}-${forum.slug}`}
+          />
+        </div>
+      )}
+      {followOffered && (
+        <div className="px-6 pt-4">
+          <FollowForm
+            target="forum"
+            targetId={forum.id}
+            mode={followMode}
+            modes={followModes}
+            back={`/forum/${id}-${forum.slug}`}
+            label="Follow this forum"
           />
         </div>
       )}

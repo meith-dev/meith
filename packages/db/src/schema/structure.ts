@@ -272,7 +272,14 @@ export const forumsRead = pgTable(
   (t) => [uniqueIndex('forums_read_pkey').on(t.userId, t.forumId)],
 )
 
-/** Forum subscriptions. Thread subscriptions live in the content schema. */
+/**
+ * Forum subscriptions. Thread subscriptions live in the content schema.
+ *
+ * Like that table, this one has existed since `0000` and had no reader until
+ * F56 — and like that table, its `notify_via` *channel* became a `mode`
+ * cadence, because F55 answered the channel question board-wide and a
+ * per-subscription second answer would disagree with it (migration `0008`).
+ */
 export const forumSubscriptions = pgTable(
   'forum_subscriptions',
   {
@@ -282,8 +289,10 @@ export const forumSubscriptions = pgTable(
     forumId: integer('forum_id')
       .notNull()
       .references(() => forums.id, { onDelete: 'cascade' }),
-    /** 'none' | 'email' | 'notification' */
-    notifyVia: text('notify_via').notNull().default('notification'),
+    /** 'none' | 'instant' | 'daily' | 'weekly' — a cadence, not a channel. */
+    mode: text('mode').notNull().default('instant'),
+    /** The last post this subscriber was told about. See `threadSubscriptions`. */
+    lastNotifiedPostId: integer('last_notified_post_id').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -291,5 +300,7 @@ export const forumSubscriptions = pgTable(
   (t) => [
     uniqueIndex('forum_subscriptions_pkey').on(t.userId, t.forumId),
     index('forum_subscriptions_forum_idx').on(t.forumId),
+    index('forum_subscriptions_user_idx').on(t.userId, t.createdAt.desc()),
+    index('forum_subscriptions_mode_idx').on(t.mode, t.userId),
   ],
 )

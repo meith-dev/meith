@@ -19,8 +19,24 @@
  */
 import type { NotificationKind } from './kinds'
 
+/**
+ * Any value that survives a round trip through `jsonb`.
+ *
+ * Widened from flat scalars at F56, which needed a digest to carry the list of
+ * threads it covers. The bound stays "JSON" rather than `unknown`: `data` is
+ * read back by a renderer that must not throw, and a type that permits a
+ * `Date` or a class instance would silently store `{}`.
+ */
+export type NotificationValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly NotificationValue[]
+  | { readonly [key: string]: NotificationValue }
+
 /** The captured facts. JSON-shaped so it round-trips a `jsonb` column. */
-export type NotificationData = Readonly<Record<string, string | number | boolean | null>>
+export type NotificationData = Readonly<Record<string, NotificationValue>>
 
 /** A row as it comes back from storage. */
 export interface NotificationRecord {

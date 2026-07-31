@@ -546,3 +546,76 @@ between a blip and an outage.
 is deliberate for an operational alert and is why warnings carry no dedupe key
 at all — two warnings are two things that happened, and collapsing them would
 hide the one that crossed a threshold.
+
+---
+
+## "Instant" notification means "within a tick"
+
+**MyBB:** sends a subscription e-mail during the request that created the post,
+inside `add_thread`/`add_post`.
+
+**Here:** the post commits, and the `subscriptions.instant` task tells the
+subscribers on its next run — at most a minute later on a board whose tick runs
+every minute.
+
+**Why:** notifying inline is an unbounded loop inside the board's hottest write.
+One iteration per subscriber, each needing a permission re-check (a subscription
+is not a standing grant), each potentially a mail send — on a thread with 500
+followers that is a posting request that takes seconds and fails if the mail
+provider is down. Every other side effect on this board already works this way
+(F07's outbox, F38's roll-up), and the watermark makes a delayed run
+indistinguishable from a prompt one except in timing.
+
+**Cost:** a subscriber can open a thread and see a reply before the notification
+about it arrives. That is strictly better than the failure it avoids, and the
+delay is bounded by the tick interval an operator controls.
+
+## A digest's clock is per member, not per board
+
+**MyBB:** has no digests at all — every subscription is instant e-mail or
+nothing.
+
+**Here:** a subscription's cadence is `instant`, `daily`, `weekly` or `none`,
+and the daily/weekly clock is stored per member *and* per cadence in
+`digest_runs`.
+
+**Why:** a board-wide "send the digests now" schedule delivers everybody's
+digest at whatever moment the tick happened to fire, and hands somebody who
+subscribed on Sunday a "weekly" digest on Monday. Per member, the interval means
+what it says. Per cadence as well, because a member can follow one thread daily
+and another weekly, and one clock cannot serve both.
+
+**Cost:** one row per member per cadence, written only once a digest has
+actually gone out. A member who has never received one is due immediately, which
+is what makes a new subscriber's first digest arrive rather than never.
+
+## The unsubscribe link acts on POST, not on GET
+
+**MyBB:** unsubscribe links are GETs — following the URL removes the
+subscription.
+
+**Here:** the link opens a page that says what unsubscribing would do and offers
+one button. The button is the act.
+
+**Why:** mail clients, corporate link scanners and preview fetchers request
+every URL in a message. A GET that unsubscribed would mean a member is
+unsubscribed by their own spam filter looking at the mail, and they would never
+know why the notifications stopped. It also matches what one-click unsubscribe
+(RFC 8058) expects of a mail sender.
+
+**Cost:** one extra click for somebody who genuinely wants out. The page needs
+no login and no JavaScript, so it is the cheapest possible extra click.
+
+## Unsubscribing from a digest does not delete subscriptions
+
+**MyBB:** does not have the case, having no digests.
+
+**Here:** the digest's unsubscribe link switches subscription **e-mail** off.
+Every subscription stays, and new posts still appear in the notification centre.
+
+**Why:** a digest covers many subscriptions, so "unsubscribe" cannot mean one of
+them — and taking it to mean "all of them" would delete a member's follow list
+because they wanted fewer e-mails. F55 already separates the record from the
+transport; this is that separation applied to the one-click case. The per-thread
+link in an "as it happens" notification *does* end that one subscription,
+because there the member knows exactly which thread they are silencing.

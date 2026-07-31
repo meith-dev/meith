@@ -15,6 +15,7 @@
       "@forum/events": ["../../packages/events/src/index.ts"],
       "@forum/events/*": ["../../packages/events/src/*"],
       "@forum/settings": ["../../packages/settings/src/index.ts"],
+      "@forum/subscriptions": ["../../packages/subscriptions/src/index.ts"],
       "@forum/settings/*": ["../../packages/settings/src/*"],
       "@forum/tasks": ["../../packages/tasks/src/index.ts"],
       "@forum/runtime": ["../../packages/runtime/src/index.ts"],

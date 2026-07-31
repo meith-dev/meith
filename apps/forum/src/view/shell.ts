@@ -123,6 +123,8 @@ export function buildUserPanelModel(
            * count beside it is the part that varies.
            */
           { label: 'Notifications', href: '/notifications' },
+          /* F56. Beside the centre, because the two answer each other's question. */
+          { label: 'Subscriptions', href: '/subscriptions' },
           ...(viewer.canAccessModCp
             ? [
                 /*

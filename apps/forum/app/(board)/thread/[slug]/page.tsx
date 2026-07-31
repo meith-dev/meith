@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@forum/theme-kit'
 
+import { FollowForm } from '@/components/account/subscription-forms'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
 import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
 import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
@@ -19,6 +20,7 @@ import {
 } from '@/view/inline-moderation'
 import { POSTS_PER_PAGE } from '@/view/paging'
 import { buildThreadView } from '@/view/thread-view'
+import { buildSubscriptionsView } from '@/view/subscriptions'
 
 export const metadata: Metadata = { title: 'Thread' }
 
@@ -252,6 +254,20 @@ export default async function ThreadPage({
     now: new Date(),
   })
 
+  /*
+   * F56's follow control. Two reads for a signed-in member — the current mode,
+   * and nothing else — and none at all for a guest or on a board with no
+   * subscription store, where the control is absent rather than offered and
+   * then refused.
+   */
+  const { subscriptions } = getContainer()
+  const followMode =
+    subscriptions === null || actor.userId === null
+      ? null
+      : await subscriptions.modeFor(actor.userId, 'thread', thread.id)
+  const followOffered = subscriptions !== null && actor.userId !== null
+  const followModes = buildSubscriptionsView({ rows: [], now: new Date() }).modes
+
   const ThreadView = requireSlot(activeTheme, 'ThreadView')
   const Notice = requireSlot(activeTheme, 'Notice')
   const PostBit = requireSlot(activeTheme, 'PostBit')
@@ -301,6 +317,18 @@ export default async function ThreadPage({
             splitPoints={splitPoints}
           />
         </ThreadToolsForm>
+      )}
+      {followOffered && (
+        <div className="px-6 pt-4">
+          <FollowForm
+            target="thread"
+            targetId={thread.id}
+            mode={followMode}
+            modes={followModes}
+            back={`/thread/${thread.id}-${thread.slug}`}
+            label="Follow this thread"
+          />
+        </div>
       )}
       <ThreadView
         {...view.view}

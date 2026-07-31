@@ -78,10 +78,11 @@ describe('buildUserPanelModel', () => {
     expect(panel.links.map((l) => l.href)).toEqual(['/login', '/register'])
   })
 
-  it('offers the member profile and notification routes', () => {
+  it('offers the member profile, notification and subscription routes', () => {
     expect(buildUserPanelModel(buildViewerModel(member)).links).toEqual([
       { label: 'Profile', href: '/member/42' },
       { label: 'Notifications', href: '/notifications' },
+      { label: 'Subscriptions', href: '/subscriptions' },
     ])
   })
 

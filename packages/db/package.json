@@ -16,6 +16,7 @@
     "@forum/moderation": "workspace:*",
     "@forum/notifications": "workspace:*",
     "@forum/settings": "workspace:*",
+    "@forum/subscriptions": "workspace:*",
     "@forum/tasks": "workspace:*",
     "@forum/threads": "workspace:*",
     "drizzle-orm": "^0.44.7",

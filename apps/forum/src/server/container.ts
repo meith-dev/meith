@@ -46,6 +46,7 @@ import type {
 } from '@forum/moderation'
 import type { NotificationRepository } from '@forum/notifications'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
+import type { SubscriptionRepository } from '@forum/subscriptions'
 import type {
   ReadStateRepository,
   ReplyWriteRepository,
@@ -71,6 +72,7 @@ import {
   PostgresInlineModerationRepository,
   PostgresWarningRepository,
   PostgresNotificationRepository,
+  PostgresSubscriptionRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
   PostgresReadStateRepository,
@@ -170,6 +172,13 @@ export interface Container {
    * half needs an outbox row, which sample data has nowhere to put.
    */
   readonly notifications: NotificationRepository | null
+  /**
+   * Thread and forum subscriptions (F56). `null` in fixture mode (D38): both
+   * tables are durable by nature — a follow list that resets on restart is a
+   * member being silently unsubscribed — and the notifier behind them needs a
+   * scheduler, which fixture mode also refuses.
+   */
+  readonly subscriptions: SubscriptionRepository | null
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
@@ -268,6 +277,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     warningBans: null,
     modcp: null,
     notifications: null,
+    subscriptions: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -365,6 +375,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     warnings: warningRepo,
     modcp: new PostgresModCpRepository(db),
     notifications: new PostgresNotificationRepository(db),
+    subscriptions: new PostgresSubscriptionRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -430,6 +441,7 @@ export function getContainer(): Container {
     cached.warningBans === undefined ||
     cached.modcp === undefined ||
     cached.notifications === undefined ||
+    cached.subscriptions === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

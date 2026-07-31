@@ -2910,3 +2910,130 @@ colour travels; a cascade does not.
 - **Fixture mode has no notification store**, like every other writer since
   D38. The centre 404s there rather than showing an empty list that could never
   fill.
+
+---
+
+### D56 — Following something, and being told about it later (F56)
+
+`thread_subscriptions` and `forum_subscriptions` have both existed since
+migration `0000`. F39's composer has been *writing* thread subscriptions since
+Phase 3 — the "subscribe to this thread" checkbox inserts a row — and nothing
+has ever read one. This is the reader, plus the screen a member needs to see
+what that checkbox has been doing on their behalf.
+
+Five decisions.
+
+#### `notify_via` was a channel; F55 settled channels, so it becomes a cadence
+
+The column held `'none' | 'email' | 'notification'` — *how* to tell somebody.
+F55 answered that board-wide and better: everything is recorded on-site, and
+`notification_preferences` decides per kind whether an e-mail follows. A
+per-subscription channel on top of that is a second answer to a settled
+question, and the two would disagree the first time anybody changed one.
+
+So the column is renamed and remapped to a **cadence** — `instant | daily |
+weekly | none`, which is MyBB's own subscription type. Renamed rather than added
+beside, because the alternative is a vestigial column that nothing reads and
+everybody has to reason about. `'none'` survives unchanged: "I am following
+this and do not want to hear about it" is a real thing to want, and it is what a
+muted row on the management screen will mean.
+
+#### Progress is a watermark, not a queue of pending rows
+
+Each subscription carries the id of the last post its owner was told about.
+"What is outstanding" is then a range query rather than a table to insert into,
+drain, deduplicate and eventually sweep.
+
+That is F06's catch-up rule applied to notification: a tick that never ran, or
+ran twice, changes *when* somebody is told and never *whether*. A missed week is
+one larger digest rather than a lost one. It also removes the worst version of
+this feature: a pending-rows table has to be written inside the posting
+transaction, one row per subscriber, on the board's hottest write.
+
+Two details are load-bearing and both are mutation-verified:
+
+- **The watermark is seeded on subscribe** from the target's current last post.
+  Without it, following a 400-post thread produces a digest of 400 posts.
+- **It is not reset when the cadence changes.** The upsert's `do update` touches
+  `mode` and nothing else — a reset would mark three unread replies as told
+  because somebody switched from daily to weekly, which is a notification lost
+  to a settings change.
+
+It is written with `greatest(...)`, so two runs racing cannot move it
+*backwards* and re-deliver everything in between.
+
+#### One runner, three cadences — and "instant" means "within a tick"
+
+Instant, daily and weekly differ in how often the task fires and in how the
+result is grouped. The work is identical, so it is one runner: three code paths
+would be three places to advance a watermark wrongly, and advancing one without
+telling anybody loses a notification permanently and invisibly.
+
+Nothing fans out inside the posting request. A reply that notified its
+subscribers inline would put an unbounded loop — one permission check per
+subscriber — on the board's hottest write, and couple posting to the mail
+provider being up. So "instant" is a task on the scheduler's shortest interval,
+and the honest description is "at most a tick behind", which
+`mybb-parity.md` records rather than glossing.
+
+Instant mode raises **one notification per thread**, carrying F55's dedupe key.
+Five replies to one thread while the member has not read the notification are
+one row with a count and one e-mail — which is exactly what F55 built coalescing
+for. Digests carry **no** dedupe key: two digests are two periods, and
+collapsing this week's into last week's unread one would silently drop a week.
+
+#### Permission is re-checked per member, at notify time
+
+A subscription is not a standing grant. A forum can be made private, a group can
+lose `canView`, a thread can be moved somewhere its subscriber cannot read — all
+after the subscription was created, and all of them mean the member must not be
+told what happened there.
+
+So the notifier resolves the member's visible set through the Authorizer
+(`VisibleForumSource` over `ActorBuilder` + `visibleForumIds`) and hands it to
+the query. That costs an actor build plus F21's constant three reads per member
+(D26), paid once per member per run. The alternative is a second answer to the
+visibility question living inside a task, and F47's whole argument is that there
+is one answer and one place it comes from. The pending read also goes through
+`visibleIn(..., PUBLIC_CONTENT)` on both the post and its thread, so a held or
+soft-deleted post can never reach a digest.
+
+**The watermark still advances for content the member may no longer see.**
+Deliberate: otherwise a subscription accumulates a backlog nobody will ever be
+shown, and re-granting access a year later delivers all of it at once.
+
+#### The unsubscribe link is stateless, and the GET does nothing
+
+A digest arrives in a mail client, read by somebody who may not be signed in.
+Requiring a login first is how a member who wants out clicks "this is spam"
+instead — which costs the whole board's deliverability, not just their own mail.
+
+So the link carries an HMAC over (who, what scope, which one), keyed by
+`AUTH_SECRET`. No table, nothing to sweep, no window where a valid link exists
+for a subscription that has gone. It cannot be revoked individually, which is
+acceptable because of how little it grants: one act against one subscription,
+no session, no read access. Somebody who intercepts one can stop a member being
+notified about one thread — the same thing they could do by deleting the mail.
+
+**The GET only shows a page with a button; the POST acts.** Mail clients,
+security scanners and link previewers fetch every URL in a message, so a GET
+that unsubscribed would mean members are unsubscribed by their own spam filter.
+
+The digest's link uses a third scope, `email`, and that is a different act on
+purpose: a digest covers many subscriptions, so "unsubscribe" cannot mean one of
+them, and ending all of them would delete a member's follow list because they
+wanted fewer messages. It switches subscription **e-mail** off and leaves every
+subscription and its on-site notification standing — the distinction F55's
+preferences screen already draws. The scope is inside the signed payload, so a
+`thread` token cannot be edited into an `email` one (tested).
+
+#### What is deliberately not here
+
+- **A "notify me when somebody quotes me" kind** and the rest of MyBB's
+  notification list: they need producers that do not exist yet, and a kind on
+  the preferences screen that can never fire is the thing D32 forbids.
+- **Per-forum digest cadence defaults** and a UserCP home for the screen —
+  `/subscriptions` stands alone until F57 gives it one.
+- **Fixture mode has no subscription store**, like every writer since D38, so
+  the follow control and the management screen are absent there rather than
+  broken. That is also why the browser suite still cannot cover any of this.

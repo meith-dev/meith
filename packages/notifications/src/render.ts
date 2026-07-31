@@ -32,6 +32,32 @@ export interface NotificationView {
   readonly createdAt: Date
   readonly updatedAt: Date
   readonly isRead: boolean
+  /**
+   * F56's signed one-click unsubscribe token, when the raiser captured one.
+   *
+   * Read from `data` rather than minted here: this package knows nothing about
+   * subscriptions and must not learn. It is surfaced on the view because the
+   * *mail* renderer is the only thing that needs it — an on-site notification
+   * already sits next to the screen that manages the subscription.
+   */
+  readonly unsubscribeToken: string | null
+}
+
+/**
+ * Read a list of objects without trusting any of it.
+ *
+ * F56's digest carries the threads it covers. Every element is filtered to a
+ * plain object, so a row written by an older deploy — or an array of strings
+ * where objects are now read — degrades to a shorter list rather than throwing
+ * inside a page render.
+ */
+function objects(data: NotificationData, key: string): readonly NotificationData[] {
+  const value = data[key]
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (entry): entry is NotificationData =>
+      entry !== null && typeof entry === 'object' && !Array.isArray(entry),
+  )
 }
 
 /** Read a string field without trusting it to be there, or to be a string. */
@@ -112,6 +138,55 @@ const TEMPLATES: Readonly<
     }
   },
 
+  'subscription.reply': (data) => {
+    const title = str(data, 'threadTitle', 'a thread you follow')
+    const posts = num(data, 'posts', 1)
+    const author = str(data, 'lastAuthor')
+
+    return {
+      subject:
+        posts === 1
+          ? `New reply in ${title}`
+          : `${posts} new replies in ${title}`,
+      body:
+        author === ''
+          ? 'There is something new to read.'
+          : `The most recent one is from ${author}.`,
+    }
+  },
+
+  'subscription.digest': (data) => {
+    const cadence = str(data, 'cadence', 'daily')
+    const threadCount = num(data, 'threadCount')
+    const postCount = num(data, 'postCount')
+    const more = num(data, 'more')
+
+    const lines = objects(data, 'threads').map((thread) => {
+      const posts = num(thread, 'posts', 1)
+      const author = str(thread, 'lastAuthor')
+      return (
+        `• ${str(thread, 'title', 'A thread')} — ${posts} ` +
+        `${posts === 1 ? 'post' : 'posts'}` +
+        (author === '' ? '' : `, latest from ${author}`)
+      )
+    })
+
+    if (more > 0) lines.push(`• and ${more} more`)
+
+    return {
+      subject:
+        `Your ${cadence === 'weekly' ? 'weekly' : 'daily'} digest: ` +
+        `${postCount} ${postCount === 1 ? 'post' : 'posts'} in ` +
+        `${threadCount} ${threadCount === 1 ? 'thread' : 'threads'}`,
+      /*
+       * The list is the message. A digest whose body says "you have updates"
+       * and makes the reader open the board to find out what they are has not
+       * digested anything.
+       */
+      body: lines.join('\n'),
+    }
+  },
+
   'system.task_failed': (data) => {
     const taskId = str(data, 'taskId', 'a scheduled task')
     const error = str(data, 'error')
@@ -154,10 +229,13 @@ export function renderNotification(record: NotificationRecord): NotificationView
       ? `${rendered.subject} (${record.occurrences} times)`
       : rendered.subject
 
+  const unsubscribe = record.data['unsubscribe']
+
   return {
     id: record.id,
     subject,
     body: rendered.body,
+    unsubscribeToken: typeof unsubscribe === 'string' && unsubscribe !== '' ? unsubscribe : null,
     href: record.href,
     kind: record.kind,
     occurrences: record.occurrences,

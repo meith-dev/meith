@@ -20,6 +20,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -341,6 +342,16 @@ export const threadViewBuffer = pgTable(
   (t) => [index('thread_view_buffer_updated_idx').on(t.updatedAt)],
 )
 
+/**
+ * F28's table, given a reader by F56.
+ *
+ * `mode` was `notify_via` and held a *channel* ('none' | 'email' |
+ * 'notification'). F55 answered the channel question board-wide — everything is
+ * recorded on-site and `notification_preferences` decides what also goes by
+ * e-mail — so what a subscription is left to say is *how often*: the MyBB
+ * subscription type, renamed and remapped by migration `0008` rather than added
+ * beside a column nothing reads.
+ */
 export const threadSubscriptions = pgTable(
   'thread_subscriptions',
   {
@@ -350,8 +361,17 @@ export const threadSubscriptions = pgTable(
     threadId: integer('thread_id')
       .notNull()
       .references(() => threads.id, { onDelete: 'cascade' }),
-    /** 'none' | 'email' | 'notification' */
-    notifyVia: text('notify_via').notNull().default('notification'),
+    /** 'none' | 'instant' | 'daily' | 'weekly' — a cadence, not a channel. */
+    mode: text('mode').notNull().default('instant'),
+    /**
+     * The last post this subscriber was told about.
+     *
+     * A watermark rather than a queue of pending rows: "what is outstanding" is
+     * then a range query, and a tick that never ran changes *when* somebody is
+     * told rather than whether. Set on subscribe to the thread's current last
+     * post, so following a 400-post thread notifies nobody about 400 posts.
+     */
+    lastNotifiedPostId: integer('last_notified_post_id').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -360,7 +380,29 @@ export const threadSubscriptions = pgTable(
     uniqueIndex('thread_subscriptions_pkey').on(t.userId, t.threadId),
     // Fan-out on a new reply reads every subscriber of one thread.
     index('thread_subscriptions_thread_idx').on(t.threadId),
+    index('thread_subscriptions_user_idx').on(t.userId, t.createdAt.desc()),
+    index('thread_subscriptions_mode_idx').on(t.mode, t.userId),
   ],
+)
+
+/**
+ * When each member last received each cadence.
+ *
+ * Keyed by member *and* cadence, because a member can follow one thread daily
+ * and another weekly. A task-wide clock would instead send everybody's digest
+ * at whatever moment the tick fired, and hand somebody who subscribed on Sunday
+ * a "weekly" digest on Monday.
+ */
+export const digestRuns = pgTable(
+  'digest_runs',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    cadence: text('cadence').notNull(),
+    lastSentAt: timestamp('last_sent_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ name: 'digest_runs_pkey', columns: [t.userId, t.cadence] })],
 )
 
 /**

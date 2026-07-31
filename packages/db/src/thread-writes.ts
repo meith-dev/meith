@@ -125,10 +125,15 @@ export class PostgresThreadWriteRepository
         /*
          * Inside the same transaction: a subscription that survives a failed
          * post would notify people about a thread that does not exist.
+         *
+         * The watermark starts at the post just written (F56), so the author is
+         * never notified about their own opening post — the notifier's "posts
+         * newer than this" is then true from the first tick rather than after a
+         * first pass that has to filter the subscriber out of their own thread.
          */
         await tx.execute(sql`
-          insert into thread_subscriptions (user_id, thread_id, notify_via)
-          values (${record.authorUserId}, ${threadId}, 'notification')
+          insert into thread_subscriptions (user_id, thread_id, mode, last_notified_post_id)
+          values (${record.authorUserId}, ${threadId}, 'instant', ${postId})
           on conflict (user_id, thread_id) do nothing
         `)
       }
@@ -238,9 +243,15 @@ export class PostgresThreadWriteRepository
       }
 
       if (record.subscribe) {
+        /*
+         * Same watermark rule as a new thread: start at the reply just written.
+         * `do nothing` on conflict deliberately leaves an existing subscription
+         * alone — including its watermark, because a member who has not read
+         * the last three replies has not been told about them either.
+         */
         await tx.execute(sql`
-          insert into thread_subscriptions (user_id, thread_id, notify_via)
-          values (${record.authorUserId}, ${record.threadId}, 'notification')
+          insert into thread_subscriptions (user_id, thread_id, mode, last_notified_post_id)
+          values (${record.authorUserId}, ${record.threadId}, 'instant', ${postId})
           on conflict (user_id, thread_id) do nothing
         `)
       }
