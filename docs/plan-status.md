@@ -26,8 +26,8 @@ defines scope, dependencies, and acceptance criteria.
 
 ## How this audit was done
 
-Last audited **2026-07-30** (re-audited after F50 landed), against the working tree, not from memory:
-`pnpm verify` (1543 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
+Last audited **2026-07-31** (re-audited after F51 landed), against the working tree, not from memory:
+`pnpm verify` (1650 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -41,7 +41,7 @@ couple of `PARTIAL` rows are an afternoon.
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 9 | 2 | 0 |
 | 3 — Posting | 11 | 5 | 0 | 6 |
-| 4 — Moderation | 8 | 3 | 1 | 4 |
+| 4 — Moderation | 8 | 4 | 1 | 3 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
 | 6 — Admin CP | 9 | 0 | 0 | 9 |
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
@@ -138,9 +138,11 @@ F41 gate is green, which unblocks Phase 4.
 
 ## Phase 4 — Moderation
 
-Both gates are green and the first surface exists. `/moderation` is a working
-queue; the rest of the phase is screens and commands over transitions F41
-already wrote.
+Both gates are green and the surfaces are arriving. `/moderation` is a working
+queue, `/moderation/reports` a working report list, and the thread page carries
+the moderator bar with lock, pin, move, delete, split and merge. What is left in
+the phase is the listing-level surface (F52), warnings (F53), and the ModCP shell
+those two want to live in (F54).
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
@@ -148,7 +150,7 @@ already wrote.
 | F48 | Moderation queue | `DONE`* | `@forum/moderation`'s `ModerationQueue` over `PostgresModerationQueueRepository`: a keyset-paged union of held threads and held replies, oldest first, scoped to `Authorizer.moderatedForumIds`. **`forum_moderators` gets its first reader ever** — the table has existed since F21 and nothing consulted it, so "moderator" meant "member of a staff group"; appointments now resolve, cascade down the tree and carry granular rights. `content.approve` is a new action, so the F22 matrix grew a thirteenth column (416 cells). The selection is never trusted: every submitted id is re-read for its real forum and then checked, and the moderated set is resolved per request rather than carried in the form — both mutation-verified. A thread and its opening post move together; a reply held inside a held thread is not listed, because approving it would publish into a thread nobody can see. Rejecting moves no counter (D41's definition, from the other side). Bounded at `MAX_CHUNK` = 200, one transaction per batch, one audit row per batch. 82 tests, five mutants killed. See **D47**. *Attachments are absent because F42 is: the queue omits what does not exist rather than showing an empty section (D32). The screen is app-owned rather than a theme slot — see D47 for why, and F54 for where a moderator shell belongs. |
 | F49 | Reports | `DONE`* | Migration `0005`: `reports` (current state) and `report_events` (history, and the only place a private moderator note lives). `ReportService` over `PostgresReportRepository`; `/report?kind=&id=` files one, `/moderation/reports` works them. **The duplicate guard is a partial unique index, not a prior read** — two clicks arriving together would both pass a check, and a report button that adds a queue row every time is the cheapest denial-of-service on the board; partial, so the same member may report again once a previous report closes. Assignment is a column rather than a status, so "everything outstanding" is one predicate. Two scopes in one query: forum reports go to `moderatedForumIds`, member reports to `modcp.access`, and "does not exist" and "not yours" give the same answer. Only *public* content is reportable (`PUBLIC_CONTENT`, not the reader's scope), and the target's forum is re-checked after it resolves — in the page *and* the action. `content.report` is global, so the F22 matrix is untouched. 37 tests, seven mutants killed. See **D48** and two `mybb-parity.md` entries. *Private messages are not a target (F60 has no tables) and nothing is notified (F55) — omitted rather than stubbed, per D32. Assignment has no "assign to somebody else" UI: a moderator takes a report or puts it back, which is what the screen needs before F54 gives it a staff list to choose from. |
 | F50 | Thread tools | `PARTIAL` | Lock/unlock, pin/unpin, move and delete/restore, each logged to `admin_log` with the affected ids. **The four actions read an appointment right and no usergroup field** — the first divergence from the board's own permission pattern, and deliberate (see the parity entry): so F48's debt came due here, `moderatorApproves` became a full `ModeratorRights`, `forum_moderators` grew from four rights to seven in the reader, and `Authorizer.moderatorRightsIn` is the new seam. F22 grew four columns, 544 cells. **A move needs the right at both ends**, resolved as two separate matrices — mutation-verified by copying the source rights to the destination. Counters: one tally reused for forum, ancestors and every author; the two chain updates cancel exactly at a shared ancestor; `posts.forum_id` is rewritten; the roll-up ledger stays in sync on delete/restore. 34 tests, nine mutants killed. **Gap:** *copy* and the move *redirect stub* are absent — copy is the only tool that creates content and asks a product question nobody has answered (MyBB credits the copies, double-counting one piece of writing), and a stub needs the thread view to follow `moved_to_thread_id`, which is F30/F31's surface. Thread *approval* is F48's and is not duplicated here. See **D49**. |
-| F51 | Merge and split | `TODO` | Unblocked: F50 wrote the two-chain counter move a split needs, and `moderatorRightsIn` is the rights seam. Split has to answer the same author-count question F50's copy deferred. |
+| F51 | Merge and split | `DONE` | `ThreadSurgery` over `PostgresThreadSurgeryRepository`, two Server Actions, two controls in F50's moderator bar. **Split takes "from this post onwards" and lands in the same forum**, always — splitting and moving are two acts, and doing both at once would give a moderator a second forum to place content in (D50). **Merge absorbs the source into the named target**, which is never inferred from age or size; it moves *every* post including held ones, because `posts.thread_id` cascades and the queue would lose them. Post order survives by construction (F31 pages by id); `is_first_post` does not and is set/cleared explicitly, with a killed mutant each way. Counters: the forum gains one thread and zero posts on a split, the two forum chains debit and credit on a cross-forum merge, and reply counts trade on both threads. **The author question F50's copy deferred is settled here: `post_count` never moves**, because neither operation duplicates a post; only `thread_count` does, by one. `postsFrom` refuses a cut point that is not a visible post *of this thread* — a post of an earlier thread or a held one in this thread would otherwise select the whole thread. The merge box takes a raw thread number, so the action puts it through `thread.view` before anything else; without that it is a thread-existence oracle. Rights resolved at both ends (D49's rule). F22 grew two columns, 608 cells. 51 tests, seven mutants killed. **Not built:** splitting into another forum (it is split-then-move), hand-picked post selection (needs F52's per-post checkboxes; two selection mechanisms for one operation is worse than one narrower one), and multi-way merge (it has to pick a survivor among three). See **D50**. |
 | F52 | Inline moderation | `TODO` | Unblocked: F48's chunked selection and F50's tools are both in place; what is missing is the listing-level form and the 200-item chunking over it. |
 | F53 | Warnings | `TODO` | No warning model or expiry task. |
 | F54 | Moderator CP | `TODO` | No ModCP route group. Now carries a debt F48 named rather than paid: `Target.isForumModerator` is still never set on any per-page `can()` call, so outside the queue a per-forum appointee has only their group's rights. Granular moderator rights are this feature's subject, so that is where the flag gets threaded through. |

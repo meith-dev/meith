@@ -71,6 +71,8 @@ describe('moderatorAppointments', () => {
         canOpenCloseThreads: false,
         canStickThreads: false,
         canMoveThreads: false,
+        canMergeThreads: false,
+        canSplitThreads: false,
       },
     ])
   })

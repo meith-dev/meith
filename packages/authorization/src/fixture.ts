@@ -220,6 +220,8 @@ export class MemoryAuthorizationSource implements AuthorizationSource {
         canOpenCloseThreads: true,
         canStickThreads: true,
         canMoveThreads: true,
+        canMergeThreads: true,
+        canSplitThreads: true,
       },
     ]
   }

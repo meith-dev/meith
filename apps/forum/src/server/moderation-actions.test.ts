@@ -84,6 +84,7 @@ function installContainer(overrides: Record<string, unknown> = {}): void {
     moderationQueue: queue,
     reports: null,
     threadTools: null,
+    threadSurgery: null,
     threadWrites: null,
     postWrites: null,
     threads: {
@@ -221,6 +222,8 @@ describe('moderateQueueAction', () => {
               canOpenCloseThreads: false,
               canStickThreads: false,
               canMoveThreads: false,
+              canMergeThreads: false,
+              canSplitThreads: false,
             },
           ],
         }),

@@ -244,3 +244,64 @@ meaning "things this person wrote").
 **Cost.** Moderators split and re-file threads by moving rather than copying.
 F51's split is the operation that actually covers most of what copy is used for,
 and it has to answer the same question.
+
+---
+
+## Splitting a thread, and where the pieces land
+
+**MyBB** offers "split thread", which takes a checkbox selection of posts, lets
+the moderator choose a destination forum, and can leave the split-off posts
+credited however they already were.
+
+**We** split "from this post onwards" and land the new thread in the **same
+forum**, always.
+
+**Why.** The two differences answer two different questions. The cut point is a
+`<select>` of the posts on screen rather than a checkbox set because a select
+cannot name a post that is not on the page, and arbitrary selection needs the
+per-post checkbox surface F52 is building — two selection mechanisms for one
+operation is worse than one narrower one. The destination is fixed because
+splitting and moving are two acts: a single operation with a second forum to
+authorise would let a moderator who may split here, but not post there, place
+content in a forum they have no standing in.
+
+**Cost.** A moderator who wants the split-off thread elsewhere splits, then
+moves — two operations and two audit rows instead of one. A moderator who wants
+posts 3, 7 and 12 and not 4–6 cannot express that yet.
+
+---
+
+## Which thread survives a merge
+
+**MyBB** merges by thread URL or id and keeps the thread the moderator is
+looking at, absorbing the one they name.
+
+**We** do the same, and refuse to infer it from anything else — not the older
+thread, not the one with more posts.
+
+**Why.** A merge destroys a thread row. Every heuristic for picking the survivor
+is right most of the time, and the times it is wrong are unrecoverable: the
+thread somebody meant to keep is gone and its posts are wearing another title.
+Being explicit costs a moderator nothing, because they already know which one
+they mean.
+
+**Cost.** Merging the wrong way round is still possible — it is a moderator's
+mistake to make, and it is logged with both ids so it can be seen. What is not
+possible is the software making it for them.
+
+---
+
+## What a merge does to post counts
+
+**MyBB** moves the posts and leaves author post counts alone, which is correct
+and worth stating because the neighbouring operation gets it wrong: MyBB's
+*copy* credits duplicated posts to their original authors, counting one piece of
+writing twice.
+
+**We** match MyBB on merge and split, for a reason we can state exactly: neither
+operation creates or destroys a post, so `users.post_count` never moves. Only
+`users.thread_count` does, by one — a split creates a thread, a merge destroys
+one.
+
+**Cost.** None here. This is the answer to the question the copy entry above
+leaves open, and it is the reason we built split before copy.

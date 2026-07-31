@@ -60,6 +60,8 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'thread.stick',
   'thread.move',
   'thread.delete',
+  'thread.merge',
+  'thread.split',
   'attachment.upload',
   'forum.search',
   'forum.subscribe',
@@ -439,6 +441,10 @@ export class Authorizer {
         return target.moderatorRights?.canMoveThreads === true
       case 'thread.delete':
         return target.moderatorRights?.canSoftDeletePosts === true
+      case 'thread.merge':
+        return target.moderatorRights?.canMergeThreads === true
+      case 'thread.split':
+        return target.moderatorRights?.canSplitThreads === true
       default: {
         const _exhaustive: never = action as never
         return Boolean(_exhaustive)
@@ -497,6 +503,8 @@ const ALL_MODERATOR_RIGHTS: ModeratorRights = {
   canOpenCloseThreads: true,
   canStickThreads: true,
   canMoveThreads: true,
+  canMergeThreads: true,
+  canSplitThreads: true,
 }
 
 /** Two grants are two grants: rights union rather than override. */
@@ -509,5 +517,7 @@ function unionRights(a: ModeratorRights, b: ModeratorRights): ModeratorRights {
     canOpenCloseThreads: a.canOpenCloseThreads || b.canOpenCloseThreads,
     canStickThreads: a.canStickThreads || b.canStickThreads,
     canMoveThreads: a.canMoveThreads || b.canMoveThreads,
+    canMergeThreads: a.canMergeThreads || b.canMergeThreads,
+    canSplitThreads: a.canSplitThreads || b.canSplitThreads,
   }
 }

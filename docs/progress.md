@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D49. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D50. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -19,8 +19,8 @@ this file.
 
 `pnpm verify` → exit 0: textual invariants (now **nine** guards, F47's included)
 + **guard probes**, the **slot
-server/client boundary** check + its probe, dependency-cruiser (241 modules, 0
-violations), typecheck (root **and** app), **1543 tests** (a large share against
+server/client boundary** check + its probe, dependency-cruiser (298 modules, 0
+violations), typecheck (root **and** app), **1650 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -300,25 +300,55 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   built** — see D49 and `mybb-parity.md` for why copy is a product question
   rather than a missing function. F50's row is `PARTIAL` and says so.
 
+
+- **F51 merge and split** — the two operations that move posts *between*
+  threads, and one arithmetic seen from either side. A split takes "from this
+  post onwards" and lands the new thread in the **same forum**, always: splitting
+  and moving are two acts, and doing both at once would hand a moderator a second
+  forum to place content in. A merge absorbs the named source into the named
+  target, which is never inferred from age or size — guessing it is how a merge
+  destroys the thread somebody meant to keep. Post order survives by construction
+  because F31 pages by id; `is_first_post` does not and is set and cleared
+  explicitly, which is the thing that silently goes wrong. **The author-count
+  question F50 deferred with copy is settled**: neither operation duplicates a
+  post, so `users.post_count` never moves and only `thread_count` does, by one.
+  `postsFrom` refuses a cut point that is not a visible post of *this* thread,
+  and the merge box's raw thread number goes through `thread.view` before
+  anything else — without that it is a thread-existence oracle. See **D50** and
+  three `mybb-parity.md` entries.
+
 ## NEXT ACTION — resume here
 
-**F51 · merge and split** is next in order, and F50 unblocked most of it: the
-two-chain counter move a split needs is written and tested, and
-`moderatorRightsIn` is the rights seam. Split has to answer the same
-author-count question F50 deferred with copy — moving half a thread's posts into
-a new thread is the same arithmetic as copying them, minus the duplication, so
-it is the cheaper place to settle it.
+**F52 · inline moderation** is next in order and is mostly assembly: F48 wrote
+the chunked selection (`parseSelection`, `MAX_CHUNK` = 200) and F50/F51 wrote
+every tool it needs to invoke, so what is missing is the *listing-level* form —
+per-post and per-thread checkboxes on the forum display and the thread page, one
+form spanning the listing, and the 200-item chunking applied to a selection that
+can now mix threads and posts.
 
-**F52 · inline moderation** is the other unblocked one and is mostly assembly:
-F48 wrote the chunked selection and F50 wrote the tools, so what is missing is a
-listing-level form over both.
+It also unblocks the piece F51 deliberately left out: **hand-picked split
+selection**. F51's split names its cut point with a `<select>` of the posts on
+screen because that is what a page without checkboxes can express. Once F52 has
+per-post checkboxes, "split these posts" becomes a selection over the same
+surface rather than a second selection mechanism.
 
-**F48's debt is now half paid.** The thread page resolves appointment rights
-and the thread-tool action resolves them per forum, so a per-forum appointee is
-a real moderator there. What is still not threaded is `isForumModerator` on the
-*other* per-page checks — `post.editOthers`, `post.softDelete` and the two
-content-visibility actions still see only the group's fields outside the queue
-and the thread tools. F54 is where that finishes.
+**F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
+seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
+declarative entry rather than an admin-supplied regular expression, and
+per-forum capability toggles are a filtered registry. `font`, `align` and
+`video` are parked there by parity decision.
+
+**F53–F54** follow, and neither needs new mechanics: every moderator action in
+Phase 4 is one of F41's two transitions performed by a different actor, or a
+thread-level equivalent F50 and F51 have now written once each.
+
+**F48's debt is now half paid.** The thread page resolves appointment rights and
+the thread-tool, merge and split actions resolve them per forum, so a per-forum
+appointee is a real moderator there. What is still not threaded is
+`isForumModerator` on the *other* per-page checks — `post.editOthers`,
+`post.softDelete` and the two content-visibility actions still see only the
+group's fields outside the queue and the thread bar. F54 is where that
+finishes.
 
 **F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
 seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
@@ -341,13 +371,13 @@ was written for *structure*, and content is the second time it has cost
 coverage.
 
 Also worth knowing: the F22 matrix needed **no new columns** for F41 or F47 —
-needed one for F48 and four for F50, which is the gate working rather than
-failing — 544 cells now.
+needed one for F48, four for F50 and two for F51, which is the gate working
+rather than failing — 608 cells now.
 `post.editOwn`, `post.editOthers`, `post.deleteOwn`, `post.softDelete` and
 `content.viewDeleted` were all declared and covered when the gate was written,
 so the regression net F22 demands for those paths was already there.
-`content.approve` was not, and neither were F50's four; each addition forced a
-column and a human decision about the moderator rows.
+`content.approve` was not, and neither were F50's four or F51's two; each
+addition forced a column and a human decision about the moderator rows.
 
 Still worth settling:
 

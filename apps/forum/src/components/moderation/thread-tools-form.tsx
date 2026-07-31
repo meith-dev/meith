@@ -62,12 +62,22 @@ export function ThreadToolsForm({
   isSticky,
   rights,
   moveTargets,
+  children,
 }: {
   threadId: number
   isLocked: boolean
   isSticky: boolean
   rights: { lock: boolean; stick: boolean; move: boolean; delete: boolean }
   moveTargets: readonly MoveOption[]
+  /**
+   * F51's merge and split boxes, passed in rather than imported.
+   *
+   * They live in the same bar because a moderator thinks of them as the same
+   * set of tools, but they have their own rights and their own repository —
+   * rendering them here would make this component decide whether they appear,
+   * which is the page's job.
+   */
+  children?: React.ReactNode
 }) {
   const [moveState, moveAction] = useActionState(threadToolAction, EMPTY_STATE)
 
@@ -119,6 +129,8 @@ export function ThreadToolsForm({
           </button>
         </form>
       )}
+
+      {children}
     </section>
   )
 }

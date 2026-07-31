@@ -96,6 +96,7 @@ function installContainer(board = SEED_BOARD): void {
     authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
     reports,
     threadTools: null,
+    threadSurgery: null,
     moderationQueue: null,
     threadWrites: null,
     postWrites: null,

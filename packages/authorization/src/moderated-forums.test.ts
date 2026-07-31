@@ -69,6 +69,8 @@ const APPOINTMENT: MemoryAppointment = {
   canOpenCloseThreads: true,
   canStickThreads: true,
   canMoveThreads: true,
+  canMergeThreads: true,
+  canSplitThreads: true,
 }
 
 async function moderated(

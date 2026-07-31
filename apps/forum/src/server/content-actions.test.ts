@@ -155,6 +155,7 @@ function installContainer(
     moderationQueue: null,
     reports: null,
     threadTools: null,
+    threadSurgery: null,
     threads: {
       locateForum: async () => null,
       findById: async () => null,

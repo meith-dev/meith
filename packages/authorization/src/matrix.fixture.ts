@@ -37,6 +37,8 @@ export const F22_ACTIONS = [
   'stick', // pin or unpin a thread            -> thread.stick
   'move', // move a thread to another forum    -> thread.move
   'deleteThread', // soft-delete a thread      -> thread.delete
+  'merge', // merge one thread into another    -> thread.merge
+  'split', // split posts into a new thread    -> thread.split
   'upload', // attach a file                  -> attachment.upload
   'search', // search within the forum        -> forum.search
   'subscribe', // subscribe to the forum      -> forum.subscribe
@@ -44,7 +46,7 @@ export const F22_ACTIONS = [
 
 export type F22Action = (typeof F22_ACTIONS)[number]
 
-/** All seventeen, for the "everything" cells (staff bypass). */
+/** All nineteen, for the "everything" cells (staff bypass). */
 const ALL: readonly F22Action[] = F22_ACTIONS
 
 /** The registered-member baseline in an ordinary forum. */
@@ -92,6 +94,8 @@ const MOD_READONLY: readonly F22Action[] = [
   'stick',
   'move',
   'deleteThread',
+  'merge',
+  'split',
   'upload',
   'search',
   'subscribe',

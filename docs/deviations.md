@@ -2254,3 +2254,105 @@ already-locked thread updates nothing, reports `false`, and writes nothing.
   it here would be a second path to one transition.
 
 F50's row says `PARTIAL` for exactly these, rather than `DONE` with a footnote.
+
+### D50 — Merge and split are one arithmetic seen from either side (F51)
+
+**Plan:** "Test-first merge/split across forums, preserving post order and all
+pointers/counters/authors."
+
+**Implemented:** `ThreadSurgery` in `@forum/moderation` with
+`PostgresThreadSurgeryRepository` behind it, two Server Actions rather than one,
+and the two controls in the same moderator bar as F50's.
+
+#### Why one file, and why two actions
+
+The two operations are one file because they keep the same list of things true:
+post order, the opening-post flag, the reply counts on both threads, both forum
+chains, and who is credited with what. Splitting them across packages would mean
+maintaining that list twice.
+
+They are two *actions* because they take different arguments and authorise
+different pairs of forums. F50 has one action for four tools precisely because
+those four differ only in a verb; forcing merge and split into that shape would
+mean a parser that ignores half its input depending on a hidden field, which is
+how the wrong end gets authorised.
+
+#### Post order survives by construction; the opening-post flag does not
+
+Posts page by id (F31) and neither operation renumbers anything, so order needs
+no work. `is_first_post` is a *flag* rather than a computation, so it is the
+thing that silently goes wrong: a split has to set it on the new thread's
+earliest post and a merge has to clear it on the absorbed thread's. A new thread
+whose earliest post is not marked has no opening post, and every read that
+trusts the flag stops working. Both directions have their own killed mutant.
+
+#### The author question F50 deferred, settled
+
+Neither operation duplicates a post, so `users.post_count` **never moves**: the
+same people wrote the same words. Only `thread_count` moves, and only by one — a
+split creates a thread, a merge destroys one. This is why split was a cheaper
+place to settle the question than copy: there is no second copy of anything to
+argue about, so the answer falls out rather than being chosen.
+
+The new thread is credited to the author of the post it now *opens with*, not to
+whoever started the conversation it came out of. A split exists because that post
+began something different.
+
+#### A split lands in the same forum, always
+
+Splitting and moving are two acts. Doing both at once would mean one operation
+with a second forum to authorise, and a moderator who may split here but not
+post there could place content in a forum they have no standing in. `thread.move`
+is right there afterwards. It also keeps the forum arithmetic trivial and
+correct: the forum gains **one thread and zero posts**, because the posts never
+left it. Moving the post count too is the mistake that makes a forum's total drop
+every time somebody tidies a thread.
+
+#### A merge moves every post, including the held ones
+
+Only the visible posts are *counted*, but all of them are *moved*. A held or
+removed post left behind would belong to a thread that is about to stop
+existing, and `posts.thread_id` cascades — the moderation queue would lose it.
+The source row itself is deleted rather than soft-deleted: its posts have already
+gone, and an empty deleted thread is a row in the moderator's restore list that
+restores nothing.
+
+#### Which thread survives is never inferred
+
+The source is absorbed; the target survives. Not the older one, not the bigger
+one. Guessing it is how a merge silently destroys the thread somebody meant to
+keep, and no amount of arithmetic correctness makes that recoverable.
+
+#### The cut point is a post *of this thread*, not a bigger id
+
+`postsFrom` returns nothing unless the id it was given is itself in the result.
+"Everything from here" and "everything with a bigger id" are different questions,
+and the difference is only visible for a post that is on the screen but not
+eligible — a post of an *earlier* thread, or a held post in this one. Both are
+tested; without the check the second selects the whole thread and splits it from
+a post that is not in it.
+
+#### The merge box takes a raw number, so the target is authorised like a page
+
+Split names its cut point with a `<select>` of the posts on screen, which cannot
+name a post that is not one of them. Merge cannot do that — the thread to merge
+into is by definition not on this screen — so it asks for a number, and the
+action puts that number through `thread.view` before anything else. Without it,
+the box is a working thread-existence oracle for every id on the board. It
+answers "that thread does not exist" in exactly the words an id nobody has used
+gets.
+
+Rights are resolved at **both** ends, for D49's reason: a merge pushes content
+into the target's forum.
+
+#### What is deliberately not here
+
+- **Splitting into another forum.** See above; it is split-then-move.
+- **Splitting a hand-picked set of posts.** The cut is "from this post onwards",
+  which is what MyBB's split-from does and what the thread page can express with
+  a `<select>`. Arbitrary selection needs the per-post checkbox surface F52 is
+  building for inline moderation, and building half of it here would mean two
+  selection mechanisms.
+- **Merging more than two threads at once.** Repeating the operation is the same
+  thing, and a multi-way merge has to pick a survivor among three, which is the
+  decision this feature refuses to guess even between two.

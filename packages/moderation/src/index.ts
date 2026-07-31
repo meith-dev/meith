@@ -50,3 +50,13 @@ export {
   type ThreadToolTarget,
   type ThreadToolsRepository,
 } from './thread-tools'
+
+export {
+  ThreadSurgery,
+  type MergePlan,
+  type SplitPlan,
+  type SurgeryOutcome,
+  type SurgeryRights,
+  type SurgeryThread,
+  type ThreadSurgeryRepository,
+} from './surgery'

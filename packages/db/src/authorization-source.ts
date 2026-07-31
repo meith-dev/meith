@@ -156,7 +156,8 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
       await this.db.execute(sql`
         select forum_id, cascade_to_subforums, can_approve_content,
                can_edit_posts, can_soft_delete_posts, can_restore_posts,
-               can_open_close_threads, can_stick_threads, can_move_threads
+               can_open_close_threads, can_stick_threads, can_move_threads,
+               can_merge_threads, can_split_threads
           from forum_moderators
          where (user_id is not null and user_id = ${userId})
             or (group_id is not null and group_id in ${groupList})
@@ -171,6 +172,8 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
       can_open_close_threads: boolean
       can_stick_threads: boolean
       can_move_threads: boolean
+      can_merge_threads: boolean
+      can_split_threads: boolean
     }>
 
     return rows.map((row) => ({
@@ -183,6 +186,8 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
       canOpenCloseThreads: row.can_open_close_threads,
       canStickThreads: row.can_stick_threads,
       canMoveThreads: row.can_move_threads,
+      canMergeThreads: row.can_merge_threads,
+      canSplitThreads: row.can_split_threads,
     }))
   }
 

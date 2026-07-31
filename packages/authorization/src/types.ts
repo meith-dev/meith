@@ -85,6 +85,8 @@ export type Action =
   | 'thread.stick'
   | 'thread.move'
   | 'thread.delete'
+  | 'thread.merge'
+  | 'thread.split'
   | 'attachment.upload'
   | 'forum.search'
   | 'forum.subscribe'
@@ -257,6 +259,8 @@ export interface ModeratorRights {
   readonly canOpenCloseThreads: boolean
   readonly canStickThreads: boolean
   readonly canMoveThreads: boolean
+  readonly canMergeThreads: boolean
+  readonly canSplitThreads: boolean
 }
 
 /** One row of `forum_moderators`, as the Authorizer needs it. */
@@ -274,6 +278,8 @@ export const NO_MODERATOR_RIGHTS: ModeratorRights = {
   canOpenCloseThreads: false,
   canStickThreads: false,
   canMoveThreads: false,
+  canMergeThreads: false,
+  canSplitThreads: false,
 }
 
 /**

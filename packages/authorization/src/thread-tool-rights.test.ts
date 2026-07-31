@@ -65,6 +65,8 @@ const NONE: Omit<MemoryAppointment, 'forumId' | 'cascadeToSubforums'> = {
   canOpenCloseThreads: false,
   canStickThreads: false,
   canMoveThreads: false,
+  canMergeThreads: false,
+  canSplitThreads: false,
 }
 
 function authorizerFor(moderators: readonly MemoryAppointment[]): Authorizer {

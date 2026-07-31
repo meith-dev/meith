@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { requireSlot } from '@forum/theme-kit'
 
 import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
+import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -21,6 +22,8 @@ const TOOL_NOTICE: Readonly<Record<string, string>> = {
   unstick: 'Thread unpinned.',
   move: 'Thread moved.',
   restore: 'Thread restored.',
+  split: 'Thread split. You are looking at the new one.',
+  merge: 'Threads merged. You are looking at the one that survived.',
 }
 
 function threadId(value: string): number | null {
@@ -59,7 +62,7 @@ export default async function ThreadPage({
   if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
 
   const actor = await getActor()
-  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites, threadTools } =
+  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites, threadTools, threadSurgery } =
     getContainer()
   /*
    * Locate, authorise, then read — in that order, and the order is the whole
@@ -159,6 +162,24 @@ export default async function ThreadPage({
     move: threadTools !== null && authorizer.can(actor, 'thread.move', toolTarget),
     delete: threadTools !== null && authorizer.can(actor, 'thread.delete', toolTarget),
   }
+  /*
+   * F51's two, gated on their own repository. The split points are the posts on
+   * *this page* minus the thread's opening post — the one post a split may not
+   * start from, because taking everything from it is a move (F51).
+   */
+  const surgeryRights = {
+    merge: threadSurgery !== null && authorizer.can(actor, 'thread.merge', toolTarget),
+    split: threadSurgery !== null && authorizer.can(actor, 'thread.split', toolTarget),
+  }
+  const splitPoints = !surgeryRights.split
+    ? []
+    : postPage.rows
+        .filter((row) => !row.isFirstPost && row.visibility === 'visible')
+        .map((row) => ({
+          id: row.id,
+          number: row.number,
+          author: row.authorUsername,
+        }))
   const moveTargets = !toolRights.move
     ? []
     : (await forums.listListing())
@@ -215,14 +236,25 @@ export default async function ThreadPage({
           />
         </div>
       )}
-      {(toolRights.lock || toolRights.stick || toolRights.move || toolRights.delete) && (
+      {(toolRights.lock ||
+        toolRights.stick ||
+        toolRights.move ||
+        toolRights.delete ||
+        surgeryRights.merge ||
+        surgeryRights.split) && (
         <ThreadToolsForm
           threadId={thread.id}
           isLocked={thread.isLocked}
           isSticky={thread.isSticky}
           rights={toolRights}
           moveTargets={moveTargets}
-        />
+        >
+          <ThreadSurgeryForm
+            threadId={thread.id}
+            rights={surgeryRights}
+            splitPoints={splitPoints}
+          />
+        </ThreadToolsForm>
       )}
       <ThreadView
         {...view.view}

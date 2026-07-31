@@ -36,6 +36,8 @@ const ACTION_OF: Record<F22Action, Action> = {
   stick: 'thread.stick',
   move: 'thread.move',
   deleteThread: 'thread.delete',
+  merge: 'thread.merge',
+  split: 'thread.split',
   upload: 'attachment.upload',
   search: 'forum.search',
   subscribe: 'forum.subscribe',
@@ -98,6 +100,8 @@ async function buildTarget(
           canOpenCloseThreads: true,
           canStickThreads: true,
           canMoveThreads: true,
+          canMergeThreads: true,
+          canSplitThreads: true,
         }
       : NO_MODERATOR_RIGHTS,
     passwordRequired: forumName === 'password',
@@ -141,7 +145,7 @@ describe('F22 permission matrix', () => {
     for (const actorName of actorNames) {
       expect(Object.keys(EXPECTED[actorName]!)).toHaveLength(4)
     }
-    // 8 actors x 4 contexts x 17 actions. The count is spelled out rather than
+    // 8 actors x 4 contexts x 19 actions. The count is spelled out rather than
     // derived so that adding an action has to be a deliberate edit here too —
     // deriving it from F22_ACTIONS.length would make the assertion agree with
     // itself no matter what the fixture says.
@@ -149,7 +153,7 @@ describe('F22 permission matrix', () => {
       Object.keys(EXPECTED).length *
       4 *
       F22_ACTIONS.length
-    expect(cells).toBe(544)
+    expect(cells).toBe(608)
   })
 
   it('every F22 action maps to a real Authorizer action', () => {
@@ -158,7 +162,7 @@ describe('F22 permission matrix', () => {
     }
     // Guards F22's own acceptance: adding a permission/action must extend both
     // the fixture and this map, or this count drifts and the suite fails.
-    expect(Object.keys(ACTION_OF)).toHaveLength(17)
+    expect(Object.keys(ACTION_OF)).toHaveLength(19)
     void SELF_OWNED
   })
 })
