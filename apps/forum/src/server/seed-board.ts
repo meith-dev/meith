@@ -44,7 +44,7 @@ export const SEED_GROUP = {
 } as const
 
 /** Bump when the read-only fixture rows change so a live dev container refreshes. */
-export const FIXTURE_DATA_VERSION = 3
+export const FIXTURE_DATA_VERSION = 4
 
 /** Canonical seed forums. */
 export const SEED_FORUM = {
@@ -89,6 +89,8 @@ const POST = {
    */
   canEditOwnPosts: true,
   canDeleteOwnPosts: true,
+  /* F49. Seeded true for Registered in migration `0001`, like the rest. */
+  canReportContent: true,
   /*
    * The three negative fields, matching migration `0001_seed_usergroups`.
    *

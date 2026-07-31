@@ -106,7 +106,10 @@ export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
       : [
           { label: 'Profile', href: viewer.profileHref },
           ...(viewer.canAccessModCp
-            ? [{ label: 'Moderation queue', href: '/moderation' }]
+            ? [
+                { label: 'Moderation queue', href: '/moderation' },
+                { label: 'Reports', href: '/moderation/reports' },
+              ]
             : []),
         ]
 

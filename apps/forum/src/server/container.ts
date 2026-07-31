@@ -33,7 +33,7 @@ import {
 } from '@forum/authorization'
 import { env, logger } from '@forum/core'
 import { CachedForumRepository, type ForumRepository } from '@forum/forums'
-import type { ModerationQueueRepository } from '@forum/moderation'
+import type { ModerationQueueRepository, ReportRepository } from '@forum/moderation'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
 import type {
   ReadStateRepository,
@@ -97,6 +97,8 @@ export interface Container {
    * a moderator work that cannot be done.
    */
   readonly moderationQueue: ModerationQueueRepository | null
+  /** Reports (F49). `null` in fixture mode, like every other writer (D38). */
+  readonly reports: ReportRepository | null
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
@@ -185,6 +187,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     threadWrites: null,
     postWrites: null,
     moderationQueue: null,
+    reports: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -248,7 +251,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
@@ -266,6 +269,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     threadWrites: new PostgresThreadWriteRepository(db),
     postWrites: new PostgresPostWriteRepository(db),
     moderationQueue: new PostgresModerationQueueRepository(db),
+    reports: new PostgresReportRepository(db),
     posts: new PostgresPostRepository(db),
     readState: new PostgresReadStateRepository(db),
     memberProfiles: new PostgresMemberProfileRepository(db),
@@ -320,6 +324,7 @@ export function getContainer(): Container {
     cached.threadWrites === undefined ||
     cached.postWrites === undefined ||
     cached.moderationQueue === undefined ||
+    cached.reports === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

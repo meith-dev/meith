@@ -1,0 +1,457 @@
+/**
+ * F49 — reports against real Postgres.
+ *
+ * Three things only the database settles: that the one-open-report-per-target
+ * index is what stops a repeat click rather than a check that could race it,
+ * that every write lands with its history row, and that the scope predicate
+ * puts a forum moderator's forums and board staff's user reports in one ordered
+ * page without either seeing the other's.
+ */
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { sql } from 'drizzle-orm'
+
+import { ReportService } from '@forum/moderation'
+
+import type { Database } from './client'
+import { createTestDb, type TestDb } from './pglite.fixture'
+import { PostgresReportRepository } from './report-repo'
+import { resultRows } from './result-rows'
+import { forums, users } from './schema'
+
+let harness: TestDb
+let db: Database
+let repo: PostgresReportRepository
+
+const CATEGORY = 1
+const FORUM = 4
+const OTHER = 5
+const AUTHOR = 1
+const REPORTER = 2
+const MOD = 3
+const AT = new Date('2026-07-30T12:00:00Z')
+
+const IN_FORUM = { forumIds: [FORUM], global: false }
+const BOARD_STAFF = { forumIds: [FORUM, OTHER], global: true }
+
+beforeAll(async () => {
+  harness = await createTestDb()
+  db = harness.db
+  repo = new PostgresReportRepository(db)
+}, 60_000)
+
+afterAll(async () => {
+  await harness.close()
+})
+
+beforeEach(async () => {
+  await db.execute(sql`delete from report_events`)
+  await db.execute(sql`delete from reports`)
+  await db.execute(sql`delete from posts`)
+  await db.execute(sql`delete from threads`)
+  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from users`)
+
+  await db.insert(users).values(
+    [
+      [AUTHOR, 'ada'],
+      [REPORTER, 'bob'],
+      [MOD, 'mod'],
+    ].map(([id, name]) => ({
+      id: id as number,
+      username: name as string,
+      usernameLower: name as string,
+      email: `${String(name)}@example.test`,
+      emailLower: `${String(name)}@example.test`,
+      passwordHash: 'x',
+      passwordAlgo: 'argon2id',
+      primaryGroupId: 2,
+    })),
+  )
+  await db.insert(forums).values([
+    { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
+    { id: FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: OTHER, title: 'Elsewhere', slug: 'elsewhere', path: '1.5', depth: 1, parentId: CATEGORY },
+  ])
+})
+
+async function seedThread(
+  id: number,
+  forumId = FORUM,
+  visibility = 'visible',
+): Promise<number> {
+  const postId = id * 10
+  await db.execute(sql`
+    insert into threads (id, forum_id, title, slug, author_user_id, author_username,
+                         visibility, first_post_id, last_post_at, created_at, updated_at)
+    values (${id}, ${forumId}, ${'Thread ' + String(id)}, ${'t' + String(id)},
+            ${AUTHOR}, 'ada', ${visibility}, ${postId}, ${AT}, ${AT}, ${AT})
+  `)
+  await db.execute(sql`
+    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+                       message, visibility, is_first_post, created_at)
+    values (${postId}, ${id}, ${forumId}, ${AUTHOR}, 'ada', 'a body',
+            ${visibility}, true, ${AT})
+  `)
+  return postId
+}
+
+function service(): ReportService {
+  return new ReportService({ reports: repo, now: () => AT })
+}
+
+describe('resolveTarget', () => {
+  it('resolves a post to its forum, thread and thread title', async () => {
+    const postId = await seedThread(100)
+
+    expect(await repo.resolveTarget('post', postId)).toEqual({
+      kind: 'post',
+      id: postId,
+      forumId: FORUM,
+      threadId: 100,
+      label: 'Thread 100',
+    })
+  })
+
+  it('resolves a thread and a user', async () => {
+    await seedThread(100)
+
+    expect(await repo.resolveTarget('thread', 100)).toMatchObject({
+      forumId: FORUM,
+      threadId: 100,
+      label: 'Thread 100',
+    })
+    expect(await repo.resolveTarget('user', AUTHOR)).toEqual({
+      kind: 'user',
+      id: AUTHOR,
+      forumId: null,
+      threadId: null,
+      label: 'ada',
+    })
+  })
+
+  /*
+   * Only public content is reportable. A member cannot report what they could
+   * not have seen, and a moderator has better tools than the report button for
+   * content that is already held or removed.
+   */
+  it('refuses a target that is not public', async () => {
+    const postId = await seedThread(100, FORUM, 'unapproved')
+    expect(await repo.resolveTarget('post', postId)).toBeNull()
+    expect(await repo.resolveTarget('thread', 100)).toBeNull()
+  })
+
+  it('refuses a deleted account', async () => {
+    await db.execute(sql`update users set deleted_at = ${AT} where id = ${AUTHOR}`)
+    expect(await repo.resolveTarget('user', AUTHOR)).toBeNull()
+  })
+
+  it('refuses something that is not there', async () => {
+    expect(await repo.resolveTarget('post', 4242)).toBeNull()
+  })
+})
+
+describe('filing a report', () => {
+  it('writes the report and its opening event together', async () => {
+    const postId = await seedThread(100)
+
+    const { reportId, duplicate } = await service().file({
+      kind: 'post',
+      targetId: postId,
+      reason: 'spam',
+      reporterUserId: REPORTER,
+    })
+
+    expect(duplicate).toBe(false)
+    const found = await repo.find(reportId)
+    expect(found!.report).toMatchObject({
+      kind: 'post',
+      targetId: postId,
+      forumId: FORUM,
+      threadId: 100,
+      targetLabel: 'Thread 100',
+      reporterUsername: 'bob',
+      reason: 'spam',
+      status: 'open',
+      assignedToUserId: null,
+    })
+    expect(found!.events.map((e) => e.kind)).toEqual(['opened'])
+  })
+
+  /*
+   * The unique index, not a prior read. Two clicks arriving at once would both
+   * pass a check and both insert — and a report button that adds a queue row
+   * every time is the cheapest denial-of-service on the board.
+   */
+  it('is a friendly no-op the second time', async () => {
+    const postId = await seedThread(100)
+    const file = () =>
+      service().file({
+        kind: 'post',
+        targetId: postId,
+        reason: 'spam',
+        reporterUserId: REPORTER,
+      })
+
+    await file()
+    expect(await file()).toMatchObject({ duplicate: true })
+
+    const rows = resultRows(await db.execute(sql`select id from reports`))
+    expect(rows).toHaveLength(1)
+  })
+
+  it('lets a different member report the same thing', async () => {
+    const postId = await seedThread(100)
+    const file = (who: number) =>
+      service().file({ kind: 'post', targetId: postId, reason: 'spam', reporterUserId: who })
+
+    await file(REPORTER)
+    expect(await file(MOD)).toMatchObject({ duplicate: false })
+  })
+
+  /* Partial index: once a report is closed, the same person may report again. */
+  it('lets the same member report again once the first is closed', async () => {
+    const postId = await seedThread(100)
+    const file = () =>
+      service().file({
+        kind: 'post',
+        targetId: postId,
+        reason: 'spam',
+        reporterUserId: REPORTER,
+      })
+
+    const first = await file()
+    await repo.close({
+      reportId: first.reportId,
+      status: 'rejected',
+      note: null,
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    expect(await file()).toMatchObject({ duplicate: false })
+  })
+})
+
+describe('the moderator list', () => {
+  async function fileOn(forumId: number, threadId: number): Promise<number> {
+    const postId = await seedThread(threadId, forumId)
+    const { reportId } = await service().file({
+      kind: 'post',
+      targetId: postId,
+      reason: 'spam',
+      reporterUserId: REPORTER,
+    })
+    return reportId
+  }
+
+  it('shows only the forums in scope', async () => {
+    const mine = await fileOn(FORUM, 100)
+    await fileOn(OTHER, 101)
+
+    const page = await repo.listOpen(IN_FORUM, { limit: 10 })
+    expect(page.rows.map((r) => r.id)).toEqual([mine])
+    expect(await repo.countOpen(IN_FORUM)).toBe(1)
+  })
+
+  /*
+   * A report about a *member* belongs to no forum, so it is board staff's or it
+   * is nobody's. A forum moderator must not see it; staff must see it in the
+   * same ordered page as their forums'.
+   */
+  it('gives a user report to board staff and to nobody else', async () => {
+    await service().file({
+      kind: 'user',
+      targetId: AUTHOR,
+      reason: 'impersonation',
+      reporterUserId: REPORTER,
+    })
+
+    expect(await repo.countOpen(IN_FORUM)).toBe(0)
+    expect(await repo.countOpen(BOARD_STAFF)).toBe(1)
+  })
+
+  it('lists forum and user reports together, oldest first', async () => {
+    const first = await fileOn(FORUM, 100)
+    const { reportId: second } = await service().file({
+      kind: 'user',
+      targetId: AUTHOR,
+      reason: 'impersonation',
+      reporterUserId: REPORTER,
+    })
+
+    const page = await repo.listOpen(BOARD_STAFF, { limit: 10 })
+    expect(page.rows.map((r) => r.id)).toEqual([first, second])
+  })
+
+  it('drops a report once it is closed', async () => {
+    const id = await fileOn(FORUM, 100)
+    await repo.close({
+      reportId: id,
+      status: 'resolved',
+      note: null,
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    expect((await repo.listOpen(IN_FORUM, { limit: 10 })).rows).toEqual([])
+  })
+
+  it('pages with a keyset cursor', async () => {
+    const ids = [await fileOn(FORUM, 100), await fileOn(FORUM, 101), await fileOn(FORUM, 102)]
+
+    const first = await repo.listOpen(IN_FORUM, { limit: 2 })
+    expect(first.rows.map((r) => r.id)).toEqual(ids.slice(0, 2))
+
+    const second = await repo.listOpen(IN_FORUM, { limit: 2, after: first.nextCursor! })
+    expect(second.rows.map((r) => r.id)).toEqual([ids[2]])
+    expect(second.nextCursor).toBeUndefined()
+  })
+})
+
+describe('assignment and closing', () => {
+  async function open(): Promise<number> {
+    const postId = await seedThread(100)
+    const { reportId } = await service().file({
+      kind: 'post',
+      targetId: postId,
+      reason: 'spam',
+      reporterUserId: REPORTER,
+    })
+    return reportId
+  }
+
+  it('records who took it', async () => {
+    const id = await open()
+    expect(await repo.assign({ reportId: id, toUserId: MOD, actorUserId: MOD, at: AT })).toBe(
+      true,
+    )
+
+    const found = await repo.find(id)
+    expect(found!.report).toMatchObject({ assignedToUserId: MOD, assignedToUsername: 'mod' })
+    expect(found!.events.map((e) => e.kind)).toEqual(['opened', 'assigned'])
+  })
+
+  it('records putting it back', async () => {
+    const id = await open()
+    await repo.assign({ reportId: id, toUserId: MOD, actorUserId: MOD, at: AT })
+    await repo.assign({ reportId: id, toUserId: null, actorUserId: MOD, at: AT })
+
+    const found = await repo.find(id)
+    expect(found!.report.assignedToUserId).toBeNull()
+    expect(found!.events.map((e) => e.kind)).toEqual(['opened', 'assigned', 'unassigned'])
+  })
+
+  /*
+   * The note lives on the event, never on the report: "resolved because X"
+   * belongs to *that* resolution, and on the report it would be overwritten by
+   * the next one — leaving a history that says a decision was made for a reason
+   * nobody gave.
+   */
+  it('keeps a private note on the closing event', async () => {
+    const id = await open()
+    await repo.close({
+      reportId: id,
+      status: 'resolved',
+      note: 'warned the member',
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    const found = await repo.find(id)
+    expect(found!.report.status).toBe('resolved')
+    const closing = found!.events.at(-1)!
+    expect(closing).toMatchObject({
+      kind: 'resolved',
+      note: 'warned the member',
+      actorUsername: 'mod',
+    })
+  })
+
+  /*
+   * `status = 'open'` in the WHERE, not a prior read. Assigning or closing a
+   * report somebody else just closed would otherwise look like it worked and
+   * change nothing — the failure a second moderator notices an hour later.
+   */
+  it('refuses to act on a report somebody else already closed', async () => {
+    const id = await open()
+    await repo.close({
+      reportId: id,
+      status: 'resolved',
+      note: null,
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    expect(await repo.assign({ reportId: id, toUserId: MOD, actorUserId: MOD, at: AT })).toBe(
+      false,
+    )
+    expect(
+      await repo.close({
+        reportId: id,
+        status: 'rejected',
+        note: null,
+        actorUserId: MOD,
+        at: AT,
+      }),
+    ).toBe(false)
+
+    const found = await repo.find(id)
+    expect(found!.report.status).toBe('resolved')
+    expect(found!.events.map((e) => e.kind)).toEqual(['opened', 'resolved'])
+  })
+})
+
+describe('through the service', () => {
+  /*
+   * The same answer for "does not exist" and "not yours": a moderator of one
+   * forum probing ids must not learn that a report exists in another.
+   */
+  it('will not open, assign or close a report outside the actor"s scope', async () => {
+    const postId = await seedThread(100, OTHER)
+    const { reportId } = await service().file({
+      kind: 'post',
+      targetId: postId,
+      reason: 'spam',
+      reporterUserId: REPORTER,
+    })
+
+    expect(await service().open(reportId, IN_FORUM)).toBeNull()
+    await expect(
+      service().assign({ reportId, toUserId: MOD, actorUserId: MOD, scope: IN_FORUM }),
+    ).rejects.toThrow(/does not exist/i)
+    await expect(
+      service().close({
+        reportId,
+        status: 'resolved',
+        note: '',
+        actorUserId: MOD,
+        scope: IN_FORUM,
+      }),
+    ).rejects.toThrow(/does not exist/i)
+
+    expect((await repo.find(reportId))!.report.status).toBe('open')
+  })
+
+  it('lets the right moderator do all three', async () => {
+    const postId = await seedThread(100, OTHER)
+    const { reportId } = await service().file({
+      kind: 'post',
+      targetId: postId,
+      reason: 'spam',
+      reporterUserId: REPORTER,
+    })
+    const scope = { forumIds: [OTHER], global: false }
+
+    expect(await service().open(reportId, scope)).not.toBeNull()
+    await service().assign({ reportId, toUserId: MOD, actorUserId: MOD, scope })
+    await service().close({
+      reportId,
+      status: 'resolved',
+      note: 'handled',
+      actorUserId: MOD,
+      scope,
+    })
+
+    expect((await repo.find(reportId))!.report.status).toBe('resolved')
+  })
+})

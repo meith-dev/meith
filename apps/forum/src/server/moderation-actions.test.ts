@@ -82,6 +82,7 @@ function installContainer(overrides: Record<string, unknown> = {}): void {
   ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
     authorizer: new Authorizer(source, {}),
     moderationQueue: queue,
+    reports: null,
     threadWrites: null,
     postWrites: null,
     threads: {

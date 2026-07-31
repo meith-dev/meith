@@ -126,6 +126,8 @@ export default async function ThreadPage({
     bypassesWindow:
       authorizer.can(actor, 'post.editOthers', others) ||
       authorizer.can(actor, 'content.viewUnapproved', own),
+    /* Global (F49): reporting is a board capability, not a per-forum grant. */
+    canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
   }
 
   const view = buildThreadView({

@@ -165,3 +165,41 @@ alternative (minimum-wins) would need a fourth combination kind for one field �
 the trap already recorded under *flood-intervals*, where minimum-wins genuinely
 is correct and the field was therefore modelled as a setting instead. An edit
 window is an *allowance*, so MAX is the right rule and no special case is needed.
+
+---
+
+## Who handles a report
+
+**MyBB** has a dedicated permission, `canmanagereportedcontent`, separate from
+the moderator rights that decide what somebody can actually *do* about a report.
+
+**We** scope reports by the sets that already exist: a report about a post or a
+thread is visible to the moderators of its forum (`moderatedForumIds`, the same
+set that scopes the approval queue), and a report about a *member* is visible to
+board staff (`modcp.access`).
+
+**Why.** A third permission would let a board grant "can read reports about
+forum X" to somebody with no power to act on anything in forum X — a role whose
+only capability is reading complaints about their neighbours. Every report is
+about content or a person, and the people who can act are the people who should
+see it.
+
+**Cost.** An imported board's `canmanagereportedcontent` grants do not map
+one-to-one: anybody who held it without moderating a forum loses report access,
+and anybody who moderates a forum gains it. F85's importer should surface that
+as a migration note rather than guessing.
+
+---
+
+## What can be reported
+
+**MyBB** allows reports against posts, threads, profiles, private messages and
+(with plugins) more.
+
+**We** ship posts, threads and members. Private messages are absent because F60
+has not been built — there are no tables for them, and a target kind nothing can
+produce is a promise the board cannot keep.
+
+**Why.** Same rule as everywhere else in this build: omit rather than stub. When
+F60 lands, `REPORT_TARGET_KINDS` gains an entry and `resolveTarget` gains a
+branch; nothing else changes.

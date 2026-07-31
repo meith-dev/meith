@@ -20,3 +20,22 @@ export {
   type QueuePage,
   type QueueSelection,
 } from './queue'
+
+export {
+  ReportService,
+  inScope,
+  parseTargetKind,
+  REASON_MAX,
+  REASON_MIN,
+  REPORTS_PAGE_SIZE,
+  REPORT_TARGET_KINDS,
+  type NewReport,
+  type ReportEvent,
+  type ReportPage,
+  type ReportRepository,
+  type ReportRow,
+  type ReportScope,
+  type ReportStatus,
+  type ReportTarget,
+  type ReportTargetKind,
+} from './reports'

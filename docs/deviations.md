@@ -2061,3 +2061,103 @@ should exist.
   already-resolved actor, so the shell costs no extra query — but a per-forum
   appointee does not get the link, only the working page behind it. Resolving
   the tree on every page render to fix that is F54's trade to make.
+
+### D48 — Reports have two audiences, and almost every decision keeps them apart (F49)
+
+A report is a member saying "a moderator should look at this". The mechanism is
+small; what makes it worth a decision record is that it serves two people with
+opposite needs.
+
+The **reporter** needs to know their report was filed and nothing else — not who
+is handling it, not what was decided, and above all not the note. The
+**moderator** needs the history: who assigned it, when, and why the last person
+closed one like it.
+
+So the design puts them in different tables. `reports` is the current state;
+`report_events` is the history, and it is the only place a private note lives.
+Nothing that returns a report to a reporter carries an event at all.
+
+#### The note belongs to the event, not the report
+
+"Resolved because X" belongs to *that* resolution. On the report it would be
+overwritten by the next one, leaving a history that says a decision was made for
+a reason nobody gave. The note is also optional on purpose: requiring one on
+every dismissal produces a column full of "spam" and "n/a", which is worse than
+an empty one because it looks like a record.
+
+#### One open report per person per target, enforced by the index
+
+Not by a prior `select`. Two clicks arriving together would both pass a check
+and both insert, and a report button that adds a queue row every time is the
+cheapest denial-of-service on the board. `on conflict do nothing` makes the
+database the arbiter, and an empty `returning` is the friendly answer rather
+than an error.
+
+The index is **partial** — `where status = 'open'` — so the same person may
+report the same post again once a previous report is closed. Circumstances
+change, and a permanent bar would mean one dismissed report protects a post
+forever.
+
+A duplicate is reported to the member as *success*. They did what they meant to
+do, and "you already reported this" is only useful to somebody probing what is
+in the queue.
+
+#### Assignment is a column, not a status
+
+An assigned report is still open. Modelling it as a state means "show me
+everything outstanding" has to ask for two of them, and every future query grows
+the same `or`.
+
+#### Two scopes, because reports have two
+
+A report about a post or a thread belongs to that forum's moderators —
+`moderatedForumIds`, the set F48 built. A report about a **member** belongs to no
+forum, so it is board staff's (`modcp.access`) or it is nobody's. They are one
+predicate rather than two queries, so a moderator who is also staff sees both in
+one ordered page.
+
+`modcp.access` rather than a new permission field: the board already has a
+switch for "this person is staff", and inventing a second would give an
+administrator two ways to express one decision.
+
+"Does not exist" and "not yours" give the same answer, so a moderator of one
+forum cannot learn by probing ids that a report exists in another.
+
+#### Only public content is reportable
+
+`resolveTarget` uses `PUBLIC_CONTENT` for every actor rather than the reader's
+own scope (F47). A member cannot report what they could not have seen, and a
+moderator has better tools than the report button for content that is already
+held or removed. The forum check then happens *after* the target resolves, in
+both the page and the action: a form says which row, and whether this member
+could see it is a question only the row's forum can answer.
+
+Reporting your own post is not offered. It is a button that files a complaint
+about yourself, and the only person it helps is somebody flooding the queue.
+Reporting is *not* forbidden for a self-target in the domain, though — people do
+it by accident and moderators can simply close it.
+
+#### What is deliberately absent
+
+- **Private messages as a target.** F60 has no tables. A `pm` kind nothing can
+  produce is a column that lies about what the board supports (D32's rule).
+- **Notifications on state changes.** F55 does not exist. The report appears in
+  the moderator list; telling somebody about it is a different feature, and
+  stubbing it would mean a "notified" flag nothing sets.
+
+#### Smaller things
+
+- **`content.report` is global**, so it costs the F22 matrix nothing — the
+  matrix is forum-scoped actions, and reporting is a board-wide capability. What
+  *is* per-forum is whether the member could see the target, and that is
+  `thread.view`, which the matrix already covers.
+- **The moderator screens are app-owned**, for the reason D47 records for the
+  queue: the slot registry freezes at F77 and an operator surface does not
+  belong in the public theme contract.
+- **The reporter's words are rendered as text**, like the queue's excerpts. A
+  report is unapproved content of a kind, and the screen that shows it is the one
+  deciding what to do about it.
+- **`visibleIn` needs the aliased column.** `visibleIn(posts.visibility, …)`
+  emits `"posts"."visibility"`, which does not resolve in a query that aliases
+  the table `p`. Passing `sql\`p.visibility\`` is the fix, and the failure was
+  loud rather than silent — the query did not parse.

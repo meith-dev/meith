@@ -78,6 +78,7 @@ const ADMIN_ALWAYS: ReadonlySet<Action> = new Set<Action>([
   'profile.view',
   'memberlist.view',
   'pm.use',
+  'content.report',
   /*
    * An administrator is not rate-limited between posts. The interval exists to
    * slow down abuse, and an administrator who has to wait fifteen seconds while
@@ -373,6 +374,8 @@ export class Authorizer {
         return actor.global.canViewMemberList === true
       case 'pm.use':
         return actor.global.canUsePrivateMessages === true
+      case 'content.report':
+        return actor.global.canReportContent === true
       case 'modcp.access':
         return actor.global.canAccessModCp === true
       case 'admincp.access':

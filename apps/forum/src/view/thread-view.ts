@@ -33,6 +33,8 @@ export interface PostCapabilities {
   readonly editWindowMinutes: number
   /** Set when the actor may edit regardless of the window (moderation). */
   readonly bypassesWindow: boolean
+  /** F49's global `content.report`. Guests and read-only groups hold it not. */
+  readonly canReport: boolean
 }
 
 const NO_CAPABILITIES: PostCapabilities = {
@@ -42,6 +44,7 @@ const NO_CAPABILITIES: PostCapabilities = {
   softDelete: false,
   editWindowMinutes: 0,
   bypassesWindow: false,
+  canReport: false,
 }
 
 function withinEditWindow(
@@ -121,7 +124,16 @@ function post(
       editHref: mayEdit ? manageHref : null,
       restoreHref:
         post.visibility === 'deleted' && capabilities.softDelete ? manageHref : null,
-      reportHref: null,
+      /*
+       * Reporting your own post is not offered — it is a button that files a
+       * complaint about yourself, and the only person it ever helps is somebody
+       * flooding the queue. A deleted post is not reportable either: it is only
+       * on this page because a moderator is reading it.
+       */
+      reportHref:
+        capabilities.canReport && !isOwn && post.visibility === 'visible'
+          ? `/report?kind=post&id=${post.id}`
+          : null,
       moderateHref: null,
     },
   }

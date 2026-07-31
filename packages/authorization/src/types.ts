@@ -87,6 +87,16 @@ export type Action =
   | 'profile.view'
   | 'memberlist.view'
   | 'pm.use'
+  /**
+   * File a report (F49).
+   *
+   * Global, and deliberately not in the F22 forum matrix: reporting is a
+   * board-wide capability granted by `canReportContent`, not a per-forum grant.
+   * The *target* is still checked forum by forum — a member cannot report what
+   * they could not see — but that check is `thread.view`, which the matrix
+   * already covers.
+   */
+  | 'content.report'
   | 'modcp.access'
   | 'admincp.access'
   /**

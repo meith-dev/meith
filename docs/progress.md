@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D47. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D48. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -20,7 +20,7 @@ this file.
 `pnpm verify` → exit 0: textual invariants (now **nine** guards, F47's included)
 + **guard probes**, the **slot
 server/client boundary** check + its probe, dependency-cruiser (241 modules, 0
-violations), typecheck (root **and** app), **1331 tests** (a large share against
+violations), typecheck (root **and** app), **1364 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -275,26 +275,32 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   re-read for its real forum, and the moderated set is resolved per request
   rather than carried in the form. See **D47**.
 
+- **F49 reports** — members can report a post, a thread or a member, and
+  moderators work the results at `/moderation/reports`. Two tables, because a
+  report has a current state *and* a history, and the history is the only place
+  a private moderator note lives — "resolved because X" belongs to that
+  resolution, not to a column the next one overwrites. The duplicate guard is a
+  partial unique index rather than a prior read: two clicks arriving together
+  would both pass a check, and a report button that adds a queue row every time
+  is the cheapest denial-of-service on the board. Scoped by F48's
+  `moderatedForumIds` for content and `modcp.access` for member reports, with
+  "does not exist" and "not yours" giving the same answer. See **D48**.
+
 ## NEXT ACTION — resume here
 
-**F49 · reports** is the next thing in order, and it is the smallest remaining
-Phase 4 feature: a `reports` table, a report form on `PostActions.reportHref`
-(the field exists and is still `null`), and a moderator list that reuses the
-queue's shape almost exactly — scoped by `moderatedForumIds`, keyset-paged,
-bulk-resolved.
-
-**F50 · thread tools** is the larger one, and the one with real design in it.
+**F50 · thread tools** is the next thing, and the one with real design in it.
 Open/close/stick/move/copy/delete/restore/approve at *thread* level, each with
 "full affected-row counter assertions". F41 and F48 wrote the post-level
 transitions and the thread-level approve; move and copy are new, and moving a
 thread is the case where the ancestor counter roll-up and the last-post repair
 chain both have to run for two subtrees at once.
 
-**Before either, there is a debt F48 named and did not pay:**
+**Before it, there is a debt F48 named and did not pay:**
 `Target.isForumModerator` is still never set on any per-page `can()` call, so
 outside the queue a per-forum appointee has only their group's rights. F54 is
-where granular moderator rights are the subject; if F50 needs them sooner, thread
-it through there instead and move the note.
+where granular moderator rights are the subject; if F50 needs them sooner —
+and it plausibly does, since `canMoveThreads` and `canStickThreads` are
+appointment columns — thread it through there instead and move this note.
 
 **F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
 seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
@@ -374,7 +380,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D47). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D48). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

@@ -156,6 +156,7 @@ describe('post affordances (F41)', () => {
     softDelete: false,
     editWindowMinutes: 0,
     bypassesWindow: false,
+    canReport: true,
   }
 
   function actionsFor(
@@ -284,5 +285,78 @@ describe('post affordances (F41)', () => {
       editReason: 'typo',
     })
     expect(post.editedNote).toMatch(/^Last edited by ada on .+: typo$/)
+  })
+})
+
+describe('the report link (F49)', () => {
+  const REPORTER = {
+    viewerUserId: 7,
+    editOwn: false,
+    editOthers: false,
+    softDelete: false,
+    editWindowMinutes: 0,
+    bypassesWindow: false,
+    canReport: true,
+  }
+
+  function reportHrefFor(
+    post: Partial<PostListingRow>,
+    capabilities: Partial<typeof REPORTER> = {},
+  ): string | null {
+    const view = buildThreadView({
+      thread,
+      forum,
+      capabilities: { ...REPORTER, ...capabilities },
+      page: {
+        rows: [
+          {
+            id: 4,
+            threadId: 3,
+            forumId: 2,
+            number: 1,
+            authorUserId: 99,
+            authorUsername: 'someone',
+            authorPostCount: 1,
+            authorJoinedAt: null,
+            message: 'body',
+            messageHtml: null,
+            renderVersion: 0,
+            editedAt: null,
+            editedByUsername: null,
+            editReason: null,
+            isFirstPost: false,
+            visibility: 'visible',
+            createdAt: new Date('2026-07-30T08:41:00Z'),
+            ...post,
+          },
+        ],
+        nextAfterId: null,
+      },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+    return view.posts[0]!.actions.reportHref
+  }
+
+  it('offers Report on somebody else"s post', () => {
+    expect(reportHrefFor({})).toBe('/report?kind=post&id=4')
+  })
+
+  /*
+   * A button that files a complaint about yourself helps nobody except someone
+   * flooding the queue.
+   */
+  it('does not offer it on your own', () => {
+    expect(reportHrefFor({ authorUserId: 7 })).toBeNull()
+  })
+
+  it('does not offer it to somebody who may not report', () => {
+    expect(reportHrefFor({}, { canReport: false })).toBeNull()
+  })
+
+  /* A deleted post is on the page only because a moderator is reading it. */
+  it('does not offer it on a post nobody else can see', () => {
+    expect(reportHrefFor({ visibility: 'deleted' })).toBeNull()
   })
 })
