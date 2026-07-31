@@ -118,6 +118,7 @@ function installContainer(moderators: readonly MemoryAppointment[] = []): void {
     inlineModeration: null,
     warnings: null,
     warningBans: null,
+    modcp: null,
     reports: null,
     moderationQueue: null,
     threadWrites: null,

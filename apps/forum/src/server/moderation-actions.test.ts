@@ -88,6 +88,7 @@ function installContainer(overrides: Record<string, unknown> = {}): void {
     inlineModeration: null,
     warnings: null,
     warningBans: null,
+    modcp: null,
     threadWrites: null,
     postWrites: null,
     threads: {

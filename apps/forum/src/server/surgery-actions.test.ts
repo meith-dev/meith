@@ -124,6 +124,7 @@ function installContainer(
     inlineModeration: null,
     warnings: null,
     warningBans: null,
+    modcp: null,
     threadTools: null,
     reports: null,
     moderationQueue: null,

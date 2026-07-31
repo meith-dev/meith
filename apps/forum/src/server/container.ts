@@ -39,6 +39,7 @@ import type {
   ModerationQueueRepository,
   ReportRepository,
   ThreadToolsRepository,
+  ModCpRepository,
   ThreadSurgeryRepository,
   WarningBanPort,
   WarningRepository,
@@ -135,6 +136,8 @@ export interface Container {
    * cannot make it *lift* a ban — that stays a human decision (D52).
    */
   readonly warningBans: WarningBanPort | null
+  /** The ModCP's reads (F54). `null` in fixture mode (D38). */
+  readonly modcp: ModCpRepository | null
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
@@ -229,6 +232,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     inlineModeration: null,
     warnings: null,
     warningBans: null,
+    modcp: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -292,7 +296,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresThreadToolsRepository, PostgresThreadSurgeryRepository, PostgresInlineModerationRepository, PostgresWarningRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresThreadToolsRepository, PostgresThreadSurgeryRepository, PostgresInlineModerationRepository, PostgresWarningRepository, PostgresModCpRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
@@ -316,6 +320,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     threadSurgery: new PostgresThreadSurgeryRepository(db),
     inlineModeration: new PostgresInlineModerationRepository(db),
     warnings: warningRepo,
+    modcp: new PostgresModCpRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -385,6 +390,7 @@ export function getContainer(): Container {
     cached.inlineModeration === undefined ||
     cached.warnings === undefined ||
     cached.warningBans === undefined ||
+    cached.modcp === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

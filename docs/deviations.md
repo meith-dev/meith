@@ -2592,3 +2592,102 @@ forum. It is therefore **not** in the F22 matrix — the same reasoning
 - **Per-group warning limits** (MyBB's "maximum warning points per day"). It is
   F46's rate-limiting shape, not this feature's.
 
+### D53 — The ModCP is rights-aware, and its one dangerous feature is gated twice (F54)
+
+Phase 4 built the *acts*. What none of them built is the place a moderator goes
+when nobody has handed them a link — and, more importantly, the place they find
+out **what they have been appointed to**. Once F50 made "may lock threads" a
+per-forum appointment rather than a checkbox on a group, a moderator's only way
+to discover their own rights was to press a button and be refused.
+
+#### Access is a grant *or* an appointment
+
+`modcp.access` is a usergroup column and it is not the only route in: an
+appointed moderator of one forum has work to do and no group grant. So the gate
+is "holds `modcp.access` **or** moderates at least one forum", and the sections
+inside are filtered by what that resolves to. A member with neither gets
+`notFound()` rather than a 403 — the existence of the panel is not something to
+confirm to somebody who may not open it, which is F48's answer for the queue.
+
+The layout runs the gate and **every page runs it again**. A layout is not a
+security boundary in the App Router: a page can be requested directly as an RSC
+payload, and "the layout checked it" is exactly the assumption that turns into a
+hole.
+
+#### The log is an allow-list
+
+`admin_log` is shared with the ACP (F63) and will grow rows for settings changes,
+group edits and user merges. The moderator log therefore filters by a **named
+list of moderation actions** rather than by excluding the administrative ones. A
+row type added next year is invisible here until somebody names it — a
+build-time omission that gets noticed, rather than a disclosure that does not.
+The same applies to the `detail` JSON: only keys with a declared label are
+rendered.
+
+Scoping is in SQL, not in the rendering. A moderator of one forum sees that
+forum's entries plus their own; filtering a board-wide feed afterwards is how a
+count or a paging boundary leaks what it hid. Three cases fall out of that and
+each is tested:
+
+- **A move appears in both forums' logs**, because it happened at both ends
+  (D49's rule, applied to the record of it).
+- **A forum-less entry — a warning, an address lookup — is its author's business
+  only.** Showing every warning on the board through the log would be a wider
+  grant than the warn screen itself gives.
+- **Your own acts stay visible in a forum you have since left.**
+
+The forum an entry belongs to is read out of the detail JSON rather than from a
+new column, because every moderation action already records the ids it touched
+and a column on `admin_log` would mean the ACP's rows carrying a forum id that
+means nothing.
+
+#### The address lookup: gated separately, audited always, and honest about prefixes
+
+It is the panel's only feature that reads personal data about somebody who has
+done nothing wrong, and it is treated accordingly.
+
+- **Its own permission**, not `modcp.access`. Seeing the queue and asking "who
+  else posts from this address" are different powers; MyBB separates them too.
+  It is held by staff groups only, because there is no per-group column for it
+  and inventing one would mean a migration granting a power nobody has asked
+  for.
+- **Every lookup is logged, including the ones that find nothing.** A log that
+  records only the productive lookups cannot answer "who has been going through
+  the membership". The audit row is written *before* the caller sees the result,
+  so no arrangement of failures returns matches without recording the request.
+- **It searches prefixes and says so on screen.** F09 truncates every address
+  before it is written, so there is no full address stored anywhere and no query
+  that could match one. A moderator told "these accounts share an address" would
+  act on a certainty the data does not support; told "these accounts share a
+  range", they go and check. A `null` prefix matches nothing rather than
+  matching every other `null` — a board that has not recorded an address for two
+  accounts has not established that they share one.
+
+**It is a GET that writes**, which is ordinarily wrong on this board (F32's
+mark-read is a POST for exactly this reason). What is written is the audit row
+*for having asked*, and a prefetcher firing it records a true fact: this
+moderator's session requested this member's associations. Auditing only on POST
+would leave a lookup you can perform without a trace by typing a URL.
+
+#### F48's debt, paid
+
+`Target.isForumModerator` has existed since F48 and was never set on a per-page
+`can()` call, so outside the queue a per-forum appointee had only their group's
+rights — `post.editOthers`, `post.softDelete` and both content-visibility
+actions all read the flag and all saw `undefined`. F52 paid half of it inside
+`Authorizer.forumIdsWhere`; `moderatorTargetFor` pays the rest, and the thread
+page now builds every affordance on an appointment-aware target.
+
+#### What is deliberately not here
+
+- **Announcements.** There is no announcement model on the board at all — F30's
+  row mentions them and nothing implements them. A ModCP section for editing
+  something that does not exist is the stub D32 refuses.
+- **A ban screen.** F23's mechanism is complete and has no surface; the roadmap
+  puts bans in the ModCP, but a create/lift screen needs a member search that is
+  F67's, and half of one here would be a second place that knows how to ban.
+  Named in F54's row rather than half-built.
+- **A separate ModCP password.** F63 gives the *admin* panel its own
+  authentication step because an administrator can change the board. A moderator
+  is already logged in as themselves and their powers are the ones the board
+  grants them; a second password would protect nothing the first one does not.

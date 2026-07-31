@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { hasAnyModeratorRight } from '@forum/authorization'
 import { requireSlot } from '@forum/theme-kit'
 
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
@@ -10,6 +9,7 @@ import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { moderatorTargetFor } from '@/server/modcp'
 import { activeTheme } from '@/server/theme'
 import {
   INLINE_FORM_ID,
@@ -139,8 +139,16 @@ export default async function ThreadPage({
    * the view model's, and every one of these is re-asked by the action that
    * acts on it.
    */
-  const own = { forumId: forum.id, forum: matrix, ownerId: actor.userId }
-  const others = { forumId: forum.id, forum: matrix, ownerId: -1 }
+  /*
+   * F54's debt, paid. `Target.isForumModerator` has existed since F48 and was
+   * never set on a per-page `can()` call, so outside the queue a per-forum
+   * appointee had only their group's rights — `post.editOthers` and
+   * `post.softDelete` both read the flag and both saw `undefined`. Every
+   * affordance below is now built on the appointment-aware target.
+   */
+  const appointment = await moderatorTargetFor(actor, forum.id, matrix)
+  const own = { ...appointment, ownerId: actor.userId }
+  const others = { ...appointment, ownerId: -1 }
   /*
    * Every affordance is also gated on there being somewhere to write, the same
    * way the reply link is: fixture mode has no post writer (D38), and an Edit
@@ -168,10 +176,9 @@ export default async function ThreadPage({
    * destinations are only fetched when the actor may actually move — two extra
    * queries for a moderator, none for everybody else.
    */
-  const moderatorRights = await authorizer.moderatorRightsIn(actor, forum.id)
   const movableInto =
     threadTools === null ? [] : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
-  const toolTarget = { forumId: forum.id, forum: matrix, moderatorRights }
+  const toolTarget = appointment
   const toolRights = {
     lock: threadTools !== null && authorizer.can(actor, 'thread.lock', toolTarget),
     stick: threadTools !== null && authorizer.can(actor, 'thread.stick', toolTarget),
@@ -218,12 +225,9 @@ export default async function ThreadPage({
     lock: false,
     stick: false,
     move: false,
+    /* `toolTarget` already carries `isForumModerator` (see `appointment`). */
     delete:
-      inlineModeration !== null &&
-      authorizer.can(actor, 'post.softDelete', {
-        ...toolTarget,
-        isForumModerator: hasAnyModeratorRight(moderatorRights),
-      }),
+      inlineModeration !== null && authorizer.can(actor, 'post.softDelete', toolTarget),
   }
   const inlineOffered = anyInlineTool(inlineRights)
 

@@ -59,6 +59,7 @@ export { PostgresThreadToolsRepository } from './thread-tools'
 export { PostgresThreadSurgeryRepository } from './thread-surgery'
 export { PostgresInlineModerationRepository } from './inline-moderation'
 export { PostgresWarningRepository } from './warning-repo'
+export { PostgresModCpRepository } from './modcp-repo'
 export {
   applyAncestorVisibilityChange,
   applyVisibilityChangeCounters,

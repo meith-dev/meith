@@ -100,6 +100,7 @@ function installContainer(board = SEED_BOARD): void {
     inlineModeration: null,
     warnings: null,
     warningBans: null,
+    modcp: null,
     moderationQueue: null,
     threadWrites: null,
     postWrites: null,

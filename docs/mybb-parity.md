@@ -384,3 +384,30 @@ and its removal should be a decision a human makes while looking — which is wh
 "a moderator lifts it" means. The revocation still lowers the points, so the
 level no longer applies and no further action is taken.
 
+## The moderator log is an allow-list of moderation actions
+
+**MyBB:** the moderator log and the administrator log are separate tables.
+
+**Here:** they share `admin_log`, and the ModCP filters it by a named list of
+moderation actions.
+
+**Why:** one table means one place a bypass, a settings change and a thread lock
+are all recorded, which is what an operator wants when reconstructing an
+incident. The filter is an allow-list rather than a deny-list because the table
+will keep growing row types: a deny-list turns every future administrative
+action into a moderator-visible disclosure the day somebody forgets to update
+it, whereas an allow-list turns a new moderation action into a missing row
+somebody notices.
+
+## The address lookup finds ranges, not addresses
+
+**MyBB:** the ModCP's IP search matches full addresses, which MyBB stores.
+
+**Here:** it matches the truncated prefix the board stores, and the screen says
+so.
+
+**Why:** F09 truncates every address before writing it, so there is no full
+address to match — this is a consequence of the privacy invariant rather than a
+choice made here. It is stated on the screen because the difference matters to
+what a moderator does next: "shares an address" reads as proof, "shares a range"
+reads as something to check, and only the second is what the data supports.
