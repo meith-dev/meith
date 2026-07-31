@@ -198,7 +198,30 @@ importers:
         specifier: 5.7.3
         version: 5.7.3
 
-  apps/worker: {}
+  apps/worker:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@forum/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@forum/drivers':
+        specifier: workspace:*
+        version: link:../../packages/drivers
+      '@forum/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@forum/tasks':
+        specifier: workspace:*
+        version: link:../../packages/tasks
+    devDependencies:
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
 
   packages/accounts:
     dependencies:

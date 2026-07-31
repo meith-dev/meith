@@ -385,3 +385,4 @@ export function getContainer(): Container {
 export function getAuthorizer(): Authorizer {
   return getContainer().authorizer
 }
+

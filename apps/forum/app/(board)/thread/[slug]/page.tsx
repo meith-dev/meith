@@ -29,6 +29,7 @@ const TOOL_NOTICE: Readonly<Record<string, string>> = {
   stick: 'Thread pinned.',
   unstick: 'Thread unpinned.',
   move: 'Thread moved.',
+  copy: 'Thread copied. You are looking at the copy.',
   restore: 'Thread restored.',
   split: 'Thread split. You are looking at the new one.',
   merge: 'Threads merged. You are looking at the one that survived.',
@@ -229,7 +230,12 @@ export default async function ThreadPage({
     delete:
       inlineModeration !== null && authorizer.can(actor, 'post.softDelete', toolTarget),
   }
-  const inlineOffered = anyInlineTool(inlineRights)
+  /*
+   * Split alone is enough to want the checkboxes: a moderator appointed only to
+   * split threads holds none of the bulk tools, and without this the surface
+   * they need would not render at all.
+   */
+  const inlineOffered = anyInlineTool(inlineRights) || surgeryRights.split
 
   const view = buildThreadView({
     thread,
@@ -318,6 +324,8 @@ export default async function ThreadPage({
           rights={inlineRights}
           moveTargets={[]}
           returnTo={`/thread/${thread.id}-${thread.slug}`}
+          /* F51's split over F52's checkboxes; null when they may not split. */
+          splitFrom={surgeryRights.split ? thread.id : null}
         />
       )}
     </main>

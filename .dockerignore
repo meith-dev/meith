@@ -1,0 +1,47 @@
+# Everything the image must not carry, and the reason it matters.
+#
+# There was no .dockerignore at all, so `docker build` sent the whole working
+# tree — including `apps/forum/.env`, a *developer's* file that is gitignored
+# and sets QUEUE_DRIVER=postgres. Next loads it during the build, so the
+# prerender resolved a Postgres queue while DATA_SOURCE was fixture and the
+# build died on `getDb() called while DATA_SOURCE is "fixture"`. The image
+# therefore built on a machine with no .env and failed on one with it — and
+# baked whatever secrets that file held into any image that did build.
+#
+# Nothing here is an optimisation. Each line is something that changes what the
+# image *is*.
+
+# Local environment. The image is configured by the orchestrator, never by a
+# file that happened to be on the machine that built it.
+#
+# The `**/` matters and is the whole bug: dockerignore patterns are anchored to
+# the build context, so a bare `.env` matches only the repo root — and the file
+# that broke the build was `apps/forum/.env`, which Next loads and which set
+# QUEUE_DRIVER=postgres.
+**/.env
+**/.env.*
+!**/.env.example
+
+# Installed and built artefacts: the image installs and builds its own.
+node_modules
+**/node_modules
+.next
+**/.next
+**/.next-e2e
+**/dist
+apps/worker/dist
+
+# History and CI: not needed to build, and .git is large.
+.git
+.github
+
+# Test and tooling output.
+coverage
+playwright-report
+test-results
+*.tsbuildinfo
+
+# Editor and OS noise.
+.DS_Store
+.vscode
+.idea

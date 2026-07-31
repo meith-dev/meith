@@ -15,7 +15,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { ThreadSurgery, type SurgeryRights } from '@forum/moderation'
+import { ThreadSurgery, parseSelection, type SurgeryRights } from '@forum/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'
@@ -71,6 +71,60 @@ export async function splitThreadAction(
 
   /* The moderator lands on what they made, which is the thing to check. */
   redirect(`/thread/${outcome.threadId}-${outcome.slug}?tool=split&n=${outcome.posts}`)
+}
+
+/**
+ * F52's checkboxes, feeding F51's split (the piece F51 deferred).
+ *
+ * Reached from the inline-moderation bar by a submit button carrying
+ * `formAction`, which is native HTML: one set of checkboxes, one form owner,
+ * and a button that redirects the submission somewhere else. That is what lets
+ * the same ticks drive both the bulk tools and this without a second selection
+ * mechanism — the thing F51 refused to build.
+ */
+export async function splitSelectedAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const threadId = positiveInt(form, 'threadId')
+  const title = typeof form.get('title') === 'string' ? (form.get('title') as string) : ''
+  if (threadId === null) return { error: 'That thread does not exist.' }
+
+  const { threadSurgery } = getContainer()
+  if (threadSurgery === null) return { error: NO_STORE }
+
+  /*
+   * The same `kind:id` values the bulk bar submits, parsed by the same reader.
+   * Only posts are meaningful here; a ticked thread is dropped rather than
+   * refused, because the two selections share one set of checkboxes and a
+   * thread cannot be split out of a thread.
+   */
+  const postIds = parseSelection(
+    form.getAll('item').filter((v): v is string => typeof v === 'string'),
+  )
+    .filter((item) => item.kind === 'post')
+    .map((item) => item.id)
+
+  let outcome
+  try {
+    const actor = await getActor()
+    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+
+    const forumId = await visibleForumOf(threadId)
+
+    outcome = await new ThreadSurgery({ threads: threadSurgery }).splitPosts({
+      threadId,
+      postIds,
+      title,
+      actorUserId: actor.userId,
+      rights: await resolveRights(forumId),
+    })
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  const dropped = outcome.dropped > 0 ? `&dropped=${outcome.dropped}` : ''
+  redirect(`/thread/${outcome.threadId}-${outcome.slug}?tool=split&n=${outcome.posts}${dropped}`)
 }
 
 export async function mergeThreadAction(

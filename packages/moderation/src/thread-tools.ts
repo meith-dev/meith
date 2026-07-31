@@ -23,6 +23,7 @@ export type ThreadTool =
   | 'stick'
   | 'unstick'
   | 'move'
+  | 'copy'
   | 'delete'
   | 'restore'
 
@@ -47,6 +48,7 @@ export interface MoveDestination {
 export interface ThreadToolRights {
   readonly lock: boolean
   readonly stick: boolean
+  /** `thread.move`. Also what a copy needs, at both ends — see `copyTo`. */
   readonly move: boolean
   readonly delete: boolean
 }
@@ -94,6 +96,20 @@ export interface ThreadToolsRepository {
     readonly actorUserId: number
     readonly at: Date
   }): Promise<boolean>
+
+  /**
+   * Duplicate a thread and its visible posts into another forum.
+   *
+   * Returns the new thread, because a copy is the one tool that produces
+   * something to go and look at — every other one leaves the moderator where
+   * they were.
+   */
+  copy(input: {
+    readonly threadId: number
+    readonly toForumId: number
+    readonly actorUserId: number
+    readonly at: Date
+  }): Promise<{ threadId: number; slug: string; posts: number }>
 }
 
 export class ThreadTools {
@@ -196,6 +212,21 @@ export class ThreadTools {
 
       case 'move':
         return { ...base, tool: 'move', changed: await this.moveTo(input, target, at) }
+
+      case 'copy': {
+        const copied = await this.copyTo(input, target, at)
+        /*
+         * The outcome names the *new* thread rather than the source: a copy is
+         * the only tool whose result is somewhere else, and reporting the
+         * source would send the moderator back to what they already had.
+         */
+        return {
+          tool: 'copy',
+          threadId: copied.threadId,
+          slug: copied.slug,
+          changed: true,
+        }
+      }
     }
   }
 
@@ -249,6 +280,54 @@ export class ThreadTools {
     })
   }
 
+  /**
+   * Copy a thread into another forum.
+   *
+   * **Authorised by `thread.move`, at both ends**, and not by a right of its
+   * own. Copying is moving that leaves the original behind: it puts content
+   * into a destination forum exactly as a move does, so the destination's
+   * moderators have the same interest in it, and inventing a `thread.copy`
+   * right would mean an eighth column on `forum_moderators` distinguishing two
+   * acts nobody grants separately. D49's two-ended rule therefore applies
+   * unchanged.
+   *
+   * Unlike a move, the destination **may** be the source forum: copying a
+   * thread within its own forum is a legitimate way to fork a discussion, and
+   * there is no pointer to repair because nothing left.
+   */
+  private async copyTo(
+    input: {
+      readonly toForumId?: number | undefined
+      readonly actorUserId: number
+      readonly rights: ThreadToolRights
+      readonly destinationRights?: ThreadToolRights | undefined
+    },
+    target: ThreadToolTarget,
+    at: Date,
+  ): Promise<{ threadId: number; slug: string }> {
+    this.require(input.rights.move, 'copy threads')
+    this.requireLive(target)
+
+    if (input.toForumId === undefined) {
+      throw new ValidationError('Choose a forum to copy it to.')
+    }
+    if (input.destinationRights?.move !== true) {
+      throw new ValidationError('You cannot copy threads into that forum.')
+    }
+
+    const destination = await this.threads.findDestination(input.toForumId)
+    if (destination === null || destination.type !== 'forum') {
+      throw new ValidationError('That is not a forum threads can live in.')
+    }
+
+    return this.threads.copy({
+      threadId: target.id,
+      toForumId: input.toForumId,
+      actorUserId: input.actorUserId,
+      at,
+    })
+  }
+
   private require(held: boolean, what: string): void {
     if (!held) throw new ValidationError(`You cannot ${what} here.`)
   }
@@ -275,6 +354,7 @@ export function parseThreadTool(value: string | undefined): ThreadTool | null {
     'stick',
     'unstick',
     'move',
+    'copy',
     'delete',
     'restore',
   ]

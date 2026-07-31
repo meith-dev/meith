@@ -41,7 +41,9 @@ vi.mock('next/navigation', () => ({
 const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
-const { mergeThreadAction, splitThreadAction } = await import('./surgery-actions')
+const { mergeThreadAction, splitThreadAction, splitSelectedAction } = await import(
+  './surgery-actions',
+)
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
@@ -53,6 +55,8 @@ const TARGET = 21
 class FakeSurgery implements ThreadSurgeryRepository {
   readonly splits: SplitPlan[] = []
   readonly merges: MergePlan[] = []
+  /** Visible posts of the source thread, for the hand-picked split (F52). */
+  eligible: readonly number[] = [101, 102, 103]
 
   async find(threadId: number): Promise<SurgeryThread | null> {
     return {
@@ -64,6 +68,13 @@ class FakeSurgery implements ThreadSurgeryRepository {
       firstPostId: 100,
       visiblePosts: 4,
     }
+  }
+
+  async visiblePostIdsIn(
+    _threadId: number,
+    postIds: readonly number[],
+  ): Promise<readonly number[]> {
+    return this.eligible.filter((id) => postIds.includes(id))
   }
 
   async postsFrom(): Promise<readonly number[]> {
@@ -124,9 +135,14 @@ function installContainer(
   })
 }
 
-function form(entries: Record<string, string>): FormData {
+function form(
+  entries: Record<string, string>,
+  /** Native checkboxes submit several values under one name (F52). */
+  items: readonly string[] = [],
+): FormData {
   const f = new FormData()
   for (const [k, v] of Object.entries(entries)) f.set(k, v)
+  for (const item of items) f.append('item', item)
   return f
 }
 
@@ -319,5 +335,75 @@ describe('mergeThreadAction', () => {
     )
     expect(state.error).toMatch(/into itself/i)
     expect(surgery.merges).toEqual([])
+  })
+})
+
+/** F52's checkboxes feeding F51's split, at the app layer. */
+describe('splitSelectedAction', () => {
+  it('splits the ticked posts and lands on the new thread', async () => {
+    const where = await redirectOf(
+      splitSelectedAction(
+        EMPTY_STATE,
+        form({ threadId: String(SOURCE), title: 'A new conversation' }, [
+          'post:101',
+          'post:102',
+        ]),
+      ),
+    )
+
+    expect(where).toMatch(/^\/thread\/99-split-off\?tool=split&n=2/)
+    expect(surgery.splits[0]).toMatchObject({ postIds: [101, 102] })
+  })
+
+  /*
+   * The two selections share one set of checkboxes, so a ticked *thread* is
+   * dropped rather than refused — a thread cannot be split out of a thread.
+   */
+  it('ignores a ticked thread in the same selection', async () => {
+    await redirectOf(
+      splitSelectedAction(
+        EMPTY_STATE,
+        form({ threadId: String(SOURCE), title: 'A new conversation' }, [
+          'thread:20',
+          'post:101',
+        ]),
+      ),
+    )
+    expect(surgery.splits[0]).toMatchObject({ postIds: [101] })
+  })
+
+  it('reports how many ticks it could not use', async () => {
+    surgery.eligible = [101]
+    const where = await redirectOf(
+      splitSelectedAction(
+        EMPTY_STATE,
+        form({ threadId: String(SOURCE), title: 'A new conversation' }, [
+          'post:101',
+          'post:999',
+        ]),
+      ),
+    )
+    expect(where).toContain('dropped=1')
+  })
+
+  it('refuses a member with no split right', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, 3)
+    installContainer()
+
+    const state = await splitSelectedAction(
+      EMPTY_STATE,
+      form({ threadId: String(SOURCE), title: 'A new conversation' }, ['post:101']),
+    )
+    expect(state.error).toBeTruthy()
+    expect(surgery.splits).toEqual([])
+  })
+
+  it('refuses an empty selection rather than splitting nothing', async () => {
+    const state = await splitSelectedAction(
+      EMPTY_STATE,
+      form({ threadId: String(SOURCE), title: 'A new conversation' }),
+    )
+    expect(state.error).toBeTruthy()
+    expect(surgery.splits).toEqual([])
   })
 })

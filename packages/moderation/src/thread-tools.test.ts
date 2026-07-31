@@ -58,6 +58,11 @@ class FakeThreads implements ThreadToolsRepository {
     this.calls.push('move')
     return true
   }
+
+  async copy(): Promise<{ threadId: number; slug: string; posts: number }> {
+    this.calls.push('copy')
+    return { threadId: 77, slug: 'hello', posts: 3 }
+  }
 }
 
 function toolsFor(threads: FakeThreads): ThreadTools {
@@ -241,12 +246,131 @@ describe('ThreadTools', () => {
 })
 
 describe('parseThreadTool', () => {
-  it('accepts the seven tools and nothing else', () => {
-    for (const tool of ['lock', 'unlock', 'stick', 'unstick', 'move', 'delete', 'restore']) {
+  /*
+   * Eight since copy landed. `copy` was in the *rejected* list until then,
+   * which is what a deferral looks like when it is pinned rather than assumed.
+   */
+  it('accepts the eight tools and nothing else', () => {
+    for (const tool of [
+      'lock',
+      'unlock',
+      'stick',
+      'unstick',
+      'move',
+      'copy',
+      'delete',
+      'restore',
+    ]) {
       expect(parseThreadTool(tool)).toBe(tool)
     }
-    for (const bad of [undefined, '', 'destroy', 'LOCK', 'copy']) {
+    for (const bad of [undefined, '', 'destroy', 'LOCK', 'duplicate']) {
       expect(parseThreadTool(bad)).toBeNull()
     }
+  })
+})
+
+/**
+ * F50's copy, and the rule it borrows.
+ *
+ * Authorised by `thread.move` at **both ends** rather than by a right of its
+ * own: copying is moving that leaves the original behind, so the destination's
+ * moderators have the same interest in it, and an eighth column on
+ * `forum_moderators` distinguishing two acts nobody grants separately would be
+ * the wrong shape.
+ */
+describe('copy', () => {
+  it('copies when the move right is held at both ends', async () => {
+    const threads = new FakeThreads()
+
+    const outcome = await toolsFor(threads).apply({
+      threadId: 20,
+      tool: 'copy',
+      toForumId: 9,
+      actorUserId: 1,
+      rights: ALL,
+      destinationRights: ALL,
+    })
+
+    /* The outcome names the *new* thread — the only tool whose result moves. */
+    expect(outcome).toMatchObject({ tool: 'copy', threadId: 77, changed: true })
+    expect(threads.calls).toEqual(['copy'])
+  })
+
+  it('refuses without the move right in the source forum', async () => {
+    const threads = new FakeThreads()
+    await expect(
+      toolsFor(threads).apply({
+        threadId: 20,
+        tool: 'copy',
+        toForumId: 9,
+        actorUserId: 1,
+        rights: { ...ALL, move: false },
+        destinationRights: ALL,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError)
+    expect(threads.calls).toEqual([])
+  })
+
+  it('refuses without the move right in the destination forum', async () => {
+    const threads = new FakeThreads()
+    await expect(
+      toolsFor(threads).apply({
+        threadId: 20,
+        tool: 'copy',
+        toForumId: 9,
+        actorUserId: 1,
+        rights: ALL,
+        destinationRights: { ...ALL, move: false },
+      }),
+    ).rejects.toThrow(/cannot copy threads into/i)
+    expect(threads.calls).toEqual([])
+  })
+
+  it('refuses a destination that is not a forum threads can live in', async () => {
+    const threads = new FakeThreads()
+    threads.destination = { id: 9, type: 'category' }
+    await expect(
+      toolsFor(threads).apply({
+        threadId: 20,
+        tool: 'copy',
+        toForumId: 9,
+        actorUserId: 1,
+        rights: ALL,
+        destinationRights: ALL,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError)
+  })
+
+  it('refuses a thread that is not on the board', async () => {
+    const threads = new FakeThreads()
+    threads.target = { visibility: 'deleted' }
+    await expect(
+      toolsFor(threads).apply({
+        threadId: 20,
+        tool: 'copy',
+        toForumId: 9,
+        actorUserId: 1,
+        rights: ALL,
+        destinationRights: ALL,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError)
+  })
+
+  /*
+   * Unlike a move, the destination may be the source forum: forking a
+   * discussion in place is legitimate, and nothing left so there is no pointer
+   * to repair.
+   */
+  it('allows a copy into the thread"s own forum', async () => {
+    const threads = new FakeThreads()
+    const outcome = await toolsFor(threads).apply({
+      threadId: 20,
+      tool: 'copy',
+      toForumId: 4,
+      actorUserId: 1,
+      rights: ALL,
+      destinationRights: ALL,
+    })
+    expect(outcome.changed).toBe(true)
   })
 })

@@ -28,9 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` — action-setup reads `packageManager` from package.json,
+      # so CI, the Docker image and a developer machine all run one pnpm. They
+      # ran three (9, 11.x-latest and 10.6) until the image job made that
+      # visible by failing.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -81,9 +83,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # No `version:` — action-setup reads `packageManager` from package.json,
+      # so CI, the Docker image and a developer machine all run one pnpm. They
+      # ran three (9, 11.x-latest and 10.6) until the image job made that
+      # visible by failing.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -101,14 +105,106 @@ jobs:
         env:
           DATA_SOURCE: fixture
 
+  # F04's acceptance criterion, and the half that was missing for its whole
+  # life: CI *builds* the standalone image and then **boots** what it can.
+  #
+  # Building only proves the Dockerfile parses. A boot proves the standalone
+  # output actually contains what it needs — which is exactly the class of
+  # failure that does not show up on a developer machine, because there the
+  # whole node_modules tree is present and the traced bundle is not what runs.
+  image:
+    name: Standalone image builds, migrates and runs the worker
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: forum_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t forum:ci .
+
+      # FORUM_ROLE=migrate, not `node node_modules/.bin/drizzle-kit` — drizzle-kit
+      # is a development tool and is not in the pruned standalone node_modules,
+      # so compose's migrate service had never worked either.
+      - name: Apply migrations (migrate role)
+        run: |
+          docker run --rm --network host \
+            -e FORUM_ROLE=migrate \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
+            -e DATA_SOURCE=postgres \
+            -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
+            -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
+            forum:ci
+
+      # NOTE: the **web role is deliberately not booted here**, and that is a
+      # finding rather than an omission.
+      #
+      # Booting it locally exposed a pre-existing intermittent failure:
+      # `TypeError: c is not a function`, thrown from the lazy
+      # `require('@forum/db')` in apps/forum/src/server/container.ts when
+      # Turbopack resolves it as an async module. It reproduces on main without
+      # any of this branch's changes (three runs, three failures) and it is why
+      # `pnpm build` fails roughly two runs in three *when DATABASE_URL is set*.
+      #
+      # CI has never seen it because the `build` job runs with
+      # DATA_SOURCE=fixture, which takes the fixture branch and never executes
+      # that require — so the Postgres path has never actually been built or
+      # booted anywhere. Adding a red step here would only make the pipeline
+      # red; the fix is a decision about how the composition root loads
+      # @forum/db, and it belongs in its own change. See docs/progress.md.
+
+      # The worker role — F04's "the same image runs the worker with a flag".
+      # A worker that starts, registers its tasks and survives a tick is the
+      # claim; anything less is a container that exits zero and does nothing.
+      - name: Boot the worker role
+        run: |
+          docker run -d --name forum-worker --network host \
+            -e FORUM_ROLE=worker \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
+            -e DATA_SOURCE=postgres \
+            -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
+            -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
+            -e QUEUE_DRIVER=postgres -e CACHE_DRIVER=memory \
+            forum:ci
+          sleep 20
+          docker logs forum-worker
+          docker ps --filter name=forum-worker --filter status=running | grep -q forum-worker \
+            || { echo "::error::the worker exited instead of looping"; exit 1; }
+          docker logs forum-worker 2>&1 | grep -q 'worker started' \
+            || { echo "::error::the worker never reported starting"; exit 1; }
+
+      # It registered its tasks, which is the difference between a loop that
+      # runs and a loop that works.
+      - name: The worker registered its tasks
+        run: |
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d forum_test -tAc 'select count(*) from tasks' \
+            | grep -qE '^[1-9]' \
+            || { echo "::error::no tasks were registered"; docker logs forum-worker; exit 1; }
+
+      - name: Stop
+        if: always()
+        run: docker rm -f forum-worker 2>/dev/null || true
+
   e2e:
     name: No-JS and accessibility browser checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # No `version:` — action-setup reads `packageManager` from package.json,
+      # so CI, the Docker image and a developer machine all run one pnpm. They
+      # ran three (9, 11.x-latest and 10.6) until the image job made that
+      # visible by failing.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -138,9 +234,11 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      # No `version:` — action-setup reads `packageManager` from package.json,
+      # so CI, the Docker image and a developer machine all run one pnpm. They
+      # ran three (9, 11.x-latest and 10.6) until the image job made that
+      # visible by failing.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22

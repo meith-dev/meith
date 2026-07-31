@@ -363,83 +363,84 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
 
 ## NEXT ACTION — resume here
 
-**Phase 4 is done.** Seven of eight `DONE`; F50 is `PARTIAL` on *copy* alone,
-which is an unanswered product question rather than missing code (MyBB credits
-the copies, double-counting one piece of writing — see
-`mybb-parity.md#copying-a-thread`). Checkpoint 4 is reached with one honest
-caveat, below.
+**Phase 4 is closed: eight of eight.** Copy landed once the product question
+behind it was answered — credit the authors, as MyBB does — and the move
+redirect stub became a recorded parity divergence rather than an open gap. The
+flagged leftovers from the last pass are paid down too: `forum task:run` and
+`task:list`, the schema-drift CI step (which had inspected a directory that has
+never existed), `installTestContainer()`, the board title from `board.name`,
+`ViewerModel.username`, and F51's hand-picked split now that F52 supplies the
+checkboxes.
 
-**Phase 5 (F55–F62) is next in order, and F55 is the right start** — not because
-it is first in the list but because three finished features are waiting on it:
+### The one thing to decide before anything else
 
-1. a failing scheduled task logs and raises no admin notification (ten tasks
-   wide now);
-2. F49's reports notify nobody, so a report is only seen by a moderator who
-   happens to open the screen;
-3. F53's warnings notify nobody either — a warned member finds out by trying to
-   post and being held.
+**`pnpm build` fails about two runs in three when `DATABASE_URL` is set.**
 
-Each of those is a line in a `DONE` row saying "omitted rather than stubbed
-(D32)", and F55 is the feature that lets all three stop being omissions.
+`TypeError: c is not a function`, thrown from the lazy `require('@forum/db')` in
+`apps/forum/src/server/container.ts` when Turbopack resolves it as an async
+module. It is **pre-existing** — three runs, three failures on `main` with none
+of this work applied — and it is intermittent, which is why it reads as flaky
+rather than broken.
 
-**Still unresolved, and now the oldest blocker on the board: the e2e board
-cannot post.** The Playwright suite runs against fixture mode, which has no
-writer, so no browser test covers posting, replying, moderating or warning
-without JavaScript. F52 makes this worse in a specific way — inline moderation's
-whole claim is that native checkboxes associated by the `form` attribute submit
-correctly with scripting off, and that is exactly the kind of claim a browser
-proves and a `FormData`-driven action test cannot. Either the e2e harness gains a
-real database or the fixture gains a content store. D38's "fixture writes throw"
-rule was written for *structure*; this is the third time it has cost coverage.
+CI has never seen it because the `build` job runs `DATA_SOURCE=fixture`, which
+takes the fixture branch and never executes that require. **The Postgres build
+path has never been built or booted anywhere.** The consequence is not
+theoretical: the standalone image cannot serve a Postgres board, which is why
+F04's new `image` job boots the migrate and worker roles and not the web one.
 
-**The F22 matrix needed no new columns for F52, F53 or F54**, which is worth
-noting because it is the first stretch of Phase 4 where that is true. F52 reuses
-`content.approve`, F50's four and `post.softDelete`; F53's `user.warn` is global
-like `content.report`; F54 reads `modcp.access`, which has existed since F20. It
-stays at 608 cells.
+The fix is a decision about how the composition root loads `@forum/db` — the
+lazy require exists so fixture mode does not pull in postgres.js — and it wants
+its own change rather than being tacked onto this one.
 
-Also worth knowing, carried forward:
+### Then
 
-- **`ViewerModel.username` is still always `null`.** `Actor` carries permissions,
-  not profile data, so anything needing a name reads the profile row separately.
-- **The board title is a constant** (`BOARD_TITLE` in `src/view/shell.ts`).
-  `getSettings()` exists and `board.name` is in the registry: a two-line change.
-- **`ViewerModel.canAccessModCp` is group-level only**, so the shell's ModCP link
-  does not appear for a per-forum appointee even though `/modcp` now admits them.
-  Answering it properly costs the tree on every page render; the panel itself
-  resolves it correctly, so the link is the only thing affected.
+**F55 · notification infrastructure** remains the right next feature. Three
+finished features are waiting on it and each says so in its own row: a failing
+task logs and raises nothing (ten tasks now), F49's reports notify nobody, and
+F53's warnings notify nobody — a warned member finds out by trying to post.
 
-Smaller things still unblocked, in rough order of value:
+### What the image job found
 
-1. **`forum task:run`** — the CLI command was blocked on `TaskRepository`, which
-   exists. Small, and gives operators a way to force a tick, which matters more
-   now that **ten** real tasks are registered.
-2. **F04** — CI never boots the standalone image and `apps/worker` is empty, so
-   the self-hosting path is unverified and rots quietly.
-3. **The schema-drift CI step is inert** — it inspects `packages/db/drizzle`,
-   which does not exist (migrations live in `packages/db/migrations`), so it has
-   always passed vacuously. Pointing it at the real directory fails today for a
-   real reason: the drizzle meta snapshot has been stale since `0002` and is now
-   four migrations behind. Repairing the snapshot and fixing the path belong
-   together (D41).
-4. **Hand-picked split** — F51 deferred it to F52's checkboxes, which now exist.
-   It is a change to `ThreadSurgery`'s validation (no opening post, not the whole
-   thread, all of *this* thread) rather than to the inline bar, which is why F52
-   did not do it in passing.
+F04 asked CI to build **and boot** the image. Building it for the first time
+found five things that had rotted invisibly, all now fixed:
+
+1. **No `.dockerignore` at all**, so a developer's gitignored `apps/forum/.env`
+   was copied into the build — and its `QUEUE_DRIVER=postgres` broke the
+   fixture build. The patterns must be `**/.env`: dockerignore is anchored to
+   the context root, so a bare `.env` matches only the repo root.
+2. **The build stage copied two of the many pnpm `node_modules` trees.** It
+   only ever worked because, with no `.dockerignore`, `COPY . .` was dragging
+   the *host's* trees in behind it. Now it builds `FROM deps`.
+3. **Three package manifests were missing** from a hand-maintained COPY list
+   (`bbcode`, `moderation`, `runtime`) — replaced by a `--parents` glob so it
+   cannot rot again.
+4. **Three different pnpm versions**: the image took whatever was latest
+   (11.18), dev used 10.6, CI pinned 9. One `packageManager` field now.
+5. **compose's migrate service ran `drizzle-kit`**, which is a development tool
+   and is not in the pruned standalone tree. It is `FORUM_ROLE=migrate` now,
+   running the same `runMigrations()` the CLI does.
+
+Also worth knowing: **do not add `sharp` to `onlyBuiltDependencies`.** Letting
+its postinstall run makes `next build` fail at prerender; nothing uses image
+optimisation yet (F42/F58 would).
 
 Still outstanding and worth keeping visible:
 
+- **The e2e board cannot post.** Playwright runs against fixture mode, which has
+  no writer, so no browser test covers posting, moderating or warning without
+  JavaScript — including F52's central claim that `form`-attribute-associated
+  checkboxes submit with scripting off. Either the e2e harness gains a real
+  database or the fixture gains a content store. D38's "fixture writes throw"
+  rule was written for *structure*; this is the third time it has cost coverage.
+- **`ViewerModel.canAccessModCp` is group-level only**, so the shell's ModCP
+  link does not appear for a per-forum appointee even though `/modcp` admits
+  them. Answering it properly costs the tree on every page render.
 - Permission columns are generated into a `Record<string, …>`, so
-  `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.
+  `usergroups.canView` is not statically typed anywhere (D23).
 - **Deleting or renaming a route breaks `typecheck:app`** until `next build`
   runs, because `.next/types/validator.ts` still imports the removed page.
 - **`apps/forum/tsconfig.json` hand-copies the workspace path aliases** from
-  `tsconfig.base.json` — TypeScript replaces `paths` rather than merging, so a
-  new package must be added in both places.
-- **Adding a container field breaks every app-tier test container**, because
-  `getContainer()`'s HMR compatibility guard rebuilds on an unknown shape. Three
-  fields were added this pass and each one needed the same six test files
-  touched. Worth a shared `testContainer()` helper before Phase 5 adds more.
+  `tsconfig.base.json` — a new package must be added in both places.
 
 **Test harness note:** integration tests use PGlite via `createTestDb()` in
 `packages/db/src/pglite.fixture.ts` — boot once per suite, clear mutable tables

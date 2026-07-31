@@ -81,6 +81,11 @@ class FakeTools implements ThreadToolsRepository {
     this.calls.push('move')
     return true
   }
+
+  async copy(): Promise<{ threadId: number; slug: string; posts: number }> {
+    this.calls.push('copy')
+    return { threadId: 77, slug: 'hello', posts: 3 }
+  }
 }
 
 let tools: FakeTools
@@ -257,5 +262,41 @@ describe('threadToolAction', () => {
     )
     expect(state.error).toBeTruthy()
     expect(tools.calls).toEqual([])
+  })
+})
+
+/** F50's copy at the app layer: two ends, and a redirect that goes elsewhere. */
+describe('copy', () => {
+  it('needs the move right in the destination as well as the source', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, 3)
+    installContainer([appointment(SEED_FORUM.general, { canMoveThreads: true })])
+
+    const state = await threadToolAction(
+      EMPTY_STATE,
+      form({
+        threadId: '20',
+        tool: 'copy',
+        toForumId: String(SEED_FORUM.announcements),
+      }),
+    )
+    expect(state.error).toMatch(/cannot copy threads into/i)
+    expect(tools.calls).toEqual([])
+  })
+
+  /* A copy is the only tool that leaves the moderator somewhere else. */
+  it('lands on the copy rather than on the source', async () => {
+    expect(
+      await redirectOf(
+        threadToolAction(
+          EMPTY_STATE,
+          form({
+            threadId: '20',
+            tool: 'copy',
+            toForumId: String(SEED_FORUM.announcements),
+          }),
+        ),
+      ),
+    ).toBe('/thread/77-hello?tool=copy')
+    expect(tools.calls).toEqual(['copy'])
   })
 })

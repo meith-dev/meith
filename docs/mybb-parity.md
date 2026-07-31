@@ -411,3 +411,56 @@ address to match — this is a consequence of the privacy invariant rather than 
 choice made here. It is stated on the screen because the difference matters to
 what a moderator does next: "shares an address" reads as proof, "shares a range"
 reads as something to check, and only the second is what the data supports.
+
+## Copying a thread credits its authors twice
+
+**MyBB:** copying a thread duplicates its posts, and each copy counts towards
+its author's post count. One piece of writing therefore counts twice.
+
+**Here:** the same, chosen deliberately.
+
+**Why:** every other counter on this board holds to one definition —
+`users.post_count` means *posts written* — and F51 settled the merge/split
+question by that definition (neither operation duplicates a post, so neither
+moves an author's total). Copy is the one tool that genuinely creates rows, so
+the definition and parity actually conflict, and parity won: an imported MyBB
+board's counts must not change under it, and a moderator using copy expects the
+same arithmetic they know.
+
+The cost is stated rather than hidden: after a copy, `post_count` means "posts
+attributed to you", which is a slightly different thing from "posts you wrote".
+`PostgresCounterRecount` agrees with it, because the recount counts rows — so
+the board stays internally consistent, and a repair run will not quietly undo
+it. Only visible posts are copied: copying held content would double the
+approval queue, and copying removed content would republish it.
+
+## Copy is authorised by `thread.move`, at both ends
+
+**MyBB:** copy is governed by the same "can manage threads" moderator
+permission as move.
+
+**Here:** `thread.copy` does not exist as a right. Copying reads `thread.move`
+in the source forum *and* in the destination, exactly as a move does (D49).
+
+**Why:** copying is moving that leaves the original behind. It puts content into
+the destination forum by the same mechanism, so the destination's moderators
+have precisely the same interest in it — and a separate right would mean an
+eighth column on `forum_moderators` distinguishing two acts nobody grants
+separately. Unlike a move, the destination *may* be the source forum: forking a
+discussion in place is legitimate and there is no pointer to repair, because
+nothing left.
+
+## A moved thread leaves no redirect stub
+
+**MyBB:** moving a thread can leave a "Moved: <title>" row in the source forum,
+linking to its new home, optionally expiring after a set number of days.
+
+**Here:** a move just moves. The schema keeps `moved_to_thread_id` and
+`ThreadRowModel.isMoved` for a future implementation, and nothing writes them.
+
+**Why:** the stub is a second kind of row in every listing query, in a listing
+that is already the board's most performance-sensitive read (F29/F30's budgets),
+and it has to be filtered, counted and expired everywhere. What it buys is a
+reader who bookmarked a thread finding it — and search (F72) and the thread's
+own permalink already do that, because the thread keeps its id. Revisit if a
+real board reports people losing threads after a move.

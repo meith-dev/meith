@@ -62,6 +62,20 @@ export interface ThreadSurgeryRepository {
    */
   postsFrom(threadId: number, fromPostId: number): Promise<readonly number[]>
 
+  /**
+   * Which of `postIds` are visible posts *of this thread*, in id order.
+   *
+   * The hand-picked counterpart to `postsFrom`, and the same rule: anything not
+   * in the result was not eligible, and "not in this thread" and "does not
+   * exist" give the same answer. Returning the subset rather than a boolean is
+   * what lets the command tell a moderator how many of their ticks it could
+   * use.
+   */
+  visiblePostIdsIn(
+    threadId: number,
+    postIds: readonly number[],
+  ): Promise<readonly number[]>
+
   split(plan: SplitPlan & { actorUserId: number; at: Date }): Promise<SurgeryOutcome>
 
   merge(plan: MergePlan & { actorUserId: number; at: Date }): Promise<SurgeryOutcome>
@@ -101,11 +115,7 @@ export class ThreadSurgery {
 
     const source = await this.requireLive(input.threadId)
 
-    const title = input.title.trim()
-    if (title.length < 3) throw new ValidationError('The new thread needs a title.')
-    if (title.length > 150) {
-      throw new ValidationError('A title may be at most 150 characters.')
-    }
+    const title = this.requireTitle(input.title)
 
     /*
      * Splitting from the opening post would move every post out and leave a
@@ -136,6 +146,72 @@ export class ThreadSurgery {
       actorUserId: input.actorUserId,
       at: this.now(),
     })
+  }
+
+  /**
+   * Split a hand-picked set of posts out of a thread (F52's checkboxes).
+   *
+   * F51 shipped only `split` — "from this post onwards" — because that is what
+   * a page without per-post checkboxes can express, and it deliberately did not
+   * invent a second selection mechanism to get arbitrary sets. F52 put
+   * checkboxes on the thread page, so the selection now exists and this is the
+   * command that consumes it.
+   *
+   * Every rule `split` enforces is enforced here, because they are properties
+   * of the *result* rather than of how the posts were chosen: the new thread
+   * lands in the same forum, it cannot start from the source's opening post,
+   * and it cannot take every visible post (that is a move). What is new is that
+   * the selection is filtered rather than derived, so a tick on a post that has
+   * since been deleted, or on one from another thread, is dropped instead of
+   * failing the whole operation — a moderator who ticked twelve boxes and
+   * split eleven is told, which is F52's rule for every bulk act.
+   */
+  async splitPosts(input: {
+    readonly threadId: number
+    readonly postIds: readonly number[]
+    readonly title: string
+    readonly actorUserId: number
+    readonly rights: SurgeryRights
+  }): Promise<SurgeryOutcome & { readonly dropped: number }> {
+    if (!input.rights.split) throw new ValidationError('You cannot split threads here.')
+
+    const source = await this.requireLive(input.threadId)
+    const title = this.requireTitle(input.title)
+
+    if (input.postIds.length === 0) {
+      throw new ValidationError('Select the posts to split out.')
+    }
+
+    const eligible = await this.threads.visiblePostIdsIn(input.threadId, input.postIds)
+    const dropped = new Set(input.postIds).size - eligible.length
+
+    if (eligible.length === 0) {
+      throw new ValidationError('None of those posts are in this thread.')
+    }
+    /*
+     * The opening post is refused rather than dropped, and the difference
+     * matters: dropping it would silently split "everything they ticked except
+     * the one that defines the thread", which is not what was asked for.
+     */
+    if (source.firstPostId !== null && eligible.includes(source.firstPostId)) {
+      throw new ValidationError(
+        'That selection includes the opening post. Move the thread instead.',
+      )
+    }
+    if (eligible.length >= source.visiblePosts) {
+      throw new ValidationError(
+        'That is the whole thread. Move it instead of splitting it.',
+      )
+    }
+
+    const outcome = await this.threads.split({
+      sourceThreadId: source.id,
+      title,
+      postIds: eligible,
+      actorUserId: input.actorUserId,
+      at: this.now(),
+    })
+    return { ...outcome, dropped }
   }
 
   /**
@@ -179,6 +255,16 @@ export class ThreadSurgery {
       actorUserId: input.actorUserId,
       at: this.now(),
     })
+  }
+
+  /** One title rule, because two copies would drift the first time one moved. */
+  private requireTitle(raw: string): string {
+    const title = raw.trim()
+    if (title.length < 3) throw new ValidationError('The new thread needs a title.')
+    if (title.length > 150) {
+      throw new ValidationError('A title may be at most 150 characters.')
+    }
+    return title
   }
 
   private async requireLive(threadId: number): Promise<SurgeryThread> {

@@ -466,3 +466,138 @@ describe('moving a thread', () => {
     expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
   })
 })
+
+/**
+ * F50's copy — the one tool that creates content.
+ *
+ * Every other operation in this file redistributes rows that already exist, so
+ * one tally serves both ends. A copy has no other end: everything it touches
+ * goes up, and nothing goes down.
+ *
+ * The author-credit decision is the thing to read carefully. **Each copied post
+ * credits its author again**, matching MyBB, so one piece of writing counts
+ * twice in `users.post_count`. That is a deliberate divergence from the
+ * definition every other counter here holds to, and these tests pin it so it
+ * cannot be "fixed" by accident later.
+ */
+describe('copy', () => {
+  it('duplicates the thread and its posts into the destination', async () => {
+    const { threadId } = await seedThread(LEFT)
+
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
+
+    expect(copy.posts).toBe(2)
+    expect(copy.threadId).not.toBe(threadId)
+
+    const rows = resultRows(
+      await db.execute(
+        sql`select message, is_first_post from posts where thread_id = ${copy.threadId} order by id`,
+      ),
+    ) as Array<{ message: string; is_first_post: boolean }>
+    expect(rows.map((r) => r.message)).toEqual(['the opening post', 'a reply'])
+    /* Carried across rather than inferred — F51's lesson about this flag. */
+    expect(rows.map((r) => r.is_first_post)).toEqual([true, false])
+  })
+
+  it('leaves the source thread and its forum completely untouched', async () => {
+    const { threadId } = await seedThread(LEFT)
+    const before = await forumCounts(LEFT)
+
+    await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
+
+    expect(await forumCounts(LEFT)).toEqual(before)
+    const stillThere = resultRows(
+      await db.execute(sql`select count(*)::int as n from posts where thread_id = ${threadId}`),
+    ) as Array<{ n: number }>
+    expect(Number(stillThere[0]!.n)).toBe(2)
+  })
+
+  it('credits the destination forum and every ancestor', async () => {
+    const { threadId } = await seedThread(LEFT)
+
+    await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
+
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
+    /* The category holds both, so it gains the copy on top of the original. */
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
+  })
+
+  /* The parity decision, pinned. */
+  it('credits every author a second time, as MyBB does', async () => {
+    const { threadId } = await seedThread(LEFT)
+    expect(await userCounts(ADA)).toEqual({ posts: 1, threads: 1 })
+    expect(await userCounts(BOB)).toEqual({ posts: 1, threads: 0 })
+
+    await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
+
+    expect(await userCounts(ADA)).toEqual({ posts: 2, threads: 2 })
+    expect(await userCounts(BOB)).toEqual({ posts: 2, threads: 0 })
+  })
+
+  /*
+   * Copying the queue into a second forum would double the work waiting for
+   * somebody; copying removed content would republish it.
+   */
+  it('copies only the visible posts', async () => {
+    const { threadId, postIds } = await seedThread(LEFT)
+    await db.execute(sql`update posts set visibility = 'deleted' where id = ${postIds[1]!}`)
+
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
+
+    expect(copy.posts).toBe(1)
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 1, threads: 1 })
+  })
+
+  it('points the copy at its own opening post, not the source"s', async () => {
+    const { threadId } = await seedThread(LEFT)
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
+
+    const rows = resultRows(
+      await db.execute(
+        sql`select first_post_id, reply_count, last_post_id from threads where id = ${copy.threadId}`,
+      ),
+    ) as Array<{ first_post_id: number; reply_count: number; last_post_id: number }>
+    const own = resultRows(
+      await db.execute(sql`select id from posts where thread_id = ${copy.threadId} order by id`),
+    ) as Array<{ id: number }>
+
+    expect(Number(rows[0]!.first_post_id)).toBe(Number(own[0]!.id))
+    expect(Number(rows[0]!.last_post_id)).toBe(Number(own[1]!.id))
+    expect(Number(rows[0]!.reply_count)).toBe(1)
+  })
+
+  it('logs the act with both thread ids', async () => {
+    const { threadId } = await seedThread(LEFT)
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
+
+    const rows = resultRows(
+      await db.execute(sql`select action, detail from admin_log where action = 'thread.copy'`),
+    ) as Array<{ action: string; detail: Record<string, unknown> }>
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.detail).toMatchObject({
+      threadId,
+      toForumId: RIGHT,
+      newThreadId: copy.threadId,
+      posts: 2,
+    })
+  })
+
+  /*
+   * The ledger means "this post is currently counted in its ancestors". The
+   * copies are, so they need rows — otherwise deleting one afterwards would
+   * decrement ancestors that were never incremented for it.
+   */
+  it('puts the copies in the roll-up ledger', async () => {
+    const { threadId } = await seedThread(LEFT)
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
+
+    const rows = resultRows(
+      await db.execute(sql`
+        select count(*)::int as n from content_counter_rollups r
+          join posts p on p.id = r.post_id
+         where p.thread_id = ${copy.threadId}
+      `),
+    ) as Array<{ n: number }>
+    expect(Number(rows[0]!.n)).toBe(2)
+  })
+})

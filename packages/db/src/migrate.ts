@@ -29,7 +29,18 @@ function migrationsFolder(): string {
  * backends, so an advisory lock taken by one statement is invisible to the next
  * and two concurrent deploys can interleave DDL.
  */
-export async function runMigrations(): Promise<number> {
+export async function runMigrations(options: {
+  /**
+   * Where the generated SQL lives, when it is not beside this module.
+   *
+   * Defaulted from `import.meta.url`, which is correct everywhere the source
+   * tree is present — and undefined in a CJS bundle, which is what the
+   * standalone image's migrate role is. Passing the folder explicitly is the
+   * honest fix; inferring it from `__dirname` would work today and break the
+   * moment the bundle moves.
+   */
+  readonly folder?: string
+} = {}): Promise<number> {
   const url = env.DIRECT_DATABASE_URL ?? env.DATABASE_URL
 
   if (!url) {
@@ -47,7 +58,7 @@ export async function runMigrations(): Promise<number> {
 
   try {
     const before = await appliedCount(sql)
-    await migrate(drizzle(sql), { migrationsFolder: migrationsFolder() })
+    await migrate(drizzle(sql), { migrationsFolder: options.folder ?? migrationsFolder() })
     const after = await appliedCount(sql)
 
     const applied = after - before

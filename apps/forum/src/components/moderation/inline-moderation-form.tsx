@@ -27,6 +27,7 @@
 import { useActionState } from "react"
 
 import { inlineModerateAction } from "@/server/inline-moderation-actions"
+import { splitSelectedAction } from "@/server/surgery-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import { FormError } from "../auth/form-controls"
@@ -53,6 +54,7 @@ export function InlineModerationForm({
   rights,
   moveTargets,
   returnTo,
+  splitFrom,
 }: {
   formId: string
   /** What the checkboxes are attached to, for the bar's own label. */
@@ -61,8 +63,25 @@ export function InlineModerationForm({
   moveTargets: readonly InlineMoveOption[]
   /** Where to land afterwards; validated server-side as a same-origin path. */
   returnTo: string
+  /**
+   * F51's split, over F52's checkboxes — the piece F51 deferred here.
+   *
+   * `null` when this viewer may not split, or when the surface is threads
+   * rather than posts. Carries the thread id because splitting names a source,
+   * which the bulk tools never have to.
+   */
+  splitFrom?: number | null
 }) {
   const [state, action] = useActionState(inlineModerateAction, EMPTY_STATE)
+  /*
+   * A second hook for the split, whose dispatch is what `formAction` takes: a
+   * `useActionState` reducer is `(prev, form)` and a form action is `(form)`,
+   * and the dispatch React hands back is already the second shape. It also
+   * gives the split its own error slot, which matters because "that selection
+   * includes the opening post" is a different sentence from anything the bulk
+   * tools say.
+   */
+  const [splitState, splitAction] = useActionState(splitSelectedAction, EMPTY_STATE)
 
   return (
     <form
@@ -72,6 +91,7 @@ export function InlineModerationForm({
       className="mx-6 mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-3"
     >
       <FormError message={state.error} />
+      <FormError message={splitState.error} />
       <input type="hidden" name="returnTo" value={returnTo} />
 
       <span className="text-xs font-medium text-muted-foreground">
@@ -126,6 +146,35 @@ export function InlineModerationForm({
           </label>
           <button type="submit" name="tool" value="move" className={BUTTON}>
             Move
+          </button>
+        </span>
+      )}
+
+      {/*
+        Split, reached from the same checkboxes by `formAction`.
+
+        Native HTML: a control has exactly one form owner, so the ticks cannot
+        belong to two forms — but a submit button may redirect *its* submission
+        elsewhere, which is what `formaction` is for. That is what lets one
+        selection drive both the bulk tools and a split without the second
+        selection mechanism F51 refused to build. React accepts a Server Action
+        here for the same reason it accepts one on `<form action>`.
+      */}
+      {splitFrom != null && scope === "posts" && (
+        <span className="flex items-center gap-2">
+          <input type="hidden" name="threadId" value={splitFrom} />
+          <label className="flex items-center gap-2 text-xs">
+            <span className="sr-only">Title for the new thread</span>
+            <input
+              type="text"
+              name="title"
+              maxLength={150}
+              placeholder="New thread title"
+              className="h-8 w-48 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            />
+          </label>
+          <button type="submit" formAction={splitAction} className={BUTTON}>
+            Split out
           </button>
         </span>
       )}

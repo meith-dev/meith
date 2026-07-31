@@ -79,8 +79,15 @@ export async function threadToolAction(
     }
 
     const rights = await resolveRights(target.forumId)
+    /*
+     * A copy needs rights at both ends exactly as a move does — it puts content
+     * into the destination the same way, so the destination's moderators have
+     * the same interest in it (D49).
+     */
     const destinationRights =
-      tool === 'move' && toForumId !== null ? await resolveRights(toForumId) : undefined
+      (tool === 'move' || tool === 'copy') && toForumId !== null
+        ? await resolveRights(toForumId)
+        : undefined
 
     outcome = await new ThreadTools({ threads: threadTools }).apply({
       threadId,
@@ -98,6 +105,14 @@ export async function threadToolAction(
    * A deleted thread has no page its own moderator can open — F47's scope is
    * what decides that, not this action — so the redirect goes to the forum.
    */
+  /*
+   * A copy is the only tool whose result is somewhere else, so it is the only
+   * one that redirects away from the thread the moderator was on — to the copy,
+   * which is the thing to check.
+   */
+  if (outcome.tool === 'copy') {
+    redirect(`/thread/${outcome.threadId}-${outcome.slug}?tool=copy`)
+  }
   if (outcome.tool === 'delete') {
     redirect(`/forum/${(await threadTools.find(threadId))?.forumId ?? ''}?thread=deleted`)
   }

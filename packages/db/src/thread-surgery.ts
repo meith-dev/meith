@@ -126,6 +126,33 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       : []
   }
 
+  /**
+   * The hand-picked counterpart to `postsFrom` (F52's checkboxes).
+   *
+   * Filtered in SQL by the same three conditions: this thread, visible, and in
+   * the submitted set. Anything not in the result was not eligible, and a post
+   * of another thread is indistinguishable from one that does not exist — the
+   * same refusal `postsFrom` makes, for the same reason.
+   */
+  async visiblePostIdsIn(
+    threadId: number,
+    postIds: readonly number[],
+  ): Promise<readonly number[]> {
+    if (postIds.length === 0) return []
+    const list = sql.join(
+      postIds.map((id) => sql`${id}`),
+      sql`, `,
+    )
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select id from posts
+         where thread_id = ${threadId} and visibility = 'visible' and id in (${list})
+         order by id
+      `),
+    ) as Array<{ id: number }>
+    return rows.map((row) => Number(row.id))
+  }
+
   async split(
     plan: SplitPlan & { actorUserId: number; at: Date },
   ): Promise<SurgeryOutcome> {

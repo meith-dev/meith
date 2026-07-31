@@ -8,6 +8,8 @@
  */
 import { sql } from 'drizzle-orm'
 
+import { ValidationError } from '@forum/core'
+
 import type {
   MoveDestination,
   ThreadToolTarget,
@@ -23,7 +25,7 @@ import {
   syncLedger,
   tallyThread,
 } from './thread-counters'
-import { repairForumLastPostChain } from './visibility-counters'
+import { repairForumLastPostChain, repairThreadLastPost } from './visibility-counters'
 
 export class PostgresThreadToolsRepository implements ThreadToolsRepository {
   constructor(private readonly db: Database) {}
@@ -215,6 +217,126 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         input.at,
       )
       return true
+    })
+  }
+
+  /**
+   * Duplicate a thread and its visible posts into another forum.
+   *
+   * **The one tool that creates content**, which is why every other operation
+   * in this file could reuse one tally and this one cannot: a copy is not a
+   * redistribution of existing rows, it is new rows, and every counter it
+   * touches goes *up* with nothing going down.
+   *
+   * The author-credit question F50 deferred and F51 could not settle — because
+   * neither merge nor split duplicates a post — is answered here the way MyBB
+   * answers it: **each copied post credits its author again**. One piece of
+   * writing therefore counts twice in `users.post_count`. That is a deliberate
+   * divergence from the definition every other counter on this board holds to
+   * ("post_count means posts written"), taken for parity, and it is recorded in
+   * `mybb-parity.md#copying-a-thread` rather than left as a surprise. The
+   * recount agrees with it, because the recount counts *rows*.
+   *
+   * Only **visible** posts are copied. A held or removed post is not part of
+   * what a moderator is duplicating — copying the queue into a second forum
+   * would double the work waiting for somebody, and copying deleted content
+   * would republish it.
+   */
+  async copy(input: {
+    readonly threadId: number
+    readonly toForumId: number
+    readonly actorUserId: number
+    readonly at: Date
+  }): Promise<{ threadId: number; slug: string; posts: number }> {
+    return this.db.transaction(async (tx) => {
+      const sourceRows = resultRows(
+        await tx.execute(sql`
+          select id, title, slug, prefix_id, author_user_id, author_username
+            from threads where id = ${input.threadId}
+        `),
+      ) as Array<{
+        id: number
+        title: string
+        slug: string
+        prefix_id: number | null
+        author_user_id: number | null
+        author_username: string
+      }>
+      const source = sourceRows[0]
+      if (!source) {
+        throw new ValidationError('That thread does not exist.')
+      }
+
+      const created = resultRows(
+        await tx.execute(sql`
+          insert into threads
+            (forum_id, title, slug, prefix_id, author_user_id, author_username,
+             visibility, created_at, updated_at)
+          values
+            (${input.toForumId}, ${source.title}, ${source.slug}, ${source.prefix_id},
+             ${source.author_user_id}, ${source.author_username},
+             'visible', ${input.at}, ${input.at})
+          returning id, slug
+        `),
+      ) as Array<{ id: number; slug: string }>
+      const newThreadId = Number(created[0]!.id)
+
+      /*
+       * The posts, in one statement and in source order. `is_first_post` is
+       * carried across rather than recomputed: the copy opens with the same
+       * post the original does, and F51's lesson was that this flag is the
+       * thing that silently goes wrong when it is inferred.
+       */
+      const copied = resultRows(
+        await tx.execute(sql`
+          insert into posts
+            (thread_id, forum_id, author_user_id, author_username, subject, message,
+             message_html, render_version, visibility, is_first_post, created_at)
+          select ${newThreadId}, ${input.toForumId}, p.author_user_id, p.author_username,
+                 p.subject, p.message, p.message_html, p.render_version,
+                 'visible', p.is_first_post, p.created_at
+            from posts p
+           where p.thread_id = ${input.threadId} and p.visibility = 'visible'
+           order by p.id
+          returning id, author_user_id, is_first_post
+        `),
+      ) as Array<{ id: number; author_user_id: number | null; is_first_post: boolean }>
+
+      const first = copied.find((row) => row.is_first_post) ?? copied[0]
+      await tx.execute(sql`
+        update threads
+           set first_post_id = ${first === undefined ? null : Number(first.id)},
+               reply_count = ${Math.max(copied.length - 1, 0)}
+         where id = ${newThreadId}
+      `)
+
+      /*
+       * Counters. A tally of the *copy* rather than of the source, because the
+       * source is unchanged and what the destination gains is exactly what was
+       * inserted — one thread and however many posts survived the visibility
+       * filter.
+       */
+      const tally = await tallyThread(tx, newThreadId)
+      await applyForumChain(tx, input.toForumId, 1, tally)
+      await applyAuthorCounts(tx, 1, tally)
+      await syncLedger(tx, newThreadId, true)
+      await repairThreadLastPost(tx, newThreadId)
+      await repairForumLastPostChain(tx, input.toForumId)
+
+      await log(
+        tx,
+        'thread.copy',
+        input.actorUserId,
+        {
+          threadId: input.threadId,
+          toForumId: input.toForumId,
+          newThreadId,
+          posts: copied.length,
+        },
+        input.at,
+      )
+
+      return { threadId: newThreadId, slug: created[0]!.slug, posts: copied.length }
     })
   }
 }

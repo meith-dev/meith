@@ -23,10 +23,14 @@ services:
     build: .
     # Runs to completion then exits; `web` waits for it so the schema is always
     # applied before the first request rather than racing it.
-    command: ['node', 'node_modules/.bin/drizzle-kit', 'migrate']
-    working_dir: /app
     environment:
+      # A role, not a command: drizzle-kit is a development tool and is not in
+      # the pruned standalone node_modules, so `node node_modules/.bin/drizzle-kit`
+      # never worked here. `FORUM_ROLE=migrate` runs the same runMigrations()
+      # the operator CLI does.
+      FORUM_ROLE: migrate
       DATABASE_URL: postgres://forum:${POSTGRES_PASSWORD:-forum}@postgres:5432/forum
+      DATA_SOURCE: postgres
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,11 +61,41 @@ services:
       migrate:
         condition: service_completed_successfully
 
-  # Vercel Cron has no self-hosted equivalent, so a tiny sidecar curls the tick
-  # endpoint on the same one-minute cadence vercel.json declares. Keeping the
-  # schedule identical means self-hosted and hosted deployments exercise the same
-  # catch-up code paths.
+  # F04's worker: the same image, with FORUM_ROLE=worker, running the scheduler
+  # in-process on its own one-minute loop.
+  #
+  # It replaces the `tick` sidecar below rather than joining it — running both
+  # is harmless (the task claim is what makes concurrent ticks safe) but it is
+  # two things doing one job. The sidecar is kept, commented, because a board
+  # that would rather not give a second container database credentials can use
+  # it instead; that is the trade, and it is the operator's to make.
+  worker:
+    build: .
+    restart: unless-stopped
+    environment:
+      FORUM_ROLE: worker
+      DATABASE_URL: postgres://forum:${POSTGRES_PASSWORD:-forum}@postgres:5432/forum
+      DATA_SOURCE: postgres
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set}
+      TICK_SECRET: ${TICK_SECRET:?TICK_SECRET must be set}
+      QUEUE_DRIVER: postgres
+      CACHE_DRIVER: memory
+      FILESTORE_DRIVER: local
+      MAIL_DRIVER: ${MAIL_DRIVER:-log}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+    volumes:
+      - uploads:/app/.uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # The pre-worker approach, kept for the operator who prefers it: a tiny
+  # sidecar curling the tick endpoint on the cadence vercel.json declares.
+  # Enable this *or* `worker`, not both.
   tick:
+    profiles: ['curl-tick']
     image: alpine:3.20
     restart: unless-stopped
     environment:

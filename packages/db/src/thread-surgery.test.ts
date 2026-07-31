@@ -529,3 +529,42 @@ describe('merging', () => {
     expect(rows[0]!.detail).toMatchObject({ fromForum: LEFT, toForum: RIGHT })
   })
 })
+
+/** F52's checkboxes: the hand-picked counterpart to `postsFrom`. */
+describe('visiblePostIdsIn', () => {
+  it('returns the selected posts of this thread, in id order', async () => {
+    const { threadId, postIds } = await seedThread(LEFT, 'Mine', 2)
+
+    const found = await repo.visiblePostIdsIn(threadId, [...postIds].reverse())
+    expect(found).toEqual([...postIds].sort((a, b) => a - b))
+  })
+
+  it('drops a post of another thread rather than reporting it', async () => {
+    const mine = await seedThread(LEFT, 'Mine', 1)
+    const theirs = await seedThread(LEFT, 'Elsewhere', 1)
+
+    expect(await repo.visiblePostIdsIn(mine.threadId, theirs.postIds)).toEqual([])
+  })
+
+  it('drops an id that does not exist', async () => {
+    const { threadId, postIds } = await seedThread(LEFT, 'Mine', 1)
+    expect(await repo.visiblePostIdsIn(threadId, [postIds[0]!, 999_999])).toEqual([
+      postIds[0]!,
+    ])
+  })
+
+  /* Only *visible* posts: a held or removed post is not eligible to be split. */
+  it('drops a post that is not visible', async () => {
+    const { threadId, postIds } = await seedThread(LEFT, 'Mine', 1)
+    await db.execute(
+      sql`update posts set visibility = 'deleted' where id = ${postIds[1]!}`,
+    )
+
+    expect(await repo.visiblePostIdsIn(threadId, postIds)).toEqual([postIds[0]!])
+  })
+
+  it('asks nothing at all for an empty selection', async () => {
+    const { threadId } = await seedThread(LEFT, 'Mine', 1)
+    expect(await repo.visiblePostIdsIn(threadId, [])).toEqual([])
+  })
+})

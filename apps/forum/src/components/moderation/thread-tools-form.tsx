@@ -110,6 +110,10 @@ export function ThreadToolsForm({
         <form action={moveAction} className="flex items-center gap-2">
           <FormError message={moveState.error} />
           <input type="hidden" name="threadId" value={threadId} />
+          {/*
+            The default when no button carries one — pressing Enter in the
+            select moves rather than copies, which is the reversible of the two.
+          */}
           <input type="hidden" name="tool" value="move" />
           <label className="flex items-center gap-2 text-xs">
             <span className="sr-only">Move to</span>
@@ -126,6 +130,15 @@ export function ThreadToolsForm({
           </label>
           <button type="submit" className={BUTTON}>
             Move
+          </button>
+          {/*
+            Copy shares the move box: both name a destination forum, and the
+            rights are the same at both ends (D49), so a second `<select>` would
+            be the same list twice. `name`/`value` on the button carries which
+            verb was pressed — the no-JS way to express one form, two actions.
+          */}
+          <button type="submit" name="tool" value="copy" className={BUTTON}>
+            Copy
           </button>
         </form>
       )}
