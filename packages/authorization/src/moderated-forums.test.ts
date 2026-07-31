@@ -66,6 +66,9 @@ const APPOINTMENT: MemoryAppointment = {
   canEditPosts: true,
   canSoftDeletePosts: true,
   canRestorePosts: true,
+  canOpenCloseThreads: true,
+  canStickThreads: true,
+  canMoveThreads: true,
 }
 
 async function moderated(

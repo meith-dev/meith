@@ -95,6 +95,7 @@ function installContainer(board = SEED_BOARD): void {
   ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
     authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
     reports,
+    threadTools: null,
     moderationQueue: null,
     threadWrites: null,
     postWrites: null,

@@ -1,0 +1,468 @@
+/**
+ * F50 — thread tools against real Postgres, with the counter assertions the
+ * roadmap asks for spelled out on every affected row.
+ *
+ * A move is the interesting one and the reason this file is long: it takes a
+ * thread's contribution out of one subtree and puts it into another, has to
+ * rewrite the denormalised `posts.forum_id` for every post, and has to leave a
+ * shared ancestor exactly where it was.
+ */
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { sql } from 'drizzle-orm'
+
+import type { Database } from './client'
+import { createTestDb, type TestDb } from './pglite.fixture'
+import { PostgresThreadToolsRepository } from './thread-tools'
+import { PostgresThreadWriteRepository } from './thread-writes'
+import { rollUpAncestorCounters } from './content-counters'
+import { resultRows } from './result-rows'
+import { forums, users } from './schema'
+
+let harness: TestDb
+let db: Database
+let repo: PostgresThreadToolsRepository
+let writes: PostgresThreadWriteRepository
+
+/* Two subtrees under one category, so a move can be watched from both ends. */
+const CATEGORY = 1
+const LEFT = 4
+const RIGHT = 5
+const NESTED = 6
+
+const ADA = 1
+const BOB = 2
+const MOD = 3
+const AT = new Date('2026-07-30T12:00:00Z')
+
+beforeAll(async () => {
+  harness = await createTestDb()
+  db = harness.db
+  repo = new PostgresThreadToolsRepository(db)
+  writes = new PostgresThreadWriteRepository(db)
+}, 60_000)
+
+afterAll(async () => {
+  await harness.close()
+})
+
+beforeEach(async () => {
+  await db.execute(sql`delete from admin_log`)
+  await db.execute(sql`delete from content_counter_rollups`)
+  await db.execute(sql`delete from outbox`)
+  await db.execute(sql`delete from posts`)
+  await db.execute(sql`delete from threads`)
+  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from users`)
+
+  await db.insert(users).values(
+    [
+      [ADA, 'ada'],
+      [BOB, 'bob'],
+      [MOD, 'mod'],
+    ].map(([id, name]) => ({
+      id: id as number,
+      username: name as string,
+      usernameLower: name as string,
+      email: `${String(name)}@example.test`,
+      emailLower: `${String(name)}@example.test`,
+      passwordHash: 'x',
+      passwordAlgo: 'argon2id',
+      primaryGroupId: 2,
+    })),
+  )
+  await db.insert(forums).values([
+    { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
+    { id: LEFT, title: 'Left', slug: 'left', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: RIGHT, title: 'Right', slug: 'right', path: '1.5', depth: 1, parentId: CATEGORY },
+    { id: NESTED, title: 'Nested', slug: 'nested', path: '1.4.6', depth: 2, parentId: LEFT },
+  ])
+})
+
+/**
+ * A thread with an opening post by Ada and one reply by Bob, written through
+ * the real posting path so the starting counters are the board's own.
+ */
+async function seedThread(forumId = LEFT): Promise<{ threadId: number; postIds: number[] }> {
+  const thread = await writes.create({
+    forumId,
+    title: 'Hello there',
+    slug: 'hello-there',
+    message: 'the opening post',
+    prefixId: null,
+    authorUserId: ADA,
+    authorUsername: 'ada',
+    visibility: 'visible',
+    subscribe: false,
+    createdAt: AT,
+  })
+  const { postId } = await writes.createReply({
+    threadId: thread.threadId,
+    forumId,
+    threadTitle: 'Hello there',
+    message: 'a reply',
+    authorUserId: BOB,
+    authorUsername: 'bob',
+    visibility: 'visible',
+    subscribe: false,
+    createdAt: new Date(AT.getTime() + 60_000),
+  })
+
+  for (const id of [thread.postId, postId]) await rollUpAncestorCounters(db, id)
+  return { threadId: thread.threadId, postIds: [thread.postId, postId] }
+}
+
+async function forumCounts(id: number): Promise<{ posts: number; threads: number }> {
+  const rows = resultRows(
+    await db.execute(sql`select post_count, thread_count from forums where id = ${id}`),
+  ) as Array<{ post_count: number; thread_count: number }>
+  return { posts: Number(rows[0]!.post_count), threads: Number(rows[0]!.thread_count) }
+}
+
+async function userCounts(id: number): Promise<{ posts: number; threads: number }> {
+  const rows = resultRows(
+    await db.execute(sql`select post_count, thread_count from users where id = ${id}`),
+  ) as Array<{ post_count: number; thread_count: number }>
+  return { posts: Number(rows[0]!.post_count), threads: Number(rows[0]!.thread_count) }
+}
+
+async function auditActions(): Promise<string[]> {
+  const rows = resultRows(
+    await db.execute(sql`select action from admin_log order by id`),
+  ) as Array<{ action: string }>
+  return rows.map((row) => row.action)
+}
+
+describe('lock and stick', () => {
+  it('flips the flag and records who did it', async () => {
+    const { threadId } = await seedThread()
+
+    expect(
+      await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT }),
+    ).toBe(true)
+
+    const found = await repo.find(threadId)
+    expect(found).toMatchObject({ isLocked: true })
+    expect(await auditActions()).toEqual(['thread.lock'])
+  })
+
+  /*
+   * `<>` in the WHERE. A log that records acts that did not happen is worse
+   * than no log — the second click must write nothing at all.
+   */
+  it('is a no-op, and writes no audit row, when the flag is already set', async () => {
+    const { threadId } = await seedThread()
+    await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT })
+
+    expect(
+      await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT }),
+    ).toBe(false)
+    expect(await auditActions()).toEqual(['thread.lock'])
+  })
+
+  it('pins and unpins', async () => {
+    const { threadId } = await seedThread()
+
+    await repo.setSticky({ threadId, sticky: true, actorUserId: MOD, at: AT })
+    expect(await repo.find(threadId)).toMatchObject({ isSticky: true })
+
+    await repo.setSticky({ threadId, sticky: false, actorUserId: MOD, at: AT })
+    expect(await repo.find(threadId)).toMatchObject({ isSticky: false })
+    expect(await auditActions()).toEqual(['thread.stick', 'thread.stick'])
+  })
+
+  it('moves no counter', async () => {
+    const { threadId } = await seedThread()
+    const before = await forumCounts(LEFT)
+
+    await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT })
+    await repo.setSticky({ threadId, sticky: true, actorUserId: MOD, at: AT })
+
+    expect(await forumCounts(LEFT)).toEqual(before)
+  })
+})
+
+describe('deleting a thread', () => {
+  it('takes its whole contribution off the forum and its ancestors', async () => {
+    const { threadId } = await seedThread()
+    expect(await forumCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 2, threads: 1 })
+
+    await repo.setVisibility({
+      threadId,
+      from: 'visible',
+      to: 'deleted',
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 0, threads: 0 })
+  })
+
+  /*
+   * Every author, by their own share. Ada wrote the opening post and Bob the
+   * reply, so a single subtraction applied to "the thread's author" would leave
+   * Bob credited for a post nobody can read.
+   */
+  it('subtracts each author"s own share', async () => {
+    const { threadId } = await seedThread()
+    expect(await userCounts(ADA)).toEqual({ posts: 1, threads: 1 })
+    expect(await userCounts(BOB)).toEqual({ posts: 1, threads: 0 })
+
+    await repo.setVisibility({
+      threadId,
+      from: 'visible',
+      to: 'deleted',
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    expect(await userCounts(ADA)).toEqual({ posts: 0, threads: 0 })
+    expect(await userCounts(BOB)).toEqual({ posts: 0, threads: 0 })
+  })
+
+  /*
+   * The posts keep their own state. Restoring the thread has to put back
+   * exactly what was there and approve nothing on the way.
+   */
+  it('leaves the posts" own visibility alone', async () => {
+    const { threadId, postIds } = await seedThread()
+    await repo.setVisibility({
+      threadId,
+      from: 'visible',
+      to: 'deleted',
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    const rows = resultRows(
+      await db.execute(sql`
+        select visibility from posts where id in (${postIds[0]!}, ${postIds[1]!})
+      `),
+    ) as Array<{ visibility: string }>
+    expect(rows.map((r) => r.visibility)).toEqual(['visible', 'visible'])
+  })
+
+  it('puts everything back on restore', async () => {
+    const { threadId } = await seedThread()
+    const before = {
+      left: await forumCounts(LEFT),
+      category: await forumCounts(CATEGORY),
+      ada: await userCounts(ADA),
+      bob: await userCounts(BOB),
+    }
+
+    await repo.setVisibility({
+      threadId,
+      from: 'visible',
+      to: 'deleted',
+      actorUserId: MOD,
+      at: AT,
+    })
+    await repo.setVisibility({
+      threadId,
+      from: 'deleted',
+      to: 'visible',
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    expect(await forumCounts(LEFT)).toEqual(before.left)
+    expect(await forumCounts(CATEGORY)).toEqual(before.category)
+    expect(await userCounts(ADA)).toEqual(before.ada)
+    expect(await userCounts(BOB)).toEqual(before.bob)
+  })
+
+  /*
+   * The ledger means "this post is currently counted in its ancestors". If a
+   * deleted thread left its rows behind, deleting one of its posts afterwards
+   * would decrement ancestors that had already been decremented by the thread.
+   */
+  it('keeps the roll-up ledger agreeing with reality', async () => {
+    const { threadId } = await seedThread()
+    const ledger = async (): Promise<number> =>
+      resultRows(await db.execute(sql`select post_id from content_counter_rollups`)).length
+
+    expect(await ledger()).toBe(2)
+
+    await repo.setVisibility({
+      threadId,
+      from: 'visible',
+      to: 'deleted',
+      actorUserId: MOD,
+      at: AT,
+    })
+    expect(await ledger()).toBe(0)
+
+    await repo.setVisibility({
+      threadId,
+      from: 'deleted',
+      to: 'visible',
+      actorUserId: MOD,
+      at: AT,
+    })
+    expect(await ledger()).toBe(2)
+  })
+
+  it('repairs the last-post pointer up the chain', async () => {
+    const { threadId } = await seedThread()
+    expect(
+      (
+        resultRows(
+          await db.execute(sql`select last_post_id from forums where id = ${CATEGORY}`),
+        ) as Array<{ last_post_id: number | null }>
+      )[0]!.last_post_id,
+    ).not.toBeNull()
+
+    await repo.setVisibility({
+      threadId,
+      from: 'visible',
+      to: 'deleted',
+      actorUserId: MOD,
+      at: AT,
+    })
+
+    for (const id of [LEFT, CATEGORY]) {
+      const rows = resultRows(
+        await db.execute(sql`select last_post_id from forums where id = ${id}`),
+      ) as Array<{ last_post_id: number | null }>
+      expect(rows[0]!.last_post_id).toBeNull()
+    }
+  })
+
+  it('is a no-op on a second submit', async () => {
+    const { threadId } = await seedThread()
+    await repo.setVisibility({
+      threadId,
+      from: 'visible',
+      to: 'deleted',
+      actorUserId: MOD,
+      at: AT,
+    })
+    const after = await forumCounts(LEFT)
+
+    expect(
+      await repo.setVisibility({
+        threadId,
+        from: 'visible',
+        to: 'deleted',
+        actorUserId: MOD,
+        at: AT,
+      }),
+    ).toBe(false)
+    expect(await forumCounts(LEFT)).toEqual(after)
+    expect(await auditActions()).toEqual(['thread.delete'])
+  })
+})
+
+describe('moving a thread', () => {
+  async function move(threadId: number, to: number): Promise<boolean> {
+    return repo.move({
+      threadId,
+      fromForumId: LEFT,
+      toForumId: to,
+      actorUserId: MOD,
+      at: AT,
+    })
+  }
+
+  it('takes the counts out of one forum and puts them in the other', async () => {
+    const { threadId } = await seedThread()
+    expect(await forumCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 0, threads: 0 })
+
+    expect(await move(threadId, RIGHT)).toBe(true)
+
+    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
+  })
+
+  /*
+   * The assertion a naive implementation fails. A thread moved between two
+   * subforums of one category has not left the category, so the two chain
+   * updates must cancel exactly at their shared ancestor.
+   */
+  it('leaves a shared ancestor exactly where it was', async () => {
+    const { threadId } = await seedThread()
+    const before = await forumCounts(CATEGORY)
+
+    await move(threadId, RIGHT)
+
+    expect(await forumCounts(CATEGORY)).toEqual(before)
+  })
+
+  it('carries the counts down into a nested destination", ancestors included', async () => {
+    const { threadId } = await seedThread()
+
+    await move(threadId, NESTED)
+
+    expect(await forumCounts(NESTED)).toEqual({ posts: 2, threads: 1 })
+    /* NESTED is a child of LEFT, so LEFT keeps the subtree totals. */
+    expect(await forumCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 2, threads: 1 })
+  })
+
+  /*
+   * `posts.forum_id` is denormalised from the thread. A move that updated only
+   * the thread would leave every post claiming to be somewhere it is not — and
+   * the moderation queue, F47's scope and the recount all read that column.
+   */
+  it('rewrites the denormalised forum id on every post', async () => {
+    const { threadId } = await seedThread()
+
+    await move(threadId, RIGHT)
+
+    const rows = resultRows(
+      await db.execute(sql`select distinct forum_id from posts where thread_id = ${threadId}`),
+    ) as Array<{ forum_id: number }>
+    expect(rows.map((r) => Number(r.forum_id))).toEqual([RIGHT])
+  })
+
+  it('does not touch author counts: a move changes where, not how much', async () => {
+    const { threadId } = await seedThread()
+    const before = { ada: await userCounts(ADA), bob: await userCounts(BOB) }
+
+    await move(threadId, RIGHT)
+
+    expect(await userCounts(ADA)).toEqual(before.ada)
+    expect(await userCounts(BOB)).toEqual(before.bob)
+  })
+
+  it('repairs the last-post pointer on both chains', async () => {
+    const { threadId, postIds } = await seedThread()
+    const newest = postIds[1]!
+
+    await move(threadId, RIGHT)
+
+    const pointer = async (id: number): Promise<number | null> => {
+      const rows = resultRows(
+        await db.execute(sql`select last_post_id from forums where id = ${id}`),
+      ) as Array<{ last_post_id: number | null }>
+      return rows[0]!.last_post_id === null ? null : Number(rows[0]!.last_post_id)
+    }
+
+    expect(await pointer(LEFT)).toBeNull()
+    expect(await pointer(RIGHT)).toBe(newest)
+    expect(await pointer(CATEGORY)).toBe(newest)
+  })
+
+  it('records the move with both ends', async () => {
+    const { threadId } = await seedThread()
+    await move(threadId, RIGHT)
+
+    const rows = resultRows(
+      await db.execute(sql`select action, detail from admin_log`),
+    ) as Array<{ action: string; detail: { from: number; to: number; posts: number } }>
+
+    expect(rows[0]).toMatchObject({ action: 'thread.move' })
+    expect(rows[0]!.detail).toMatchObject({ from: LEFT, to: RIGHT, posts: 2 })
+  })
+
+  it('is a no-op when the thread is not where the caller thought', async () => {
+    const { threadId } = await seedThread()
+    await move(threadId, RIGHT)
+
+    expect(await move(threadId, NESTED)).toBe(false)
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
+  })
+})

@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@forum/theme-kit'
 
+import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
+
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { activeTheme } from '@/server/theme'
@@ -10,6 +12,16 @@ import { POSTS_PER_PAGE } from '@/view/paging'
 import { buildThreadView } from '@/view/thread-view'
 
 export const metadata: Metadata = { title: 'Thread' }
+
+/** What each tool says when it worked. Unknown values fall through to null. */
+const TOOL_NOTICE: Readonly<Record<string, string>> = {
+  lock: 'Thread locked.',
+  unlock: 'Thread unlocked.',
+  stick: 'Thread pinned.',
+  unstick: 'Thread unpinned.',
+  move: 'Thread moved.',
+  restore: 'Thread restored.',
+}
 
 function threadId(value: string): number | null {
   // Index last-post links carry only the stable id; thread listings add a slug.
@@ -37,6 +49,7 @@ export default async function ThreadPage({
     replied?: string
     posted?: string
     post?: string
+    tool?: string
   }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
@@ -46,7 +59,7 @@ export default async function ThreadPage({
   if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
 
   const actor = await getActor()
-  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites } =
+  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites, threadTools } =
     getContainer()
   /*
    * Locate, authorise, then read — in that order, and the order is the whole
@@ -130,6 +143,33 @@ export default async function ThreadPage({
     canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
   }
 
+  /*
+   * F50's tools, and the only place on a reading page that resolves appointment
+   * rights. Gated on `threadTools` so fixture mode offers nothing, and the move
+   * destinations are only fetched when the actor may actually move — two extra
+   * queries for a moderator, none for everybody else.
+   */
+  const moderatorRights = await authorizer.moderatorRightsIn(actor, forum.id)
+  const movableInto =
+    threadTools === null ? [] : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
+  const toolTarget = { forumId: forum.id, forum: matrix, moderatorRights }
+  const toolRights = {
+    lock: threadTools !== null && authorizer.can(actor, 'thread.lock', toolTarget),
+    stick: threadTools !== null && authorizer.can(actor, 'thread.stick', toolTarget),
+    move: threadTools !== null && authorizer.can(actor, 'thread.move', toolTarget),
+    delete: threadTools !== null && authorizer.can(actor, 'thread.delete', toolTarget),
+  }
+  const moveTargets = !toolRights.move
+    ? []
+    : (await forums.listListing())
+        .filter(
+          (row) =>
+            row.type === 'forum' &&
+            row.id !== forum.id &&
+            movableInto.includes(row.id),
+        )
+        .map((row) => ({ id: row.id, title: row.title }))
+
   const view = buildThreadView({
     thread,
     capabilities,
@@ -156,7 +196,9 @@ export default async function ThreadPage({
       ? 'Somebody else replied while you were writing. Your reply was posted below theirs.'
       : query.posted === 'moderated'
         ? 'Your post is waiting for a moderator to approve it.'
-        : query.post === 'deleted'
+        : query.tool !== undefined
+          ? TOOL_NOTICE[query.tool] ?? null
+          : query.post === 'deleted'
           ? 'That post has been deleted.'
           : query.post === 'unchanged'
             ? 'Nothing changed — that post was already in this state.'
@@ -172,6 +214,15 @@ export default async function ThreadPage({
             dismissHref={`/thread/${thread.id}-${thread.slug}`}
           />
         </div>
+      )}
+      {(toolRights.lock || toolRights.stick || toolRights.move || toolRights.delete) && (
+        <ThreadToolsForm
+          threadId={thread.id}
+          isLocked={thread.isLocked}
+          isSticky={thread.isSticky}
+          rights={toolRights}
+          moveTargets={moveTargets}
+        />
       )}
       <ThreadView
         {...view.view}

@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D48. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D49. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -20,7 +20,7 @@ this file.
 `pnpm verify` → exit 0: textual invariants (now **nine** guards, F47's included)
 + **guard probes**, the **slot
 server/client boundary** check + its probe, dependency-cruiser (241 modules, 0
-violations), typecheck (root **and** app), **1364 tests** (a large share against
+violations), typecheck (root **and** app), **1543 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -286,21 +286,39 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   `moderatedForumIds` for content and `modcp.access` for member reports, with
   "does not exist" and "not yours" giving the same answer. See **D48**.
 
+- **F50 thread tools** — lock, pin, move and delete/restore, each logged. The
+  four actions read an **appointment right and no usergroup field**, which is
+  the first place the permission model diverges from its own pattern and is
+  deliberate: "may lock threads everywhere" is something you are appointed to,
+  not a checkbox on a group. So F48's debt came due — `moderatorApproves` became
+  a full `ModeratorRights`, `forum_moderators` grew to seven rights in the
+  reader, and `moderatorRightsIn` is the seam that answers *what* to
+  `moderatedForumIds`' *where*. A move needs the right at **both ends**,
+  resolved as two matrices. The counters take one tally and reuse it for the
+  forum, the ancestors and every author, and the two chain updates cancel
+  exactly at a shared ancestor. **Copy and the move redirect stub are not
+  built** — see D49 and `mybb-parity.md` for why copy is a product question
+  rather than a missing function. F50's row is `PARTIAL` and says so.
+
 ## NEXT ACTION — resume here
 
-**F50 · thread tools** is the next thing, and the one with real design in it.
-Open/close/stick/move/copy/delete/restore/approve at *thread* level, each with
-"full affected-row counter assertions". F41 and F48 wrote the post-level
-transitions and the thread-level approve; move and copy are new, and moving a
-thread is the case where the ancestor counter roll-up and the last-post repair
-chain both have to run for two subtrees at once.
+**F51 · merge and split** is next in order, and F50 unblocked most of it: the
+two-chain counter move a split needs is written and tested, and
+`moderatorRightsIn` is the rights seam. Split has to answer the same
+author-count question F50 deferred with copy — moving half a thread's posts into
+a new thread is the same arithmetic as copying them, minus the duplication, so
+it is the cheaper place to settle it.
 
-**Before it, there is a debt F48 named and did not pay:**
-`Target.isForumModerator` is still never set on any per-page `can()` call, so
-outside the queue a per-forum appointee has only their group's rights. F54 is
-where granular moderator rights are the subject; if F50 needs them sooner —
-and it plausibly does, since `canMoveThreads` and `canStickThreads` are
-appointment columns — thread it through there instead and move this note.
+**F52 · inline moderation** is the other unblocked one and is mostly assembly:
+F48 wrote the chunked selection and F50 wrote the tools, so what is missing is a
+listing-level form over both.
+
+**F48's debt is now half paid.** The thread page resolves appointment rights
+and the thread-tool action resolves them per forum, so a per-forum appointee is
+a real moderator there. What is still not threaded is `isForumModerator` on the
+*other* per-page checks — `post.editOthers`, `post.softDelete` and the two
+content-visibility actions still see only the group's fields outside the queue
+and the thread tools. F54 is where that finishes.
 
 **F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
 seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
@@ -323,12 +341,13 @@ was written for *structure*, and content is the second time it has cost
 coverage.
 
 Also worth knowing: the F22 matrix needed **no new columns** for F41 or F47 —
-and needed one for F48, which is the gate working rather than failing.
+needed one for F48 and four for F50, which is the gate working rather than
+failing — 544 cells now.
 `post.editOwn`, `post.editOthers`, `post.deleteOwn`, `post.softDelete` and
 `content.viewDeleted` were all declared and covered when the gate was written,
 so the regression net F22 demands for those paths was already there.
-`content.approve` was not, and adding it forced a thirteenth column and a
-human decision about one cell — 416 cells now.
+`content.approve` was not, and neither were F50's four; each addition forced a
+column and a human decision about the moderator rows.
 
 Still worth settling:
 
@@ -380,7 +399,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D48). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D49). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

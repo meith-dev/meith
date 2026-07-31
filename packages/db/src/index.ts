@@ -55,6 +55,7 @@ export {
 export { PostgresPostWriteRepository } from './post-writes'
 export { PostgresModerationQueueRepository } from './moderation-queue'
 export { PostgresReportRepository } from './report-repo'
+export { PostgresThreadToolsRepository } from './thread-tools'
 export {
   applyAncestorVisibilityChange,
   applyVisibilityChangeCounters,

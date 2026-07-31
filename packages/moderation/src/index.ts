@@ -39,3 +39,14 @@ export {
   type ReportTarget,
   type ReportTargetKind,
 } from './reports'
+
+export {
+  ThreadTools,
+  parseThreadTool,
+  type MoveDestination,
+  type ThreadTool,
+  type ThreadToolOutcome,
+  type ThreadToolRights,
+  type ThreadToolTarget,
+  type ThreadToolsRepository,
+} from './thread-tools'

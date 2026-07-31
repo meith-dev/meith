@@ -16,7 +16,11 @@ export type {
   Target,
   Visible,
 } from './types'
-export type { ModeratorAppointment } from './types'
+export {
+  NO_MODERATOR_RIGHTS,
+  type ModeratorAppointment,
+  type ModeratorRights,
+} from './types'
 export type { MemoryAppointment } from './memory-source'
 
 /** F47's vocabulary, re-exported so a caller needs one import. */

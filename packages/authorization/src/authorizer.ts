@@ -15,6 +15,8 @@ import {
   type ForumPermissions,
 } from '@forum/core'
 
+import { NO_MODERATOR_RIGHTS, type ModeratorRights } from './types'
+
 import { resolveForumMatrix, indexOverrides } from './resolve'
 import type {
   Action,
@@ -54,6 +56,10 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'content.viewUnapproved',
   'content.viewDeleted',
   'content.approve',
+  'thread.lock',
+  'thread.stick',
+  'thread.move',
+  'thread.delete',
   'attachment.upload',
   'forum.search',
   'forum.subscribe',
@@ -194,7 +200,7 @@ export class Authorizer {
   }
 
   /**
-   * The forums whose moderation queue this actor may act on (F48).
+   * The forums where this actor holds one moderator right (F48/F50).
    *
    * The first list on the board scoped by *moderator rights* rather than by
    * view permission, and the first thing ever to read `forum_moderators`. Two
@@ -213,7 +219,10 @@ export class Authorizer {
    * chains, the group defaults, the overrides and now the appointments, then
    * resolution in memory.
    */
-  async moderatedForumIds(actor: Actor): Promise<number[]> {
+  async moderatedForumIds(
+    actor: Actor,
+    right: keyof ModeratorRights = 'canApproveContent',
+  ): Promise<number[]> {
     if (actor.global.isAdministrator === true || actor.global.isSuperModerator === true) {
       return [...(await this.source.allForumIds())]
     }
@@ -238,7 +247,7 @@ export class Authorizer {
     const approvesByAppointment = new Set<number>()
     for (const [forumId, chain] of chains) {
       for (const appointment of appointments) {
-        if (!appointment.canApproveContent) continue
+        if (!appointment[right]) continue
         if (appointment.forumId === forumId) {
           approvesByAppointment.add(forumId)
         } else if (appointment.cascadeToSubforums && chain.includes(appointment.forumId)) {
@@ -251,11 +260,61 @@ export class Authorizer {
     for (const [forumId, chain] of chains) {
       const matrix = resolveForumMatrix(chain, groups, overrides)
       if (matrix.canView !== true) continue
-      if (matrix.canApproveContent === true || approvesByAppointment.has(forumId)) {
-        moderated.push(forumId)
-      }
+      /*
+       * The group-level half only exists for approval — F50's thread tools have
+       * no usergroup column at all, by design (see `canForum`). For those
+       * rights the appointment is the only route short of a staff bypass, which
+       * is handled above.
+       */
+      const byGroup = right === 'canApproveContent' && matrix.canApproveContent === true
+      if (byGroup || approvesByAppointment.has(forumId)) moderated.push(forumId)
     }
     return moderated
+  }
+
+  /**
+   * This actor's granular moderator rights in one forum (F50).
+   *
+   * The other half of `moderatedForumIds`: that answers *where*, this answers
+   * *what*. Rights from several appointments covering the same forum are
+   * **unioned** — a personal appointment that can lock plus a group appointment
+   * that can move means both, because two grants are two grants.
+   *
+   * Administrators and super-moderators get everything, matching the bypasses
+   * `can()` applies before it ever consults these. Returning the full set here
+   * rather than relying on the bypass keeps the *screen* honest too: a control
+   * offered on the strength of these rights appears for staff, and the action
+   * behind it reaches the same conclusion by its own route.
+   */
+  async moderatorRightsIn(actor: Actor, forumId: number): Promise<ModeratorRights> {
+    if (
+      actor.global.isAdministrator === true ||
+      actor.global.isSuperModerator === true
+    ) {
+      return ALL_MODERATOR_RIGHTS
+    }
+    if (actor.userId === null) return NO_MODERATOR_RIGHTS
+
+    const [chain, appointments] = await Promise.all([
+      this.source.ancestorChain(forumId),
+      this.source.moderatorAppointments(actor.userId, actor.groupIds),
+    ])
+    if (chain.length === 0) return NO_MODERATOR_RIGHTS
+
+    /*
+     * `chain` is [self, ...ancestors]. An appointment applies to its own forum
+     * always, and to a descendant only when it cascades — read off the chain by
+     * id rather than by path prefix, which is why it cannot fall into D22's
+     * `1.4` / `1.40` trap.
+     */
+    let rights = NO_MODERATOR_RIGHTS
+    for (const appointment of appointments) {
+      const covers =
+        appointment.forumId === forumId ||
+        (appointment.cascadeToSubforums && chain.includes(appointment.forumId))
+      if (covers) rights = unionRights(rights, appointment)
+    }
+    return rights
   }
 
   /**
@@ -356,9 +415,30 @@ export class Authorizer {
          * `isForumModerator` alone is not enough here, unlike the actions
          * above: an appointment carries granular rights, and one that does not
          * include `canApproveContent` appoints somebody to *read* the queue.
-         * The caller resolves that right and passes it as `moderatorApproves`.
+         * The caller resolves those rights and passes them as `moderatorRights`.
          */
-        return target.moderatorApproves === true || forum.canApproveContent === true
+        return (
+          target.moderatorRights?.canApproveContent === true ||
+          forum.canApproveContent === true
+        )
+
+      /*
+       * F50's four. Unlike every action above them, these have **no group-level
+       * permission field** — MyBB has never had one either, and neither should
+       * we: "may lock threads everywhere on the board" is a thing you are
+       * appointed to or a thing you bypass into as staff, not a checkbox on a
+       * usergroup. So each reads its appointment right and nothing else; the
+       * administrator and super-moderator bypasses are handled before this
+       * switch is ever reached.
+       */
+      case 'thread.lock':
+        return target.moderatorRights?.canOpenCloseThreads === true
+      case 'thread.stick':
+        return target.moderatorRights?.canStickThreads === true
+      case 'thread.move':
+        return target.moderatorRights?.canMoveThreads === true
+      case 'thread.delete':
+        return target.moderatorRights?.canSoftDeletePosts === true
       default: {
         const _exhaustive: never = action as never
         return Boolean(_exhaustive)
@@ -406,4 +486,28 @@ function isReadAction(action: Action): boolean {
     action === 'profile.view' ||
     action === 'memberlist.view'
   )
+}
+
+/** Everything: what a staff bypass amounts to, spelled out. */
+const ALL_MODERATOR_RIGHTS: ModeratorRights = {
+  canApproveContent: true,
+  canEditPosts: true,
+  canSoftDeletePosts: true,
+  canRestorePosts: true,
+  canOpenCloseThreads: true,
+  canStickThreads: true,
+  canMoveThreads: true,
+}
+
+/** Two grants are two grants: rights union rather than override. */
+function unionRights(a: ModeratorRights, b: ModeratorRights): ModeratorRights {
+  return {
+    canApproveContent: a.canApproveContent || b.canApproveContent,
+    canEditPosts: a.canEditPosts || b.canEditPosts,
+    canSoftDeletePosts: a.canSoftDeletePosts || b.canSoftDeletePosts,
+    canRestorePosts: a.canRestorePosts || b.canRestorePosts,
+    canOpenCloseThreads: a.canOpenCloseThreads || b.canOpenCloseThreads,
+    canStickThreads: a.canStickThreads || b.canStickThreads,
+    canMoveThreads: a.canMoveThreads || b.canMoveThreads,
+  }
 }

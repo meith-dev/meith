@@ -15,6 +15,7 @@ import {
   type ActorName,
 } from './fixture'
 import { EXPECTED, F22_ACTIONS, type F22Action } from './matrix.fixture'
+import { NO_MODERATOR_RIGHTS } from './types'
 import type { Action, Actor, Target } from './types'
 
 const source = new MemoryAuthorizationSource()
@@ -31,6 +32,10 @@ const ACTION_OF: Record<F22Action, Action> = {
   viewUnapproved: 'content.viewUnapproved',
   viewDeleted: 'content.viewDeleted',
   approve: 'content.approve',
+  lock: 'thread.lock',
+  stick: 'thread.stick',
+  move: 'thread.move',
+  deleteThread: 'thread.delete',
   upload: 'attachment.upload',
   search: 'forum.search',
   subscribe: 'forum.subscribe',
@@ -78,14 +83,23 @@ async function buildTarget(
     ownerId,
     isForumModerator: isModeratorOf(actorName, forumName),
     /*
-     * The fixture's appointment carries every granular right, including
-     * `canApproveContent` — so `approve` follows `isForumModerator` here. An
-     * appointment *without* it is the case `moderatedForumIds` covers, and it
-     * has its own test rather than a column in this table: the F22 matrix is
-     * about the permission model, and a partial appointment is about the
-     * appointment.
+     * The fixture's appointment carries every granular right, so the F50 tools
+     * and `approve` follow `isForumModerator` in this table. A *partial*
+     * appointment is the case `moderated-forums.test.ts` and
+     * `thread-tool-rights.test.ts` cover: the F22 matrix is about the
+     * permission model, and a partial appointment is about the appointment.
      */
-    moderatorApproves: isModeratorOf(actorName, forumName),
+    moderatorRights: isModeratorOf(actorName, forumName)
+      ? {
+          canApproveContent: true,
+          canEditPosts: true,
+          canSoftDeletePosts: true,
+          canRestorePosts: true,
+          canOpenCloseThreads: true,
+          canStickThreads: true,
+          canMoveThreads: true,
+        }
+      : NO_MODERATOR_RIGHTS,
     passwordRequired: forumName === 'password',
     passwordSatisfied: false,
     visibility: 'visible',
@@ -127,7 +141,7 @@ describe('F22 permission matrix', () => {
     for (const actorName of actorNames) {
       expect(Object.keys(EXPECTED[actorName]!)).toHaveLength(4)
     }
-    // 8 actors x 4 contexts x 13 actions. The count is spelled out rather than
+    // 8 actors x 4 contexts x 17 actions. The count is spelled out rather than
     // derived so that adding an action has to be a deliberate edit here too —
     // deriving it from F22_ACTIONS.length would make the assertion agree with
     // itself no matter what the fixture says.
@@ -135,7 +149,7 @@ describe('F22 permission matrix', () => {
       Object.keys(EXPECTED).length *
       4 *
       F22_ACTIONS.length
-    expect(cells).toBe(416)
+    expect(cells).toBe(544)
   })
 
   it('every F22 action maps to a real Authorizer action', () => {
@@ -144,7 +158,7 @@ describe('F22 permission matrix', () => {
     }
     // Guards F22's own acceptance: adding a permission/action must extend both
     // the fixture and this map, or this count drifts and the suite fails.
-    expect(Object.keys(ACTION_OF)).toHaveLength(13)
+    expect(Object.keys(ACTION_OF)).toHaveLength(17)
     void SELF_OWNED
   })
 })

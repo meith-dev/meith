@@ -2161,3 +2161,96 @@ it by accident and moderators can simply close it.
   emits `"posts"."visibility"`, which does not resolve in a query that aliases
   the table `p`. Passing `sql\`p.visibility\`` is the fix, and the failure was
   loud rather than silent — the query did not parse.
+
+### D49 — Thread tools, and the two ends of a move (F50)
+
+Post-level transitions were F41's and thread *approval* was F48's. What was left
+is everything that acts on a thread as a unit. Three are flag flips; two move
+every counter the thread's posts contribute.
+
+#### The thread tools have no usergroup permission, on purpose
+
+Every action before F50 reads a field off the resolved forum matrix.
+`thread.lock`, `thread.stick`, `thread.move` and `thread.delete` read an
+**appointment right** and nothing else. MyBB has never had a usergroup column
+for these either, and it is right not to: "may lock threads everywhere on the
+board" is a thing you are appointed to or a thing you bypass into as staff, not
+a checkbox on a group.
+
+That made F48's debt come due immediately. `moderatorApproves` became a full
+`ModeratorRights` on the Target, `forum_moderators` grew from four rights to
+seven in the reader, and `Authorizer.moderatorRightsIn` is the new seam:
+`moderatedForumIds` answers *where* somebody moderates, this answers *what* they
+may do there. Rights from several appointments covering the same forum are
+**unioned** — two grants are two grants.
+
+Four new actions means four new columns in the F22 matrix, now 544 cells. The
+decision per cell was uniform (moderators everywhere, members nowhere) with one
+judgement: a moderator keeps the tools in the read-only subforum, because the
+override takes away *posting*, and a forum nobody may post in is exactly the
+kind that still has a backlog from before it was closed.
+
+#### A move has two ends, and both need the right
+
+The rule a "can this actor moderate here" check gets wrong. Rights in the source
+alone would let a moderator move a thread out from under the people watching it
+and into a forum where they have no standing at all — which is how a private
+forum acquires content its own moderators never approved. So the action resolves
+rights **twice**, once per forum, and the command refuses unless both hold.
+Mutation-verified by copying the source rights into the destination.
+
+#### Where the ancestors are updated, and why it differs from F38/F41
+
+F38's roll-up and F41's reversal are per-post deltas made idempotent by the
+`content_counter_rollups` ledger — "this post is currently counted in its
+ancestors". A **move** cannot use that ledger: the post is still counted, just
+somewhere else, and a row saying "counted" cannot express *which chain*.
+
+Rather than have one thread-level operation follow a different rule from its
+neighbour, both do their ancestors in the caller's transaction. They are bounded
+by tree depth and they are rare — a board moves a thread far less often than it
+gains a reply. The two chain updates cancel exactly at a shared ancestor, which
+is the assertion a naive implementation fails: a thread moved between two
+subforums of one category has not left the category.
+
+Thread delete and restore *do* keep the ledger in sync, because their posts stop
+and start being counted. Without it, deleting one post of a deleted thread would
+decrement ancestors that the thread had already decremented.
+
+#### The tally is taken once
+
+A thread's contribution is counted once and reused for the forum, the ancestors
+and every author. Three separate counts of the same thing is how a move leaves a
+forum and its category disagreeing by one. It is also per-author: Ada wrote the
+opening post and Bob the reply, so a single subtraction applied to "the thread's
+author" would leave Bob credited for a post nobody can read.
+
+A move leaves author counts alone. It changes where somebody wrote, never how
+much.
+
+#### `posts.forum_id` is denormalised and has to be rewritten
+
+R3.3 carries the forum on the post so permission filtering and the moderation
+queue can scope without joining `threads`. A move that updated only the thread
+leaves every post claiming to be somewhere it is not — and the queue, F47's
+scope and the recount all read that column. Its own killed mutant.
+
+#### `<>` in the WHERE, so a doubled click writes no audit row
+
+A log that records acts that did not happen is worse than no log. Locking an
+already-locked thread updates nothing, reports `false`, and writes nothing.
+
+#### What is deliberately not here
+
+- **Copy.** It is the only one of the eight that *creates* content, so it needs
+  the render, flood and approval path F39 owns rather than a counter move — and
+  it asks a real product question nobody has answered: MyBB credits the copies
+  to their original authors, which counts one piece of writing twice. Better
+  unbuilt than built on a guess.
+- **The move redirect stub.** `threads.moved_to_thread_id` exists and
+  `ThreadListingRow.isMoved` reads it, but a stub needs the *thread view* to
+  follow the pointer, which is F30/F31's surface rather than a moderation tool.
+- **Thread approval**, which is F48's and already counter-correct. Duplicating
+  it here would be a second path to one transition.
+
+F50's row says `PARTIAL` for exactly these, rather than `DONE` with a footnote.

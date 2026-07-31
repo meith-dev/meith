@@ -83,6 +83,7 @@ function installContainer(overrides: Record<string, unknown> = {}): void {
     authorizer: new Authorizer(source, {}),
     moderationQueue: queue,
     reports: null,
+    threadTools: null,
     threadWrites: null,
     postWrites: null,
     threads: {
@@ -217,6 +218,9 @@ describe('moderateQueueAction', () => {
               canEditPosts: false,
               canSoftDeletePosts: false,
               canRestorePosts: false,
+              canOpenCloseThreads: false,
+              canStickThreads: false,
+              canMoveThreads: false,
             },
           ],
         }),

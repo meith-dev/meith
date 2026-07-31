@@ -68,6 +68,9 @@ describe('moderatorAppointments', () => {
         canEditPosts: false,
         canSoftDeletePosts: false,
         canRestorePosts: false,
+        canOpenCloseThreads: false,
+        canStickThreads: false,
+        canMoveThreads: false,
       },
     ])
   })

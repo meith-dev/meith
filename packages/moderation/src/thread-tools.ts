@@ -1,0 +1,282 @@
+/**
+ * F50 — the thread-level tools.
+ *
+ * Post-level transitions were F41's and thread *approval* was F48's; what is
+ * left is everything that acts on a thread as a unit. Three of them are cheap
+ * flag flips. Two are not:
+ *
+ *   - **Delete and restore** move every counter the thread's posts contribute,
+ *     which is a different sum for every author in it.
+ *   - **Move** takes those same counts out of one subtree and puts them into
+ *     another, and has to repair the last-post pointer on both chains.
+ *
+ * As everywhere else in this build, the command decides what is *allowed* and
+ * the caller decides *who* is allowed: `thread.lock` and friends are resolved by
+ * `Authorizer.can` against the actor's appointment rights, and arrive here as
+ * booleans (R4).
+ */
+import { ValidationError } from '@forum/core'
+
+export type ThreadTool =
+  | 'lock'
+  | 'unlock'
+  | 'stick'
+  | 'unstick'
+  | 'move'
+  | 'delete'
+  | 'restore'
+
+/** The thread as the tools need it. */
+export interface ThreadToolTarget {
+  readonly id: number
+  readonly forumId: number
+  readonly slug: string
+  readonly title: string
+  readonly isLocked: boolean
+  readonly isSticky: boolean
+  readonly visibility: 'visible' | 'unapproved' | 'deleted'
+}
+
+/** Where a thread may be moved to. */
+export interface MoveDestination {
+  readonly id: number
+  readonly type: 'category' | 'forum' | 'link'
+}
+
+/** What the caller has already resolved from the actor's rights. */
+export interface ThreadToolRights {
+  readonly lock: boolean
+  readonly stick: boolean
+  readonly move: boolean
+  readonly delete: boolean
+}
+
+export interface ThreadToolOutcome {
+  readonly tool: ThreadTool
+  readonly threadId: number
+  readonly slug: string
+  /** False when the thread was already in that state — a double submit. */
+  readonly changed: boolean
+}
+
+export interface ThreadToolsRepository {
+  find(threadId: number): Promise<ThreadToolTarget | null>
+  /** The destination as the move needs it, or null when it is not a forum. */
+  findDestination(forumId: number): Promise<MoveDestination | null>
+
+  setLocked(input: {
+    readonly threadId: number
+    readonly locked: boolean
+    readonly actorUserId: number
+    readonly at: Date
+  }): Promise<boolean>
+
+  setSticky(input: {
+    readonly threadId: number
+    readonly sticky: boolean
+    readonly actorUserId: number
+    readonly at: Date
+  }): Promise<boolean>
+
+  /** Visibility, with every counter the thread's posts contribute. */
+  setVisibility(input: {
+    readonly threadId: number
+    readonly from: 'visible' | 'deleted'
+    readonly to: 'visible' | 'deleted'
+    readonly actorUserId: number
+    readonly at: Date
+  }): Promise<boolean>
+
+  move(input: {
+    readonly threadId: number
+    readonly fromForumId: number
+    readonly toForumId: number
+    readonly actorUserId: number
+    readonly at: Date
+  }): Promise<boolean>
+}
+
+export class ThreadTools {
+  private readonly threads: ThreadToolsRepository
+  private readonly now: () => Date
+
+  constructor(deps: { threads: ThreadToolsRepository; now?: () => Date }) {
+    this.threads = deps.threads
+    this.now = deps.now ?? (() => new Date())
+  }
+
+  async apply(input: {
+    readonly threadId: number
+    readonly tool: ThreadTool
+    /** Required for `move`, ignored otherwise. */
+    readonly toForumId?: number | undefined
+    readonly actorUserId: number
+    readonly rights: ThreadToolRights
+    /**
+     * The actor's rights in the *destination* forum, for a move. Resolved by
+     * the caller because it is a second forum and therefore a second matrix.
+     */
+    readonly destinationRights?: ThreadToolRights | undefined
+  }): Promise<ThreadToolOutcome> {
+    const target = await this.threads.find(input.threadId)
+    if (target === null) throw new ValidationError('That thread does not exist.')
+
+    const at = this.now()
+    const base = { threadId: target.id, slug: target.slug }
+
+    switch (input.tool) {
+      case 'lock':
+      case 'unlock': {
+        this.require(input.rights.lock, 'open and close threads')
+        this.requireLive(target)
+        const locked = input.tool === 'lock'
+        return {
+          ...base,
+          tool: input.tool,
+          changed: await this.threads.setLocked({
+            threadId: target.id,
+            locked,
+            actorUserId: input.actorUserId,
+            at,
+          }),
+        }
+      }
+
+      case 'stick':
+      case 'unstick': {
+        this.require(input.rights.stick, 'pin threads')
+        this.requireLive(target)
+        return {
+          ...base,
+          tool: input.tool,
+          changed: await this.threads.setSticky({
+            threadId: target.id,
+            sticky: input.tool === 'stick',
+            actorUserId: input.actorUserId,
+            at,
+          }),
+        }
+      }
+
+      case 'delete': {
+        this.require(input.rights.delete, 'delete threads')
+        if (target.visibility !== 'visible') {
+          throw new ValidationError('That thread is not on the board.')
+        }
+        return {
+          ...base,
+          tool: input.tool,
+          changed: await this.threads.setVisibility({
+            threadId: target.id,
+            from: 'visible',
+            to: 'deleted',
+            actorUserId: input.actorUserId,
+            at,
+          }),
+        }
+      }
+
+      case 'restore': {
+        this.require(input.rights.delete, 'restore threads')
+        if (target.visibility !== 'deleted') {
+          throw new ValidationError('That thread is not deleted.')
+        }
+        return {
+          ...base,
+          tool: input.tool,
+          changed: await this.threads.setVisibility({
+            threadId: target.id,
+            from: 'deleted',
+            to: 'visible',
+            actorUserId: input.actorUserId,
+            at,
+          }),
+        }
+      }
+
+      case 'move':
+        return { ...base, tool: 'move', changed: await this.moveTo(input, target, at) }
+    }
+  }
+
+  private async moveTo(
+    input: {
+      readonly toForumId?: number | undefined
+      readonly actorUserId: number
+      readonly rights: ThreadToolRights
+      readonly destinationRights?: ThreadToolRights | undefined
+    },
+    target: ThreadToolTarget,
+    at: Date,
+  ): Promise<boolean> {
+    this.require(input.rights.move, 'move threads')
+    this.requireLive(target)
+
+    if (input.toForumId === undefined) {
+      throw new ValidationError('Choose a forum to move it to.')
+    }
+    if (input.toForumId === target.forumId) {
+      throw new ValidationError('That thread is already in that forum.')
+    }
+
+    /*
+     * The rule that matters, and the one a "can this actor moderate here" check
+     * alone gets wrong: **both ends**. A moderator with rights in one forum
+     * only could otherwise move a thread out of the forum whose moderators are
+     * watching it and into one where nobody is — or into a forum they have no
+     * standing in at all, which is how a private forum acquires content its own
+     * moderators never approved.
+     */
+    if (input.destinationRights?.move !== true) {
+      throw new ValidationError('You cannot move threads into that forum.')
+    }
+
+    const destination = await this.threads.findDestination(input.toForumId)
+    if (destination === null || destination.type !== 'forum') {
+      /*
+       * A category holds forums, not threads, and a link forum holds nothing at
+       * all. Both would produce a thread nobody can navigate to.
+       */
+      throw new ValidationError('That is not a forum threads can live in.')
+    }
+
+    return this.threads.move({
+      threadId: target.id,
+      fromForumId: target.forumId,
+      toForumId: input.toForumId,
+      actorUserId: input.actorUserId,
+      at,
+    })
+  }
+
+  private require(held: boolean, what: string): void {
+    if (!held) throw new ValidationError(`You cannot ${what} here.`)
+  }
+
+  /**
+   * Flag flips and moves apply to threads that are actually on the board.
+   *
+   * Pinning a deleted thread is not wrong so much as meaningless, and allowing
+   * it means the forum listing's sort key depends on a flag set on something
+   * nobody can see. Deletion and restoration have their own checks.
+   */
+  private requireLive(target: ThreadToolTarget): void {
+    if (target.visibility !== 'visible') {
+      throw new ValidationError('That thread is not on the board.')
+    }
+  }
+}
+
+/** Parse the tool name from a form without trusting it. */
+export function parseThreadTool(value: string | undefined): ThreadTool | null {
+  const tools: readonly ThreadTool[] = [
+    'lock',
+    'unlock',
+    'stick',
+    'unstick',
+    'move',
+    'delete',
+    'restore',
+  ]
+  return tools.includes(value as ThreadTool) ? (value as ThreadTool) : null
+}

@@ -80,6 +80,11 @@ export type Action =
    * the queue could empty it.
    */
   | 'content.approve'
+  /* --- F50's thread tools. Appointment rights plus the staff bypasses. --- */
+  | 'thread.lock'
+  | 'thread.stick'
+  | 'thread.move'
+  | 'thread.delete'
   | 'attachment.upload'
   | 'forum.search'
   | 'forum.subscribe'
@@ -142,12 +147,14 @@ export interface Target {
    */
   readonly isForumModerator?: boolean
   /**
-   * Whether this actor's appointment in this forum carries `canApproveContent`
-   * (F48). Separate from `isForumModerator` because an appointment's rights are
+   * This actor's appointment rights in this forum, if any (F48/F50).
+   *
+   * Separate from `isForumModerator` because an appointment's rights are
    * granular: being a moderator here does not by itself mean being trusted to
-   * empty the queue.
+   * empty the queue, move threads, or lock them. Resolved by
+   * `Authorizer.moderatorRightsIn`.
    */
-  readonly moderatorApproves?: boolean
+  readonly moderatorRights?: ModeratorRights
   /**
    * Whether this forum is password-protected. Orthogonal to the permission
    * matrix: password protection is a property of the forum row, not a group
@@ -235,14 +242,38 @@ export interface AuthorizationSource {
   ): Promise<readonly ModeratorAppointment[]>
 }
 
-/** One row of `forum_moderators`, as the Authorizer needs it. */
-export interface ModeratorAppointment {
-  readonly forumId: number
-  readonly cascadeToSubforums: boolean
+/**
+ * The granular rights an appointment carries.
+ *
+ * Deliberately explicit booleans rather than a bitmask, matching the columns —
+ * a bitmask saves bytes nobody is short of and makes every screen and every
+ * test read as magic numbers.
+ */
+export interface ModeratorRights {
   readonly canApproveContent: boolean
   readonly canEditPosts: boolean
   readonly canSoftDeletePosts: boolean
   readonly canRestorePosts: boolean
+  readonly canOpenCloseThreads: boolean
+  readonly canStickThreads: boolean
+  readonly canMoveThreads: boolean
+}
+
+/** One row of `forum_moderators`, as the Authorizer needs it. */
+export interface ModeratorAppointment extends ModeratorRights {
+  readonly forumId: number
+  readonly cascadeToSubforums: boolean
+}
+
+/** Nobody's rights: the answer for an actor with no appointment here. */
+export const NO_MODERATOR_RIGHTS: ModeratorRights = {
+  canApproveContent: false,
+  canEditPosts: false,
+  canSoftDeletePosts: false,
+  canRestorePosts: false,
+  canOpenCloseThreads: false,
+  canStickThreads: false,
+  canMoveThreads: false,
 }
 
 /**

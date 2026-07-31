@@ -203,3 +203,44 @@ produce is a promise the board cannot keep.
 **Why.** Same rule as everywhere else in this build: omit rather than stub. When
 F60 lands, `REPORT_TARGET_KINDS` gains an entry and `resolveTarget` gains a
 branch; nothing else changes.
+
+---
+
+## Who can lock, pin and move threads
+
+**MyBB** grants these through `moderators` rows (per forum, per right) plus the
+super-moderator and administrator bypasses. There is no usergroup column for
+them.
+
+**We** do the same, and this is a parity decision only because it is the first
+place our permission model *diverges from its own pattern*: every other action
+on the board reads a field off the resolved forum matrix, and these four read an
+appointment right instead.
+
+**Why.** "May lock threads everywhere on the board" is a thing you are appointed
+to or a thing you bypass into as staff. A usergroup checkbox for it would let a
+board grant board-wide thread control by adding somebody to a group, with no
+record of which forums anybody was ever meant to be responsible for.
+
+**Cost.** A board that wants a "Junior moderators" group with lock rights
+everywhere has to appoint the group to each forum — `forum_moderators` accepts a
+`group_id`, so that is one row per forum rather than one per person, but it is
+not one checkbox.
+
+---
+
+## Copying a thread
+
+**MyBB** offers "copy thread" alongside move, duplicating every post and
+crediting the copies to their original authors — so one piece of writing raises
+its author's post count twice.
+
+**We** have not built it, and the double-count is why. It is recorded here
+rather than left as a gap because the *reason* is a product decision somebody
+has to make: either a copy does not credit anybody (and author counts stop
+matching the posts that exist), or it credits twice (and post counts stop
+meaning "things this person wrote").
+
+**Cost.** Moderators split and re-file threads by moving rather than copying.
+F51's split is the operation that actually covers most of what copy is used for,
+and it has to answer the same question.

@@ -230,7 +230,7 @@ export const GUARDS = [
     pattern:
       /\beq\(\s*\w+\.visibility\s*,|\bvisibility\b\s*(=|<>)\s*['"]|\bvisibility\b\s+in\s*\(/,
     allow:
-      /^packages\/db\/src\/(visibility|visibility-counters|content-counters|counter-recount|post-writes|thread-writes)\.ts$|\.test\.ts$/,
+      /^packages\/db\/src\/(visibility|visibility-counters|content-counters|counter-recount|post-writes|thread-writes|thread-tools)\.ts$|\.test\.ts$/,
     probe: {
       violates: ".where(and(eq(posts.threadId, id), eq(posts.visibility, 'visible')))",
       clean: '.where(and(eq(posts.threadId, id), visibleIn(posts.visibility, scope)))',

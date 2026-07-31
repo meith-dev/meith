@@ -217,6 +217,9 @@ export class MemoryAuthorizationSource implements AuthorizationSource {
         canEditPosts: true,
         canSoftDeletePosts: true,
         canRestorePosts: true,
+        canOpenCloseThreads: true,
+        canStickThreads: true,
+        canMoveThreads: true,
       },
     ]
   }
