@@ -22,11 +22,26 @@ function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['vi
   )
 }
 
-export function PostBit({ post, regions }: PostBitSlotModel) {
+export function PostBit({ post, select, regions }: PostBitSlotModel) {
   return (
     <article id={`post-${post.id}`} className="overflow-hidden rounded-lg border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border bg-secondary px-4 py-2 text-xs text-muted-foreground">
-        {post.author.profileHref === null ? <span>{post.author.username}</span> : <a href={post.author.profileHref} className="hover:text-foreground">{post.author.username}</a>}
+        <span className="flex items-center gap-2">
+          {/* F52; see ThreadRow for why the association is by `form` id. */}
+          {select !== null && (
+            <label className="flex items-center">
+              <span className="sr-only">{select.label}</span>
+              <input
+                type="checkbox"
+                name={select.name}
+                value={select.value}
+                form={select.formId}
+                className="size-4"
+              />
+            </label>
+          )}
+          {post.author.profileHref === null ? <span>{post.author.username}</span> : <a href={post.author.profileHref} className="hover:text-foreground">{post.author.username}</a>}
+        </span>
         <a href={post.permalink} className="hover:text-foreground">
           <time dateTime={post.postedAt.iso}>{post.postedAt.label}</time> #{post.number}
         </a>

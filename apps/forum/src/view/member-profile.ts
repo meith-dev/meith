@@ -11,6 +11,14 @@ export function memberHref(userId: number): string {
 export function buildMemberProfileView(
   profile: MemberProfileRecord,
   now: Date,
+  /**
+   * Whether the viewer may warn this member (F53).
+   *
+   * A capability the page resolves, not a permission this function knows: the
+   * matrix stays in `@forum/authorization` (R4), and the action behind the link
+   * re-asks anyway.
+   */
+  canWarn = false,
 ): MemberProfileModel {
   return {
     user: { userId: profile.id, username: profile.username, profileHref: memberHref(profile.id) },
@@ -21,6 +29,8 @@ export function buildMemberProfileView(
     postCount: profile.postCount,
     signatureHtml: null,
     fields: [],
-    actions: [],
+    actions: canWarn
+      ? [{ label: 'Warn this member', href: `/moderation/warn?user=${profile.id}` }]
+      : [],
   }
 }

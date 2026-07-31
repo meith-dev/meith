@@ -305,3 +305,109 @@ one.
 
 **Cost.** None here. This is the answer to the question the copy entry above
 leaves open, and it is the reason we built split before copy.
+
+## Inline moderation offers no "unapprove"
+
+**MyBB:** the inline moderation dropdown on a forum listing includes *Unapprove
+threads*, which sends published content back to the queue.
+
+**Here:** it does not. Inline moderation offers approve, delete, restore, lock,
+unlock, pin, unpin and move; taking a visible thread off the board is `delete`,
+which is reversible with `restore` and is what a moderator actually wants.
+
+**Why:** `unapproved` and `deleted` are both "not counted, not visible" (D41),
+so the two differ only in which list the content appears on afterwards. Sending
+a published thread to the *approval queue* puts it in front of a moderator as
+something to decide on, when the decision has already been made — and it makes
+the queue a mixture of "new content nobody has read" and "old content somebody
+removed", which is the one thing the queue's ordering (oldest first) relies on
+not being true. Deleting says what happened and restoring undoes it.
+
+## Bulk moderation chunks rather than refusing
+
+**MyBB:** inline moderation acts on whatever was selected, in one request.
+
+**Here:** a selection is applied in transactions of 25, up to a ceiling of 500
+in one request. The approval queue keeps its hard refusal above 200 (F48).
+
+**Why:** the two surfaces have different shapes. Nobody hand-selects two hundred
+items from a queue, so refusing and saying "work through it a page at a time" is
+honest there. A listing has a "select all" and a moderator clearing a spam run
+genuinely has hundreds, so refusing would mean the feature does not do the job
+it exists for. Chunking is safe because every transition is state-guarded — a
+bulk action that dies halfway is fixed by pressing the button again, and the
+chunks that already ran report "already in that state".
+
+## Warning levels are points, not percentages
+
+**MyBB:** warning levels are expressed as a percentage of a configured maximum,
+and a member's warning level reads as e.g. "40%".
+
+**Here:** levels and warnings are absolute points, and a member is on "6 points"
+with thresholds at 4, 7 and 10.
+
+**Why:** a percentage needs a configured maximum to mean anything, and a board
+that has never opened the admin screen would have every member permanently at 0%
+of nothing — which is precisely the state a v1 board is in, because the screen
+that sets the maximum is F66's and does not exist yet. Points are readable on
+their own, the seeded ladder works on a fresh board, and "2 points, expires
+after 90 days" is a sentence a moderator can weigh before issuing it. The
+importer (F85) can convert a percentage against the source board's maximum.
+
+## A warning restriction outranks a moderation bypass
+
+**MyBB:** a user under a "moderate posts" warning has their posts held; staff
+permissions and moderator status are resolved separately and can conflict.
+
+**Here:** a warning-level restriction is applied *after* `bypassesModeration`
+and wins. A moderator who is themselves under a moderate-posting warning has
+their posts held, in every forum, including ones they moderate.
+
+**Why:** the bypass means "this forum's approval queue does not apply to you";
+the warning means "your posts are reviewed". They are different statements and
+the second is a sanction a person received. Letting the first cancel the second
+would make the board's moderators the only members a warning could not reach,
+which inverts what a warning is for.
+
+## Bans from a warning level are not lifted by revoking the warning
+
+**MyBB:** a warning that triggered a ban and is then revoked leaves the ban in
+place; an administrator lifts it.
+
+**Here:** the same, and deliberately.
+
+**Why:** F23 owns the ban lifecycle, including the group the ban captured so it
+can be restored at expiry. Un-banning from the warning path would restore a
+group this feature never saw, through a code path that already refuses to run
+twice. More importantly, a ban is the heaviest thing the board does to somebody
+and its removal should be a decision a human makes while looking — which is what
+"a moderator lifts it" means. The revocation still lowers the points, so the
+level no longer applies and no further action is taken.
+
+## The moderator log is an allow-list of moderation actions
+
+**MyBB:** the moderator log and the administrator log are separate tables.
+
+**Here:** they share `admin_log`, and the ModCP filters it by a named list of
+moderation actions.
+
+**Why:** one table means one place a bypass, a settings change and a thread lock
+are all recorded, which is what an operator wants when reconstructing an
+incident. The filter is an allow-list rather than a deny-list because the table
+will keep growing row types: a deny-list turns every future administrative
+action into a moderator-visible disclosure the day somebody forgets to update
+it, whereas an allow-list turns a new moderation action into a missing row
+somebody notices.
+
+## The address lookup finds ranges, not addresses
+
+**MyBB:** the ModCP's IP search matches full addresses, which MyBB stores.
+
+**Here:** it matches the truncated prefix the board stores, and the screen says
+so.
+
+**Why:** F09 truncates every address before writing it, so there is no full
+address to match — this is a consequence of the privacy invariant rather than a
+choice made here. It is stated on the screen because the difference matters to
+what a moderator does next: "shares an address" reads as proof, "shares a range"
+reads as something to check, and only the second is what the data supports.

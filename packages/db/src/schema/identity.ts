@@ -152,6 +152,18 @@ export const users = pgTable(
     lastActiveAt: timestamp('last_active_at', { withTimezone: true }),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
 
+    /**
+     * F53's two warning-level restrictions.
+     *
+     * Columns rather than a `user_restrictions` table because there is at most
+     * one of each per member and the posting path needs both on every post — a
+     * join for a row that is almost always absent, on the board's hottest
+     * write. NULL means no restriction, and a timestamp in the past is one that
+     * has lapsed: nothing has to be swept for these to be correct.
+     */
+    suspendedPostingUntil: timestamp('suspended_posting_until', { withTimezone: true }),
+    moderatedPostingUntil: timestamp('moderated_posting_until', { withTimezone: true }),
+
     /** Set when state='deleted'. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
 
@@ -480,4 +492,93 @@ export const groupPromotions = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('group_promotions_order_idx').on(t.displayOrder, t.id)],
+)
+
+/* ------------------------------------------------------------------ *
+ * F53 — warnings
+ * ------------------------------------------------------------------ */
+
+/** The reusable reasons a moderator picks from. */
+export const warningTypes = pgTable(
+  'warning_types',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    title: text('title').notNull(),
+    points: smallint('points').notNull().default(1),
+    /** Null = never expires. Not 0, which reads as "expires immediately". */
+    expiryDays: integer('expiry_days'),
+    isActive: boolean('is_active').notNull().default(true),
+    displayOrder: integer('display_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('warning_types_order_idx').on(t.displayOrder, t.id)],
+)
+
+/**
+ * What happens at a points threshold.
+ *
+ * Thresholds, not steps: the level that applies is the highest-pointed one the
+ * member has reached, re-evaluated from the recomputed total after every change.
+ * That is what makes a revocation lift a restriction rather than only lower a
+ * number.
+ */
+export const warningLevels = pgTable(
+  'warning_levels',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    points: smallint('points').notNull(),
+    /** 'suspend_posting' | 'moderate_posting' | 'ban'. */
+    action: text('action').notNull(),
+    /** Null = for as long as the member is at this level. */
+    durationDays: integer('duration_days'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('warning_levels_points_unique').on(t.points)],
+)
+
+/**
+ * One issued warning — the record. `users.warning_points` is a cache of it.
+ *
+ * `title` and `points` are copied from the type at issue time, because a
+ * member's history is a record of what they were told rather than a view over
+ * whatever the configuration says today.
+ */
+export const warnings = pgTable(
+  'warnings',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    issuedByUserId: integer('issued_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+
+    typeId: integer('type_id').references(() => warningTypes.id, { onDelete: 'set null' }),
+    title: text('title').notNull(),
+    points: smallint('points').notNull(),
+    reason: text('reason').notNull().default(''),
+
+    /** What it was about, when it was about something. */
+    postId: integer('post_id'),
+    reportId: integer('report_id'),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Null = never expires. */
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+
+    /**
+     * Revocation is a column pair rather than a deletion: "this was withdrawn"
+     * is information a member is entitled to, and a deleted row cannot say a
+     * mistake was corrected.
+     */
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    revokedByUserId: integer('revoked_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    revokeReason: text('revoke_reason'),
+  },
+  (t) => [index('warnings_user_idx').on(t.userId, t.createdAt, t.id)],
 )

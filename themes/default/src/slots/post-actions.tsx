@@ -8,6 +8,7 @@ export function PostActions({ actions }: PostActionsSlotModel) {
       {actions.editHref !== null && <a href={actions.editHref} className="hover:text-primary">Edit</a>}
       {actions.restoreHref !== null && <a href={actions.restoreHref} className="hover:text-primary">Restore</a>}
       {actions.reportHref !== null && <a href={actions.reportHref} className="hover:text-primary">Report</a>}
+      {actions.warnHref !== null && <a href={actions.warnHref} className="hover:text-primary">Warn</a>}
       {actions.moderateHref !== null && <a href={actions.moderateHref} className="hover:text-primary">Moderate</a>}
     </nav>
   )

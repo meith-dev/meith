@@ -320,6 +320,107 @@ export class Authorizer {
   }
 
   /**
+   * Every forum where this actor may perform one forum-scoped action (F52).
+   *
+   * The generalisation of `moderatedForumIds`, and the difference matters.
+   * That one is keyed by a `ModeratorRights` field, which is the right question
+   * for the queue — "where am I a moderator" — and the wrong one for a *tool*,
+   * because one rights field can mean two things. `canSoftDeletePosts` grants
+   * `post.softDelete` through a group column *or* an appointment, but grants
+   * `thread.delete` through the appointment only (F50 gave the thread tools no
+   * group column on purpose). Keying by right cannot express that; keying by
+   * **action** can, because `can()` already knows.
+   *
+   * So this builds the same Target a page would build — resolved matrix,
+   * resolved appointment rights, and `isForumModerator` actually set — and asks
+   * `can()` once per forum. Same three source reads as `visibleForumIds` plus
+   * the appointments, resolved in memory (D26): constant-query, not per forum.
+   *
+   * F52 needs it as a *scope*, not as a convenience. Inline moderation re-reads
+   * every submitted id to find its real forum, and if that read ranged over the
+   * whole board then "refused" and "no such thing" would be different answers —
+   * which is a content-existence oracle over every private forum on the board
+   * (the trap F51 named for its merge box). Scoping the re-read to this set
+   * makes both cases indistinguishable.
+   */
+  async forumIdsWhere(actor: Actor, action: Action): Promise<number[]> {
+    if (!FORUM_SCOPED.has(action)) {
+      throw new Error(`forumIdsWhere is only meaningful for forum-scoped actions: ${action}`)
+    }
+    if (actor.state === 'banned') return []
+
+    /*
+     * The staff short-circuit is not an optimisation, and it changes the answer
+     * twice over.
+     *
+     *   - **It logs once.** Running the loop for an administrator would call
+     *     `can()` once per forum and every one of those calls logs a bypass —
+     *     fifty audit lines for one page load, burying the bypasses that
+     *     describe an actual decision.
+     *   - **It agrees with `can()`.** The loop below drops any forum the actor
+     *     cannot view, which is right for an ordinary moderator and wrong for
+     *     staff: `can()` grants every forum-scoped action to a super-moderator
+     *     *before* it looks at the matrix at all. A scope narrower than `can()`
+     *     would report work as out of reach that the action would then permit,
+     *     which is the screen and the decision disagreeing.
+     *     `moderatedForumIds` returns the whole board for the same reason.
+     */
+    if (actor.global.isAdministrator === true && ADMIN_ALWAYS.has(action)) {
+      this.logBypass('administrator', actor, action, undefined)
+      return [...(await this.source.allForumIds())]
+    }
+    if (actor.global.isSuperModerator === true) {
+      this.logBypass('super_moderator', actor, action, undefined)
+      return [...(await this.source.allForumIds())]
+    }
+
+    const [chains, groups, appointments] = await Promise.all([
+      this.source.allAncestorChains(),
+      this.source.groupDefaults(actor.groupIds),
+      this.source.moderatorAppointments(actor.userId, actor.groupIds),
+    ])
+
+    const everyForumInvolved = [...new Set([...chains.values()].flat())]
+    const overrides = indexOverrides(
+      await this.source.forumOverrides(everyForumInvolved, actor.groupIds),
+    )
+
+    const permitted: number[] = []
+    for (const [forumId, chain] of chains) {
+      const forum = resolveForumMatrix(chain, groups, overrides)
+      // A forum the actor cannot even view is never a place they may act.
+      if (forum.canView !== true) continue
+
+      /*
+       * The appointment, folded down the chain exactly as `moderatorRightsIn`
+       * does it — by id rather than by path prefix, so D22's `1.4` / `1.40`
+       * trap cannot reach here.
+       */
+      let moderatorRights = NO_MODERATOR_RIGHTS
+      let appointed = false
+      for (const appointment of appointments) {
+        const covers =
+          appointment.forumId === forumId ||
+          (appointment.cascadeToSubforums && chain.includes(appointment.forumId))
+        if (!covers) continue
+        appointed = true
+        moderatorRights = unionRights(moderatorRights, appointment)
+      }
+
+      /*
+       * `isForumModerator` set from the appointment — the flag F48 introduced
+       * and then had to record as debt because no per-page `can()` call ever
+       * set it. Here it is set, which is why an appointee's `post.softDelete`
+       * resolves the same way in bulk as it does on their own post.
+       */
+      if (this.can(actor, action, { forumId, forum, moderatorRights, isForumModerator: appointed })) {
+        permitted.push(forumId)
+      }
+    }
+    return permitted
+  }
+
+  /**
    * Which content states this actor may see in this forum (F47).
    *
    * The **only** producer of a `ContentScope`. Every viewer-facing read takes
@@ -462,6 +563,8 @@ export class Authorizer {
         return actor.global.canUsePrivateMessages === true
       case 'content.report':
         return actor.global.canReportContent === true
+      case 'user.warn':
+        return actor.global.canWarnUsers === true
       case 'modcp.access':
         return actor.global.canAccessModCp === true
       case 'admincp.access':

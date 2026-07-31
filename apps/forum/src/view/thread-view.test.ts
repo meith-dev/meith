@@ -156,6 +156,7 @@ describe('post affordances (F41)', () => {
     softDelete: false,
     editWindowMinutes: 0,
     bypassesWindow: false,
+    canWarn: false,
     canReport: true,
   }
 
@@ -296,6 +297,7 @@ describe('the report link (F49)', () => {
     softDelete: false,
     editWindowMinutes: 0,
     bypassesWindow: false,
+    canWarn: false,
     canReport: true,
   }
 

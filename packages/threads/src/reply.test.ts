@@ -210,3 +210,35 @@ describe('quotePrefill', () => {
     expect(quoted).toBe("[quote='ada pid=999' pid='1']x[/quote]\n\n")
   })
 })
+
+/** F53's restrictions, on the reply path. Same rules as the composer's. */
+describe('warning restrictions (F53)', () => {
+  it('refuses a suspended author', async () => {
+    const posts = new RecordingReplies()
+
+    await expect(
+      composer(posts).create(
+        { ...INPUT, restriction: { suspended: true, moderated: false } },
+        AUTHOR,
+        TARGET,
+      ),
+    ).rejects.toThrow(/suspended/i)
+    expect(posts.written).toEqual([])
+  })
+
+  it('holds a moderated author"s reply, bypass or no bypass', async () => {
+    const posts = new RecordingReplies()
+
+    await composer(posts).create(
+      {
+        ...INPUT,
+        bypassesModeration: true,
+        restriction: { suspended: false, moderated: true },
+      },
+      AUTHOR,
+      TARGET,
+    )
+
+    expect(posts.written[0]).toMatchObject({ visibility: 'unapproved' })
+  })
+})

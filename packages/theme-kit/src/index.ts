@@ -62,6 +62,7 @@ export type {
   QuickReplyModel,
   RedirectNoticeModel,
   SearchFormModel,
+  SelectionModel,
   Serialisable,
   ShellModel,
   SlotModels,

@@ -1,8 +1,26 @@
 import type { ThreadRowSlotModel } from "@forum/theme-kit";
 
-export function ThreadRow({ thread }: ThreadRowSlotModel) {
+export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
   return (
     <li className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+      {/*
+        F52's checkbox. `form` points at the moderation bar the page renders
+        below the listing, so this control belongs to that form without this
+        row being inside it — which it cannot be, because the listing already
+        contains a mark-read form.
+      */}
+      {select !== null && (
+        <label className="flex shrink-0 items-center">
+          <span className="sr-only">{select.label}</span>
+          <input
+            type="checkbox"
+            name={select.name}
+            value={select.value}
+            form={select.formId}
+            className="size-4"
+          />
+        </label>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-2">
           {thread.prefix !== null && (

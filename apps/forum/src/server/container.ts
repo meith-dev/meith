@@ -18,6 +18,7 @@ import 'server-only'
  * than a bundle that leaks the database client to the browser.
  */
 import {
+  BanService,
   IdentityService,
   SessionService,
   createMemoryStore,
@@ -34,10 +35,14 @@ import {
 import { env, logger } from '@forum/core'
 import { CachedForumRepository, type ForumRepository } from '@forum/forums'
 import type {
+  InlineModerationRepository,
   ModerationQueueRepository,
   ReportRepository,
   ThreadToolsRepository,
+  ModCpRepository,
   ThreadSurgeryRepository,
+  WarningBanPort,
+  WarningRepository,
 } from '@forum/moderation'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
 import type {
@@ -56,7 +61,7 @@ import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
-import { FIXTURE_DATA_VERSION, SEED_BOARD } from './seed-board'
+import { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_GROUP } from './seed-board'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 
 /** The services the app resolves from the container. */
@@ -112,6 +117,27 @@ export interface Container {
    * different arithmetic. `null` in fixture mode (D38).
    */
   readonly threadSurgery: ThreadSurgeryRepository | null
+  /**
+   * Inline bulk moderation (F52). Separate from `threadTools` because it acts
+   * on a *selection* rather than on the thread a page is showing, and because
+   * it has to re-read every id inside a permission scope before it touches one.
+   * `null` in fixture mode (D38).
+   */
+  readonly inlineModeration: InlineModerationRepository | null
+  /**
+   * Warnings (F53). `null` in fixture mode (D38) — a warning that vanishes on
+   * restart is worse than none, because a member's history is the whole record
+   * and a lost one is a punishment nobody can account for.
+   */
+  readonly warnings: WarningRepository | null
+  /**
+   * How a warning level bans somebody (F53). F23 owns the mechanism; this is
+   * the one verb the warning service is allowed to reach, so a future change
+   * cannot make it *lift* a ban — that stays a human decision (D52).
+   */
+  readonly warningBans: WarningBanPort | null
+  /** The ModCP's reads (F54). `null` in fixture mode (D38). */
+  readonly modcp: ModCpRepository | null
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
@@ -203,6 +229,10 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     reports: null,
     threadTools: null,
     threadSurgery: null,
+    inlineModeration: null,
+    warnings: null,
+    warningBans: null,
+    modcp: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -266,12 +296,13 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresThreadToolsRepository, PostgresThreadSurgeryRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresThreadToolsRepository, PostgresThreadSurgeryRepository, PostgresInlineModerationRepository, PostgresWarningRepository, PostgresModCpRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
   const store: AccountStore = createPostgresAccountStore(db)
   const threadViews = new PostgresThreadViewBuffer(db)
+  const warningRepo = new PostgresWarningRepository(db)
   return {
     authorizationSource,
     authorizer: new Authorizer(authorizationSource, { onBypass }),
@@ -287,6 +318,17 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     reports: new PostgresReportRepository(db),
     threadTools: new PostgresThreadToolsRepository(db),
     threadSurgery: new PostgresThreadSurgeryRepository(db),
+    inlineModeration: new PostgresInlineModerationRepository(db),
+    warnings: warningRepo,
+    modcp: new PostgresModCpRepository(db),
+    warningBans: {
+      async ban(input) {
+        await new BanService({
+          bans: new PostgresBanRepository(db),
+          bannedGroupId: SEED_GROUP.banned,
+        }).ban(input)
+      },
+    },
     posts: new PostgresPostRepository(db),
     readState: new PostgresReadStateRepository(db),
     memberProfiles: new PostgresMemberProfileRepository(db),
@@ -314,6 +356,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
           recount: new PostgresCounterRecount(db),
           renderBackfill: new PostgresRenderBackfill(db),
           threadViews,
+          warnings: warningRepo,
         }),
       ),
     },
@@ -344,6 +387,10 @@ export function getContainer(): Container {
     cached.reports === undefined ||
     cached.threadTools === undefined ||
     cached.threadSurgery === undefined ||
+    cached.inlineModeration === undefined ||
+    cached.warnings === undefined ||
+    cached.warningBans === undefined ||
+    cached.modcp === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

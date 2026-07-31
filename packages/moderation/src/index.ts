@@ -52,6 +52,21 @@ export {
 } from './thread-tools'
 
 export {
+  InlineModeration,
+  parseInlineTool,
+  INLINE_CHUNK,
+  INLINE_TOOL_ACTIONS,
+  MAX_INLINE_SELECTION,
+  NO_INLINE_RIGHTS,
+  type InlineModerationRepository,
+  type InlineOutcome,
+  type InlineRights,
+  type InlineRightsResolver,
+  type InlineTarget,
+  type InlineTool,
+} from './inline'
+
+export {
   ThreadSurgery,
   type MergePlan,
   type SplitPlan,
@@ -60,3 +75,38 @@ export {
   type SurgeryThread,
   type ThreadSurgeryRepository,
 } from './surgery'
+
+export {
+  WarningService,
+  parseWarningAction,
+  restrictsPosting,
+  NO_RESTRICTION,
+  POINTS_MAX,
+  REASON_MAX as WARNING_REASON_MAX,
+  TITLE_MAX as WARNING_TITLE_MAX,
+  WARNINGS_PAGE_SIZE,
+  WARNING_ACTIONS,
+  type IssuedWarning,
+  type PostingRestriction,
+  type WarningAction,
+  type WarningBanPort,
+  type WarningLevel,
+  type WarningPage,
+  type WarningRepository,
+  type WarningRow,
+  type WarningStanding,
+  type WarningType,
+} from './warnings'
+
+export {
+  ModeratorPanel,
+  MODCP_PAGE_SIZE,
+  MOD_LOG_ACTIONS,
+  MOD_LOG_LABELS,
+  type IpMatch,
+  type ModCpRepository,
+  type ModLogEntry,
+  type ModLogPage,
+  type ModeratedForum,
+  type ModeratorPanelRights,
+} from './modcp'

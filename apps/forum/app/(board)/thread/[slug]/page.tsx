@@ -3,12 +3,20 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@forum/theme-kit'
 
+import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
 import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
 import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { moderatorTargetFor } from '@/server/modcp'
 import { activeTheme } from '@/server/theme'
+import {
+  INLINE_FORM_ID,
+  anyInlineTool,
+  inlineOutcomeNotice,
+  selectionFor,
+} from '@/view/inline-moderation'
 import { POSTS_PER_PAGE } from '@/view/paging'
 import { buildThreadView } from '@/view/thread-view'
 
@@ -53,6 +61,12 @@ export default async function ThreadPage({
     posted?: string
     post?: string
     tool?: string
+    /* F52's outcome, written by the inline-moderation action's redirect. */
+    did?: string
+    n?: string
+    refused?: string
+    gone?: string
+    skipped?: string
   }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
@@ -62,7 +76,7 @@ export default async function ThreadPage({
   if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
 
   const actor = await getActor()
-  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites, threadTools, threadSurgery } =
+  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites, threadTools, threadSurgery, inlineModeration } =
     getContainer()
   /*
    * Locate, authorise, then read — in that order, and the order is the whole
@@ -125,8 +139,16 @@ export default async function ThreadPage({
    * the view model's, and every one of these is re-asked by the action that
    * acts on it.
    */
-  const own = { forumId: forum.id, forum: matrix, ownerId: actor.userId }
-  const others = { forumId: forum.id, forum: matrix, ownerId: -1 }
+  /*
+   * F54's debt, paid. `Target.isForumModerator` has existed since F48 and was
+   * never set on a per-page `can()` call, so outside the queue a per-forum
+   * appointee had only their group's rights — `post.editOthers` and
+   * `post.softDelete` both read the flag and both saw `undefined`. Every
+   * affordance below is now built on the appointment-aware target.
+   */
+  const appointment = await moderatorTargetFor(actor, forum.id, matrix)
+  const own = { ...appointment, ownerId: actor.userId }
+  const others = { ...appointment, ownerId: -1 }
   /*
    * Every affordance is also gated on there being somewhere to write, the same
    * way the reply link is: fixture mode has no post writer (D38), and an Edit
@@ -144,6 +166,8 @@ export default async function ThreadPage({
       authorizer.can(actor, 'content.viewUnapproved', own),
     /* Global (F49): reporting is a board capability, not a per-forum grant. */
     canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
+    /* F53. Global too, and gated on there being a warning store at all (D38). */
+    canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
   }
 
   /*
@@ -152,10 +176,9 @@ export default async function ThreadPage({
    * destinations are only fetched when the actor may actually move — two extra
    * queries for a moderator, none for everybody else.
    */
-  const moderatorRights = await authorizer.moderatorRightsIn(actor, forum.id)
   const movableInto =
     threadTools === null ? [] : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
-  const toolTarget = { forumId: forum.id, forum: matrix, moderatorRights }
+  const toolTarget = appointment
   const toolRights = {
     lock: threadTools !== null && authorizer.can(actor, 'thread.lock', toolTarget),
     stick: threadTools !== null && authorizer.can(actor, 'thread.stick', toolTarget),
@@ -191,6 +214,23 @@ export default async function ThreadPage({
         )
         .map((row) => ({ id: row.id, title: row.title }))
 
+  /*
+   * F52 on the thread page selects *posts*, so the bar offers only the tools
+   * that mean something for one: approve, delete, restore. Lock, pin and move
+   * act on the thread as a unit and already have F50's bar above.
+   */
+  const inlineRights = {
+    approve:
+      inlineModeration !== null && authorizer.can(actor, 'content.approve', toolTarget),
+    lock: false,
+    stick: false,
+    move: false,
+    /* `toolTarget` already carries `isForumModerator` (see `appointment`). */
+    delete:
+      inlineModeration !== null && authorizer.can(actor, 'post.softDelete', toolTarget),
+  }
+  const inlineOffered = anyInlineTool(inlineRights)
+
   const view = buildThreadView({
     thread,
     capabilities,
@@ -223,7 +263,7 @@ export default async function ThreadPage({
           ? 'That post has been deleted.'
           : query.post === 'unchanged'
             ? 'Nothing changed — that post was already in this state.'
-            : null
+            : inlineOutcomeNotice(query)
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
@@ -260,12 +300,26 @@ export default async function ThreadPage({
         {...view.view}
         regions={{
           posts: view.posts.map((post) => (
-            <PostBit key={post.id} post={post} regions={{ actions: <PostActions actions={post.actions} postId={post.id} /> }} />
+            <PostBit
+              key={post.id}
+              post={post}
+              select={selectionFor('post', post.id, `post #${post.number}`, inlineOffered)}
+              regions={{ actions: <PostActions actions={post.actions} postId={post.id} /> }}
+            />
           )),
           pagination: <Pagination {...view.pagination} />,
           quickReply: null,
         }}
       />
+      {inlineOffered && (
+        <InlineModerationForm
+          formId={INLINE_FORM_ID}
+          scope="posts"
+          rights={inlineRights}
+          moveTargets={[]}
+          returnTo={`/thread/${thread.id}-${thread.slug}`}
+        />
+      )}
     </main>
   )
 }

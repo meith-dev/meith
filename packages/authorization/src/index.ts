@@ -18,6 +18,7 @@ export type {
 } from './types'
 export {
   NO_MODERATOR_RIGHTS,
+  hasAnyModeratorRight,
   type ModeratorAppointment,
   type ModeratorRights,
 } from './types'

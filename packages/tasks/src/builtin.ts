@@ -29,6 +29,11 @@ export interface TaskWorkers {
   applyPromotions(batchSize: number): Promise<number>
   /** Lifts bans whose expiry has passed, restoring each user's prior group. */
   expireBans(batchSize: number): Promise<number>
+  /**
+   * Lapses warnings whose expiry has passed and re-evaluates the members they
+   * belonged to. Returns warnings lapsed.
+   */
+  expireWarnings(batchSize: number): Promise<number>
 }
 
 function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
@@ -184,6 +189,32 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         return { detail: { lifted } }
       },
     },
+
+    {
+      id: 'warnings.expire',
+      title: 'Expire warnings',
+      description:
+        "Recomputes the points total of every member whose cached total still " +
+        'counts a warning that has passed its expiry date, and re-evaluates the ' +
+        'restriction their level implies — which is how a suspension ends when ' +
+        'the warning behind it ages out. The live-warning predicate already ' +
+        'excludes an expired row, so this corrects the cache rather than ' +
+        'creating truth: a board whose tick has been down still reports honest ' +
+        'totals the moment anything recalculates.',
+      /*
+       * Hourly rather than every fifteen minutes, unlike `bans.expire`. A ban
+       * is a lockout with a stated end and an hour of overrun is a complaint; a
+       * warning expiring is a restriction quietly lifting, and nobody is
+       * sitting watching the clock for it. The query is an index scan over
+       * unrevoked warnings with a past expiry, which is almost always empty.
+       */
+      intervalSeconds: 3_600,
+      maxDurationSeconds: 60,
+      async run() {
+        const expired = await workers.expireWarnings(200)
+        return { detail: { expired } }
+      },
+    },
   ]
 }
 
@@ -202,6 +233,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'posts.render_backfill': 'backfillPostRenders',
   'promotions.apply': 'applyPromotions',
   'bans.expire': 'expireBans',
+  'warnings.expire': 'expireWarnings',
 }
 
 /**

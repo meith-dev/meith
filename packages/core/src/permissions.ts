@@ -290,6 +290,19 @@ export const PERMISSION_FIELDS = [
     fallback: false,
     description: 'Reach the moderator control panel.',
   },
+  {
+    /*
+     * F53. Global, like MyBB's `canwarnusers` and for the same reason: a
+     * warning is aimed at a *person*, not at content in a forum, and points
+     * follow them across the whole board. A per-forum grant would have to
+     * answer "warned where?" about a total that has no forum.
+     */
+    key: 'canWarnUsers',
+    kind: 'boolean',
+    scope: 'global',
+    fallback: false,
+    description: 'Issue and revoke warnings against members.',
+  },
 
   /*
    * The two bypass flags. R4.2 requires these be explicit and logged, never

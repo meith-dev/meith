@@ -107,6 +107,13 @@ export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
           { label: 'Profile', href: viewer.profileHref },
           ...(viewer.canAccessModCp
             ? [
+                /*
+                 * F54's panel first: it is the page a moderator opens when
+                 * nobody has handed them a link, and the other two are sections
+                 * of it. They stay in the nav because a moderator working a
+                 * queue goes straight there several times an hour.
+                 */
+                { label: 'Moderator CP', href: '/modcp' },
                 { label: 'Moderation queue', href: '/moderation' },
                 { label: 'Reports', href: '/moderation/reports' },
               ]

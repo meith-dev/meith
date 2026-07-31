@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D50. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D53. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -17,12 +17,12 @@ this file.
 
 ## Gate state (all green)
 
-`pnpm verify` → exit 0: textual invariants (now **nine** guards, F47's included)
-+ **guard probes**, the **slot
-server/client boundary** check + its probe, dependency-cruiser (298 modules, 0
-violations), typecheck (root **and** app), **1650 tests** (a large share against
-real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
-production environment. Three consecutive green runs after capping worker
+`pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
++ **guard probes**, the **slot server/client boundary** check + its probe,
+dependency-cruiser (421 modules, 0 violations), typecheck (root **and** app),
+**1833 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
+`/modcp/forums`, `/modcp/ip` and `/moderation/warn` in the route table. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
 roughly one run in three (D34) — and after raising the *test* timeout, which
 F38's four extra database suites pushed the Argon2id lockout test past (D41).
@@ -317,100 +317,118 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   anything else — without that it is a thread-existence oracle. See **D50** and
   three `mybb-parity.md` entries.
 
+- **F52 inline moderation** — the same power as the queue, exercised where the
+  content is. Checkboxes down a forum listing and a thread page, one bar below,
+  eight tools; every transition is F41's, F48's or F50's, and the arithmetic F50
+  kept inline moved to `thread-counters.ts` so the bulk path cannot drift from
+  the single-target one. Two things are worth carrying forward. **The checkboxes
+  are not inside the form**, because `ForumDisplay` already renders a mark-read
+  form and nested forms are not parsed — they are associated by HTML's `form`
+  attribute, which is native, works with scripting off, and is what
+  `new FormData(form)` reads after hydration. And **the re-read is scoped**:
+  `Authorizer.forumIdsWhere(actor, action)` is new, keyed by action rather than
+  by a rights field because `canSoftDeletePosts` means two different things
+  depending on which action asks. Without that scope, "refused" and "no such
+  thing" are different answers, and the outcome counts enumerate every private
+  forum on the board. It chunks rather than refusing, which is safe only because
+  every write is state-guarded. See **D51**.
+
+- **F53 warnings** — the first moderator act aimed at a *person*.
+  `users.warning_points` has existed since migration `0000` with nothing that
+  writes it; what writes it now **derives it** rather than incrementing it,
+  because an incremented total cannot survive a revocation — you would be
+  subtracting from a number that two expiries and a later warning have already
+  moved. Levels are thresholds re-evaluated after every change, which is the
+  whole reason revoking a warning actually lifts a suspension instead of only
+  lowering a number. The restriction reaches the posting path as two booleans
+  and **outranks `bypassesModeration`**, so a moderator under a warning is not
+  the one member it cannot reach. `warnings.expire` corrects the cache and
+  re-evaluates the level; it never bans, because it has no actor to attribute a
+  ban to. See **D52**, and four parity entries including why levels are points
+  rather than MyBB's percentages.
+
+- **F54 the moderator control panel — Phase 4 closes.** `/modcp` with an
+  overview, *my forums*, the log, and the address lookup. Access is a group grant
+  **or** an appointment, because F48's appointed moderator has work and no grant.
+  *My forums* is the screen F50 made necessary: once locking became something you
+  are appointed to per forum, a moderator's only way to find out what they had
+  been appointed to was to press a button and be refused. The log is an
+  **allow-list** of moderation actions rather than a deny-list, because
+  `admin_log` is shared with the ACP and will keep growing row types. The address
+  lookup is gated separately, audited on every call including the empty ones, and
+  searches the truncated prefix F09 stores — and says so on screen, because
+  "shares an address" is a certainty the data does not support. **F48's debt is
+  paid**: `Target.isForumModerator` is now set on every per-page `can()` call.
+  See **D53**.
+
 ## NEXT ACTION — resume here
 
-**F52 · inline moderation** is next in order and is mostly assembly: F48 wrote
-the chunked selection (`parseSelection`, `MAX_CHUNK` = 200) and F50/F51 wrote
-every tool it needs to invoke, so what is missing is the *listing-level* form —
-per-post and per-thread checkboxes on the forum display and the thread page, one
-form spanning the listing, and the 200-item chunking applied to a selection that
-can now mix threads and posts.
+**Phase 4 is done.** Seven of eight `DONE`; F50 is `PARTIAL` on *copy* alone,
+which is an unanswered product question rather than missing code (MyBB credits
+the copies, double-counting one piece of writing — see
+`mybb-parity.md#copying-a-thread`). Checkpoint 4 is reached with one honest
+caveat, below.
 
-It also unblocks the piece F51 deliberately left out: **hand-picked split
-selection**. F51's split names its cut point with a `<select>` of the posts on
-screen because that is what a page without checkboxes can express. Once F52 has
-per-post checkboxes, "split these posts" becomes a selection over the same
-surface rather than a second selection mechanism.
+**Phase 5 (F55–F62) is next in order, and F55 is the right start** — not because
+it is first in the list but because three finished features are waiting on it:
 
-**F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
-seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
-declarative entry rather than an admin-supplied regular expression, and
-per-forum capability toggles are a filtered registry. `font`, `align` and
-`video` are parked there by parity decision.
+1. a failing scheduled task logs and raises no admin notification (ten tasks
+   wide now);
+2. F49's reports notify nobody, so a report is only seen by a moderator who
+   happens to open the screen;
+3. F53's warnings notify nobody either — a warned member finds out by trying to
+   post and being held.
 
-**F53–F54** follow, and neither needs new mechanics: every moderator action in
-Phase 4 is one of F41's two transitions performed by a different actor, or a
-thread-level equivalent F50 and F51 have now written once each.
+Each of those is a line in a `DONE` row saying "omitted rather than stubbed
+(D32)", and F55 is the feature that lets all three stop being omissions.
 
-**F48's debt is now half paid.** The thread page resolves appointment rights and
-the thread-tool, merge and split actions resolve them per forum, so a per-forum
-appointee is a real moderator there. What is still not threaded is
-`isForumModerator` on the *other* per-page checks — `post.editOthers`,
-`post.softDelete` and the two content-visibility actions still see only the
-group's fields outside the queue and the thread bar. F54 is where that
-finishes.
+**Still unresolved, and now the oldest blocker on the board: the e2e board
+cannot post.** The Playwright suite runs against fixture mode, which has no
+writer, so no browser test covers posting, replying, moderating or warning
+without JavaScript. F52 makes this worse in a specific way — inline moderation's
+whole claim is that native checkboxes associated by the `form` attribute submit
+correctly with scripting off, and that is exactly the kind of claim a browser
+proves and a `FormData`-driven action test cannot. Either the e2e harness gains a
+real database or the fixture gains a content store. D38's "fixture writes throw"
+rule was written for *structure*; this is the third time it has cost coverage.
 
-**F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
-seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
-declarative entry rather than an admin-supplied regular expression, and
-per-forum capability toggles are a filtered registry. `font`, `align` and
-`video` are parked there by parity decision.
+**The F22 matrix needed no new columns for F52, F53 or F54**, which is worth
+noting because it is the first stretch of Phase 4 where that is true. F52 reuses
+`content.approve`, F50's four and `post.softDelete`; F53's `user.warn` is global
+like `content.report`; F54 reads `modcp.access`, which has existed since F20. It
+stays at 608 cells.
 
-**F49–F54** follow it, and none of them needs new mechanics either: every
-moderator action in Phase 4 is one of F41's two transitions performed by a
-different actor, or a thread-level equivalent that F50 has to write once.
+Also worth knowing, carried forward:
 
-Still unresolved and still blocking browser-level coverage of *writing* in
-Phase 3 (and now of moderation too): **the e2e board cannot post.** The Playwright suite runs against
-fixture mode, which has no writer, so no browser test covers posting or replying
-without JavaScript. F36 narrowed it rather than closed it — reading a rendered
-body is now proven in the browser, because fixture rows deliberately store no
-render and so exercise the live path. Either the e2e harness gains a real
-database or the fixture gains a content store; D38's "fixture writes throw" rule
-was written for *structure*, and content is the second time it has cost
-coverage.
-
-Also worth knowing: the F22 matrix needed **no new columns** for F41 or F47 —
-needed one for F48, four for F50 and two for F51, which is the gate working
-rather than failing — 608 cells now.
-`post.editOwn`, `post.editOthers`, `post.deleteOwn`, `post.softDelete` and
-`content.viewDeleted` were all declared and covered when the gate was written,
-so the regression net F22 demands for those paths was already there.
-`content.approve` was not, and neither were F50's four or F51's two; each
-addition forced a column and a human decision about the moderator rows.
-
-Still worth settling:
-
-- **`ViewerModel.username` is always `null`.** `Actor` carries permissions, not
-  profile data, so anything that needs a name reads the profile row separately —
-  which F39 now does on every post, to denormalise the author name onto the row.
-  Carrying it on the actor would save that query on every write path to come.
+- **`ViewerModel.username` is still always `null`.** `Actor` carries permissions,
+  not profile data, so anything needing a name reads the profile row separately.
 - **The board title is a constant** (`BOARD_TITLE` in `src/view/shell.ts`).
-  `getSettings()` now exists and `board.name` is in the registry, so this is a
-  two-line change rather than a seam to build.
+  `getSettings()` exists and `board.name` is in the registry: a two-line change.
+- **`ViewerModel.canAccessModCp` is group-level only**, so the shell's ModCP link
+  does not appear for a per-forum appointee even though `/modcp` now admits them.
+  Answering it properly costs the tree on every page render; the panel itself
+  resolves it correctly, so the link is the only thing affected.
 
 Smaller things still unblocked, in rough order of value:
 
 1. **`forum task:run`** — the CLI command was blocked on `TaskRepository`, which
-   now exists. Small, and gives operators a way to force a tick, which matters
-   more now that eight real tasks are registered.
-2. **F04** — CI never boots the standalone image, and `apps/worker` is empty, so
-   the self-hosting path is unverified and rots quietly while everyone develops
-   on Vercel. This is F04's stated acceptance criterion.
-3. **`ViewerModel.username` is still always `null`**, and the composer had to
-   read the author's name from the profile repository to write it onto the post
-   — the first place the gap cost a query rather than a label.
-4. **The schema-drift CI step is inert** — it inspects `packages/db/drizzle`,
+   exists. Small, and gives operators a way to force a tick, which matters more
+   now that **ten** real tasks are registered.
+2. **F04** — CI never boots the standalone image and `apps/worker` is empty, so
+   the self-hosting path is unverified and rots quietly.
+3. **The schema-drift CI step is inert** — it inspects `packages/db/drizzle`,
    which does not exist (migrations live in `packages/db/migrations`), so it has
    always passed vacuously. Pointing it at the real directory fails today for a
-   real reason: the drizzle meta snapshot has been stale since `0002`, so
-   `generate` wants to re-create tables that already exist. Repairing the
-   snapshot and fixing the path belong together (D41).
+   real reason: the drizzle meta snapshot has been stale since `0002` and is now
+   four migrations behind. Repairing the snapshot and fixing the path belong
+   together (D41).
+4. **Hand-picked split** — F51 deferred it to F52's checkboxes, which now exist.
+   It is a change to `ThreadSurgery`'s validation (no opening post, not the whole
+   thread, all of *this* thread) rather than to the inline bar, which is why F52
+   did not do it in passing.
 
 Still outstanding and worth keeping visible:
 
-- A failing task logs but does not raise an admin notification (needs F55) — now
-  nine tasks wide rather than five.
 - Permission columns are generated into a `Record<string, …>`, so
   `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.
 - **Deleting or renaming a route breaks `typecheck:app`** until `next build`
@@ -418,18 +436,18 @@ Still outstanding and worth keeping visible:
 - **`apps/forum/tsconfig.json` hand-copies the workspace path aliases** from
   `tsconfig.base.json` — TypeScript replaces `paths` rather than merging, so a
   new package must be added in both places.
-- **F26 runtime overrides** now validate raw token JSON, reject stylesheet
-  escapes/network fetches in custom CSS, cache the tagged database read, and
-  derive browser chrome colours from the effective background. The default token
-  mirror is asserted against that conversion (D39).
+- **Adding a container field breaks every app-tier test container**, because
+  `getContainer()`'s HMR compatibility guard rebuilds on an unknown shape. Three
+  fields were added this pass and each one needed the same six test files
+  touched. Worth a shared `testContainer()` helper before Phase 5 adds more.
 
-**Test harness note:** integration tests now use PGlite via `createTestDb()` in
+**Test harness note:** integration tests use PGlite via `createTestDb()` in
 `packages/db/src/pglite.fixture.ts` — boot once per suite, clear mutable tables
 in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D49). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D53). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a
