@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D46. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D47. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -20,7 +20,7 @@ this file.
 `pnpm verify` → exit 0: textual invariants (now **nine** guards, F47's included)
 + **guard probes**, the **slot
 server/client boundary** check + its probe, dependency-cruiser (241 modules, 0
-violations), typecheck (root **and** app), **1249 tests** (a large share against
+violations), typecheck (root **and** app), **1331 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -263,16 +263,38 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   including why numbering is a disclosure and why `locateForum` returns an id
   and never a row.
 
+- **F48 the moderation queue** — the first moderator surface. `/moderation`
+  lists held threads and held replies, oldest first, scoped by
+  `moderatedForumIds`, and approves or rejects them in bounded batches. The
+  transitions are F41's, reused rather than reimplemented. Two things came out
+  of it worth knowing: **`forum_moderators` had never been read** — the table
+  has existed since F21 and `Target.isForumModerator` has never once been set,
+  so an appointed moderator was appointed to nothing — and approving turned out
+  to need its own action, which cost the F22 matrix a thirteenth column exactly
+  as the gate intends. The selection is never trusted: every submitted id is
+  re-read for its real forum, and the moderated set is resolved per request
+  rather than carried in the form. See **D47**.
+
 ## NEXT ACTION — resume here
 
-**F48 · the moderation queue** is the next thing, and both gates it waited on
-are now green. The mechanism is done: approval is `unapproved → visible`, which
-is F41's counter path, already tested in both directions and idempotent against
-replay. What is missing is a *queue read* — "everything awaiting approval in the
-forums I moderate", which is the first list on the board scoped by moderator
-rights rather than by view permission — a screen, and the chunked bulk workflow
-the roadmap asks for. Add its read path as a row in F47's leak table when you
-write it; that is now the cheapest part.
+**F49 · reports** is the next thing in order, and it is the smallest remaining
+Phase 4 feature: a `reports` table, a report form on `PostActions.reportHref`
+(the field exists and is still `null`), and a moderator list that reuses the
+queue's shape almost exactly — scoped by `moderatedForumIds`, keyset-paged,
+bulk-resolved.
+
+**F50 · thread tools** is the larger one, and the one with real design in it.
+Open/close/stick/move/copy/delete/restore/approve at *thread* level, each with
+"full affected-row counter assertions". F41 and F48 wrote the post-level
+transitions and the thread-level approve; move and copy are new, and moving a
+thread is the case where the ancestor counter roll-up and the last-post repair
+chain both have to run for two subtrees at once.
+
+**Before either, there is a debt F48 named and did not pay:**
+`Target.isForumModerator` is still never set on any per-page `can()` call, so
+outside the queue a per-forum appointee has only their group's rights. F54 is
+where granular moderator rights are the subject; if F50 needs them sooner, thread
+it through there instead and move the note.
 
 **F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
 seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
@@ -294,11 +316,13 @@ database or the fixture gains a content store; D38's "fixture writes throw" rule
 was written for *structure*, and content is the second time it has cost
 coverage.
 
-Also worth knowing: the F22 matrix needed **no new columns** for F41 or F47.
+Also worth knowing: the F22 matrix needed **no new columns** for F41 or F47 —
+and needed one for F48, which is the gate working rather than failing.
 `post.editOwn`, `post.editOthers`, `post.deleteOwn`, `post.softDelete` and
 `content.viewDeleted` were all declared and covered when the gate was written,
-so the regression net F22 demands for a new permission-sensitive path was
-already there. The new paths are covered by their own action tests instead.
+so the regression net F22 demands for those paths was already there.
+`content.approve` was not, and adding it forced a thirteenth column and a
+human decision about one cell — 416 cells now.
 
 Still worth settling:
 
@@ -350,7 +374,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D46). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D47). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

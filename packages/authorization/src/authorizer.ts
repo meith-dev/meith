@@ -53,6 +53,7 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'post.softDelete',
   'content.viewUnapproved',
   'content.viewDeleted',
+  'content.approve',
   'attachment.upload',
   'forum.search',
   'forum.subscribe',
@@ -192,6 +193,71 @@ export class Authorizer {
   }
 
   /**
+   * The forums whose moderation queue this actor may act on (F48).
+   *
+   * The first list on the board scoped by *moderator rights* rather than by
+   * view permission, and the first thing ever to read `forum_moderators`. Two
+   * sources, unioned:
+   *
+   *   - a group-level grant (`canApproveContent` on the resolved matrix), which
+   *     is how staff groups get the whole board; and
+   *   - an **appointment**, which is how one person gets one forum — expanded
+   *     down the tree when it cascades.
+   *
+   * A forum the actor cannot even view is excluded from both. An appointment
+   * over a forum that has since been hidden from its moderator's groups is a
+   * configuration mistake, and the safe reading of it is the restrictive one.
+   *
+   * Constant-query like `visibleForumIds`, and for the same reason (D26): the
+   * chains, the group defaults, the overrides and now the appointments, then
+   * resolution in memory.
+   */
+  async moderatedForumIds(actor: Actor): Promise<number[]> {
+    if (actor.global.isAdministrator === true || actor.global.isSuperModerator === true) {
+      return [...(await this.source.allForumIds())]
+    }
+
+    const [chains, groups, appointments] = await Promise.all([
+      this.source.allAncestorChains(),
+      this.source.groupDefaults(actor.groupIds),
+      this.source.moderatorAppointments(actor.userId, actor.groupIds),
+    ])
+
+    const everyForumInvolved = [...new Set([...chains.values()].flat())]
+    const overrides = indexOverrides(
+      await this.source.forumOverrides(everyForumInvolved, actor.groupIds),
+    )
+
+    /*
+     * An appointment applies to its own forum always, and to a descendant only
+     * when it cascades. "Descendant" is read off the ancestor chain rather than
+     * from a path prefix — the chain is already the authoritative answer here,
+     * and it cannot fall into D22's `1.4` / `1.40` trap because it compares ids.
+     */
+    const approvesByAppointment = new Set<number>()
+    for (const [forumId, chain] of chains) {
+      for (const appointment of appointments) {
+        if (!appointment.canApproveContent) continue
+        if (appointment.forumId === forumId) {
+          approvesByAppointment.add(forumId)
+        } else if (appointment.cascadeToSubforums && chain.includes(appointment.forumId)) {
+          approvesByAppointment.add(forumId)
+        }
+      }
+    }
+
+    const moderated: number[] = []
+    for (const [forumId, chain] of chains) {
+      const matrix = resolveForumMatrix(chain, groups, overrides)
+      if (matrix.canView !== true) continue
+      if (matrix.canApproveContent === true || approvesByAppointment.has(forumId)) {
+        moderated.push(forumId)
+      }
+    }
+    return moderated
+  }
+
+  /**
    * Which content states this actor may see in this forum (F47).
    *
    * The **only** producer of a `ContentScope`. Every viewer-facing read takes
@@ -284,6 +350,14 @@ export class Authorizer {
         return target.isForumModerator === true || forum.canViewUnapproved === true
       case 'content.viewDeleted':
         return target.isForumModerator === true || forum.canViewDeleted === true
+      case 'content.approve':
+        /*
+         * `isForumModerator` alone is not enough here, unlike the actions
+         * above: an appointment carries granular rights, and one that does not
+         * include `canApproveContent` appoints somebody to *read* the queue.
+         * The caller resolves that right and passes it as `moderatorApproves`.
+         */
+        return target.moderatorApproves === true || forum.canApproveContent === true
       default: {
         const _exhaustive: never = action as never
         return Boolean(_exhaustive)

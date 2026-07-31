@@ -121,6 +121,9 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../../packages/groups
+      '@forum/moderation':
+        specifier: workspace:*
+        version: link:../../packages/moderation
       '@forum/posts':
         specifier: workspace:*
         version: link:../../packages/posts
@@ -243,6 +246,9 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../groups
+      '@forum/moderation':
+        specifier: workspace:*
+        version: link:../moderation
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
@@ -300,6 +306,12 @@ importers:
         version: link:../core
 
   packages/groups: {}
+
+  packages/moderation:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/posts:
     dependencies:

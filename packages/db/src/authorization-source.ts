@@ -14,9 +14,10 @@
  *     requires "my ancestors" to cost one query regardless of depth; parsing my
  *     own path delivers exactly that, with no recursive CTE.
  */
-import { and, inArray } from 'drizzle-orm'
+import { and, inArray, sql } from 'drizzle-orm'
 
 import type {
+  ModeratorAppointment,
   AuthorizationSource,
   ForumOverride,
   GroupDefaults,
@@ -24,6 +25,7 @@ import type {
 
 import type { Database } from './client'
 import { forumRowToOverride, groupRowToPermissionSet } from './permissions-map'
+import { resultRows } from './result-rows'
 import { forumPermissions, forums, usergroups } from './schema'
 
 /**
@@ -121,4 +123,60 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
 
     return new Map(rows.map((r) => [r.id, parseAncestorPath(r.path)]))
   }
+  /**
+   * This actor's moderator appointments (F48).
+   *
+   * `forum_moderators` has existed since F21 with no reader at all, so until
+   * now an appointment was a row nothing consulted and "moderator" meant
+   * "member of a staff group". One query, by user or by any of the actor's
+   * groups; expansion through `cascade_to_subforums` happens in the Authorizer,
+   * which already holds the tree.
+   */
+  async moderatorAppointments(
+    userId: number | null,
+    groupIds: readonly number[],
+  ): Promise<readonly ModeratorAppointment[]> {
+    if (userId === null && groupIds.length === 0) return []
+
+    /*
+     * An `in (…)` list, not `= any($1::int[])`: drizzle expands a JavaScript
+     * array in a template into a placeholder *list*, so `any(${groupIds})`
+     * compiles to `any(($1, $2))` and fails to parse. `in (null)` is the right
+     * reading of "no groups": never true.
+     */
+    const groupList =
+      groupIds.length === 0
+        ? sql`(null)`
+        : sql`(${sql.join(
+            groupIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`
+
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select forum_id, cascade_to_subforums, can_approve_content,
+               can_edit_posts, can_soft_delete_posts, can_restore_posts
+          from forum_moderators
+         where (user_id is not null and user_id = ${userId})
+            or (group_id is not null and group_id in ${groupList})
+      `),
+    ) as Array<{
+      forum_id: number
+      cascade_to_subforums: boolean
+      can_approve_content: boolean
+      can_edit_posts: boolean
+      can_soft_delete_posts: boolean
+      can_restore_posts: boolean
+    }>
+
+    return rows.map((row) => ({
+      forumId: Number(row.forum_id),
+      cascadeToSubforums: row.cascade_to_subforums,
+      canApproveContent: row.can_approve_content,
+      canEditPosts: row.can_edit_posts,
+      canSoftDeletePosts: row.can_soft_delete_posts,
+      canRestorePosts: row.can_restore_posts,
+    }))
+  }
+
 }

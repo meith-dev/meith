@@ -152,6 +152,7 @@ function installContainer(
     authorizer: new Authorizer(source, {}),
     threadWrites: writes,
     postWrites: null,
+    moderationQueue: null,
     threads: {
       locateForum: async () => null,
       findById: async () => null,

@@ -70,6 +70,16 @@ export type Action =
   | 'post.softDelete'
   | 'content.viewUnapproved'
   | 'content.viewDeleted'
+  /**
+   * Act on the queue: approve or reject held content (F48).
+   *
+   * Deliberately distinct from `content.viewUnapproved`. Seeing what is waiting
+   * and deciding what happens to it are different powers, and MyBB has had the
+   * two as separate columns since forever (`canviewunapprove` /
+   * `canapproveunapprove`). Collapsing them would mean any role trusted to read
+   * the queue could empty it.
+   */
+  | 'content.approve'
   | 'attachment.upload'
   | 'forum.search'
   | 'forum.subscribe'
@@ -121,6 +131,13 @@ export interface Target {
    * including subforum cascade). Resolved by the repository alongside the matrix.
    */
   readonly isForumModerator?: boolean
+  /**
+   * Whether this actor's appointment in this forum carries `canApproveContent`
+   * (F48). Separate from `isForumModerator` because an appointment's rights are
+   * granular: being a moderator here does not by itself mean being trusted to
+   * empty the queue.
+   */
+  readonly moderatorApproves?: boolean
   /**
    * Whether this forum is password-protected. Orthogonal to the permission
    * matrix: password protection is a property of the forum row, not a group
@@ -187,6 +204,35 @@ export interface AuthorizationSource {
    * entire product. F21 makes this an explicit acceptance criterion.
    */
   allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>>
+
+  /**
+   * This actor's moderator appointments (F21's `forum_moderators`, read for the
+   * first time at F48).
+   *
+   * The table has existed since F21 and nothing has ever consulted it, so until
+   * now "moderator" in practice meant "member of a staff group". An appointment
+   * is the other half: one person given rights over one forum, optionally
+   * cascading to its subforums, with each right granted individually.
+   *
+   * Returns the appointments themselves rather than an expanded forum set,
+   * because expansion needs the tree and the tree already lives in
+   * `allAncestorChains()` — resolving it here would mean a second walk in the
+   * adapter and a second place to get the prefix trap wrong (D22).
+   */
+  moderatorAppointments(
+    userId: number | null,
+    groupIds: readonly number[],
+  ): Promise<readonly ModeratorAppointment[]>
+}
+
+/** One row of `forum_moderators`, as the Authorizer needs it. */
+export interface ModeratorAppointment {
+  readonly forumId: number
+  readonly cascadeToSubforums: boolean
+  readonly canApproveContent: boolean
+  readonly canEditPosts: boolean
+  readonly canSoftDeletePosts: boolean
+  readonly canRestorePosts: boolean
 }
 
 /**

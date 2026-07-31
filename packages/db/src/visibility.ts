@@ -36,3 +36,14 @@ export function visibleIn(column: PgColumn | SQL, scope: ContentScope): SQL {
     sql`, `,
   )})`
 }
+
+/**
+ * The state held content sits in, as a *value*.
+ *
+ * F48's queue has to name it — "what is waiting for approval" is the queue's
+ * subject, not a decision about a reader — and naming it here rather than in
+ * the queue's SQL keeps the guard's rule exact: no query writes a state
+ * literal, including this one. Interpolating the constant produces a bound
+ * parameter, which is also the shape the rest of the write path already uses.
+ */
+export const PENDING_APPROVAL = 'unapproved' as const

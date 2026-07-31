@@ -1945,3 +1945,119 @@ scope, and a numbering subquery that counts the whole table.
 - **`ThreadListingRow` gained `visibility`.** A listing that can contain hidden
   rows has to say which ones they are, or the theme cannot mark them and the
   leak suite cannot check itself.
+
+### D47 — The queue, and the table nobody had ever read (F48)
+
+Approving was already built: it is F41's `unapproved → visible`, counter-correct
+in both directions and idempotent against replay. What F48 adds is the part F41
+could not have — a *list* of what is waiting, and a bulk decision over it.
+
+#### `forum_moderators` had no reader
+
+F21 created the table. Nothing has consulted it since, and
+`Target.isForumModerator` — the flag the Authorizer branches on for four
+different actions — has never once been set by the app. So in practice
+"moderator" has meant "member of a staff group", and a board that appointed
+somebody to moderate one forum appointed them to nothing.
+
+F48 is the first feature where that gap is load-bearing: "the forums I
+moderate" is the queue's entire scope. So the port gained
+`moderatorAppointments`, `@forum/db` gained the query, and
+`Authorizer.moderatedForumIds` unions two sources — a group-level
+`canApproveContent`, and an appointment, expanded down the tree when it
+cascades. It is constant-query for the same reason `visibleForumIds` is (D26).
+
+Threading `isForumModerator` through every per-page `can()` call is *not* part
+of this feature and remains a real gap: outside the queue, a per-forum
+appointee still has only their group's rights. That is F54's, where granular
+moderator rights become the subject rather than a dependency.
+
+#### Approving needed its own action, and the F22 matrix grew a column
+
+`content.viewUnapproved` means "this actor deals with the queue" and is already
+the moderation bypass. Approving is a stronger power — MyBB has had
+`canviewunapprove` and `canapproveunapprove` as separate columns for twenty
+years — so `content.approve` is a new `Action`, which by design forces a
+thirteenth column in F22's fixture. That cost is the point of the gate, and it
+was small: the sets are named constants, so `ALL` picked it up and only the
+read-only-subforum row needed a decision (a moderator approves there; the
+override takes away *posting*, and a closed forum is exactly the kind that still
+has a queue from before it closed).
+
+`content.approve` reads `moderatorApproves` rather than `isForumModerator`,
+because an appointment's rights are granular: being a moderator here does not by
+itself mean being trusted to empty the queue.
+
+#### The selection is never trusted
+
+A form submits `kind:id` checkbox values. Every one is re-read to find out which
+forum it is *actually* in, and only then checked against the moderated set. An
+id in a POST body is a request, not a fact — and the moderated set is resolved
+per request from the actor, never carried in a hidden field, because a hidden
+field holding it is the whole permission check sitting in the browser. Both are
+mutation-verified.
+
+Refusals are reported, not dropped. A moderator who selects twelve items and
+moves eleven is told how many were in forums they do not moderate and how many
+somebody else had already handled — otherwise the screen and the board disagree
+about what just happened and only one of them is right.
+
+#### A thread and its opening post move together; a held reply inside a held thread does not appear
+
+F39 writes a held thread and its opening post held together, so approving the
+thread without the post yields a visible thread with nothing to read. Nothing
+*else* in the thread moves — a reply held separately is its own queue item.
+
+The converse is why the listing excludes replies whose thread is itself waiting:
+approving such a reply would publish a post into a thread nobody can see, and
+approving the *thread* is what actually puts it in front of anybody. Killed by a
+mutant that drops the condition.
+
+#### Rejecting moves no counter
+
+The same silent case F41 documents, from the other side. Held content was never
+counted (D41), so `unapproved → deleted` is a state change and nothing else. A
+"deleting always decrements" implementation walks every total down one rejected
+post at a time, and no recount would attribute the drift to anything.
+
+#### Bounded, and all-or-nothing within the bound
+
+`MAX_CHUNK` is 200 and the screen offers 25, so the cap is not something anybody
+meets by clicking — it is the ceiling on a hand-crafted POST. Each item costs a
+transaction's worth of counter updates and a last-post repair up the tree, so an
+unbounded selection is a request that runs until the platform kills it, halfway
+through, with no record of where it stopped. Within the bound the batch is one
+transaction: a half-applied bulk approval would leave a moderator with no way to
+tell which half.
+
+#### The screen is app-owned, not a theme slot
+
+The 25-slot registry is R6's list and freezes at F77. A moderator tool is an
+operator surface, like the ACP (F63), which also has no slot — and committing the
+public theme contract to a screen whose shape F54's ModCP has not designed yet
+would be the wrong order. The route sits inside the board route group, so the
+theme still supplies everything around it.
+
+The queue shows each body as **plain text**. This is the one screen that
+displays content nobody has approved, and rendering it would give a spammer's
+markup its first audience in the browser of the person deciding whether it
+should exist.
+
+#### Smaller things
+
+- **`= any($1::int[])` does not work.** Drizzle expands a JavaScript array in a
+  template into a comma-separated *placeholder list*, so `any(${ids})` compiles
+  to `any(($1, $2))` — a syntax error, and `any(())` for an empty array. Both
+  new queries use an `in (…)` list built with `sql.join`, with `(null)` for the
+  empty case. The appointment query had the same bug and no test; it has one
+  now, on real Postgres, because that is what would have caught it.
+- **The queue's cursor is a keyset, not an offset.** The queue changes
+  underneath a moderator working through it, and an offset skips an item every
+  time somebody else approves one above. A corrupt cursor is treated as no
+  cursor rather than as a failed page.
+- **One audit row per batch.** A moderator clearing a queue performed one act;
+  twenty rows saying so would bury the next one.
+- **The user-panel link is group-level only.** `canAccessModCp` is read off the
+  already-resolved actor, so the shell costs no extra query — but a per-forum
+  appointee does not get the link, only the working page behind it. Resolving
+  the tree on every page render to fix that is F54's trade to make.

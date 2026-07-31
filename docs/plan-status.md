@@ -26,8 +26,8 @@ defines scope, dependencies, and acceptance criteria.
 
 ## How this audit was done
 
-Last audited **2026-07-30** (re-audited after F47 landed), against the working tree, not from memory:
-`pnpm verify` (1249 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
+Last audited **2026-07-30** (re-audited after F48 landed), against the working tree, not from memory:
+`pnpm verify` (1331 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -41,13 +41,13 @@ couple of `PARTIAL` rows are an afternoon.
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 9 | 2 | 0 |
 | 3 — Posting | 11 | 5 | 0 | 6 |
-| 4 — Moderation | 8 | 1 | 0 | 7 |
+| 4 — Moderation | 8 | 2 | 0 | 6 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
 | 6 — Admin CP | 9 | 0 | 0 | 9 |
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **33** | **5** | **51** |
+| **Total** | **89** | **34** | **5** | **50** |
 
 ---
 
@@ -138,19 +138,20 @@ F41 gate is green, which unblocks Phase 4.
 
 ## Phase 4 — Moderation
 
-The gate is green, so the rest of the phase is unblocked. No moderation
-*surface* exists yet — every row below is a screen or a command, not a mechanism.
+Both gates are green and the first surface exists. `/moderation` is a working
+queue; the rest of the phase is screens and commands over transitions F41
+already wrote.
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
 | F47 | ⛔ GATE — Visibility model enforcement | `GATE` — green | One `ContentScope`, produced only by `Authorizer.contentScope` and turned into SQL only by `visibleIn` (`packages/db/src/visibility.ts`). **The scope is a required, undefaulted argument**, so an unauthorised read is a compile error rather than an audit — which is what found every call site including the fixtures and the seed data. Guard `R3 no-adhoc-content-visibility` fires on any *query-shaped* mention of the column outside the counter/write modules, probed both ways with two `alsoClean` exemption samples; it found two real hits on its first run (the unread computation's own predicate, and the flood check's `<> 'deleted'`). The leak suite is a **property** — every read path × every scope, every returned row is in the scope handed in — plus exact-set assertions so it cannot pass by returning nothing; 20 tests, four mutants killed including a numbering subquery that counted the whole table (numbering is a disclosure: `#4` on a three-post page names hidden content). `locateForum` is the one deliberately unscoped lookup and returns an id, never a row. **Not covered by tests because they do not exist yet:** feeds (F76) and search (F72) — the guard is what will catch them. See **D46**. |
-| F48 | Moderation queue | `TODO` | **Unblocked**: F47 is green and F41 wrote the transition, so approval is `unapproved → visible` through counter code that is already tested. What is missing is the queue read, the screen and the chunked bulk workflow. |
+| F48 | Moderation queue | `DONE`* | `@forum/moderation`'s `ModerationQueue` over `PostgresModerationQueueRepository`: a keyset-paged union of held threads and held replies, oldest first, scoped to `Authorizer.moderatedForumIds`. **`forum_moderators` gets its first reader ever** — the table has existed since F21 and nothing consulted it, so "moderator" meant "member of a staff group"; appointments now resolve, cascade down the tree and carry granular rights. `content.approve` is a new action, so the F22 matrix grew a thirteenth column (416 cells). The selection is never trusted: every submitted id is re-read for its real forum and then checked, and the moderated set is resolved per request rather than carried in the form — both mutation-verified. A thread and its opening post move together; a reply held inside a held thread is not listed, because approving it would publish into a thread nobody can see. Rejecting moves no counter (D41's definition, from the other side). Bounded at `MAX_CHUNK` = 200, one transaction per batch, one audit row per batch. 82 tests, five mutants killed. See **D47**. *Attachments are absent because F42 is: the queue omits what does not exist rather than showing an empty section (D32). The screen is app-owned rather than a theme slot — see D47 for why, and F54 for where a moderator shell belongs. |
 | F49 | Reports | `TODO` | No report schema or routes. |
 | F50 | Thread tools | `TODO` | No moderator content mutations or audit writes. |
 | F51 | Merge and split | `TODO` | No test-first multi-thread operation. |
 | F52 | Inline moderation | `TODO` | No listing selection/action form. |
 | F53 | Warnings | `TODO` | No warning model or expiry task. |
-| F54 | Moderator CP | `TODO` | No ModCP route group or rights-aware screens. |
+| F54 | Moderator CP | `TODO` | No ModCP route group. Now carries a debt F48 named rather than paid: `Target.isForumModerator` is still never set on any per-page `can()` call, so outside the queue a per-forum appointee has only their group's rights. Granular moderator rights are this feature's subject, so that is where the flag gets threaded through. |
 
 ## Phase 5 — Members and social
 

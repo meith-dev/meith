@@ -13,6 +13,7 @@
     "@forum/events": "workspace:*",
     "@forum/forums": "workspace:*",
     "@forum/groups": "workspace:*",
+    "@forum/moderation": "workspace:*",
     "@forum/settings": "workspace:*",
     "@forum/tasks": "workspace:*",
     "@forum/threads": "workspace:*",

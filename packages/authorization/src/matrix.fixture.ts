@@ -32,6 +32,7 @@ export const F22_ACTIONS = [
   'softDelete', // soft-delete a post         -> post.softDelete
   'viewUnapproved', // see unapproved content -> content.viewUnapproved
   'viewDeleted', // see deleted content       -> content.viewDeleted
+  'approve', // act on the queue               -> content.approve
   'upload', // attach a file                  -> attachment.upload
   'search', // search within the forum        -> forum.search
   'subscribe', // subscribe to the forum      -> forum.subscribe
@@ -39,7 +40,7 @@ export const F22_ACTIONS = [
 
 export type F22Action = (typeof F22_ACTIONS)[number]
 
-/** All twelve, for the "everything" cells (staff bypass). */
+/** All thirteen, for the "everything" cells (staff bypass). */
 const ALL: readonly F22Action[] = F22_ACTIONS
 
 /** The registered-member baseline in an ordinary forum. */
@@ -76,6 +77,12 @@ const MOD_READONLY: readonly F22Action[] = [
   'softDelete',
   'viewUnapproved',
   'viewDeleted',
+  /*
+   * A forum moderator approves here too. The read-only override takes away
+   * *posting*, not moderation: a forum nobody may post in is exactly the kind
+   * that still accumulates a queue from before it was closed.
+   */
+  'approve',
   'upload',
   'search',
   'subscribe',

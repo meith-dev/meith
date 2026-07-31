@@ -30,6 +30,7 @@ const ACTION_OF: Record<F22Action, Action> = {
   softDelete: 'post.softDelete',
   viewUnapproved: 'content.viewUnapproved',
   viewDeleted: 'content.viewDeleted',
+  approve: 'content.approve',
   upload: 'attachment.upload',
   search: 'forum.search',
   subscribe: 'forum.subscribe',
@@ -76,6 +77,15 @@ async function buildTarget(
     forum,
     ownerId,
     isForumModerator: isModeratorOf(actorName, forumName),
+    /*
+     * The fixture's appointment carries every granular right, including
+     * `canApproveContent` — so `approve` follows `isForumModerator` here. An
+     * appointment *without* it is the case `moderatedForumIds` covers, and it
+     * has its own test rather than a column in this table: the F22 matrix is
+     * about the permission model, and a partial appointment is about the
+     * appointment.
+     */
+    moderatorApproves: isModeratorOf(actorName, forumName),
     passwordRequired: forumName === 'password',
     passwordSatisfied: false,
     visibility: 'visible',
@@ -117,12 +127,15 @@ describe('F22 permission matrix', () => {
     for (const actorName of actorNames) {
       expect(Object.keys(EXPECTED[actorName]!)).toHaveLength(4)
     }
-    // 8 actors x 4 contexts x 12 actions.
+    // 8 actors x 4 contexts x 13 actions. The count is spelled out rather than
+    // derived so that adding an action has to be a deliberate edit here too —
+    // deriving it from F22_ACTIONS.length would make the assertion agree with
+    // itself no matter what the fixture says.
     const cells =
       Object.keys(EXPECTED).length *
       4 *
       F22_ACTIONS.length
-    expect(cells).toBe(384)
+    expect(cells).toBe(416)
   })
 
   it('every F22 action maps to a real Authorizer action', () => {
@@ -131,7 +144,7 @@ describe('F22 permission matrix', () => {
     }
     // Guards F22's own acceptance: adding a permission/action must extend both
     // the fixture and this map, or this count drifts and the suite fails.
-    expect(Object.keys(ACTION_OF)).toHaveLength(12)
+    expect(Object.keys(ACTION_OF)).toHaveLength(13)
     void SELF_OWNED
   })
 })

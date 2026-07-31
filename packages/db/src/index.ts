@@ -53,6 +53,7 @@ export {
   type RenderBackfillRun,
 } from './render-backfill'
 export { PostgresPostWriteRepository } from './post-writes'
+export { PostgresModerationQueueRepository } from './moderation-queue'
 export {
   applyAncestorVisibilityChange,
   applyVisibilityChangeCounters,
