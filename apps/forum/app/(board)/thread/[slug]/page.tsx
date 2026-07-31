@@ -3,6 +3,9 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@forum/theme-kit'
 
+import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
+import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
+
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { activeTheme } from '@/server/theme'
@@ -10,6 +13,18 @@ import { POSTS_PER_PAGE } from '@/view/paging'
 import { buildThreadView } from '@/view/thread-view'
 
 export const metadata: Metadata = { title: 'Thread' }
+
+/** What each tool says when it worked. Unknown values fall through to null. */
+const TOOL_NOTICE: Readonly<Record<string, string>> = {
+  lock: 'Thread locked.',
+  unlock: 'Thread unlocked.',
+  stick: 'Thread pinned.',
+  unstick: 'Thread unpinned.',
+  move: 'Thread moved.',
+  restore: 'Thread restored.',
+  split: 'Thread split. You are looking at the new one.',
+  merge: 'Threads merged. You are looking at the one that survived.',
+}
 
 function threadId(value: string): number | null {
   // Index last-post links carry only the stable id; thread listings add a slug.
@@ -31,7 +46,14 @@ export default async function ThreadPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ after?: string; page?: string; replied?: string; posted?: string }>
+  searchParams: Promise<{
+    after?: string
+    page?: string
+    replied?: string
+    posted?: string
+    post?: string
+    tool?: string
+  }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
   const id = threadId(slug)
@@ -40,14 +62,27 @@ export default async function ThreadPage({
   if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
 
   const actor = await getActor()
-  const { forums, posts, threads, authorizer, threadViews, threadWrites } = getContainer()
-  const thread = await threads.findVisibleById(id)
-  if (!thread) notFound()
+  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites, threadTools, threadSurgery } =
+    getContainer()
+  /*
+   * Locate, authorise, then read — in that order, and the order is the whole
+   * point. The scope cannot be built before the forum is known and the forum
+   * cannot be known before the thread is located, so `locateForum` returns the
+   * one field permissions need and nothing else. The thread itself is read
+   * exactly once, inside the scope this actor turns out to have, so a moderator
+   * sees a hidden thread and nobody else learns it exists.
+   */
+  const forumId = await threads.locateForum(id)
+  if (forumId === null) notFound()
 
-  const forum = await forums.findById(thread.forumId)
+  const forum = await forums.findById(forumId)
   if (!forum || forum.type !== 'forum') notFound()
   const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) notFound()
+
+  const scope = authorizer.contentScope(actor, { forumId: forum.id, forum: matrix })
+  const thread = await threads.findById(id, scope)
+  if (!thread) notFound()
 
   /*
    * Count the view only after the permission check, and only on the first page:
@@ -60,10 +95,16 @@ export default async function ThreadPage({
     await threadViews.record(thread.id).catch(() => undefined)
   }
 
-  const postPage = await posts.listThread(
-    thread.id,
-    after === undefined ? { limit: POSTS_PER_PAGE } : { afterId: after, limit: POSTS_PER_PAGE },
-  )
+  /*
+   * The same scope the thread was read with. Everyone else's page never
+   * contains the row — filtering in the theme would put the body in the HTML
+   * and hide it with CSS, which F33 already refused to do for profile fields.
+   */
+  const postPage = await posts.listThread(thread.id, {
+    ...(after === undefined ? {} : { afterId: after }),
+    limit: POSTS_PER_PAGE,
+    scope,
+  })
   const nextHref = postPage.nextAfterId === null
     ? null
     : `/thread/${thread.id}-${thread.slug}?after=${postPage.nextAfterId}&page=${page + 1}`
@@ -77,8 +118,82 @@ export default async function ThreadPage({
     authorizer.can(actor, 'reply.post', { forumId: forum.id, forum: matrix }) &&
     (!thread.isLocked || authorizer.can(actor, 'content.viewUnapproved', { forumId: forum.id, forum: matrix }))
 
+  /*
+   * F41's affordances, resolved once. `post.editOwn` and `post.deleteOwn` are
+   * asked with the *viewer* as owner so the matrix answers the own-content
+   * question; the per-post decision of whether this actually is their post is
+   * the view model's, and every one of these is re-asked by the action that
+   * acts on it.
+   */
+  const own = { forumId: forum.id, forum: matrix, ownerId: actor.userId }
+  const others = { forumId: forum.id, forum: matrix, ownerId: -1 }
+  /*
+   * Every affordance is also gated on there being somewhere to write, the same
+   * way the reply link is: fixture mode has no post writer (D38), and an Edit
+   * link that leads to a 404 is worse than no link at all.
+   */
+  const writable = postWrites !== null
+  const capabilities = {
+    viewerUserId: actor.userId,
+    editOwn: writable && authorizer.can(actor, 'post.editOwn', own),
+    editOthers: writable && authorizer.can(actor, 'post.editOthers', others),
+    softDelete: writable && authorizer.can(actor, 'post.softDelete', own),
+    editWindowMinutes: Number(matrix.editTimeLimitMinutes ?? 0),
+    bypassesWindow:
+      authorizer.can(actor, 'post.editOthers', others) ||
+      authorizer.can(actor, 'content.viewUnapproved', own),
+    /* Global (F49): reporting is a board capability, not a per-forum grant. */
+    canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
+  }
+
+  /*
+   * F50's tools, and the only place on a reading page that resolves appointment
+   * rights. Gated on `threadTools` so fixture mode offers nothing, and the move
+   * destinations are only fetched when the actor may actually move — two extra
+   * queries for a moderator, none for everybody else.
+   */
+  const moderatorRights = await authorizer.moderatorRightsIn(actor, forum.id)
+  const movableInto =
+    threadTools === null ? [] : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
+  const toolTarget = { forumId: forum.id, forum: matrix, moderatorRights }
+  const toolRights = {
+    lock: threadTools !== null && authorizer.can(actor, 'thread.lock', toolTarget),
+    stick: threadTools !== null && authorizer.can(actor, 'thread.stick', toolTarget),
+    move: threadTools !== null && authorizer.can(actor, 'thread.move', toolTarget),
+    delete: threadTools !== null && authorizer.can(actor, 'thread.delete', toolTarget),
+  }
+  /*
+   * F51's two, gated on their own repository. The split points are the posts on
+   * *this page* minus the thread's opening post — the one post a split may not
+   * start from, because taking everything from it is a move (F51).
+   */
+  const surgeryRights = {
+    merge: threadSurgery !== null && authorizer.can(actor, 'thread.merge', toolTarget),
+    split: threadSurgery !== null && authorizer.can(actor, 'thread.split', toolTarget),
+  }
+  const splitPoints = !surgeryRights.split
+    ? []
+    : postPage.rows
+        .filter((row) => !row.isFirstPost && row.visibility === 'visible')
+        .map((row) => ({
+          id: row.id,
+          number: row.number,
+          author: row.authorUsername,
+        }))
+  const moveTargets = !toolRights.move
+    ? []
+    : (await forums.listListing())
+        .filter(
+          (row) =>
+            row.type === 'forum' &&
+            row.id !== forum.id &&
+            movableInto.includes(row.id),
+        )
+        .map((row) => ({ id: row.id, title: row.title }))
+
   const view = buildThreadView({
     thread,
+    capabilities,
     replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
     forum,
     page: postPage,
@@ -101,8 +216,14 @@ export default async function ThreadPage({
     query.replied === 'race'
       ? 'Somebody else replied while you were writing. Your reply was posted below theirs.'
       : query.posted === 'moderated'
-        ? 'Your reply was posted and is waiting for a moderator to approve it.'
-        : null
+        ? 'Your post is waiting for a moderator to approve it.'
+        : query.tool !== undefined
+          ? TOOL_NOTICE[query.tool] ?? null
+          : query.post === 'deleted'
+          ? 'That post has been deleted.'
+          : query.post === 'unchanged'
+            ? 'Nothing changed — that post was already in this state.'
+            : null
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
@@ -114,6 +235,26 @@ export default async function ThreadPage({
             dismissHref={`/thread/${thread.id}-${thread.slug}`}
           />
         </div>
+      )}
+      {(toolRights.lock ||
+        toolRights.stick ||
+        toolRights.move ||
+        toolRights.delete ||
+        surgeryRights.merge ||
+        surgeryRights.split) && (
+        <ThreadToolsForm
+          threadId={thread.id}
+          isLocked={thread.isLocked}
+          isSticky={thread.isSticky}
+          rights={toolRights}
+          moveTargets={moveTargets}
+        >
+          <ThreadSurgeryForm
+            threadId={thread.id}
+            rights={surgeryRights}
+            splitPoints={splitPoints}
+          />
+        </ThreadToolsForm>
       )}
       <ThreadView
         {...view.view}

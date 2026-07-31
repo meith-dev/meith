@@ -16,6 +16,8 @@ const DOMAIN = [
   'forums',
   'threads',
   'posts',
+  'bbcode',
+  'moderation',
   'settings',
   'events',
   'tasks',

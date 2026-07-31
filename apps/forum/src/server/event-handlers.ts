@@ -16,7 +16,11 @@ import { EventRegistry } from '@forum/events'
 
 export interface EventHandlerDeps {
   /** F38's roll-up. Returns false when the event has already been applied. */
-  readonly counters: { rollUpAncestors(postId: number): Promise<boolean> }
+  readonly counters: {
+    rollUpAncestors(postId: number): Promise<boolean>
+    /** F41's reverse. Also returns false when there was nothing to do. */
+    applyVisibilityChange(postId: number): Promise<boolean>
+  }
 }
 
 export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
@@ -36,6 +40,23 @@ export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
        * delivery a no-op, which is why nothing here tries to detect one.
        */
       await deps.counters.rollUpAncestors(payload.postId)
+    },
+  }).register({
+    /*
+     * F41's other direction. A separate handler rather than a branch inside the
+     * roll-up, because the two subscribe to different events and the queue
+     * dedupes on `outbox:<row>:<handler>` — one id covering both would make a
+     * create and a visibility change on the same row look like the same job.
+     */
+    id: 'counters.visibility',
+    event: 'post.visibility_changed',
+    async handle(payload) {
+      /*
+       * The payload's `visible` flag is deliberately not read. Delivery is
+       * at-least-once and unordered, so the handler asks the row what is true
+       * now; a delete and a restore arriving backwards then still converge.
+       */
+      await deps.counters.applyVisibilityChange(payload.postId)
     },
   })
 }

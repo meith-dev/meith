@@ -100,6 +100,9 @@ importers:
       '@forum/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../../packages/bbcode
       '@forum/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -118,6 +121,9 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../../packages/groups
+      '@forum/moderation':
+        specifier: workspace:*
+        version: link:../../packages/moderation
       '@forum/posts':
         specifier: workspace:*
         version: link:../../packages/posts
@@ -206,6 +212,8 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/bbcode: {}
+
   packages/core:
     dependencies:
       pino:
@@ -223,6 +231,9 @@ importers:
       '@forum/authorization':
         specifier: workspace:*
         version: link:../authorization
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../bbcode
       '@forum/core':
         specifier: workspace:*
         version: link:../core
@@ -235,12 +246,18 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../groups
+      '@forum/moderation':
+        specifier: workspace:*
+        version: link:../moderation
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
       '@forum/tasks':
         specifier: workspace:*
         version: link:../tasks
+      '@forum/threads':
+        specifier: workspace:*
+        version: link:../threads
       drizzle-orm:
         specifier: ^0.44.7
         version: 0.44.7(@electric-sql/pglite@0.5.4)(postgres@3.4.9)
@@ -290,7 +307,17 @@ importers:
 
   packages/groups: {}
 
-  packages/posts: {}
+  packages/moderation:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/posts:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/settings:
     dependencies:
@@ -347,7 +374,11 @@ importers:
         specifier: ^19.2.3
         version: 19.2.14
 
-  packages/threads: {}
+  packages/threads:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/ui:
     dependencies:

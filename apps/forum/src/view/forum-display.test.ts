@@ -37,7 +37,8 @@ describe('buildForumDisplayView', () => {
             authorUsername: 'departed',
             replyCount: 1,
             viewCount: 2,
-            isSticky: false,
+            visibility: 'visible',
+  isSticky: false,
             isLocked: false,
             isMoved: false,
             lastPost: {

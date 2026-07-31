@@ -20,6 +20,7 @@ import type {
   AuthorizationSource,
   ForumOverride,
   GroupDefaults,
+  ModeratorAppointment,
 } from './types'
 
 /** Build a complete permission set from deny-by-default plus explicit grants. */
@@ -194,6 +195,35 @@ export class MemoryAuthorizationSource implements AuthorizationSource {
   async allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>> {
     const ids = await this.allForumIds()
     return new Map(ids.map((id) => [id, CHAINS[id] ?? []]))
+  }
+
+  /**
+   * One appointment: `forumModerator` over the public tree, cascading.
+   *
+   * It carries every granular right, which is what makes the F22 table's
+   * moderator rows readable. Appointments that grant only *some* rights are
+   * exercised by `moderated-forums.test.ts`, where the point is the
+   * appointment rather than the matrix.
+   */
+  async moderatorAppointments(
+    userId: number | null,
+  ): Promise<readonly ModeratorAppointment[]> {
+    if (userId !== ACTORS.forumModerator.userId) return []
+    return [
+      {
+        forumId: FORUM.public,
+        cascadeToSubforums: true,
+        canApproveContent: true,
+        canEditPosts: true,
+        canSoftDeletePosts: true,
+        canRestorePosts: true,
+        canOpenCloseThreads: true,
+        canStickThreads: true,
+        canMoveThreads: true,
+        canMergeThreads: true,
+        canSplitThreads: true,
+      },
+    ]
   }
 }
 

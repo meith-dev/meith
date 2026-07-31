@@ -29,6 +29,20 @@
       "when": 1785355593465,
       "tag": "0003_counter_maintenance",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785355594465,
+      "tag": "0004_post_render_cache",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785355595465,
+      "tag": "0005_reports",
+      "breakpoints": true
     }
   ]
 }

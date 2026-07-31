@@ -51,6 +51,7 @@ const unusedDeps = {
   },
   recount: { run: async () => ({ corrected: 0 }) },
   threadViews: { flush: async () => 0 },
+  renderBackfill: { run: async () => ({ rendered: 0 }) },
 }
 
 let rollUpAncestors: ReturnType<typeof vi.fn<(postId: number) => Promise<boolean>>>
@@ -62,7 +63,7 @@ function build(rows: OutboxRecord[]) {
     ...unusedDeps,
     queue,
     outbox,
-    events: buildEventRegistry({ counters: { rollUpAncestors } }),
+    events: buildEventRegistry({ counters: { rollUpAncestors, applyVisibilityChange: async () => false } }),
   })
   return { queue, outbox, workers }
 }
@@ -105,7 +106,7 @@ describe('the outbox relay and queue drain', () => {
       ...unusedDeps,
       queue,
       outbox: new FakeOutbox([]),
-      events: buildEventRegistry({ counters: { rollUpAncestors } }),
+      events: buildEventRegistry({ counters: { rollUpAncestors, applyVisibilityChange: async () => false } }),
       recount: { run: async () => ({ corrected: 7 }) },
       threadViews: { flush: async () => 4 },
     })

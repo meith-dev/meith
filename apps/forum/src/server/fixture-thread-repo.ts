@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { ContentScope } from '@forum/core'
 import type {
   ThreadCursor,
   ThreadListingRow,
@@ -33,19 +34,32 @@ export class FixtureThreadRepository implements ThreadRepository {
     private readonly rows: readonly ThreadListingRow[] = SEED_THREAD_ROWS,
   ) {}
 
-  async findVisibleById(id: number): Promise<ThreadListingRow | null> {
-    const row = this.rows.find((entry) => entry.id === id)
+  async locateForum(threadId: number): Promise<number | null> {
+    return this.rows.find((entry) => entry.id === threadId)?.forumId ?? null
+  }
+
+  async findById(id: number, scope: ContentScope): Promise<ThreadListingRow | null> {
+    const row = this.rows.find(
+      (entry) => entry.id === id && scope.states.includes(entry.visibility),
+    )
     return row ? { ...row } : null
   }
 
   async listForum(
     forumId: number,
-    options: { readonly after?: ThreadCursor; readonly limit: number },
+    options: {
+      readonly after?: ThreadCursor
+      readonly limit: number
+      readonly scope: ContentScope
+    },
   ): Promise<ThreadPage> {
     const matches = this.rows
       .filter(
         (row) =>
           row.forumId === forumId &&
+          /* The same predicate the Postgres adapter applies, so a fixture-mode
+             leak would be a fixture-mode bug rather than an untested path. */
+          options.scope.states.includes(row.visibility) &&
           (!options.after || after(row, options.after)),
       )
       .sort(compare);

@@ -45,7 +45,7 @@ async function walk(dir, out = []) {
 }
 
 function isDomainPath(rel) {
-  return /^packages\/(accounts|groups|authorization|forums|threads|posts|settings|events|tasks)\//.test(
+  return /^packages\/(accounts|groups|authorization|forums|threads|posts|bbcode|moderation|settings|events|tasks)\//.test(
     rel,
   )
 }

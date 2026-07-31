@@ -14,6 +14,7 @@
  * database (R10, F22).
  */
 import type {
+  ContentVisibility,
   ForumPermissions,
   PermissionSet,
 } from '@forum/core'
@@ -69,6 +70,23 @@ export type Action =
   | 'post.softDelete'
   | 'content.viewUnapproved'
   | 'content.viewDeleted'
+  /**
+   * Act on the queue: approve or reject held content (F48).
+   *
+   * Deliberately distinct from `content.viewUnapproved`. Seeing what is waiting
+   * and deciding what happens to it are different powers, and MyBB has had the
+   * two as separate columns since forever (`canviewunapprove` /
+   * `canapproveunapprove`). Collapsing them would mean any role trusted to read
+   * the queue could empty it.
+   */
+  | 'content.approve'
+  /* --- F50's thread tools. Appointment rights plus the staff bypasses. --- */
+  | 'thread.lock'
+  | 'thread.stick'
+  | 'thread.move'
+  | 'thread.delete'
+  | 'thread.merge'
+  | 'thread.split'
   | 'attachment.upload'
   | 'forum.search'
   | 'forum.subscribe'
@@ -76,6 +94,16 @@ export type Action =
   | 'profile.view'
   | 'memberlist.view'
   | 'pm.use'
+  /**
+   * File a report (F49).
+   *
+   * Global, and deliberately not in the F22 forum matrix: reporting is a
+   * board-wide capability granted by `canReportContent`, not a per-forum grant.
+   * The *target* is still checked forum by forum — a member cannot report what
+   * they could not see — but that check is `thread.view`, which the matrix
+   * already covers.
+   */
+  | 'content.report'
   | 'modcp.access'
   | 'admincp.access'
   /**
@@ -89,8 +117,14 @@ export type Action =
    */
   | 'flood.bypass'
 
-/** The visibility state of a piece of content (mirrors the DB enum). */
-export type ContentVisibility = 'visible' | 'unapproved' | 'deleted'
+/**
+ * The visibility state of a piece of content.
+ *
+ * Re-exported from `@forum/core` rather than declared again: F47 made the
+ * states and the scope built from them a single shared vocabulary, and two
+ * structurally-identical declarations are how they drift.
+ */
+export type { ContentVisibility }
 
 /**
  * What an action is being performed *on*.
@@ -114,6 +148,15 @@ export interface Target {
    * including subforum cascade). Resolved by the repository alongside the matrix.
    */
   readonly isForumModerator?: boolean
+  /**
+   * This actor's appointment rights in this forum, if any (F48/F50).
+   *
+   * Separate from `isForumModerator` because an appointment's rights are
+   * granular: being a moderator here does not by itself mean being trusted to
+   * empty the queue, move threads, or lock them. Resolved by
+   * `Authorizer.moderatorRightsIn`.
+   */
+  readonly moderatorRights?: ModeratorRights
   /**
    * Whether this forum is password-protected. Orthogonal to the permission
    * matrix: password protection is a property of the forum row, not a group
@@ -180,6 +223,63 @@ export interface AuthorizationSource {
    * entire product. F21 makes this an explicit acceptance criterion.
    */
   allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>>
+
+  /**
+   * This actor's moderator appointments (F21's `forum_moderators`, read for the
+   * first time at F48).
+   *
+   * The table has existed since F21 and nothing has ever consulted it, so until
+   * now "moderator" in practice meant "member of a staff group". An appointment
+   * is the other half: one person given rights over one forum, optionally
+   * cascading to its subforums, with each right granted individually.
+   *
+   * Returns the appointments themselves rather than an expanded forum set,
+   * because expansion needs the tree and the tree already lives in
+   * `allAncestorChains()` — resolving it here would mean a second walk in the
+   * adapter and a second place to get the prefix trap wrong (D22).
+   */
+  moderatorAppointments(
+    userId: number | null,
+    groupIds: readonly number[],
+  ): Promise<readonly ModeratorAppointment[]>
+}
+
+/**
+ * The granular rights an appointment carries.
+ *
+ * Deliberately explicit booleans rather than a bitmask, matching the columns —
+ * a bitmask saves bytes nobody is short of and makes every screen and every
+ * test read as magic numbers.
+ */
+export interface ModeratorRights {
+  readonly canApproveContent: boolean
+  readonly canEditPosts: boolean
+  readonly canSoftDeletePosts: boolean
+  readonly canRestorePosts: boolean
+  readonly canOpenCloseThreads: boolean
+  readonly canStickThreads: boolean
+  readonly canMoveThreads: boolean
+  readonly canMergeThreads: boolean
+  readonly canSplitThreads: boolean
+}
+
+/** One row of `forum_moderators`, as the Authorizer needs it. */
+export interface ModeratorAppointment extends ModeratorRights {
+  readonly forumId: number
+  readonly cascadeToSubforums: boolean
+}
+
+/** Nobody's rights: the answer for an actor with no appointment here. */
+export const NO_MODERATOR_RIGHTS: ModeratorRights = {
+  canApproveContent: false,
+  canEditPosts: false,
+  canSoftDeletePosts: false,
+  canRestorePosts: false,
+  canOpenCloseThreads: false,
+  canStickThreads: false,
+  canMoveThreads: false,
+  canMergeThreads: false,
+  canSplitThreads: false,
 }
 
 /**

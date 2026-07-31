@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm'
+import { PUBLIC_CONTENT } from '@forum/core'
 import { expectQueryBudget } from '@forum/testkit'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -71,8 +72,8 @@ describe('PostgresPostRepository.listThread', () => {
       visibility: 'unapproved',
     })
 
-    const first = await repo.listThread(1, { limit: 2 })
-    const second = await repo.listThread(1, { afterId: first.nextAfterId!, limit: 2 })
+    const first = await repo.listThread(1, { limit: 2, scope: PUBLIC_CONTENT })
+    const second = await repo.listThread(1, { afterId: first.nextAfterId!, limit: 2, scope: PUBLIC_CONTENT })
 
     expect(first.rows.map((post) => [post.id, post.number])).toEqual([[1, 1], [2, 2]])
     expect(second.rows.map((post) => [post.id, post.number])).toEqual([[3, 3], [4, 4]])
@@ -82,13 +83,13 @@ describe('PostgresPostRepository.listThread', () => {
 
   it('costs one statement at both small and larger thread sizes', async () => {
     await seed(3)
-    await expectQueryBudget(harness, 1, () => repo.listThread(1, { limit: 20 }))
+    await expectQueryBudget(harness, 1, () => repo.listThread(1, { limit: 20, scope: PUBLIC_CONTENT }))
 
     await db.execute(sql`delete from posts`)
     await db.execute(sql`delete from threads`)
     await db.execute(sql`delete from forums`)
     await seed(50)
-    const page = await expectQueryBudget(harness, 1, () => repo.listThread(1, { limit: 20 }))
+    const page = await expectQueryBudget(harness, 1, () => repo.listThread(1, { limit: 20, scope: PUBLIC_CONTENT }))
 
     expect(page.rows).toHaveLength(20)
     expect(page.nextAfterId).toBe(20)

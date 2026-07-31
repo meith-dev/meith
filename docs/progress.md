@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D43. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D50. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -17,9 +17,10 @@ this file.
 
 ## Gate state (all green)
 
-`pnpm verify` → exit 0: textual invariants + **guard probes**, the **slot
-server/client boundary** check + its probe, dependency-cruiser (241 modules, 0
-violations), typecheck (root **and** app), **1058 tests** (a large share against
+`pnpm verify` → exit 0: textual invariants (now **nine** guards, F47's included)
++ **guard probes**, the **slot
+server/client boundary** check + its probe, dependency-cruiser (298 modules, 0
+violations), typecheck (root **and** app), **1650 tests** (a large share against
 real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
 production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
@@ -209,37 +210,174 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   view-model props, and for the gap: fixture mode has no writer, so the no-JS
   proof is `FormData`-driven action tests rather than the browser suite.
 
+- **F36 BBCode** — post bodies are markup. `@forum/bbcode` is a scanner, not a
+  pile of regular expressions, and its safety argument is that it *constructs*
+  its output rather than sanitising one: every character comes from a tag
+  literal, a validated attribute, or `escapeHtml`. The suite asserts that
+  property directly — every `<` in the output is one the package wrote — over a
+  35-payload corpus and 4,000 seeded-fuzz inputs, with a second fuzz pass
+  proving no word is ever lost. Malformed input degrades and never throws: a
+  crossed tag closes implicitly, an unclosed one is demoted to the text it looks
+  like, and every limit turns markup into text rather than raising. The stored
+  render lives on `posts` with the version that produced it, so bumping
+  `RENDER_VERSION` invalidates every render on the board at once and an escaping
+  fix ships without a migration; `posts.render_backfill` sweeps the stale rows
+  behind it, cursor-free. F40's quote is a quote block as of this change. See
+  **D44**, and `mybb-parity.md` for what is deliberately not supported.
+
 - **F40 reply and quote** — a thread can be answered. `ReplyComposer` adds what
   F39's rules cannot see (locked threads, `allow_replies`, a thread that is no
   longer visible) and reports a race rather than enforcing one: the reply is
   written either way. Quoting is a link with a server-resolved prefill, so it
   works with scripting off, and the quoted post is re-read thread-scoped so
   `?quote=` cannot lift a post out of a forum the quoter may not read. See
-  **D43**, including why the quote is BBCode nothing renders yet and why the
+  **D43**, including why the quote is BBCode (F36 renders it now) and why the
   redirect sometimes opens a page at the reply rather than in context.
+
+- **F41 edit and delete own posts — the gate is green.** `PostEditor` owns both
+  transitions and `PostgresPostWriteRepository` writes the revision, the post,
+  its render and every counter in one transaction. The half F38 left explicitly
+  to this feature is done, and it is not F38 negated: counts reverse
+  arithmetically, but `last_post_id` is a *pointer*, so the whole ancestor chain
+  is recomputed bottom-up in the same transaction. `unapproved → deleted` moves
+  nothing — the silent drift a "delete always decrements" version causes — and
+  F38's roll-up ledger, re-read as "currently counted in ancestors", makes
+  delete and restore idempotent with no new table; the handler reads the row
+  rather than the event, so an out-of-order delete/restore pair converges. A
+  moderator sees hidden posts with a banner because the *query* includes them,
+  not because the theme hides anything. See **D45**, including why the opening
+  post cannot be deleted on its own and what the fixture board had wrong about
+  its own permission ladder.
+
+- **F47 visibility model enforcement — the second gate is green.** There was
+  never a missing check; there were five hand-written answers to "which content
+  may this reader see", with no way to tell from any one of them whether the
+  other four agreed. Now there is one `ContentScope`, produced only by
+  `Authorizer.contentScope` and turned into SQL only by `visibleIn`, and the
+  scope is a **required, undefaulted argument** — so an unauthorised read is a
+  compile error rather than an audit. Guard `R3 no-adhoc-content-visibility`
+  bans any query-shaped mention of the column outside the counter and write
+  paths, and found two real hits on its first run. The leak suite is a property
+  (every path × every scope, every row inside the scope handed in) plus
+  exact-set assertions so it cannot pass by returning nothing. See **D46**,
+  including why numbering is a disclosure and why `locateForum` returns an id
+  and never a row.
+
+- **F48 the moderation queue** — the first moderator surface. `/moderation`
+  lists held threads and held replies, oldest first, scoped by
+  `moderatedForumIds`, and approves or rejects them in bounded batches. The
+  transitions are F41's, reused rather than reimplemented. Two things came out
+  of it worth knowing: **`forum_moderators` had never been read** — the table
+  has existed since F21 and `Target.isForumModerator` has never once been set,
+  so an appointed moderator was appointed to nothing — and approving turned out
+  to need its own action, which cost the F22 matrix a thirteenth column exactly
+  as the gate intends. The selection is never trusted: every submitted id is
+  re-read for its real forum, and the moderated set is resolved per request
+  rather than carried in the form. See **D47**.
+
+- **F49 reports** — members can report a post, a thread or a member, and
+  moderators work the results at `/moderation/reports`. Two tables, because a
+  report has a current state *and* a history, and the history is the only place
+  a private moderator note lives — "resolved because X" belongs to that
+  resolution, not to a column the next one overwrites. The duplicate guard is a
+  partial unique index rather than a prior read: two clicks arriving together
+  would both pass a check, and a report button that adds a queue row every time
+  is the cheapest denial-of-service on the board. Scoped by F48's
+  `moderatedForumIds` for content and `modcp.access` for member reports, with
+  "does not exist" and "not yours" giving the same answer. See **D48**.
+
+- **F50 thread tools** — lock, pin, move and delete/restore, each logged. The
+  four actions read an **appointment right and no usergroup field**, which is
+  the first place the permission model diverges from its own pattern and is
+  deliberate: "may lock threads everywhere" is something you are appointed to,
+  not a checkbox on a group. So F48's debt came due — `moderatorApproves` became
+  a full `ModeratorRights`, `forum_moderators` grew to seven rights in the
+  reader, and `moderatorRightsIn` is the seam that answers *what* to
+  `moderatedForumIds`' *where*. A move needs the right at **both ends**,
+  resolved as two matrices. The counters take one tally and reuse it for the
+  forum, the ancestors and every author, and the two chain updates cancel
+  exactly at a shared ancestor. **Copy and the move redirect stub are not
+  built** — see D49 and `mybb-parity.md` for why copy is a product question
+  rather than a missing function. F50's row is `PARTIAL` and says so.
+
+
+- **F51 merge and split** — the two operations that move posts *between*
+  threads, and one arithmetic seen from either side. A split takes "from this
+  post onwards" and lands the new thread in the **same forum**, always: splitting
+  and moving are two acts, and doing both at once would hand a moderator a second
+  forum to place content in. A merge absorbs the named source into the named
+  target, which is never inferred from age or size — guessing it is how a merge
+  destroys the thread somebody meant to keep. Post order survives by construction
+  because F31 pages by id; `is_first_post` does not and is set and cleared
+  explicitly, which is the thing that silently goes wrong. **The author-count
+  question F50 deferred with copy is settled**: neither operation duplicates a
+  post, so `users.post_count` never moves and only `thread_count` does, by one.
+  `postsFrom` refuses a cut point that is not a visible post of *this* thread,
+  and the merge box's raw thread number goes through `thread.view` before
+  anything else — without that it is a thread-existence oracle. See **D50** and
+  three `mybb-parity.md` entries.
 
 ## NEXT ACTION — resume here
 
-**F36 · BBCode** is the next thing worth doing, ahead of F41 in value if not in
-number. Post bodies are stored raw and every surface that shows one — the thread
-view, both previews, and F40's quote, which currently displays its own markup —
-is waiting on the same renderer. The roadmap wants a tokeniser, AST, renderer
-and sanitiser with limits, a fuzz corpus, and cached HTML with lazy
-invalidation; the seam it plugs into is `plainTextHtml` in
-`src/view/thread-view.ts`, which is deliberately the only place raw text becomes
-markup today.
+**F52 · inline moderation** is next in order and is mostly assembly: F48 wrote
+the chunked selection (`parseSelection`, `MAX_CHUNK` = 200) and F50/F51 wrote
+every tool it needs to invoke, so what is missing is the *listing-level* form —
+per-post and per-thread checkboxes on the forum display and the thread page, one
+form spanning the listing, and the 200-item chunking applied to a selection that
+can now mix threads and posts.
 
-**F41 · edit and delete own posts** is the gate that follows, and it is what
-`post_revisions` and the `visibility` transitions have been waiting for. It also
-owns the counter half F38 left explicitly to it: approving or deleting content
-is the transition that applies or reverses the counters a held post never wrote.
+It also unblocks the piece F51 deliberately left out: **hand-picked split
+selection**. F51's split names its cut point with a `<select>` of the posts on
+screen because that is what a page without checkboxes can express. Once F52 has
+per-post checkboxes, "split these posts" becomes a selection over the same
+surface rather than a second selection mechanism.
 
-Still unresolved and now blocking browser-level coverage of everything in
-Phase 3: **the e2e board cannot post.** The Playwright suite runs against
+**F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
+seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
+declarative entry rather than an admin-supplied regular expression, and
+per-forum capability toggles are a filtered registry. `font`, `align` and
+`video` are parked there by parity decision.
+
+**F53–F54** follow, and neither needs new mechanics: every moderator action in
+Phase 4 is one of F41's two transitions performed by a different actor, or a
+thread-level equivalent F50 and F51 have now written once each.
+
+**F48's debt is now half paid.** The thread page resolves appointment rights and
+the thread-tool, merge and split actions resolve them per forum, so a per-forum
+appointee is a real moderator there. What is still not threaded is
+`isForumModerator` on the *other* per-page checks — `post.editOthers`,
+`post.softDelete` and the two content-visibility actions still see only the
+group's fields outside the queue and the thread bar. F54 is where that
+finishes.
+
+**F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
+seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
+declarative entry rather than an admin-supplied regular expression, and
+per-forum capability toggles are a filtered registry. `font`, `align` and
+`video` are parked there by parity decision.
+
+**F49–F54** follow it, and none of them needs new mechanics either: every
+moderator action in Phase 4 is one of F41's two transitions performed by a
+different actor, or a thread-level equivalent that F50 has to write once.
+
+Still unresolved and still blocking browser-level coverage of *writing* in
+Phase 3 (and now of moderation too): **the e2e board cannot post.** The Playwright suite runs against
 fixture mode, which has no writer, so no browser test covers posting or replying
-without JavaScript. Either the e2e harness gains a real database or the fixture
-gains a content store; D38's "fixture writes throw" rule was written for
-*structure*, and content is the second time it has cost coverage.
+without JavaScript. F36 narrowed it rather than closed it — reading a rendered
+body is now proven in the browser, because fixture rows deliberately store no
+render and so exercise the live path. Either the e2e harness gains a real
+database or the fixture gains a content store; D38's "fixture writes throw" rule
+was written for *structure*, and content is the second time it has cost
+coverage.
+
+Also worth knowing: the F22 matrix needed **no new columns** for F41 or F47 —
+needed one for F48, four for F50 and two for F51, which is the gate working
+rather than failing — 608 cells now.
+`post.editOwn`, `post.editOthers`, `post.deleteOwn`, `post.softDelete` and
+`content.viewDeleted` were all declared and covered when the gate was written,
+so the regression net F22 demands for those paths was already there.
+`content.approve` was not, and neither were F50's four or F51's two; each
+addition forced a column and a human decision about the moderator rows.
 
 Still worth settling:
 
@@ -272,7 +410,7 @@ Smaller things still unblocked, in rough order of value:
 Still outstanding and worth keeping visible:
 
 - A failing task logs but does not raise an admin notification (needs F55) — now
-  eight tasks wide rather than five.
+  nine tasks wide rather than five.
 - Permission columns are generated into a `Record<string, …>`, so
   `usergroups.canView` is not statically typed anywhere (D23) — four casts so far.
 - **Deleting or renaming a route breaks `typecheck:app`** until `next build`
@@ -291,7 +429,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D43). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D49). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

@@ -48,15 +48,16 @@ export function NewThreadForm({
         >
           <h2 className="mb-1 text-sm font-medium text-muted-foreground">Preview</h2>
           {/*
-            Rendered as text, not HTML. Until F36 there is no BBCode renderer
-            and no sanitiser, and a preview that interpreted markup would be
-            the one place on the board where a user's raw input reaches the DOM
-            unescaped — from their own draft, but a stored draft is one feature
-            away from someone else's.
+            The renderer's own output (F36), produced on the server by the same
+            function that renders the post — so the preview shows what the
+            thread will show rather than an approximation that drifts. Trusted
+            for the same reason every post body is: it is constructed from
+            escaped text and validated attributes, never parsed from markup.
           */}
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {state.values?.message}
-          </p>
+          <div
+            className="text-sm leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: state.preview ?? "" }}
+          />
         </section>
       )}
       {/* The forum is a hidden field rather than a route param the action

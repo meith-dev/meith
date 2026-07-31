@@ -1593,3 +1593,766 @@ the stated price of not counting.
   the interval is not a per-forum grant — and administrators are in
   `ADMIN_ALWAYS` for it, since an administrator waiting fifteen seconds while
   clearing a spam wave is obstructed by a defence aimed at somebody else.
+
+### D44 — Rendering BBCode, and where the rendered HTML lives (F36)
+
+Post bodies were stored raw and rendered by `plainTextHtml` in
+`src/view/thread-view.ts` — a deliberate placeholder, and the only place raw
+text became markup. `@forum/bbcode` replaces it. Four decisions are worth
+recording, and one of them is the reason the package is a scanner rather than
+the obvious pile of regular expressions.
+
+#### The renderer never sanitises, because it never parses HTML
+
+There is no sanitising step. The pipeline is `tokenise → parse → render`, and
+the output string is assembled from three sources only: literals in
+`tags.ts`, values that passed a validator (`safeUrl`, the colour pattern, the
+size enum), and strings that went through `escapeHtml`. Attacker-controlled
+markup never exists in the output to be cleaned, so there is no "did the
+sanitiser miss a vector" question — a vector would have to survive escaping.
+
+This is why `[color]` is safe to support at all. Its value lands inside a
+`style` attribute, the one attribute where escaping alone would not be enough
+(`;` opens a second declaration), so the pattern admits no punctuation
+whatsoever: `#rgb`, `#rrggbb`, or a bare keyword. `red;background:url(…)`
+renders as unstyled text, and `[size]` avoids the question entirely by emitting
+a class from a fixed set of seven rather than a length.
+
+`security.test.ts` asserts the property rather than a blocklist: **every `<` in
+the output is one this package wrote.** It scans the output, matches each tag
+against the complete set of markup the renderer may emit, and rejects anything
+else — then does the same for 4,000 generated inputs built from tag fragments,
+brackets, quotes and scheme-shaped strings, from a fixed seed so a failure
+reproduces. "No `<script>` appears" is the check that lets the next unlisted
+vector through.
+
+#### A scanner, not regular expressions
+
+MyBB renders BBCode with successive regex passes, which is why `[b]` inside
+`[code]` bolds, why nesting has no bound, and why several of its historical
+security reports read "the pattern matched something it should not have". A
+scanner puts the decision "does this `[` start a tag" in one function that can
+be tested on its own — and it is not obvious: `[oh no [b]bold[/b]` must bold,
+which only happens if the scanner gives up on the outer bracket instead of
+swallowing to the first `]`.
+
+The tokeniser knows exactly one thing about the tag set — which tags take a raw
+body — because `[code][/b][/code]` cannot be tokenised correctly without it.
+Finding that closing tag uses a case-insensitive regex rather than `indexOf`
+over a lowercased copy, because lowercasing can change a string's *length*
+(`İ`.toLowerCase() is two code units) and every index is then used to slice the
+original. One Turkish capital earlier in a post would have split a body
+mid-character; there is a test with that character in it.
+
+#### Malformed input degrades, and never throws or disappears
+
+Two rules, both lossless:
+
+- **Never emit unbalanced output.** `[b][i]x[/b]` closes `[i]` implicitly, as an
+  HTML parser would, so the renderer cannot produce a `<strong>` that escapes
+  its post and bolds the rest of the page.
+- **Never let an unclosed tag swallow the thread.** A tag still open at the end
+  is *demoted*: its opening tag becomes the literal text it looks like and its
+  children stay where they were written. Someone who types `[b]` and forgets the
+  close sees `[b]`, not a post where every word after it is bold.
+
+The limits follow the same rule. Past the depth limit a tag stays text; past the
+node budget the remaining source becomes one text node; past the input limit the
+tail is text. Nothing in the package throws and nothing is dropped, because a
+body that fails to render is a thread page that 500s for everyone who opens it,
+and a body that renders half of itself is a data-loss bug reported as "my post
+is cut off".
+
+#### The stored render, and why the version column is the important half
+
+Rendering fifty posts on every load of every thread is work worth avoiding, so
+`posts.message_html` holds the HTML and `posts.render_version` holds the
+renderer version that produced it. The version is what makes the cache safe:
+
+- **Reads never trust an old render.** `postBodyHtml` uses the stored HTML only
+  when its version matches `RENDER_VERSION`, and otherwise renders live. A test
+  pins this with a stored `<script>` tag at an older version, which must not
+  reach the page.
+- **Invalidation is a constant.** Bumping `RENDER_VERSION` invalidates every
+  stored render on the board at once. An escaping fix therefore takes effect on
+  deploy, everywhere, with no migration over the largest table on the board and
+  no waiting for a sweep.
+- **The sweep is the cheapest component in the family.** Unlike F38's recount,
+  `posts.render_backfill` needs no cursor: "what is left" is a predicate on the
+  row (`render_version <> current`), so a run that dies leaves the rest exactly
+  as stale as it was and the next run finds it by asking again. Two concurrent
+  runs write the same bytes. It is one `select` and one `update` per run
+  whatever the batch holds — asserted with F11's budget helper, because the
+  obvious per-post update turns a 200-post batch into 201 round trips.
+
+The write path renders inside the same transaction as the insert, in
+`@forum/db` rather than in the composer. That is a small purity cost — the
+package that owns SQL now calls a renderer — bought for a structural guarantee:
+`posts` is only written from one module, so no post can exist without its
+render, and no future writer (F41's edit, F85's importer) can forget to supply
+one.
+
+#### Smaller things
+
+- **The fixture board stores no renders.** Every `SEED_POST_ROWS` entry carries
+  `messageHtml: null`, so the e2e board exercises the live path — and the
+  Playwright suite now asserts the *tags*, not the words, which is the first
+  browser-level proof of any Phase 3 feature (the composer still has no fixture
+  writer; see F39/F40's standing gap).
+- **A quote's `pid` is parsed and dropped.** Turning it into a link needs the
+  thread the post lives in, and a post id alone can address a post in a forum
+  the reader cannot see. A quote header that 404s for half the board is worse
+  than one without a link.
+- **Bare URLs are not auto-linked.** MyBB linkifies loose `http://…` in post
+  text. Recorded as a parity decision rather than done quietly — see
+  `mybb-parity.md#bbcode-coverage`.
+
+### D45 — Editing, deleting, and the counters that have to come back (F41)
+
+The ⛔ gate for content mutation. Everything downstream of it — the moderation
+queue, thread tools, merge and split — is a different actor performing one of
+the two transitions defined here, so both are written once, in
+`@forum/posts`, with their counter consequences attached rather than left to
+each caller.
+
+#### A deletion is not a creation with a minus sign
+
+F38 wrote the counters a created post moves, and F41 was always going to have to
+reverse them. It is not the same code negated, for one reason: some of what F38
+writes is not a counter. `post_count` is a delta and reverses arithmetically;
+`last_post_id` is a **pointer**, and the reverse of "this post is now the
+newest" is not "subtract one" — it is "find what the newest is now".
+
+So counts are adjusted and pointers are recomputed, and the two get different
+guarantees. Counts on the direct forum, thread and author are written in the
+caller's transaction; ancestor counts ride the event, as F38's do. Pointers on
+the **whole path** are recomputed synchronously, because a board index linking
+to a post that no longer exists is worse than a count being a minute late.
+
+The repair walks deepest-first and takes each forum's pointer to be the newest
+of (its own visible threads) and (its children's already-correct pointers) —
+subtree-inclusive by induction, two indexed reads and one update per level. It
+runs on *every* visibility change rather than only when the changed post
+happened to be a pointer, because deciding that costs about as much as doing it
+and getting it subtly wrong is silent. A mutant that repairs only the posting
+forum, and one that walks the chain top-down, are both killed by tests.
+
+#### The ledger already answered the idempotency question
+
+`content_counter_rollups` was F38's replay guard for creation. Read as **"this
+post is currently counted in its ancestors"** it answers delete and restore too,
+with no new table and no sequence number: a redelivered delete finds no ledger
+row and does nothing, a redelivered restore finds one and does nothing.
+
+The handler reads the post's *current* visibility rather than trusting the
+event's `visible` flag, which makes it convergent rather than merely idempotent:
+delivery is at-least-once and unordered, and a delete/restore pair arriving
+backwards would otherwise leave the ancestors permanently one out. There is a
+test that delivers exactly that pair in the wrong order.
+
+#### `unapproved → deleted` moves nothing
+
+The case a "deleting always decrements" implementation gets wrong. Every counter
+on the board means *visible* content (D41), so a post in the queue was never
+counted and rejecting it must not subtract. Getting this wrong walks every total
+down by one per rejected post — invisible until a recount, and indistinguishable
+from ordinary drift. It is its own test, and its own killed mutant.
+
+The same definition decides the edit path: `requiresApprovalOnEdit` sending a
+visible post back to the queue is a `visible → unapproved` transition, so it
+goes through exactly the same counter code as a deletion. There is only one
+place where a post stops counting.
+
+#### The opening post is the thread
+
+Soft-deleting the first post of a thread is refused, with a message saying to
+delete the thread instead. Both alternatives are worse: deleting only the post
+leaves a thread with a title, a reply count and nothing to read, and silently
+deleting the thread means a member clicking "delete my post" removes everybody
+else's replies. Deleting a thread is F50's tool, which can move the thread's
+counters as one act.
+
+#### Where the edit window applies, and where it does not
+
+`editTimeLimitMinutes` is a numeric permission, so R4.2's rule holds: **0 is
+unlimited and beats every other value across groups.** It applies to your own
+post only. Someone editing another member's post is doing so under
+`post.editOthers`, which is a moderation power — and a moderator who cannot fix
+a two-year-old post because its author's window closed is a rule aimed at the
+wrong person. Both spellings of "not mine" are tested: the explicit bypass, and
+simply not being the author.
+
+The view model re-checks the window, and only to decide whether to *offer* the
+link. Enforcement is `PostEditor`'s; this is the difference between hiding a
+control and granting one.
+
+#### An unchanged body writes nothing
+
+No revision, no edit notice, no counter. A revision recording no change is noise
+in the history the next moderator has to read, and an edit notice on a post
+nobody edited is a false accusation in public.
+
+#### Two forms, not two buttons
+
+Delete is a separate `<form>` from the edit form rather than a second submit
+button on it, and both matter with scripting off: a submit inside the edit form
+would carry the whole draft, so "delete" would mean "save my unsaved changes,
+then delete" — and a form's default submission (Enter in the textarea) picks its
+*first* submit button, which must never be the destructive one. Both are POST
+Server Actions: a GET that deletes a post is one prefetch away from deleting the
+board.
+
+#### Hidden posts are filtered in the query, not in the theme
+
+A moderator sees deleted and unapproved posts with a banner; everyone else's
+page never contains the row. Two `include` flags rather than one, because
+`content.viewDeleted` and `content.viewUnapproved` are two permissions — a role
+that reviews the queue is not automatically one that reads what was removed.
+Filtering in the theme would put the body in the HTML and hide it with CSS,
+which F33 already refused to do for profile fields.
+
+Post numbering follows whichever set the reader is shown, so a moderator's "#4"
+can differ from a member's. The alternative is gaps in the numbering, which
+reads as a bug on every thread that has ever been moderated.
+
+#### Smaller things
+
+- **The fixture board's Registered group did not match the seeded one.** Three
+  negative permission fields (`requiresThreadApproval`, `requiresPostApproval`,
+  `requiresApprovalOnEdit`) were absent from `seed-board.ts`, so the fixture
+  inherited `emptyPermissionSet()`'s fallback — which for a negative field is
+  the *restrictive* value (R4.2) — while migration `0001` seeds all three
+  `false`. Nothing read them until F41, at which point every edit on the fixture
+  board went silently to a queue that has no screen. Found by a test that
+  expected a redirect to the post and got one to `?posted=moderated`.
+- **`resolvePostScope` is not a Server Action.** It lives in its own
+  `server-only` module because a `'use server'` file publishes every export as a
+  callable endpoint, and this one returns a post's stored body with the
+  permissions around it.
+- **Restoring always returns a post to `visible`**, even one that was
+  `unapproved` when it was deleted — the prior state is not stored. It requires
+  `post.softDelete` *and* `content.viewDeleted`, both moderation powers, so the
+  restore is a review decision rather than an accident. F48's queue is where a
+  post's approval state becomes something to move deliberately.
+- **The edit rewrites `message_html` in the same statement as `message`.** F36's
+  backfill would eventually repair a miss, which is exactly why it cannot be
+  relied on: a current-version render is *trusted*, so until the sweep ran every
+  reader would be served the pre-edit body.
+- **Previews now render.** F36 shipped without wiring the composer preview to
+  the renderer; all three forms now show `@forum/bbcode`'s own output, produced
+  on the server by the same function that renders the post, so the preview
+  cannot drift from the result.
+
+### D46 — One scope, produced once and consumed once (F47)
+
+The second ⛔ gate, and the one that had to be built *after* enough read paths
+existed to show what the problem actually is. It is not that a check was
+missing anywhere — it is that by F41 there were five separate hand-written
+answers to "which content may this reader see", in five queries, with no way to
+tell from any one of them whether the other four agreed.
+
+#### The rule is about queries, not comparisons
+
+`visibility` is compared in plenty of legitimate places: a domain rule refusing
+to edit a deleted post, a view model deciding whether to offer Restore, the
+recount defining what "counts" means (D41). None of those is a leak risk,
+because each acts on a row that has already been filtered — or, in the recount's
+case, is not showing anything to anybody.
+
+So the enforceable rule is narrower and exact: **no query may name a visibility
+state.** Every viewer-facing read takes a `ContentScope`, produced in exactly
+one place (`Authorizer.contentScope`) and turned into SQL in exactly one place
+(`visibleIn`). `pnpm guards` fires on any query-shaped mention of the column
+outside the counter and write modules, and it is probed both ways like every
+other guard — including two `alsoClean` samples for the exemptions, because an
+exemption nobody probes is one that quietly widens.
+
+The guard found two real hits on its first run: the unread computation in
+`read-state-repo.ts` was filtering with its own `eq(threads.visibility,
+'visible')`, and the flood check's "when did this author last post" was using
+`<> 'deleted'`. The first is now a scope; the second is a write-path rule and is
+exempt by name.
+
+#### The scope is required and undefaulted
+
+`listThread(id, { limit, scope })` — no default, no optional. That is the design
+decision the whole gate rests on: a caller that has not decided what this viewer
+may see has not finished authorising, and a default would make the omission
+invisible. Making it required turned an audit into a compile error, and the
+compiler then found every call site including the ones in the fixture
+repositories and the seed data.
+
+The fixture repositories apply the same predicate rather than assuming their
+sample rows are all visible, so a fixture-mode leak would be a fixture-mode bug
+rather than an untested path.
+
+#### Locate, authorise, read
+
+The thread page had a genuine ordering problem: the scope cannot be built before
+the forum is known, the forum cannot be known before the thread is found, and
+reading the thread unscoped to find out is exactly what the gate forbids.
+
+Three options, and only one is honest. Reading the thread with an all-states
+scope makes the escape hatch a supported feature. Reading it publicly first and
+retrying wider means two reads and a subtle bug when they disagree. What it does
+instead is `locateForum(threadId)` — a deliberately unscoped lookup that returns
+a **forum id and nothing else**. A forum id is not content: it confirms nothing
+a reader could not learn by being refused, and the `thread.view` check that
+immediately follows decides whether they learn even that. The thread itself is
+then read exactly once, in the scope this actor turns out to have.
+
+#### Numbering is a disclosure
+
+`#4` on a page where the reader can see three posts tells them content exists
+that they are not allowed to know about — the same fact the filter exists to
+withhold, arriving as an integer instead of a body. So "how many came before"
+uses the reader's scope, not the table, and the leak suite pins it with a cursor
+placed *past* the hidden posts, because with the cursor before them the correct
+and incorrect answers are the same number. That subtlety is why the first
+version of the test passed against a deliberately broken query.
+
+#### The leak suite is a property, not a list of expectations
+
+The central assertion is: for every read path × every scope, every row that
+comes back is in the scope that was handed in. That is satisfiable by a path
+that returns nothing, so each scope is *also* pinned to the exact set it should
+see — together they say "no more" and "no less".
+
+It is a table because the next read path should be a row rather than a new file,
+and because a path that cannot be expressed as "takes a scope, returns rows" is
+a path that does not take a scope — which is the thing the guard refuses to let
+exist. Four mutants killed: a `visibleIn` that stops filtering, an unread
+computation that counts hidden threads, a quote lookup that follows the reader's
+scope, and a numbering subquery that counts the whole table.
+
+#### Smaller things
+
+- **`visibleIn` emits `=` for the single-state case, not `in (…)`.** An `in`
+  list of one is a correct query that stops matching the R3.5 partial indexes
+  (`… WHERE visibility = 'visible'`) that every listing on the board depends on.
+- **It is an allowlist, never `<> 'deleted'`.** A negative predicate is one new
+  state away from letting that state through, and R3.3 reserves the right to add
+  one.
+- **Three paths are public whoever is asking**, and each says so by naming
+  `PUBLIC_CONTENT` rather than by writing a literal: the quote lookup (quoting
+  republishes a body, so a moderator quoting removed content would put it back
+  in front of everybody, with their name on it), the mark-read target (a
+  watermark set to a hidden post moves backwards the moment it is removed), and
+  the unread computation.
+- **`ContentVisibility` was declared twice** — once in `@forum/core` and once in
+  `@forum/authorization`. The second is now a re-export; two structurally
+  identical declarations is how a shared vocabulary drifts.
+- **`ThreadListingRow` gained `visibility`.** A listing that can contain hidden
+  rows has to say which ones they are, or the theme cannot mark them and the
+  leak suite cannot check itself.
+
+### D47 — The queue, and the table nobody had ever read (F48)
+
+Approving was already built: it is F41's `unapproved → visible`, counter-correct
+in both directions and idempotent against replay. What F48 adds is the part F41
+could not have — a *list* of what is waiting, and a bulk decision over it.
+
+#### `forum_moderators` had no reader
+
+F21 created the table. Nothing has consulted it since, and
+`Target.isForumModerator` — the flag the Authorizer branches on for four
+different actions — has never once been set by the app. So in practice
+"moderator" has meant "member of a staff group", and a board that appointed
+somebody to moderate one forum appointed them to nothing.
+
+F48 is the first feature where that gap is load-bearing: "the forums I
+moderate" is the queue's entire scope. So the port gained
+`moderatorAppointments`, `@forum/db` gained the query, and
+`Authorizer.moderatedForumIds` unions two sources — a group-level
+`canApproveContent`, and an appointment, expanded down the tree when it
+cascades. It is constant-query for the same reason `visibleForumIds` is (D26).
+
+Threading `isForumModerator` through every per-page `can()` call is *not* part
+of this feature and remains a real gap: outside the queue, a per-forum
+appointee still has only their group's rights. That is F54's, where granular
+moderator rights become the subject rather than a dependency.
+
+#### Approving needed its own action, and the F22 matrix grew a column
+
+`content.viewUnapproved` means "this actor deals with the queue" and is already
+the moderation bypass. Approving is a stronger power — MyBB has had
+`canviewunapprove` and `canapproveunapprove` as separate columns for twenty
+years — so `content.approve` is a new `Action`, which by design forces a
+thirteenth column in F22's fixture. That cost is the point of the gate, and it
+was small: the sets are named constants, so `ALL` picked it up and only the
+read-only-subforum row needed a decision (a moderator approves there; the
+override takes away *posting*, and a closed forum is exactly the kind that still
+has a queue from before it closed).
+
+`content.approve` reads `moderatorApproves` rather than `isForumModerator`,
+because an appointment's rights are granular: being a moderator here does not by
+itself mean being trusted to empty the queue.
+
+#### The selection is never trusted
+
+A form submits `kind:id` checkbox values. Every one is re-read to find out which
+forum it is *actually* in, and only then checked against the moderated set. An
+id in a POST body is a request, not a fact — and the moderated set is resolved
+per request from the actor, never carried in a hidden field, because a hidden
+field holding it is the whole permission check sitting in the browser. Both are
+mutation-verified.
+
+Refusals are reported, not dropped. A moderator who selects twelve items and
+moves eleven is told how many were in forums they do not moderate and how many
+somebody else had already handled — otherwise the screen and the board disagree
+about what just happened and only one of them is right.
+
+#### A thread and its opening post move together; a held reply inside a held thread does not appear
+
+F39 writes a held thread and its opening post held together, so approving the
+thread without the post yields a visible thread with nothing to read. Nothing
+*else* in the thread moves — a reply held separately is its own queue item.
+
+The converse is why the listing excludes replies whose thread is itself waiting:
+approving such a reply would publish a post into a thread nobody can see, and
+approving the *thread* is what actually puts it in front of anybody. Killed by a
+mutant that drops the condition.
+
+#### Rejecting moves no counter
+
+The same silent case F41 documents, from the other side. Held content was never
+counted (D41), so `unapproved → deleted` is a state change and nothing else. A
+"deleting always decrements" implementation walks every total down one rejected
+post at a time, and no recount would attribute the drift to anything.
+
+#### Bounded, and all-or-nothing within the bound
+
+`MAX_CHUNK` is 200 and the screen offers 25, so the cap is not something anybody
+meets by clicking — it is the ceiling on a hand-crafted POST. Each item costs a
+transaction's worth of counter updates and a last-post repair up the tree, so an
+unbounded selection is a request that runs until the platform kills it, halfway
+through, with no record of where it stopped. Within the bound the batch is one
+transaction: a half-applied bulk approval would leave a moderator with no way to
+tell which half.
+
+#### The screen is app-owned, not a theme slot
+
+The 25-slot registry is R6's list and freezes at F77. A moderator tool is an
+operator surface, like the ACP (F63), which also has no slot — and committing the
+public theme contract to a screen whose shape F54's ModCP has not designed yet
+would be the wrong order. The route sits inside the board route group, so the
+theme still supplies everything around it.
+
+The queue shows each body as **plain text**. This is the one screen that
+displays content nobody has approved, and rendering it would give a spammer's
+markup its first audience in the browser of the person deciding whether it
+should exist.
+
+#### Smaller things
+
+- **`= any($1::int[])` does not work.** Drizzle expands a JavaScript array in a
+  template into a comma-separated *placeholder list*, so `any(${ids})` compiles
+  to `any(($1, $2))` — a syntax error, and `any(())` for an empty array. Both
+  new queries use an `in (…)` list built with `sql.join`, with `(null)` for the
+  empty case. The appointment query had the same bug and no test; it has one
+  now, on real Postgres, because that is what would have caught it.
+- **The queue's cursor is a keyset, not an offset.** The queue changes
+  underneath a moderator working through it, and an offset skips an item every
+  time somebody else approves one above. A corrupt cursor is treated as no
+  cursor rather than as a failed page.
+- **One audit row per batch.** A moderator clearing a queue performed one act;
+  twenty rows saying so would bury the next one.
+- **The user-panel link is group-level only.** `canAccessModCp` is read off the
+  already-resolved actor, so the shell costs no extra query — but a per-forum
+  appointee does not get the link, only the working page behind it. Resolving
+  the tree on every page render to fix that is F54's trade to make.
+
+### D48 — Reports have two audiences, and almost every decision keeps them apart (F49)
+
+A report is a member saying "a moderator should look at this". The mechanism is
+small; what makes it worth a decision record is that it serves two people with
+opposite needs.
+
+The **reporter** needs to know their report was filed and nothing else — not who
+is handling it, not what was decided, and above all not the note. The
+**moderator** needs the history: who assigned it, when, and why the last person
+closed one like it.
+
+So the design puts them in different tables. `reports` is the current state;
+`report_events` is the history, and it is the only place a private note lives.
+Nothing that returns a report to a reporter carries an event at all.
+
+#### The note belongs to the event, not the report
+
+"Resolved because X" belongs to *that* resolution. On the report it would be
+overwritten by the next one, leaving a history that says a decision was made for
+a reason nobody gave. The note is also optional on purpose: requiring one on
+every dismissal produces a column full of "spam" and "n/a", which is worse than
+an empty one because it looks like a record.
+
+#### One open report per person per target, enforced by the index
+
+Not by a prior `select`. Two clicks arriving together would both pass a check
+and both insert, and a report button that adds a queue row every time is the
+cheapest denial-of-service on the board. `on conflict do nothing` makes the
+database the arbiter, and an empty `returning` is the friendly answer rather
+than an error.
+
+The index is **partial** — `where status = 'open'` — so the same person may
+report the same post again once a previous report is closed. Circumstances
+change, and a permanent bar would mean one dismissed report protects a post
+forever.
+
+A duplicate is reported to the member as *success*. They did what they meant to
+do, and "you already reported this" is only useful to somebody probing what is
+in the queue.
+
+#### Assignment is a column, not a status
+
+An assigned report is still open. Modelling it as a state means "show me
+everything outstanding" has to ask for two of them, and every future query grows
+the same `or`.
+
+#### Two scopes, because reports have two
+
+A report about a post or a thread belongs to that forum's moderators —
+`moderatedForumIds`, the set F48 built. A report about a **member** belongs to no
+forum, so it is board staff's (`modcp.access`) or it is nobody's. They are one
+predicate rather than two queries, so a moderator who is also staff sees both in
+one ordered page.
+
+`modcp.access` rather than a new permission field: the board already has a
+switch for "this person is staff", and inventing a second would give an
+administrator two ways to express one decision.
+
+"Does not exist" and "not yours" give the same answer, so a moderator of one
+forum cannot learn by probing ids that a report exists in another.
+
+#### Only public content is reportable
+
+`resolveTarget` uses `PUBLIC_CONTENT` for every actor rather than the reader's
+own scope (F47). A member cannot report what they could not have seen, and a
+moderator has better tools than the report button for content that is already
+held or removed. The forum check then happens *after* the target resolves, in
+both the page and the action: a form says which row, and whether this member
+could see it is a question only the row's forum can answer.
+
+Reporting your own post is not offered. It is a button that files a complaint
+about yourself, and the only person it helps is somebody flooding the queue.
+Reporting is *not* forbidden for a self-target in the domain, though — people do
+it by accident and moderators can simply close it.
+
+#### What is deliberately absent
+
+- **Private messages as a target.** F60 has no tables. A `pm` kind nothing can
+  produce is a column that lies about what the board supports (D32's rule).
+- **Notifications on state changes.** F55 does not exist. The report appears in
+  the moderator list; telling somebody about it is a different feature, and
+  stubbing it would mean a "notified" flag nothing sets.
+
+#### Smaller things
+
+- **`content.report` is global**, so it costs the F22 matrix nothing — the
+  matrix is forum-scoped actions, and reporting is a board-wide capability. What
+  *is* per-forum is whether the member could see the target, and that is
+  `thread.view`, which the matrix already covers.
+- **The moderator screens are app-owned**, for the reason D47 records for the
+  queue: the slot registry freezes at F77 and an operator surface does not
+  belong in the public theme contract.
+- **The reporter's words are rendered as text**, like the queue's excerpts. A
+  report is unapproved content of a kind, and the screen that shows it is the one
+  deciding what to do about it.
+- **`visibleIn` needs the aliased column.** `visibleIn(posts.visibility, …)`
+  emits `"posts"."visibility"`, which does not resolve in a query that aliases
+  the table `p`. Passing `sql\`p.visibility\`` is the fix, and the failure was
+  loud rather than silent — the query did not parse.
+
+### D49 — Thread tools, and the two ends of a move (F50)
+
+Post-level transitions were F41's and thread *approval* was F48's. What was left
+is everything that acts on a thread as a unit. Three are flag flips; two move
+every counter the thread's posts contribute.
+
+#### The thread tools have no usergroup permission, on purpose
+
+Every action before F50 reads a field off the resolved forum matrix.
+`thread.lock`, `thread.stick`, `thread.move` and `thread.delete` read an
+**appointment right** and nothing else. MyBB has never had a usergroup column
+for these either, and it is right not to: "may lock threads everywhere on the
+board" is a thing you are appointed to or a thing you bypass into as staff, not
+a checkbox on a group.
+
+That made F48's debt come due immediately. `moderatorApproves` became a full
+`ModeratorRights` on the Target, `forum_moderators` grew from four rights to
+seven in the reader, and `Authorizer.moderatorRightsIn` is the new seam:
+`moderatedForumIds` answers *where* somebody moderates, this answers *what* they
+may do there. Rights from several appointments covering the same forum are
+**unioned** — two grants are two grants.
+
+Four new actions means four new columns in the F22 matrix, now 544 cells. The
+decision per cell was uniform (moderators everywhere, members nowhere) with one
+judgement: a moderator keeps the tools in the read-only subforum, because the
+override takes away *posting*, and a forum nobody may post in is exactly the
+kind that still has a backlog from before it was closed.
+
+#### A move has two ends, and both need the right
+
+The rule a "can this actor moderate here" check gets wrong. Rights in the source
+alone would let a moderator move a thread out from under the people watching it
+and into a forum where they have no standing at all — which is how a private
+forum acquires content its own moderators never approved. So the action resolves
+rights **twice**, once per forum, and the command refuses unless both hold.
+Mutation-verified by copying the source rights into the destination.
+
+#### Where the ancestors are updated, and why it differs from F38/F41
+
+F38's roll-up and F41's reversal are per-post deltas made idempotent by the
+`content_counter_rollups` ledger — "this post is currently counted in its
+ancestors". A **move** cannot use that ledger: the post is still counted, just
+somewhere else, and a row saying "counted" cannot express *which chain*.
+
+Rather than have one thread-level operation follow a different rule from its
+neighbour, both do their ancestors in the caller's transaction. They are bounded
+by tree depth and they are rare — a board moves a thread far less often than it
+gains a reply. The two chain updates cancel exactly at a shared ancestor, which
+is the assertion a naive implementation fails: a thread moved between two
+subforums of one category has not left the category.
+
+Thread delete and restore *do* keep the ledger in sync, because their posts stop
+and start being counted. Without it, deleting one post of a deleted thread would
+decrement ancestors that the thread had already decremented.
+
+#### The tally is taken once
+
+A thread's contribution is counted once and reused for the forum, the ancestors
+and every author. Three separate counts of the same thing is how a move leaves a
+forum and its category disagreeing by one. It is also per-author: Ada wrote the
+opening post and Bob the reply, so a single subtraction applied to "the thread's
+author" would leave Bob credited for a post nobody can read.
+
+A move leaves author counts alone. It changes where somebody wrote, never how
+much.
+
+#### `posts.forum_id` is denormalised and has to be rewritten
+
+R3.3 carries the forum on the post so permission filtering and the moderation
+queue can scope without joining `threads`. A move that updated only the thread
+leaves every post claiming to be somewhere it is not — and the queue, F47's
+scope and the recount all read that column. Its own killed mutant.
+
+#### `<>` in the WHERE, so a doubled click writes no audit row
+
+A log that records acts that did not happen is worse than no log. Locking an
+already-locked thread updates nothing, reports `false`, and writes nothing.
+
+#### What is deliberately not here
+
+- **Copy.** It is the only one of the eight that *creates* content, so it needs
+  the render, flood and approval path F39 owns rather than a counter move — and
+  it asks a real product question nobody has answered: MyBB credits the copies
+  to their original authors, which counts one piece of writing twice. Better
+  unbuilt than built on a guess.
+- **The move redirect stub.** `threads.moved_to_thread_id` exists and
+  `ThreadListingRow.isMoved` reads it, but a stub needs the *thread view* to
+  follow the pointer, which is F30/F31's surface rather than a moderation tool.
+- **Thread approval**, which is F48's and already counter-correct. Duplicating
+  it here would be a second path to one transition.
+
+F50's row says `PARTIAL` for exactly these, rather than `DONE` with a footnote.
+
+### D50 — Merge and split are one arithmetic seen from either side (F51)
+
+**Plan:** "Test-first merge/split across forums, preserving post order and all
+pointers/counters/authors."
+
+**Implemented:** `ThreadSurgery` in `@forum/moderation` with
+`PostgresThreadSurgeryRepository` behind it, two Server Actions rather than one,
+and the two controls in the same moderator bar as F50's.
+
+#### Why one file, and why two actions
+
+The two operations are one file because they keep the same list of things true:
+post order, the opening-post flag, the reply counts on both threads, both forum
+chains, and who is credited with what. Splitting them across packages would mean
+maintaining that list twice.
+
+They are two *actions* because they take different arguments and authorise
+different pairs of forums. F50 has one action for four tools precisely because
+those four differ only in a verb; forcing merge and split into that shape would
+mean a parser that ignores half its input depending on a hidden field, which is
+how the wrong end gets authorised.
+
+#### Post order survives by construction; the opening-post flag does not
+
+Posts page by id (F31) and neither operation renumbers anything, so order needs
+no work. `is_first_post` is a *flag* rather than a computation, so it is the
+thing that silently goes wrong: a split has to set it on the new thread's
+earliest post and a merge has to clear it on the absorbed thread's. A new thread
+whose earliest post is not marked has no opening post, and every read that
+trusts the flag stops working. Both directions have their own killed mutant.
+
+#### The author question F50 deferred, settled
+
+Neither operation duplicates a post, so `users.post_count` **never moves**: the
+same people wrote the same words. Only `thread_count` moves, and only by one — a
+split creates a thread, a merge destroys one. This is why split was a cheaper
+place to settle the question than copy: there is no second copy of anything to
+argue about, so the answer falls out rather than being chosen.
+
+The new thread is credited to the author of the post it now *opens with*, not to
+whoever started the conversation it came out of. A split exists because that post
+began something different.
+
+#### A split lands in the same forum, always
+
+Splitting and moving are two acts. Doing both at once would mean one operation
+with a second forum to authorise, and a moderator who may split here but not
+post there could place content in a forum they have no standing in. `thread.move`
+is right there afterwards. It also keeps the forum arithmetic trivial and
+correct: the forum gains **one thread and zero posts**, because the posts never
+left it. Moving the post count too is the mistake that makes a forum's total drop
+every time somebody tidies a thread.
+
+#### A merge moves every post, including the held ones
+
+Only the visible posts are *counted*, but all of them are *moved*. A held or
+removed post left behind would belong to a thread that is about to stop
+existing, and `posts.thread_id` cascades — the moderation queue would lose it.
+The source row itself is deleted rather than soft-deleted: its posts have already
+gone, and an empty deleted thread is a row in the moderator's restore list that
+restores nothing.
+
+#### Which thread survives is never inferred
+
+The source is absorbed; the target survives. Not the older one, not the bigger
+one. Guessing it is how a merge silently destroys the thread somebody meant to
+keep, and no amount of arithmetic correctness makes that recoverable.
+
+#### The cut point is a post *of this thread*, not a bigger id
+
+`postsFrom` returns nothing unless the id it was given is itself in the result.
+"Everything from here" and "everything with a bigger id" are different questions,
+and the difference is only visible for a post that is on the screen but not
+eligible — a post of an *earlier* thread, or a held post in this one. Both are
+tested; without the check the second selects the whole thread and splits it from
+a post that is not in it.
+
+#### The merge box takes a raw number, so the target is authorised like a page
+
+Split names its cut point with a `<select>` of the posts on screen, which cannot
+name a post that is not one of them. Merge cannot do that — the thread to merge
+into is by definition not on this screen — so it asks for a number, and the
+action puts that number through `thread.view` before anything else. Without it,
+the box is a working thread-existence oracle for every id on the board. It
+answers "that thread does not exist" in exactly the words an id nobody has used
+gets.
+
+Rights are resolved at **both** ends, for D49's reason: a merge pushes content
+into the target's forum.
+
+#### What is deliberately not here
+
+- **Splitting into another forum.** See above; it is split-then-move.
+- **Splitting a hand-picked set of posts.** The cut is "from this post onwards",
+  which is what MyBB's split-from does and what the thread page can express with
+  a `<select>`. Arbitrary selection needs the per-post checkbox surface F52 is
+  building for inline moderation, and building half of it here would mean two
+  selection mechanisms.
+- **Merging more than two threads at once.** Repeating the operation is the same
+  thing, and a multi-way merge has to pick a survivor among three, which is the
+  decision this feature refuses to guess even between two.

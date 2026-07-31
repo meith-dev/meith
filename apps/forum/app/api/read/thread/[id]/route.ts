@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+import { PUBLIC_CONTENT } from '@forum/core'
+
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 
@@ -17,7 +19,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { forums, posts, threads, authorizer, readState } = getContainer()
   if (threadId === null || postId === null || actor.userId === null || readState === null) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
 
-  const thread = await threads.findVisibleById(threadId)
+  /*
+   * Public, whoever is asking. A read watermark set to a post nobody else can
+   * see would move backwards the moment that post is removed, and a moderator's
+   * read state is not a different feature from everyone else's.
+   */
+  const thread = await threads.findById(threadId, PUBLIC_CONTENT)
   if (!thread) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
   const forum = await forums.findById(thread.forumId)
   if (!forum || forum.type !== 'forum') return NextResponse.redirect(new URL('/', request.url), { status: 303 })

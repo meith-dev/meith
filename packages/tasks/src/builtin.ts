@@ -23,6 +23,8 @@ export interface TaskWorkers {
   reconcileCounters(batchSize: number): Promise<number>
   /** Folds buffered thread views into `threads.view_count`. Returns threads updated. */
   flushThreadViews(batchSize: number): Promise<number>
+  /** Re-renders posts left on an older BBCode renderer. Returns posts rewritten. */
+  backfillPostRenders(batchSize: number): Promise<number>
   /** Promotes users who now meet a promotion rule. Returns users moved. */
   applyPromotions(batchSize: number): Promise<number>
   /** Lifts bans whose expiry has passed, restoring each user's prior group. */
@@ -124,6 +126,29 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
     },
 
     {
+      id: 'posts.render_backfill',
+      title: 'Re-render stale post bodies',
+      description:
+        'Rewrites the stored HTML of posts rendered by an older version of the ' +
+        'BBCode renderer. Purely an optimisation: a stale render is rendered ' +
+        'live on read, so this never gates correctness — it stops a renderer ' +
+        'change, or an import that wrote none, from making every thread page ' +
+        'pay for it. Idempotent, and its own progress marker is the row.',
+      /*
+       * Ten minutes. The work only exists after a deploy that bumps the
+       * renderer version or an import, so on a settled board this is a query
+       * that finds nothing — one index seek, which is why it can afford to ask
+       * often enough that a version bump is caught up within the hour.
+       */
+      intervalSeconds: 600,
+      maxDurationSeconds: 45,
+      async run() {
+        const rendered = await workers.backfillPostRenders(200)
+        return { detail: { rendered } }
+      },
+    },
+
+    {
       id: 'promotions.apply',
       title: 'Apply group promotions',
       description:
@@ -174,6 +199,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'tokens.prune': 'pruneExpiredTokens',
   'counters.reconcile': 'reconcileCounters',
   'views.flush': 'flushThreadViews',
+  'posts.render_backfill': 'backfillPostRenders',
   'promotions.apply': 'applyPromotions',
   'bans.expire': 'expireBans',
 }

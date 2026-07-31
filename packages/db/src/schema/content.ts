@@ -183,8 +183,22 @@ export const posts = pgTable(
 
     /** Optional per-post subject; most posts inherit the thread title. */
     subject: text('subject'),
-    /** Raw BBCode as typed. Rendering happens at read time (F28). */
+    /** Raw BBCode as typed. The source of truth; the columns below cache it. */
     message: text('message').notNull(),
+
+    /**
+     * `message` rendered by `@forum/bbcode`, and the renderer version that did
+     * it (F36).
+     *
+     * Null, or a version other than the current one, means "render it live" —
+     * never an error and never a reason to hide a post. Bumping the renderer's
+     * version constant therefore invalidates every stored render on the board
+     * at once, which is what makes an escaping fix deployable without a
+     * migration over the largest table there is. `posts.render_backfill`
+     * rewrites the stale rows behind the read path.
+     */
+    messageHtml: text('message_html'),
+    renderVersion: smallint('render_version').notNull().default(0),
 
     visibility: text('visibility').notNull().default('visible'),
 
@@ -228,6 +242,13 @@ export const posts = pgTable(
     index('posts_thread_all_idx').on(t.threadId, t.id),
 
     index('posts_author_idx').on(t.authorUserId, t.createdAt.desc()),
+
+    /*
+     * F36's backfill: "the next N posts not at version X, by id". Version
+     * first, so once the board is current the answer is an index seek that
+     * finds nothing rather than a scan of every post to discover the same.
+     */
+    index('posts_render_version_idx').on(t.renderVersion, t.id),
     // Moderation queue: unapproved content for a set of forums.
     index('posts_forum_visibility_idx')
       .on(t.forumId, t.createdAt.desc())
@@ -340,4 +361,99 @@ export const threadSubscriptions = pgTable(
     // Fan-out on a new reply reads every subscriber of one thread.
     index('thread_subscriptions_thread_idx').on(t.threadId),
   ],
+)
+
+/**
+ * F49 — reports.
+ *
+ * A report has a current state and a history, and they are separate tables
+ * because collapsing them loses the second: "who assigned this to me, and
+ * when" is the question a moderator picking up somebody else's work asks.
+ */
+export const REPORT_TARGET_KINDS = ['post', 'thread', 'user'] as const
+export type ReportTargetKind = (typeof REPORT_TARGET_KINDS)[number]
+
+export const REPORT_STATUSES = ['open', 'resolved', 'rejected'] as const
+export type ReportStatus = (typeof REPORT_STATUSES)[number]
+
+export const reports = pgTable(
+  'reports',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    targetKind: text('target_kind').notNull(),
+    targetId: integer('target_id').notNull(),
+
+    /**
+     * Denormalised from the target, and null for a user report.
+     *
+     * This is what scopes the moderator list by `moderatedForumIds` without a
+     * join per kind — and what keeps a report readable after its target is
+     * hard-deleted.
+     */
+    forumId: integer('forum_id').references(() => forums.id, { onDelete: 'set null' }),
+    threadId: integer('thread_id').references(() => threads.id, { onDelete: 'set null' }),
+    /** Captured at report time: the target may be edited or removed afterwards. */
+    targetLabel: text('target_label').notNull().default(''),
+
+    reporterUserId: integer('reporter_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    reason: text('reason').notNull(),
+
+    /**
+     * Assignment is a column, not a status. An assigned report is still open,
+     * and modelling it as a state means "everything outstanding" has to ask for
+     * two of them.
+     */
+    status: text('status').notNull().default('open'),
+    assignedToUserId: integer('assigned_to_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+
+    resolvedByUserId: integer('resolved_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('reports_open_idx')
+      .on(t.forumId, t.createdAt)
+      .where(sql`${t.status} = 'open'`),
+    index('reports_open_global_idx')
+      .on(t.createdAt)
+      .where(sql`${t.status} = 'open' and ${t.forumId} is null`),
+    /*
+     * One open report per person per target. Without it, "report" is a button
+     * that adds a queue row on every click — the cheapest denial-of-service on
+     * the board. Partial, so the same person may report again once a previous
+     * report is closed: circumstances change.
+     */
+    uniqueIndex('reports_one_open_per_reporter_key')
+      .on(t.reporterUserId, t.targetKind, t.targetId)
+      .where(sql`${t.status} = 'open' and ${t.reporterUserId} is not null`),
+  ],
+)
+
+/** The history, and the only place a private moderator note lives. */
+export const reportEvents = pgTable(
+  'report_events',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    reportId: integer('report_id')
+      .notNull()
+      .references(() => reports.id, { onDelete: 'cascade' }),
+    actorUserId: integer('actor_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** `opened | assigned | unassigned | resolved | rejected | note`. */
+    kind: text('kind').notNull(),
+    /** Never shown to the reporter. */
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('report_events_report_idx').on(t.reportId, t.createdAt)],
 )

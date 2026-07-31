@@ -32,6 +32,13 @@ export const F22_ACTIONS = [
   'softDelete', // soft-delete a post         -> post.softDelete
   'viewUnapproved', // see unapproved content -> content.viewUnapproved
   'viewDeleted', // see deleted content       -> content.viewDeleted
+  'approve', // act on the queue               -> content.approve
+  'lock', // open or close a thread           -> thread.lock
+  'stick', // pin or unpin a thread            -> thread.stick
+  'move', // move a thread to another forum    -> thread.move
+  'deleteThread', // soft-delete a thread      -> thread.delete
+  'merge', // merge one thread into another    -> thread.merge
+  'split', // split posts into a new thread    -> thread.split
   'upload', // attach a file                  -> attachment.upload
   'search', // search within the forum        -> forum.search
   'subscribe', // subscribe to the forum      -> forum.subscribe
@@ -39,7 +46,7 @@ export const F22_ACTIONS = [
 
 export type F22Action = (typeof F22_ACTIONS)[number]
 
-/** All twelve, for the "everything" cells (staff bypass). */
+/** All nineteen, for the "everything" cells (staff bypass). */
 const ALL: readonly F22Action[] = F22_ACTIONS
 
 /** The registered-member baseline in an ordinary forum. */
@@ -76,6 +83,19 @@ const MOD_READONLY: readonly F22Action[] = [
   'softDelete',
   'viewUnapproved',
   'viewDeleted',
+  /*
+   * A forum moderator approves and uses the thread tools here too. The
+   * read-only override takes away *posting*, not moderation: a forum nobody may
+   * post in is exactly the kind that still has a queue and a backlog from
+   * before it was closed.
+   */
+  'approve',
+  'lock',
+  'stick',
+  'move',
+  'deleteThread',
+  'merge',
+  'split',
   'upload',
   'search',
   'subscribe',

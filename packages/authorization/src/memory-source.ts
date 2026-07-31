@@ -13,6 +13,7 @@
  * so it stays inside the authorization boundary and needs no database.
  */
 import type {
+  ModeratorAppointment,
   AuthorizationSource,
   ForumOverride,
   GroupDefaults,
@@ -30,6 +31,17 @@ export interface MemoryBoard {
   readonly chains: Readonly<Record<number, readonly number[]>>
   /** Per-(forum, group) overrides. */
   readonly overrides: readonly ForumOverride[]
+  /**
+   * Moderator appointments (F48). Optional so every existing fixture board — a
+   * board with no appointments is a perfectly ordinary board — keeps compiling.
+   */
+  readonly moderators?: readonly MemoryAppointment[]
+}
+
+/** An appointment plus who it is for; the port hides the who. */
+export type MemoryAppointment = ModeratorAppointment & {
+  readonly userId?: number | null
+  readonly groupId?: number | null
 }
 
 export class InMemoryAuthorizationSource implements AuthorizationSource {
@@ -72,6 +84,18 @@ export class InMemoryAuthorizationSource implements AuthorizationSource {
   async allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>> {
     return new Map(
       Object.entries(this.board.chains).map(([id, chain]) => [Number(id), chain]),
+    )
+  }
+
+  async moderatorAppointments(
+    userId: number | null,
+    groupIds: readonly number[],
+  ): Promise<readonly ModeratorAppointment[]> {
+    const groups = new Set(groupIds)
+    return (this.board.moderators ?? []).filter(
+      (row) =>
+        (row.userId != null && row.userId === userId) ||
+        (row.groupId != null && groups.has(row.groupId)),
     )
   }
 }

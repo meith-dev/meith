@@ -46,7 +46,11 @@ export const TIMEZONE_LABEL = 'UTC'
  */
 export function buildViewerModel(
   actor: Actor,
-  options: { displayName?: string | null; canAccessAdminCp?: boolean } = {},
+  options: {
+    displayName?: string | null
+    canAccessAdminCp?: boolean
+    canAccessModCp?: boolean
+  } = {},
 ): ViewerModel {
   const isGuest = actor.userId === null
 
@@ -58,6 +62,7 @@ export function buildViewerModel(
     // F58. No avatar pipeline yet, and a broken <img> is worse than none.
     avatarUrl: null,
     canAccessAdminCp: options.canAccessAdminCp ?? false,
+    canAccessModCp: options.canAccessModCp ?? false,
   }
 }
 
@@ -98,7 +103,15 @@ export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
       ]
     : viewer.profileHref === null
       ? []
-      : [{ label: 'Profile', href: viewer.profileHref }]
+      : [
+          { label: 'Profile', href: viewer.profileHref },
+          ...(viewer.canAccessModCp
+            ? [
+                { label: 'Moderation queue', href: '/moderation' },
+                { label: 'Reports', href: '/moderation/reports' },
+              ]
+            : []),
+        ]
 
   return {
     viewer,

@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm'
+import { PUBLIC_CONTENT } from '@forum/core'
 import { expectQueryBudget } from '@forum/testkit'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -56,8 +57,8 @@ describe('PostgresThreadRepository.listForum', () => {
   it('orders sticky threads first and resumes with the full stable sort key', async () => {
     await seed(5)
 
-    const first = await repo.listForum(1, { limit: 2 })
-    const second = await repo.listForum(1, { after: first.nextCursor!, limit: 2 })
+    const first = await repo.listForum(1, { limit: 2, scope: PUBLIC_CONTENT })
+    const second = await repo.listForum(1, { after: first.nextCursor!, limit: 2, scope: PUBLIC_CONTENT })
 
     expect(first.rows.map((row) => row.id)).toEqual([2, 1])
     expect(second.rows.map((row) => row.id)).toEqual([4, 3])
@@ -66,12 +67,12 @@ describe('PostgresThreadRepository.listForum', () => {
 
   it('costs one statement at both small and larger board sizes', async () => {
     await seed(3)
-    await expectQueryBudget(harness, 1, () => repo.listForum(1, { limit: 25 }))
+    await expectQueryBudget(harness, 1, () => repo.listForum(1, { limit: 25, scope: PUBLIC_CONTENT }))
 
     await db.execute(sql`delete from threads`)
     await db.execute(sql`delete from forums`)
     await seed(50)
-    const page = await expectQueryBudget(harness, 1, () => repo.listForum(1, { limit: 25 }))
+    const page = await expectQueryBudget(harness, 1, () => repo.listForum(1, { limit: 25, scope: PUBLIC_CONTENT }))
 
     expect(page.rows).toHaveLength(25)
     expect(page.nextCursor).not.toBeNull()

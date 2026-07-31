@@ -48,6 +48,22 @@ export {
   type RecountPhase,
   type RecountRun,
 } from './counter-recount'
+export {
+  PostgresRenderBackfill,
+  type RenderBackfillRun,
+} from './render-backfill'
+export { PostgresPostWriteRepository } from './post-writes'
+export { PostgresModerationQueueRepository } from './moderation-queue'
+export { PostgresReportRepository } from './report-repo'
+export { PostgresThreadToolsRepository } from './thread-tools'
+export { PostgresThreadSurgeryRepository } from './thread-surgery'
+export {
+  applyAncestorVisibilityChange,
+  applyVisibilityChangeCounters,
+  repairForumLastPostChain,
+  repairThreadLastPost,
+  type VisibilityChange,
+} from './visibility-counters'
 export { PostgresOutboxReader } from './outbox-repo'
 export {
   PostgresBanFilterRepository,

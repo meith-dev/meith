@@ -1,6 +1,8 @@
-/** Postgres thread-view listing (F31). */
-import { and, asc, eq, gt, sql } from 'drizzle-orm'
+/** Postgres thread-view listing (F31), widened for moderators at F41. */
+import { and, asc, eq, gt, sql, type SQL } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 
+import { PUBLIC_CONTENT, type ContentScope } from '@forum/core'
 import type {
   PostListingRow,
   PostPage,
@@ -10,6 +12,9 @@ import type {
 
 import type { Database } from './client'
 import { posts, users } from './schema'
+import { visibleIn } from './visibility'
+
+const editors = alias(users, 'editors')
 
 function toPost(row: {
   id: number
@@ -21,8 +26,14 @@ function toPost(row: {
   authorPostCount: number | null
   authorJoinedAt: Date | null
   message: string
+  messageHtml: string | null
+  renderVersion: number
   isFirstPost: boolean
+  visibility: string
   createdAt: Date
+  editedAt: Date | null
+  editedByUsername: string | null
+  editReason: string | null
 }): PostListingRow {
   return {
     id: row.id,
@@ -34,9 +45,14 @@ function toPost(row: {
     authorPostCount: row.authorPostCount ?? 0,
     authorJoinedAt: row.authorJoinedAt,
     message: row.message,
+    messageHtml: row.messageHtml,
+    renderVersion: Number(row.renderVersion),
     isFirstPost: row.isFirstPost,
-    visibility: 'visible',
+    visibility: row.visibility as PostListingRow['visibility'],
     createdAt: row.createdAt,
+    editedAt: row.editedAt,
+    editedByUsername: row.editedByUsername,
+    editReason: row.editReason,
   }
 }
 
@@ -56,7 +72,12 @@ export class PostgresPostRepository implements PostRepository {
         and(
           eq(posts.id, postId),
           eq(posts.threadId, threadId),
-          eq(posts.visibility, 'visible'),
+          /*
+           * Public, whoever is asking. Quoting is how a post is put back in
+           * front of everybody, so a moderator quoting a removed post would
+           * republish it — with the moderator's name on it.
+           */
+          visibleIn(posts.visibility, PUBLIC_CONTENT),
         ),
       )
       .limit(1)
@@ -72,7 +93,7 @@ export class PostgresPostRepository implements PostRepository {
         and(
           eq(posts.threadId, threadId),
           eq(posts.id, postId),
-          eq(posts.visibility, 'visible'),
+          visibleIn(posts.visibility, PUBLIC_CONTENT),
         ),
       )
       .limit(1)
@@ -81,13 +102,24 @@ export class PostgresPostRepository implements PostRepository {
 
   async listThread(
     threadId: number,
-    options: { readonly afterId?: number; readonly limit: number },
+    options: {
+      readonly afterId?: number
+      readonly limit: number
+      readonly scope: ContentScope
+    },
   ): Promise<PostPage> {
+    /*
+     * One predicate, used by both the page slice and the "how many came before"
+     * subquery. Two spellings of it is how a moderator's page ends up numbered
+     * from the member's set — off by exactly the number of hidden posts above.
+     */
+    const visible: SQL = visibleIn(posts.visibility, options.scope)
+
     const beforeCount = options.afterId
       ? sql<number>`(
           select count(*)::int from ${posts}
           where ${posts.threadId} = ${threadId}
-            and ${posts.visibility} = 'visible'
+            and ${visible}
             and ${posts.id} <= ${options.afterId}
         )`
       : sql<number>`0`
@@ -103,15 +135,22 @@ export class PostgresPostRepository implements PostRepository {
         authorPostCount: users.postCount,
         authorJoinedAt: users.createdAt,
         message: posts.message,
+        messageHtml: posts.messageHtml,
+        renderVersion: posts.renderVersion,
         isFirstPost: posts.isFirstPost,
+        visibility: posts.visibility,
         createdAt: posts.createdAt,
+        editedAt: posts.editedAt,
+        editedByUsername: editors.username,
+        editReason: posts.editReason,
       })
       .from(posts)
       .leftJoin(users, eq(posts.authorUserId, users.id))
+      .leftJoin(editors, eq(posts.editedByUserId, editors.id))
       .where(
         and(
           eq(posts.threadId, threadId),
-          eq(posts.visibility, 'visible'),
+          visible,
           ...(options.afterId ? [gt(posts.id, options.afterId)] : []),
         ),
       )

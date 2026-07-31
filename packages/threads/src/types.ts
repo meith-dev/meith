@@ -19,6 +19,8 @@ export interface ThreadListingRow {
   readonly authorUsername: string;
   readonly replyCount: number;
   readonly viewCount: number;
+  /** F47: a moderator's listing shows hidden threads, marked as such. */
+  readonly visibility: 'visible' | 'unapproved' | 'deleted'
   readonly isSticky: boolean;
   readonly isLocked: boolean;
   readonly isMoved: boolean;

@@ -136,6 +136,16 @@ export interface ViewerModel {
    * on its own, and R6 keeps themes out of authorization entirely.
    */
   readonly canAccessAdminCp: boolean
+  /**
+   * Whether to render the moderation link (F48). Same shape and same rule as
+   * `canAccessAdminCp`: a rendering hint the Authorizer has already decided.
+   *
+   * Group-level only, which is a real limitation rather than an oversight: a
+   * per-forum appointee's queue exists and is reachable, but answering "does
+   * this person moderate anything" for them costs the tree, and the shell
+   * renders on every page. F54's ModCP is where that link earns its query.
+   */
+  readonly canAccessModCp: boolean
 }
 
 /** A user as they appear attached to content. */
@@ -236,6 +246,14 @@ export interface PostAuthorModel extends UserRefModel {
 export interface PostActionsModel {
   readonly quoteHref: string | null
   readonly editHref: string | null
+  /**
+   * Where a soft-deleted post is put back (F41).
+   *
+   * A separate field rather than a second meaning for `editHref`, because the
+   * two are never both offered: a deleted post cannot be edited, and a visible
+   * one has nothing to restore. A theme that renders both gets exactly one.
+   */
+  readonly restoreHref: string | null
   readonly reportHref: string | null
   /** Present for moderators only; F52 fills it in. */
   readonly moderateHref: string | null

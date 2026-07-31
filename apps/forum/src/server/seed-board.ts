@@ -44,7 +44,7 @@ export const SEED_GROUP = {
 } as const
 
 /** Bump when the read-only fixture rows change so a live dev container refreshes. */
-export const FIXTURE_DATA_VERSION = 2
+export const FIXTURE_DATA_VERSION = 4
 
 /** Canonical seed forums. */
 export const SEED_FORUM = {
@@ -81,6 +81,30 @@ const POST = {
   canPostThreads: true,
   canPostReplies: true,
   canSubscribe: true,
+  /*
+   * F41. A member who cannot correct their own typo is not a forum, so this is
+   * the baseline every real board ships with — and the fixture has to have it
+   * for the edit affordances to appear at all. The *window* is the permission
+   * that limits it (`editTimeLimitMinutes`), and it is 0 here: unlimited.
+   */
+  canEditOwnPosts: true,
+  canDeleteOwnPosts: true,
+  /* F49. Seeded true for Registered in migration `0001`, like the rest. */
+  canReportContent: true,
+  /*
+   * The three negative fields, matching migration `0001_seed_usergroups`.
+   *
+   * They were missing here, and the fixture inherited `emptyPermissionSet()`'s
+   * fallback — which for a negative field is the *restrictive* value (R4.2), so
+   * the fixture's Registered group required approval for everything while the
+   * seeded Postgres group required approval for nothing. Nothing read them
+   * until F41, at which point every edit on the fixture board silently went to
+   * a queue that has no screen. The fixture claims to mirror the seeded ladder;
+   * now it does.
+   */
+  requiresThreadApproval: false,
+  requiresPostApproval: false,
+  requiresApprovalOnEdit: false,
 } as const
 
 const GROUPS: GroupDefaults[] = [
@@ -261,6 +285,7 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
     authorUsername: 'admin',
     replyCount: 1,
     viewCount: 64,
+    visibility: 'visible',
     isSticky: false,
     isLocked: false,
     isMoved: false,
@@ -282,6 +307,7 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
     authorUsername: 'departed',
     replyCount: 1,
     viewCount: 241,
+    visibility: 'visible',
     isSticky: true,
     isLocked: false,
     isMoved: false,
@@ -303,6 +329,7 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
     authorUsername: 'admin',
     replyCount: 1,
     viewCount: 116,
+    visibility: 'visible',
     isSticky: false,
     isLocked: false,
     isMoved: false,
@@ -327,7 +354,14 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorUsername: 'admin',
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
-    message: 'Welcome to the new forum. We are glad you are here.',
+    message:
+      'Welcome to the [b]new forum[/b]. We are glad you are here.\n\n' +
+      'The rules live at [url=/forum/100-announcements]Announcements[/url].',
+    messageHtml: null,
+    renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: true,
     visibility: 'visible',
     createdAt: new Date('2026-07-29T09:00:00Z'),
@@ -342,6 +376,11 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
     message: 'Thanks for joining us for the first release.',
+    messageHtml: null,
+    renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: false,
     visibility: 'visible',
     createdAt: new Date('2026-07-29T14:05:00Z'),
@@ -356,6 +395,11 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
     message: 'Show us the place where you make things.',
+    messageHtml: null,
+    renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: true,
     visibility: 'visible',
     createdAt: new Date('2026-07-29T12:00:00Z'),
@@ -369,7 +413,12 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorUsername: 'admin',
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
-    message: 'A standing desk and a notebook are all I need.',
+    message: "[quote='admin' pid='121']Show us the place where you make things.[/quote]\nA standing desk and a notebook are all I need.",
+    messageHtml: null,
+    renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: false,
     visibility: 'visible',
     createdAt: new Date('2026-07-29T17:18:00Z'),
@@ -384,6 +433,11 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
     message: 'Tell us what you are reading this week.',
+    messageHtml: null,
+    renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: true,
     visibility: 'visible',
     createdAt: new Date('2026-07-28T09:00:00Z'),
@@ -398,6 +452,11 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorPostCount: 0,
     authorJoinedAt: null,
     message: 'I just started a mystery novel.',
+    messageHtml: null,
+    renderVersion: 0,
+    editedAt: null,
+    editedByUsername: null,
+    editReason: null,
     isFirstPost: false,
     visibility: 'visible',
     createdAt: new Date('2026-07-30T08:41:00Z'),

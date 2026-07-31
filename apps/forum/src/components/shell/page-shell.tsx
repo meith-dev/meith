@@ -38,7 +38,14 @@ export async function PageShell({
   const UserPanel = requireSlot(activeTheme, 'UserPanel')
   const Footer = requireSlot(activeTheme, 'Footer')
 
-  const viewer = buildViewerModel(actor)
+  /*
+   * `canAccessModCp` is a permission field, not a group check — the same rule
+   * `canAccessAdminCp` follows. It is read off the already-resolved actor, so
+   * the shell costs no extra query on any page (F48).
+   */
+  const viewer = buildViewerModel(actor, {
+    canAccessModCp: actor.global.canAccessModCp === true,
+  })
   const header = buildHeaderModel(viewer)
 
   return (
