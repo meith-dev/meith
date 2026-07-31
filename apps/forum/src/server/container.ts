@@ -51,18 +51,17 @@ import type {
   ThreadRepository,
   ThreadWriteRepository,
 } from '@forum/threads'
-import { builtinTasks, type TaskDefinition, type TaskRepository } from '@forum/tasks'
+import type { TaskDefinition, TaskRepository } from '@forum/tasks'
+import { buildSchedulerBundle } from '@forum/runtime'
 import { drivers } from '@forum/drivers'
 
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
-import { buildEventRegistry } from './event-handlers'
 import { FixtureActorSource } from './fixture-actor-source'
 import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
 import { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_GROUP } from './seed-board'
-import { defaultPromotionGuards, taskWorkers } from './task-workers'
 
 /** The services the app resolves from the container. */
 export interface Container {
@@ -296,7 +295,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresThreadToolsRepository, PostgresThreadSurgeryRepository, PostgresInlineModerationRepository, PostgresWarningRepository, PostgresModCpRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresThreadToolsRepository, PostgresThreadSurgeryRepository, PostgresInlineModerationRepository, PostgresWarningRepository, PostgresModCpRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
@@ -335,31 +334,13 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     threadViews,
     fixtureDataVersion: null,
     ...identityServices(store),
-    scheduler: {
-      repository: new PostgresTaskRepository(db),
-      /*
-       * A *partial* worker set: `builtinTasks` registers only what can run, so
-       * a task whose worker does not exist yet is absent rather than stubbed.
-       * See task-workers.ts and D32.
-       */
-      tasks: builtinTasks(
-        taskWorkers({
-          queue: drivers().queue,
-          bans: new PostgresBanRepository(db),
-          promotions: new PostgresPromotionRepository(db),
-          guards: defaultPromotionGuards(),
-          maintenance: new PostgresMaintenanceRepository(db),
-          outbox: new PostgresOutboxReader(db),
-          events: buildEventRegistry({
-            counters: new PostgresContentCounterRepository(db),
-          }),
-          recount: new PostgresCounterRecount(db),
-          renderBackfill: new PostgresRenderBackfill(db),
-          threadViews,
-          warnings: warningRepo,
-        }),
-      ),
-    },
+    /*
+     * F13's `task:run` and F04's worker build the identical object, so the
+     * wiring lives in `@forum/runtime` rather than here — see that package's
+     * header for why it is allowed to import `@forum/db` when domain packages
+     * are not. The client is handed in so a request does not open a second pool.
+     */
+    scheduler: buildSchedulerBundle({ queue: drivers().queue, db }),
     dataSource: 'postgres',
   }
 }

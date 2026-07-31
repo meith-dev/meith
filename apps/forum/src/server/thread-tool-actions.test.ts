@@ -38,11 +38,9 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { threadToolAction } = await import('./thread-tool-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import(
-  './seed-board'
-)
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
-const CONTAINER_KEY = Symbol.for('@forum/forum.container')
+const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 
 class FakeTools implements ThreadToolsRepository {
   readonly calls: string[] = []
@@ -110,34 +108,7 @@ function appointment(
 }
 
 function installContainer(moderators: readonly MemoryAppointment[] = []): void {
-  const board = { ...SEED_BOARD, moderators }
-  ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
-    authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
-    threadTools: tools,
-    threadSurgery: null,
-    inlineModeration: null,
-    warnings: null,
-    warningBans: null,
-    modcp: null,
-    reports: null,
-    moderationQueue: null,
-    threadWrites: null,
-    postWrites: null,
-    threads: {
-      locateForum: async () => null,
-      findById: async () => null,
-      listForum: async () => ({ rows: [], nextCursor: null }),
-    },
-    posts: {
-      findVisibleById: async () => null,
-      listThread: async () => ({ rows: [], nextAfterId: null }),
-    },
-    readState: null,
-    threadViews: null,
-    memberProfiles: { findPublicById: async () => null },
-    fixtureDataVersion: FIXTURE_DATA_VERSION,
-    dataSource: 'fixture',
-  }
+  installTestContainer({ moderators, container: { threadTools: tools } })
 }
 
 function form(entries: Record<string, string>): FormData {

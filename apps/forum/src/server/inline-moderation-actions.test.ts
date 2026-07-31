@@ -10,7 +10,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  Authorizer,
   InMemoryAuthorizationSource,
   combinePermissionSets,
   type MemoryAppointment,
@@ -44,11 +43,9 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { inlineModerateAction } = await import('./inline-moderation-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import(
-  './seed-board'
-)
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
-const CONTAINER_KEY = Symbol.for('@forum/forum.container')
+const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 
 class FakeInline implements InlineModerationRepository {
   /** Every row the board contains, whatever the scope. */
@@ -124,34 +121,7 @@ function appointment(
 }
 
 function installContainer(moderators: readonly MemoryAppointment[] = []): void {
-  const board = { ...SEED_BOARD, moderators }
-  ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
-    authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
-    inlineModeration: inline,
-    warnings: null,
-    warningBans: null,
-    modcp: null,
-    threadTools: null,
-    threadSurgery: null,
-    reports: null,
-    moderationQueue: null,
-    threadWrites: null,
-    postWrites: null,
-    threads: {
-      locateForum: async () => null,
-      findById: async () => null,
-      listForum: async () => ({ rows: [], nextCursor: null }),
-    },
-    posts: {
-      findVisibleById: async () => null,
-      listThread: async () => ({ rows: [], nextAfterId: null }),
-    },
-    readState: null,
-    threadViews: null,
-    memberProfiles: { findPublicById: async () => null },
-    fixtureDataVersion: FIXTURE_DATA_VERSION,
-    dataSource: 'fixture',
-  }
+  installTestContainer({ moderators, container: { inlineModeration: inline } })
 }
 
 /** Native checkboxes submit several values under one name. */

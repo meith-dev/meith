@@ -1,5 +1,3 @@
-import 'server-only'
-
 /**
  * The app-tier implementations behind the scheduled tasks (F06).
  *
@@ -24,7 +22,7 @@ import {
 } from '@forum/events'
 import type { QueueDriver } from '@forum/core'
 
-import { SEED_GROUP } from './seed-board'
+import { SEED_GROUP } from './groups'
 
 export interface TaskWorkerDeps {
   readonly queue: QueueDriver

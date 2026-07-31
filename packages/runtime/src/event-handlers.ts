@@ -1,5 +1,3 @@
-import 'server-only'
-
 /**
  * The event handlers this deployment runs (F07/F38).
  *

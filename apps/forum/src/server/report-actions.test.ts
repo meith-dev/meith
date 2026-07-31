@@ -10,7 +10,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  Authorizer,
   InMemoryAuthorizationSource,
   combinePermissionSets,
 } from '@forum/authorization'
@@ -42,11 +41,9 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { fileReportAction } = await import('./report-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import(
-  './seed-board'
-)
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
-const CONTAINER_KEY = Symbol.for('@forum/forum.container')
+const { installTestContainer } = await import('./test-container')
 
 class FakeReports implements ReportRepository {
   readonly filed: NewReport[] = []
@@ -92,33 +89,7 @@ class FakeReports implements ReportRepository {
 let reports: FakeReports
 
 function installContainer(board = SEED_BOARD): void {
-  ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
-    authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
-    reports,
-    threadTools: null,
-    threadSurgery: null,
-    inlineModeration: null,
-    warnings: null,
-    warningBans: null,
-    modcp: null,
-    moderationQueue: null,
-    threadWrites: null,
-    postWrites: null,
-    threads: {
-      locateForum: async () => null,
-      findById: async () => null,
-      listForum: async () => ({ rows: [], nextCursor: null }),
-    },
-    posts: {
-      findVisibleById: async () => null,
-      listThread: async () => ({ rows: [], nextAfterId: null }),
-    },
-    readState: null,
-    threadViews: null,
-    memberProfiles: { findPublicById: async () => null },
-    fixtureDataVersion: FIXTURE_DATA_VERSION,
-    dataSource: 'fixture',
-  }
+  installTestContainer({ board, container: { reports } })
 }
 
 function form(entries: Record<string, string>): FormData {

@@ -16,6 +16,7 @@ import {
   buildHeaderModel,
   buildUserPanelModel,
   buildViewerModel,
+  BOARD_TITLE,
   TIMEZONE_LABEL,
 } from './shell'
 
@@ -114,5 +115,37 @@ describe('buildFooterModel', () => {
    */
   it('names the timezone timestamps were formatted in', () => {
     expect(buildFooterModel().timezoneLabel).toBe(TIMEZONE_LABEL)
+  })
+})
+
+/**
+ * The board title and the viewer's name, both of which were hardcoded.
+ *
+ * `BOARD_TITLE` stays as a *fallback* rather than being removed: the auth
+ * screens and the error pages render the shell when the database may be
+ * unreachable, and a header that throws while rendering an error page is the
+ * worst possible failure.
+ */
+describe('the board title (F08)', () => {
+  it('falls back to the constant when nothing resolves one', () => {
+    expect(buildHeaderModel(buildViewerModel(guest)).boardTitle).toBe(BOARD_TITLE)
+    expect(buildFooterModel().boardTitle).toBe(BOARD_TITLE)
+  })
+
+  it('uses the resolved name in the header and the footer alike', () => {
+    expect(buildHeaderModel(buildViewerModel(guest), [], 'Ada"s Board').boardTitle).toBe('Ada"s Board')
+    expect(buildFooterModel([], 'Ada"s Board').boardTitle).toBe('Ada"s Board')
+  })
+})
+
+describe('ViewerModel.username', () => {
+  /* It was `null` for every viewer on every page until the shell read it. */
+  it('carries the display name the caller resolved', () => {
+    expect(buildViewerModel(member, { displayName: 'ada' }).username).toBe('ada')
+  })
+
+  it('is null when the caller has no name to give, rather than inventing one', () => {
+    expect(buildViewerModel(member).username).toBeNull()
+    expect(buildViewerModel(guest).username).toBeNull()
   })
 })

@@ -14,7 +14,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  Authorizer,
   InMemoryAuthorizationSource,
   combinePermissionSets,
 } from '@forum/authorization'
@@ -63,11 +62,9 @@ const {
   restorePostAction,
 } = await import('./content-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import(
-  './seed-board'
-)
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
-const CONTAINER_KEY = Symbol.for('@forum/forum.container')
+const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 
 class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
   readonly written: NewThreadRecord[] = []
@@ -147,38 +144,17 @@ function installContainer(
   overrides: Record<string, unknown> = {},
   board = SEED_BOARD,
 ): void {
-  const source = new InMemoryAuthorizationSource(board)
-  ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
-    authorizer: new Authorizer(source, {}),
-    threadWrites: writes,
-    postWrites: null,
-    moderationQueue: null,
-    reports: null,
-    threadTools: null,
-    threadSurgery: null,
-    inlineModeration: null,
-    warnings: null,
-    warningBans: null,
-    modcp: null,
-    threads: {
-      locateForum: async () => null,
-      findById: async () => null,
-      listForum: async () => ({ rows: [], nextCursor: null }),
+  installTestContainer({
+    board,
+    container: {
+      threadWrites: writes,
+      memberProfiles: {
+        findPublicById: async (id: number) =>
+          id === 1 ? { id, username: 'ada', joinedAt: new Date(), postCount: 0 } : null,
+      },
+      ...overrides,
     },
-    posts: {
-      findVisibleById: async () => null,
-      listThread: async () => ({ rows: [], nextAfterId: null }),
-    },
-    readState: null,
-    threadViews: null,
-    memberProfiles: {
-      findPublicById: async (id: number) =>
-        id === 1 ? { id, username: 'ada', joinedAt: new Date(), postCount: 0 } : null,
-    },
-    fixtureDataVersion: FIXTURE_DATA_VERSION,
-    dataSource: 'fixture',
-    ...overrides,
-  }
+  })
 }
 
 /** A native form submit: strings only, and no field for an unchecked box. */

@@ -10,7 +10,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  Authorizer,
   InMemoryAuthorizationSource,
   combinePermissionSets,
   type MemoryAppointment,
@@ -44,11 +43,9 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { mergeThreadAction, splitThreadAction } = await import('./surgery-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import(
-  './seed-board'
-)
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
-const CONTAINER_KEY = Symbol.for('@forum/forum.container')
+const { installTestContainer } = await import('./test-container')
 
 const SOURCE = 20
 const TARGET = 21
@@ -113,38 +110,18 @@ function installContainer(
   moderators: readonly MemoryAppointment[] = [],
   extraOverrides: (typeof SEED_BOARD)['overrides'] = [],
 ): void {
-  const board = {
-    ...SEED_BOARD,
+  installTestContainer({
     moderators,
-    overrides: [...SEED_BOARD.overrides, ...extraOverrides],
-  }
-  ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
-    authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
-    threadSurgery: surgery,
-    inlineModeration: null,
-    warnings: null,
-    warningBans: null,
-    modcp: null,
-    threadTools: null,
-    reports: null,
-    moderationQueue: null,
-    threadWrites: null,
-    postWrites: null,
-    threads: {
-      locateForum: async (id: number) => forumOf[id] ?? null,
-      findById: async () => null,
-      listForum: async () => ({ rows: [], nextCursor: null }),
+    overrides: extraOverrides,
+    container: {
+      threadSurgery: surgery,
+      threads: {
+        locateForum: async (id: number) => forumOf[id] ?? null,
+        findById: async () => null,
+        listForum: async () => ({ rows: [], nextCursor: null }),
+      },
     },
-    posts: {
-      findVisibleById: async () => null,
-      listThread: async () => ({ rows: [], nextAfterId: null }),
-    },
-    readState: null,
-    threadViews: null,
-    memberProfiles: { findPublicById: async () => null },
-    fixtureDataVersion: FIXTURE_DATA_VERSION,
-    dataSource: 'fixture',
-  }
+  })
 }
 
 function form(entries: Record<string, string>): FormData {

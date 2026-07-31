@@ -1,0 +1,18 @@
+{
+  "name": "@forum/runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@forum/accounts": "workspace:*",
+    "@forum/core": "workspace:*",
+    "@forum/db": "workspace:*",
+    "@forum/drivers": "workspace:*",
+    "@forum/events": "workspace:*",
+    "@forum/groups": "workspace:*",
+    "@forum/moderation": "workspace:*",
+    "@forum/tasks": "workspace:*"
+  }
+}

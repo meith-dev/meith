@@ -17,6 +17,7 @@
       "@forum/settings": ["../../packages/settings/src/index.ts"],
       "@forum/settings/*": ["../../packages/settings/src/*"],
       "@forum/tasks": ["../../packages/tasks/src/index.ts"],
+      "@forum/runtime": ["../../packages/runtime/src/index.ts"],
       "@forum/tasks/*": ["../../packages/tasks/src/*"],
       "@forum/accounts": ["../../packages/accounts/src/index.ts"],
       "@forum/accounts/*": ["../../packages/accounts/src/*"],

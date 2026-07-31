@@ -12,6 +12,7 @@
 
 import process from 'node:process'
 
+import { taskList, taskRun } from './tasks'
 import {
   forumCreate,
   settingsGet,
@@ -189,21 +190,36 @@ const commands: Command[] = [
     usage: 'forum settings:set <key> <value>',
     run: settingsSet,
   },
+
+  {
+    name: 'task:list',
+    summary: 'List the scheduled tasks this build registers.',
+    run: taskList,
+  },
+
+  {
+    name: 'task:run',
+    summary: 'Run every task that is due now, or one named task if it is due.',
+    usage: 'forum task:run [<task-id>]',
+    run: taskRun,
+  },
 ]
 
 
 /*
- * Still deliberately absent: `tick`, `queue:drain` and `cache:clear`.
+ * `task:run` and `task:list` arrived once F06 gave the scheduler a real
+ * `TaskRepository`; `queue:drain` is not separate from them, because draining
+ * the queue *is* one of the registered tasks and running it twice by two routes
+ * would mean two claims on the same work.
  *
- * `tick` and `queue:drain` need a `TaskRepository`, which does not exist — the
- * tick route itself still returns `ran: []` (F06). `cache:clear` needs a cache
- * an operator could meaningfully clear: MemoryCache dies with the process it
- * lives in, and NextCache's `revalidateTag` only works inside a Next request, so
- * the honest implementation bumps `cache_versions` and that belongs with F70's
- * Recount & Rebuild.
+ * Still deliberately absent: `cache:clear`. It needs a cache an operator could
+ * meaningfully clear, and there is not one — MemoryCache dies with the process
+ * it lives in, and NextCache's `revalidateTag` only works inside a Next
+ * request. The honest implementation bumps `cache_versions`, and that belongs
+ * with F70's Recount & Rebuild.
  *
- * Registering them now as commands that throw would be worse than omitting
- * them: `forum --help` would advertise capabilities the binary does not have.
+ * Registering it now as a command that throws would be worse than omitting it:
+ * `forum --help` would advertise a capability the binary does not have.
  */
 
 async function main(): Promise<number> {

@@ -2,6 +2,8 @@ import { requireSlot } from '@forum/theme-kit'
 import type { Actor } from '@forum/authorization'
 
 import { LogoutForm } from '@/components/account/logout-form'
+import { getContainer } from '@/server/container'
+import { getSettings } from '@/server/settings'
 import { activeTheme } from '@/server/theme'
 import {
   buildFooterModel,
@@ -39,14 +41,40 @@ export async function PageShell({
   const Footer = requireSlot(activeTheme, 'Footer')
 
   /*
+   * The board's name, from `board.name` (F08). Cached globally and tagged, so
+   * this costs no query per request — and it is board-wide rather than
+   * viewer-dependent, which is exactly the shape F10's cache guard permits.
+   */
+  const settings = await getSettings()
+  const boardTitle = settings.get('board.name')
+
+  /*
+   * The viewer's own name. `Actor` carries permissions rather than profile data
+   * (F20), so it is read here — one indexed primary-key lookup on a row the
+   * shell is the only caller of. Every page that wanted to greet somebody by
+   * name previously could not, and `ViewerModel.username` was always `null`.
+   *
+   * A failure is swallowed to `null` rather than propagated: a missing display
+   * name is a cosmetic loss, and taking the whole page down for it would make
+   * the profile table a dependency of rendering the header.
+   */
+  const displayName =
+    actor.userId === null
+      ? null
+      : ((await getContainer()
+          .memberProfiles.findPublicById(actor.userId)
+          .catch(() => null))?.username ?? null)
+
+  /*
    * `canAccessModCp` is a permission field, not a group check — the same rule
    * `canAccessAdminCp` follows. It is read off the already-resolved actor, so
    * the shell costs no extra query on any page (F48).
    */
   const viewer = buildViewerModel(actor, {
+    displayName,
     canAccessModCp: actor.global.canAccessModCp === true,
   })
-  const header = buildHeaderModel(viewer)
+  const header = buildHeaderModel(viewer, [], boardTitle)
 
   return (
     <Shell boardTitle={header.boardTitle} viewer={viewer}>
@@ -63,7 +91,7 @@ export async function PageShell({
 
       {children}
 
-      <Footer {...buildFooterModel()} />
+      <Footer {...buildFooterModel([], boardTitle)} />
     </Shell>
   )
 }

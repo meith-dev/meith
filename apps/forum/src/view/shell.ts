@@ -18,7 +18,14 @@ import type { FooterModel, HeaderModel, LinkModel, UserPanelModel, ViewerModel }
 
 import { memberHref } from './member-profile'
 
-/** The board's name until F08's `board.name` setting is wired into the shell. */
+/**
+ * The board's name when nothing has resolved one.
+ *
+ * A *fallback*, not the board's name — `board.name` is in the settings registry
+ * and `PageShell` reads it. This is what the auth screens and the error pages
+ * render, because both have to work when the database is unreachable and a
+ * shell that throws while rendering an error page is the worst possible failure.
+ */
 export const BOARD_TITLE = 'Forum'
 
 /**
@@ -76,9 +83,10 @@ export function buildViewerModel(
 export function buildHeaderModel(
   viewer: ViewerModel,
   navigation: readonly LinkModel[] = [],
+  boardTitle: string = BOARD_TITLE,
 ): HeaderModel {
   return {
-    boardTitle: BOARD_TITLE,
+    boardTitle,
     homeHref: '/',
     viewer,
     navigation,
@@ -129,9 +137,12 @@ export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
   }
 }
 
-export function buildFooterModel(links: readonly LinkModel[] = []): FooterModel {
+export function buildFooterModel(
+  links: readonly LinkModel[] = [],
+  boardTitle: string = BOARD_TITLE,
+): FooterModel {
   return {
-    boardTitle: BOARD_TITLE,
+    boardTitle,
     links,
     timezoneLabel: TIMEZONE_LABEL,
   }

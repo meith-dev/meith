@@ -43,11 +43,9 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { moderateQueueAction } = await import('./moderation-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import(
-  './seed-board'
-)
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
-const CONTAINER_KEY = Symbol.for('@forum/forum.container')
+const { installTestContainer } = await import('./test-container')
 
 class FakeQueue implements ModerationQueueRepository {
   readonly applied: Array<{ threadIds: readonly number[]; postIds: readonly number[] }> = []
@@ -78,35 +76,7 @@ class FakeQueue implements ModerationQueueRepository {
 let queue: FakeQueue
 
 function installContainer(overrides: Record<string, unknown> = {}): void {
-  const source = new InMemoryAuthorizationSource(SEED_BOARD)
-  ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
-    authorizer: new Authorizer(source, {}),
-    moderationQueue: queue,
-    reports: null,
-    threadTools: null,
-    threadSurgery: null,
-    inlineModeration: null,
-    warnings: null,
-    warningBans: null,
-    modcp: null,
-    threadWrites: null,
-    postWrites: null,
-    threads: {
-      locateForum: async () => null,
-      findById: async () => null,
-      listForum: async () => ({ rows: [], nextCursor: null }),
-    },
-    posts: {
-      findVisibleById: async () => null,
-      listThread: async () => ({ rows: [], nextAfterId: null }),
-    },
-    readState: null,
-    threadViews: null,
-    memberProfiles: { findPublicById: async () => null },
-    fixtureDataVersion: FIXTURE_DATA_VERSION,
-    dataSource: 'fixture',
-    ...overrides,
-  }
+  installTestContainer({ container: { moderationQueue: queue, ...overrides } })
 }
 
 function form(entries: Array<[string, string]>): FormData {

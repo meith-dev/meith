@@ -155,12 +155,20 @@ jobs:
       # Catches the common drift where someone edits schema.ts but forgets to
       # generate the migration. A non-empty diff here means the checked-in SQL no
       # longer reproduces the declared schema.
+      #
+      # This step inspected `packages/db/drizzle` for its whole life — a
+      # directory that has never existed, since drizzle.config.ts writes to
+      # `./migrations`. It therefore passed vacuously on every run, including
+      # the four migrations that were added by hand after the meta snapshot
+      # stopped being updated. Pointing it at the real directory needed that
+      # snapshot repaired first (see migrations/meta/0006_snapshot.json).
       - name: Assert no uncommitted schema drift
         run: |
           pnpm --filter @forum/db generate
-          if [ -n "$(git status --porcelain packages/db/drizzle)" ]; then
+          if [ -n "$(git status --porcelain packages/db/migrations)" ]; then
             echo "::error::schema.ts changed without a generated migration."
-            git --no-pager diff -- packages/db/drizzle
+            git --no-pager status --porcelain packages/db/migrations
+            git --no-pager diff -- packages/db/migrations
             exit 1
           fi
         env:
