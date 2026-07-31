@@ -2729,23 +2729,46 @@ Guard `R2 no-lazy-require-of-db` now bans the pattern outright, probed both
 ways, and the `image` job boots the web role against real Postgres — so the
 regression has a test rather than a promise.
 
-#### The thing this uncovered and did *not* fix
+#### The thing this uncovered — now fixed
 
-Running the operator CLI against real Postgres for the first time found a
-second, unrelated failure with the same cause — a path that only PGlite had
-ever exercised:
+Running the operator CLI against a real server for the first time found a
+second failure with the same shape: a path only PGlite had ever exercised.
 
     forum task:run counters.reconcile
     → The "string" argument must be of type string or an instance of Buffer.
       Received an instance of Date
 
-`PostgresTaskRepository.claim` interpolates `Date` objects into a `sql`
-template. PGlite accepts them; **postgres.js, as drizzle drives it here, does
-not** — an ISO string works and a `Date` does not. Confirmed with a two-line
-probe against a real server.
+**The cause is `drizzle()` itself.** Constructing a drizzle instance overwrites
+postgres.js's serialisers for every date and timestamp OID — 1184, 1114, 1082
+and friends — with a transparent passthrough, `(v) => v`. That is deliberate
+and correct for the query builder: a *typed* column runs its value through
+`mapToDriverValue` first, so postgres.js only ever receives a string.
 
-This is F11's recorded gap biting: PGlite substitutes for Postgres in every
-test, and it is more permissive than the real driver. Any repository in
-`@forum/db` that passes a `Date` parameter is suspect, which is most of the
-write paths. It is not fixed here — the fix is a sweep plus a test that runs
-against real Postgres rather than PGlite, and it wants its own change.
+It is wrong for a **raw `sql` template**, which is what most of `@forum/db`
+writes. A bare value in a template gets drizzle's noop encoder, so a `Date`
+arrives at the passthrough still a `Date`, and postgres.js calls
+`Buffer.byteLength()` on it. Isolated with a probe: postgres.js accepts a
+`Date` in every mode on its own, and stops the moment a drizzle instance exists
+over the same client.
+
+The fix is one function, `restoreDateSerialisers` in `client.ts`, applied after
+each `drizzle()` call: it reinstates a serialiser that converts a `Date` to an
+ISO string and passes everything else through untouched. That keeps drizzle's
+intent exactly — a string still goes straight through, so the query builder is
+unchanged — and repairs the ~50 raw-SQL call sites at once. Converting at each
+call site was the alternative and was rejected: it is a sweep that the next
+query silently opts out of.
+
+#### Why 1,800 passing tests did not catch it
+
+**Every database test in this repository runs against PGlite**, which does not
+go through those serialisers and accepts a `Date` happily. F11's row has always
+recorded PGlite as a substitution for real Postgres; this is the first time the
+substitution actually cost something, and it cost the entire write path against
+every real server.
+
+So the fix comes with `client.pg.test.ts`: a suite that runs against a **real**
+server, skipped unless `TEST_DATABASE_URL` is set — so an ordinary `pnpm test`
+still needs no service — and switched on in CI's `migrations` job, which already
+runs a Postgres. It is mutation-verified: removing `restoreDateSerialisers`
+fails three of its five tests.

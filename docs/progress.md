@@ -387,22 +387,25 @@ takes none of those paths. The Postgres path had never been built, booted or
 tested — which is also why the standalone image could not serve a Postgres
 board.
 
-### The next thing to decide: `Date` parameters do not work on real Postgres
+### Also fixed: `Date` parameters did not work on real Postgres
 
-Running `forum task:run` against a real server for the first time found this:
+`forum task:run` failed against a real server with *"Received an instance of
+Date"*. The cause turned out to be `drizzle()` itself: constructing it
+overwrites postgres.js's serialisers for every date and timestamp OID with a
+passthrough, which is right for its *typed* columns (they convert to strings
+first) and wrong for a raw `sql` template, where a bare `Date` reaches the
+driver unconverted.
 
-    The "string" argument must be of type string or an instance of Buffer.
-    Received an instance of Date
+One function in `client.ts` reinstates a serialiser that converts a `Date` and
+passes everything else through, so drizzle's own behaviour is unchanged and all
+~50 raw-SQL call sites are fixed at once.
 
-`PostgresTaskRepository.claim` interpolates `Date` objects into a `sql`
-template. **PGlite accepts them and postgres.js does not** — an ISO string
-works, a `Date` does not, confirmed with a two-line probe. Every test in this
-repository runs against PGlite, so this is F11's recorded substitution gap
-biting for real: any repository in `@forum/db` passing a `Date` parameter is
-suspect, which is most of the write paths.
-
-The fix is a sweep plus a test that runs against real Postgres rather than
-PGlite, and it wants its own change. See **D54**.
+**1,800 passing tests missed it because every database suite runs against
+PGlite**, which does not use those serialisers. That is F11's recorded
+substitution gap costing something for the first time. `client.pg.test.ts` now
+runs against a real server — skipped unless `TEST_DATABASE_URL` is set, so a
+normal `pnpm test` needs no service, and switched on in CI's `migrations` job.
+The whole scheduler now runs against real Postgres, which it never had.
 
 ### Then
 

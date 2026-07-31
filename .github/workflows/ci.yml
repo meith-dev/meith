@@ -290,8 +290,15 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
 
+      # `TEST_DATABASE_URL` switches on client.pg.test.ts, the suite that needs a
+      # *real* server rather than PGlite. Everything else here runs on PGlite,
+      # which is the right trade — but it is a different driver, and the first
+      # thing this suite found was a write path that PGlite accepted and every
+      # real Postgres rejected (D54). Without this variable the file skips, so a
+      # developer's `pnpm test` still needs no service.
       - name: Postgres-backed tests
         run: pnpm test
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
           DATA_SOURCE: postgres

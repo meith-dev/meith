@@ -96,11 +96,55 @@ export function getDb(): Database {
 
   const sql = postgres(url, connectionOptions())
   const db = drizzle(sql, { schema, casing: 'snake_case' })
+  restoreDateSerialisers(sql)
 
   globalRef.__forumSql = sql
   globalRef.__forumDb = db
 
   return db
+}
+
+/**
+ * Restore `Date` serialisation that `drizzle()` disables.
+ *
+ * `drizzle(client)` overwrites postgres.js's serialisers for every date and
+ * timestamp OID (1184 timestamptz, 1114 timestamp, 1082 date, …) with a
+ * transparent passthrough, `(v) => v`. That is deliberate on drizzle's side and
+ * correct for the query builder: a *typed* column maps its JS value through
+ * `mapToDriverValue` first, so postgres.js only ever receives a string and the
+ * passthrough is exactly right.
+ *
+ * It is wrong for a **raw `sql` template**, which is what most of this package
+ * writes. A bare value in a template gets drizzle's noop encoder, so a `Date`
+ * arrives at the passthrough as a `Date`, and postgres.js then calls
+ * `Buffer.byteLength()` on it:
+ *
+ *     TypeError: The "string" argument must be of type string or an instance
+ *     of Buffer or ArrayBuffer. Received an instance of Date
+ *
+ * **Every test in this repository runs against PGlite, which does not go
+ * through these serialisers and accepts a `Date` happily** — so the whole
+ * write path looked correct and failed the first time it met a real server.
+ * That is F11's recorded PGlite-substitution gap, and this is it biting; see
+ * `client.pg.test.ts`, which runs against real Postgres precisely so it cannot
+ * happen again.
+ *
+ * Reinstating a serialiser rather than converting at ~50 call sites is the fix
+ * because it is one place and cannot be forgotten by the next query. It is
+ * deliberately narrow: a string passes through untouched, exactly as drizzle
+ * intends, so the query builder's behaviour is unchanged. Only a `Date` — which
+ * previously threw — is converted.
+ */
+const DATE_OIDS = ['1184', '1114', '1082', '1083', '1182', '1185', '1115', '1231'] as const
+
+function restoreDateSerialisers(client: ReturnType<typeof postgres>): void {
+  const serialisers = (
+    client as unknown as { options: { serializers: Record<string, (v: unknown) => unknown> } }
+  ).options.serializers
+  for (const oid of DATE_OIDS) {
+    serialisers[oid] = (value: unknown) =>
+      value instanceof Date ? value.toISOString() : value
+  }
 }
 
 /**
@@ -111,6 +155,7 @@ export function getDb(): Database {
 export function createIsolatedDb(url: string, poolMax = 1) {
   const sql = postgres(url, { ...connectionOptions(), max: poolMax })
   const db = drizzle(sql, { schema, casing: 'snake_case' })
+  restoreDateSerialisers(sql)
   return {
     db,
     sql,
