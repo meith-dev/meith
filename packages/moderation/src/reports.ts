@@ -124,12 +124,39 @@ export interface ReportRepository {
 
 export const REPORTS_PAGE_SIZE = 25
 
+/**
+ * How the reporter is told their report was closed (F55).
+ *
+ * The narrowest possible port, and the narrowness is the point: D48's whole
+ * argument is that a report has two audiences and almost every decision keeps
+ * them apart. A moderator's private note lives in `report_events` and is not a
+ * field this port can carry, so there is no version of this call that leaks it.
+ *
+ * Optional, like F53's: a board with no notification store still moderates
+ * reports, and closing one must not fail because telling somebody did.
+ */
+export interface ReportNotifierPort {
+  reportClosed(input: {
+    readonly reporterUserId: number
+    readonly reportId: number
+    readonly outcome: 'resolved' | 'rejected'
+    /** The label captured when the report was filed, never a live read. */
+    readonly targetLabel: string
+  }): Promise<void>
+}
+
 export class ReportService {
   private readonly reports: ReportRepository
+  private readonly notifier: ReportNotifierPort | null
   private readonly now: () => Date
 
-  constructor(deps: { reports: ReportRepository; now?: () => Date }) {
+  constructor(deps: {
+    reports: ReportRepository
+    notifier?: ReportNotifierPort | null
+    now?: () => Date
+  }) {
     this.reports = deps.reports
+    this.notifier = deps.notifier ?? null
     this.now = deps.now ?? (() => new Date())
   }
 
@@ -246,7 +273,7 @@ export class ReportService {
       throw new ValidationError(`A note may be at most ${REASON_MAX} characters.`)
     }
 
-    await this.requireInScope(input.reportId, input.scope)
+    const report = await this.requireInScope(input.reportId, input.scope)
     const changed = await this.reports.close({
       reportId: input.reportId,
       status: input.status,
@@ -255,6 +282,38 @@ export class ReportService {
       at: this.now(),
     })
     if (!changed) throw new ValidationError('That report has already been closed.')
+
+    await this.notifyReporter(report, input.status, input.actorUserId)
+  }
+
+  /**
+   * Tell the reporter, once, that their report was dealt with.
+   *
+   * Two people are deliberately not told. A reporter whose account has gone
+   * takes their notification with them, and **a moderator closing their own
+   * report is not notified of their own decision** — a notification is for
+   * something you would not otherwise know.
+   *
+   * Failure is swallowed for F53's reason: the report is closed and committed,
+   * so throwing here would report a successful moderator action as a failed
+   * one.
+   */
+  private async notifyReporter(
+    report: ReportRow,
+    outcome: 'resolved' | 'rejected',
+    actorUserId: number,
+  ): Promise<void> {
+    if (this.notifier === null) return
+    if (report.reporterUserId === null || report.reporterUserId === actorUserId) return
+
+    await this.notifier
+      .reportClosed({
+        reporterUserId: report.reporterUserId,
+        reportId: report.id,
+        outcome,
+        targetLabel: report.targetLabel,
+      })
+      .catch(() => undefined)
   }
 
   private async requireInScope(reportId: number, scope: ReportScope): Promise<ReportRow> {

@@ -16,6 +16,7 @@ import { ReportService, parseTargetKind } from '@forum/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'
+import { reportNotifier } from './notifications'
 import { resolveReportScope } from './report-scope'
 import type { FormState } from './auth-form-state'
 
@@ -155,7 +156,12 @@ export async function closeReportAction(
     const actor = await getActor()
     if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
 
-    await new ReportService({ reports }).close({
+    /*
+     * The reporter is told the outcome (F55) and never the note: D48's two
+     * audiences stay apart, enforced by `ReportNotifierPort` having no field
+     * that could carry one.
+     */
+    await new ReportService({ reports, notifier: reportNotifier() }).close({
       reportId,
       status,
       note,

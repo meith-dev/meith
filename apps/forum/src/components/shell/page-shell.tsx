@@ -3,6 +3,7 @@ import type { Actor } from '@forum/authorization'
 
 import { LogoutForm } from '@/components/account/logout-form'
 import { getContainer } from '@/server/container'
+import { unreadNotificationCount } from '@/server/notifications'
 import { getSettings } from '@/server/settings'
 import { activeTheme } from '@/server/theme'
 import {
@@ -76,10 +77,18 @@ export async function PageShell({
   })
   const header = buildHeaderModel(viewer, [], boardTitle)
 
+  /*
+   * F55's badge. One count per page render for a signed-in member — the reason
+   * `notifications_unread_idx` is partial — and zero queries for a guest or on
+   * a board with no notification store. Swallowed to 0 on failure inside
+   * `unreadNotificationCount`, because the shell also renders the error pages.
+   */
+  const unreadNotifications = await unreadNotificationCount(actor.userId)
+
   return (
     <Shell boardTitle={header.boardTitle} viewer={viewer}>
       <Header {...header}>
-        <UserPanel {...buildUserPanelModel(viewer)}>
+        <UserPanel {...buildUserPanelModel(viewer, { unreadNotifications })}>
           {/*
            * Only for a signed-in viewer, and only as a form: log out is a POST to
            * a Server Action, which cannot cross into the theme as data. A theme

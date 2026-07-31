@@ -124,6 +124,9 @@ importers:
       '@forum/moderation':
         specifier: workspace:*
         version: link:../../packages/moderation
+      '@forum/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@forum/posts':
         specifier: workspace:*
         version: link:../../packages/posts
@@ -272,6 +275,9 @@ importers:
       '@forum/moderation':
         specifier: workspace:*
         version: link:../moderation
+      '@forum/notifications':
+        specifier: workspace:*
+        version: link:../notifications
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
@@ -336,6 +342,15 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/notifications:
+    dependencies:
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../bbcode
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/posts:
     dependencies:
       '@forum/core':
@@ -365,6 +380,12 @@ importers:
       '@forum/moderation':
         specifier: workspace:*
         version: link:../moderation
+      '@forum/notifications':
+        specifier: workspace:*
+        version: link:../notifications
+      '@forum/settings':
+        specifier: workspace:*
+        version: link:../settings
       '@forum/tasks':
         specifier: workspace:*
         version: link:../tasks

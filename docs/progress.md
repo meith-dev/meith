@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D53. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D55. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -19,10 +19,11 @@ this file.
 
 `pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
 + **guard probes**, the **slot server/client boundary** check + its probe,
-dependency-cruiser (421 modules, 0 violations), typecheck (root **and** app),
-**1833 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+dependency-cruiser (351 modules, 0 violations), typecheck (root **and** app),
+**1973 tests** (a large share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
-`/modcp/forums`, `/modcp/ip` and `/moderation/warn` in the route table. Three consecutive green runs after capping worker
+`/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications` and
+`/notifications/preferences` in the route table. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
 roughly one run in three (D34) — and after raising the *test* timeout, which
 F38's four extra database suites pushed the Argon2id lockout test past (D41).
@@ -361,16 +362,52 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   paid**: `Target.isForumModerator` is now set on every per-page `can()` call.
   See **D53**.
 
+- **F55 notifications and mail — Phase 5 opens.** Three finished features were
+  waiting on this and each said so in its own row: a failing task logged and
+  raised nothing, a closed report told nobody, and a warned member found out by
+  trying to post and being refused. All three now notify.
+
+  The decision the rest follows from is that **the record is the row and the
+  e-mail is a transport**. `notifications` is written first, always; the message
+  is a queued consequence. That is also what settles the preferences screen —
+  it configures e-mail and nothing else, because the centre is the board's
+  evidence that somebody was told, and a member who can erase that evidence can
+  later say they were never warned with the board's own data agreeing.
+
+  Two things are worth carrying forward. **A notification stores captured facts,
+  not pointers**: `data` holds a title and a points total, and the sentence is
+  applied on read — because the post that caused a notification is frequently
+  the post a moderator has since deleted, and a record that changes when its
+  subject changes is not a record. The consequence is that the renderer may
+  never throw, since every row it reads was written by a *previous* deploy.
+  And **coalescing is a partial unique index over unread rows**, not a prior
+  read (D48's trick again): a task failing on every tick is one row with a count
+  and *one* e-mail, and reading that row starts a fresh one, so an
+  administrator who clears an alert is told the next time rather than never
+  again.
+
+  Mail never touches a request path. The raise writes `notification.created` in
+  the same transaction as the row, F07's relay makes it a job, and the
+  `notifications.email` handler renders and sends inside the tick — re-reading
+  the preference, because at-least-once delivery means the "yes" recorded at
+  raise time may be hours stale. The HTML reuses F36's escaping functions and
+  asserts F36's property; "themed" is the board's name, links and accent token,
+  which is what e-mail can actually carry. See **D55** and four parity entries.
+
 ## NEXT ACTION — resume here
 
-**Phase 4 is closed: eight of eight.** Copy landed once the product question
-behind it was answered — credit the authors, as MyBB does — and the move
-redirect stub became a recorded parity divergence rather than an open gap. The
-flagged leftovers from the last pass are paid down too: `forum task:run` and
-`task:list`, the schema-drift CI step (which had inspected a directory that has
-never existed), `installTestContainer()`, the board title from `board.name`,
-`ViewerModel.username`, and F51's hand-picked split now that F52 supplies the
-checkboxes.
+**Phase 5 has started: F55 is done, one of eight.** The board can tell somebody
+something. F06's last acceptance clause is met with it (a failing task raises an
+admin notification rather than only logging), F53's warned member is told, and
+F49's reporter learns the outcome.
+
+**F56 · subscriptions and digests** is the right next feature, and F55 was built
+to be its floor: `thread_subscriptions` is *written* by F39/F40's composer and
+**read by nothing**, the kind registry takes a new entry declaratively, and the
+raise path, preferences screen and mail renderer are already there. Two things F56 owns and
+F55 deliberately did not build: the digest task (instant / daily / weekly is a
+batching decision over the same rows) and the **no-login unsubscribe link**,
+which needs a signed token and a route — half of one is worse than none.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -407,13 +444,6 @@ runs against a real server — skipped unless `TEST_DATABASE_URL` is set, so a
 normal `pnpm test` needs no service, and switched on in CI's `migrations` job.
 The whole scheduler now runs against real Postgres, which it never had.
 
-### Then
-
-**F55 · notification infrastructure** remains the right next feature. Three
-finished features are waiting on it and each says so in its own row: a failing
-task logs and raises nothing (ten tasks now), F49's reports notify nobody, and
-F53's warnings notify nobody — a warned member finds out by trying to post.
-
 ### What the image job found
 
 F04 asked CI to build **and boot** the image. Building it for the first time
@@ -442,11 +472,17 @@ optimisation yet (F42/F58 would).
 Still outstanding and worth keeping visible:
 
 - **The e2e board cannot post.** Playwright runs against fixture mode, which has
-  no writer, so no browser test covers posting, moderating or warning without
-  JavaScript — including F52's central claim that `form`-attribute-associated
-  checkboxes submit with scripting off. Either the e2e harness gains a real
-  database or the fixture gains a content store. D38's "fixture writes throw"
-  rule was written for *structure*; this is the third time it has cost coverage.
+  no writer, so no browser test covers posting, moderating, warning or the
+  notification centre without JavaScript — including F52's central claim that
+  `form`-attribute-associated checkboxes submit with scripting off, and F55's
+  that marking a notification read is a POST. Either the e2e harness gains a
+  real database or the fixture gains a content store. D38's "fixture writes
+  throw" rule was written for *structure*; this is the fourth time it has cost
+  coverage.
+- **Nobody is notified when a report is filed.** F55 tells the reporter when one
+  is closed; telling the forum's moderators needs `moderatedForumIds` inverted,
+  which means resolving the forum matrix per *group* rather than per actor. It
+  is named in D55 and in F49's row rather than left to be discovered.
 - **`ViewerModel.canAccessModCp` is group-level only**, so the shell's ModCP
   link does not appear for a per-forum appointee even though `/modcp` admits
   them. Answering it properly costs the tree on every page render.
@@ -463,7 +499,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D53). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D55). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

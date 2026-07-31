@@ -44,6 +44,7 @@ import type {
   WarningBanPort,
   WarningRepository,
 } from '@forum/moderation'
+import type { NotificationRepository } from '@forum/notifications'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
 import type {
   ReadStateRepository,
@@ -69,6 +70,7 @@ import {
   PostgresThreadSurgeryRepository,
   PostgresInlineModerationRepository,
   PostgresWarningRepository,
+  PostgresNotificationRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
   PostgresReadStateRepository,
@@ -76,6 +78,8 @@ import {
   PostgresThreadViewBuffer,
 } from '@forum/db'
 import { drivers } from '@forum/drivers'
+
+import forumConfig from '../../forum.config'
 
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
@@ -159,6 +163,13 @@ export interface Container {
   readonly warningBans: WarningBanPort | null
   /** The ModCP's reads (F54). `null` in fixture mode (D38). */
   readonly modcp: ModCpRepository | null
+  /**
+   * Notifications and their e-mail preferences (F55). `null` in fixture mode
+   * (D38): a notification that vanishes on restart is worse than none, because
+   * the centre is the board's record of what a member was told — and the mail
+   * half needs an outbox row, which sample data has nowhere to put.
+   */
+  readonly notifications: NotificationRepository | null
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
@@ -194,6 +205,8 @@ export interface ThreadViewRecorder {
 export interface SchedulerBundle {
   readonly repository: TaskRepository
   readonly tasks: readonly TaskDefinition[]
+  /** F55's failure notifier, passed to `tick()` as `onError`. */
+  readonly onTaskFailure: (taskId: string, error: unknown) => void
 }
 
 /*
@@ -254,6 +267,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     warnings: null,
     warningBans: null,
     modcp: null,
+    notifications: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -350,6 +364,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     inlineModeration: new PostgresInlineModerationRepository(db),
     warnings: warningRepo,
     modcp: new PostgresModCpRepository(db),
+    notifications: new PostgresNotificationRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -370,7 +385,19 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
      * header for why it is allowed to import `@forum/db` when domain packages
      * are not. The client is handed in so a request does not open a second pool.
      */
-    scheduler: buildSchedulerBundle({ queue: drivers().queue, db }),
+    scheduler: buildSchedulerBundle({
+      queue: drivers().queue,
+      db,
+      /*
+       * F55. The mail driver and the installed theme's key are app knowledge —
+       * `forum.config.ts` is read by the app tier and neither the worker nor
+       * the CLI can see it — so the app hands both to the bundle rather than
+       * letting it guess. Without the driver the mail handler is not registered
+       * at all, which is the D32 shape: absent rather than failing.
+       */
+      mail: drivers().mail,
+      themeKey: forumConfig.defaultTheme,
+    }),
     dataSource: 'postgres',
   }
 }
@@ -402,6 +429,7 @@ export function getContainer(): Container {
     cached.warnings === undefined ||
     cached.warningBans === undefined ||
     cached.modcp === undefined ||
+    cached.notifications === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

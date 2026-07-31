@@ -90,11 +90,14 @@ export async function GET(request: Request): Promise<NextResponse> {
     const outcomes = await tick({
       repository: scheduler.repository,
       tasks: scheduler.tasks,
-      onError: (taskId, error) => {
-        // A failing task must be loud rather than dying silently (F06). The
-        // admin notification lands with F55; the log is what exists today.
-        logger({ module: 'tick' }).error({ taskId, err: error }, 'scheduled task failed')
-      },
+      /*
+       * F06 asked that a failing task be loud rather than dying silently, and
+       * until F55 the only available loudness was a log line nobody reads on a
+       * managed platform. This notifier logs *and* raises `system.task_failed`
+       * for every administrator, coalesced per task so a task failing on every
+       * tick is one unread row with a count on it.
+       */
+      onError: scheduler.onTaskFailure,
     })
 
     const failed = outcomes.filter((o) => o.status === 'failed')

@@ -464,3 +464,85 @@ and it has to be filtered, counted and expired everywhere. What it buys is a
 reader who bookmarked a thread finding it — and search (F72) and the thread's
 own permalink already do that, because the thread keeps its id. Revisit if a
 real board reports people losing threads after a move.
+
+---
+
+## A notification centre exists at all
+
+**MyBB:** has no notification centre. What a member is told arrives as e-mail
+(a subscribed thread, a warning, a PM alert), plus the "You have N new
+messages" line in the user CP. When the e-mail is filtered, bounces, or is
+simply never read, nothing on the board records that the member was told.
+
+**Here:** every notification is written to a `notifications` row first and
+delivered by e-mail second. The board's record is the row; the e-mail is one
+transport for it, and the transport can be declined.
+
+**Why:** a warning that changes what a member may do has to be discoverable
+from the board itself. F53 shipped with exactly that gap and its row said so —
+a suspended member found out by trying to post and being refused. Making the
+record the primary artefact also gives every later notifier (F56's
+subscriptions, F60's private messages, F62's reputation) one place to write to
+rather than an e-mail template each.
+
+**Cost:** one more table on the read path — an unread count in the user panel
+on every page for a signed-in member, which is why its index is partial over
+unread rows.
+
+## On-site delivery cannot be switched off; e-mail can
+
+**MyBB:** every notification channel is opt-out. A member can disable e-mail
+about warnings and about subscribed threads.
+
+**Here:** the preferences screen configures **e-mail only**. Every kind is
+recorded in the notification centre regardless.
+
+**Why:** the centre is the board's evidence that somebody was told. A member who
+can erase the record can later say they were never warned, with the board's own
+data agreeing — which is worse for the member too, since a moderator reviewing
+an appeal has nothing to look at. Declining e-mail costs nobody anything,
+because the record survives.
+
+**Cost:** a member who does not want to see a notification cannot remove it,
+only mark it read. If that becomes a real complaint, the answer is a "clear
+read notifications" control, not a channel switch.
+
+## The reporter is told when their report is closed
+
+**MyBB:** tells the reporter nothing. A report is filed and disappears.
+
+**Here:** closing a report raises `report.actioned` for the reporter, naming
+the outcome (actioned or closed without action) and the captured label of what
+they reported. The moderator's private note is never included — the port that
+carries the notification has no field that could hold one (D48).
+
+**Why:** a report button that silently swallows reports trains members to stop
+using it, and "we looked and decided not to act" is a legitimate outcome to
+communicate. E-mail for this kind is **off** by default, because reporting is
+exactly the act a member repeats and a second message about somebody else's
+content is not something to opt somebody into.
+
+**Cost:** a member who reports a lot gets a lot of on-site notifications. They
+coalesce per report rather than per target, so closing and re-closing one report
+is one line.
+
+## A repeated notification is one row with a count
+
+**MyBB:** does not have the problem, having no notification store.
+
+**Here:** a raise may carry a dedupe key. While the notification it produced is
+unread, further raises with the same key increment `occurrences` and update the
+captured facts instead of writing a new row — enforced by a partial unique
+index rather than a prior read. Once the row is read, the next raise starts a
+fresh one.
+
+**Why:** the first notification the board raises without a human behind it is
+`system.task_failed`, and a task failing on every tick would otherwise write
+1,440 rows a day per administrator, with an e-mail behind each. The count is
+also the more useful number: "this has failed 40 times" is the difference
+between a blip and an outage.
+
+**Cost:** the *first* occurrence's details are replaced by the latest one. That
+is deliberate for an operational alert and is why warnings carry no dedupe key
+at all — two warnings are two things that happened, and collapsing them would
+hide the one that crossed a threshold.

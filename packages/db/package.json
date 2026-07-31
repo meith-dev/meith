@@ -14,6 +14,7 @@
     "@forum/forums": "workspace:*",
     "@forum/groups": "workspace:*",
     "@forum/moderation": "workspace:*",
+    "@forum/notifications": "workspace:*",
     "@forum/settings": "workspace:*",
     "@forum/tasks": "workspace:*",
     "@forum/threads": "workspace:*",

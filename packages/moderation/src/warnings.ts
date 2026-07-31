@@ -209,19 +209,46 @@ export interface WarningBanPort {
   }): Promise<void>
 }
 
+/**
+ * How the member is told (F55). F55 owns the mechanism; this is the one verb
+ * warnings need.
+ *
+ * Optional everywhere, because the notification is a *consequence* of the
+ * warning rather than part of it: a board with no notification store still
+ * warns people, and the warning must not fail because telling them did. The
+ * failure mode this port is written against is the one F53's row named — a
+ * warned member discovering the restriction by trying to post and being
+ * refused.
+ */
+export interface WarningNotifierPort {
+  warned(input: {
+    readonly userId: number
+    readonly title: string
+    readonly points: number
+    readonly totalPoints: number
+    readonly reason: string
+    /** The action newly applied, or null when no threshold was newly reached. */
+    readonly restriction: WarningAction | null
+  }): Promise<void>
+}
+
 export class WarningService {
   private readonly warnings: WarningRepository
   private readonly bans: WarningBanPort | null
+  private readonly notifier: WarningNotifierPort | null
   private readonly now: () => Date
 
   constructor(deps: {
     warnings: WarningRepository
     /** Optional: a board with no ban path still warns, it just cannot ban. */
     bans?: WarningBanPort | null
+    /** Optional: see `WarningNotifierPort`. Absent means nobody is told. */
+    notifier?: WarningNotifierPort | null
     now?: () => Date
   }) {
     this.warnings = deps.warnings
     this.bans = deps.bans ?? null
+    this.notifier = deps.notifier ?? null
     this.now = deps.now ?? (() => new Date())
   }
 
@@ -299,6 +326,25 @@ export class WarningService {
     const after = await this.standingFrom(written.points)
     const triggered = newlyReached(before.level, after.level)
     await this.enforce(input.userId, after, at, input.actorUserId, triggered)
+
+    /*
+     * Told last, and told without being able to undo any of it. A throw here
+     * would unwind nothing — the warning, its points and its restriction are
+     * all committed — so it is caught and dropped rather than reported as a
+     * failed warning to a moderator who successfully issued one.
+     */
+    if (this.notifier !== null) {
+      await this.notifier
+        .warned({
+          userId: input.userId,
+          title,
+          points,
+          totalPoints: written.points,
+          reason,
+          restriction: triggered?.action ?? null,
+        })
+        .catch(() => undefined)
+    }
 
     return {
       warningId: written.warningId,

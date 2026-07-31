@@ -16,7 +16,9 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -581,4 +583,92 @@ export const warnings = pgTable(
     revokeReason: text('revoke_reason'),
   },
   (t) => [index('warnings_user_idx').on(t.userId, t.createdAt, t.id)],
+)
+
+/* ------------------------------------------------------------------ *
+ * F55 — notifications
+ * ------------------------------------------------------------------ */
+
+/**
+ * One thing a member has been told.
+ *
+ * `data` holds the facts captured when it was raised, and the wording is
+ * applied on read by `@forum/notifications`. Storing a pointer instead — a post
+ * id read back at render time — breaks in the case notifications exist for: the
+ * post is often the one a moderator has since deleted, so the record would
+ * either vanish or quietly say something different.
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    /** A registry id. Text, so a removed kind still reads back. */
+    kind: text('kind').notNull(),
+    data: jsonb('data').notNull().default({}),
+    /** Board-relative path, or null for a notification pointing nowhere. */
+    href: text('href'),
+
+    /**
+     * Coalescing identity. Null never coalesces; a non-null key is unique per
+     * member *while unread*, which is what turns a task failing every minute
+     * into one row and a count.
+     */
+    dedupeKey: text('dedupe_key'),
+    occurrences: integer('occurrences').notNull().default(1),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Bumped when a raise coalesces into this row. */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    /** Written after a message goes out, so a queue retry does not send twice. */
+    emailSentAt: timestamp('email_sent_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('notifications_user_idx').on(t.userId, t.createdAt.desc(), t.id.desc()),
+    /*
+     * The unread count renders in the user panel on every page for a signed-in
+     * member, so it must not pay for the history: partial, over the rows that
+     * can contribute.
+     */
+    index('notifications_unread_idx')
+      .on(t.userId)
+      .where(sql`${t.readAt} is null`),
+    /*
+     * Coalescing, enforced rather than checked. Partial on unread *and* on a
+     * non-null key: a read notification no longer blocks a fresh one, and a row
+     * that opted out of coalescing is not constrained at all.
+     */
+    uniqueIndex('notifications_dedupe_idx')
+      .on(t.userId, t.dedupeKey)
+      .where(sql`${t.readAt} is null and ${t.dedupeKey} is not null`),
+  ],
+)
+
+/**
+ * Which kinds a member wants by e-mail.
+ *
+ * Overrides only, like `settings`: absence means the registry default, which is
+ * what lets a kind added in a later deploy arrive switched on rather than
+ * switched off for everybody who ever opened the screen. There is no on-site
+ * column on purpose — the centre is the record, and a record somebody can
+ * disable is not one.
+ */
+export const notificationPreferences = pgTable(
+  'notification_preferences',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    email: boolean('email').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ name: 'notification_preferences_pkey', columns: [t.userId, t.kind] }),
+  ],
 )

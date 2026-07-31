@@ -19,10 +19,18 @@ export interface EventHandlerDeps {
     /** F41's reverse. Also returns false when there was nothing to do. */
     applyVisibilityChange(postId: number): Promise<boolean>
   }
+  /**
+   * F55's mail delivery. Optional: a build with no mail path registers no
+   * handler rather than one that throws, so the relay does not enqueue jobs
+   * that can only fail. Same rule the task registry follows (D32).
+   */
+  readonly notifications?: {
+    deliverEmail(notificationId: number): Promise<void>
+  }
 }
 
 export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
-  return new EventRegistry().register({
+  const registry = new EventRegistry().register({
     /*
      * Stable across deploys: this id is half of the queue idempotency key
      * (`outbox:<row>:<handler>`), so renaming it would let an in-flight job be
@@ -55,6 +63,29 @@ export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
        * now; a delete and a restore arriving backwards then still converge.
        */
       await deps.counters.applyVisibilityChange(payload.postId)
+    },
+  })
+
+  if (deps.notifications === undefined) return registry
+
+  return registry.register({
+    /*
+     * F55. This is the whole of "queued mail": the notification and its outbox
+     * row commit together on the request path, the relay turns that row into a
+     * job, and the message is only handed to a driver here — inside the tick,
+     * where a provider hanging for ten seconds costs a task's budget rather
+     * than a moderator's action.
+     */
+    id: 'notifications.email',
+    event: 'notification.created',
+    async handle(payload) {
+      /*
+       * The payload carries the id and nothing else that matters. Delivery
+       * re-reads the notification, the recipient and the preference, because
+       * at-least-once delivery means this may run long after the raise — and
+       * everything about *whether* to send can have changed in between.
+       */
+      await deps.notifications!.deliverEmail(payload.notificationId)
     },
   })
 }

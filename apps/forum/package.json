@@ -21,6 +21,7 @@
     "@forum/groups": "workspace:*",
     "@forum/bbcode": "workspace:*",
     "@forum/moderation": "workspace:*",
+    "@forum/notifications": "workspace:*",
     "@forum/posts": "workspace:*",
     "@forum/settings": "workspace:*",
     "@forum/shared": "workspace:*",

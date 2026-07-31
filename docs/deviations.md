@@ -2772,3 +2772,141 @@ server, skipped unless `TEST_DATABASE_URL` is set — so an ordinary `pnpm test`
 still needs no service — and switched on in CI's `migrations` job, which already
 runs a Postgres. It is mutation-verified: removing `restoreDateSerialisers`
 fails three of its five tests.
+
+---
+
+### D55 — Somebody needs to be told, and where that record lives (F55)
+
+Three finished features were waiting on this one and each said so in its own
+row: a failing scheduled task logged and raised nothing (F06), a report was
+filed and closed with nobody told (F49), and a warned member found out by trying
+to post and being refused (F53). What they were all waiting for was somewhere to
+put "somebody needs to be told something" that outlives the request that noticed
+it.
+
+Five decisions shape what landed.
+
+#### The record is the row, and the e-mail is a transport
+
+`notifications` is written first, always, and the e-mail is a queued
+consequence. That ordering is the feature: a notification exists on the board
+whether or not a message was sent, whether or not it bounced, and whether or not
+the member wanted one.
+
+It also settles what a *preference* is allowed to turn off. The centre is the
+board's evidence that a member was told, and a member who can erase that
+evidence can later say they were never warned with the board's own data
+agreeing — which is worse for the member too, because a moderator reviewing an
+appeal has nothing to look at. So `notification_preferences` has one column,
+`email`, and there is no on-site switch. Declining e-mail costs nothing, because
+the record survives.
+
+#### A notification stores captured facts, not pointers
+
+`data` is a small JSON object written at raise time — a title, a points total,
+a task id — and the *sentence* around it is applied on read by
+`@forum/notifications`. The obvious alternative, storing a post id and reading
+the post back when the centre renders, fails in exactly the case notifications
+exist for: the post that caused the notification is frequently the post a
+moderator has since deleted, and the warning behind one may have been revoked.
+A record that changes when its subject changes is not a record.
+
+Rendering late keeps the other half: wording can be reworded — or one day
+translated — without a migration, and yesterday's notifications get the new
+wording too.
+
+The consequence is that **nothing in `render.ts` may throw.** Every input was
+written by a *previous* deploy: a kind this build has removed, a `data` object
+missing the field the current template reads, a number where a string is now
+expected. All of it is reachable without anybody doing anything wrong, so the
+readers fall back and the unknown-kind case has a defined output. A notification
+centre that 500s on one strange row is worse in every way than one that renders
+it flat.
+
+#### Coalescing is a partial unique index over *unread* rows
+
+The first notification this board raises with no human behind it is
+`system.task_failed`, and a task failing on every tick would write 1,440 rows a
+day per administrator with an e-mail behind each. So a raise may carry a dedupe
+key, and while the row it produced is unread a second raise increments
+`occurrences` and replaces the captured facts instead of inserting.
+
+Three things follow, and each is deliberate:
+
+- **It is an index, not a prior read.** Two raises arriving together would both
+  pass a check — F49's argument for the duplicate-report guard (D48), reused.
+- **A coalesced raise queues no e-mail.** The surviving row already carries the
+  count, and one message per minute is the outcome coalescing exists to stop.
+- **Reading the row starts a new one.** The index is partial on `read_at is
+  null`, so an administrator who reads and clears an alert is told again the
+  next time it happens rather than never again.
+
+Warnings deliberately carry **no** dedupe key. Two warnings in a day are two
+things that happened, and collapsing them would hide the second — which is
+precisely the one that crossed a threshold.
+
+#### The notification is a consequence of the act, not part of it
+
+`WarningService` and `ReportService` each gained a one-verb port
+(`WarningNotifierPort`, `ReportNotifierPort`), optional, whose failure is caught
+and dropped. By the time either is called the warning or the closure is
+committed, so a throw would unwind nothing and would report a successful
+moderator action as a failed one.
+
+The ports are narrow for D52's reason: handing either service the whole
+`NotificationService` would let a later change reach `markAllRead` from inside a
+moderation command. `ReportNotifierPort` earns its narrowness twice — D48's
+private moderator note is not a field it can carry, so there is no version of
+that call which leaks one.
+
+The atomicity that *does* matter is inside the raise: the notification row and
+its outbox row are written in one transaction, which makes "the board e-mailed
+me about something my notification centre does not show" unreachable.
+
+#### Mail is queued, and "themed" means what mail can actually carry
+
+Nothing on a request path touches the mail driver. The raise writes
+`notification.created` to the outbox, F07's relay turns it into a job, and the
+`notifications.email` handler renders and sends inside the tick — where a
+provider hanging for ten seconds costs a task's budget rather than a moderator's
+action.
+
+Delivery re-reads everything: the notification, the recipient, and the
+preference. At-least-once delivery means the job may run long after the raise,
+and somebody who switched e-mail off in between has said no more recently than
+the raise said yes. `email_sent_at` is written *after* a successful send and
+checked before one, which removes every duplicate except the one inside a crash
+window — claiming before sending would turn a rare duplicate into a lost
+message, which is the wrong trade for something a member is meant to read.
+
+The HTML is assembled from tag literals plus `escapeHtml`/`escapeAttribute`
+imported from `@forum/bbcode` — F36's safety argument and F36's actual
+functions, not a second copy. The test asserts the same property F36 does: every
+`<` in the output is one this package wrote.
+
+"Themed" is the board's branding — its name, its links, and the accent colour it
+actually runs, read from `themes.token_overrides` and validated a second time on
+the way out, because `url(...)` inside a `style` attribute is why CSS in mail
+has its own history. It is **not** the theme's stylesheet, and that is a limit
+of e-mail rather than a shortcut: clients strip `<style>` and do not implement
+custom properties, so a token cascade arrives as no styling at all. One resolved
+colour travels; a cascade does not.
+
+#### What is deliberately not here
+
+- **A notification when a report is *filed*.** The recipient set is "everybody
+  who moderates that forum", which is `moderatedForumIds` inverted — and
+  inverting it correctly means resolving the forum matrix per *group*, not per
+  actor, because a group-level approver who cannot view the forum must not be
+  notified about it. That is a real piece of work and it is not this feature's;
+  the reporter-facing half (`report.actioned`) is here because its recipient is
+  one exact person. F49's row still names the gap.
+- **Digests and subscriptions** (F56), **a no-login unsubscribe link** (F56
+  again — it needs a signed token and a route, and a half-built one is worse
+  than none), and **private-message notifications** (F60 has no tables). A kind
+  named in the registry before it has a producer is a row on the preferences
+  screen that can never fire, which is D32's rule about tasks applied to
+  notifications.
+- **Fixture mode has no notification store**, like every other writer since
+  D38. The centre 404s there rather than showing an empty list that could never
+  fill.

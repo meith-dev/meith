@@ -39,6 +39,15 @@ export interface DomainEventMap {
   'post.deleted': { postId: number; threadId: number; forumId: number }
   'post.visibility_changed': { postId: number; threadId: number; forumId: number; visible: boolean }
 
+  /**
+   * F55. Raised inside the same transaction as the notification row, and only
+   * when e-mail is wanted for it — so this event means "send this one", not
+   * "somebody was notified". A notification whose recipient has e-mail switched
+   * off writes no row here at all, which is what keeps the outbox proportional
+   * to the mail the board actually sends rather than to everything it records.
+   */
+  'notification.created': { notificationId: number; userId: number; kind: string }
+
   'forum.structure_changed': { forumIds: number[] }
   'settings.changed': { keys: string[] }
   'theme.changed': { themeId: number }

@@ -30,6 +30,7 @@
       "@forum/threads": ["../../packages/threads/src/index.ts"],
       "@forum/threads/*": ["../../packages/threads/src/*"],
       "@forum/moderation": ["../../packages/moderation/src/index.ts"],
+      "@forum/notifications": ["../../packages/notifications/src/index.ts"],
       "@forum/moderation/*": ["../../packages/moderation/src/*"],
       "@forum/posts": ["../../packages/posts/src/index.ts"],
       "@forum/posts/*": ["../../packages/posts/src/*"],

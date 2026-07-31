@@ -103,7 +103,10 @@ export function buildHeaderModel(
  * viewer model because it is part of the contract themes are written against; it
  * simply has nothing to point at until F63.
  */
-export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
+export function buildUserPanelModel(
+  viewer: ViewerModel,
+  options: { unreadNotifications?: number } = {},
+): UserPanelModel {
   const links: readonly LinkModel[] = viewer.isGuest
     ? [
         { label: 'Sign in', href: '/login' },
@@ -113,6 +116,13 @@ export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
       ? []
       : [
           { label: 'Profile', href: viewer.profileHref },
+          /*
+           * F55. Listed for every member rather than only when something is
+           * unread: the centre is where a member goes to check, and a link that
+           * appears and disappears is one nobody learns the position of. The
+           * count beside it is the part that varies.
+           */
+          { label: 'Notifications', href: '/notifications' },
           ...(viewer.canAccessModCp
             ? [
                 /*
@@ -131,8 +141,11 @@ export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
   return {
     viewer,
     links,
-    // F55 supplies both. Zero renders nothing, which is the correct empty state.
-    unreadNotifications: 0,
+    /*
+     * F55 supplies the first; F60's private messages will supply the second.
+     * Zero renders nothing, which is the correct empty state.
+     */
+    unreadNotifications: options.unreadNotifications ?? 0,
     unreadMessages: 0,
   }
 }

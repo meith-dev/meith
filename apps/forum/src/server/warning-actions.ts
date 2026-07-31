@@ -20,6 +20,7 @@ import { WarningService } from '@forum/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'
+import { warningNotifier } from './notifications'
 import type { FormState } from './auth-form-state'
 
 function toFormState(err: unknown): FormState {
@@ -74,7 +75,16 @@ export async function issueWarningAction(
     const evidence =
       postId !== null && (await warnings.findPostAuthor(postId)) === userId ? postId : null
 
-    outcome = await new WarningService({ warnings, bans: warningBans }).issue({
+    /*
+     * F55's notifier closes the gap F53's row named: until now a warned member
+     * found out by trying to post and being refused. Absent in fixture mode,
+     * which the service treats as "nobody is told" rather than as an error.
+     */
+    outcome = await new WarningService({
+      warnings,
+      bans: warningBans,
+      notifier: warningNotifier(),
+    }).issue({
       userId,
       actorUserId: actor.userId,
       typeId: positiveInt(form, 'typeId'),

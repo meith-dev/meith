@@ -7,10 +7,12 @@
  * whose worker does not exist yet is absent rather than stubbed — so it never
  * appears as a healthy run of nothing.
  */
-import type { QueueDriver } from '@forum/core'
+import type { MailDriver, QueueDriver } from '@forum/core'
+import { logger } from '@forum/core'
 import {
   getDb,
   PostgresBanRepository,
+  PostgresNotificationRepository,
   PostgresContentCounterRepository,
   PostgresCounterRecount,
   PostgresMaintenanceRepository,
@@ -22,14 +24,31 @@ import {
   PostgresWarningRepository,
   type Database,
 } from '@forum/db'
+import { deliverNotificationEmail, NotificationService } from '@forum/notifications'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@forum/tasks'
 
 import { buildEventRegistry } from './event-handlers'
+import { resolveMailBrand } from './mail-brand'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 
 export interface SchedulerBundle {
   readonly repository: TaskRepository
   readonly tasks: readonly TaskDefinition[]
+  /**
+   * What to pass `tick()` as its `onError` (F55).
+   *
+   * F06 has always asked that a failing task "notify admins", and until there
+   * was a notifications table the only honest implementation was a log line.
+   * This is that notification: it raises `system.task_failed` for every
+   * administrator, coalesced per task so a task failing every minute is one
+   * unread row with a count rather than 1,440 of them.
+   *
+   * Deliberately fire-and-forget and impossible to reject. `tick()` calls
+   * `onError` synchronously in its catch block, and a notifier that threw — or
+   * that the tick awaited and that hung — would turn one failing task into a
+   * failing tick, which is the outcome the whole feature exists to report.
+   */
+  readonly onTaskFailure: (taskId: string, error: unknown) => void
 }
 
 /**
@@ -42,12 +61,23 @@ export interface SchedulerBundle {
 export function buildSchedulerBundle(deps: {
   readonly queue: QueueDriver
   readonly db?: Database
+  /**
+   * F55's transport. Optional so a caller with no drivers bundle still builds a
+   * scheduler; without it the mail handler is not registered at all, and the
+   * relay stops emitting jobs that could only fail.
+   */
+  readonly mail?: MailDriver
+  /** The installed theme's key, for mail branding. See `mail-brand.ts`. */
+  readonly themeKey?: string
 }): SchedulerBundle {
   const db = deps.db ?? getDb()
   const threadViews = new PostgresThreadViewBuffer(db)
+  const notifications = new PostgresNotificationRepository(db)
+  const mail = deps.mail
 
   return {
     repository: new PostgresTaskRepository(db),
+    onTaskFailure: taskFailureNotifier(notifications),
     tasks: builtinTasks(
       taskWorkers({
         queue: deps.queue,
@@ -58,6 +88,23 @@ export function buildSchedulerBundle(deps: {
         outbox: new PostgresOutboxReader(db),
         events: buildEventRegistry({
           counters: new PostgresContentCounterRepository(db),
+          ...(mail === undefined
+            ? {}
+            : {
+                notifications: {
+                  async deliverEmail(notificationId) {
+                    await deliverNotificationEmail({
+                      notifications,
+                      mail,
+                      brand: await resolveMailBrand({
+                        db,
+                        ...(deps.themeKey === undefined ? {} : { themeKey: deps.themeKey }),
+                      }),
+                      notificationId,
+                    })
+                  },
+                },
+              }),
         }),
         recount: new PostgresCounterRecount(db),
         renderBackfill: new PostgresRenderBackfill(db),
@@ -65,5 +112,40 @@ export function buildSchedulerBundle(deps: {
         warnings: new PostgresWarningRepository(db),
       }),
     ),
+  }
+}
+
+/** The longest error text a notification carries. Enough to recognise; not a log. */
+const ERROR_DETAIL_MAX = 500
+
+function taskFailureNotifier(
+  notifications: PostgresNotificationRepository,
+): (taskId: string, error: unknown) => void {
+  const log = logger({ module: 'tick' })
+
+  return (taskId, error) => {
+    const message = error instanceof Error ? error.message : String(error)
+    log.error({ taskId, err: error }, 'scheduled task failed')
+
+    void new NotificationService({ notifications })
+      .raiseForAdministrators({
+        kind: 'system.task_failed',
+        data: { taskId, error: message.slice(0, ERROR_DETAIL_MAX) },
+        /*
+         * One outstanding notification per task, per administrator. The count
+         * on it is the useful number — "this has failed 40 times" is the
+         * difference between a blip and an outage — and it costs one row
+         * instead of one per tick.
+         */
+        dedupeKey: `system.task_failed:${taskId}`,
+      })
+      .catch((err: unknown) => {
+        /*
+         * The notification is the thing that reports failures, so its own
+         * failure has nowhere better to go than the log — and must not become a
+         * second, louder failure on top of the first.
+         */
+        log.error({ taskId, err }, 'could not raise the task-failure notification')
+      })
   }
 }
