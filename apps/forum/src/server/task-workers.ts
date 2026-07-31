@@ -15,6 +15,7 @@ import 'server-only'
  */
 import type { TaskWorkers } from '@forum/tasks'
 import { BanService, type BanRepository } from '@forum/accounts'
+import { WarningService, type WarningRepository } from '@forum/moderation'
 import { PromotionService, type PromotionGuards } from '@forum/groups'
 import {
   relayOutbox as runOutboxRelay,
@@ -43,6 +44,8 @@ export interface TaskWorkerDeps {
   readonly threadViews: { flush(limit: number): Promise<number> }
   /** F36's stale-render sweep. */
   readonly renderBackfill: { run(batchSize: number): Promise<{ rendered: number }> }
+  /** F53's warning store. */
+  readonly warnings: WarningRepository
 }
 
 /**
@@ -150,6 +153,39 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
 
     async expireBans(batchSize) {
       return bans.expireDue(batchSize)
+    },
+
+    /*
+     * The same `WarningService` the moderator screens use, not a second copy of
+     * the arithmetic. Expiry has to re-evaluate the level and lift a
+     * restriction, which is exactly what issuing and revoking do — three
+     * callers, one evaluation (D52).
+     */
+    async expireWarnings(batchSize) {
+      return new WarningService({ warnings: deps.warnings, bans: banPort(bans) }).expireDue(
+        batchSize,
+      )
+    },
+  }
+}
+
+/**
+ * F23's `BanService` behind F53's narrow port.
+ *
+ * An adapter rather than a direct dependency because the warning service needs
+ * exactly one verb — `ban` — and handing it the whole service would let a
+ * future change reach `lift`, which must stay a human decision (D52).
+ */
+function banPort(bans: BanService): { ban: (input: {
+  userId: number
+  bannedByUserId: number
+  reason: string
+  publicReason: string
+  expiresAt?: Date | undefined
+}) => Promise<void> } {
+  return {
+    async ban(input) {
+      await bans.ban(input)
     },
   }
 }

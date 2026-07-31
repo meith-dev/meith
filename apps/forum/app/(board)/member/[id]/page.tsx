@@ -21,7 +21,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   if (id === null) notFound()
 
   const actor = await getActor()
-  const { authorizer, memberProfiles } = getContainer()
+  const { authorizer, memberProfiles, warnings } = getContainer()
   if (!authorizer.can(actor, 'profile.view')) notFound()
 
   const profile = await memberProfiles.findPublicById(id)
@@ -30,7 +30,20 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   const MemberProfile = requireSlot(activeTheme, 'MemberProfile')
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
-      <MemberProfile {...buildMemberProfileView(profile, new Date())} />
+      <MemberProfile
+        {...buildMemberProfileView(
+          profile,
+          new Date(),
+          /*
+           * F53. Gated on the store as well as the permission — fixture mode
+           * has no warnings, and a link to a page that 404s is worse than none.
+           * Never offered on your own profile.
+           */
+          warnings !== null &&
+            actor.userId !== id &&
+            authorizer.can(actor, 'user.warn'),
+        )}
+      />
     </main>
   )
 }

@@ -128,6 +128,8 @@ function installContainer(moderators: readonly MemoryAppointment[] = []): void {
   ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
     authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
     inlineModeration: inline,
+    warnings: null,
+    warningBans: null,
     threadTools: null,
     threadSurgery: null,
     reports: null,

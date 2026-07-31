@@ -255,7 +255,25 @@ export interface PostActionsModel {
    */
   readonly restoreHref: string | null
   readonly reportHref: string | null
-  /** Present for moderators only; F52 fills it in. */
+  /**
+   * Warn this post's author, citing this post (F53).
+   *
+   * Present for moderators only, and `null` for a post whose author is the
+   * viewer or a deleted account. Separate from `moderateHref` because a warning
+   * is aimed at the *person* and the post is only the evidence — which is also
+   * why the link carries the post id rather than living on the post's own
+   * moderation controls.
+   */
+  readonly warnHref: string | null
+  /**
+   * Reserved for per-post moderation controls that are not inline (F54).
+   *
+   * Still `null` everywhere: F52 put per-post moderation on checkboxes and a
+   * bar rather than a per-post link, so nothing fills this yet. It stays in the
+   * contract because F54's ModCP is where a per-post moderation *page* would
+   * live, and removing a public field to add it back next feature is worse
+   * than a documented `null`.
+   */
   readonly moderateHref: string | null
 }
 

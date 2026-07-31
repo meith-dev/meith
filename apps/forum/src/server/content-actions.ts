@@ -17,7 +17,8 @@ import { redirect } from 'next/navigation'
 import { renderBBCode } from '@forum/bbcode'
 import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
 import { PostEditor, type PostWriteRepository } from '@forum/posts'
-import { ReplyComposer, ThreadComposer } from '@forum/threads'
+import { ReplyComposer, ThreadComposer, type AuthorRestriction } from '@forum/threads'
+import { restrictsPosting } from '@forum/moderation'
 
 // Relative, not `@/`: this module is exercised directly by vitest, which
 // resolves only the workspace aliases from tsconfig.base.json.
@@ -139,6 +140,12 @@ export async function createThreadAction(
          * permission field escapes `@forum/authorization`.
          */
         bypassesFlood: authorizer.can(actor, 'flood.bypass'),
+        /*
+         * F53. Deliberately *not* asked through `can()`: this is not a
+         * permission, it is a sanction on one member, and it applies to a
+         * moderator under a warning exactly as it applies to anybody else.
+         */
+        restriction: await authorRestriction(actor.userId),
       },
       { userId: actor.userId, username: await authorName(actor.userId) },
       forum,
@@ -232,6 +239,8 @@ export async function createReplyAction(
          * moderation bypass does.
          */
         bypassesLock: authorizer.can(actor, 'content.viewUnapproved', scope),
+        /* F53; see `createThreadAction` for why this is not a `can()` call. */
+        restriction: await authorRestriction(actor.userId),
       },
       { userId: actor.userId, username: await authorName(actor.userId) },
       target,
@@ -424,4 +433,20 @@ async function moveVisibility(
    */
   if (!moved.changed) redirect(`${thread}?post=unchanged`)
   redirect(to === 'deleted' ? `${thread}?post=deleted` : `${thread}#post-${moved.postId}`)
+}
+
+/**
+ * F53's warning-level restriction on this author, as two booleans.
+ *
+ * One indexed primary-key read on `users`, and only on the write path. The
+ * timestamps could be carried on the `Actor` instead — it is resolved once per
+ * request — but `Actor` carries *permissions*, and a sanction is not one: a
+ * restriction lifted by a moderator halfway through a session must take effect
+ * on the next post, not on the next login.
+ */
+async function authorRestriction(userId: number): Promise<AuthorRestriction> {
+  const { warnings } = getContainer()
+  if (warnings === null) return { suspended: false, moderated: false }
+  const standing = await warnings.readRestriction(userId)
+  return restrictsPosting(standing, new Date())
 }

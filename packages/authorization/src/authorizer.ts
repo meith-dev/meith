@@ -563,6 +563,8 @@ export class Authorizer {
         return actor.global.canUsePrivateMessages === true
       case 'content.report':
         return actor.global.canReportContent === true
+      case 'user.warn':
+        return actor.global.canWarnUsers === true
       case 'modcp.access':
         return actor.global.canAccessModCp === true
       case 'admincp.access':

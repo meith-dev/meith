@@ -107,6 +107,15 @@ export type Action =
   | 'modcp.access'
   | 'admincp.access'
   /**
+   * Warn a member, or revoke a warning (F53).
+   *
+   * Global, and deliberately not in the F22 forum matrix: a warning is aimed at
+   * a *person* and its points follow them across the whole board, so a
+   * per-forum grant would have to answer "warned where?" about a total that has
+   * no forum. MyBB's `canwarnusers` is global for the same reason.
+   */
+  | 'user.warn'
+  /**
    * Exempt from the between-posts flood interval (F39/F40).
    *
    * Global, and deliberately not in the F22 forum matrix: the interval is a

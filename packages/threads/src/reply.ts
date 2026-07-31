@@ -13,7 +13,13 @@
  */
 import { RateLimitedError, ValidationError } from '@forum/core'
 
-import { MESSAGE_MIN, type ForumPostingTarget, type ThreadAuthor } from './compose'
+import {
+  MESSAGE_MIN,
+  UNRESTRICTED,
+  type AuthorRestriction,
+  type ForumPostingTarget,
+  type ThreadAuthor,
+} from './compose'
 
 /** The thread being replied to, as the posting path needs it. */
 export interface ReplyTarget {
@@ -42,6 +48,8 @@ export interface ComposeReplyInput {
   readonly bypassesFlood: boolean
   /** Moderators may reply to a locked thread; nobody else may. */
   readonly bypassesLock: boolean
+  /** F53's warning-level restriction. Absent means none. */
+  readonly restriction?: AuthorRestriction | undefined
 }
 
 export interface NewReplyRecord {
@@ -123,6 +131,12 @@ export class ReplyComposer {
       throw new ValidationError('This thread is locked.')
     }
 
+    /* F53; see the composer for why this precedes the field validation. */
+    const restriction = input.restriction ?? UNRESTRICTED
+    if (restriction.suspended) {
+      throw new ValidationError('Your posting privileges are currently suspended.')
+    }
+
     if (message.length < MESSAGE_MIN) {
       throw new ValidationError('A post needs a message.')
     }
@@ -134,8 +148,11 @@ export class ReplyComposer {
 
     await this.enforceFlood(input, author)
 
+    /* F53; see the composer for why a warning outranks `bypassesModeration`. */
     const visibility =
-      target.forum.moderateNewPosts && !input.bypassesModeration ? 'unapproved' : 'visible'
+      (target.forum.moderateNewPosts && !input.bypassesModeration) || restriction.moderated
+        ? 'unapproved'
+        : 'visible'
 
     const { postId } = await this.posts.createReply({
       threadId: target.threadId,

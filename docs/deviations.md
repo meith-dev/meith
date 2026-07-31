@@ -2482,3 +2482,113 @@ row per chunk rather than per row, for F48's reason.
   F52's rows rather than half-built.
 - **Copy.** Still F50's open product question, and still unanswered.
 
+### D52 — A warning is aimed at a person, and that changes the arithmetic (F53)
+
+Every moderator act before this one is aimed at *content*, which has one current
+state. A warning is aimed at a member, and a member has a history that
+accumulates, ages out, and can be corrected. Almost every decision here follows
+from that.
+
+#### The points total is derived, never incremented
+
+`users.warning_points` has existed since migration `0000` with nothing that
+writes it. What writes it now recomputes it from `warnings` rather than adding
+to it, and the reason is revocation.
+
+Withdrawing a three-point warning issued four months ago means subtracting three
+from a number that has since been decremented by two expiries and incremented by
+a fourth warning. If any one of those steps was ever missed the total is wrong,
+and there is nothing to compare it against. So `warnings` is the record and the
+column is a cache: one `update … set warning_points = (select sum …)` runs in
+the same transaction as anything that changes a row. It is F38's recount
+argument applied to a counter small enough to recompute every time.
+
+Two tests corrupt the column deliberately and show the next recalculation
+repairing it rather than compounding the error.
+
+**"Live" is defined once** — not revoked, and not past its expiry — in one `LIVE`
+fragment. Two hand-written copies of that predicate is how a total and its
+source drift apart while both look right (D41's rule about "counted", again).
+
+#### The expiry task corrects a cache; it does not create truth
+
+`warnings.expire` finds members whose *cached* total still counts a warning that
+has passed its date. The live predicate already excludes an expired row, so a
+board whose tick has been down for a week still reports honest totals the moment
+anything recalculates. What the sweep adds is re-evaluating the **level**, which
+is how a suspension ends when the warning behind it ages out.
+
+The "cache is still stale" condition is load-bearing rather than an
+optimisation: without it, every past expiry on the board is rediscovered on
+every tick and the sweep never reaches the newest ones.
+
+#### Levels are thresholds, and the level is re-evaluated on every change
+
+The applicable level is the highest-pointed one the member has reached, resolved
+from the recomputed total. Issuing, revoking and expiring all run the same
+evaluation, and that is what makes a revocation actually *lift* a restriction
+rather than lowering a number while the suspension stays where it was.
+
+Two consequences that are easy to get wrong and are each pinned by a test:
+
+- **A level is applied only when it is *newly* reached.** Two warnings in a
+  minute that both leave the member at the suspend level must not turn fourteen
+  days into twenty-eight.
+- **The sweep never bans.** It has no actor to attribute a ban to, and F23 owns
+  the ban lifecycle including the group a ban captured. Banning is one-way here:
+  a revocation lowers the points and leaves the ban for a moderator to lift,
+  which is also the point at which somebody looks.
+
+#### Restrictions are two columns on `users`, and the posting path reads them
+
+`suspended_posting_until` and `moderated_posting_until`. Columns rather than a
+`user_restrictions` table because there is at most one of each per member and
+the posting path needs both on every post — a join for a row that is almost
+always absent, on the board's hottest write. A timestamp in the past is a lapsed
+restriction, so nothing has to be swept for these to be correct.
+
+They arrive at `ThreadComposer` and `ReplyComposer` as two booleans, like
+`bypassesModeration` beside them, and **a warning outranks that bypass**. The
+bypass says "this forum's queue does not apply to you"; a warning level says
+"your posts are reviewed", and a moderator whose own bypass cancelled their
+sanction would be the one person on the board it could not reach.
+
+#### The permission is global
+
+`user.warn` is a usergroup column with no per-forum counterpart, matching MyBB's
+`canwarnusers`. A warning's points follow the member across the whole board, so
+a per-forum grant would have to answer "warned where?" about a total that has no
+forum. It is therefore **not** in the F22 matrix — the same reasoning
+`content.report` records — so the gate needed no new column.
+
+#### Smaller decisions worth knowing
+
+- **The type's points and expiry are read from the type row, never from the
+  form.** A submitted `points` on a typed warning would let a moderator with
+  one-point authority issue ten.
+- **A warning's title and points are copied at issue time.** Editing a type from
+  three points to one next year must not silently rewrite every warning ever
+  issued under it: a member's history is a record of what they were told, not a
+  view over current configuration.
+- **Revocation is a column pair, not a deletion.** "This was withdrawn" is
+  information a member is entitled to, and a deleted row cannot say a mistake
+  was corrected.
+- **You cannot warn yourself.** The level actions include a ban, so it is a way
+  to lock yourself out with a restriction only somebody else can lift.
+- **A deleted account cannot be warned.** There is nobody to receive it.
+- **The cited post is re-read for its author** — in the page *and* the action.
+  `?post=` is a URL parameter, and a warning citing somebody else's post is a
+  record that says the wrong thing about what happened.
+- **A level whose action this build does not recognise is dropped, not guessed
+  at.** Configuration outlives code.
+
+#### What is deliberately not here
+
+- **Notifying the warned member.** F55 has no notification path; a warning
+  currently appears on their record and nowhere else. Omitted rather than
+  stubbed (D32).
+- **Any screen for editing types or levels.** That is F66's, and the migration
+  seeds a usable ladder so the feature works on a board nobody has configured.
+- **Per-group warning limits** (MyBB's "maximum warning points per day"). It is
+  F46's rate-limiting shape, not this feature's.
+

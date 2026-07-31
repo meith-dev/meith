@@ -14,6 +14,8 @@ export {
   MESSAGE_MIN,
   TITLE_MAX,
   TITLE_MIN,
+  UNRESTRICTED,
+  type AuthorRestriction,
   type ComposeThreadInput,
   type CreatedThread,
   type ForumPostingRules,

@@ -30,6 +30,24 @@ export interface ThreadAuthor {
   readonly username: string
 }
 
+/**
+ * A warning level currently restricting this author (F53).
+ *
+ * Booleans resolved by the caller, like `bypassesModeration` beside it: the two
+ * timestamps live on `users`, and whether "until" has passed is a clock
+ * question the caller has already answered. Declared here rather than imported
+ * from `@forum/moderation` because that would make the posting path depend on
+ * the moderation package to describe two booleans.
+ */
+export interface AuthorRestriction {
+  /** The member may not post at all. */
+  readonly suspended: boolean
+  /** The member's posts are held for approval, wherever they post. */
+  readonly moderated: boolean
+}
+
+export const UNRESTRICTED: AuthorRestriction = { suspended: false, moderated: false }
+
 export interface ComposeThreadInput {
   readonly title: string
   readonly message: string
@@ -43,6 +61,8 @@ export interface ComposeThreadInput {
   readonly bypassesModeration: boolean
   /** Whether the flood interval applies. Staff are exempt (F46 generalises this). */
   readonly bypassesFlood: boolean
+  /** F53's warning-level restriction. Absent means none. */
+  readonly restriction?: AuthorRestriction | undefined
 }
 
 /** What the repository is asked to persist. Already validated. */
@@ -173,6 +193,16 @@ export class ThreadComposer {
       throw new ValidationError('This forum is closed to new threads.')
     }
 
+    /*
+     * F53, and before the field validation on purpose: a suspended member being
+     * told their title is three characters short, and only then that they may
+     * not post at all, has been made to write a thread for nothing.
+     */
+    const restriction = input.restriction ?? UNRESTRICTED
+    if (restriction.suspended) {
+      throw new ValidationError('Your posting privileges are currently suspended.')
+    }
+
     if (title.length < TITLE_MIN) {
       throw new ValidationError(`A title needs at least ${TITLE_MIN} characters.`)
     }
@@ -198,8 +228,17 @@ export class ThreadComposer {
      * to know about it, whereas `visibility` is the column every listing query
      * already filters on (R3.3).
      */
+    /*
+     * Two independent reasons to hold a post, and the warning one is **not**
+     * subject to `bypassesModeration`. That flag says "this forum's queue does
+     * not apply to you"; a warning level says "your posts are reviewed", and a
+     * moderator under a warning whose own bypass cancelled it would be the one
+     * person on the board the restriction could not reach.
+     */
     const visibility =
-      forum.moderateNewThreads && !input.bypassesModeration ? 'unapproved' : 'visible'
+      (forum.moderateNewThreads && !input.bypassesModeration) || restriction.moderated
+        ? 'unapproved'
+        : 'visible'
 
     return this.threads.create({
       forumId: forum.id,

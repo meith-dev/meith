@@ -122,6 +122,8 @@ function installContainer(
     authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
     threadSurgery: surgery,
     inlineModeration: null,
+    warnings: null,
+    warningBans: null,
     threadTools: null,
     reports: null,
     moderationQueue: null,

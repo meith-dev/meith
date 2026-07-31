@@ -76,3 +76,25 @@ export {
   type ThreadSurgeryRepository,
 } from './surgery'
 
+export {
+  WarningService,
+  parseWarningAction,
+  restrictsPosting,
+  NO_RESTRICTION,
+  POINTS_MAX,
+  REASON_MAX as WARNING_REASON_MAX,
+  TITLE_MAX as WARNING_TITLE_MAX,
+  WARNINGS_PAGE_SIZE,
+  WARNING_ACTIONS,
+  type IssuedWarning,
+  type PostingRestriction,
+  type WarningAction,
+  type WarningBanPort,
+  type WarningLevel,
+  type WarningPage,
+  type WarningRepository,
+  type WarningRow,
+  type WarningStanding,
+  type WarningType,
+} from './warnings'
+

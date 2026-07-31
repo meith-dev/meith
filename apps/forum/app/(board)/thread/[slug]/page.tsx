@@ -158,6 +158,8 @@ export default async function ThreadPage({
       authorizer.can(actor, 'content.viewUnapproved', own),
     /* Global (F49): reporting is a board capability, not a per-forum grant. */
     canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
+    /* F53. Global too, and gated on there being a warning store at all (D38). */
+    canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
   }
 
   /*

@@ -338,3 +338,49 @@ it exists for. Chunking is safe because every transition is state-guarded — a
 bulk action that dies halfway is fixed by pressing the button again, and the
 chunks that already ran report "already in that state".
 
+## Warning levels are points, not percentages
+
+**MyBB:** warning levels are expressed as a percentage of a configured maximum,
+and a member's warning level reads as e.g. "40%".
+
+**Here:** levels and warnings are absolute points, and a member is on "6 points"
+with thresholds at 4, 7 and 10.
+
+**Why:** a percentage needs a configured maximum to mean anything, and a board
+that has never opened the admin screen would have every member permanently at 0%
+of nothing — which is precisely the state a v1 board is in, because the screen
+that sets the maximum is F66's and does not exist yet. Points are readable on
+their own, the seeded ladder works on a fresh board, and "2 points, expires
+after 90 days" is a sentence a moderator can weigh before issuing it. The
+importer (F85) can convert a percentage against the source board's maximum.
+
+## A warning restriction outranks a moderation bypass
+
+**MyBB:** a user under a "moderate posts" warning has their posts held; staff
+permissions and moderator status are resolved separately and can conflict.
+
+**Here:** a warning-level restriction is applied *after* `bypassesModeration`
+and wins. A moderator who is themselves under a moderate-posting warning has
+their posts held, in every forum, including ones they moderate.
+
+**Why:** the bypass means "this forum's approval queue does not apply to you";
+the warning means "your posts are reviewed". They are different statements and
+the second is a sanction a person received. Letting the first cancel the second
+would make the board's moderators the only members a warning could not reach,
+which inverts what a warning is for.
+
+## Bans from a warning level are not lifted by revoking the warning
+
+**MyBB:** a warning that triggered a ban and is then revoked leaves the ban in
+place; an administrator lifts it.
+
+**Here:** the same, and deliberately.
+
+**Why:** F23 owns the ban lifecycle, including the group the ban captured so it
+can be restored at expiry. Un-banning from the warning path would restore a
+group this feature never saw, through a code path that already refuses to run
+twice. More importantly, a ban is the heaviest thing the board does to somebody
+and its removal should be a decision a human makes while looking — which is what
+"a moderator lifts it" means. The revocation still lowers the points, so the
+level no longer applies and no further action is taken.
+

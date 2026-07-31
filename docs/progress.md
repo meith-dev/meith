@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D51. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D52. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -19,8 +19,8 @@ this file.
 
 `pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
 + **guard probes**, the **slot server/client boundary** check + its probe,
-dependency-cruiser (403 modules, 0 violations), typecheck (root **and** app),
-**1743 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+dependency-cruiser (412 modules, 0 violations), typecheck (root **and** app),
+**1801 tests** (a large share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
 roughly one run in three (D34) — and after raising the *test* timeout, which
@@ -332,13 +332,28 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   forum on the board. It chunks rather than refusing, which is safe only because
   every write is state-guarded. See **D51**.
 
+- **F53 warnings** — the first moderator act aimed at a *person*.
+  `users.warning_points` has existed since migration `0000` with nothing that
+  writes it; what writes it now **derives it** rather than incrementing it,
+  because an incremented total cannot survive a revocation — you would be
+  subtracting from a number that two expiries and a later warning have already
+  moved. Levels are thresholds re-evaluated after every change, which is the
+  whole reason revoking a warning actually lifts a suspension instead of only
+  lowering a number. The restriction reaches the posting path as two booleans
+  and **outranks `bypassesModeration`**, so a moderator under a warning is not
+  the one member it cannot reach. `warnings.expire` corrects the cache and
+  re-evaluates the level; it never bans, because it has no actor to attribute a
+  ban to. See **D52**, and four parity entries including why levels are points
+  rather than MyBB's percentages.
+
 ## NEXT ACTION — resume here
 
-**F53 · warnings** is next in order, and it is the first moderator act aimed at
-a *person* rather than at content. `users.warning_points` has existed since
-migration `0000` with nothing that writes it, which is the seam; the schema, the
-expiry task, the threshold actions and their enforcement in the posting path are
-the work.
+**F54 · the moderator control panel** is next and closes Phase 4. It needs no new
+mechanics — the acts all exist — but it is the place a moderator finds out *what
+they have been appointed to*, which F50 made necessary and nothing has provided.
+It is also where F48's remaining debt gets paid: `Target.isForumModerator` is now
+set inside F52's `forumIdsWhere` scope but still not on the thread page's own
+`can()` calls.
 
 F52 also unblocked the piece F51 deliberately left out — **hand-picked split
 selection** — and did not take it: the per-post checkboxes now exist, but the
@@ -442,7 +457,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D51). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D52). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

@@ -35,6 +35,8 @@ export interface PostCapabilities {
   readonly bypassesWindow: boolean
   /** F49's global `content.report`. Guests and read-only groups hold it not. */
   readonly canReport: boolean
+  /** F53's global `user.warn`. */
+  readonly canWarn: boolean
 }
 
 const NO_CAPABILITIES: PostCapabilities = {
@@ -45,6 +47,7 @@ const NO_CAPABILITIES: PostCapabilities = {
   editWindowMinutes: 0,
   bypassesWindow: false,
   canReport: false,
+  canWarn: false,
 }
 
 function withinEditWindow(
@@ -133,6 +136,15 @@ function post(
       reportHref:
         capabilities.canReport && !isOwn && post.visibility === 'visible'
           ? `/report?kind=post&id=${post.id}`
+          : null,
+      /*
+       * The author, cited by this post. Not offered for your own post — a
+       * warning you issue to yourself trips the same level actions as one
+       * anybody else issues — nor for a post whose author no longer exists.
+       */
+      warnHref:
+        capabilities.canWarn && !isOwn && post.authorUserId !== null
+          ? `/moderation/warn?user=${post.authorUserId}&post=${post.id}`
           : null,
       moderateHref: null,
     },

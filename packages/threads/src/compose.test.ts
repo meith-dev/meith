@@ -267,3 +267,68 @@ describe('threadSlug', () => {
     expect(slug.endsWith('-')).toBe(false)
   })
 })
+
+/**
+ * F53's warning-level restrictions, at the one place they bite.
+ *
+ * They arrive as booleans like every other decision the caller has already
+ * made, and the interesting one is that a *warning* outranks the moderation
+ * bypass: `bypassesModeration` says "this forum's queue does not apply to you",
+ * a warning level says "your posts are reviewed", and a moderator whose own
+ * bypass cancelled their sanction would be the one person it could not reach.
+ */
+describe('warning restrictions (F53)', () => {
+  it('refuses a suspended author before it looks at anything they typed', async () => {
+    const writes = new RecordingWrites()
+
+    await expect(
+      composer(writes).create(
+        { ...INPUT, title: 'x', message: '', restriction: { suspended: true, moderated: false } },
+        AUTHOR,
+        FORUM,
+      ),
+    ).rejects.toThrow(/suspended/i)
+    expect(writes.written).toEqual([])
+  })
+
+  it('holds the post of a moderated author in a forum that moderates nothing', async () => {
+    const writes = new RecordingWrites()
+
+    await composer(writes).create(
+      { ...INPUT, restriction: { suspended: false, moderated: true } },
+      AUTHOR,
+      FORUM,
+    )
+
+    expect(writes.written[0]).toMatchObject({ visibility: 'unapproved' })
+  })
+
+  it('holds it even for an author who bypasses the forum queue', async () => {
+    const writes = new RecordingWrites()
+
+    await composer(writes).create(
+      {
+        ...INPUT,
+        bypassesModeration: true,
+        restriction: { suspended: false, moderated: true },
+      },
+      AUTHOR,
+      { ...FORUM, moderateNewThreads: true },
+    )
+
+    expect(writes.written[0]).toMatchObject({ visibility: 'unapproved' })
+  })
+
+  it('changes nothing when the restriction is absent or lapsed', async () => {
+    const writes = new RecordingWrites()
+
+    await composer(writes).create(INPUT, AUTHOR, FORUM)
+    await composer(writes).create(
+      { ...INPUT, restriction: { suspended: false, moderated: false } },
+      AUTHOR,
+      FORUM,
+    )
+
+    expect(writes.written.map((w) => w.visibility)).toEqual(['visible', 'visible'])
+  })
+})

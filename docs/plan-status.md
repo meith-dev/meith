@@ -26,8 +26,8 @@ defines scope, dependencies, and acceptance criteria.
 
 ## How this audit was done
 
-Last audited **2026-07-31** (re-audited after F52 landed), against the working tree, not from memory:
-`pnpm verify` (1743 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
+Last audited **2026-07-31** (re-audited after F53 landed), against the working tree, not from memory:
+`pnpm verify` (1801 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -47,13 +47,13 @@ couple of `PARTIAL` rows are an afternoon.
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 9 | 2 | 0 |
 | 3 — Posting | 11 | 5 | 0 | 6 |
-| 4 — Moderation | 8 | 5 | 1 | 2 |
+| 4 — Moderation | 8 | 6 | 1 | 1 |
 | 5 — Members and social | 8 | 0 | 0 | 8 |
 | 6 — Admin CP | 9 | 0 | 0 | 9 |
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **36** | **6** | **47** |
+| **Total** | **89** | **37** | **6** | **46** |
 
 ---
 
@@ -146,8 +146,9 @@ F41 gate is green, which unblocks Phase 4.
 
 Both gates are green and the surfaces are arriving. `/moderation` is a working
 queue, `/moderation/reports` a working report list, the thread page carries the
-moderator bar, and listings now carry checkboxes and a bulk bar. What is left in
-the phase is warnings (F53) and the ModCP shell they want to live in (F54).
+moderator bar, listings carry checkboxes and a bulk bar, and members now have a
+warning record. What is left in the phase is the ModCP shell all of it wants to
+live in (F54).
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
@@ -157,7 +158,7 @@ the phase is warnings (F53) and the ModCP shell they want to live in (F54).
 | F50 | Thread tools | `PARTIAL` | Lock/unlock, pin/unpin, move and delete/restore, each logged to `admin_log` with the affected ids. **The four actions read an appointment right and no usergroup field** — the first divergence from the board's own permission pattern, and deliberate (see the parity entry): so F48's debt came due here, `moderatorApproves` became a full `ModeratorRights`, `forum_moderators` grew from four rights to seven in the reader, and `Authorizer.moderatorRightsIn` is the new seam. F22 grew four columns, 544 cells. **A move needs the right at both ends**, resolved as two separate matrices — mutation-verified by copying the source rights to the destination. Counters: one tally reused for forum, ancestors and every author; the two chain updates cancel exactly at a shared ancestor; `posts.forum_id` is rewritten; the roll-up ledger stays in sync on delete/restore. 34 tests, nine mutants killed. **Gap (unchanged by F52–F54):** *copy* and the move *redirect stub* are absent — copy is the only tool that creates content and asks a product question nobody has answered (MyBB credits the copies, double-counting one piece of writing), and a stub needs the thread view to follow `moved_to_thread_id`, which is F30/F31's surface. Thread *approval* is F48's and is not duplicated here. See **D49**. |
 | F51 | Merge and split | `DONE` | `ThreadSurgery` over `PostgresThreadSurgeryRepository`, two Server Actions, two controls in F50's moderator bar. **Split takes "from this post onwards" and lands in the same forum**, always — splitting and moving are two acts, and doing both at once would give a moderator a second forum to place content in (D50). **Merge absorbs the source into the named target**, which is never inferred from age or size; it moves *every* post including held ones, because `posts.thread_id` cascades and the queue would lose them. Post order survives by construction (F31 pages by id); `is_first_post` does not and is set/cleared explicitly, with a killed mutant each way. Counters: the forum gains one thread and zero posts on a split, the two forum chains debit and credit on a cross-forum merge, and reply counts trade on both threads. **The author question F50's copy deferred is settled here: `post_count` never moves**, because neither operation duplicates a post; only `thread_count` does, by one. `postsFrom` refuses a cut point that is not a visible post *of this thread* — a post of an earlier thread or a held one in this thread would otherwise select the whole thread. The merge box takes a raw thread number, so the action puts it through `thread.view` before anything else; without that it is a thread-existence oracle. Rights resolved at both ends (D49's rule). F22 grew two columns, 608 cells. 51 tests, seven mutants killed. **Not built:** splitting into another forum (it is split-then-move), hand-picked post selection (needs F52's per-post checkboxes; two selection mechanisms for one operation is worse than one narrower one), and multi-way merge (it has to pick a survivor among three). See **D50**. |
 | F52 | Inline moderation | `DONE`* | `InlineModeration` over `PostgresInlineModerationRepository`: checkboxes down a forum listing and a thread page, one bar of buttons below, eight tools (approve / delete / restore / lock / unlock / pin / unpin / move). Every transition is F41's, F48's or F50's, reused rather than reimplemented — the arithmetic F50 had inline moved to `thread-counters.ts` so the bulk path cannot drift from the single-target one. **The checkboxes are not inside the form and cannot be**: `ForumDisplay` already renders a mark-read form and nested forms are not parsed, so association is by HTML's `form` attribute — native, no-JS, and honoured by `new FormData(form)` after hydration (new `SelectionModel` on `ThreadRowSlotModel`/`PostBitSlotModel`). **The re-read is scoped, and that is the security property**: `Authorizer.forumIdsWhere(actor, action)` is new, keyed by *action* rather than by a `ModeratorRights` field because one field means two things (`canSoftDeletePosts` grants `post.softDelete` through a group column and `thread.delete` through the appointment only), and it sets `Target.isForumModerator` — half of F48's debt. Without the scope, `refused` and `missing` are different answers and the outcome counts enumerate every private forum on the board. Four outcome numbers, rights checked before state so a refusal cannot leak a row's state. **Chunks rather than refusing** (25 per transaction, 500 ceiling), which is safe because every write is state-guarded and a half-finished bulk action is re-submittable. F22 needed **no new columns** — every action already existed. 79 tests, eight mutants killed. See **D51** and two `mybb-parity.md` entries. *Hand-picked split is still not built: F51 deferred it here, and it is a change to F51's validation rather than to this bar. Fixture mode has no writer, so the browser suite cannot cover it — the same gap F39/F40 have. |
-| F53 | Warnings | `TODO` | No warning model or expiry task. |
+| F53 | Warnings | `DONE`* | Migration `0006`: `warning_types`, `warning_levels`, `warnings`, two restriction columns on `users`, and `usergroups.can_warn_users` — plus a seeded ladder so the feature works on a board nobody has configured. `WarningService` over `PostgresWarningRepository`; `/moderation/warn?user=` is the record *and* the form on one screen, reachable from a post (`PostActionsModel.warnHref`) and from a profile. **`users.warning_points` has existed since `0000` with no writer; it now has one, and it is derived rather than incremented** — recomputed from the live rows in the same transaction as anything that changes them, because an incremented total cannot survive a revocation (two tests corrupt the column and watch it repair). "Live" is one `LIVE` fragment, not two hand-written predicates (D41's rule). Levels are **thresholds re-evaluated on every change**, which is what makes revoking lift a restriction rather than only lowering a number, and a level is applied only when *newly* reached so two warnings in a minute do not double a suspension. `warnings.expire` corrects the cache and re-evaluates the level — it never bans, having no actor to attribute one to. Restrictions reach `ThreadComposer`/`ReplyComposer` as booleans and **outrank `bypassesModeration`**. `user.warn` is global (like `content.report`), so the F22 matrix is untouched. 65 tests, six mutants killed. See **D52** and four `mybb-parity.md` entries. *Nothing notifies the warned member (F55), and there is no screen for editing types or levels (F66) — omitted rather than stubbed (D32). |
 | F54 | Moderator CP | `TODO` | No ModCP route group. Carries a debt F48 named rather than paid: `Target.isForumModerator` is set inside F52's `forumIdsWhere` scope but still not on the *other* per-page `can()` calls, so on a thread page a per-forum appointee has only their group's rights for `post.editOthers` and `post.softDelete`. Granular moderator rights are this feature's subject, so that is where the flag gets threaded through. |
 
 ## Phase 5 — Members and social
