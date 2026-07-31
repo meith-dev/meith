@@ -2691,3 +2691,61 @@ page now builds every affordance on an appointment-aware target.
   authentication step because an administrator can change the board. A moderator
   is already logged in as themselves and their powers are the ones the board
   grants them; a second password would protect nothing the first one does not.
+
+### D54 — `@forum/db` is imported, not required (F04)
+
+Three modules loaded `@forum/db` with a synchronous `require()` inside the
+function that needed it — `container.ts`'s Postgres branch, `theme-runtime.ts`
+and `settings.ts` — on the reasoning that fixture mode should never pull in
+postgres.js. All three are now plain static imports.
+
+**The reasoning was wrong, and the code was broken.**
+
+Wrong, because importing the module opens nothing. `getDb()` creates its client
+lazily and throws in fixture mode, so "building the container in fixture mode
+must not open a socket" is a property of `getDb`, not of the import. What the
+require actually bought was bundle size in a *server* bundle nobody downloads.
+
+Broken, because Turbopack resolves `@forum/db` as an **async module** — its
+graph reaches postgres.js — and a synchronous `require()` of an async module
+yields the pending namespace rather than the exports. Every destructured binding
+came back `undefined`, so the first call failed:
+
+    TypeError: getDb is not a function
+
+It was intermittent at build time (it depended on whether the chunk had been
+awaited elsewhere first, which is why it read as flaky) and reliable at runtime.
+
+#### Why it survived so long
+
+**CI only ever built and ran `DATA_SOURCE=fixture`.** The fixture branch takes
+none of the three paths, so none of them had ever executed anywhere — not in a
+build, not in a test, not in a deploy. The Postgres path had never been booted.
+That is also why the standalone image could not serve a Postgres board, and why
+F04's "CI must boot the image" was the acceptance criterion that would have
+caught it.
+
+Guard `R2 no-lazy-require-of-db` now bans the pattern outright, probed both
+ways, and the `image` job boots the web role against real Postgres — so the
+regression has a test rather than a promise.
+
+#### The thing this uncovered and did *not* fix
+
+Running the operator CLI against real Postgres for the first time found a
+second, unrelated failure with the same cause — a path that only PGlite had
+ever exercised:
+
+    forum task:run counters.reconcile
+    → The "string" argument must be of type string or an instance of Buffer.
+      Received an instance of Date
+
+`PostgresTaskRepository.claim` interpolates `Date` objects into a `sql`
+template. PGlite accepts them; **postgres.js, as drizzle drives it here, does
+not** — an ISO string works and a `Date` does not. Confirmed with a two-line
+probe against a real server.
+
+This is F11's recorded gap biting: PGlite substitutes for Postgres in every
+test, and it is more permissive than the real driver. Any repository in
+`@forum/db` that passes a `Date` parameter is suspect, which is most of the
+write paths. It is not fixed here — the fix is a sweep plus a test that runs
+against real Postgres rather than PGlite, and it wants its own change.

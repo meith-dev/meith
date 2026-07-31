@@ -53,6 +53,28 @@ import type {
 } from '@forum/threads'
 import type { TaskDefinition, TaskRepository } from '@forum/tasks'
 import { buildSchedulerBundle } from '@forum/runtime'
+import {
+  getDb,
+  PostgresAuthorizationSource,
+  ActorBuilder,
+  createPostgresAccountStore,
+  PostgresBanRepository,
+  PostgresForumRepository,
+  PostgresThreadRepository,
+  PostgresThreadWriteRepository,
+  PostgresPostWriteRepository,
+  PostgresModerationQueueRepository,
+  PostgresReportRepository,
+  PostgresThreadToolsRepository,
+  PostgresThreadSurgeryRepository,
+  PostgresInlineModerationRepository,
+  PostgresWarningRepository,
+  PostgresModCpRepository,
+  PostgresPostRepository,
+  PostgresReadStateRepository,
+  PostgresMemberProfileRepository,
+  PostgresThreadViewBuffer,
+} from '@forum/db'
 import { drivers } from '@forum/drivers'
 
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
@@ -277,26 +299,34 @@ function identityServices(store: AccountStore): {
   }
 }
 
-/*
- * The Postgres branch is deliberately isolated behind a dynamic import so the
- * fixture path (dev, tests, the preview with no database) never pulls in the
- * postgres.js client or its connection-time env requirements. Building the
- * container in fixture mode must not open a socket.
+/**
+ * The Postgres branch.
+ *
+ * `@forum/db` is imported **statically**, at the top of this file. It used to
+ * be a synchronous `require()` inside this function, on the reasoning that the
+ * fixture path should never pull in postgres.js — and that turned out to be
+ * both unnecessary and actively broken.
+ *
+ * *Unnecessary*, because importing the module opens nothing: `getDb()` creates
+ * the client lazily and throws in fixture mode, so the property the require was
+ * protecting ("building the container in fixture mode must not open a socket")
+ * is a property of `getDb`, not of the import. The cost of the static import is
+ * bundle size in a *server* bundle nobody downloads.
+ *
+ * *Broken*, because Turbopack resolves `@forum/db` as an **async module** — its
+ * graph reaches postgres.js — and a synchronous `require()` of an async module
+ * yields the pending namespace rather than the exports. Every destructured
+ * binding came back `undefined`, so the first call, `getDb()`, failed with
+ * `TypeError: c is not a function`. Intermittently: it depended on whether the
+ * chunk had been awaited elsewhere first, which is why it read as flaky and why
+ * it survived so long.
+ *
+ * Nothing caught it because CI only ever built `DATA_SOURCE=fixture`, which
+ * takes the branch above and never runs this function. The Postgres build path
+ * had never been built or booted anywhere — see the `image` job in ci.yml,
+ * which now boots it.
  */
 function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
-  /*
-   * Synchronous require, one justified disable: getContainer() is synchronous
-   * (Server Components call it without awaiting), and a static top-level import
-   * of @forum/db would pull postgres.js into the fixture path too — defeating
-   * the whole reason the branch exists. This line only runs when DATA_SOURCE is
-   * already 'postgres', i.e. when DATABASE_URL has been validated at boot.
-   */
-  // Both disables apply to this one line and are both genuinely needed: the
-  // sync require (see above) and the inline module-type annotation it requires.
-  // prettier-ignore
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresThreadToolsRepository, PostgresThreadSurgeryRepository, PostgresInlineModerationRepository, PostgresWarningRepository, PostgresModCpRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
-
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
   const store: AccountStore = createPostgresAccountStore(db)

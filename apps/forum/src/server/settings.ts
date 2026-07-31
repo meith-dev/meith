@@ -16,6 +16,8 @@ import 'server-only'
  * relying on invalidation alone.
  */
 import { CacheTags, cachedGlobal, env } from '@forum/core'
+/* Statically imported; see `theme-runtime.ts` and `container.ts` for why. */
+import { PostgresSettingsRepository, getDb } from '@forum/db'
 import { drivers } from '@forum/drivers'
 import { SettingsSnapshot } from '@forum/settings'
 
@@ -41,12 +43,6 @@ export async function getSettings(): Promise<SettingsSnapshot> {
     drivers().cache,
     { key: ['settings', 'overrides'], tags: [CacheTags.settings()], revalidate: TTL_SECONDS },
     async () => {
-      // Lazily required for the same reason the container's Postgres branch is:
-      // fixture mode must not pull in postgres.js. See container.ts.
-      const { getDb, PostgresSettingsRepository } =
-        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-        require('@forum/db') as typeof import('@forum/db')
-
       const stored = await new PostgresSettingsRepository(getDb()).loadAll()
       // A Map does not survive the cache driver's serialisation; entries do.
       return [...stored] as Array<[string, string]>

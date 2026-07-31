@@ -1,6 +1,16 @@
 import 'server-only'
 
 import { CacheTags, env } from '@forum/core'
+/*
+ * Statically imported, not lazily required. Turbopack resolves `@forum/db` as
+ * an async module, and a synchronous `require()` of one yields the pending
+ * namespace rather than the exports — so `getDb` came back `undefined` and this
+ * threw `TypeError: getDb is not a function` on every render. Importing opens
+ * nothing: `getDb()` creates its client lazily and refuses in fixture mode,
+ * which is the property the require was thought to be protecting. See
+ * `container.ts` for the full account.
+ */
+import { PostgresThemeRepository, getDb } from '@forum/db'
 import { unstable_cache } from 'next/cache'
 
 import forumConfig from '../../forum.config'
@@ -11,8 +21,6 @@ const installedTheme = forumConfig.themes[forumConfig.defaultTheme]!
 
 const loadPostgresThemeStyle = unstable_cache(
   async (): Promise<ThemeRuntimeStyle> => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- Postgres is absent in fixture builds.
-    const { getDb, PostgresThemeRepository } = require('@forum/db') as typeof import('@forum/db')
     const runtime = await new PostgresThemeRepository(getDb()).findRuntimeByKey(installedTheme.key)
     return renderThemeStyle(
       installedTheme.tokens,

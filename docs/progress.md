@@ -372,25 +372,37 @@ never existed), `installTestContainer()`, the board title from `board.name`,
 `ViewerModel.username`, and F51's hand-picked split now that F52 supplies the
 checkboxes.
 
-### The one thing to decide before anything else
+### Fixed since: the Postgres path had never run anywhere
 
-**`pnpm build` fails about two runs in three when `DATABASE_URL` is set.**
+`TypeError: getDb is not a function`, from a synchronous `require('@forum/db')`
+in three modules — `container.ts`, `theme-runtime.ts` and `settings.ts`.
+Turbopack resolves that package as an **async module**, and a sync `require()`
+of one yields the pending namespace, so every destructured binding was
+`undefined`. All three are static imports now; guard
+`R2 no-lazy-require-of-db` bans the pattern, and CI's `image` job boots the web
+role against real Postgres so the regression has a test.
 
-`TypeError: c is not a function`, thrown from the lazy `require('@forum/db')` in
-`apps/forum/src/server/container.ts` when Turbopack resolves it as an async
-module. It is **pre-existing** — three runs, three failures on `main` with none
-of this work applied — and it is intermittent, which is why it reads as flaky
-rather than broken.
+It survived because **CI only ever built and ran `DATA_SOURCE=fixture`**, which
+takes none of those paths. The Postgres path had never been built, booted or
+tested — which is also why the standalone image could not serve a Postgres
+board.
 
-CI has never seen it because the `build` job runs `DATA_SOURCE=fixture`, which
-takes the fixture branch and never executes that require. **The Postgres build
-path has never been built or booted anywhere.** The consequence is not
-theoretical: the standalone image cannot serve a Postgres board, which is why
-F04's new `image` job boots the migrate and worker roles and not the web one.
+### The next thing to decide: `Date` parameters do not work on real Postgres
 
-The fix is a decision about how the composition root loads `@forum/db` — the
-lazy require exists so fixture mode does not pull in postgres.js — and it wants
-its own change rather than being tacked onto this one.
+Running `forum task:run` against a real server for the first time found this:
+
+    The "string" argument must be of type string or an instance of Buffer.
+    Received an instance of Date
+
+`PostgresTaskRepository.claim` interpolates `Date` objects into a `sql`
+template. **PGlite accepts them and postgres.js does not** — an ISO string
+works, a `Date` does not, confirmed with a two-line probe. Every test in this
+repository runs against PGlite, so this is F11's recorded substitution gap
+biting for real: any repository in `@forum/db` passing a `Date` parameter is
+suspect, which is most of the write paths.
+
+The fix is a sweep plus a test that runs against real Postgres rather than
+PGlite, and it wants its own change. See **D54**.
 
 ### Then
 

@@ -209,6 +209,27 @@ export const GUARDS = [
     },
   },
   {
+    id: 'R2 no-lazy-require-of-db',
+    why:
+      "@forum/db must be imported statically, never with require(). Turbopack " +
+      'resolves it as an async module — its graph reaches postgres.js — and a ' +
+      'synchronous require() of an async module yields the pending namespace ' +
+      'rather than the exports, so every destructured binding is undefined and ' +
+      'the first call fails with "getDb is not a function". It is intermittent ' +
+      'in a build (it depends on whether the chunk was awaited elsewhere first) ' +
+      'and reliable at runtime, which is the worst combination: three call ' +
+      'sites shipped this way and CI never saw any of them, because CI only ' +
+      'ever built DATA_SOURCE=fixture and none of the three run on that path. ' +
+      'Importing costs nothing that matters: getDb() creates its client lazily ' +
+      'and refuses in fixture mode, so nothing opens a socket at import.',
+    files: /^apps\/forum\/.*\.tsx?$/,
+    pattern: /require\(\s*['"]@forum\/db['"]\s*\)/,
+    probe: {
+      violates: "const { getDb } = require('@forum/db') as typeof import('@forum/db')",
+      clean: "import { getDb } from '@forum/db'",
+    },
+  },
+  {
     id: 'R3 no-adhoc-content-visibility',
     why:
       'F47: no query may name a visibility state. Every viewer-facing read takes a ' +

@@ -106,14 +106,14 @@ jobs:
           DATA_SOURCE: fixture
 
   # F04's acceptance criterion, and the half that was missing for its whole
-  # life: CI *builds* the standalone image and then **boots** what it can.
+  # life: CI *builds* the standalone image and then **boots** it, in every role.
   #
   # Building only proves the Dockerfile parses. A boot proves the standalone
   # output actually contains what it needs — which is exactly the class of
   # failure that does not show up on a developer machine, because there the
   # whole node_modules tree is present and the traced bundle is not what runs.
   image:
-    name: Standalone image builds, migrates and runs the worker
+    name: Standalone image boots, in every role
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -145,22 +145,40 @@ jobs:
             -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
             forum:ci
 
-      # NOTE: the **web role is deliberately not booted here**, and that is a
-      # finding rather than an omission.
+      # The web role. Polls the real health route rather than the port, so a
+      # server that bound and cannot render is reported as the failure it is.
       #
-      # Booting it locally exposed a pre-existing intermittent failure:
-      # `TypeError: c is not a function`, thrown from the lazy
-      # `require('@forum/db')` in apps/forum/src/server/container.ts when
-      # Turbopack resolves it as an async module. It reproduces on main without
-      # any of this branch's changes (three runs, three failures) and it is why
-      # `pnpm build` fails roughly two runs in three *when DATABASE_URL is set*.
-      #
-      # CI has never seen it because the `build` job runs with
-      # DATA_SOURCE=fixture, which takes the fixture branch and never executes
-      # that require — so the Postgres path has never actually been built or
-      # booted anywhere. Adding a red step here would only make the pipeline
-      # red; the fix is a decision about how the composition root loads
-      # @forum/db, and it belongs in its own change. See docs/progress.md.
+      # This step is the regression test for a bug that shipped three times:
+      # `container.ts`, `theme-runtime.ts` and `settings.ts` each loaded
+      # `@forum/db` with a synchronous `require()`, which Turbopack resolves to
+      # the pending namespace of an async module — so `getDb` was `undefined`
+      # and the first call threw. It never showed up here because CI only ever
+      # built and ran `DATA_SOURCE=fixture`, which takes none of those paths.
+      - name: Boot the web role
+        run: |
+          docker run -d --name forum-web --network host \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
+            -e DATA_SOURCE=postgres \
+            -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
+            -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
+            -e PUBLIC_URL=http://127.0.0.1:3000 \
+            forum:ci
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
+              echo "web role healthy after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::the web role never became healthy"
+          docker logs forum-web
+          exit 1
+
+      # Renders, not merely responds: the failure this guards against produced a
+      # healthy /api/health and a 500 on every page.
+      - name: The board renders against Postgres
+        run: |
+          curl -fsS http://127.0.0.1:3000/ | grep -q '<main' \
+            || { echo "::error::the board did not render"; docker logs forum-web; exit 1; }
 
       # The worker role — F04's "the same image runs the worker with a flag".
       # A worker that starts, registers its tasks and survives a tick is the
@@ -193,7 +211,7 @@ jobs:
 
       - name: Stop
         if: always()
-        run: docker rm -f forum-worker 2>/dev/null || true
+        run: docker rm -f forum-web forum-worker 2>/dev/null || true
 
   e2e:
     name: No-JS and accessibility browser checks
