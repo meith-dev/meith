@@ -52,6 +52,21 @@ export {
 } from './thread-tools'
 
 export {
+  InlineModeration,
+  parseInlineTool,
+  INLINE_CHUNK,
+  INLINE_TOOL_ACTIONS,
+  MAX_INLINE_SELECTION,
+  NO_INLINE_RIGHTS,
+  type InlineModerationRepository,
+  type InlineOutcome,
+  type InlineRights,
+  type InlineRightsResolver,
+  type InlineTarget,
+  type InlineTool,
+} from './inline'
+
+export {
   ThreadSurgery,
   type MergePlan,
   type SplitPlan,
@@ -60,3 +75,4 @@ export {
   type SurgeryThread,
   type ThreadSurgeryRepository,
 } from './surgery'
+

@@ -115,6 +115,7 @@ function installContainer(moderators: readonly MemoryAppointment[] = []): void {
     authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
     threadTools: tools,
     threadSurgery: null,
+    inlineModeration: null,
     reports: null,
     moderationQueue: null,
     threadWrites: null,

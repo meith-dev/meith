@@ -305,3 +305,36 @@ one.
 
 **Cost.** None here. This is the answer to the question the copy entry above
 leaves open, and it is the reason we built split before copy.
+
+## Inline moderation offers no "unapprove"
+
+**MyBB:** the inline moderation dropdown on a forum listing includes *Unapprove
+threads*, which sends published content back to the queue.
+
+**Here:** it does not. Inline moderation offers approve, delete, restore, lock,
+unlock, pin, unpin and move; taking a visible thread off the board is `delete`,
+which is reversible with `restore` and is what a moderator actually wants.
+
+**Why:** `unapproved` and `deleted` are both "not counted, not visible" (D41),
+so the two differ only in which list the content appears on afterwards. Sending
+a published thread to the *approval queue* puts it in front of a moderator as
+something to decide on, when the decision has already been made — and it makes
+the queue a mixture of "new content nobody has read" and "old content somebody
+removed", which is the one thing the queue's ordering (oldest first) relies on
+not being true. Deleting says what happened and restoring undoes it.
+
+## Bulk moderation chunks rather than refusing
+
+**MyBB:** inline moderation acts on whatever was selected, in one request.
+
+**Here:** a selection is applied in transactions of 25, up to a ceiling of 500
+in one request. The approval queue keeps its hard refusal above 200 (F48).
+
+**Why:** the two surfaces have different shapes. Nobody hand-selects two hundred
+items from a queue, so refusing and saying "work through it a page at a time" is
+honest there. A listing has a "select all" and a moderator clearing a spam run
+genuinely has hundreds, so refusing would mean the feature does not do the job
+it exists for. Chunking is safe because every transition is state-guarded — a
+bulk action that dies halfway is fixed by pressing the button again, and the
+chunks that already ran report "already in that state".
+

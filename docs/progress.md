@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D50. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D51. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -17,12 +17,11 @@ this file.
 
 ## Gate state (all green)
 
-`pnpm verify` → exit 0: textual invariants (now **nine** guards, F47's included)
-+ **guard probes**, the **slot
-server/client boundary** check + its probe, dependency-cruiser (298 modules, 0
-violations), typecheck (root **and** app), **1650 tests** (a large share against
-real Postgres via PGlite). `pnpm build` → exit 0 from a zero-secret
-production environment. Three consecutive green runs after capping worker
+`pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
++ **guard probes**, the **slot server/client boundary** check + its probe,
+dependency-cruiser (403 modules, 0 violations), typecheck (root **and** app),
+**1743 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+exit 0 from a zero-secret production environment. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
 roughly one run in three (D34) — and after raising the *test* timeout, which
 F38's four extra database suites pushed the Argon2id lockout test past (D41).
@@ -317,20 +316,34 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   anything else — without that it is a thread-existence oracle. See **D50** and
   three `mybb-parity.md` entries.
 
+- **F52 inline moderation** — the same power as the queue, exercised where the
+  content is. Checkboxes down a forum listing and a thread page, one bar below,
+  eight tools; every transition is F41's, F48's or F50's, and the arithmetic F50
+  kept inline moved to `thread-counters.ts` so the bulk path cannot drift from
+  the single-target one. Two things are worth carrying forward. **The checkboxes
+  are not inside the form**, because `ForumDisplay` already renders a mark-read
+  form and nested forms are not parsed — they are associated by HTML's `form`
+  attribute, which is native, works with scripting off, and is what
+  `new FormData(form)` reads after hydration. And **the re-read is scoped**:
+  `Authorizer.forumIdsWhere(actor, action)` is new, keyed by action rather than
+  by a rights field because `canSoftDeletePosts` means two different things
+  depending on which action asks. Without that scope, "refused" and "no such
+  thing" are different answers, and the outcome counts enumerate every private
+  forum on the board. It chunks rather than refusing, which is safe only because
+  every write is state-guarded. See **D51**.
+
 ## NEXT ACTION — resume here
 
-**F52 · inline moderation** is next in order and is mostly assembly: F48 wrote
-the chunked selection (`parseSelection`, `MAX_CHUNK` = 200) and F50/F51 wrote
-every tool it needs to invoke, so what is missing is the *listing-level* form —
-per-post and per-thread checkboxes on the forum display and the thread page, one
-form spanning the listing, and the 200-item chunking applied to a selection that
-can now mix threads and posts.
+**F53 · warnings** is next in order, and it is the first moderator act aimed at
+a *person* rather than at content. `users.warning_points` has existed since
+migration `0000` with nothing that writes it, which is the seam; the schema, the
+expiry task, the threshold actions and their enforcement in the posting path are
+the work.
 
-It also unblocks the piece F51 deliberately left out: **hand-picked split
-selection**. F51's split names its cut point with a `<select>` of the posts on
-screen because that is what a page without checkboxes can express. Once F52 has
-per-post checkboxes, "split these posts" becomes a selection over the same
-surface rather than a second selection mechanism.
+F52 also unblocked the piece F51 deliberately left out — **hand-picked split
+selection** — and did not take it: the per-post checkboxes now exist, but the
+change is to `ThreadSurgery`'s validation rather than to the inline bar, which
+is why it stayed out of a feature that was already large.
 
 **F37 · smilies and custom BBCode** remains unblocked and cheap. F36 left the
 seam deliberately: `parse`/`render` take a tag registry, so a custom tag is a
@@ -429,7 +442,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D49). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D51). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

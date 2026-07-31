@@ -34,6 +34,7 @@ import {
 import { env, logger } from '@forum/core'
 import { CachedForumRepository, type ForumRepository } from '@forum/forums'
 import type {
+  InlineModerationRepository,
   ModerationQueueRepository,
   ReportRepository,
   ThreadToolsRepository,
@@ -112,6 +113,13 @@ export interface Container {
    * different arithmetic. `null` in fixture mode (D38).
    */
   readonly threadSurgery: ThreadSurgeryRepository | null
+  /**
+   * Inline bulk moderation (F52). Separate from `threadTools` because it acts
+   * on a *selection* rather than on the thread a page is showing, and because
+   * it has to re-read every id inside a permission scope before it touches one.
+   * `null` in fixture mode (D38).
+   */
+  readonly inlineModeration: InlineModerationRepository | null
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
@@ -203,6 +211,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     reports: null,
     threadTools: null,
     threadSurgery: null,
+    inlineModeration: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -266,7 +275,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   // sync require (see above) and the inline module-type annotation it requires.
   // prettier-ignore
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports -- justified lazy infra load
-  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresThreadToolsRepository, PostgresThreadSurgeryRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
+  const { getDb, PostgresAuthorizationSource, ActorBuilder, createPostgresAccountStore, PostgresBanRepository, PostgresPromotionRepository, PostgresTaskRepository, PostgresMaintenanceRepository, PostgresForumRepository, PostgresThreadRepository, PostgresThreadWriteRepository, PostgresPostWriteRepository, PostgresModerationQueueRepository, PostgresReportRepository, PostgresThreadToolsRepository, PostgresThreadSurgeryRepository, PostgresInlineModerationRepository, PostgresPostRepository, PostgresReadStateRepository, PostgresMemberProfileRepository, PostgresContentCounterRepository, PostgresCounterRecount, PostgresRenderBackfill, PostgresOutboxReader, PostgresThreadViewBuffer } = require('@forum/db') as typeof import('@forum/db')
 
   const db = getDb()
   const authorizationSource = new PostgresAuthorizationSource(db)
@@ -287,6 +296,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     reports: new PostgresReportRepository(db),
     threadTools: new PostgresThreadToolsRepository(db),
     threadSurgery: new PostgresThreadSurgeryRepository(db),
+    inlineModeration: new PostgresInlineModerationRepository(db),
     posts: new PostgresPostRepository(db),
     readState: new PostgresReadStateRepository(db),
     memberProfiles: new PostgresMemberProfileRepository(db),
@@ -344,6 +354,7 @@ export function getContainer(): Container {
     cached.reports === undefined ||
     cached.threadTools === undefined ||
     cached.threadSurgery === undefined ||
+    cached.inlineModeration === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

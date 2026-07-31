@@ -269,6 +269,30 @@ export interface ModeratorAppointment extends ModeratorRights {
   readonly cascadeToSubforums: boolean
 }
 
+/**
+ * Whether an appointment grants anything at all — the value of
+ * `Target.isForumModerator` (F52).
+ *
+ * A named function rather than `Object.values(rights).some(Boolean)` written
+ * out at each call site, because it is a *permission* question and R4 says
+ * those are answered here. It also cannot drift: adding a right to
+ * `ModeratorRights` extends this automatically, whereas three hand-written
+ * copies would each have to be found.
+ */
+export function hasAnyModeratorRight(rights: ModeratorRights): boolean {
+  return (
+    rights.canApproveContent ||
+    rights.canEditPosts ||
+    rights.canSoftDeletePosts ||
+    rights.canRestorePosts ||
+    rights.canOpenCloseThreads ||
+    rights.canStickThreads ||
+    rights.canMoveThreads ||
+    rights.canMergeThreads ||
+    rights.canSplitThreads
+  )
+}
+
 /** Nobody's rights: the answer for an actor with no appointment here. */
 export const NO_MODERATOR_RIGHTS: ModeratorRights = {
   canApproveContent: false,

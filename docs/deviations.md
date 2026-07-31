@@ -2356,3 +2356,129 @@ into the target's forum.
 - **Merging more than two threads at once.** Repeating the operation is the same
   thing, and a multi-way merge has to pick a survivor among three, which is the
   decision this feature refuses to guess even between two.
+
+### D51 — Inline moderation, and the two questions a bulk selection asks (F52)
+
+F52 adds no mechanism. Every transition it performs is F41's, F48's or F50's,
+already counter-correct and already state-guarded. What it adds is a *selection*
+— checkboxes down a listing rather than a queue you visit — and a selection asks
+two questions the single-target tools never had to.
+
+#### The checkboxes are not inside the form, and cannot be
+
+`ForumDisplay` already renders a mark-read `<form>`, and nested forms are not
+something a browser will parse — the inner one is discarded, silently. So the
+moderation bar cannot wrap the listing.
+
+The answer is HTML's `form` attribute: `<input form="inline-moderation">`
+associates a control with a form **by id, anywhere in the document**. The
+browser honours that natively with scripting off, and `new FormData(form)` picks
+it up after hydration, because both are reading the same form-owner
+relationship. So the theme renders a checkbox in each row, the app renders the
+bar below the listing, and neither has to contain the other.
+
+This is why `SelectionModel` carries a `formId` and why it is plain data. The
+form itself carries a Server Action reference, and D38 settled that those never
+cross the theme contract; a slot that received the form element instead would
+put the theme in charge of where the bar goes, which is the page's decision.
+
+`ThreadRowSlotModel` and `PostBitSlotModel` both gained `select`. A theme that
+ignores it renders a listing with no bulk moderation and nothing else missing.
+
+#### The scope is the security boundary, not the rights
+
+F48 established that the selection is never trusted: every id is re-read to find
+the forum it is really in, and only then checked. That is necessary and, on its
+own, not sufficient here — because F48 had one right (`content.approve`) and F52
+has six, so it has to report *refusals*.
+
+A refusal is an answer. "You may not lock that" and "there is no such thing" are
+different observations, and the difference over a whole board is a
+content-existence oracle: tick an id, read the counts, learn whether it exists.
+F51 named the same trap for its merge box and closed it by putting the raw
+thread number through `thread.view`.
+
+So the re-read itself is scoped. `Authorizer.forumIdsWhere(actor, action)` — new
+in this feature — answers "every forum where this actor may perform this
+action", and `resolve` never looks outside it. An id in any other forum comes
+back absent, exactly like an id nobody has used. Within the scope, refusals are
+free to be specific: those are forums the actor already moderates.
+
+#### `forumIdsWhere` exists because one rights field means two things
+
+`moderatedForumIds` is keyed by a `ModeratorRights` field. That is the right
+question for a queue and the wrong one for a tool, because `canSoftDeletePosts`
+grants `post.softDelete` through a group column *or* an appointment, and grants
+`thread.delete` through the appointment only — F50 gave the thread tools no
+group column on purpose. A scope keyed by the right cannot express both.
+
+Keyed by the **action** it can, because `can()` already knows. The new method
+builds the Target a page would build — resolved matrix, resolved appointment
+rights — and asks `can()` once per forum, over the same constant set of source
+reads `visibleForumIds` uses (D26).
+
+It also **sets `Target.isForumModerator`**, which F48 introduced and then
+recorded as debt because no per-page `can()` call ever set it. That is half of
+F54's debt paid in passing: an appointee's `post.softDelete` now resolves the
+same way in bulk as it does on the post's own page.
+
+Staff short-circuit before the loop, and it is not an optimisation. It logs one
+bypass instead of one per forum — fifty audit lines for a page load buries the
+bypasses that describe a decision — and it *agrees with `can()`*, which grants a
+super-moderator every forum-scoped action before it looks at the matrix at all.
+A scope narrower than the action it authorises is a screen disagreeing with its
+own decision.
+
+#### Deleting is scoped by the union of two actions
+
+Following from the above: `INLINE_TOOL_ACTIONS.delete` is
+`['thread.delete', 'post.softDelete']`, and the scope is the union. Scoping by
+either one alone breaks something — by the narrower, a group-level post deleter
+sees every selection report "gone"; by the wider, a thread id in a forum where
+only `post.softDelete` holds comes back as a refusal, which is the oracle again.
+Union scope, per-row right: every forum in the scope is one the actor already
+moderates with this tool, so a refusal there discloses nothing.
+
+#### Four numbers, not one
+
+`applied`, `refused`, `missing`, `skipped`. A moderator who ticked twelve boxes
+and changed nine has to be told which three did not move, and the three causes
+are genuinely different: you may not, it is gone, there was nothing to do.
+
+**Rights are checked before state**, and the order is the disclosure argument
+again — asking "is it already locked?" first would let somebody who may not act
+here read the answer out of the difference between `skipped` and `refused`.
+
+A row that passed every check and still did not move lost a race with another
+moderator between the re-read and the write. That is a `skip`: the state it was
+being moved to is the state it is in.
+
+#### It chunks, where the queue refuses
+
+F48 refuses a selection over `MAX_CHUNK` and tells the moderator to work a page
+at a time, which is right for a queue nobody hand-selects two hundred items
+from. A listing has a "select all", and a moderator clearing a spam run
+genuinely has hundreds. So F52 splits the work into transactions of
+`INLINE_CHUNK` (25) instead of refusing it, with `MAX_INLINE_SELECTION` (500) as
+the ceiling on one request.
+
+**Leaving it half-done is safe, and that is what makes chunking the right
+answer.** Every transition is a conditional update — `where visibility =
+'visible'`, `where is_locked <> true` — so re-submitting the same selection
+re-applies only what did not take. A bulk delete killed at chunk four is fixed
+by pressing the button again; the first three chunks report `skipped`. One audit
+row per chunk rather than per row, for F48's reason.
+
+#### What is deliberately not here
+
+- **Rejecting.** That is the queue's word for `unapproved → deleted` and it
+  belongs on the queue, where the thing being rejected is visible in full. A
+  listing shows a title.
+- **Hand-picked split.** F51 deferred it here and it is still not built: the
+  per-post checkboxes now exist, but `ThreadSurgeryRepository.split` takes a
+  contiguous run from `postsFrom`, and making it take an arbitrary set is a
+  change to F51's validation (no opening post, not the whole thread, all of
+  *this* thread) rather than a change to this bar. It is named in F51's and
+  F52's rows rather than half-built.
+- **Copy.** Still F50's open product question, and still unanswered.
+

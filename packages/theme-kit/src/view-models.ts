@@ -501,8 +501,38 @@ export interface ErrorNoticeModel {
   readonly requestId: string | null
 }
 
+/**
+ * One inline-moderation checkbox (F52), or `null` when this viewer has no
+ * business selecting rows.
+ *
+ * Plain data, and it has to be: the *form* it belongs to carries a Server
+ * Action reference, and D38 settled that such references never cross the theme
+ * contract. So the app renders the form — below the listing, where a bar of
+ * buttons belongs — and the theme renders a checkbox that says which form it
+ * belongs to.
+ *
+ * `formId` is the whole trick, and it is why this works with scripting off.
+ * HTML's `form` attribute associates a control with a form **by id, anywhere
+ * in the document**, so the checkboxes can live inside table rows, list items
+ * or article elements without the listing having to be wrapped in a `<form>` —
+ * which it cannot be, because `ForumDisplay` already renders a mark-read form
+ * and nested forms are not a thing browsers will parse.
+ */
+export interface SelectionModel {
+  /** The field name every checkbox shares. */
+  readonly name: string
+  /** This row's value, opaque to the theme. */
+  readonly value: string
+  /** The `id` of the app-rendered form these checkboxes submit with. */
+  readonly formId: string
+  /** For a visually-hidden label: "Select 'How do I …' for moderation". */
+  readonly label: string
+}
+
 export interface PostBitSlotModel {
   readonly post: PostBitModel
+  /** F52's checkbox, or `null`. A theme that ignores it loses only bulk actions. */
+  readonly select: SelectionModel | null
   readonly regions: {
     /** The `PostActions` slot, rendered by the page. */
     readonly actions: ReactNode
@@ -515,6 +545,8 @@ export interface ForumRowSlotModel {
 
 export interface ThreadRowSlotModel {
   readonly thread: ThreadRowModel
+  /** F52's checkbox, or `null`. */
+  readonly select: SelectionModel | null
 }
 
 export interface PostActionsSlotModel {

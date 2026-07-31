@@ -97,6 +97,7 @@ function installContainer(board = SEED_BOARD): void {
     reports,
     threadTools: null,
     threadSurgery: null,
+    inlineModeration: null,
     moderationQueue: null,
     threadWrites: null,
     postWrites: null,

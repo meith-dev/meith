@@ -85,6 +85,7 @@ function installContainer(overrides: Record<string, unknown> = {}): void {
     reports: null,
     threadTools: null,
     threadSurgery: null,
+    inlineModeration: null,
     threadWrites: null,
     postWrites: null,
     threads: {

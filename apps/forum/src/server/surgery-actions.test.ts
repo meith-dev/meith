@@ -121,6 +121,7 @@ function installContainer(
   ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
     authorizer: new Authorizer(new InMemoryAuthorizationSource(board), {}),
     threadSurgery: surgery,
+    inlineModeration: null,
     threadTools: null,
     reports: null,
     moderationQueue: null,

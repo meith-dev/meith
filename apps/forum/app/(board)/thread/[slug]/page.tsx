@@ -1,14 +1,22 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { hasAnyModeratorRight } from '@forum/authorization'
 import { requireSlot } from '@forum/theme-kit'
 
+import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
 import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
 import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { activeTheme } from '@/server/theme'
+import {
+  INLINE_FORM_ID,
+  anyInlineTool,
+  inlineOutcomeNotice,
+  selectionFor,
+} from '@/view/inline-moderation'
 import { POSTS_PER_PAGE } from '@/view/paging'
 import { buildThreadView } from '@/view/thread-view'
 
@@ -53,6 +61,12 @@ export default async function ThreadPage({
     posted?: string
     post?: string
     tool?: string
+    /* F52's outcome, written by the inline-moderation action's redirect. */
+    did?: string
+    n?: string
+    refused?: string
+    gone?: string
+    skipped?: string
   }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
@@ -62,7 +76,7 @@ export default async function ThreadPage({
   if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
 
   const actor = await getActor()
-  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites, threadTools, threadSurgery } =
+  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites, threadTools, threadSurgery, inlineModeration } =
     getContainer()
   /*
    * Locate, authorise, then read — in that order, and the order is the whole
@@ -191,6 +205,26 @@ export default async function ThreadPage({
         )
         .map((row) => ({ id: row.id, title: row.title }))
 
+  /*
+   * F52 on the thread page selects *posts*, so the bar offers only the tools
+   * that mean something for one: approve, delete, restore. Lock, pin and move
+   * act on the thread as a unit and already have F50's bar above.
+   */
+  const inlineRights = {
+    approve:
+      inlineModeration !== null && authorizer.can(actor, 'content.approve', toolTarget),
+    lock: false,
+    stick: false,
+    move: false,
+    delete:
+      inlineModeration !== null &&
+      authorizer.can(actor, 'post.softDelete', {
+        ...toolTarget,
+        isForumModerator: hasAnyModeratorRight(moderatorRights),
+      }),
+  }
+  const inlineOffered = anyInlineTool(inlineRights)
+
   const view = buildThreadView({
     thread,
     capabilities,
@@ -223,7 +257,7 @@ export default async function ThreadPage({
           ? 'That post has been deleted.'
           : query.post === 'unchanged'
             ? 'Nothing changed — that post was already in this state.'
-            : null
+            : inlineOutcomeNotice(query)
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
@@ -260,12 +294,26 @@ export default async function ThreadPage({
         {...view.view}
         regions={{
           posts: view.posts.map((post) => (
-            <PostBit key={post.id} post={post} regions={{ actions: <PostActions actions={post.actions} postId={post.id} /> }} />
+            <PostBit
+              key={post.id}
+              post={post}
+              select={selectionFor('post', post.id, `post #${post.number}`, inlineOffered)}
+              regions={{ actions: <PostActions actions={post.actions} postId={post.id} /> }}
+            />
           )),
           pagination: <Pagination {...view.pagination} />,
           quickReply: null,
         }}
       />
+      {inlineOffered && (
+        <InlineModerationForm
+          formId={INLINE_FORM_ID}
+          scope="posts"
+          rights={inlineRights}
+          moveTargets={[]}
+          returnTo={`/thread/${thread.id}-${thread.slug}`}
+        />
+      )}
     </main>
   )
 }
