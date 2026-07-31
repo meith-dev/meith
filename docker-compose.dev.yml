@@ -1,0 +1,62 @@
+# A Postgres for local development. Nothing else.
+#
+# Separate from `docker-compose.yml`, which is F04's *self-hosted deployment* —
+# web, worker, migrations and a database, configured the way a real board runs.
+# This file is the other thing entirely: a database to point `pnpm dev` at while
+# working on the code, with the app running on the host.
+#
+# Usage:
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   pnpm forum migrate
+#   echo "<password>" | pnpm forum user:create --username you --email you@example.test
+#   pnpm forum user:promote --user you --group administrators
+#
+# and in apps/forum/.env:
+#
+#   DATA_SOURCE=postgres
+#   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/forum_test
+#
+# To seed a board's worth of content, `@forum/testkit`'s `seedBoard()` is the
+# deterministic seeder the test suite uses — same seed, same board — followed by
+# `pnpm forum task:run counters.reconcile`, because the seeder writes rows and
+# not the denormalised counters the listings read.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    # A fixed name so `docker exec forum-pg psql …` works without looking it up,
+    # and so the container is recognisable among a machine's other databases.
+    container_name: forum-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: forum_test
+    ports:
+      # 55432, not 5432: a developer machine usually already has something on
+      # the default port, and silently connecting to the wrong database is a
+      # worse failure than a refused connection.
+      - '55432:5432'
+    volumes:
+      - forum-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d forum_test']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  # **Named, and named explicitly.**
+  #
+  # The postgres image declares `VOLUME /var/lib/postgresql/data`, so a container
+  # started without this still gets a volume — an *anonymous* one. Data survives
+  # a restart, and even `docker rm`, but the volume cannot be reattached to a new
+  # container on purpose and `docker volume prune` deletes it without asking.
+  # A local board is cheap to lose and annoying to rebuild.
+  #
+  # `name:` pins the exact volume rather than letting compose prefix it with the
+  # project directory, so `docker volume inspect forum-pgdata` finds it and a
+  # container started by hand can mount the same data.
+  forum-pgdata:
+    name: forum-pgdata
