@@ -30,9 +30,19 @@ export function buildMemberProfileView(
      * `canWarn` follows.
      */
     readonly customFields?: readonly { readonly label: string; readonly value: string }[]
+    /**
+     * Whether the viewer may write to this member (F60).
+     *
+     * Resolved by the page, like `canWarn`, and for the same reason. It is
+     * `pm.use` on the *viewer* only: whether the recipient can receive is a
+     * question the send path asks with a fresh answer, and a profile that hid
+     * the link for a member whose store is momentarily full would be a worse
+     * lie than a send that explains itself.
+     */
+    readonly canMessage?: boolean
   } = {},
 ): MemberProfileModel {
-  const { canWarn = false, timeZone, customFields = [] } = options
+  const { canWarn = false, canMessage = false, timeZone, customFields = [] } = options
   return {
     user: { userId: profile.id, username: profile.username, profileHref: memberHref(profile.id) },
     avatarUrl: null,
@@ -58,8 +68,20 @@ export function buildMemberProfileView(
       profile.bio === null ? null : { label: 'About', value: profile.bio },
       ...customFields,
     ].filter((field): field is { label: string; value: string } => field !== null),
-    actions: canWarn
-      ? [{ label: 'Warn this member', href: `/moderation/warn?user=${profile.id}` }]
-      : [],
+    actions: [
+      ...(canMessage
+        ? [
+            {
+              label: 'Send a message',
+              /* The username, not the id: the composer resolves names, which is
+                 also what a member typing one by hand supplies. */
+              href: `/messages/compose?to=${encodeURIComponent(profile.username)}`,
+            },
+          ]
+        : []),
+      ...(canWarn
+        ? [{ label: 'Warn this member', href: `/moderation/warn?user=${profile.id}` }]
+        : []),
+    ],
   }
 }

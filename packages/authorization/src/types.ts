@@ -127,6 +127,18 @@ export type Action =
   | 'flood.bypass'
 
 /**
+ * The global numeric permissions, derived from the registry (F60).
+ *
+ * Derived rather than listed so a numeric field added to `PERMISSION_FIELDS`
+ * is immediately readable through `Authorizer.globalLimit`, and a field that
+ * stops being numeric stops compiling at its call sites rather than silently
+ * returning a boolean where a count was expected.
+ */
+export type NumericGlobalPermission = {
+  [K in keyof PermissionSet]: PermissionSet[K] extends number ? K : never
+}[keyof PermissionSet]
+
+/**
  * The visibility state of a piece of content.
  *
  * Re-exported from `@forum/core` rather than declared again: F47 made the

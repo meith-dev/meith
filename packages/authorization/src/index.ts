@@ -13,6 +13,7 @@ export type {
   ContentVisibility,
   ForumOverride,
   GroupDefaults,
+  NumericGlobalPermission,
   Target,
   Visible,
 } from './types'

@@ -92,6 +92,15 @@ const POST = {
   /* F49. Seeded true for Registered in migration `0001`, like the rest. */
   canReportContent: true,
   /*
+   * F60. Also seeded true for Registered in `0001` — the fixture simply never
+   * carried it, because nothing read it until now. Same class of drift as the
+   * three negative fields below, and the same fix: the fixture claims to mirror
+   * the seeded ladder, so it has to.
+   */
+  canUsePrivateMessages: true,
+  /* The storage quota migration `0011` gives Registered. */
+  privateMessageQuota: 100,
+  /*
    * The three negative fields, matching migration `0001_seed_usergroups`.
    *
    * They were missing here, and the fixture inherited `emptyPermissionSet()`'s

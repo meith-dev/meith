@@ -72,7 +72,7 @@ export async function fileReportAction(
      * row's forum can answer, and reporting something you cannot see would be a
      * way to confirm it exists.
      */
-    target = await reports.resolveTarget(kind, targetId)
+    target = await reports.resolveTarget(kind, targetId, actor.userId)
     if (target === null) throw new ValidationError('That does not exist.')
 
     if (target.forumId !== null) {
@@ -80,9 +80,14 @@ export async function fileReportAction(
       if (!authorizer.can(actor, 'thread.view', { forumId: target.forumId, forum: matrix })) {
         throw new ValidationError('That does not exist.')
       }
-    } else {
+    } else if (kind === 'user') {
       authorizer.require(actor, 'profile.view')
     }
+    /*
+     * A private message has no forum and needs no third check: `resolveTarget`
+     * only returns one this member holds a copy of (F60), which is a stronger
+     * statement than any permission could make about it.
+     */
 
     const outcome = await new ReportService({ reports }).file({
       kind,

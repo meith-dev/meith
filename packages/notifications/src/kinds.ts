@@ -121,6 +121,40 @@ export const NOTIFICATION_KINDS = [
     emailConfigurable: true,
   },
   {
+    id: 'pm.received',
+    title: 'You receive a private message',
+    description:
+      'Somebody sends you a private message. The notification carries who ' +
+      'from and the subject, never the message itself.',
+    audience: 'member',
+    /*
+     * On by default. A private message is addressed to one person and is the
+     * one kind nobody else will mention to them — MyBB's "e-mail notification
+     * of new PM" is on by default for the same reason.
+     *
+     * The body is deliberately not carried: a notification row survives the
+     * deletion of what caused it (F55), and a member who deletes a message
+     * should not find its text still sitting in their notification centre.
+     */
+    emailByDefault: true,
+    emailConfigurable: true,
+  },
+  {
+    id: 'pm.receipt',
+    title: 'A message you asked to track is read',
+    description:
+      'Somebody opens a private message you sent with a read receipt ' +
+      'requested. Raised once, on the first read.',
+    audience: 'member',
+    /*
+     * Off by default. The sender already asked to be told and can see the read
+     * time on the message itself; a mail for each of five recipients opening
+     * one announcement is a mailbox full of nothing.
+     */
+    emailByDefault: false,
+    emailConfigurable: true,
+  },
+  {
     id: 'system.task_failed',
     title: 'A scheduled task fails',
     description:

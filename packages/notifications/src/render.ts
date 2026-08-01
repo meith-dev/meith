@@ -187,6 +187,30 @@ const TEMPLATES: Readonly<
     }
   },
 
+  'pm.received': (data) => {
+    const from = str(data, 'fromUsername', 'Somebody')
+    const subject = str(data, 'subject', 'a private message')
+    return {
+      subject: `New private message from ${from}`,
+      /*
+       * The subject line, never the message. A notification row outlives the
+       * thing that caused it (F55), so carrying the body would leave a copy of
+       * a deleted private message sitting in the notification centre — and in
+       * an e-mail the member may have declined for messages themselves.
+       */
+      body: `“${subject}”`,
+    }
+  },
+
+  'pm.receipt': (data) => {
+    const by = str(data, 'byUsername', 'The recipient')
+    const subject = str(data, 'subject', 'your message')
+    return {
+      subject: `${by} read your message`,
+      body: `“${subject}” has been read.`,
+    }
+  },
+
   'system.task_failed': (data) => {
     const taskId = str(data, 'taskId', 'a scheduled task')
     const error = str(data, 'error')

@@ -43,7 +43,7 @@ export default async function ReportPage({
    * but showing it for something this member cannot see would confirm the
    * thing exists — so the check happens here too.
    */
-  const target = await reports.resolveTarget(kind, targetId)
+  const target = await reports.resolveTarget(kind, targetId, actor.userId)
   if (target === null) notFound()
   if (target.forumId !== null) {
     const matrix = await authorizer.forumMatrix(actor, target.forumId)
@@ -53,7 +53,11 @@ export default async function ReportPage({
   }
 
   const what =
-    kind === 'user' ? `the member ${target.label}` : `“${target.label}”`
+    kind === 'user'
+      ? `the member ${target.label}`
+      : kind === 'private_message'
+        ? `the private message “${target.label}”`
+        : `“${target.label}”`
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">

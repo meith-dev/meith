@@ -109,7 +109,7 @@ export function buildHeaderModel(
  */
 export function buildUserPanelModel(
   viewer: ViewerModel,
-  options: { unreadNotifications?: number } = {},
+  options: { unreadNotifications?: number; unreadMessages?: number } = {},
 ): UserPanelModel {
   const links: readonly LinkModel[] = viewer.isGuest
     ? [
@@ -129,6 +129,12 @@ export function buildUserPanelModel(
            * count beside it is the part that varies.
            */
           { label: 'Notifications', href: '/notifications' },
+          /*
+           * F60. Beside the notification centre, and for the same reason: a
+           * mailbox is somewhere a member goes to check rather than somewhere
+           * they are sent, so the link is always there and only the count moves.
+           */
+          { label: 'Messages', href: '/messages' },
           /* F56. Beside the centre, because the two answer each other's question. */
           { label: 'Subscriptions', href: '/subscriptions' },
           ...(viewer.canAccessModCp
@@ -150,11 +156,12 @@ export function buildUserPanelModel(
     viewer,
     links,
     /*
-     * F55 supplies the first; F60's private messages will supply the second.
-     * Zero renders nothing, which is the correct empty state.
+     * F55 supplies the first, F60 the second. Zero renders nothing, which is
+     * the correct empty state — and is what a guest, a board with no store, and
+     * a failed count all resolve to.
      */
     unreadNotifications: options.unreadNotifications ?? 0,
-    unreadMessages: 0,
+    unreadMessages: options.unreadMessages ?? 0,
   }
 }
 

@@ -3,6 +3,7 @@ import type { Actor } from '@forum/authorization'
 
 import { LogoutForm } from '@/components/account/logout-form'
 import { getContainer } from '@/server/container'
+import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
@@ -87,6 +88,13 @@ export async function PageShell({
   const unreadNotifications = await unreadNotificationCount(actor.userId)
 
   /*
+   * F60's badge, filling a `UserPanelModel` field the theme contract has
+   * carried since F27 with nothing to put in it. Same shape and same costs as
+   * the count above, over its own partial index.
+   */
+  const unreadMessages = await unreadMessageCount(actor.userId)
+
+  /*
    * F57. The zone the footer names, and the one every timestamp on the page was
    * formatted in — resolved once per request and shared with the page body
    * through `React.cache`, so this costs no second read.
@@ -96,7 +104,7 @@ export async function PageShell({
   return (
     <Shell boardTitle={header.boardTitle} viewer={viewer}>
       <Header {...header}>
-        <UserPanel {...buildUserPanelModel(viewer, { unreadNotifications })}>
+        <UserPanel {...buildUserPanelModel(viewer, { unreadNotifications, unreadMessages })}>
           {/*
            * Only for a signed-in viewer, and only as a form: log out is a POST to
            * a Server Action, which cannot cross into the theme as data. A theme

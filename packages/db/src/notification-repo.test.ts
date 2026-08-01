@@ -319,7 +319,7 @@ describe('delivery lookup', () => {
     const rows = resultRows(
       await db.execute(sql`
         insert into notifications (user_id, kind, data)
-        values (${IVAN}, 'pm.received', '{}'::jsonb)
+        values (${IVAN}, 'poll.closed', '{}'::jsonb)
         returning id
       `),
     ) as Array<{ id: number }>

@@ -54,8 +54,8 @@ describe('warning.received', () => {
 
 describe('a row this build did not write', () => {
   it('renders an unknown kind as itself rather than throwing', () => {
-    const view = render({ kind: 'pm.received', data: {} })
-    expect(view.subject).toContain('pm.received')
+    const view = render({ kind: 'poll.closed', data: {} })
+    expect(view.subject).toContain('poll.closed')
     expect(view.body).toBe('')
   })
 

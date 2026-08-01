@@ -3277,3 +3277,133 @@ cannot change mid-render.
 - **No file or date types.** A file is F42's problem (and its runtime
   dependency); a date needs a timezone answer per field, and F57's board-wide
   one is not obviously right for "when did you join the clan".
+
+### D59 — A message stored once, and the four things that follow (F60)
+
+**Plan:** "No-JS private messages: multiple recipients, folders/tracking/
+receipts/quota/forward/reply/mass actions/reporting."
+
+#### The message is stored once; each participant owns a copy
+
+MyBB stores a row *per copy*: the sender's Sent Items and every recipient's
+Inbox each hold the full subject and body, so a message to twenty people is
+twenty copies of the text and re-rendering one is twenty writes.
+
+Here `private_messages` holds the content and `private_message_copies` holds a
+small row per person — folder, role, read time. Four things follow from that
+single decision, and they are the feature:
+
+- **Quota counts copies**, which is the thing a member can actually delete. A
+  quota over duplicated bodies counts something the member never sees.
+- **F36's render cache works unchanged.** The body carries `message_html` and
+  `render_version` exactly as `posts` does, so bumping `RENDER_VERSION` for a
+  renderer security fix invalidates private messages too, on the next page
+  load, with no migration and no second code path anybody has to remember.
+- **Deleting your copy cannot reach into somebody else's mailbox.** The message
+  row is deliberately left behind while anybody still holds a copy; a message
+  nobody holds is an orphan, and pruning orphans is F70's job rather than a
+  cascade nobody can see coming.
+- **A unique index on (message, owner)** makes one person holding two copies
+  impossible — which is what lets the service dedupe recipients rather than
+  handle a duplicate, and why sending to yourself is *refused* rather than
+  modelled as a second row.
+
+The cost is a join on every listing, which the two indexes exist for.
+
+#### Ownership is part of the query, never a check on the result
+
+Every read and write in `PostgresMessageRepository` carries the acting member's
+id in its `where` clause. There is no shape in the file that fetches a message
+and then decides whether the caller should have it — that works until somebody
+moves the filter, and the failure is silent and total.
+
+It is what makes the bulk actions safe: the ids in the form are copy ids anybody
+can post, and a copy id from another mailbox matches nothing rather than being
+caught. Mutation-verified in both directions — dropping `owner_user_id` from the
+update, and treating an empty selection as "all of them".
+
+`forReport` is the single exception and is discussed below.
+
+#### Staff cannot browse private messages; a report opens exactly one
+
+Reporting is the only way a moderator ever reads a private message, and F60 adds
+`private_message` to F49's target kinds to say so in the type system.
+
+Three things make it narrow. `resolveTarget` gained a `reporterUserId`
+parameter, used by exactly this one branch: **a private message "exists" only
+for somebody who holds a copy of it**, so reporting a message you were not sent
+gives the same answer as reporting one that is not there. The report carries no
+forum, so it routes to `modcp.access` like a member report rather than to some
+forum's staff. And the queue screen fetches the reported bodies *by id*, for the
+reports on that page only — there is no listing, no search, and no way to reach
+the message beside it.
+
+The body is shown as **source, as plain text**, not as rendered HTML: a
+moderator deciding what somebody sent should see what they typed, and a staff
+screen gains nothing from a second rendering surface for attacker-controlled
+markup.
+
+#### Bcc is enforced in SQL, not in the caller
+
+A bcc recipient is visible to the author and to themselves, and to nobody else.
+The folder listing does that filtering **inside the lateral aggregate** that
+builds the counterparty column, so no listing path can forget it; `detail`
+returns every participant unfiltered and the *service* applies the same rule,
+because who the viewer may see is a domain decision rather than a query one.
+
+Both are mutation-verified, because this is the kind of leak that is invisible
+until somebody notices they were named.
+
+Reply therefore addresses **the author only**, never the other recipients.
+"Reply all" would let somebody who was bcc'd reveal themselves by accident, and
+a reply that quietly grows its audience is not what the button promises.
+
+#### Quota is storage; the existing permission was a rate
+
+`maxPrivateMessagesPerDay` has existed since F22 and caps *sends per day*.
+`privateMessageQuota` is new and caps how many a member may **keep** — which is
+what a full inbox means. Both are global numerics, so the F22 forum matrix is
+untouched.
+
+The check runs for the sender and for every recipient before anything is
+written, and the send is **all-or-nothing**: a message to five people where one
+is full sends to nobody. Partial delivery would leave the sender with a Sent
+copy claiming it went somewhere it did not.
+
+A full recipient is **named**. Their full box is not a secret worth keeping
+against the alternative — a sender who believes a message was delivered and a
+recipient who never sees it.
+
+Trash counts toward the quota. That is what makes "empty your trash" the actual
+remedy rather than a gesture, and it stops the trash being an unbounded second
+mailbox.
+
+#### `Authorizer.globalLimit`, because a limit is still a permission
+
+`@forum/messages` knows nothing about groups (F20), so "may they receive" and
+"how many may they keep" are asked in the app's `MessagePolicy` — through
+`can(actor, 'pm.use')` and a new `globalLimit(actor, 'privateMessageQuota')`.
+
+The accessor exists for the same reason `flood.bypass` is an *action* rather
+than a permission field read at the call site: group and permission reasoning
+does not leave that package (R4), and a caller that reaches into `actor.global`
+for one number will reach in for a boolean next. It returns the value already
+combined by R4.2's rule for numerics — MAX, with 0 meaning unlimited — and its
+key type is *derived* from the registry, so a field that stops being numeric
+stops compiling at its call sites.
+
+Administrators are deliberately not special-cased: a limit is not a gate, and
+the seeded ladder already gives staff groups 0.
+
+#### What is deliberately not here
+
+- **Custom folders.** Three system folders (inbox, sent, trash). MyBB's
+  user-defined ones need a management screen and a move-to picker over an
+  unbounded list; the three below are what makes the feature work.
+- **Drafts.** F44 owns them and has no table. A drafts folder here would need
+  the recipient list stored before a message has one — a different shape, for a
+  different feature.
+- **Message search.** F62 owns search.
+- **"Reply all"**, for the bcc reason above.
+- **Attachments on a message.** F42, and its runtime dependency.
+- **An ignore list.** F61 depends on this feature and owns the PM block.

@@ -22,6 +22,8 @@ import { IdentityService, SessionService, createMemoryStore } from '@forum/accou
 import type { MemoryAppointment, MemoryBoard } from '@forum/authorization'
 import { Authorizer, InMemoryAuthorizationSource } from '@forum/authorization'
 
+import { FixtureActorSource } from './fixture-actor-source'
+
 import { FIXTURE_DATA_VERSION, SEED_BOARD } from './seed-board'
 
 /**
@@ -98,6 +100,7 @@ export function installTestContainer(
     subscriptions: null,
     memberSettings: null,
     profileFields: null,
+    messages: null,
     /*
      * F57's credential store, plus the two services built over it.
      *
@@ -149,6 +152,14 @@ export function installTestContainer(
 function identityOver(store: ReturnType<typeof createMemoryStore>) {
   return {
     accountStore: store,
+    /*
+     * The same `ActorSource` fixture mode wires, over the same store. It was
+     * missing until F60 needed it: nothing in the app tier had built an actor
+     * for *somebody else* before — every screen resolves the viewer's actor
+     * through `getActor`, which tests mock. F60's message policy asks about the
+     * recipient, and an absent source threw rather than answering.
+     */
+    actorSource: new FixtureActorSource(store),
     identity: new IdentityService({
       store,
       config: {

@@ -254,6 +254,10 @@ describe('preferences', () => {
       ['report.actioned', false, true],
       ['subscription.reply', true, true],
       ['subscription.digest', true, true],
+      /* F60. On by default for a message, off for a receipt: the sender already
+         asked to be told and can see the read time on the message itself. */
+      ['pm.received', true, true],
+      ['pm.receipt', false, true],
     ])
   })
 

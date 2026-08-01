@@ -124,6 +124,9 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../../packages/groups
+      '@forum/messages':
+        specifier: workspace:*
+        version: link:../../packages/messages
       '@forum/moderation':
         specifier: workspace:*
         version: link:../../packages/moderation
@@ -278,6 +281,9 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../groups
+      '@forum/messages':
+        specifier: workspace:*
+        version: link:../messages
       '@forum/moderation':
         specifier: workspace:*
         version: link:../moderation
@@ -347,6 +353,15 @@ importers:
         version: link:../core
 
   packages/groups: {}
+
+  packages/messages:
+    dependencies:
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../bbcode
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/moderation:
     dependencies:

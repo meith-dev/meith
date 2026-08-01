@@ -23,7 +23,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   if (id === null) notFound()
 
   const actor = await getActor()
-  const { authorizer, memberProfiles, warnings } = getContainer()
+  const { authorizer, memberProfiles, messages, warnings } = getContainer()
   if (!authorizer.can(actor, 'profile.view')) notFound()
 
   const profile = await memberProfiles.findPublicById(id)
@@ -56,6 +56,17 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
               warnings !== null &&
               actor.userId !== id &&
               authorizer.can(actor, 'user.warn'),
+            /*
+             * F60. Gated on the store as well as the permission, like `canWarn`
+             * above, and never offered on your own profile — the service
+             * refuses a message to yourself, so a link to one would only ever
+             * lead to a refusal.
+             */
+            canMessage:
+              messages !== null &&
+              actor.userId !== null &&
+              actor.userId !== id &&
+              authorizer.can(actor, 'pm.use'),
             /* F57: the *viewer's* zone, so "joined" reads in their local time. */
             timeZone: preferences.timezone,
             /* F59's operator-defined fields, after F57's three fixed ones. */

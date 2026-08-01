@@ -35,6 +35,7 @@
       "@forum/moderation/*": ["../../packages/moderation/src/*"],
       "@forum/posts": ["../../packages/posts/src/index.ts"],
       "@forum/profile-fields": ["../../packages/profile-fields/src/index.ts"],
+      "@forum/messages": ["../../packages/messages/src/index.ts"],
       "@forum/posts/*": ["../../packages/posts/src/*"],
       "@forum/bbcode": ["../../packages/bbcode/src/index.ts"],
       "@forum/bbcode/*": ["../../packages/bbcode/src/*"],

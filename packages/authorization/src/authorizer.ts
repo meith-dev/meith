@@ -22,6 +22,7 @@ import type {
   Action,
   Actor,
   AuthorizationSource,
+  NumericGlobalPermission,
   Target,
   Visible,
 } from './types'
@@ -486,6 +487,30 @@ export class Authorizer {
       seesUnapproved: this.can(actor, 'content.viewUnapproved', target),
       seesDeleted: this.can(actor, 'content.viewDeleted', target),
     })
+  }
+
+  /**
+   * A resolved global numeric limit (F60).
+   *
+   * The counterpart of `can()` for the fields that answer "how many" rather
+   * than "may they". It exists for the same reason `flood.bypass` is an action
+   * rather than a permission field read at the call site: group and permission
+   * reasoning does not leave this package (R4), and a caller that reaches into
+   * `actor.global` for one number will reach in for a boolean next.
+   *
+   * The value is already combined across the actor's groups by R4.2's rule for
+   * numerics — **MAX, with 0 meaning unlimited and beating everything** — so a
+   * caller must treat 0 as no limit rather than as a limit of zero. Every
+   * numeric permission on this board means that, and the one place it could be
+   * got wrong is a caller that writes `stored >= quota`.
+   *
+   * An administrator is not special-cased here. A limit is not a gate, and the
+   * ladder already gives staff groups 0; inventing a bypass would make the
+   * configured number a lie for exactly the people who set it.
+   */
+  globalLimit(actor: Actor, key: NumericGlobalPermission): number {
+    const value = actor.global[key]
+    return typeof value === 'number' ? value : 0
   }
 
   /** Drop rows in forums the actor cannot view. Synchronous: caller supplies the visible set. */

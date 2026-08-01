@@ -84,6 +84,11 @@ export function userCpSections(): readonly UserCpSection[] {
       link: { label: 'Manage subscriptions', href: '/subscriptions' },
     },
     {
+      title: 'Private messages',
+      description: 'Your inbox, and what you have sent.',
+      link: { label: 'Open your messages', href: '/messages' },
+    },
+    {
       title: 'Notifications',
       description: 'Which of them also reach you by e-mail.',
       link: { label: 'Notification preferences', href: '/notifications/preferences' },

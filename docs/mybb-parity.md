@@ -731,3 +731,89 @@ members who filled in two.
 **Cost:** a column-per-field table is one join cheaper to read. It is also a
 schema migration every time an operator adds a field, which is the trade MyBB
 made and this does not.
+
+## A private message is stored once, not once per recipient
+
+**MyBB:** `privatemessages` holds a row per copy — the sender's Sent Items and
+each recipient's Inbox carry the full subject and body.
+
+**Here:** `private_messages` holds the content and `private_message_copies`
+holds one small row per participant.
+
+**Why:** a message to twenty people is otherwise twenty copies of the text, and
+re-rendering one is twenty writes. It also makes quota count *copies* — the
+thing a member can actually delete — and lets F36's render cache invalidate
+private messages the same way it invalidates posts, on the next page load,
+with no migration.
+
+**Cost:** a join on every folder listing, which the folder and message indexes
+exist for. And a message everybody has deleted leaves an orphan row rather than
+disappearing by cascade — deliberately, because deleting *your* copy must not
+reach into somebody else's mailbox. Pruning orphans belongs to F70.
+
+## The quota is storage; the daily cap is separate
+
+**MyBB:** `pmquota` caps stored messages and there is no separate send rate for
+most groups.
+
+**Here:** two numbers. `max_private_messages_per_day` has existed since the
+initial schema and caps sends; `private_message_quota` caps what a member may
+keep. Both are 0-means-unlimited like every other numeric permission, combined
+by MAX across groups (R4.2).
+
+**Why:** they answer different abuse questions. A rate limit slows a spammer; a
+storage limit bounds what the board pays to keep. Collapsing them means a board
+that wants to allow a hundred stored messages must also allow a hundred a day.
+
+**Cost:** one more column on `usergroups`, and an operator has two numbers to
+think about instead of one. The seeded ladder sets both, so a board nobody
+configures behaves sensibly.
+
+## A full inbox refuses the whole send, and names who is full
+
+**MyBB:** a send to a member over quota fails and reports it.
+
+**Here:** the same, extended to multiple recipients — if any one of them is
+full, **nothing is sent to anybody**, and every full recipient is named.
+
+**Why:** partial delivery leaves the sender with a Sent copy claiming a message
+went somewhere it did not, and no answer to "did it send?". Naming the full
+recipient trades a small disclosure (their box is full) against the much worse
+failure of a sender who believes they were heard.
+
+**Cost:** one member with a full box blocks a message to nine others until the
+sender removes their name. That is the intended outcome, and the message says
+which name to remove.
+
+## Reporting is the only way staff read a private message
+
+**MyBB:** a reported PM is copied into the report, and administrators with
+database access can read any message.
+
+**Here:** there is no listing, no search and no browse path into private
+messages at all. `forReport` takes an id and is reached only from an existing
+report row, so a moderator reads exactly what was reported and nothing beside
+it. A message can only be reported by somebody who holds a copy of it, which is
+also what makes "not yours" and "does not exist" the same answer.
+
+**Why:** a moderation tool that can enumerate private messages is a
+surveillance tool with a moderation feature attached.
+
+**Cost:** a moderator cannot see the rest of a conversation for context — only
+the message that was reported. Reporting each message is the way to give them
+more, which is also the way the member chooses what staff see.
+
+## Reply addresses the author, not everybody on the message
+
+**MyBB:** reply addresses the sender; a separate "reply to all" addresses
+everyone.
+
+**Here:** reply addresses the author, and there is no reply-all.
+
+**Why:** bcc. A recipient who was bcc'd is hidden from the other recipients, and
+a reply-all composed by one of them would either leak that name or silently drop
+somebody — and whichever it did, it would do it without the member noticing. A
+message that quietly grows its audience is not what a reply button should mean.
+
+**Cost:** answering a group conversation means typing the other names, which the
+composer shows in the "To" line of the message being replied to.

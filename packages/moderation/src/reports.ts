@@ -15,7 +15,7 @@
  */
 import { ValidationError } from '@forum/core'
 
-export const REPORT_TARGET_KINDS = ['post', 'thread', 'user'] as const
+export const REPORT_TARGET_KINDS = ['post', 'thread', 'user', 'private_message'] as const
 export type ReportTargetKind = (typeof REPORT_TARGET_KINDS)[number]
 
 export type ReportStatus = 'open' | 'resolved' | 'rejected'
@@ -27,7 +27,7 @@ export const REASON_MAX = 1000
 export interface ReportTarget {
   readonly kind: ReportTargetKind
   readonly id: number
-  /** Null for a user report: a member does not live in a forum. */
+  /** Null for a user or private-message report: neither lives in a forum. */
   readonly forumId: number | null
   readonly threadId: number | null
   /** Captured now, because the target may be edited or removed afterwards. */
@@ -86,8 +86,18 @@ export interface ReportScope {
 }
 
 export interface ReportRepository {
-  /** Resolve what a report points at. Null when it does not exist. */
-  resolveTarget(kind: ReportTargetKind, id: number): Promise<ReportTarget | null>
+  /**
+   * Resolve what a report points at. Null when it does not exist.
+   *
+   * `reporterUserId` is passed because for one kind the two questions are the
+   * same one: a private message "exists" only for somebody who holds a copy of
+   * it (F60). The other kinds ignore it — a post is a post whoever is looking.
+   */
+  resolveTarget(
+    kind: ReportTargetKind,
+    id: number,
+    reporterUserId: number,
+  ): Promise<ReportTarget | null>
 
   /**
    * File it. Returns null when this reporter already has an open report against
@@ -183,7 +193,11 @@ export class ReportService {
       throw new ValidationError(`A reason may be at most ${REASON_MAX} characters.`)
     }
 
-    const target = await this.reports.resolveTarget(input.kind, input.targetId)
+    const target = await this.reports.resolveTarget(
+      input.kind,
+      input.targetId,
+      input.reporterUserId,
+    )
     if (target === null) throw new ValidationError('That does not exist.')
 
     /*

@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D58. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D59. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -20,7 +20,7 @@ this file.
 `pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
 + **guard probes**, the **slot server/client boundary** check + its probe,
 dependency-cruiser (386 modules, 0 violations), typecheck (root **and** app),
-**2178 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+**2264 tests** (a large share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
 `/notifications/preferences`, `/subscriptions`, `/unsubscribe` and the five
@@ -520,37 +520,112 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
 
   See **D58** and three `mybb-parity.md` entries.
 
+- **F60 · private messaging.** The biggest single feature in Phase 5, and
+  almost all of it falls out of one decision made in the migration: **the
+  message is stored once, and each participant owns a copy of it.**
+
+  MyBB stores a row per copy, so a message to twenty people is twenty copies of
+  the body. Splitting it gives four things at once. Quota counts *copies*, which
+  is the thing a member can actually delete. F36's render cache works unchanged
+  — `message_html` and `render_version` sit on the message exactly as they sit
+  on a post, so bumping `RENDER_VERSION` for a renderer security fix reaches
+  private messages on the next page load, with no migration and no second code
+  path to remember. Deleting your copy cannot reach into somebody else's
+  mailbox. And a unique index on (message, owner) is what lets the service
+  *dedupe* recipients rather than handle a duplicate — which is also why sending
+  to yourself is refused rather than modelled as a second row.
+
+  The rule that makes the whole thing safe is that **ownership is part of the
+  query**. Every read and write carries the acting member's id in its `where`
+  clause; nothing fetches a message and then decides whether the caller should
+  have it. That shape works right up until somebody moves the filter, and the
+  failure is silent and total. It is what makes the bulk action bar safe at all
+  — its ids are form values anybody can post, and one from another mailbox
+  matches nothing rather than being caught by a check.
+
+  **Bcc is enforced in SQL**, inside the lateral aggregate that builds the
+  folder listing's counterparty column, so no listing path can forget it. The
+  detail read returns everybody unfiltered and the *service* applies the same
+  rule, because who the viewer may see is a domain decision rather than a query
+  one. Both halves are mutation-verified, because this is the kind of leak that
+  is invisible until somebody notices they were named. It is also why there is
+  no reply-all: reply addresses the author, and a reply that quietly grows its
+  audience would either leak a bcc'd name or silently drop somebody.
+
+  Quota turned out to be a *second* number rather than the one that existed.
+  `maxPrivateMessagesPerDay` has been in the permission registry since F22 and
+  is a send rate; `privateMessageQuota` is storage. It is checked for the sender
+  and every recipient before anything is written, the send is all-or-nothing,
+  and a full recipient is **named** — their full box is not a secret worth
+  keeping against a sender who believes they were heard. Trash counts toward it,
+  which is what makes "empty your trash" the actual remedy.
+
+  Reading a limit needed a new accessor, `Authorizer.globalLimit`, for the same
+  reason `flood.bypass` is an action rather than a permission field read at the
+  call site: group and permission reasoning does not leave that package, and a
+  caller that reaches into `actor.global` for one number will reach in for a
+  boolean next.
+
+  The last piece is **reporting, which is the only way staff ever read a private
+  message**. F49 gained a `private_message` kind, and `resolveTarget` gained a
+  `reporterUserId` — because for that one kind the message "exists" only for
+  somebody who holds a copy, so "not yours" and "does not exist" give the same
+  answer. The queue fetches reported bodies by id, for the reports on that page
+  only: no listing, no search, no way to reach the message beside it, and the
+  body shown as source rather than rendered. A moderation tool that can
+  enumerate private messages is a surveillance tool with a moderation feature
+  attached.
+
+  See **D59** and five `mybb-parity.md` entries.
+
+### Two things F60 found that had been wrong for a while
+
+**The fixture ladder had drifted from the seeded one again.** `seed-board.ts`
+claims to mirror migration `0001`, and it was missing `canUsePrivateMessages` —
+seeded true for Registered since `0001`, never carried in the fixture because
+nothing read it. Exactly the class of drift the file's own comment records about
+the three negative fields. Fixed, along with the new quota.
+
+**The test container had no `ActorSource`.** Nothing in the app tier had ever
+built an actor for *somebody else* — every screen resolves the viewer's through
+`getActor`, which tests mock. F60's message policy asks about the recipient, and
+an absent source threw. `installTestContainer` now wires the same
+`FixtureActorSource` fixture mode does, over the same store.
+
+**And one weak test, caught by mutation testing.** "Refuses a sender whose
+groups do not allow private messages" passed with the permission check deleted:
+it used a user id with no account, so the "you must be logged in" branch fired
+first and the assertion only checked that *some* error came back. Now it uses a
+real account in a group without the grant and asserts the exact message, and the
+mutant dies.
+
 ## NEXT ACTION — resume here
 
-**Phase 5 is four of eight.** F55 gave the board a way to tell somebody
-something, F56 gave it the thing most worth telling them, F57 gave the member
-the controls, and F59 gave the operator the ability to ask their own questions.
+**Phase 5 is five of eight**, and the three that remain split cleanly.
 
-**Two things remain in this phase, and both wait on the same thing.**
+**F61 · buddy and ignore lists** is now **unblocked** — F60 was its dependency,
+and the PM-block half has a message path to block. It needs no new runtime
+dependency and is the natural next step in plan order.
 
-**F58 · avatars and signatures** is blocked on F42 (attachments), which is
-`TODO`. An avatar is an upload, and uploads need the route-handler FileStore
-path, magic-byte validation, and the quota/orphan-cleanup story F42 owns —
-`S3FileStore` passing a contract suite is not a board that can accept a file.
-F59 was taken ahead of it precisely because it needed nothing that did not
-exist.
+**F62 · reputation** likewise needs nothing new.
 
-**F42 · attachments** is therefore the next real decision, and it is a human's:
-it needs image re-encoding, which is a **runtime dependency**, and the roadmap's
-own rule is to stop for a decision before adding one. The specific trap is
-already recorded above — *do not add `sharp` to `onlyBuiltDependencies`*: its
-postinstall makes `next build` fail at prerender. So the choice is between
-finding a re-encoder that does not break the build, accepting stored originals
-with strict magic-byte validation and no re-encode, or deferring F42 and moving
-to **F60 · private messaging**, which needs no new dependency and unblocks
-nothing else.
+**F58 · avatars and signatures** is still blocked on F42 (attachments), and
+**F42 itself still needs a human decision**: it requires image re-encoding,
+which is a runtime dependency, and the roadmap's rule is to stop for a decision
+before adding one. The specific trap is recorded above — *do not add `sharp` to
+`onlyBuiltDependencies`*, its postinstall makes `next build` fail at prerender.
+The options are unchanged: find a re-encoder that does not break the build,
+accept stored originals with strict magic-byte validation and no re-encode, or
+leave F42 until the rest of Phase 5 is done. The signature half of F58 — BBCode,
+group-limited, moderated — could be built today without F42; it is only the
+avatar that needs an upload.
 
-**Two F59 gaps to close when their owner arrives, both named rather than
-implied:** there is **no per-group editor in either surface** — the CLI creates
-a field with its defaults and says so, because flag soup for "staff may view but
-not edit" on a command line is worse than waiting for F71's screen — and fixture
-mode has no field store (D38), so the browser suite still cannot cover any of
-it.
+**Standing F60 gaps, named rather than implied:** no custom folders (three
+system ones; MyBB's user-defined folders need a management screen and a move-to
+picker over an unbounded list), no drafts (F44 has no table, and a drafts folder
+here would need a recipient list stored before a message has one), no message
+search (F62), no attachments (F42), and fixture mode has no message store (D38),
+so the browser suite still cannot cover any of it.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -648,7 +723,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D58). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D59). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

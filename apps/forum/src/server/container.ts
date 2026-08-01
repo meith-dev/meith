@@ -47,6 +47,7 @@ import type {
 } from '@forum/moderation'
 import type { NotificationRepository } from '@forum/notifications'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
+import type { MessageRepository } from '@forum/messages'
 import type { ProfileFieldRepository } from '@forum/profile-fields'
 import type { SubscriptionRepository } from '@forum/subscriptions'
 import type {
@@ -76,6 +77,7 @@ import {
   PostgresNotificationRepository,
   PostgresSubscriptionRepository,
   PostgresMemberSettingsRepository,
+  PostgresMessageRepository,
   PostgresProfileFieldRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
@@ -197,6 +199,13 @@ export interface Container {
    */
   readonly profileFields: ProfileFieldRepository | null
   /**
+   * Private messages (F60). `null` in fixture mode (D38): a message is
+   * addressed to one person and is the one thing on this board nobody else
+   * will mention to them, so a mailbox that empties on restart is worse than a
+   * board that plainly has no messaging.
+   */
+  readonly messages: MessageRepository | null
+  /**
    * The credential store behind identity (F17–F19).
    *
    * Exposed for F57's UserCP, which re-authenticates with the current password
@@ -306,6 +315,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     subscriptions: null,
     memberSettings: null,
     profileFields: null,
+    messages: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -407,6 +417,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     subscriptions: new PostgresSubscriptionRepository(db),
     memberSettings: new PostgresMemberSettingsRepository(db),
     profileFields: new PostgresProfileFieldRepository(db),
+    messages: new PostgresMessageRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -476,6 +487,7 @@ export function getContainer(): Container {
     cached.subscriptions === undefined ||
     cached.memberSettings === undefined ||
     cached.profileFields === undefined ||
+    cached.messages === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

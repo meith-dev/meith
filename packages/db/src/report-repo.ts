@@ -108,11 +108,50 @@ export class PostgresReportRepository implements ReportRepository {
    * they could not have seen, and a moderator has better tools than the report
    * button for content that is already held or removed — so this uses
    * `PUBLIC_CONTENT` for every actor rather than the reader's scope (F47).
+   *
+   * A private message is the exception that proves the rule (F60). It is not
+   * public and never will be, so "may this member report it" cannot be answered
+   * by a visibility scope — it is answered by the copy row: you may report a
+   * message you were sent. That is why `reporterUserId` is a parameter, and it
+   * is used by exactly this one branch.
    */
   async resolveTarget(
     kind: ReportTargetKind,
     id: number,
+    reporterUserId: number,
   ): Promise<ReportTarget | null> {
+    if (kind === 'private_message') {
+      /*
+       * The join to `private_message_copies` is the authorisation. Reporting a
+       * message you do not hold is indistinguishable here from reporting one
+       * that does not exist, which is the answer the id space should give.
+       */
+      const rows = resultRows(
+        await this.db.execute(sql`
+          select m.id, m.subject
+            from private_messages m
+            join private_message_copies c
+              on c.message_id = m.id and c.owner_user_id = ${reporterUserId}
+           where m.id = ${id}
+        `),
+      ) as Array<{ id: number; subject: string }>
+      const row = rows[0]
+      return row === undefined
+        ? null
+        : {
+            kind,
+            id: Number(row.id),
+            /*
+             * No forum, like a user report — so it routes to `modcp.access`
+             * rather than to a forum's moderators, which is right: a private
+             * message belongs to no forum's staff.
+             */
+            forumId: null,
+            threadId: null,
+            label: row.subject,
+          }
+    }
+
     if (kind === 'user') {
       const rows = resultRows(
         await this.db.execute(sql`

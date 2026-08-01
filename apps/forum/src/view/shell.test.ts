@@ -78,13 +78,29 @@ describe('buildUserPanelModel', () => {
     expect(panel.links.map((l) => l.href)).toEqual(['/login', '/register'])
   })
 
-  it('offers the member profile, notification and subscription routes', () => {
+  it('offers the member profile and every account route', () => {
     expect(buildUserPanelModel(buildViewerModel(member)).links).toEqual([
       { label: 'Profile', href: '/member/42' },
       { label: 'Your control panel', href: '/usercp' },
       { label: 'Notifications', href: '/notifications' },
+      /* F60. Always present rather than only when something is unread: a
+         mailbox is somewhere a member goes to check. */
+      { label: 'Messages', href: '/messages' },
       { label: 'Subscriptions', href: '/subscriptions' },
     ])
+  })
+
+  it('carries both unread counts, defaulting each to zero', () => {
+    const none = buildUserPanelModel(buildViewerModel(member))
+    expect(none.unreadNotifications).toBe(0)
+    expect(none.unreadMessages).toBe(0)
+
+    const some = buildUserPanelModel(buildViewerModel(member), {
+      unreadNotifications: 3,
+      unreadMessages: 2,
+    })
+    expect(some.unreadNotifications).toBe(3)
+    expect(some.unreadMessages).toBe(2)
   })
 
   it('offers a guest no notification centre', () => {
