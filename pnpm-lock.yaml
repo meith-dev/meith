@@ -78,6 +78,9 @@ importers:
       '@forum/forums':
         specifier: workspace:*
         version: link:../../packages/forums
+      '@forum/profile-fields':
+        specifier: workspace:*
+        version: link:../../packages/profile-fields
       '@forum/settings':
         specifier: workspace:*
         version: link:../../packages/settings
@@ -130,6 +133,9 @@ importers:
       '@forum/posts':
         specifier: workspace:*
         version: link:../../packages/posts
+      '@forum/profile-fields':
+        specifier: workspace:*
+        version: link:../../packages/profile-fields
       '@forum/settings':
         specifier: workspace:*
         version: link:../../packages/settings
@@ -278,6 +284,9 @@ importers:
       '@forum/notifications':
         specifier: workspace:*
         version: link:../notifications
+      '@forum/profile-fields':
+        specifier: workspace:*
+        version: link:../profile-fields
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
@@ -355,6 +364,12 @@ importers:
         version: link:../core
 
   packages/posts:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/profile-fields:
     dependencies:
       '@forum/core':
         specifier: workspace:*

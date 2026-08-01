@@ -18,6 +18,7 @@
     "@forum/drivers": "workspace:*",
     "@forum/events": "workspace:*",
     "@forum/forums": "workspace:*",
+    "@forum/profile-fields": "workspace:*",
     "@forum/settings": "workspace:*",
     "@forum/tasks": "workspace:*"
   },

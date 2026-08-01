@@ -3151,3 +3151,129 @@ Requiring a second click after they already clicked one buys nothing.
   e-mail footer points at the preferences screen — and a member who bookmarked
   one should not find it gone. The UserCP is where they are *findable*, which is
   what F57 owed them.
+
+### D58 — A field the operator invents, and the four places it has to be safe (F59)
+
+**Plan:** "Typed custom fields with per-group visibility/edit/registration
+requirements and themed profile/postbit slots."
+
+F57 gave a member three fields the *board* decided on. F59 hands the same idea
+to the operator, and the moment the field is operator-defined four questions
+that F57 could answer in its own code become data: what type is it, who may see
+it, who may change it, and is it asked at registration.
+
+#### The per-group half is F21's shape, deliberately
+
+`profile_field_groups` is a row per (field, group) with **nullable** `can_view`
+and `can_edit`, where NULL means "inherit the field's default" — the same shape
+`forum_permissions` has carried since F21, resolved by the same R4.2 rule that
+any group granting is a grant.
+
+That is not convenience. It is the model this board already resolves everywhere
+else, so "who can see this" has one mental shape rather than two. It is also
+what makes a single row useful: "staff may edit this" is one row saying
+`canEdit: true` for the staff group, not a row per group with `false` copied
+into every other one.
+
+Viewing and editing are two booleans rather than one visibility word because
+they are genuinely independent. A board can show a member's "how did you find
+us" to everyone while letting only staff write it, and a board can collect
+something only staff read — `editableFields` therefore does **not** require
+`canView`, which is the one asymmetry in the resolver and is mutation-verified.
+
+#### `Authorizer.applicableGroupRows` returns rows, never ids
+
+The resolver needs to know which of a field's per-group rows apply to the
+viewer, and F20/D13's lint rule says only `@forum/authorization` may reason
+about group IDs. The obvious escape hatch — hand the caller `actor.groupIds` —
+would end the rule in practice: every caller would then be free to invent its
+own combination semantics, and one of them would eventually get "any grant is a
+grant" backwards.
+
+So the Authorizer gained a generic narrowing instead. It takes the caller's own
+configuration rows, returns the subset this actor's groups matched, and hands
+back no ids at all. `@forum/profile-fields` combines those rows by R4.2 without
+ever learning who is in what.
+
+Registration is the one caller with no actor to narrow by — an applicant is not
+a member of anything, they are *about to become* a member of the board's
+configured default group. `applicableGroupRowsForGroups` takes explicit ids for
+exactly that case, and its ids must come from `AuthConfig`, never from an actor.
+The lint rule still refuses the read that would make it an escape hatch.
+
+#### A value is attacker-controlled text on a page other members read
+
+Four rules in `service.ts`, each of which exists because of what a field value
+*is*:
+
+- **A submitted field id is never trusted.** The save path resolves what this
+  actor may edit and writes only that, so posting somebody else's staff-only
+  field writes nothing — and is *dropped silently* rather than refused, because
+  an error naming the field would confirm the field exists.
+- **A `select` value must be one of the configured options.** Otherwise the
+  field is a free-text box wearing a dropdown.
+- **A `url` is normalised to http(s) or refused.** A profile field rendered as
+  a link is an attacker-controlled `href`; `javascript:` in one is the oldest
+  stored-XSS vector there is. Same argument F36 makes about `[url]` and F57
+  makes about the website field. A bare `example.com` gets `https://` rather
+  than a refusal, because nobody types the scheme.
+- **A value reaches the theme as plain text.** `PostAuthorModel.fields` and
+  `MemberProfileModel.fields` are `{label, value}` strings; no theme inserts a
+  member-supplied value as markup, which is F33's rule applied to a new source.
+
+An **unknown type validates and renders as text** rather than failing. The field
+was written by a deploy that knew a type this build does not, and refusing every
+save until somebody upgrades would let a downgrade lock members out of their own
+profile. Same reasoning as F55's rule about rows written by a previous deploy.
+
+#### An emptied field deletes its row
+
+`profile_field_values` stores an answer only once somebody gives one, and
+clearing one deletes the row rather than writing `''`. Otherwise every read on
+the board would have to treat "empty string" and "no row" as the same thing, and
+one of them would eventually forget. Both halves happen in one transaction, and
+the write is an upsert, so pressing Save twice after a slow response is the same
+as pressing it once.
+
+#### Registration validates before the account exists, and writes after
+
+`validateRegistration` returns the values to write without touching the
+repository; `applyRegistration` writes them once `identity.register` has
+returned an id. The split is what lets the form refuse a registration before it
+creates anything — refusing *after* would leave a member the board considers
+incomplete, with no screen that insists on it.
+
+The two are not in one transaction, because there is not one to join:
+`register` owns its own. The failure that remains is a usable account with an
+unanswered required field, recoverable from the UserCP. The reverse — an answer
+with no account — is recoverable by nobody.
+
+#### Reads are unfiltered SQL, and the filtering is a pure function
+
+`listFields` and `listGroupRules` return *everything*; resolution happens over
+rows the Authorizer has already narrowed. Filtering visibility in the query
+would mean the repository deciding who may see what — a second answer to a
+question F20 and F21 already own, expressed in a different language, in a place
+the permission tests cannot reach. Both tables are configuration-sized, so
+reading them whole costs one small query each.
+
+The rules are read once per request (`React.cache`), because a thread page
+resolves fields for every distinct post author's postbit and board configuration
+cannot change mid-render.
+
+#### What is deliberately not here
+
+- **No ACP screen.** F71 owns it. Until then `profile-field:list|add|remove` is
+  the operator surface, built over the same `ProfileFieldService` the screen
+  will use — F13's thin-layer rule, so the CLI cannot write a field the ACP
+  would reject.
+- **No per-group editor at all**, in either surface. The CLI creates a field
+  with its defaults; `profile_field_groups` rows are the ACP's job, and a flag
+  soup for expressing "staff may view but not edit" on a command line would be
+  a worse UI than waiting for F71. The `profile-field:add` output says so
+  rather than leaving it to be discovered.
+- **No search or sort by field.** F62 owns search, and a field is not indexed
+  for it.
+- **No file or date types.** A file is F42's problem (and its runtime
+  dependency); a date needs a timezone answer per field, and F57's board-wide
+  one is not obviously right for "when did you join the clan".

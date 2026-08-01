@@ -26,6 +26,7 @@ import { ForbiddenError, isAppError, logger } from '@forum/core'
 import { AUTH_CONFIG } from './auth-config'
 import { getActor } from './context'
 import { getContainer } from './container'
+import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { sendEmailChangeConfirmation } from './usercp-mail'
 import { setSessionCookie } from './session-cookies'
 import type { FormState } from './auth-form-state'
@@ -81,6 +82,22 @@ export async function saveProfileAction(_prev: FormState, form: FormData): Promi
       website: text(form, 'website'),
       bio: text(form, 'bio'),
     })
+
+    /*
+     * F59's custom fields, saved from the same form and the same button — they
+     * are one screen to a member, so two Save buttons would be two chances to
+     * lose half the changes.
+     *
+     * Every submitted name is passed through, and the *service* decides which
+     * of them this actor may actually write: a field they cannot edit is
+     * dropped silently rather than refused, because an error naming the field
+     * would confirm a staff-only field exists.
+     */
+    const fields = profileFieldService()
+    const context = await viewerFieldContext()
+    if (fields !== null && context !== null) {
+      await fields.save({ userId, submitted: submittedFields(form), context })
+    }
   } catch (err) {
     return toFormState(err)
   }

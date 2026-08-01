@@ -241,6 +241,16 @@ export interface PostAuthorModel extends UserRefModel {
   /** Pre-rendered BBCode (F36). Trusted output of the sanitising renderer. */
   readonly signatureHtml: string | null
   readonly isOnline: boolean
+  /**
+   * F59's custom fields, for the ones an operator marked for the postbit and
+   * this viewer may see.
+   *
+   * The same `{label, value}` shape `MemberProfileModel.fields` uses, and
+   * **plain text** for the same reason: it is rendered as text by the theme,
+   * and a field that could carry markup is stored XSS on the board's heaviest
+   * page. Empty on a board with no custom fields, which is most of them.
+   */
+  readonly fields: readonly { readonly label: string; readonly value: string }[]
 }
 
 export interface PostActionsModel {

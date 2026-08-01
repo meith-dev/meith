@@ -47,6 +47,7 @@ import type {
 } from '@forum/moderation'
 import type { NotificationRepository } from '@forum/notifications'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
+import type { ProfileFieldRepository } from '@forum/profile-fields'
 import type { SubscriptionRepository } from '@forum/subscriptions'
 import type {
   ReadStateRepository,
@@ -75,6 +76,7 @@ import {
   PostgresNotificationRepository,
   PostgresSubscriptionRepository,
   PostgresMemberSettingsRepository,
+  PostgresProfileFieldRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
   PostgresReadStateRepository,
@@ -188,6 +190,13 @@ export interface Container {
    */
   readonly memberSettings: MemberSettingsRepository | null
   /**
+   * Custom profile fields (F59). `null` in fixture mode (D38): the fields are
+   * operator configuration and the answers are member data, and both would
+   * vanish on restart — so the board offers neither rather than a form whose
+   * Save button forgets.
+   */
+  readonly profileFields: ProfileFieldRepository | null
+  /**
    * The credential store behind identity (F17–F19).
    *
    * Exposed for F57's UserCP, which re-authenticates with the current password
@@ -296,6 +305,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     notifications: null,
     subscriptions: null,
     memberSettings: null,
+    profileFields: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -396,6 +406,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     notifications: new PostgresNotificationRepository(db),
     subscriptions: new PostgresSubscriptionRepository(db),
     memberSettings: new PostgresMemberSettingsRepository(db),
+    profileFields: new PostgresProfileFieldRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -464,6 +475,7 @@ export function getContainer(): Container {
     cached.notifications === undefined ||
     cached.subscriptions === undefined ||
     cached.memberSettings === undefined ||
+    cached.profileFields === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

@@ -6,8 +6,9 @@ import { requireSlot } from '@forum/theme-kit'
 import { ProfileForm } from '@/components/account/usercp-forms'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
+import { profileFieldService, viewerFieldContext } from '@/server/profile-fields'
 import { activeTheme } from '@/server/theme'
-import { profileFormValues, userCpNotice } from '@/view/usercp'
+import { customFieldInputs, profileFormValues, userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your profile' }
 
@@ -33,6 +34,19 @@ export default async function ProfileSettingsPage({
   if (settings === null) notFound()
 
   const values = profileFormValues(settings)
+
+  /*
+   * F59's fields, filtered to the ones this member may edit — which is not the
+   * same set as the ones they may *see*: a board can collect something only
+   * staff read, and a member who cannot see their own answer can still be asked
+   * for it.
+   */
+  const fields = profileFieldService()
+  const context = await viewerFieldContext()
+  const customFields =
+    fields === null || context === null
+      ? []
+      : customFieldInputs(await fields.editableFor(actor.userId, context))
   const notice = userCpNotice(query)
   const Notice = requireSlot(activeTheme, 'Notice')
 
@@ -57,7 +71,7 @@ export default async function ProfileSettingsPage({
           </p>
         </div>
 
-        <ProfileForm {...values} />
+        <ProfileForm {...values} customFields={customFields} />
       </div>
     </main>
   )

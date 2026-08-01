@@ -673,3 +673,61 @@ password reset, done. Confirming the new address closes both.
 **Cost:** a member whose new address bounces keeps the old one, which is the
 safe direction. A board with no mail configured cannot change addresses at all —
 the UserCP says the link was sent, because from the board's side it was.
+
+## A custom profile field's visibility is per group, not a single "hidden" flag
+
+**MyBB:** `profilefields` carries `viewableby` and `editableby` as
+comma-separated group-id lists, plus `hidden` — and resolution is a substring
+check against the member's group string.
+
+**Here:** a row per (field, group) in `profile_field_groups` with nullable
+`can_view` / `can_edit`, resolved by the same R4.2 rule everything else on this
+board uses: NULL abstains, any explicit grant wins.
+
+**Why:** the same shape as `forum_permissions` (F21), so "who can see this" has
+one mental model rather than a second one that only applies to profile fields.
+A NULL that abstains is also what makes "staff may edit this" one row instead of
+a row per group with the other answer copied in — and a comma-separated list of
+ids cannot express "no opinion" at all.
+
+**Cost:** an imported MyBB board's `viewableby=-1` (everyone) maps to the field
+default and its explicit lists map to grant rows, but MyBB's *deny by omission*
+does not survive: a group absent from `viewableby` becomes a group with no
+opinion, which inherits. F85's importer must write an explicit `false` row per
+group MyBB omitted, or set `default_visible` false and grant the listed ones.
+
+## Registration asks only for fields the new member's group may edit
+
+**MyBB:** a field marked `required` is asked at registration regardless of
+whether the registering member's group can edit it afterwards.
+
+**Here:** `requiredAtRegistration` is intersected with what the board's default
+member group may edit, so a field they will never be able to change is not asked
+for either.
+
+**Why:** "what you are asked at registration" and "what you may change
+afterwards" disagreeing is a trap — somebody types an answer they can never
+correct. Resolving against the group registration *puts them in* (not the guest
+group they are currently in) is what makes the two consistent.
+
+**Cost:** an operator who marks a field required but forgets to let the
+registered group edit it gets a field that is silently never asked. The CLI's
+`profile-field:add` says every new field starts editable by every group, which
+is the state where this cannot bite.
+
+## An emptied field is deleted, not stored as an empty string
+
+**MyBB:** `userfields` has a column per field and a text column defaults to
+`''`, so "not answered" and "answered with nothing" are the same value.
+
+**Here:** a row per (member, field), and clearing an answer deletes the row.
+
+**Why:** every read on the board would otherwise have to treat two states as
+one, and one of them would eventually forget — a profile showing an empty
+"Pronouns:" row is the visible half of that. It is also what makes an
+unanswered field cost nothing on a board with twelve fields and ten thousand
+members who filled in two.
+
+**Cost:** a column-per-field table is one join cheaper to read. It is also a
+schema migration every time an operator adds a field, which is the trade MyBB
+made and this does not.

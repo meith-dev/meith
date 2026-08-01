@@ -22,9 +22,17 @@ export function buildMemberProfileView(
     readonly canWarn?: boolean
     /** The *viewer's* timezone (F57), not the profile owner's. */
     readonly timeZone?: string
+    /**
+     * F59's custom fields, already resolved for this viewer.
+     *
+     * Resolved by the page rather than here, because visibility is a
+     * per-group question and this is a pure function — the same division F53's
+     * `canWarn` follows.
+     */
+    readonly customFields?: readonly { readonly label: string; readonly value: string }[]
   } = {},
 ): MemberProfileModel {
-  const { canWarn = false, timeZone } = options
+  const { canWarn = false, timeZone, customFields = [] } = options
   return {
     user: { userId: profile.id, username: profile.username, profileHref: memberHref(profile.id) },
     avatarUrl: null,
@@ -48,6 +56,7 @@ export function buildMemberProfileView(
       profile.location === null ? null : { label: 'Location', value: profile.location },
       profile.website === null ? null : { label: 'Website', value: profile.website },
       profile.bio === null ? null : { label: 'About', value: profile.bio },
+      ...customFields,
     ].filter((field): field is { label: string; value: string } => field !== null),
     actions: canWarn
       ? [{ label: 'Warn this member', href: `/moderation/warn?user=${profile.id}` }]

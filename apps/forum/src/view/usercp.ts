@@ -1,5 +1,6 @@
 /** F57's pure UserCP view models. */
 import type { MemberSettings } from '@forum/accounts'
+import { maxLengthFor, type ResolvedProfileField } from '@forum/profile-fields'
 import type { LinkModel } from '@forum/theme-kit'
 
 /**
@@ -121,6 +122,43 @@ export function optionsFormValues(settings: MemberSettings): {
     postsPerPage: settings.postsPerPage === null ? '' : String(settings.postsPerPage),
     threadsPerPage: settings.threadsPerPage === null ? '' : String(settings.threadsPerPage),
   }
+}
+
+/**
+ * F59's editable fields, as the profile form's inputs.
+ *
+ * `maxLengthFor` resolves the field's own limit or its type's default, so the
+ * browser's `maxlength` and the server's validation agree — a form that lets
+ * somebody type 3,000 characters and then refuses the save is a worse
+ * experience than one that stops at the limit.
+ */
+export function customFieldInputs(
+  resolved: readonly ResolvedProfileField[],
+): readonly {
+  key: string
+  label: string
+  description: string | null
+  type: string | null
+  options: readonly string[]
+  value: string
+  maxLength: number
+  required: boolean
+}[] {
+  return resolved.map((entry) => ({
+    key: entry.field.key,
+    label: entry.field.label,
+    description: entry.field.description,
+    type: entry.field.type,
+    options: entry.field.options,
+    value: entry.value,
+    maxLength: maxLengthFor(entry.field),
+    /*
+     * Required *at registration* is not required forever: a board that asked
+     * once should not stop a member saving an unrelated change years later
+     * because it has since been emptied by an operator.
+     */
+    required: false,
+  }))
 }
 
 /** The notice after a save, assembled from the query string. */

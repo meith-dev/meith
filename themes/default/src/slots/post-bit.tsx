@@ -47,6 +47,21 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
         </a>
       </header>
       <StatusBanner visibility={post.visibility} />
+      {/*
+        F59's custom fields, for the ones an operator marked for the postbit and
+        this viewer may see. Plain text by contract — the app resolves them, and
+        a theme never inserts a member-supplied value as markup.
+      */}
+      {post.author.fields.length > 0 && (
+        <dl className="flex flex-wrap gap-x-4 gap-y-1 border-b border-border px-4 py-2 text-xs text-muted-foreground">
+          {post.author.fields.map((field) => (
+            <div key={field.label} className="flex gap-1">
+              <dt className="font-medium">{field.label}:</dt>
+              <dd>{field.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       <div className="px-4 py-4">
         <div className="whitespace-normal break-words" dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
         {post.editedNote !== null && (

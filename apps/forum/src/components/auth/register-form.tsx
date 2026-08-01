@@ -5,9 +5,22 @@ import { useActionState } from "react"
 import { registerAction } from "@/server/auth-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
+import { CustomField, type CustomFieldInput } from "../profile/custom-field"
 import { Field, FormError, SubmitButton } from "./form-controls"
 
-export function RegisterForm() {
+/** The same input styling `Field` uses, for F59's custom controls. */
+const CONTROL =
+  "h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+
+export function RegisterForm({
+  customFields = [],
+}: {
+  /**
+   * F59's fields the operator marked required at registration, already
+   * resolved to the ones the default member group may edit.
+   */
+  customFields?: readonly CustomFieldInput[]
+}) {
   const [state, action] = useActionState(registerAction, EMPTY_STATE)
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
@@ -35,6 +48,14 @@ export function RegisterForm() {
         minLength={8}
         hint="At least 8 characters."
       />
+      {/*
+        Below the credentials rather than above: an applicant is here to make an
+        account, and a board that opens with four operator questions loses
+        people before the username box. The server enforces them either way.
+      */}
+      {customFields.map((field) => (
+        <CustomField key={field.key} field={field} className={CONTROL} />
+      ))}
       <SubmitButton>Create account</SubmitButton>
     </form>
   )

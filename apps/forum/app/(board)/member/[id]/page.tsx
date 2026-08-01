@@ -6,6 +6,7 @@ import { requireSlot } from '@forum/theme-kit'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { visibleProfileFields } from '@/server/profile-fields'
 import { activeTheme } from '@/server/theme'
 import { buildMemberProfileView } from '@/view/member-profile'
 
@@ -30,6 +31,13 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
   /* F57. The *viewer's* zone: "joined 3 Feb" should read in their local time. */
   const preferences = await getViewerPreferences()
+  /*
+   * F59, resolved for the *viewer* against the *owner's* answers. Already
+   * filtered to what this viewer may see and to fields that have an answer, so
+   * an invisible field is absent from the HTML rather than hidden with CSS
+   * (F33's rule).
+   */
+  const customFields = await visibleProfileFields(id)
 
   const MemberProfile = requireSlot(activeTheme, 'MemberProfile')
   return (
@@ -50,6 +58,8 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
               authorizer.can(actor, 'user.warn'),
             /* F57: the *viewer's* zone, so "joined" reads in their local time. */
             timeZone: preferences.timezone,
+            /* F59's operator-defined fields, after F57's three fixed ones. */
+            customFields,
           },
         )}
       />

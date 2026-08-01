@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D57. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D58. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -20,7 +20,7 @@ this file.
 `pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
 + **guard probes**, the **slot server/client boundary** check + its probe,
 dependency-cruiser (386 modules, 0 violations), typecheck (root **and** app),
-**2103 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+**2178 tests** (a large share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
 `/notifications/preferences`, `/subscriptions`, `/unsubscribe` and the five
@@ -45,7 +45,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
 
 - **Phase 0 (F01–F14)** — workspace, env, db package + migrator, drivers, tick,
   outbox, settings, logging/errors, cache tags + boundary lint, CI, CLI
-  (3 real commands), docs. Checkpoint 0 reached. See D1–D11.
+  (thirteen commands, F59's three included), docs. Checkpoint 0 reached. See D1–D11.
   **Two of these are thinner than this line previously claimed:** F11's testkit
   is an empty package, and F10 has tag names but no cache implementation. Both
   are itemised under NEXT ACTION rather than left implied here.
@@ -465,25 +465,92 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   See **D57**, including why that confirmation link acts on GET while F56's
   unsubscribe link deliberately does not.
 
+- **F59 · custom profile fields.** F57 gave a member three fields the *board*
+  decided on; this hands the same idea to the operator, and the moment a field
+  is operator-defined four things F57 could hard-code become data: the type, who
+  may see it, who may change it, and whether it is asked at registration.
+
+  The per-group half is **F21's shape on purpose** — a row per (field, group)
+  with nullable `can_view`/`can_edit`, NULL meaning inherit, combined by R4.2's
+  "any grant is a grant". Not because it was convenient, but because it is the
+  model this board already resolves everywhere else, so "who can see this" has
+  one mental shape. It is also what makes a single row useful: *staff may edit
+  this* is one row, not a row per group with `false` copied into all the others.
+
+  Viewing and editing are two answers rather than one visibility word, and the
+  asymmetry is deliberate: `editableFields` does **not** require `canView`, so a
+  board can collect something only staff read. A mutant that ANDs them dies.
+
+  The interesting problem was the one F20 created. The resolver needs to know
+  which of a field's rows apply to the viewer, and only `@forum/authorization`
+  may reason about group IDs. Handing callers `actor.groupIds` would have ended
+  that rule in practice — every caller then free to invent its own combination
+  semantics, one of which eventually gets "any grant is a grant" backwards. So
+  the Authorizer gained `applicableGroupRows`, which takes the caller's *own*
+  configuration rows and returns the subset that matched. **It returns rows,
+  never ids.**
+
+  Registration is the one caller with no actor to narrow by, and it is the one
+  place this is easy to get wrong: an applicant *is* a guest, so resolving the
+  viewer's context would ask for whatever guests may edit — nothing — and a
+  required field would silently never be asked. `applicableGroupRowsForGroups`
+  takes the **default member group** from `AuthConfig` instead. There is a test
+  whose only job is to fail if somebody "simplifies" that back to the viewer.
+
+  On the write side, everything is downstream of one fact: a field value is
+  attacker-controlled text that ends up on a page other members read. A
+  submitted field id is never trusted, and a field this actor may not edit is
+  dropped **silently** rather than refused, because an error naming it confirms
+  a staff-only field exists. A `select` value must be one of the configured
+  options or the dropdown is a text box in a costume. A `url` is normalised to
+  http(s) or refused — a profile field rendered as a link is an
+  attacker-controlled `href`, which is F36's argument about `[url]` and F57's
+  about the website field, met for a third time. And an **unknown type validates
+  and renders as text**: the field was written by a deploy that knew a type this
+  build does not, and refusing every save until somebody upgrades would let a
+  downgrade lock members out of their own profile.
+
+  Two smaller decisions worth keeping: an emptied answer **deletes its row**
+  rather than storing `''`, so no read on the board has to treat two states as
+  one; and registration **validates before the account exists and writes after**,
+  which is what lets the form refuse before it creates anything. The two are not
+  one transaction — `register` owns its own — so the residual failure is a
+  usable account with an unanswered required field, recoverable from the UserCP.
+  The reverse would be recoverable by nobody.
+
+  See **D58** and three `mybb-parity.md` entries.
+
 ## NEXT ACTION — resume here
 
-**Phase 5 is three of eight.** F55 gave the board a way to tell somebody
-something, F56 gave it the thing most worth telling them, and F57 gave the
-member the controls — including the two that had been hard-coded constants with
-a comment pointing at this feature.
+**Phase 5 is four of eight.** F55 gave the board a way to tell somebody
+something, F56 gave it the thing most worth telling them, F57 gave the member
+the controls, and F59 gave the operator the ability to ask their own questions.
 
-**F58 · avatars and signatures** is next in plan order, and it is the first
-Phase 5 feature that is genuinely *blocked* rather than merely unstarted: it
-depends on F42 (attachments), which is `TODO`. An avatar is an upload, and
-uploads need the route-handler FileStore path, magic-byte validation and the
-quota/orphan-cleanup story F42 owns — `S3FileStore` passing a contract suite is
-not the same thing as a board that can accept a file.
+**Two things remain in this phase, and both wait on the same thing.**
 
-Two honest options, and the choice is a human's: build **F42 first** (out of
-plan order, but it is the real dependency and F58/F71 both wait on it), or take
-**F59 · custom profile fields**, which needs nothing that does not exist and
-slots beside F57's three plain-text fields. F59 is the smaller, safer step; F42
-unblocks more.
+**F58 · avatars and signatures** is blocked on F42 (attachments), which is
+`TODO`. An avatar is an upload, and uploads need the route-handler FileStore
+path, magic-byte validation, and the quota/orphan-cleanup story F42 owns —
+`S3FileStore` passing a contract suite is not a board that can accept a file.
+F59 was taken ahead of it precisely because it needed nothing that did not
+exist.
+
+**F42 · attachments** is therefore the next real decision, and it is a human's:
+it needs image re-encoding, which is a **runtime dependency**, and the roadmap's
+own rule is to stop for a decision before adding one. The specific trap is
+already recorded above — *do not add `sharp` to `onlyBuiltDependencies`*: its
+postinstall makes `next build` fail at prerender. So the choice is between
+finding a re-encoder that does not break the build, accepting stored originals
+with strict magic-byte validation and no re-encode, or deferring F42 and moving
+to **F60 · private messaging**, which needs no new dependency and unblocks
+nothing else.
+
+**Two F59 gaps to close when their owner arrives, both named rather than
+implied:** there is **no per-group editor in either surface** — the CLI creates
+a field with its defaults and says so, because flag soup for "staff may view but
+not edit" on a command line is worse than waiting for F71's screen — and fixture
+mode has no field store (D38), so the browser suite still cannot cover any of
+it.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -581,7 +648,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D57). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D58). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

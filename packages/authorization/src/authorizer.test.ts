@@ -148,3 +148,46 @@ describe('flood.bypass (F39/F40)', () => {
     )
   })
 })
+
+describe('applicableGroupRows (F59)', () => {
+  const rows = [
+    { fieldId: 1, groupId: 2, canView: true },
+    { fieldId: 1, groupId: 4, canView: false },
+    { fieldId: 2, groupId: 7, canView: true },
+  ]
+
+  it('returns only the rows whose group the actor is in', () => {
+    const actor = actorWith({}, { groupIds: [2, 7] })
+    expect(new Authorizer(source).applicableGroupRows(actor, rows)).toEqual([
+      rows[0],
+      rows[2],
+    ])
+  })
+
+  it('matches every group, not only the primary one', () => {
+    /*
+     * A secondary group is a real membership. Kills the mutant that reads
+     * `primaryGroupId` instead of `groupIds` — which would silently ignore the
+     * staff group somebody holds alongside `registered`.
+     */
+    const actor = actorWith({}, { groupIds: [2, 4], primaryGroupId: 2 })
+    expect(new Authorizer(source).applicableGroupRows(actor, rows)).toEqual([
+      rows[0],
+      rows[1],
+    ])
+  })
+
+  it('returns nothing when no row names one of the actor’s groups', () => {
+    const actor = actorWith({}, { groupIds: [99] })
+    expect(new Authorizer(source).applicableGroupRows(actor, rows)).toEqual([])
+  })
+
+  it('narrows by explicit group ids for somebody who has no actor yet', () => {
+    /*
+     * Registration: an applicant is about to join the board's default member
+     * group, so the form is resolved against that group rather than the guest
+     * group the applicant is currently in.
+     */
+    expect(new Authorizer(source).applicableGroupRowsForGroups([4], rows)).toEqual([rows[1]])
+  })
+})

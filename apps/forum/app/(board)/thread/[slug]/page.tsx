@@ -11,6 +11,7 @@ import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { postbitProfileFields } from '@/server/profile-fields'
 import { moderatorTargetFor } from '@/server/modcp'
 import { activeTheme } from '@/server/theme'
 import {
@@ -241,6 +242,27 @@ export default async function ThreadPage({
    */
   const inlineOffered = anyInlineTool(inlineRights) || surgeryRights.split
 
+  /*
+   * F59. One resolution per *distinct author* on the page, not per post: a
+   * thread is mostly the same few people, and the rules themselves are read
+   * once per request and cached. A board with no custom fields pays one cached
+   * lookup and gets an empty map.
+   */
+  const authorIds = [
+    ...new Set(
+      postPage.rows
+        .map((row) => row.authorUserId)
+        .filter((id): id is number => id !== null),
+    ),
+  ]
+  const authorFields = new Map(
+    await Promise.all(
+      authorIds.map(
+        async (id) => [id, await postbitProfileFields(id)] as const,
+      ),
+    ),
+  )
+
   const view = buildThreadView({
     thread,
     capabilities,
@@ -255,6 +277,7 @@ export default async function ThreadPage({
         : `/api/read/thread/${thread.id}?post=${postPage.rows.at(-1)!.id}`,
     now: new Date(),
     timeZone: preferences.timezone,
+    authorFields,
   })
 
   /*

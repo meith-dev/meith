@@ -690,3 +690,106 @@ export const notificationPreferences = pgTable(
     primaryKey({ name: 'notification_preferences_pkey', columns: [t.userId, t.kind] }),
   ],
 )
+
+/* ------------------------------------------------------------------ *
+ * F59 — custom profile fields
+ * ------------------------------------------------------------------ */
+
+/**
+ * A field the operator defines, in the shape F57's fixed trio could not have.
+ *
+ * `key` is the stable machine name, so renaming a label keeps every stored
+ * answer attached. `type` is text rather than an enum for the reason
+ * `visibility` is: a type this build does not know must degrade to a plain
+ * input rather than break the profile screen.
+ */
+export const profileFields = pgTable(
+  'profile_fields',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    key: text('key').notNull(),
+    label: text('label').notNull(),
+    description: text('description'),
+
+    /** 'text' | 'textarea' | 'select' | 'checkbox' | 'url' | 'number'. */
+    type: text('type').notNull().default('text'),
+    /** The choices, for `select`. A JSON array of strings; empty otherwise. */
+    options: jsonb('options').notNull().default([]),
+    /** Null = the type's own default. */
+    maxLength: integer('max_length'),
+
+    displayOrder: integer('display_order').notNull().default(0),
+    /** Inactive keeps the values: "hide this for now" is not "delete it". */
+    isActive: boolean('is_active').notNull().default(true),
+    /** Asked on the registration form, and refused if empty (F18). */
+    requiredAtRegistration: boolean('required_at_registration').notNull().default(false),
+
+    /**
+     * What applies when no group row says otherwise. Two booleans rather than
+     * one visibility word, because "who may see it" and "who may change it" are
+     * genuinely independent.
+     */
+    defaultVisible: boolean('default_visible').notNull().default(true),
+    defaultEditable: boolean('default_editable').notNull().default(true),
+
+    /** Beside every post as well as on the profile. Off by default (F31's cost). */
+    showInPostbit: boolean('show_in_postbit').notNull().default(false),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('profile_fields_key_unique').on(t.key),
+    index('profile_fields_order_idx').on(t.displayOrder, t.id),
+  ],
+)
+
+/**
+ * The per-group override, in F21's `forum_permissions` shape.
+ *
+ * Nullable columns, where NULL means "inherit the field's default" — which is
+ * what makes "staff may edit this" one row rather than a row per group with the
+ * other answer copied in. Resolution is R4.2's: any group granting is a grant.
+ */
+export const profileFieldGroups = pgTable(
+  'profile_field_groups',
+  {
+    fieldId: integer('field_id')
+      .notNull()
+      .references(() => profileFields.id, { onDelete: 'cascade' }),
+    groupId: integer('group_id')
+      .notNull()
+      .references(() => usergroups.id, { onDelete: 'cascade' }),
+    canView: boolean('can_view'),
+    canEdit: boolean('can_edit'),
+  },
+  (t) => [
+    primaryKey({ name: 'profile_field_groups_pkey', columns: [t.fieldId, t.groupId] }),
+  ],
+)
+
+/**
+ * One member's answer to one field.
+ *
+ * A row exists only once somebody answers, so an unanswered field costs
+ * nothing — which matters when a board with twelve fields has ten thousand
+ * members who filled in two.
+ */
+export const profileFieldValues = pgTable(
+  'profile_field_values',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    fieldId: integer('field_id')
+      .notNull()
+      .references(() => profileFields.id, { onDelete: 'cascade' }),
+    value: text('value').notNull().default(''),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ name: 'profile_field_values_pkey', columns: [t.userId, t.fieldId] }),
+    index('profile_field_values_user_idx').on(t.userId),
+  ],
+)

@@ -67,6 +67,8 @@ function post(
   replyHref: string | null,
   capabilities: PostCapabilities,
   timeZone: string | undefined,
+  /** F59, resolved per author by the page. Empty for a board with no fields. */
+  fields: ReadonlyMap<number, readonly { label: string; value: string }[]>,
 ): PostBitModel {
   const isOwn =
     capabilities.viewerUserId !== null && post.authorUserId === capabilities.viewerUserId
@@ -95,6 +97,11 @@ function post(
           : formatTime(post.authorJoinedAt, now, timeZone),
       signatureHtml: null,
       isOnline: false,
+      /*
+       * F59. Keyed by author rather than by post, because a thread is mostly
+       * the same few people and resolving per post would repeat the work.
+       */
+      fields: post.authorUserId === null ? [] : (fields.get(post.authorUserId) ?? []),
     },
     /*
      * The only place a post body becomes markup (F36). `postBodyHtml` prefers
@@ -172,6 +179,8 @@ export interface ThreadViewInput {
    * this board used before members could choose one.
    */
   readonly timeZone?: string
+  /** F59's postbit fields, keyed by author user id. */
+  readonly authorFields?: ReadonlyMap<number, readonly { label: string; value: string }[]>
 }
 
 export interface ThreadView {
@@ -196,6 +205,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         input.replyHref ?? null,
         input.capabilities ?? NO_CAPABILITIES,
         input.timeZone,
+        input.authorFields ?? new Map(),
       ),
     ),
     pagination: {
