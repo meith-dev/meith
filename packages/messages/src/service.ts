@@ -323,7 +323,22 @@ export class MessageService {
     for (const recipient of recipients) {
       const limit = limitById.get(recipient.userId as number)
       if (limit === undefined) continue
-      if (!limit.canReceive) closed.push(recipient.name)
+
+      /*
+       * F61's block, folded into the same answer as "your group may not receive
+       * private messages" **on purpose**. Saying "bob is ignoring you" would
+       * make the send path an oracle for somebody's ignore list, and an ignore
+       * list that announces itself is a thing people stop using.
+       *
+       * The alternative MyBB takes — accept the message and deliver it nowhere
+       * — is worse than either: the sender believes they were heard.
+       */
+      const blocked =
+        this.policy.blocks === undefined
+          ? false
+          : await this.policy.blocks(recipient.userId as number, authorUserId)
+
+      if (!limit.canReceive || blocked) closed.push(recipient.name)
       else if (isFull(limit.quota, stored.get(recipient.userId as number) ?? 0)) {
         full.push(recipient.name)
       }

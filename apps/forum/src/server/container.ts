@@ -48,6 +48,7 @@ import type {
 import type { NotificationRepository } from '@forum/notifications'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
 import type { MessageRepository } from '@forum/messages'
+import type { RelationRepository } from '@forum/relations'
 import type { ProfileFieldRepository } from '@forum/profile-fields'
 import type { SubscriptionRepository } from '@forum/subscriptions'
 import type {
@@ -78,6 +79,7 @@ import {
   PostgresSubscriptionRepository,
   PostgresMemberSettingsRepository,
   PostgresMessageRepository,
+  PostgresRelationRepository,
   PostgresProfileFieldRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
@@ -206,6 +208,12 @@ export interface Container {
    */
   readonly messages: MessageRepository | null
   /**
+   * Buddy and ignore lists (F61). `null` in fixture mode (D38): an ignore list
+   * that resets on restart is a member discovering they can read somebody they
+   * decided not to, which is the one failure this feature exists to prevent.
+   */
+  readonly relations: RelationRepository | null
+  /**
    * The credential store behind identity (F17–F19).
    *
    * Exposed for F57's UserCP, which re-authenticates with the current password
@@ -316,6 +324,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     memberSettings: null,
     profileFields: null,
     messages: null,
+    relations: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -418,6 +427,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     memberSettings: new PostgresMemberSettingsRepository(db),
     profileFields: new PostgresProfileFieldRepository(db),
     messages: new PostgresMessageRepository(db),
+    relations: new PostgresRelationRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -488,6 +498,7 @@ export function getContainer(): Container {
     cached.memberSettings === undefined ||
     cached.profileFields === undefined ||
     cached.messages === undefined ||
+    cached.relations === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

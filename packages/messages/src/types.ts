@@ -139,6 +139,15 @@ export interface MessagePolicy {
    * all. `quota` 0 means unlimited, matching every numeric permission (R4.2).
    */
   limitsFor(userId: number): Promise<{ quota: number; canReceive: boolean }>
+
+  /**
+   * Does `ownerUserId` refuse messages from `senderUserId`? (F61)
+   *
+   * Optional, so a board without relations — or a caller that has not wired
+   * them — behaves as it did before: nobody blocks anybody. Absent means no,
+   * which is the only safe default for a *permissive* answer to compute.
+   */
+  blocks?(ownerUserId: number, senderUserId: number): Promise<boolean>
 }
 
 export interface MessageRepository {

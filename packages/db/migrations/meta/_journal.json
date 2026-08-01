@@ -85,6 +85,13 @@
       "when": 1785528500000,
       "tag": "0011_private_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1785528600000,
+      "tag": "0012_user_relations",
+      "breakpoints": true
     }
   ]
 }

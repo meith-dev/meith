@@ -62,14 +62,33 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           ))}
         </dl>
       )}
-      <div className="px-4 py-4">
-        <div className="whitespace-normal break-words" dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
-        {post.editedNote !== null && (
-          <p className="mt-3 border-t border-border pt-2 text-xs italic text-muted-foreground">
-            {post.editedNote}
+      {post.ignored !== null ? (
+        /*
+          F61. The body is not in `post.bodyHtml` at all — the app withheld it —
+          so there is nothing here to hide and nothing a stylesheet could
+          reveal. The link is the only way to see it, and it is a plain `<a>`,
+          so this works with scripting off like everything else.
+        */
+        <div className="px-4 py-4">
+          <p className="text-sm text-muted-foreground">
+            You are ignoring{' '}
+            <span className="font-medium text-foreground">{post.ignored.authorUsername}</span>.
+            This post is hidden.{' '}
+            <a href={post.ignored.revealHref} className="text-primary hover:underline">
+              Show it anyway
+            </a>
           </p>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="px-4 py-4">
+          <div className="whitespace-normal break-words" dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
+          {post.editedNote !== null && (
+            <p className="mt-3 border-t border-border pt-2 text-xs italic text-muted-foreground">
+              {post.editedNote}
+            </p>
+          )}
+        </div>
+      )}
       {regions.actions !== null && <footer className="border-t border-border px-4 py-2">{regions.actions}</footer>}
     </article>
   )

@@ -793,3 +793,32 @@ export const profileFieldValues = pgTable(
     index('profile_field_values_user_idx').on(t.userId),
   ],
 )
+
+/**
+ * Buddy and ignore lists (F61).
+ *
+ * One table with a `kind` rather than two, because the two are mutually
+ * exclusive and one row per ordered pair makes that the primary key. The pair
+ * is ordered: (me, them) is my opinion of them and says nothing about theirs of
+ * me — ignoring is deliberately not symmetric.
+ */
+export const userRelations = pgTable(
+  'user_relations',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    otherUserId: integer('other_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 'buddy' | 'ignore'. */
+    kind: text('kind').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ name: 'user_relations_pkey', columns: [t.userId, t.otherUserId] }),
+    index('user_relations_kind_idx').on(t.userId, t.kind, t.otherUserId),
+    /* The reverse direction: "does this recipient ignore the sender" (F60). */
+    index('user_relations_reverse_idx').on(t.otherUserId, t.kind),
+  ],
+)

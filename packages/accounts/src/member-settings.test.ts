@@ -73,6 +73,10 @@ class MemorySettings implements MemberSettingsRepository {
 
 class MemoryAccounts implements AccountRepository {
   account: AccountRecord | null = null
+  /** F61's activity writer. Never exercised here; present to satisfy the port. */
+  async touchLastActive(): Promise<boolean> {
+    return false
+  }
   /** Another account, for the "address already in use" path. */
   otherEmailLower: string | null = null
   readonly passwords: Array<{ userId: number; hash: string }> = []

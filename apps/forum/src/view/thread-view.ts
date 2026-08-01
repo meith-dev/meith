@@ -1,5 +1,6 @@
 /** F31's pure thread-view model, with F41's edit and delete affordances. */
 import { postBodyHtml } from '@forum/bbcode'
+import { suppress } from '@forum/relations'
 import type { ForumRow } from '@forum/forums'
 import type { PaginationModel, PostBitModel, ThreadViewModel } from '@forum/theme-kit'
 import { editedNote, type PostListingRow, type PostPage } from '@forum/posts'
@@ -60,19 +61,50 @@ function withinEditWindow(
   return elapsed <= capabilities.editWindowMinutes
 }
 
+/**
+ * Everything about *this viewer* that a post model needs.
+ *
+ * One object rather than six positional arguments, because F57 learned that
+ * lesson the hard way: inserting `timeZone` before `canWarn` silently changed
+ * what every caller meant. A named field cannot be transposed.
+ */
+interface PostContext {
+  readonly now: Date
+  readonly replyHref: string | null
+  readonly capabilities: PostCapabilities
+  readonly timeZone: string | undefined
+  /** F59, resolved per author by the page. Empty for a board with no fields. */
+  readonly fields: ReadonlyMap<number, readonly { label: string; value: string }[]>
+  /** F61. The ids this viewer ignores, and the posts they asked to see anyway. */
+  readonly ignoredIds: ReadonlySet<number>
+  readonly revealedPostIds: ReadonlySet<number>
+  /** Where a reveal link points, given the post to reveal. */
+  readonly revealHref: (postId: number) => string
+}
+
 function post(
   post: PostListingRow,
   thread: ThreadListingRow,
-  now: Date,
-  replyHref: string | null,
-  capabilities: PostCapabilities,
-  timeZone: string | undefined,
-  /** F59, resolved per author by the page. Empty for a board with no fields. */
-  fields: ReadonlyMap<number, readonly { label: string; value: string }[]>,
+  context: PostContext,
 ): PostBitModel {
+  const { now, replyHref, capabilities, timeZone, fields } = context
   const isOwn =
     capabilities.viewerUserId !== null && post.authorUserId === capabilities.viewerUserId
   const manageHref = `/thread/${thread.id}-${thread.slug}/edit?post=${post.id}`
+
+  /*
+   * F61. Resolved before anything else on the model is built, because it is
+   * what decides whether the body, the signature and the custom fields are
+   * assembled at all — "server-side ignore" means the text does not reach the
+   * browser, not that it arrives with `display: none`.
+   */
+  const hidden = suppress({
+    authorUserId: post.authorUserId,
+    viewerUserId: capabilities.viewerUserId,
+    ignoredIds: context.ignoredIds,
+    revealedPostIds: context.revealedPostIds,
+    postId: post.id,
+  })
 
   const mayEdit =
     post.visibility !== 'deleted' &&
@@ -101,7 +133,8 @@ function post(
        * F59. Keyed by author rather than by post, because a thread is mostly
        * the same few people and resolving per post would repeat the work.
        */
-      fields: post.authorUserId === null ? [] : (fields.get(post.authorUserId) ?? []),
+      fields:
+        hidden || post.authorUserId === null ? [] : (fields.get(post.authorUserId) ?? []),
     },
     /*
      * The only place a post body becomes markup (F36). `postBodyHtml` prefers
@@ -111,7 +144,7 @@ function post(
      * than the current one, and never fails to be shown because a task has not
      * caught up.
      */
-    bodyHtml: postBodyHtml(post),
+    bodyHtml: hidden ? '' : postBodyHtml(post),
     postedAt: formatTime(post.createdAt, now, timeZone),
     /*
      * Shown to everyone who can see the post, reason included. An edit notice
@@ -124,6 +157,12 @@ function post(
     ),
     isFirstPost: post.isFirstPost,
     visibility: post.visibility,
+    ignored: hidden
+      ? {
+          authorUsername: post.authorUsername,
+          revealHref: context.revealHref(post.id),
+        }
+      : null,
     actions: {
       /*
        * Quoting is the reply form with a prefill, so it is the same route and
@@ -132,7 +171,7 @@ function post(
        * quotable: its body is only on the page because a moderator is reading it.
        */
       quoteHref:
-        replyHref === null || post.visibility !== 'visible'
+        replyHref === null || post.visibility !== 'visible' || hidden
           ? null
           : `${replyHref}?quote=${post.id}`,
       editHref: mayEdit ? manageHref : null,
@@ -181,6 +220,48 @@ export interface ThreadViewInput {
   readonly timeZone?: string
   /** F59's postbit fields, keyed by author user id. */
   readonly authorFields?: ReadonlyMap<number, readonly { label: string; value: string }[]>
+  /** F61. The ids this viewer ignores; empty for a guest or a board with none. */
+  readonly ignoredIds?: ReadonlySet<number>
+  /** F61. The posts this viewer has asked to see anyway, from `?reveal=`. */
+  readonly revealedPostIds?: ReadonlySet<number>
+  /**
+   * The page's own URL, so a reveal link can point back at it.
+   *
+   * Supplied by the page rather than assembled here, because the thread URL
+   * already carries a page number and an anchor and this must not lose either
+   * — a reveal that dumps the reader back on page 1 is worse than no reveal.
+   */
+  readonly currentHref?: string
+}
+
+const EMPTY_IDS: ReadonlySet<number> = new Set()
+
+/**
+ * The same page with one more post revealed.
+ *
+ * Additive: revealing a second post keeps the first revealed, so working down
+ * a thread does not mean re-hiding what you just chose to read. The anchor is
+ * moved to the post itself, which is where the reader was looking.
+ */
+export function revealHref(currentHref: string, postId: number): string {
+  const [path = '', hash] = currentHref.split('#')
+  void hash
+  const separator = path.includes('?') ? '&' : '?'
+  return `${path}${separator}reveal=${postId}#post-${postId}`
+}
+
+/** Read `?reveal=` without trusting it. Repeated values are all honoured. */
+export function revealedFrom(raw: string | readonly string[] | undefined): ReadonlySet<number> {
+  if (raw === undefined) return EMPTY_IDS
+  const values = typeof raw === 'string' ? [raw] : raw
+  const ids = new Set<number>()
+  for (const value of values) {
+    for (const part of value.split(',')) {
+      const id = Number(part)
+      if (Number.isInteger(id) && id > 0) ids.add(id)
+    }
+  }
+  return ids
 }
 
 export interface ThreadView {
@@ -198,15 +279,16 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
       markReadAction: input.markReadAction ?? null,
     },
     posts: input.page.rows.map((entry) =>
-      post(
-        entry,
-        input.thread,
-        input.now,
-        input.replyHref ?? null,
-        input.capabilities ?? NO_CAPABILITIES,
-        input.timeZone,
-        input.authorFields ?? new Map(),
-      ),
+      post(entry, input.thread, {
+        now: input.now,
+        replyHref: input.replyHref ?? null,
+        capabilities: input.capabilities ?? NO_CAPABILITIES,
+        timeZone: input.timeZone,
+        fields: input.authorFields ?? new Map(),
+        ignoredIds: input.ignoredIds ?? EMPTY_IDS,
+        revealedPostIds: input.revealedPostIds ?? EMPTY_IDS,
+        revealHref: (postId) => revealHref(input.currentHref ?? '', postId),
+      }),
     ),
     pagination: {
       page: input.pageNumber,

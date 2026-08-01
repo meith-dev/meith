@@ -4,6 +4,7 @@ import type { Actor } from '@forum/authorization'
 import { LogoutForm } from '@/components/account/logout-form'
 import { getContainer } from '@/server/container'
 import { unreadMessageCount } from '@/server/messages'
+import { touchActivity } from '@/server/relations'
 import { unreadNotificationCount } from '@/server/notifications'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
@@ -93,6 +94,14 @@ export async function PageShell({
    * the count above, over its own partial index.
    */
   const unreadMessages = await unreadMessageCount(actor.userId)
+
+  /*
+   * F61. `users.last_active_at` has been in the schema since `0000` with no
+   * writer; this is it. A conditional UPDATE that usually matches nothing —
+   * the throttle is in the repository's WHERE clause — so it is not a write per
+   * page view, and it never throws.
+   */
+  await touchActivity(actor.userId)
 
   /*
    * F57. The zone the footer names, and the one every timestamp on the page was

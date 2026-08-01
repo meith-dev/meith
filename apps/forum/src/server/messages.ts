@@ -16,6 +16,7 @@ import 'server-only'
 import { MessageService, type MessageNotifierPort, type MessagePolicy } from '@forum/messages'
 
 import { getContainer } from './container'
+import { relationService } from './relations'
 import { notificationService } from './notifications'
 
 /**
@@ -75,6 +76,26 @@ export function messagePolicy(): MessagePolicy {
       return {
         canReceive: authorizer.can(actor, 'pm.use'),
         quota: authorizer.globalLimit(actor, 'privateMessageQuota'),
+      }
+    },
+
+    /**
+     * F61's block.
+     *
+     * A board with no relation store answers false — nobody blocks anybody —
+     * rather than refusing every send, which is the right direction for a
+     * permissive answer whose source is missing. A *failed* read answers true:
+     * an ignore that could not be checked must not be a message that gets
+     * through, because the member cannot see that it happened.
+     */
+    async blocks(ownerUserId, senderUserId) {
+      const service = relationService()
+      if (service === null) return false
+
+      try {
+        return await service.ignores(ownerUserId, senderUserId)
+      } catch {
+        return true
       }
     },
   }

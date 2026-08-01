@@ -301,6 +301,25 @@ export interface PostBitModel {
   readonly isFirstPost: boolean
   /** F47: a moderator sees deleted and unapproved posts, marked as such. */
   readonly visibility: 'visible' | 'unapproved' | 'deleted'
+  /**
+   * F61. Set when this viewer ignores the author and has not revealed this
+   * post; `null` otherwise, which is the case on almost every post.
+   *
+   * The body is **withheld server-side** when this is set — `bodyHtml` is
+   * empty, the signature and custom fields are gone — rather than hidden with
+   * CSS, because "ignored" that ships the text to the browser is a preference
+   * rather than a feature. The post keeps its place and its number: filtering
+   * it out would give every viewer a different page size and make "#12" mean
+   * different posts to different people.
+   *
+   * A theme renders the placeholder and the link. Both are required — a hidden
+   * post with no way to see it is a hole in a conversation.
+   */
+  readonly ignored: {
+    readonly authorUsername: string
+    /** Same page, this post revealed. A GET: revealing changes nothing. */
+    readonly revealHref: string
+  } | null
   readonly actions: PostActionsModel
 }
 

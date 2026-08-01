@@ -24,6 +24,7 @@
     "@forum/notifications": "workspace:*",
     "@forum/posts": "workspace:*",
     "@forum/messages": "workspace:*",
+    "@forum/relations": "workspace:*",
     "@forum/profile-fields": "workspace:*",
     "@forum/settings": "workspace:*",
     "@forum/shared": "workspace:*",

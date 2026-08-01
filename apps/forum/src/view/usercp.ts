@@ -89,6 +89,11 @@ export function userCpSections(): readonly UserCpSection[] {
       link: { label: 'Open your messages', href: '/messages' },
     },
     {
+      title: 'Buddies and ignored members',
+      description: 'Who you follow, and whose posts you would rather not read.',
+      link: { label: 'Manage your lists', href: '/usercp/contacts' },
+    },
+    {
       title: 'Notifications',
       description: 'Which of them also reach you by e-mail.',
       link: { label: 'Notification preferences', href: '/notifications/preferences' },

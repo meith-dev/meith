@@ -158,6 +158,35 @@ describe('Postgres account repositories', () => {
       expect((await store.sessions.findByTokenHash('new'))!.revokedAt).toBeNull()
     })
 
+    it('touchLastActive writes once, then skips inside the throttle window', async () => {
+      /*
+       * F61 gave `users.last_active_at` its first writer — the column has been
+       * in the schema since `0000`, read by the ModCP and the profile and set
+       * by nothing. The throttle is the WHERE clause, so a burst of page views
+       * is one write and no caller can forget to throttle.
+       */
+      const a = await store.accounts.create({
+        username: 'active',
+        usernameLower: 'active',
+        email: 'active@example.test',
+        emailLower: 'active@example.test',
+        passwordHash: 'x',
+        passwordAlgo: 'argon2id',
+        state: 'active',
+        primaryGroupId: 2,
+      })
+
+      const first = new Date('2026-08-01T12:00:00Z')
+      /* Never seen before: the first write must happen despite the NULL. */
+      expect(await store.accounts.touchLastActive(a.id, first, 300)).toBe(true)
+
+      const soon = new Date(first.getTime() + 60_000)
+      expect(await store.accounts.touchLastActive(a.id, soon, 300)).toBe(false)
+
+      const later = new Date(first.getTime() + 301_000)
+      expect(await store.accounts.touchLastActive(a.id, later, 300)).toBe(true)
+    })
+
     it('touchLocation writes once, then skips inside the throttle window', async () => {
       const s = await store.sessions.create({ tokenHash: 'loc', userId, expiresAt: new Date(Date.now() + 60_000) })
       const t0 = new Date()

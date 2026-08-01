@@ -12,6 +12,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { postbitProfileFields } from '@/server/profile-fields'
+import { viewerIgnoredIds } from '@/server/relations'
 import { moderatorTargetFor } from '@/server/modcp'
 import { activeTheme } from '@/server/theme'
 import {
@@ -20,7 +21,7 @@ import {
   inlineOutcomeNotice,
   selectionFor,
 } from '@/view/inline-moderation'
-import { buildThreadView } from '@/view/thread-view'
+import { buildThreadView, revealedFrom } from '@/view/thread-view'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 
 export const metadata: Metadata = { title: 'Thread' }
@@ -71,6 +72,8 @@ export default async function ThreadPage({
     refused?: string
     gone?: string
     skipped?: string
+    /* F61. Repeatable: `?reveal=12&reveal=15`. */
+    reveal?: string | string[]
   }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
@@ -263,6 +266,13 @@ export default async function ThreadPage({
     ),
   )
 
+  /*
+   * F61's ignore list, resolved once per request. Empty for a guest, for a
+   * board with no relation store, and if the read fails — a thread page is not
+   * worth failing over a preference.
+   */
+  const ignoredIds = await viewerIgnoredIds()
+
   const view = buildThreadView({
     thread,
     capabilities,
@@ -278,6 +288,16 @@ export default async function ThreadPage({
     now: new Date(),
     timeZone: preferences.timezone,
     authorFields,
+    ignoredIds,
+    revealedPostIds: revealedFrom(query.reveal),
+    /*
+     * The page's own URL, with the page number kept: a reveal link that dropped
+     * it would send the reader back to page 1 of a long thread, which is worse
+     * than not offering one.
+     */
+    currentHref:
+      `/thread/${thread.id}-${thread.slug}` +
+      (after === undefined ? `?page=${page}` : `?after=${after}&page=${page}`),
   })
 
   /*

@@ -139,6 +139,9 @@ importers:
       '@forum/profile-fields':
         specifier: workspace:*
         version: link:../../packages/profile-fields
+      '@forum/relations':
+        specifier: workspace:*
+        version: link:../../packages/relations
       '@forum/settings':
         specifier: workspace:*
         version: link:../../packages/settings
@@ -293,6 +296,9 @@ importers:
       '@forum/profile-fields':
         specifier: workspace:*
         version: link:../profile-fields
+      '@forum/relations':
+        specifier: workspace:*
+        version: link:../relations
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
@@ -385,6 +391,12 @@ importers:
         version: link:../core
 
   packages/profile-fields:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/relations:
     dependencies:
       '@forum/core':
         specifier: workspace:*

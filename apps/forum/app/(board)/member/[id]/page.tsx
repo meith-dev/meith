@@ -7,6 +7,11 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { visibleProfileFields } from '@/server/profile-fields'
+import { relationService } from '@/server/relations'
+import {
+  RemoveRelationForm,
+  SetRelationForm,
+} from '@/components/account/relation-forms'
 import { activeTheme } from '@/server/theme'
 import { buildMemberProfileView } from '@/view/member-profile'
 
@@ -38,6 +43,22 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
    * (F33's rule).
    */
   const customFields = await visibleProfileFields(id)
+
+  /*
+   * F61's two buttons. Offered only to a signed-in member looking at somebody
+   * else, on a board that keeps lists — and the *current* relation decides
+   * which of the three controls appears, so somebody already ignored is offered
+   * "stop ignoring" rather than a second "ignore".
+   */
+  const relations = relationService()
+  const currentRelation =
+    relations === null || actor.userId === null || actor.userId === id
+      ? null
+      : ((await relations.list(actor.userId, 'buddy')).some((row) => row.userId === id)
+          ? 'buddy'
+          : (await relations.ignores(actor.userId, id))
+            ? 'ignore'
+            : 'none')
 
   const MemberProfile = requireSlot(activeTheme, 'MemberProfile')
   return (
@@ -74,6 +95,41 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           },
         )}
       />
+
+      {currentRelation !== null && (
+        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-4 px-6 pb-8">
+          {currentRelation === 'none' ? (
+            <>
+              <SetRelationForm
+                userId={id}
+                username={profile.username}
+                kind="buddy"
+                returnTo={`/member/${id}`}
+                label="Add to buddy list"
+              />
+              <SetRelationForm
+                userId={id}
+                username={profile.username}
+                kind="ignore"
+                returnTo={`/member/${id}`}
+                label="Ignore this member"
+              />
+            </>
+          ) : (
+            <RemoveRelationForm
+              userId={id}
+              username={profile.username}
+              returnTo={`/member/${id}`}
+              label={
+                currentRelation === 'buddy' ? 'Remove from buddy list' : 'Stop ignoring'
+              }
+            />
+          )}
+          <a href="/usercp/contacts" className="text-sm text-muted-foreground hover:text-foreground">
+            Your lists
+          </a>
+        </div>
+      )}
     </main>
   )
 }

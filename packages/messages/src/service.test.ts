@@ -208,6 +208,8 @@ let repo: FakeRepository
 let service: MessageService
 let raised: Array<{ kind: string; userId: number }>
 let quotas: Map<number, { quota: number; canReceive: boolean }>
+/** F61's ignore list, as the app's policy supplies it: (owner, sender) pairs. */
+let blocked: Set<string>
 
 const NOW = new Date('2026-08-01T12:00:00Z')
 
@@ -221,6 +223,9 @@ function policy(): MessagePolicy {
     },
     async limitsFor(userId) {
       return quotas.get(userId) ?? { quota: 0, canReceive: true }
+    },
+    async blocks(ownerUserId, senderUserId) {
+      return blocked.has(`${ownerUserId}:${senderUserId}`)
     },
   }
 }
@@ -240,6 +245,7 @@ beforeEach(() => {
   repo = new FakeRepository()
   raised = []
   quotas = new Map()
+  blocked = new Set()
   service = new MessageService({
     messages: repo,
     policy: policy(),
@@ -397,6 +403,58 @@ describe('quota', () => {
   it('refuses a recipient whose groups do not allow private messages', async () => {
     quotas.set(BOB, { quota: 0, canReceive: false })
     await expect(sendTo('bob')).rejects.toThrow(/cannot receive/)
+  })
+})
+
+describe('the ignore block (F61)', () => {
+  it('refuses a message to somebody who is ignoring the sender', async () => {
+    blocked.add(`${BOB}:${IVAN}`)
+    await expect(sendTo('bob')).rejects.toThrow(/cannot receive/)
+    expect(repo.messages).toEqual([])
+  })
+
+  it('gives the same wording as a permission refusal, so it is not an oracle', async () => {
+    /*
+     * "bob is ignoring you" would make the send path a way to read somebody's
+     * ignore list, and a list that announces itself is one people stop using.
+     * Both refusals therefore say the same thing.
+     */
+    blocked.add(`${BOB}:${IVAN}`)
+    const ignoredMessage = await sendTo('bob').catch((err: Error) => err.message)
+
+    blocked.clear()
+    quotas.set(BOB, { quota: 0, canReceive: false })
+    const deniedMessage = await sendTo('bob').catch((err: Error) => err.message)
+
+    expect(ignoredMessage).toBe(deniedMessage)
+  })
+
+  it('is one-directional: the ignorer can still write to the ignored', async () => {
+    /*
+     * `(me, them)` is my opinion of them. Ignoring somebody is not a mutual
+     * silence, and a member who blocks somebody has not blocked themselves.
+     */
+    blocked.add(`${BOB}:${IVAN}`)
+
+    const id = await service.send({
+      authorUserId: BOB,
+      authorUsername: 'bob',
+      to: 'ivan',
+      subject: 'Hello',
+      message: 'A message.',
+    })
+
+    expect(id).toBeGreaterThan(0)
+  })
+
+  it('sends nothing to anybody when one recipient blocks the sender', async () => {
+    blocked.add(`${CAROL}:${IVAN}`)
+    await expect(sendTo('bob, carol')).rejects.toThrow(/cannot receive/)
+    expect(repo.copies.filter((copy) => copy.ownerUserId === BOB)).toEqual([])
+  })
+
+  it('lets everything through when the policy answers no blocks', async () => {
+    await expect(sendTo('bob')).resolves.toBeGreaterThan(0)
   })
 })
 
