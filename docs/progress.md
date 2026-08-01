@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D59. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D62. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -20,7 +20,7 @@ this file.
 `pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
 + **guard probes**, the **slot server/client boundary** check + its probe,
 dependency-cruiser (386 modules, 0 violations), typecheck (root **and** app),
-**2264 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+**2400 tests** (a large share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
 `/notifications/preferences`, `/subscriptions`, `/unsubscribe` and the five
@@ -599,33 +599,141 @@ first and the assertion only checked that *some* error came back. Now it uses a
 real account in a group without the grant and asserts the exact message, and the
 mutant dies.
 
+- **F61 · buddy and ignore lists.** One table with a `kind`, not two, because
+  the two lists are mutually exclusive — so one row per ordered pair makes that
+  the primary key rather than a cross-table check nothing enforces, and moving
+  somebody between them is an upsert. The pair is deliberately asymmetric: a
+  mutual ignore would let anybody silence themselves in somebody else's eyes by
+  ignoring them first.
+
+  The decision worth knowing is that **ignoring withholds a body and leaves the
+  post in the page**. Filtering ignored authors out of the query is the obvious
+  implementation and it breaks four things at once: every viewer gets a
+  different page size, "#12" means different posts to different people,
+  permalinks land on the wrong page, and the reply count stops matching what is
+  on screen. F61's acceptance names *stable pagination and counts* for exactly
+  that reason. So the body is simply not in the response — not hidden with CSS,
+  which is a preference rather than a feature — and a reveal link brings it
+  back, per post and additively, so working down a thread does not re-hide what
+  you just chose to read.
+
+  Staff cannot be ignored, and the refusal is explicit. A moderator's post is
+  often the one saying why a thread was locked, and somebody who thinks they
+  have hidden it and has not is worse off than somebody who was told.
+
+  The PM block gives the **same wording as a permission refusal**. Naming the
+  ignore would turn F60's send path into a way to read somebody's list; MyBB's
+  alternative — accept and deliver nowhere — is worse than either, because the
+  sender believes they were heard. A *failed* block check answers "blocked", not
+  "allowed": an ignore nobody could verify must not be a message that gets
+  through.
+
+  Building this found that **`users.last_active_at` has had no writer since
+  `0000`** — read by the ModCP and the profile, set by nothing. Online state
+  needed it true, so it has one now: a conditional UPDATE whose throttle is the
+  WHERE clause, exactly as `touchLocation` does it. See **D60**.
+
+- **F62 · reputation.** The line worth carrying forward: **the two rate limits
+  are two mechanisms, because they are two shapes.**
+
+  "One rating per person per target" is *uniqueness*, so it is a partial unique
+  index — a check-then-insert lets two clicks through, and a reputation button
+  that adds a row per click is the cheapest way to inflate a total. There are
+  two indexes rather than one, because rating somebody's post is a different
+  statement from rating them. "At most N a day" is a *window*, which no index
+  expresses, so it is a count inside the writing transaction — and the residual
+  race is written down in the migration rather than hidden: N+1 for somebody
+  scripting it, which is a rate limit doing its job rather than a security
+  event.
+
+  `users.reputation` was the second column this pass to have no writer since
+  `0000`. It has one now, and it is **derived rather than incremented** — the
+  same call F53 made for `warning_points`, and for the same reason: an
+  incremented total cannot survive a rating being revised or withdrawn. There
+  is a test that corrupts the column and watches the next write repair it.
+
+  A submitted `-1` on a board with negatives off is **refused, not clamped**:
+  quietly turning a criticism into praise is the worst possible reading of
+  somebody's intent. And a test found a real hole — `parseRating('')` returned
+  `0`, because `Number('')` is zero and zero is a valid rating, so a form posted
+  with no value would have recorded a neutral one. See **D62**.
+
+- **F58 · signatures (the avatar half is not built, and that is the finding).**
+
+  The signature half is complete: a **narrower tag registry** rather than a
+  validator, so a forbidden tag renders as literal text — which cannot be
+  bypassed by a tag this build does not know, and degrades for somebody pasting
+  an old signature instead of refusing them. `[img]` is the omission that
+  matters, because a remote image under every post is a tracking beacon
+  reporting each reader's IP; `[quote]`, `[size]`, `[code]` and `[list]` go for
+  the same reason, which is that **a signature repeats under every post its
+  author ever made**. F37 built `ParseOptions.tags` for custom tags; this is
+  that seam used as designed.
+
+  Moderation is a **lock, not a delete**: the text is kept so an appeal can see
+  it, it stops rendering, the member cannot edit it, and the required reason is
+  shown to them. The lock lives in the UPDATE's `where` rather than in a prior
+  read, which closes the race where a moderator locks a signature while the
+  member has the form open.
+
+  The avatar half is deliberately absent, and **D61 records why a remote URL is
+  not the cheap way round F42**: rendered directly it is the tracking vector
+  F58's own acceptance forbids, and fetched server-side it is SSRF. Both
+  mitigations end at validate-fetch-re-encode-store, which *is* F42.
+
+### Three pre-existing gaps this pass closed
+
+1. **`users.last_active_at` had no writer** (F61) — see above.
+2. **`users.reputation` had no writer** (F62) — see above.
+3. **The fixture ladder had drifted from the seeded one twice more.**
+   `seed-board.ts` claims to mirror migration `0001`, and was missing
+   `canUsePrivateMessages` (F60) and then `canGiveReputation` (F62) — both
+   seeded true for Registered, neither carried in the fixture because nothing
+   read them. Exactly the class of drift the file's own comment records about
+   the three negative fields. Each was caught by a test failing for the wrong
+   reason, which is worth noting: the fixture is the thing that makes app-tier
+   tests meaningful, and it silently disagrees with the real board until
+   somebody reads the column.
+
+Also worth recording: **`installTestContainer` had no `ActorSource`** until F60
+needed one. Nothing in the app tier had ever built an actor for *somebody other
+than the viewer* — every screen resolves the viewer's through `getActor`, which
+tests mock.
+
 ## NEXT ACTION — resume here
 
-**Phase 5 is five of eight**, and the three that remain split cleanly.
+**Phase 5 is finished except for one blocked half.** F55–F57 and F59–F62 are
+`DONE`; F58 is `PARTIAL` with its signature half complete and its avatar half
+named as F42's.
 
-**F61 · buddy and ignore lists** is now **unblocked** — F60 was its dependency,
-and the PM-block half has a message path to block. It needs no new runtime
-dependency and is the natural next step in plan order.
+**F42 · attachments is the decision, and it is a human's.** Everything else in
+Phase 5 is built, and F42 now blocks three things rather than one: F58's
+avatars, F71's attachment administration, and F45's drag-and-drop island. It
+needs image re-encoding, which is a **runtime dependency**, and the roadmap's
+rule is to stop for a decision before adding one.
 
-**F62 · reputation** likewise needs nothing new.
+The specific trap is recorded above and bears repeating: **do not add `sharp` to
+`onlyBuiltDependencies`** — its postinstall makes `next build` fail at prerender.
+The options, unchanged:
 
-**F58 · avatars and signatures** is still blocked on F42 (attachments), and
-**F42 itself still needs a human decision**: it requires image re-encoding,
-which is a runtime dependency, and the roadmap's rule is to stop for a decision
-before adding one. The specific trap is recorded above — *do not add `sharp` to
-`onlyBuiltDependencies`*, its postinstall makes `next build` fail at prerender.
-The options are unchanged: find a re-encoder that does not break the build,
-accept stored originals with strict magic-byte validation and no re-encode, or
-leave F42 until the rest of Phase 5 is done. The signature half of F58 — BBCode,
-group-limited, moderated — could be built today without F42; it is only the
-avatar that needs an upload.
+1. Find a re-encoder that does not break the build (`@jsquash/*` via WASM is the
+   usual answer, and is still a new runtime dependency).
+2. Accept stored originals with strict magic-byte validation and no re-encode,
+   and write down what that gives up — chiefly that a valid image can still
+   carry a polyglot payload, which is why re-encoding is the usual advice.
+3. Leave F42 and start **Phase 6 (F63 · the ACP)**, which unblocks nine
+   features and needs nothing new. F63–F71 are all `TODO` and F63 has no
+   dependency beyond F20.
 
-**Standing F60 gaps, named rather than implied:** no custom folders (three
-system ones; MyBB's user-defined folders need a management screen and a move-to
-picker over an unbounded list), no drafts (F44 has no table, and a drafts folder
-here would need a recipient list stored before a message has one), no message
-search (F62), no attachments (F42), and fixture mode has no message store (D38),
-so the browser suite still cannot cover any of it.
+Option 3 is the one that keeps moving without a decision, and F71 would then be
+the only Phase 6 feature still waiting on F42.
+
+**Standing gaps across the phase, named rather than implied:** fixture mode has
+no store for notifications, subscriptions, member settings, profile fields,
+messages, relations or reputation (D38), so **the browser suite still covers
+reading only** — the same blocker since F39, and now eight features wide. Either
+the e2e harness gains a real database or the fixture gains writers; it is the
+single largest hole in this project's testing and it is not getting smaller.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -723,7 +831,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D59). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D62). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

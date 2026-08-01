@@ -102,6 +102,8 @@ export function installTestContainer(
     profileFields: null,
     messages: null,
     relations: null,
+    reputation: null,
+    signatures: null,
     /*
      * F57's credential store, plus the two services built over it.
      *

@@ -19,6 +19,8 @@ const DOMAIN = [
   'profile-fields',
   'messages',
   'relations',
+  'reputation',
+  'signatures',
   'bbcode',
   'moderation',
   'notifications',

@@ -19,6 +19,7 @@ import {
   requestEmailChangeAction,
   saveOptionsAction,
   saveProfileAction,
+  saveSignatureAction,
 } from "@/server/usercp-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
@@ -269,6 +270,79 @@ export function EmailForm({ email }: { email: string }) {
       <div>
         <button type="submit" className={BUTTON}>
           Send confirmation
+        </button>
+      </div>
+    </form>
+  )
+}
+
+/**
+ * F58's signature form.
+ *
+ * The limit is shown as a number rather than only enforced, because a member
+ * typing into a box that will refuse them at 1,001 characters and not say so
+ * until they press Save is being set up to fail. `maxLength` on the textarea
+ * mirrors the server's rule so the browser stops them first.
+ */
+export function SignatureForm({
+  signature,
+  maxLength,
+  locked,
+  lockedReason,
+}: {
+  signature: string
+  maxLength: number
+  locked: boolean
+  lockedReason: string | null
+}) {
+  const [state, action] = useActionState(saveSignatureAction, EMPTY_STATE)
+
+  if (locked) {
+    return (
+      <div className={CARD}>
+        <h2 className="font-serif text-lg font-semibold">Your signature is locked</h2>
+        <p className="text-sm text-muted-foreground">
+          A moderator has stopped your signature from being shown or changed.
+          {lockedReason === null ? null : (
+            <>
+              {" "}
+              Reason given: <span className="text-foreground">{lockedReason}</span>
+            </>
+          )}
+        </p>
+        {/* The text is kept, and shown, so an appeal can see what was there. */}
+        {signature !== "" && (
+          <pre className="whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-3 text-xs">
+            {signature}
+          </pre>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <form action={action} className={CARD}>
+      <FormError message={state.error} />
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Signature</span>
+        <textarea
+          name="signature"
+          defaultValue={signature}
+          className={FIELD}
+          rows={4}
+          maxLength={maxLength}
+        />
+        <span className="text-xs text-muted-foreground">
+          Up to {maxLength} characters. Bold, italic, underline, strikethrough,
+          colour and links are allowed; images, quotes, code and sizes are not —
+          a signature repeats under every post you have ever made.
+        </span>
+      </label>
+
+      <div>
+        <button type="submit" className={BUTTON}>
+          Save signature
         </button>
       </div>
     </form>

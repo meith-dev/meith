@@ -8,6 +8,9 @@ import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { visibleProfileFields } from '@/server/profile-fields'
 import { relationService } from '@/server/relations'
+import { reputationService, reputationSettings } from '@/server/reputation'
+import { reputationLabel } from '@/view/reputation'
+import { SignatureLockForm } from '@/components/moderation/signature-lock-form'
 import {
   RemoveRelationForm,
   SetRelationForm,
@@ -60,6 +63,28 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             ? 'ignore'
             : 'none')
 
+  /*
+   * F62. The summary only — the history and the rating form live on their own
+   * route, because a history pages and a profile that grew a pager for one
+   * section would have to page the rest of itself too. Absent entirely when
+   * reputation is switched off, rather than shown as a permanent zero.
+   */
+  const reputation = reputationService()
+  const repSettings = await reputationSettings()
+  const repSummary =
+    reputation === null || !repSettings.enabled ? null : await reputation.summary(id)
+
+  /*
+   * F58's moderator control. Offered only to somebody who may warn — the same
+   * trust level, aimed at the same thing (a person rather than a forum's
+   * content) — and only on a board that keeps signatures at all.
+   */
+  const signatures = getContainer().signatures
+  const signatureState =
+    signatures === null || !authorizer.can(actor, 'user.warn')
+      ? null
+      : await signatures.read(id).catch(() => null)
+
   const MemberProfile = requireSlot(activeTheme, 'MemberProfile')
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
@@ -95,6 +120,25 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           },
         )}
       />
+
+      {signatureState !== null && (
+        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3 px-6 pt-4 text-sm">
+          <span className="text-muted-foreground">
+            Signature: {signatureState.locked ? 'locked' : 'allowed'}
+          </span>
+          <SignatureLockForm userId={id} locked={signatureState.locked} />
+        </div>
+      )}
+
+      {repSummary !== null && (
+        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-baseline gap-3 px-6 pt-2 text-sm">
+          <span className="text-muted-foreground">Reputation:</span>
+          <span className="font-medium">{reputationLabel(repSummary)}</span>
+          <a href={`/member/${id}/reputation`} className="text-primary hover:underline">
+            See all ratings
+          </a>
+        </div>
+      )}
 
       {currentRelation !== null && (
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-4 px-6 pb-8">

@@ -285,6 +285,15 @@ export interface PostActionsModel {
    * than a documented `null`.
    */
   readonly moderateHref: string | null
+  /**
+   * Rate this post's author, for this post (F62).
+   *
+   * Null on your own post, on a board with reputation off, and for anybody
+   * without the permission. It carries the post so the rating is attached to
+   * *this* post rather than to the author generally — which is what makes one
+   * rating per post a meaningful rule.
+   */
+  readonly rateHref: string | null
 }
 
 export interface PostBitModel {

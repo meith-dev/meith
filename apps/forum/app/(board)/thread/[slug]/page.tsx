@@ -13,6 +13,8 @@ import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { postbitProfileFields } from '@/server/profile-fields'
 import { viewerIgnoredIds } from '@/server/relations'
+import { reputationSettings } from '@/server/reputation'
+import { signaturesFor } from '@/server/signatures'
 import { moderatorTargetFor } from '@/server/modcp'
 import { activeTheme } from '@/server/theme'
 import {
@@ -177,6 +179,15 @@ export default async function ThreadPage({
     canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
     /* F53. Global too, and gated on there being a warning store at all (D38). */
     canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
+    /*
+     * F62. Global as well, gated on a reputation store *and* on the board
+     * setting — a Rate link that leads to a 404 because reputation is switched
+     * off is worse than no link.
+     */
+    canRate:
+      getContainer().reputation !== null &&
+      authorizer.can(actor, 'reputation.give') &&
+      (await reputationSettings()).enabled,
   }
 
   /*
@@ -273,6 +284,13 @@ export default async function ThreadPage({
    */
   const ignoredIds = await viewerIgnoredIds()
 
+  /*
+   * F58. One query for the whole page, keyed by author — a signature per post
+   * would be an N+1 on the board's heaviest page, which is exactly what the
+   * repository's `readMany` exists to avoid.
+   */
+  const signatures = await signaturesFor(authorIds)
+
   const view = buildThreadView({
     thread,
     capabilities,
@@ -288,6 +306,7 @@ export default async function ThreadPage({
     now: new Date(),
     timeZone: preferences.timezone,
     authorFields,
+    signatures,
     ignoredIds,
     revealedPostIds: revealedFrom(query.reveal),
     /*

@@ -499,3 +499,46 @@ export const reportEvents = pgTable(
   },
   (t) => [index('report_events_report_idx').on(t.reportId, t.createdAt)],
 )
+
+/**
+ * Reputation (F62).
+ *
+ * One row per rating. Two uniqueness rules, both partial indexes rather than
+ * checks: one profile rating per pair, and one rating per person per post — see
+ * `migrations/0013_reputation.sql` for why the daily cap is *not* one of them.
+ *
+ * `users.reputation` is derived from these rows and recomputed from them, never
+ * incremented, exactly as F53 handles `warning_points`.
+ */
+export const reputation = pgTable(
+  'reputation',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Null once the giver's account is gone; the rating still counts. */
+    givenByUserId: integer('given_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Null for a rating left on the profile rather than on a post. */
+    /* The FK lives here rather than in identity.ts, which is why this table
+       does: `posts` is declared in this file, and the schema files have a
+       strict dependency order (identity <- structure <- content). */
+    postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }),
+    points: smallint('points').notNull().default(1),
+    comment: text('comment').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('reputation_profile_unique')
+      .on(t.givenByUserId, t.userId)
+      .where(sql`${t.postId} is null`),
+    uniqueIndex('reputation_post_unique')
+      .on(t.givenByUserId, t.postId)
+      .where(sql`${t.postId} is not null`),
+    index('reputation_user_idx').on(t.userId, t.id.desc()),
+    index('reputation_given_idx').on(t.givenByUserId, t.createdAt.desc()),
+  ],
+)

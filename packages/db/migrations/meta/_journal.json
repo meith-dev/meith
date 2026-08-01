@@ -92,6 +92,20 @@
       "when": 1785528600000,
       "tag": "0012_user_relations",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1785528700000,
+      "tag": "0013_reputation",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1785528800000,
+      "tag": "0014_signatures",
+      "breakpoints": true
     }
   ]
 }

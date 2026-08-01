@@ -101,6 +101,14 @@ const POST = {
   /* The storage quota migration `0011` gives Registered. */
   privateMessageQuota: 100,
   /*
+   * F62, seeded true for Registered in migration `0013` with a daily cap. Same
+   * class of drift as the two above: the fixture claims to mirror the seeded
+   * ladder, so a permission the migration grants has to appear here too or the
+   * fixture board silently refuses a feature the real one allows.
+   */
+  canGiveReputation: true,
+  maxReputationPerDay: 10,
+  /*
    * The three negative fields, matching migration `0001_seed_usergroups`.
    *
    * They were missing here, and the fixture inherited `emptyPermissionSet()`'s

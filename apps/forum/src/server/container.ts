@@ -49,6 +49,7 @@ import type { NotificationRepository } from '@forum/notifications'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
 import type { MessageRepository } from '@forum/messages'
 import type { RelationRepository } from '@forum/relations'
+import type { ReputationRepository } from '@forum/reputation'
 import type { ProfileFieldRepository } from '@forum/profile-fields'
 import type { SubscriptionRepository } from '@forum/subscriptions'
 import type {
@@ -80,6 +81,8 @@ import {
   PostgresMemberSettingsRepository,
   PostgresMessageRepository,
   PostgresRelationRepository,
+  PostgresReputationRepository,
+  PostgresSignatureRepository,
   PostgresProfileFieldRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
@@ -214,6 +217,18 @@ export interface Container {
    */
   readonly relations: RelationRepository | null
   /**
+   * Reputation (F62). `null` in fixture mode (D38): the total on `users` is
+   * derived from these rows, so a store that empties on restart would leave
+   * every member's number at whatever the sample data says.
+   */
+  readonly reputation: ReputationRepository | null
+  /**
+   * Signatures (F58). `null` in fixture mode (D38), where the UserCP is absent
+   * anyway — and a signature that resets on restart is a moderator's lock
+   * quietly lifting itself.
+   */
+  readonly signatures: PostgresSignatureRepository | null
+  /**
    * The credential store behind identity (F17–F19).
    *
    * Exposed for F57's UserCP, which re-authenticates with the current password
@@ -325,6 +340,8 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     profileFields: null,
     messages: null,
     relations: null,
+    reputation: null,
+    signatures: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -428,6 +445,8 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     profileFields: new PostgresProfileFieldRepository(db),
     messages: new PostgresMessageRepository(db),
     relations: new PostgresRelationRepository(db),
+    reputation: new PostgresReputationRepository(db),
+    signatures: new PostgresSignatureRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -499,6 +518,8 @@ export function getContainer(): Container {
     cached.profileFields === undefined ||
     cached.messages === undefined ||
     cached.relations === undefined ||
+    cached.reputation === undefined ||
+    cached.signatures === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

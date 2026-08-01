@@ -55,6 +55,8 @@
       "@forum/profile-fields": ["packages/profile-fields/src/index.ts"],
       "@forum/messages": ["packages/messages/src/index.ts"],
       "@forum/relations": ["packages/relations/src/index.ts"],
+      "@forum/reputation": ["packages/reputation/src/index.ts"],
+      "@forum/signatures": ["packages/signatures/src/index.ts"],
       "@forum/posts/*": ["packages/posts/src/*"],
       "@forum/bbcode": ["packages/bbcode/src/index.ts"],
       "@forum/bbcode/*": ["packages/bbcode/src/*"],

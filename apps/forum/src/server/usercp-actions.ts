@@ -22,11 +22,13 @@ import { redirect } from 'next/navigation'
 
 import { MemberSettingsService } from '@forum/accounts'
 import { ForbiddenError, isAppError, logger } from '@forum/core'
+import { prepareSignature } from '@forum/signatures'
 
 import { AUTH_CONFIG } from './auth-config'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
+import { signatureStore, viewerSignatureLimits } from './signatures'
 import { sendEmailChangeConfirmation } from './usercp-mail'
 import { setSessionCookie } from './session-cookies'
 import type { FormState } from './auth-form-state'
@@ -198,4 +200,54 @@ export async function requestEmailChangeAction(
   await sendEmailChangeConfirmation(pending).catch(() => undefined)
 
   redirect('/usercp/security?sent=1')
+}
+
+/**
+ * F58 — save your signature.
+ *
+ * Its own verb rather than a field on `saveProfileAction`, because a signature
+ * is group-limited and lockable and the profile form is neither: folding them
+ * together would mean the profile save carrying a permission check that has
+ * nothing to do with the other three fields.
+ */
+export async function saveSignatureAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const values = { signature: text(form, 'signature') }
+
+  try {
+    const actor = await getActor()
+    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+
+    const store = signatureStore()
+    if (store === null) {
+      throw new ForbiddenError(
+        'This board is running on in-memory sample data, so it has no signatures to save.',
+      )
+    }
+
+    const limits = await viewerSignatureLimits()
+    const { source, rendered } = prepareSignature(values.signature, limits)
+
+    /*
+     * The lock is enforced in the UPDATE's `where`, not by a prior read: a
+     * moderator locking a signature while this member has the form open is
+     * exactly the race a read would lose. A refused write is reported as the
+     * lock rather than as a failure.
+     */
+    const wrote = await store.save({
+      userId: actor.userId,
+      signature: source,
+      signatureHtml: rendered.html,
+      renderVersion: rendered.version,
+    })
+
+    if (!wrote) {
+      throw new ForbiddenError(
+        'Your signature has been locked by a moderator, so it cannot be changed.',
+      )
+    }
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect('/usercp/signature?saved=1')
 }

@@ -89,6 +89,11 @@ export function userCpSections(): readonly UserCpSection[] {
       link: { label: 'Open your messages', href: '/messages' },
     },
     {
+      title: 'Signature',
+      description: 'What appears under every post you make.',
+      link: { label: 'Edit your signature', href: '/usercp/signature' },
+    },
+    {
       title: 'Buddies and ignored members',
       description: 'Who you follow, and whose posts you would rather not read.',
       link: { label: 'Manage your lists', href: '/usercp/contacts' },

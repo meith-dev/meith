@@ -125,6 +125,24 @@ export type Action =
    * group and permission reasoning does not leave this package (R4).
    */
   | 'flood.bypass'
+  /**
+   * Rate another member (F62).
+   *
+   * Global, and deliberately not in the F22 forum matrix: reputation is about
+   * a *person* and their total follows them across the whole board, so a
+   * per-forum grant would have to answer "well regarded where?" about a number
+   * that has no forum. The same argument `user.warn` makes.
+   */
+  | 'reputation.give'
+  /**
+   * Show a signature under your posts (F58).
+   *
+   * Global, like every other "what may this member have on their account"
+   * capability. `canUseSignature` and `maxSignatureLength` have been in the
+   * permission registry since F22 with nothing reading them; this is the action
+   * they were declared for.
+   */
+  | 'signature.use'
 
 /**
  * The global numeric permissions, derived from the registry (F60).

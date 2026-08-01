@@ -3407,3 +3407,227 @@ the seeded ladder already gives staff groups 0.
 - **"Reply all"**, for the bcc reason above.
 - **Attachments on a message.** F42, and its runtime dependency.
 - **An ignore list.** F61 depends on this feature and owns the PM block.
+
+### D60 — Ignoring hides a body, it does not remove a post (F61)
+
+**Plan:** "Server-side ignore (reveal link, PM block, stable pagination/counts)
+and online buddy state."
+
+#### One table with a `kind`, because the two lists are exclusive
+
+You cannot both follow somebody and refuse to read them. Two tables would make
+that a cross-table check nothing enforces; one row per ordered pair with a
+`kind` makes it the **primary key**, so moving somebody between the lists is an
+upsert rather than a delete-then-insert that can half happen.
+
+The pair is ordered and asymmetric. `(me, them)` is my opinion of them and says
+nothing about theirs of me — a board where ignoring were mutual would let
+anybody silence themselves in somebody else's eyes by ignoring them first.
+
+#### Why the post stays in the page
+
+The obvious implementation filters ignored authors out of the post query. Doing
+that gives every viewer a different page size, makes "#12" mean different posts
+to different people, lands permalinks on the wrong page, and leaves the thread's
+reply count disagreeing with what is on screen. F61's acceptance names *stable
+pagination and counts* for exactly this reason.
+
+So the post keeps its place and its number, and the **body is withheld
+server-side**: `bodyHtml` is empty, the signature and custom fields are gone,
+and the quote link is not offered. A theme renders a placeholder and a reveal
+link. "Ignored" that ships the text to the browser and hides it with CSS is a
+preference, not a feature.
+
+Reveal is **per post and additive**, carried in the query string. Per post,
+because revealing one reply should not undo the whole feature for that thread;
+additive, because working down a thread should not re-hide what you just chose
+to read. It is a GET because revealing changes nothing.
+
+Your own post is never hidden: you can end up ignoring somebody you have quoted,
+and hiding your own words back at you is nonsense.
+
+#### Staff cannot be ignored
+
+A moderator's post is often the one that says why a thread was locked, and a
+member who has hidden it will read the lock as arbitrary. The refusal is
+explicit rather than silent — somebody who believes they have hidden a moderator
+and has not is worse off than somebody who was told.
+
+Whether somebody is staff is `modcp.access`, resolved by the Authorizer in the
+app and handed to `@forum/relations` as a boolean (F20). It is asked only when
+somebody is about to be *ignored*, so an ordinary page render never pays for it.
+
+#### The PM block gives the same answer as a permission refusal
+
+A recipient who ignores the sender refuses the message with the **same wording**
+as "your group cannot receive private messages". Naming the ignore would make
+F60's send path an oracle for somebody's list, and a list that announces itself
+is one people stop using.
+
+MyBB's alternative — accept the message and deliver it nowhere — is worse than
+either, because the sender believes they were heard.
+
+The block is asked in the app's `MessagePolicy`, and a *failed* read answers
+**true**: an ignore that could not be checked must not be a message that gets
+through, because the member cannot see that it happened. A board with no
+relation store answers false, which is the right direction for a permissive
+answer whose source is missing.
+
+#### `users.last_active_at` had no writer until now
+
+The column has been in the schema since `0000`, read by the ModCP and by the
+profile and **set by nothing**. F61's online buddy state is the first feature
+that needs it to be true, so `touchLastActive` gives it one — a conditional
+UPDATE whose throttle is the WHERE clause, exactly as `touchLocation` does it,
+so a burst of page views is one write and no caller can forget to throttle.
+
+It is called from the page shell, which means a *prefetch* counts as activity.
+Accepted: a prefetch means the member has the board open, which is what "online"
+is meant to convey.
+
+The throttle (5 minutes) is deliberately shorter than the online window (15).
+With the two equal, somebody who kept the board open would flicker offline for
+the last moments of every interval.
+
+#### What is deliberately not here
+
+- **A board-wide online list.** F75 owns it. `ONLINE_WINDOW_MINUTES` lives in
+  `@forum/relations` because that is the only consumer today; when F75 arrives
+  it should take the constant, not declare a second one.
+- **`PostAuthorModel.isOnline`.** Still `false` for every post: filling it needs
+  `last_active_at` per author in the post query, and the buddy list is what F61
+  actually promised.
+- **Ignoring a thread or a forum.** F56 is where "stop telling me about this"
+  lives, and it is a different verb from "I would rather not read this person".
+
+### D61 — F58 ships its signature half; the avatar half is F42's (F58)
+
+**Plan:** "Safe avatar upload/remote URL and group-limited, moderated signature
+BBCode; no SSRF/tracking vector."
+
+**Implemented:** the signature half in full. The avatar half is **not built**,
+and the reason is the acceptance criterion itself.
+
+An avatar is one of two things. An **upload** needs the route-handler FileStore
+path, magic-byte validation, re-encoding and quota — which is F42, and F42 is
+blocked on a runtime-dependency decision (`sharp` breaks `next build` at
+prerender; see `progress.md`). A **remote URL** looks like the cheap way round
+that, and it is not:
+
+- Rendered directly, it is a **tracking vector**: every member who loads a
+  thread page reports their IP address and user agent to whoever hosts the
+  image, chosen by another member. F58's own acceptance forbids this.
+- Fetched and cached server-side, it is **SSRF**: a URL controlled by a member,
+  fetched by the board, is a request to `169.254.169.254` or to an internal
+  host away from being a serious problem.
+
+Both mitigations end in the same place — validate, fetch, re-encode, store —
+which *is* F42. So the honest position is that the avatar half has one
+dependency and it is not built yet, rather than a remote-URL field that quietly
+fails the acceptance criterion it was written against. Omitted rather than
+half-built (D32). `MemberProfileModel.avatarUrl` and `PostAuthorModel.avatarUrl`
+stay `null`, as they have been since F27.
+
+#### The signature half, and the one decision in it
+
+**A restricted tag registry, not a validator.** The obvious implementation
+refuses a signature containing `[img]`. This one renders it with a registry that
+has no `img` in it, so the tag comes out as literal text. Better twice over: it
+cannot be bypassed by a tag this build does not know about, and it degrades — a
+member pasting an old signature gets most of it rather than an error.
+
+F37 built `ParseOptions.tags` for custom tags; this is that seam used as
+designed rather than a special case cut into the renderer.
+
+What is left out is `img`, `quote`, `size`, `code` and `list`, and every
+omission is the same argument: **a signature repeats under every post its author
+has ever made.** A remote image there is the tracking vector D61 opens with,
+multiplied by the length of the thread.
+
+**The limit applies to the raw source**, not the rendered HTML: a member types
+BBCode, and a limit they cannot count against is one they cannot work with. It
+also means a renderer change can never retroactively push somebody over.
+`maxSignatureLength` (a group permission since F22, with nothing reading it
+until now) is capped by a hard ceiling, because 0 meaning "unlimited" for a
+string that renders under every post still needs a bound.
+
+**Moderation is a lock, not a delete.** An emptied signature can be retyped the
+next minute and says nothing about why. A locked one keeps the text — so an
+appeal can see what was actually there — stops it rendering, and stops the
+member editing it, with a reason the member is shown on their own screen. The
+lock is enforced in the UPDATE's `where` clause rather than by a prior read,
+which closes the race where a moderator locks a signature while the member has
+the form open.
+
+It is gated on `user.warn` rather than a new permission: both are aimed at a
+*person* rather than a forum's content, and a board that trusts somebody to warn
+a member trusts them to stop that member's signature.
+
+### D62 — Two rate limits, two mechanisms (F62)
+
+**Plan:** "PostgreSQL rate-limited reputation with comments, settings/per-group
+limits, history, and recomputable total."
+
+#### The uniqueness is an index; the rate is a count
+
+They are different shapes and get different mechanisms, and saying so is the
+point of this entry.
+
+*One rating per person per target* is **uniqueness**, so it is a partial unique
+index — two clicks arriving together both pass a check-then-insert, and a
+reputation button that adds a row per click is the cheapest way to inflate a
+total. There are two indexes rather than one, because rating somebody's *post*
+is a different statement from rating *them*: a board that collapsed the two
+would silently overwrite one with the other. Re-rating **updates** the row, so
+changing your mind is supported rather than being a way to stack points.
+
+*At most N a day* is a **window**, which no index expresses. It is a count
+inside the writing transaction, and its residual race is stated rather than
+hidden: two concurrent inserts can both see N−1 and both commit, so the real
+ceiling is N+1 for somebody scripting it. That is a rate limit, not a
+permission, and being one over is not a security event.
+
+Revising an existing rating does **not** spend an allowance. Making a correction
+cost one would push people to leave a wrong rating alone, which is the opposite
+of what a cap is for.
+
+#### The total is derived, never incremented
+
+`users.reputation` has existed since `0000` with no writer. It gets one here,
+and it is recomputed from the live rows inside the same transaction as anything
+that changes them — the same decision F53 made for `warning_points`, for the
+same reason: an incremented total cannot survive a rating being revised or
+withdrawn, and drifts silently when it does. A test corrupts the column and
+watches the next write repair it.
+
+`recount` is exposed on the repository rather than kept internal, because F70's
+Recount & Rebuild needs it.
+
+#### A refused negative is not a silent positive
+
+On a board with negative ratings off, a submitted `-1` is **refused**. Clamping
+it to `+1` would turn a criticism into praise, which is the worst possible
+reading of somebody's intent.
+
+Related, and found by a test: `parseRating('')` was returning `0`, because
+`Number('')` is zero and zero is a *valid* rating. A form posted with no value
+would have recorded a neutral rating. The empty-string guard is not decoration.
+
+#### `reputationPower` is deliberately absent
+
+MyBB has a per-group multiplier: a moderator's vote is worth more. It cannot
+obey R4.2's numeric combination rule — MAX with 0 meaning unlimited — because
+"unlimited power" is meaningless and a multiplier is most permissive at its
+*largest* value with no unlimited state at all. Same shape as the
+`searchfloodtime` problem already recorded in `mybb-parity.md#flood-intervals`,
+and the same answer: leave it out rather than invert the rule for one field.
+
+#### What is deliberately not here
+
+- **A reputation leaderboard.** F75 owns board statistics.
+- **Reputation-gated permissions.** A permission model with two sources of
+  truth — groups and a number members award each other — is one nobody can
+  reason about.
+- **Notifications on being rated.** A producer exists, but the kind would fire
+  on every rating on a busy board; it belongs with a per-kind digest, which
+  F55's registry has no shape for yet.

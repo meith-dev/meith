@@ -38,6 +38,8 @@ export interface PostCapabilities {
   readonly canReport: boolean
   /** F53's global `user.warn`. */
   readonly canWarn: boolean
+  /** F62's global `reputation.give`, and the board setting behind it. */
+  readonly canRate?: boolean
 }
 
 const NO_CAPABILITIES: PostCapabilities = {
@@ -49,6 +51,7 @@ const NO_CAPABILITIES: PostCapabilities = {
   bypassesWindow: false,
   canReport: false,
   canWarn: false,
+  canRate: false,
 }
 
 function withinEditWindow(
@@ -75,6 +78,8 @@ interface PostContext {
   readonly timeZone: string | undefined
   /** F59, resolved per author by the page. Empty for a board with no fields. */
   readonly fields: ReadonlyMap<number, readonly { label: string; value: string }[]>
+  /** F58, resolved per author by the page. Empty when nobody has one. */
+  readonly signatures: ReadonlyMap<number, string>
   /** F61. The ids this viewer ignores, and the posts they asked to see anyway. */
   readonly ignoredIds: ReadonlySet<number>
   readonly revealedPostIds: ReadonlySet<number>
@@ -87,7 +92,7 @@ function post(
   thread: ThreadListingRow,
   context: PostContext,
 ): PostBitModel {
-  const { now, replyHref, capabilities, timeZone, fields } = context
+  const { now, replyHref, capabilities, timeZone, fields, signatures } = context
   const isOwn =
     capabilities.viewerUserId !== null && post.authorUserId === capabilities.viewerUserId
   const manageHref = `/thread/${thread.id}-${thread.slug}/edit?post=${post.id}`
@@ -127,7 +132,15 @@ function post(
         post.authorJoinedAt === null
           ? null
           : formatTime(post.authorJoinedAt, now, timeZone),
-      signatureHtml: null,
+      /*
+       * F58. Withheld with the body when the post is hidden (F61) — a
+       * signature is the author's text too, and leaving it would put it back on
+       * a post the reader chose not to read.
+       */
+      signatureHtml:
+        hidden || post.authorUserId === null
+          ? null
+          : (signatures.get(post.authorUserId) ?? null),
       isOnline: false,
       /*
        * F59. Keyed by author rather than by post, because a thread is mostly
@@ -196,6 +209,16 @@ function post(
         capabilities.canWarn && !isOwn && post.authorUserId !== null
           ? `/moderation/warn?user=${post.authorUserId}&post=${post.id}`
           : null,
+      /*
+       * F62. Not offered on your own post — rating yourself is refused by the
+       * service, so a link to it would only ever lead to a refusal — nor on a
+       * post whose author no longer exists, nor on a hidden one: the reader
+       * chose not to read it, and inviting them to rate it is absurd.
+       */
+      rateHref:
+        capabilities.canRate === true && !isOwn && post.authorUserId !== null && !hidden
+          ? `/member/${post.authorUserId}/reputation?post=${post.id}`
+          : null,
       moderateHref: null,
     },
   }
@@ -220,6 +243,8 @@ export interface ThreadViewInput {
   readonly timeZone?: string
   /** F59's postbit fields, keyed by author user id. */
   readonly authorFields?: ReadonlyMap<number, readonly { label: string; value: string }[]>
+  /** F58's rendered signatures, keyed by author user id. */
+  readonly signatures?: ReadonlyMap<number, string>
   /** F61. The ids this viewer ignores; empty for a guest or a board with none. */
   readonly ignoredIds?: ReadonlySet<number>
   /** F61. The posts this viewer has asked to see anyway, from `?reveal=`. */
@@ -235,6 +260,7 @@ export interface ThreadViewInput {
 }
 
 const EMPTY_IDS: ReadonlySet<number> = new Set()
+const EMPTY_SIGNATURES: ReadonlyMap<number, string> = new Map()
 
 /**
  * The same page with one more post revealed.
@@ -285,6 +311,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         capabilities: input.capabilities ?? NO_CAPABILITIES,
         timeZone: input.timeZone,
         fields: input.authorFields ?? new Map(),
+        signatures: input.signatures ?? EMPTY_SIGNATURES,
         ignoredIds: input.ignoredIds ?? EMPTY_IDS,
         revealedPostIds: input.revealedPostIds ?? EMPTY_IDS,
         revealHref: (postId) => revealHref(input.currentHref ?? '', postId),

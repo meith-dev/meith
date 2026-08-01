@@ -19,6 +19,10 @@ export type SettingGroup =
   | 'display'
   | 'search'
   | 'mail'
+  /** F62. Its own group rather than an extension of 'posting': reputation is
+      about members rather than about content, and an operator looking for it
+      would not find it under posting. */
+  | 'reputation'
   | 'security'
 
 interface SettingDefinitionBase<T> {
@@ -233,6 +237,52 @@ export const SETTING_DEFINITIONS = [
     description: 'Display name on outgoing mail. The address is MAIL_FROM (env).',
     schema: z.string().max(100),
     default: '',
+  }),
+
+  /* ---------------------------- reputation ----------------------------- */
+  define({
+    key: 'reputation.enabled',
+    group: 'reputation',
+    label: 'Reputation enabled',
+    description:
+      'Members can rate each other. Off hides every control and every total; ' +
+      'existing ratings are kept, so switching it back on restores them.',
+    schema: z.boolean(),
+    default: true,
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'reputation.allow_negative',
+    group: 'reputation',
+    label: 'Allow negative ratings',
+    description:
+      'Members can rate somebody down as well as up. Off makes reputation a ' +
+      'thanks button, which is what most boards actually want.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'reputation.comment_required',
+    group: 'reputation',
+    label: 'Require a comment',
+    description:
+      'A rating must say why. A number with no reason attached is the part of ' +
+      'reputation people argue about.',
+    schema: z.boolean(),
+    default: true,
+    invalidates: ['settings'],
+  }),
+  define({
+    key: 'reputation.min_posts_to_give',
+    group: 'reputation',
+    label: 'Posts required before rating',
+    description:
+      'A brand-new account cannot rate anybody until it has posted this many ' +
+      'times. 0 disables the requirement.',
+    schema: z.number().int().min(0).max(1000),
+    default: 5,
+    invalidates: ['settings'],
   }),
 
   /* ------------------------------ security ----------------------------- */

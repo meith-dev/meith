@@ -88,6 +88,8 @@ const ADMIN_ALWAYS: ReadonlySet<Action> = new Set<Action>([
   'memberlist.view',
   'pm.use',
   'content.report',
+  'reputation.give',
+  'signature.use',
   /*
    * An administrator is not rate-limited between posts. The interval exists to
    * slow down abuse, and an administrator who has to wait fifteen seconds while
@@ -639,6 +641,10 @@ export class Authorizer {
         return actor.global.canReportContent === true
       case 'user.warn':
         return actor.global.canWarnUsers === true
+      case 'reputation.give':
+        return actor.global.canGiveReputation === true
+      case 'signature.use':
+        return actor.global.canUseSignature === true
       case 'modcp.access':
         return actor.global.canAccessModCp === true
       case 'admincp.access':

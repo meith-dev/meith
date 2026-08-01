@@ -89,6 +89,17 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           )}
         </div>
       )}
+      {/*
+        F58's signature. Trusted HTML from `@forum/bbcode`, rendered with the
+        narrower signature registry — the app resolves it, and a hidden post
+        (F61) carries none.
+      */}
+      {post.ignored === null && post.author.signatureHtml !== null && (
+        <div
+          className="border-t border-border px-4 py-2 text-xs text-muted-foreground"
+          dangerouslySetInnerHTML={{ __html: post.author.signatureHtml }}
+        />
+      )}
       {regions.actions !== null && <footer className="border-t border-border px-4 py-2">{regions.actions}</footer>}
     </article>
   )

@@ -142,12 +142,18 @@ importers:
       '@forum/relations':
         specifier: workspace:*
         version: link:../../packages/relations
+      '@forum/reputation':
+        specifier: workspace:*
+        version: link:../../packages/reputation
       '@forum/settings':
         specifier: workspace:*
         version: link:../../packages/settings
       '@forum/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@forum/signatures':
+        specifier: workspace:*
+        version: link:../../packages/signatures
       '@forum/tasks':
         specifier: workspace:*
         version: link:../../packages/tasks
@@ -299,9 +305,15 @@ importers:
       '@forum/relations':
         specifier: workspace:*
         version: link:../relations
+      '@forum/reputation':
+        specifier: workspace:*
+        version: link:../reputation
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
+      '@forum/signatures':
+        specifier: workspace:*
+        version: link:../signatures
       '@forum/subscriptions':
         specifier: workspace:*
         version: link:../subscriptions
@@ -402,6 +414,12 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/reputation:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/runtime:
     dependencies:
       '@forum/accounts':
@@ -449,6 +467,15 @@ importers:
       zod:
         specifier: ^4.4.3
         version: 4.4.3
+
+  packages/signatures:
+    dependencies:
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../bbcode
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/subscriptions:
     dependencies:

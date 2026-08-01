@@ -817,3 +817,121 @@ message that quietly grows its audience is not what a reply button should mean.
 
 **Cost:** answering a group conversation means typing the other names, which the
 composer shows in the "To" line of the message being replied to.
+
+## Ignoring hides a post's body; it does not remove the post
+
+**MyBB:** an ignored member's posts are collapsed client-side, with the body
+still in the HTML.
+
+**Here:** the body is withheld **server-side** — it is not in the response at
+all — and the post keeps its place in the page and its number in the thread. A
+placeholder and a per-post reveal link take its place.
+
+**Why:** shipping the text and hiding it with CSS is a preference rather than a
+feature. And filtering the post *out* instead would give every viewer a
+different page size, make "#12" mean different posts to different people, and
+land permalinks on the wrong page — which is why F61's acceptance names stable
+pagination and counts.
+
+**Cost:** a thread with an ignored member in it still has their posts in it, as
+placeholders. That is the intended reading: a conversation with holes in it is
+still a conversation, and a reader who wants the missing half is one click away.
+
+## Buddy and ignore are one table, and ignoring is not mutual
+
+**MyBB:** `userlist` with a `type` column, which is the same shape — but the
+ignore is often read as symmetric by the code around it.
+
+**Here:** one row per **ordered** pair, primary-keyed, so the two lists are
+mutually exclusive by construction. `(me, them)` is my opinion of them and says
+nothing about theirs of me.
+
+**Why:** a mutual ignore lets anybody silence themselves in somebody else's eyes
+by ignoring them first, which is a griefing tool rather than a preference.
+
+**Cost:** two people who both want to stop reading each other need a row each.
+That is one extra click, and it is the correct model.
+
+## A blocked private message is refused, not silently discarded
+
+**MyBB:** a message to somebody who ignores you is accepted and dropped.
+
+**Here:** the send is refused, with the **same wording** as a permission
+refusal — "X cannot receive private messages" — so it does not disclose the
+ignore.
+
+**Why:** silently discarding it leaves the sender believing they were heard,
+which is the worst outcome for both people. Naming the ignore would make the
+send path a way to read somebody's list, and a list that announces itself is one
+people stop using. The ambiguous refusal is the only option that is honest to
+the sender without betraying the recipient.
+
+**Cost:** a sender cannot tell "they blocked me" from "their group cannot use
+PMs". That ambiguity is the feature.
+
+## A signature's forbidden tags render as text rather than refusing the save
+
+**MyBB:** per-group switches for images, links and HTML in signatures, enforced
+by stripping or by refusing.
+
+**Here:** signatures render with a **narrower tag registry** — bold, italic,
+underline, strikethrough, colour, links, e-mail. `[img]`, `[quote]`, `[size]`,
+`[code]` and `[list]` are not in it, so they come out as literal text.
+
+**Why:** it cannot be bypassed by a tag this build does not know about, and it
+degrades — somebody pasting a signature from another board gets most of it
+rather than an error. `[img]` is the one that matters: a remote image under
+every post is a tracking beacon reporting each reader's IP to whoever hosts it.
+
+**Cost:** an imported MyBB signature that used images loses them, visibly, as
+bracketed text the member can then delete. F85's importer should strip the tags
+rather than leave them, and say how many it touched.
+
+## A signature is locked, not deleted
+
+**MyBB:** `suspendsignature` with an expiry, plus moderators simply clearing the
+text.
+
+**Here:** a boolean lock with a required reason. The text is kept, is shown back
+to the member with the reason on their own signature screen, and cannot be
+edited while locked.
+
+**Why:** an emptied signature can be retyped the next minute and says nothing
+about why it went. Keeping the text is also what lets an appeal look at what was
+actually there rather than at somebody's recollection.
+
+**Cost:** no expiry — an unlock is a second deliberate act. MyBB's timed
+suspension is the nicer behaviour and needs a scheduled task; it belongs with
+F70's maintenance work rather than being faked with a column nothing sweeps.
+
+## Reputation has no per-group power multiplier
+
+**MyBB:** `reputationpower` makes a moderator's vote worth more than a member's.
+
+**Here:** every rating is worth −1, 0 or +1. The per-group settings are *whether*
+you may rate and *how many a day*.
+
+**Why:** a multiplier cannot obey R4.2's rule for numeric permissions — MAX
+across groups with 0 meaning unlimited — because "unlimited power" is
+meaningless and a multiplier has no unlimited state. It is the same shape as the
+`searchfloodtime` problem recorded above, and gets the same answer: leave it out
+rather than invert the combination rule for one field.
+
+**Cost:** a board that wants staff endorsements to carry weight cannot express
+it. An imported `reputationpower` is dropped, and F85's importer should say so
+rather than silently scaling everybody's totals.
+
+## Reputation totals are recomputed, not incremented
+
+**MyBB:** `users.reputation` is adjusted as ratings are added and removed.
+
+**Here:** the column is rebuilt with a `sum` over the live rows, inside the same
+transaction as whatever changed them.
+
+**Why:** an incremented total cannot survive a rating being revised or
+withdrawn, and when it drifts nobody notices until somebody counts by hand. Same
+decision this board made for `warning_points` (F53) and for the thread and forum
+counters (F38).
+
+**Cost:** one extra aggregate per rating. It is bounded by the number of ratings
+one member has, and a rating is a deliberate act rather than a hot path.
