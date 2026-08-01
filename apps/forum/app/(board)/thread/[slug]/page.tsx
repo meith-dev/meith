@@ -10,6 +10,7 @@ import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { moderatorTargetFor } from '@/server/modcp'
 import { activeTheme } from '@/server/theme'
 import {
@@ -18,7 +19,6 @@ import {
   inlineOutcomeNotice,
   selectionFor,
 } from '@/view/inline-moderation'
-import { POSTS_PER_PAGE } from '@/view/paging'
 import { buildThreadView } from '@/view/thread-view'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 
@@ -117,9 +117,11 @@ export default async function ThreadPage({
    * contains the row — filtering in the theme would put the body in the HTML
    * and hide it with CSS, which F33 already refused to do for profile fields.
    */
+  /* F57's per-member page size, resolved before the read that uses it. */
+  const preferences = await getViewerPreferences()
   const postPage = await posts.listThread(thread.id, {
     ...(after === undefined ? {} : { afterId: after }),
-    limit: POSTS_PER_PAGE,
+    limit: preferences.postsPerPage,
     scope,
   })
   const nextHref = postPage.nextAfterId === null
@@ -252,6 +254,7 @@ export default async function ThreadPage({
         ? null
         : `/api/read/thread/${thread.id}?post=${postPage.rows.at(-1)!.id}`,
     now: new Date(),
+    timeZone: preferences.timezone,
   })
 
   /*

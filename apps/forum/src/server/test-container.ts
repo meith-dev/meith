@@ -18,6 +18,7 @@
  * is running on in-memory sample data" refusal, which is a legible failure,
  * rather than a `null` dereference twelve frames deep.
  */
+import { IdentityService, SessionService, createMemoryStore } from '@forum/accounts'
 import type { MemoryAppointment, MemoryBoard } from '@forum/authorization'
 import { Authorizer, InMemoryAuthorizationSource } from '@forum/authorization'
 
@@ -69,6 +70,7 @@ export interface TestContainerOptions {
 export function installTestContainer(
   options: TestContainerOptions = {},
 ): Record<string, unknown> {
+  const store = createMemoryStore()
   const board: MemoryBoard = options.board ?? {
     ...SEED_BOARD,
     moderators: options.moderators ?? [],
@@ -94,6 +96,17 @@ export function installTestContainer(
     modcp: null,
     notifications: null,
     subscriptions: null,
+    memberSettings: null,
+    /*
+     * F57's credential store, plus the two services built over it.
+     *
+     * A real memory store rather than `null`, because unlike every repository
+     * above these are not optional in the Container's type: identity works in
+     * fixture mode and so does the UserCP's re-authentication. Building them
+     * from the *same* store is what makes a test that changes a password and
+     * then starts a session behave like the real thing.
+     */
+    ...identityOver(store),
     readState: null,
     threadViews: null,
     scheduler: null,
@@ -123,6 +136,35 @@ export function installTestContainer(
 
   ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = container
   return container
+}
+
+/**
+ * The identity trio, over one store.
+ *
+ * The config mirrors `auth-config.ts` closely enough for the paths a test
+ * exercises; it is deliberately not imported, because that module reads `env`
+ * and a test container should not need a configured environment to exist.
+ */
+function identityOver(store: ReturnType<typeof createMemoryStore>) {
+  return {
+    accountStore: store,
+    identity: new IdentityService({
+      store,
+      config: {
+        minPasswordLength: 8,
+        usernameMin: 3,
+        usernameMax: 30,
+        activationMethod: 'none',
+        maxLoginAttempts: 5,
+        lockoutMinutes: 15,
+        sessionIdleDays: 30,
+        resetTokenTtlMinutes: 60,
+        reservedUsernames: [],
+        defaultMemberGroupId: 2,
+      },
+    }),
+    sessions: new SessionService({ store, rememberDays: 30, sessionIdleDays: 30 }),
+  }
 }
 
 /** Drop the installed container so the next `getContainer()` builds a real one. */

@@ -5,6 +5,7 @@ import { requireSlot } from '@forum/theme-kit'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { activeTheme } from '@/server/theme'
 import { buildMemberProfileView } from '@/view/member-profile'
 
@@ -27,6 +28,9 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   const profile = await memberProfiles.findPublicById(id)
   if (!profile) notFound()
 
+  /* F57. The *viewer's* zone: "joined 3 Feb" should read in their local time. */
+  const preferences = await getViewerPreferences()
+
   const MemberProfile = requireSlot(activeTheme, 'MemberProfile')
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
@@ -34,14 +38,19 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         {...buildMemberProfileView(
           profile,
           new Date(),
-          /*
-           * F53. Gated on the store as well as the permission — fixture mode
-           * has no warnings, and a link to a page that 404s is worse than none.
-           * Never offered on your own profile.
-           */
-          warnings !== null &&
-            actor.userId !== id &&
-            authorizer.can(actor, 'user.warn'),
+          {
+            /*
+             * F53. Gated on the store as well as the permission — fixture mode
+             * has no warnings, and a link to a page that 404s is worse than
+             * none. Never offered on your own profile.
+             */
+            canWarn:
+              warnings !== null &&
+              actor.userId !== id &&
+              authorizer.can(actor, 'user.warn'),
+            /* F57: the *viewer's* zone, so "joined" reads in their local time. */
+            timeZone: preferences.timezone,
+          },
         )}
       />
     </main>

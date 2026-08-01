@@ -55,6 +55,15 @@ export interface MemberProfileRecord {
   readonly postCount: number
   readonly createdAt: Date
   readonly lastActiveAt: Date | null
+  /**
+   * F57's three self-written fields. Public by definition — this record is the
+   * *public* subset, and a member who fills them in is publishing them.
+   * Rendered as plain text, never as markup: a signature is F58's BBCode and a
+   * different thing entirely.
+   */
+  readonly location: string | null
+  readonly website: string | null
+  readonly bio: string | null
 }
 
 export interface MemberProfileRepository {

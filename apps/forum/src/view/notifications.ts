@@ -33,6 +33,11 @@ export function buildNotificationCentreView(input: {
   readonly unread: number
   readonly nextCursor?: string | undefined
   readonly now: Date
+  /**
+   * The viewer's timezone (F57). Defaults to UTC — the zone every timestamp on
+   * this board used before members could choose one.
+   */
+  readonly timeZone?: string
 }): NotificationCentreView {
   return {
     rows: input.rows.map((row) => ({
@@ -46,7 +51,7 @@ export function buildNotificationCentreView(input: {
        * failing yesterday and failed again a minute ago is not a day-old
        * notification.
        */
-      at: formatTime(row.updatedAt, input.now),
+      at: formatTime(row.updatedAt, input.now, input.timeZone),
       isRead: row.isRead,
       repeated:
         row.occurrences > 1 ? `Happened ${row.occurrences} times` : null,

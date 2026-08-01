@@ -66,6 +66,7 @@ function post(
   now: Date,
   replyHref: string | null,
   capabilities: PostCapabilities,
+  timeZone: string | undefined,
 ): PostBitModel {
   const isOwn =
     capabilities.viewerUserId !== null && post.authorUserId === capabilities.viewerUserId
@@ -88,7 +89,10 @@ function post(
       avatarUrl: null,
       title: null,
       postCount: post.authorPostCount,
-      joinedAt: post.authorJoinedAt === null ? null : formatTime(post.authorJoinedAt, now),
+      joinedAt:
+        post.authorJoinedAt === null
+          ? null
+          : formatTime(post.authorJoinedAt, now, timeZone),
       signatureHtml: null,
       isOnline: false,
     },
@@ -101,7 +105,7 @@ function post(
      * caught up.
      */
     bodyHtml: postBodyHtml(post),
-    postedAt: formatTime(post.createdAt, now),
+    postedAt: formatTime(post.createdAt, now, timeZone),
     /*
      * Shown to everyone who can see the post, reason included. An edit notice
      * exists to tell readers the text changed after they might have read it;
@@ -109,7 +113,7 @@ function post(
      */
     editedNote: editedNote(
       { editedAt: post.editedAt, editedByUsername: post.editedByUsername, reason: post.editReason },
-      (at) => formatTime(at, now).label,
+      (at) => formatTime(at, now, timeZone).label,
     ),
     isFirstPost: post.isFirstPost,
     visibility: post.visibility,
@@ -163,6 +167,11 @@ export interface ThreadViewInput {
   /** F41. Omitted for a guest, who may do nothing to a post. */
   readonly capabilities?: PostCapabilities
   readonly now: Date
+  /**
+   * The viewer's timezone (F57). Defaults to UTC — the zone every timestamp on
+   * this board used before members could choose one.
+   */
+  readonly timeZone?: string
 }
 
 export interface ThreadView {
@@ -174,7 +183,7 @@ export interface ThreadView {
 export function buildThreadView(input: ThreadViewInput): ThreadView {
   return {
     view: {
-      thread: threadRowModel(input.thread, input.now),
+      thread: threadRowModel(input.thread, input.now, null, input.timeZone),
       forum: { label: input.forum.title, href: forumHref(input.forum) },
       replyHref: input.replyHref ?? null,
       markReadAction: input.markReadAction ?? null,
@@ -186,6 +195,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         input.now,
         input.replyHref ?? null,
         input.capabilities ?? NO_CAPABILITIES,
+        input.timeZone,
       ),
     ),
     pagination: {

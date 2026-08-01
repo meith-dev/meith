@@ -46,6 +46,11 @@ export interface BoardIndexInput {
   readonly markAllReadAction?: string | null
   /** Injected so "Today" is testable and identical across one render. */
   readonly now: Date
+  /**
+   * The viewer's timezone (F57). Defaults to UTC — the zone every timestamp on
+   * this board used before members could choose one.
+   */
+  readonly timeZone?: string
 }
 
 /** `/forum/12-general` — id first so a rename never breaks a link. */
@@ -70,7 +75,11 @@ function threadHref(threadId: number, postId: number): string {
   return `/thread/${threadId}#post-${postId}`
 }
 
-function toLastPost(row: ForumListingRow, now: Date): LastPostModel | null {
+function toLastPost(
+  row: ForumListingRow,
+  now: Date,
+  timeZone: string | undefined,
+): LastPostModel | null {
   const last = row.lastPost
   if (last === null) return null
 
@@ -82,13 +91,14 @@ function toLastPost(row: ForumListingRow, now: Date): LastPostModel | null {
       username: last.username,
       profileHref: last.userId === null ? null : memberHref(last.userId),
     },
-    at: formatTime(last.at, now),
+    at: formatTime(last.at, now, timeZone),
   }
 }
 
 function toForumRow(
   node: ForumNode<ForumListingRow>,
   now: Date,
+  timeZone: string | undefined,
   unreadForumIds: ReadonlySet<number> | undefined,
 ): ForumRowModel {
   return {
@@ -99,7 +109,7 @@ function toForumRow(
     type: node.type,
     threadCount: node.threadCount,
     postCount: node.postCount,
-    lastPost: toLastPost(node, now),
+    lastPost: toLastPost(node, now, timeZone),
     isUnread: unreadForumIds?.has(node.id) ?? false,
     subforums: node.children.map(
       (child): LinkModel => ({ label: child.title, href: hrefFor(child) }),
@@ -169,8 +179,10 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
       markAllReadAction: input.markAllReadAction ?? null,
     },
     blocks: tree.map((node) => ({
-      block: { category: toForumRow(node, input.now, input.unreadForumIds) },
-      forums: node.children.map((child) => toForumRow(child, input.now, input.unreadForumIds)),
+      block: { category: toForumRow(node, input.now, input.timeZone, input.unreadForumIds) },
+      forums: node.children.map((child) =>
+        toForumRow(child, input.now, input.timeZone, input.unreadForumIds),
+      ),
     })),
   }
 }

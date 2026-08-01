@@ -81,6 +81,7 @@ describe('buildUserPanelModel', () => {
   it('offers the member profile, notification and subscription routes', () => {
     expect(buildUserPanelModel(buildViewerModel(member)).links).toEqual([
       { label: 'Profile', href: '/member/42' },
+      { label: 'Your control panel', href: '/usercp' },
       { label: 'Notifications', href: '/notifications' },
       { label: 'Subscriptions', href: '/subscriptions' },
     ])

@@ -11,24 +11,44 @@ export function memberHref(userId: number): string {
 export function buildMemberProfileView(
   profile: MemberProfileRecord,
   now: Date,
-  /**
-   * Whether the viewer may warn this member (F53).
-   *
-   * A capability the page resolves, not a permission this function knows: the
-   * matrix stays in `@forum/authorization` (R4), and the action behind the link
-   * re-asks anyway.
-   */
-  canWarn = false,
+  options: {
+    /**
+     * Whether the viewer may warn this member (F53).
+     *
+     * A capability the page resolves, not a permission this function knows: the
+     * matrix stays in `@forum/authorization` (R4), and the action behind the
+     * link re-asks anyway.
+     */
+    readonly canWarn?: boolean
+    /** The *viewer's* timezone (F57), not the profile owner's. */
+    readonly timeZone?: string
+  } = {},
 ): MemberProfileModel {
+  const { canWarn = false, timeZone } = options
   return {
     user: { userId: profile.id, username: profile.username, profileHref: memberHref(profile.id) },
     avatarUrl: null,
     title: profile.title,
-    joinedAt: formatTime(profile.createdAt, now),
-    lastVisitAt: profile.lastActiveAt === null ? null : formatTime(profile.lastActiveAt, now),
+    joinedAt: formatTime(profile.createdAt, now, timeZone),
+    lastVisitAt:
+      profile.lastActiveAt === null
+        ? null
+        : formatTime(profile.lastActiveAt, now, timeZone),
     postCount: profile.postCount,
     signatureHtml: null,
-    fields: [],
+    /*
+     * F57's three self-written fields, in the slot F59 will later fill with
+     * configured ones. They travel as `{label, value}` pairs and are **plain
+     * text**: `MemberProfileModel.fields` is rendered as text by the theme, and
+     * a profile that could carry markup is a stored-XSS vector on a page every
+     * member visits. Absent fields are omitted rather than rendered empty —
+     * F33's rule that an invisible field is not in the HTML at all.
+     */
+    fields: [
+      profile.location === null ? null : { label: 'Location', value: profile.location },
+      profile.website === null ? null : { label: 'Website', value: profile.website },
+      profile.bio === null ? null : { label: 'About', value: profile.bio },
+    ].filter((field): field is { label: string; value: string } => field !== null),
     actions: canWarn
       ? [{ label: 'Warn this member', href: `/moderation/warn?user=${profile.id}` }]
       : [],

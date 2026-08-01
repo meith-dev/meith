@@ -54,6 +54,7 @@ export {
 } from './render-backfill'
 export { PostgresPostWriteRepository } from './post-writes'
 export { PostgresModerationQueueRepository } from './moderation-queue'
+export { PostgresMemberSettingsRepository } from './member-settings-repo'
 export { PostgresNotificationRepository } from './notification-repo'
 export { PostgresReportRepository } from './report-repo'
 export { PostgresSubscriptionRepository } from './subscription-repo'

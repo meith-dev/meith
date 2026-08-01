@@ -166,6 +166,24 @@ export const users = pgTable(
     suspendedPostingUntil: timestamp('suspended_posting_until', { withTimezone: true }),
     moderatedPostingUntil: timestamp('moderated_posting_until', { withTimezone: true }),
 
+    /**
+     * F57 — the member's own settings.
+     *
+     * Columns rather than a `user_preferences` table for F53's reason: every
+     * one is read on the page-render path for the signed-in member, there is
+     * exactly one of each per account, and a join for a row that always exists
+     * is a join on every page of the board.
+     */
+    /** IANA name, validated against the runtime's tz database. Never an offset. */
+    timezone: text('timezone').notNull().default('UTC'),
+    /** Null = the board setting. Override-only, like `settings` itself. */
+    postsPerPage: smallint('posts_per_page'),
+    threadsPerPage: smallint('threads_per_page'),
+    /** The public profile a member writes about themselves. */
+    location: text('location'),
+    website: text('website'),
+    bio: text('bio'),
+
     /** Set when state='deleted'. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
 

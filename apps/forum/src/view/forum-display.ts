@@ -27,13 +27,14 @@ function lastPost(
   } | null,
   thread: ThreadListingRow,
   now: Date,
+  timeZone: string | undefined,
 ): LastPostModel | null {
   if (!post) return null;
   return {
     threadTitle: thread.title,
     href: `${threadHref(thread)}#post-${post.postId}`,
     author: { userId: post.userId, username: post.username, profileHref: post.userId === null ? null : memberHref(post.userId) },
-    at: formatTime(post.at, now),
+    at: formatTime(post.at, now, timeZone),
   };
 }
 
@@ -56,6 +57,8 @@ export function threadRowModel(
   row: ThreadListingRow,
   now: Date,
   readState: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null = null,
+  /** F57's viewer zone. Defaults to UTC, as every timestamp did before it. */
+  timeZone?: string,
 ): ThreadRowModel {
   const last = row.lastPost;
   const isUnread =
@@ -79,7 +82,7 @@ export function threadRowModel(
     isLocked: row.isLocked,
     isUnread,
     isMoved: row.isMoved,
-    lastPost: lastPost(row.lastPost, row, now),
+    lastPost: lastPost(row.lastPost, row, now, timeZone),
   };
 }
 
@@ -97,6 +100,11 @@ export interface ForumDisplayInput {
   readonly readState?: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null;
   readonly markReadAction?: string | null;
   readonly now: Date;
+  /**
+   * The viewer's timezone (F57). Defaults to UTC — the zone every timestamp on
+   * this board used before members could choose one.
+   */
+  readonly timeZone?: string;
 }
 
 export interface ForumDisplayView {
@@ -119,7 +127,9 @@ export function buildForumDisplayView(
       input.subforums.length === 0
         ? null
         : { forums: input.subforums.map(forum) },
-    threads: input.page.rows.map((row) => threadRowModel(row, input.now, input.readState ?? null)),
+    threads: input.page.rows.map((row) =>
+      threadRowModel(row, input.now, input.readState ?? null, input.timeZone),
+    ),
     pagination: {
       page: input.pageNumber,
       // Cursor pagination deliberately does not run a count query just to show a total.

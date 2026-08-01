@@ -24,6 +24,7 @@ import {
   createMemoryStore,
   type AccountStore,
   type MemberProfileRepository,
+  type MemberSettingsRepository,
 } from '@forum/accounts'
 import {
   Authorizer,
@@ -73,6 +74,7 @@ import {
   PostgresWarningRepository,
   PostgresNotificationRepository,
   PostgresSubscriptionRepository,
+  PostgresMemberSettingsRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
   PostgresReadStateRepository,
@@ -179,6 +181,21 @@ export interface Container {
    * scheduler, which fixture mode also refuses.
    */
   readonly subscriptions: SubscriptionRepository | null
+  /**
+   * The member's own settings (F57): timezone, page sizes, profile fields.
+   * `null` in fixture mode (D38), where the UserCP is absent rather than a
+   * screen whose Save button loses everything on restart.
+   */
+  readonly memberSettings: MemberSettingsRepository | null
+  /**
+   * The credential store behind identity (F17–F19).
+   *
+   * Exposed for F57's UserCP, which re-authenticates with the current password
+   * and issues an `email_change` token — both of which are `AccountStore`
+   * operations that `IdentityService` deliberately does not wrap, because they
+   * are not part of registering or logging in.
+   */
+  readonly accountStore: AccountStore
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
@@ -278,12 +295,14 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     modcp: null,
     notifications: null,
     subscriptions: null,
+    memberSettings: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
     threadViews: null,
     fixtureDataVersion: FIXTURE_DATA_VERSION,
     ...identityServices(store),
+    accountStore: store,
     // See SchedulerBundle: a tick without durable, cross-instance state cannot
     // honour its concurrency guarantee, so fixture mode has no scheduler.
     scheduler: null,
@@ -376,6 +395,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     modcp: new PostgresModCpRepository(db),
     notifications: new PostgresNotificationRepository(db),
     subscriptions: new PostgresSubscriptionRepository(db),
+    memberSettings: new PostgresMemberSettingsRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -389,6 +409,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     memberProfiles: new PostgresMemberProfileRepository(db),
     threadViews,
     fixtureDataVersion: null,
+    accountStore: store,
     ...identityServices(store),
     /*
      * F13's `task:run` and F04's worker build the identical object, so the
@@ -442,6 +463,7 @@ export function getContainer(): Container {
     cached.modcp === undefined ||
     cached.notifications === undefined ||
     cached.subscriptions === undefined ||
+    cached.memberSettings === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

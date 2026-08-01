@@ -18,6 +18,9 @@ export class PostgresMemberProfileRepository implements MemberProfileRepository 
         postCount: users.postCount,
         createdAt: users.createdAt,
         lastActiveAt: users.lastActiveAt,
+        location: users.location,
+        website: users.website,
+        bio: users.bio,
       })
       .from(users)
       .leftJoin(usergroups, eq(users.displayGroupId, usergroups.id))

@@ -3037,3 +3037,117 @@ preferences screen already draws. The scope is inside the signed payload, so a
 - **Fixture mode has no subscription store**, like every writer since D38, so
   the follow control and the management screen are absent there rather than
   broken. That is also why the browser suite still cannot cover any of this.
+
+---
+
+### D57 — The member's own settings, and making two constants real (F57)
+
+The UserCP is two features wearing one name. There are the screens — profile,
+options, security — and there is the *plumbing that makes what they save
+matter*, which is the larger half and the one worth recording.
+
+#### Two constants became settings, and that is the feature
+
+`view/time.ts` has formatted every timestamp on this board in UTC since F29,
+and the footer has said so out loud. `view/paging.ts` has held two numbers since
+F40. Both said "F57" in their own comments. Shipping a timezone dropdown that
+wrote a column nobody read would have been the hollow version of this feature —
+the kind D32 refuses for tasks and F53 refused for an unsurfaced ban mechanism.
+
+So `formatTime(at, now)` became `formatTime(at, now, zone)`, and the zone is
+threaded through all eight view builders to the pages. The signature keeps a
+UTC default, which is not laziness: a guest has no zone, the error pages have no
+database, and the previous behaviour is exactly what those should keep.
+
+Two things fell out of doing it properly:
+
+- **`Intl.DateTimeFormat`, never an offset.** An offset cannot express summer
+  time, so a stored `+01:00` is an hour wrong for half the year in most of
+  Europe — and wrong in a way that reads as a broken *timestamp* rather than a
+  broken setting. `isKnownTimezone` therefore refuses offsets **even though
+  `Intl` accepts them**: ECMA-402 permits `+01:00` as a time zone and the
+  constructor takes it happily, which the test suite pins.
+- **"Yesterday" is computed in the viewer's calendar**, not by subtracting 24
+  hours. On a day when the clocks change, a fixed 24 hours lands on the wrong
+  date and the label says "Yesterday" about something two days old.
+
+The page sizes are resolved *before* the read they bound, because the size is
+the query's `limit` — a preference applied after the query would be a setting
+that does nothing.
+
+#### Preferences are read once per request, and are not on the Actor
+
+`getViewerPreferences()` is `React.cache`d, like `getActor()`. A thread page
+formats a timestamp per post, per breadcrumb and per page link; without the
+cache the row would be read a dozen times.
+
+They are deliberately **not** part of `Actor`. That object carries permissions
+and group ids (F20), it is built by the authorization source, and it is cached
+against `permission_version` — a member changing their timezone must not
+invalidate a permission cache. Preferences change often and decide nothing.
+
+Every failure path returns the board defaults. This is rendering: the worst
+outcome of getting it wrong is a timestamp in the wrong zone, and taking a page
+down for that would be absurd.
+
+#### Six columns on `users`, not a preferences table
+
+The same argument F53 made for its two restriction columns. Every one of these
+is read on the page-render path for the signed-in member, there is exactly one
+of each per account, and a join for a row that always exists is a join on every
+page of the board.
+
+The page sizes are **override-only** (`null` = follow the board), which is the
+shape `settings` and `notification_preferences` already use: storing the board's
+current number would freeze a member at whatever it happened to be on the day
+they visited.
+
+#### The password and the address re-authenticate; the address is two-step
+
+Both are the account rather than a display preference. A session left open on a
+shared machine is otherwise a full takeover: change the address, request a
+reset, and the real owner is locked out of their own board.
+
+A password change **revokes every session, including the current one**, and the
+action then starts a fresh session for the device that made the change. That
+combination is what everybody expects and nobody says out loud: signed in where
+you are, signed out everywhere else. A change that left the attacker's session
+alive would have done nothing at all.
+
+The e-mail change writes nothing to `users`. The new address travels in the
+`email_change` credential token's `payload` — a column F19 created and nothing
+has used until now — and is adopted only when the link sent *to that address* is
+followed, which is what proves somebody can read mail there. `adoptEmail` lets
+the unique index arbitrate rather than checking first: an hour can pass between
+asking and confirming, and a prior read answers a question about the past.
+
+#### The confirm link acts on GET, and F56's unsubscribe link does not
+
+These two look like the same thing and are governed by opposite rules, so the
+difference is worth stating.
+
+F56's unsubscribe link is a **bearer credential that arrives in an inbox**: a
+scanner, a preview fetcher or a spam filter following it must not unsubscribe
+anybody, so the GET only renders a button.
+
+F57's confirmation link completes a change *the signed-in member initiated
+minutes ago*, its token is single-use, and a guest who follows it is sent to
+sign in rather than having somebody else's address confirmed by their browser.
+Requiring a second click after they already clicked one buys nothing.
+
+#### What is deliberately not here
+
+- **A per-member theme picker.** The board ships one theme; a `<select>` with
+  one option is a control that cannot do anything. It needs F78's second theme
+  (and F68's manager) to mean something.
+- **Invisible mode.** F75 owns the online list, and there is nothing for a
+  member to be invisible *on* — a toggle whose only effect is a column nobody
+  reads is the "never advertise a capability that is not there" rule D32 states
+  for tasks.
+- **Drafts** (F44 has no table) and **avatars/signatures** (F58, and a signature
+  is BBCode, group-limited and moderated, which makes it a different feature
+  from these three plain-text fields).
+- **F55's and F56's screens are linked, not moved.** Both keep their URLs — an
+  e-mail footer points at the preferences screen — and a member who bookmarked
+  one should not find it gone. The UserCP is where they are *findable*, which is
+  what F57 owed them.

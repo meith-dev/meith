@@ -51,6 +51,19 @@ export class SessionService {
     this.now = deps.clock ?? (() => new Date())
   }
 
+  /**
+   * Start a short session and nothing else (F57).
+   *
+   * `startRemembered` mints a remember-me *family* as well, which is right for
+   * a login where somebody ticked the box and wrong for what this is for: a
+   * password change revokes every session including the current one, and the
+   * device that made the change needs a fresh session — not a new long-lived
+   * credential it never asked for.
+   */
+  async start(userId: number): Promise<{ token: string; expiresAt: Date }> {
+    return this.mintSession(userId, this.now())
+  }
+
   /** Start a brand-new remember-me family plus its first short session. */
   async startRemembered(userId: number): Promise<RememberedLogin> {
     const at = this.now()

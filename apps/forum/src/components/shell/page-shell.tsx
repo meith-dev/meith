@@ -4,6 +4,7 @@ import type { Actor } from '@forum/authorization'
 import { LogoutForm } from '@/components/account/logout-form'
 import { getContainer } from '@/server/container'
 import { unreadNotificationCount } from '@/server/notifications'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
 import { activeTheme } from '@/server/theme'
 import {
@@ -85,6 +86,13 @@ export async function PageShell({
    */
   const unreadNotifications = await unreadNotificationCount(actor.userId)
 
+  /*
+   * F57. The zone the footer names, and the one every timestamp on the page was
+   * formatted in — resolved once per request and shared with the page body
+   * through `React.cache`, so this costs no second read.
+   */
+  const preferences = await getViewerPreferences()
+
   return (
     <Shell boardTitle={header.boardTitle} viewer={viewer}>
       <Header {...header}>
@@ -100,7 +108,7 @@ export async function PageShell({
 
       {children}
 
-      <Footer {...buildFooterModel([], boardTitle)} />
+      <Footer {...buildFooterModel([], boardTitle, preferences.timezone)} />
     </Shell>
   )
 }

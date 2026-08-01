@@ -619,3 +619,57 @@ because they wanted fewer e-mails. F55 already separates the record from the
 transport; this is that separation applied to the one-click case. The per-thread
 link in an "as it happens" notification *does* end that one subscription,
 because there the member knows exactly which thread they are silencing.
+
+---
+
+## Timezones are IANA names, never offsets
+
+**MyBB** stores a numeric offset (`timezone` = `-5`, plus a separate
+`dst` flag the board or the member toggles).
+
+**Here:** an IANA zone name (`America/New_York`), validated against the
+runtime's own tz database. Offsets are refused *even though `Intl` accepts
+them*.
+
+**Why:** an offset cannot express summer time, so it is wrong for half the year
+in every zone that observes it — and MyBB's answer to that, a DST flag somebody
+has to flip, is wrong every year for anybody who forgets. The tz database
+already knows when the clocks change in every zone; storing the name lets it
+answer.
+
+**Cost:** an imported MyBB board's offsets do not map cleanly — `-5` is
+`America/New_York` in winter and `America/Chicago`'s summer, and neither is
+certain. F85's importer will have to pick a representative zone per offset and
+say so, rather than pretending the data was there.
+
+## A password change signs out every other device
+
+**MyBB:** changing a password keeps other sessions alive.
+
+**Here:** every session is revoked, and the device that made the change is
+immediately given a fresh one.
+
+**Why:** changing a password is what somebody does when they think an account is
+compromised. One that leaves the attacker's session alive has done nothing.
+Re-issuing for the current device is what stops the safe behaviour from also
+being the annoying one.
+
+**Cost:** somebody who changes their password on a phone is signed out on their
+desktop. That is the intended outcome, and the screen says so before the button.
+
+## Changing an e-mail address requires confirming the new one
+
+**MyBB:** with "verify e-mail" off — the default on many boards — the address
+changes immediately.
+
+**Here:** the address is held in a single-use token and adopted only when the
+link sent to it is followed. The current password is required to ask.
+
+**Why:** two failures, and the second is the serious one. A typo strands an
+account at an address nobody owns, with no way back except an administrator. And
+an unattended session becomes a full takeover: change the address, request a
+password reset, done. Confirming the new address closes both.
+
+**Cost:** a member whose new address bounces keeps the old one, which is the
+safe direction. A board with no mail configured cannot change addresses at all —
+the UserCP says the link was sent, because from the board's side it was.

@@ -17,6 +17,7 @@ import type { Actor } from '@forum/authorization'
 import type { FooterModel, HeaderModel, LinkModel, UserPanelModel, ViewerModel } from '@forum/theme-kit'
 
 import { memberHref } from './member-profile'
+import { timezoneLabel } from './time'
 
 /**
  * The board's name when nothing has resolved one.
@@ -31,10 +32,13 @@ export const BOARD_TITLE = 'Forum'
 /**
  * Which timezone every `TimeModel.label` on the page was formatted in.
  *
- * A constant for now: per-user timezones are F57 (UserCP), and until then the
- * board formats in UTC. Naming it in the footer is the honest version of that —
- * silently rendering local-looking times in UTC is how "an hour ago" ends up
- * meaning nothing.
+ * The board's default, and the answer for a guest. A signed-in member's own
+ * zone arrives as an argument to `buildFooterModel` — F57 made the constant a
+ * fallback rather than the rule.
+ *
+ * The footer names it either way, and that is the point: silently rendering
+ * local-looking times in a zone the reader did not choose is how "an hour ago"
+ * ends up meaning nothing.
  */
 export const TIMEZONE_LABEL = 'UTC'
 
@@ -116,6 +120,8 @@ export function buildUserPanelModel(
       ? []
       : [
           { label: 'Profile', href: viewer.profileHref },
+          /* F57. First of the account links, because it is where the rest are. */
+          { label: 'Your control panel', href: '/usercp' },
           /*
            * F55. Listed for every member rather than only when something is
            * unread: the centre is where a member goes to check, and a link that
@@ -155,10 +161,12 @@ export function buildUserPanelModel(
 export function buildFooterModel(
   links: readonly LinkModel[] = [],
   boardTitle: string = BOARD_TITLE,
+  /** The viewer's zone (F57). Defaults to the board's. */
+  zone: string = TIMEZONE_LABEL,
 ): FooterModel {
   return {
     boardTitle,
     links,
-    timezoneLabel: TIMEZONE_LABEL,
+    timezoneLabel: timezoneLabel(zone),
   }
 }

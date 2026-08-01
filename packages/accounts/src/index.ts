@@ -58,6 +58,19 @@ export { BanService, type BanInput, type BanServiceDeps } from './ban-service'
 
 export { MemoryBanFilters, MemoryBans } from './memory-bans'
 
+export {
+  MemberSettingsService,
+  isKnownTimezone,
+  BIO_MAX,
+  EMAIL_CHANGE_TTL_MINUTES,
+  LOCATION_MAX,
+  PAGE_SIZE_MAX,
+  PAGE_SIZE_MIN,
+  WEBSITE_MAX,
+  type MemberSettings,
+  type MemberSettingsRepository,
+} from './member-settings'
+
 export type {
   BanRecord,
   BanRepository,

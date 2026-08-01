@@ -28,8 +28,13 @@ export interface SubscriptionsView {
 export function buildSubscriptionsView(input: {
   readonly rows: readonly SubscriptionRow[]
   readonly now: Date
+  /**
+   * The viewer's timezone (F57). Defaults to UTC — the zone every timestamp on
+   * this board used before members could choose one.
+   */
+  readonly timeZone?: string
 }): SubscriptionsView {
-  const rows = input.rows.map((row) => toRow(row, input.now))
+  const rows = input.rows.map((row) => toRow(row, input.now, input.timeZone))
 
   return {
     /*
@@ -45,7 +50,11 @@ export function buildSubscriptionsView(input: {
   }
 }
 
-function toRow(row: SubscriptionRow, now: Date): SubscriptionRowView {
+function toRow(
+  row: SubscriptionRow,
+  now: Date,
+  timeZone: string | undefined,
+): SubscriptionRowView {
   return {
     key: `${row.target}:${row.targetId}`,
     target: row.target,
@@ -54,7 +63,7 @@ function toRow(row: SubscriptionRow, now: Date): SubscriptionRowView {
     href: row.href,
     mode: row.mode,
     modeLabel: MODE_LABELS[row.mode],
-    since: formatTime(row.createdAt, now),
+    since: formatTime(row.createdAt, now, timeZone),
     pending:
       row.pending === 0
         ? null

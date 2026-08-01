@@ -472,5 +472,9 @@ export const SEED_MEMBER_PROFILES: readonly MemberProfileRecord[] = [
     postCount: 5,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     lastActiveAt: new Date('2026-07-30T08:41:00Z'),
+    /* F57's self-written fields, filled in so the fixture profile shows them. */
+    location: 'The server room',
+    website: 'https://example.test/',
+    bio: 'Runs this board. Fixture data — nothing here is durable.',
   },
 ]

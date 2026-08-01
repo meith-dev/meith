@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D56. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D57. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -19,12 +19,12 @@ this file.
 
 `pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
 + **guard probes**, the **slot server/client boundary** check + its probe,
-dependency-cruiser (369 modules, 0 violations), typecheck (root **and** app),
-**2046 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+dependency-cruiser (386 modules, 0 violations), typecheck (root **and** app),
+**2103 tests** (a large share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
-`/notifications/preferences`, `/subscriptions` and `/unsubscribe` in the route
-table. Three consecutive green runs after capping worker
+`/notifications/preferences`, `/subscriptions`, `/unsubscribe` and the five
+`/usercp` routes in the route table. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
 roughly one run in three (D34) — and after raising the *test* timeout, which
 F38's four extra database suites pushed the Argon2id lockout test past (D41).
@@ -433,19 +433,57 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   filter. See **D56** and four parity entries, including why "instant" honestly
   means "within a tick".
 
+- **F57 the UserCP — and two constants that finally mean something.** The
+  screens are the smaller half. `view/time.ts` had formatted every timestamp on
+  this board in UTC since F29 — the footer said so — and `view/paging.ts` had
+  held two numbers since F40; both named F57 in their own comments. Shipping a
+  timezone dropdown that wrote a column nobody read would have been the hollow
+  version of this feature.
+
+  So `formatTime` takes a zone now, threaded through all eight view builders,
+  and the page sizes are resolved *before* the read they bound — a preference
+  applied after the query would be a setting that does nothing. Two things fell
+  out of doing it properly: zones are **IANA names, and offsets are refused even
+  though `Intl` accepts them** (an offset cannot express summer time, which is
+  also why MyBB needs a DST flag somebody has to remember to flip), and
+  "Yesterday" is computed in the viewer's calendar rather than by subtracting 24
+  hours, so a clocks-change day cannot label something two days old as
+  yesterday.
+
+  Preferences are read once per request through `React.cache`, like the actor,
+  and are deliberately not *on* the actor: that object is cached against
+  `permission_version`, and somebody changing their timezone must not invalidate
+  a permission cache.
+
+  The security screen is the other half worth knowing. Both dangerous changes
+  re-authenticate, because an unattended session is otherwise a full takeover —
+  change the address, request a reset, done. A password change revokes **every**
+  session and then starts a fresh one for the device that made it: signed in
+  where you are, signed out everywhere else. And the e-mail change writes
+  nothing until the link sent to the *new* address is followed, carried in the
+  `email_change` token's `payload` — a column F19 created and nothing had used.
+  See **D57**, including why that confirmation link acts on GET while F56's
+  unsubscribe link deliberately does not.
+
 ## NEXT ACTION — resume here
 
-**Phase 5 is two of eight.** F55 gave the board a way to tell somebody
-something; F56 gave it the thing most worth telling them, and closed the loop on
-a checkbox that had been writing rows since Phase 3.
+**Phase 5 is three of eight.** F55 gave the board a way to tell somebody
+something, F56 gave it the thing most worth telling them, and F57 gave the
+member the controls — including the two that had been hard-coded constants with
+a comment pointing at this feature.
 
-**F57 · the UserCP** is the right next feature, and two finished things are
-waiting on it in the ordinary way rather than as gaps. `/subscriptions` and
-`/notifications/preferences` are member self-service screens with no home —
-F57's route group is where they belong, alongside profile, options, timezone and
-paging. The timezone one is worth naming: `view/time.ts` has formatted every
-timestamp on the board in UTC since F29 and says so in the footer, precisely
-because per-member timezones are F57's.
+**F58 · avatars and signatures** is next in plan order, and it is the first
+Phase 5 feature that is genuinely *blocked* rather than merely unstarted: it
+depends on F42 (attachments), which is `TODO`. An avatar is an upload, and
+uploads need the route-handler FileStore path, magic-byte validation and the
+quota/orphan-cleanup story F42 owns — `S3FileStore` passing a contract suite is
+not the same thing as a board that can accept a file.
+
+Two honest options, and the choice is a human's: build **F42 first** (out of
+plan order, but it is the real dependency and F58/F71 both wait on it), or take
+**F59 · custom profile fields**, which needs nothing that does not exist and
+slots beside F57's three plain-text fields. F59 is the smaller, safer step; F42
+unblocks more.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -543,7 +581,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D56). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D57). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a
