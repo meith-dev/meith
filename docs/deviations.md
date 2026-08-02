@@ -3775,3 +3775,63 @@ board's attack surface.
   board session *and* `admincp.access`, so the attacker is already inside; the
   failed attempt is logged instead, which is the more useful signal. F19's
   lockout still governs the board login that gets them there.
+
+---
+
+### D64 — Every gate resolved `@forum/*` without a package.json (F01)
+
+`packages/admin` shipped in F63 **without its manifest**. A `cat >` heredoc ran
+with the working directory left at `packages/db`, so the file landed at
+`packages/db/packages/admin/package.json` and was committed there.
+
+What makes this worth an entry is not the typo. It is that **the entire verify
+pipeline passed**: 2,457 tests, both typechecks, ESLint, dependency-cruiser and
+a production `next build`. The defect would first appear on the next clean
+`pnpm install --frozen-lockfile` — which is CI, and every new checkout, and
+nowhere a person working in an already-installed tree would look.
+
+The reason is one line in `tsconfig.base.json`:
+
+```json
+"@forum/admin": ["packages/admin/src/index.ts"]
+```
+
+Every gate this project runs resolves `@forum/*` through the path aliases,
+which point at `src/index.ts` directly. **None of them consults a
+`package.json`.** Vitest resolves through the same aliases, dependency-cruiser
+reads the same tsconfig, and Turbopack is given the same paths. The manifest's
+only reader is pnpm, at install time, and install had already run before the
+directory existed.
+
+So the tree had two disagreeing definitions of "what packages exist" — the
+tsconfig aliases and the pnpm workspace — and nothing compared them.
+
+#### The check compares them
+
+`scripts/workspace-check.mjs`, first in `verify`:
+
+1. every `apps|packages|themes` directory that has a `src/` must have a
+   `package.json` (a directory with neither is somebody's scratch space, not
+   our business);
+2. every `workspace:` dependency must name a package that actually declares
+   that name;
+3. every non-wildcard `@forum/*` alias in `tsconfig.base.json` must point into
+   a directory that is a real workspace package.
+
+Removing the restored manifest fails all four ways at once — the missing
+package, both dependents that name it, and the dangling alias — which is the
+mutation proof (D10). It does not shell out to pnpm: it runs on every change,
+so it has to be milliseconds.
+
+#### Why it runs first
+
+`verify` is ordered cheapest-and-most-fundamental first. A tree whose package
+graph is wrong should not spend four minutes proving its tests pass; the tests
+are being resolved by the very mechanism that is hiding the fault.
+
+#### What it deliberately does not check
+
+Version ranges, licence fields, or whether a `dependencies` entry is actually
+imported. dependency-cruiser owns the import graph and already fails on an
+undeclared cross-package import. This check owns exactly one question: **do the
+two definitions of the workspace agree?**
