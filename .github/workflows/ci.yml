@@ -229,9 +229,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      # No service container and no `DATA_SOURCE` here on purpose. The suite
+      # brings its own Postgres — `e2e/support/database.ts`, started as the
+      # first `webServer` — so CI runs exactly what a developer runs, which is
+      # the whole reason the write path is testable in a browser at all. See
+      # D66.
       - run: pnpm test:e2e
         env:
-          DATA_SOURCE: fixture
           NEXT_TELEMETRY_DISABLED: '1'
 
   migrations:

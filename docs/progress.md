@@ -773,22 +773,31 @@ D54 exists to record; this one was written against a booted image.
 
 **So F58's avatar half is the natural next step** — the machinery it was waiting
 for now exists, and the shape is already proven: validate, re-encode, store,
-serve through a permission-checked route. F71 and F45 are also unblocked.
+serve through a permission-checked route. F71 and F45 are also unblocked, and
+all three can now be proven in a browser (D66).
 
-**The standing gap has not moved and is now ten features wide.** Fixture mode
-has no store for notifications, subscriptions, member settings, profile fields,
-messages, relations, reputation, signatures, the admin session/log or
-attachments (D38), so the browser suite still covers **reading only** —
-unchanged since F39. Either the e2e harness gains a real database or the fixture
-gains writers. It is the single largest hole in this project's testing, and
-every feature added since F39 has widened it.
+**The standing gap is closed** (D66). The browser suite runs against a real
+Postgres that it starts itself — PGlite behind the wire protocol, nothing to
+install — so `pnpm test:e2e` covers **writing**: a thread and a reply through
+native forms with scripting off, an image attachment that is absent until the
+queue is drained and then downloadable with the right headers, and a file whose
+bytes disagree with its name refused without creating a thread. Seven specs,
+two of them mutation-verified against claims no unit test can reach.
 
-F42 sharpens the point rather than just widening it: attachments have a
-**booted-image** failure mode that no unit test reaches, and the one this
-feature already hit — WASM that resolves on a developer machine and not in the
-standalone output — was found by running the image by hand. That is not a
-process. A real-Postgres e2e run is the next piece of infrastructure this
-project needs, ahead of any further feature.
+What that changes for everything after this: a feature's browser-level proof is
+now **ordinary work rather than a blocked capability**. Fixture mode still has
+no writers (D38) and that is fine — it is the sample-data mode, and the suite no
+longer depends on it.
+
+The obvious next specs, in rough order of what they would catch:
+
+- **F52's inline moderation.** Its entire claim is that the HTML `form`
+  attribute submits checkboxes that live outside the form, with scripting off.
+  That is a browser behaviour and nothing else can test it.
+- **F57's UserCP and F58's signature**, where a save round-trips through a form
+  and back into a page that renders it.
+- **F60's private messages**, where the bulk bar uses the same `form`-attribute
+  trick and ownership is the whole security model.
 
 ### Fixed since: the Postgres path had never run anywhere
 

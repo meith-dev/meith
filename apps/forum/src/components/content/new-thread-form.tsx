@@ -44,14 +44,15 @@ export function NewThreadForm({
 }) {
   const [state, action] = useActionState(createThreadAction, EMPTY_STATE)
 
+  /*
+   * No `encType` on the form: React renders a Server Action form as
+   * `multipart/form-data` itself, and warns if you say so as well. That is
+   * what carries F42's file input — with scripting off it is the rendered
+   * HTML doing the work and not a handler, so the attribute has to be right
+   * in the markup rather than set on submit.
+   */
   return (
-    <form
-      action={action}
-      className="flex flex-col gap-4"
-      noValidate
-      /* F42. Without this a file input submits its *name* and no bytes. */
-      encType="multipart/form-data"
-    >
+    <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
       {state.notice === "preview" && (
         <section

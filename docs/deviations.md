@@ -3933,3 +3933,86 @@ make the route an oracle for what exists in forums the caller cannot see.
 - **No progress, no drag-and-drop, no per-file removal before posting.** All
   three are F45's islands, and all three must be enhancements over the one-form
   path rather than replacements for it.
+
+---
+
+### D66 — The browser suite brings its own Postgres (F11/F39)
+
+Since F39 the browser suite has covered **reading only**. `plan-status.md` said
+so on every feature row that followed — posting, inline moderation, private
+messages, reputation, the UserCP, attachments — and the number of features
+behind that sentence reached ten before it moved.
+
+It did not move for a specific reason, and it is worth naming because it is the
+reason a lot of test gaps stay open: the obvious fix was "run the suite against
+Postgres", and that meant a service somebody has to install. **A test path that
+only exists in CI is one nobody runs before pushing**, so it would have been
+written once, gone red on a Tuesday, and been marked `continue-on-error` by
+Friday.
+
+#### What it runs against
+
+`e2e/support/database.ts` starts PGlite — the same Postgres-compiled-to-WASM
+build the integration suite has trusted for a hundred-odd files — and puts
+`@electric-sql/pglite-socket` in front of it, which speaks the Postgres wire
+protocol on a TCP port. `next dev` connects with an ordinary `DATABASE_URL` and
+cannot tell the difference. Nothing to install, and CI runs exactly what a
+developer runs.
+
+It is a **devDependency for test infrastructure**, in the class `@playwright/test`
+and `@electric-sql/pglite` are already in, and not a runtime dependency: nothing
+under `apps/` or `packages/` imports it, and no shipped artefact contains it.
+Invariant 2's ADR requirement is about what the board runs in production.
+
+#### One connection, and why that is not tuning
+
+`maxConnections: 1`, and `DATABASE_POOL_MAX=1` on the app.
+
+A real Postgres gives every connection its own backend process and with it its
+own *unnamed prepared statement* — which is what `prepare: false` (the setting
+`client.ts` uses, and must, for transaction-mode poolers) makes every query go
+through. PGlite is one backend behind however many sockets, so two connections
+using the unnamed statement overwrite each other's parameter lists. What comes
+back is `bind message supplies 1 parameters, but prepared statement "" requires
+2`, which reads like a driver bug and is really two clients sharing a backend.
+
+A second connection is queued instead. The suite runs one worker, so this costs
+nothing.
+
+#### The seeded board is the fixture board
+
+The same `SEED_FORUM_ROWS`, `SEED_THREAD_ROWS` and `SEED_POST_ROWS`, inserted
+into real tables. One board definition, two stores — which means the specs
+written against fixture mode kept passing unchanged, and a divergence between
+what the fixture serves and what the schema can hold now fails at startup here
+rather than as a mystery later. Seeding `forums.last_post_*` was the first thing
+that difference surfaced: the fixture carries it as a nested object and Postgres
+as six denormalised columns, and without them the index renders with no
+latest-post link.
+
+Accounts are seeded with a password hash nothing can match. A spec that needs a
+session **registers through the form**, which is the path worth exercising
+anyway.
+
+#### The honest limit
+
+**PGlite is not the driver production uses.** D54 is in this repository
+precisely because a write path PGlite accepted was rejected by every real
+Postgres. This narrows the gap by an enormous amount and does not close it,
+which is why `client.pg.test.ts` still exists, why CI still has jobs against a
+real server, and why the Docker `image` job still boots the web role against
+one.
+
+#### What it proved immediately
+
+`e2e/writing-no-js.spec.ts`, all with scripting disabled: a thread and a reply
+written through native forms and read back with their counters moved; an image
+attachment that is **absent from the page until the queue is drained** and then
+downloadable with the right headers and different bytes from what was uploaded;
+a file whose name says `.png` and whose bytes say otherwise refused **without
+creating the thread**.
+
+The last two are claims no unit test can reach. Both were mutation-verified
+against the real suite: rendering unprocessed attachments makes the image appear
+before the tick, and moving the file staging to after the post is created leaves
+a thread behind that the refusal test then finds.

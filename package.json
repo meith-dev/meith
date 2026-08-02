@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",
+    "@electric-sql/pglite-socket": "^0.2.7",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "1.51.1",
     "@types/node": "^24.0.0",

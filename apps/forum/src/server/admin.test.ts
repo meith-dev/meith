@@ -19,7 +19,16 @@ import type { Actor } from '@forum/authorization'
 import { REAUTH_MINUTES } from '@forum/admin'
 import type { AdminSessionRecord, AdminSessionRepository } from '@forum/admin'
 
-const NOW = new Date('2026-08-02T12:00:00Z')
+/**
+ * The clocks here are **relative to the real one**, not pinned.
+ *
+ * `resolveAdmin` builds its `AdminService` without a clock override, so it
+ * reads `Date.now()`. A fixture that pinned an absolute instant passed only
+ * while the wall clock happened to sit inside the fifteen-minute re-auth
+ * window of that instant — so this suite went red on its own, hours after it
+ * was written, for a reason that had nothing to do with the code.
+ */
+const now = () => new Date()
 
 /** The request headers the gate reads for the allowlist. */
 const headerRef: { current: Record<string, string> } = { current: {} }
@@ -65,15 +74,16 @@ const ADA = 1
 const BOB = 2
 
 function session(overrides: Partial<AdminSessionRecord> = {}): AdminSessionRecord {
+  const at = now()
   return {
     id: 1,
     userId: ADA,
     ipPrefix: '203.0.113.0',
-    authenticatedAt: NOW,
-    lastSeenAt: NOW,
-    expiresAt: new Date(NOW.getTime() + 30 * 60_000),
+    authenticatedAt: at,
+    lastSeenAt: at,
+    expiresAt: new Date(at.getTime() + 30 * 60_000),
     revokedAt: null,
-    createdAt: NOW,
+    createdAt: at,
     ...overrides,
   }
 }
@@ -242,6 +252,28 @@ describe('requireAdmin', () => {
 describe('requireFreshAdmin', () => {
   it('permits a destructive operation on a fresh proof', async () => {
     await expect(requireFreshAdmin()).resolves.toBeDefined()
+  })
+
+  it('is decided by elapsed time, not by a date the fixture picked', async () => {
+    /*
+     * The regression this suite actually had: an absolute `NOW` made every
+     * assertion here depend on what time of day the suite ran, and it went red
+     * on its own hours after being written. A session proved a moment ago is
+     * fresh and one proved a year ago is not, and neither answer may depend on
+     * today's date.
+     */
+    adminSessions.row = session({
+      authenticatedAt: new Date(Date.now() - 1_000),
+      expiresAt: new Date(Date.now() + 30 * 60_000),
+    })
+    await expect(requireFreshAdmin()).resolves.toBeDefined()
+
+    adminSessions.row = session({
+      authenticatedAt: new Date('2025-01-01T00:00:00Z'),
+      lastSeenAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 60_000),
+    })
+    await expect(requireFreshAdmin()).rejects.toThrow(/Confirm your password/)
   })
 
   it('refuses one whose proof has gone stale, though the session is alive', async () => {
