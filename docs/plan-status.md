@@ -26,8 +26,8 @@ defines scope, dependencies, and acceptance criteria.
 
 ## How this audit was done
 
-Last audited **2026-08-01** (re-audited after F55–F62 — Phase 5 complete bar F42's blocker), against the working tree, not from memory:
-`pnpm verify` (2400 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
+Last audited **2026-08-02** (re-audited after F55–F63 — Phase 5 complete bar F42's blocker, Phase 6 begun), against the working tree, not from memory:
+`pnpm verify` (2457 tests), `pnpm build`, `pnpm test:e2e`, plus direct inspection of the
 migration's `CREATE TABLE` list, each package's `src/` contents, `.github/workflows/ci.yml`,
 and the CLI's registered commands. Where a row says a thing is missing, the file
 was looked for and was not there.
@@ -49,11 +49,11 @@ couple of `PARTIAL` rows are an afternoon.
 | 3 — Posting | 11 | 5 | 0 | 6 |
 | 4 — Moderation | 8 | 8 | 0 | 0 |
 | 5 — Members and social | 8 | 7 | 1 | 0 |
-| 6 — Admin CP | 9 | 0 | 0 | 9 |
+| 6 — Admin CP | 9 | 1 | 0 | 8 |
 | 7 — Search and discovery | 5 | 0 | 0 | 5 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **48** | **4** | **37** |
+| **Total** | **89** | **49** | **4** | **36** |
 
 ---
 
@@ -196,7 +196,7 @@ tables exist yet.
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
-| F63 | ACP shell and authentication | `TODO` | No `/admin` routes or separate admin-auth step. |
+| F63 | Admin CP foundation | `DONE`* | Migration `0015`: `admin_sessions`. `@forum/admin` holds the session policy, the allowlist and the log shapes; `PostgresAdminSessionRepository` and `PostgresAdminLogRepository` are the stores. **A second session, not a second account**: entering `/admin` re-enters the password and mints a session separate from the board's, with a 30-minute idle timeout and an **8-hour absolute ceiling** — the threat is an administrator's own browser being used by somebody else, and a board session lasts days by design, so an ACP session that inherited that would make an unattended laptop a takeover. A board password change revokes ACP sessions too, in the app rather than in `@forum/accounts`, which has no idea the panel exists. **Two clocks, and only one moves with activity**: `last_seen_at` is extended by use, `authenticated_at` only by re-entering the password, and `requireFreshAdmin()` reads the second — so browsing the panel for an hour keeps the session and loses the proof, which is the whole re-authentication mechanism (mutation-verified in both directions). The **allowlist is env, prefixes, and checked first**: env because it defends against a stolen credential and a setting could be edited by one; prefixes because a CIDR mask is a thing operators get wrong by one bit and the failure mode is being locked out; first because a request from outside it must not learn the panel exists — the ordering is pinned by a test in which a *guest* from a blocked address gets `address` rather than `permission`, written after mutation testing showed the first version did not pin it. Empty allows everything (optional by acceptance); a *missing* address with a list configured is refused, and the **left-most** `x-forwarded-for` entry is the client (both mutation-verified). `address` and `permission` answer 404, because the value of an allowlist is that the panel is invisible from outside it. `admincp.access` remains the one door no bypass opens (F20/D12), now load-bearing and tested here too. **`admin_log` had writers since F48 and no reader outside the ModCP's forum-scoped view**; `/admin/log` is the unscoped one, with a no-JS GET filter, detail flattened to plain text, a non-object detail degrading to empty rather than failing the page, and `assertLogAction` refusing free text so the column stays groupable. `recordAdminAction` never throws — an action that succeeded and failed to log must not be reported as failed, because the caller would retry. The cookie is `fs_admin`, `Path=/admin`, `SameSite=Strict`: the path keeps it off ordinary board requests and Strict means a cross-site request cannot carry ACP authority. 55 tests, eight mutants killed. See **D63** and three `mybb-parity.md` entries. *The panel's index lists only the sections that exist — F64–F71 each bring their own, and nine links to nine 404s would be worse than admitting it is new (D32). No separate admin account model (MyBB has none either), and no rate limit on the ACP password form: reaching it already needs a valid board session *and* the permission, so the failed attempt is logged instead, which is the more useful signal. Fixture mode has no admin session store or log (D38). |
 | F64 | Settings UI | `TODO` | Typed registry exists; no registry-driven ACP UI. |
 | F65 | Forum management and permission matrix editor | `TODO` | Repositories exist; no management/matrix screen. |
 | F66 | Group management | `TODO` | Group/promotion mechanics exist; no ACP workflow. |

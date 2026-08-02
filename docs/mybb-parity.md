@@ -935,3 +935,55 @@ counters (F38).
 
 **Cost:** one extra aggregate per rating. It is bounded by the number of ratings
 one member has, and a rating is a deliberate act rather than a hot path.
+
+## The control panel has its own session, with its own timeout
+
+**MyBB:** an "admin session" keyed to the board login, with a configurable
+timeout, plus an optional `ADMIN_BRANCH`-style secret URL.
+
+**Here:** a row in `admin_sessions` minted by re-entering the password, with a
+30-minute idle timeout, an 8-hour absolute ceiling, and its own cookie
+(`Path=/admin`, `SameSite=Strict`). A board password change revokes it.
+
+**Why:** the threat is an administrator's own browser being used by somebody
+else, not a password being guessed. A board session lasts days by design; an ACP
+session that inherited that would make an unattended laptop a board takeover.
+Separating them is what lets the ACP timeout be short enough to matter.
+
+**Cost:** an administrator types their password twice — once for the board, once
+for the panel — and again after half an hour away. That is the intended price,
+and the sign-in screen says what it buys.
+
+## The re-authentication clock is separate from the activity clock
+
+**MyBB:** the admin session has one timestamp, refreshed on every request.
+
+**Here:** `last_seen_at` moves with activity and `authenticated_at` moves only
+when the password is re-entered. Destructive operations read the second.
+
+**Why:** with one timestamp, an administrator who has been clicking around for
+an hour has a "fresh" session and is never asked again — which makes
+re-authentication a formality that fires only for people who walked away, i.e.
+exactly the people who are about to be asked anyway when it expires.
+
+**Cost:** a long ACP session asks for the password more than once. Fifteen
+minutes is the window; it applies only to operations that are destructive.
+
+## The address allowlist is prefixes in the environment, not CIDR in the database
+
+**MyBB:** `$config['superadmins']` and an optional IP check in `config.php`.
+
+**Here:** `ADMIN_IP_ALLOWLIST`, comma-separated whole addresses or textual
+prefixes ending in `.` or `:`. Empty means no restriction.
+
+**Why:** env rather than a setting, because the allowlist defends against a
+stolen administrator credential and storing it where that credential could edit
+it defeats the point. Prefixes rather than CIDR, because a mask is a thing
+people get wrong by one bit and the failure mode is locking yourself out. And
+the check runs *before* the board session is read, so a request from outside the
+list cannot learn that the panel exists.
+
+**Cost:** no `/28`-style precision, and no way to change it without a redeploy.
+Both are deliberate. A deployment behind no proxy — where no forwarded address
+header arrives — is refused outright when a list is configured, which is the
+documented failure direction rather than a silent bypass.

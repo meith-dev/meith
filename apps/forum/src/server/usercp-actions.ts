@@ -25,6 +25,7 @@ import { ForbiddenError, isAppError, logger } from '@forum/core'
 import { prepareSignature } from '@forum/signatures'
 
 import { AUTH_CONFIG } from './auth-config'
+import { adminService } from './admin'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
@@ -159,6 +160,16 @@ export async function changePasswordAction(
      */
     const session = await getContainer().sessions.start(userId)
     await setSessionCookie(session.token, session.expiresAt)
+
+    /*
+     * F63. The ACP session is separate from the board session, so revoking
+     * every board session leaves it standing — which would mean a password
+     * change did not close the one session that matters most. Revoked here
+     * rather than inside the service, because `@forum/accounts` has no idea
+     * the control panel exists.
+     */
+    const admin = adminService()
+    if (admin !== null) await admin.endAllFor(userId)
   } catch (err) {
     return toFormState(err)
   }

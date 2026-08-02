@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D62. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D63. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -20,7 +20,7 @@ this file.
 `pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
 + **guard probes**, the **slot server/client boundary** check + its probe,
 dependency-cruiser (386 modules, 0 violations), typecheck (root **and** app),
-**2400 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+**2457 tests** (a large share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
 `/notifications/preferences`, `/subscriptions`, `/unsubscribe` and the five
@@ -700,40 +700,73 @@ needed one. Nothing in the app tier had ever built an actor for *somebody other
 than the viewer* — every screen resolves the viewer's through `getActor`, which
 tests mock.
 
+- **F63 · the ACP foundation.** Phase 6 opens with the thing every other panel
+  sits on: a front door.
+
+  **A second session, not a second account.** Entering `/admin` re-enters the
+  password and mints a session in its own table, separate from the board's, with
+  a thirty-minute idle timeout and an eight-hour absolute ceiling. The threat is
+  not somebody guessing a password — they would need the board password anyway —
+  it is an administrator's own browser being used by somebody else. A board
+  session lasts days by design, so one that inherited that would make an
+  unattended laptop a board takeover rather than an embarrassment. Separating
+  them is what lets the ACP timeout be short enough to matter.
+
+  **Two clocks, and only one moves with activity.** `last_seen_at` is extended
+  by use; `authenticated_at` moves only when the password is re-entered. That is
+  the whole re-authentication mechanism: browsing the panel for an hour keeps
+  the session alive and does *not* keep the proof fresh, so a destructive
+  operation asks again even though nothing expired. With one timestamp — MyBB's
+  shape — re-authentication fires only for people who walked away, which is
+  exactly the group who were about to be asked anyway.
+
+  **The allowlist is env, prefixes, and checked first.** Env because it defends
+  against a stolen administrator credential and a board setting could be edited
+  by one. Prefixes rather than CIDR because a mask is a thing operators get
+  wrong by one bit, silently, and the failure mode is being locked out of your
+  own board. First — before the board session is read, before the store is
+  resolved — because a request from outside it must not learn that there is a
+  control panel here.
+
+  That last one is worth reading twice, because **mutation testing caught it**.
+  The obvious test ("a blocked address is denied") passes whether the check runs
+  first or last, since the actor in the test is an administrator either way.
+  Moving the allowlist behind the permission gate killed nothing. The fix was a
+  test where a *guest* from a blocked address gets `address` rather than
+  `permission` — which only passes if the ordering is real.
+
+  `admin_log` turned out to be the third column-with-no-reader this project has
+  found: it has had *writers* since F48, and the only reader was the ModCP's
+  forum-scoped view. `/admin/log` is the unscoped one.
+
 ## NEXT ACTION — resume here
 
-**Phase 5 is finished except for one blocked half.** F55–F57 and F59–F62 are
-`DONE`; F58 is `PARTIAL` with its signature half complete and its avatar half
-named as F42's.
+**Phase 6 is one of nine, and the rest are unblocked** — F64, F65, F66, F67,
+F68, F69 and F70 all depend only on F63 (plus F08/F21/F26/F38, all done). F71
+additionally needs F42.
 
-**F42 · attachments is the decision, and it is a human's.** Everything else in
-Phase 5 is built, and F42 now blocks three things rather than one: F58's
-avatars, F71's attachment administration, and F45's drag-and-drop island. It
-needs image re-encoding, which is a **runtime dependency**, and the roadmap's
-rule is to stop for a decision before adding one.
+The natural order is the roadmap's, and **F64 · settings administration** is the
+smallest next step with the largest immediate payoff: the registry, its
+migration and its CLI commands have existed since F08, and `getSettings()` reads
+them — but the only way to change one today is `forum settings:set` over a
+terminal. F64 is a registry-driven form, which means it is mostly view code over
+machinery that already works, plus the cache invalidation F08 already declares
+per setting (`invalidates`).
 
-The specific trap is recorded above and bears repeating: **do not add `sharp` to
-`onlyBuiltDependencies`** — its postinstall makes `next build` fail at prerender.
-The options, unchanged:
+**F42 remains the one decision that needs you.** It blocks F58's avatars, F71
+and F45. The options are unchanged and are recorded above: find a re-encoder
+that does not break `next build` (**do not add `sharp` to
+`onlyBuiltDependencies`** — its postinstall fails at prerender), accept stored
+originals with strict magic-byte validation and no re-encode, or leave it.
+Nothing else in Phase 6 waits on it.
 
-1. Find a re-encoder that does not break the build (`@jsquash/*` via WASM is the
-   usual answer, and is still a new runtime dependency).
-2. Accept stored originals with strict magic-byte validation and no re-encode,
-   and write down what that gives up — chiefly that a valid image can still
-   carry a polyglot payload, which is why re-encoding is the usual advice.
-3. Leave F42 and start **Phase 6 (F63 · the ACP)**, which unblocks nine
-   features and needs nothing new. F63–F71 are all `TODO` and F63 has no
-   dependency beyond F20.
-
-Option 3 is the one that keeps moving without a decision, and F71 would then be
-the only Phase 6 feature still waiting on F42.
-
-**Standing gaps across the phase, named rather than implied:** fixture mode has
-no store for notifications, subscriptions, member settings, profile fields,
-messages, relations or reputation (D38), so **the browser suite still covers
-reading only** — the same blocker since F39, and now eight features wide. Either
-the e2e harness gains a real database or the fixture gains writers; it is the
-single largest hole in this project's testing and it is not getting smaller.
+**The standing gap has not moved and is now nine features wide.** Fixture mode
+has no store for notifications, subscriptions, member settings, profile fields,
+messages, relations, reputation, signatures or the admin session/log (D38), so
+the browser suite still covers **reading only** — unchanged since F39. Either
+the e2e harness gains a real database or the fixture gains writers. It is the
+single largest hole in this project's testing, and every feature added since
+F39 has widened it.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -831,7 +864,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D62). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D63). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

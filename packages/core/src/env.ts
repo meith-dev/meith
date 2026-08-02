@@ -116,6 +116,25 @@ const envSchema = z
     /** Max jobs drained per tick before yielding, regardless of remaining time. */
     TICK_MAX_JOBS: z.coerce.number().int().positive().default(25),
 
+    /**
+     * Optional address allowlist for `/admin` (F63).
+     *
+     * Comma-separated whole addresses or textual prefixes ending in `.` or `:`
+     * — `203.0.113.,198.51.100.7`. Deliberately not CIDR: a mask is a thing
+     * operators get wrong by one bit, silently, and the failure mode is being
+     * locked out of your own board.
+     *
+     * **Env rather than a board setting, on purpose.** The allowlist defends
+     * against a stolen administrator credential; storing it somewhere that
+     * credential could edit would defeat it. It is also the one control an
+     * operator wants to be sure survives a database restore.
+     *
+     * Empty means no restriction — the feature is optional by acceptance, and
+     * "unset means nothing is allowed" turns forgetting to configure it into a
+     * board nobody can administer.
+     */
+    ADMIN_IP_ALLOWLIST: z.string().optional(),
+
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   })
   /**

@@ -61,6 +61,10 @@ export { PostgresMessageRepository } from './message-repo'
 export { PostgresRelationRepository } from './relation-repo'
 export { PostgresReputationRepository } from './reputation-repo'
 export { PostgresSignatureRepository } from './signature-repo'
+export {
+  PostgresAdminLogRepository,
+  PostgresAdminSessionRepository,
+} from './admin-session-repo'
 export { PostgresReportRepository } from './report-repo'
 export { PostgresSubscriptionRepository } from './subscription-repo'
 export { PostgresThreadToolsRepository } from './thread-tools'

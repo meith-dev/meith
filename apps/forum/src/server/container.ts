@@ -49,6 +49,7 @@ import type { NotificationRepository } from '@forum/notifications'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
 import type { MessageRepository } from '@forum/messages'
 import type { RelationRepository } from '@forum/relations'
+import type { AdminLogRepository, AdminSessionRepository } from '@forum/admin'
 import type { ReputationRepository } from '@forum/reputation'
 import type { ProfileFieldRepository } from '@forum/profile-fields'
 import type { SubscriptionRepository } from '@forum/subscriptions'
@@ -83,6 +84,8 @@ import {
   PostgresRelationRepository,
   PostgresReputationRepository,
   PostgresSignatureRepository,
+  PostgresAdminLogRepository,
+  PostgresAdminSessionRepository,
   PostgresProfileFieldRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
@@ -229,6 +232,14 @@ export interface Container {
    */
   readonly signatures: PostgresSignatureRepository | null
   /**
+   * The ACP's own session store and audit log (F63). Both `null` in fixture
+   * mode (D38) — a control panel whose session dies with the process is one
+   * that cannot be signed into twice, and an audit log that resets on restart
+   * is the opposite of an audit log.
+   */
+  readonly adminSessions: AdminSessionRepository | null
+  readonly adminLog: AdminLogRepository | null
+  /**
    * The credential store behind identity (F17–F19).
    *
    * Exposed for F57's UserCP, which re-authenticates with the current password
@@ -342,6 +353,8 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     relations: null,
     reputation: null,
     signatures: null,
+    adminSessions: null,
+    adminLog: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -447,6 +460,8 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     relations: new PostgresRelationRepository(db),
     reputation: new PostgresReputationRepository(db),
     signatures: new PostgresSignatureRepository(db),
+    adminSessions: new PostgresAdminSessionRepository(db),
+    adminLog: new PostgresAdminLogRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -520,6 +535,8 @@ export function getContainer(): Container {
     cached.relations === undefined ||
     cached.reputation === undefined ||
     cached.signatures === undefined ||
+    cached.adminSessions === undefined ||
+    cached.adminLog === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

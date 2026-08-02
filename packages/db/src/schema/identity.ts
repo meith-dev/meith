@@ -840,3 +840,41 @@ export const userRelations = pgTable(
     index('user_relations_reverse_idx').on(t.otherUserId, t.kind),
   ],
 )
+
+/**
+ * The ACP's own session (F63).
+ *
+ * A second session, not a second account: entering `/admin` asks for the
+ * password again and mints this, with a short idle timeout that can be
+ * aggressive precisely because expiring it logs somebody out of the ACP and
+ * nothing else.
+ *
+ * `authenticatedAt` is a separate clock from `lastSeenAt`. Activity extends the
+ * session; only re-entering the password moves the proof — which is what
+ * "re-authenticate before this destructive operation" reads.
+ */
+export const adminSessions = pgTable(
+  'admin_sessions',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** SHA-256 of the cookie value; never the value itself. */
+    tokenHash: text('token_hash').notNull(),
+    /** Truncated per F09 — never a full address. */
+    ipPrefix: text('ip_prefix'),
+    authenticatedAt: timestamp('authenticated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('admin_sessions_token_hash_key').on(t.tokenHash),
+    index('admin_sessions_user_idx').on(t.userId),
+    index('admin_sessions_expiry_idx').on(t.expiresAt),
+  ],
+)

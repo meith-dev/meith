@@ -3631,3 +3631,147 @@ and the same answer: leave it out rather than invert the rule for one field.
 - **Notifications on being rated.** A producer exists, but the kind would fire
   on every rating on a busy board; it belongs with a per-kind digest, which
   F55's registry has no shape for yet.
+
+### D63 — The ACP is a separate surface, not a page with a permission check (F63)
+
+**Plan:** "Separate `/admin` auth/layout, optional IP allowlist, re-auth for
+destructive operations, and actor/IP/payload admin log."
+
+#### A second session, not a second account
+
+Entering `/admin` asks for the password again and mints a session in
+`admin_sessions`, separate from the board session and much shorter.
+
+The threat is not an attacker guessing a password — they would need the board
+password anyway. It is **an administrator's own browser being used by somebody
+else**, or their board session being stolen. A board session lasts days by
+design (F17's remember-me is thirty), and an ACP session that inherited that
+would make a laptop left open in a café a board takeover rather than an
+embarrassment.
+
+The separation is what lets the ACP's idle timeout be thirty minutes: expiring
+it signs somebody out of `/admin` and nothing else, so the cost of being wrong
+is one password entry rather than a lost draft. There is also an **absolute
+eight-hour ceiling**, because an idle timeout alone is defeated by a page that
+polls.
+
+A password change revokes ACP sessions too. F57's `changePassword` revokes every
+*board* session; the ACP ones live in a different table and would otherwise
+survive — which would mean a password change failed to close the one session
+that matters most. Done in the app rather than in `@forum/accounts`, which has
+no idea the control panel exists.
+
+#### Two clocks, and only one of them moves with activity
+
+`last_seen_at` is extended by activity; `authenticated_at` is moved **only** by
+re-entering the password. `requireFreshAdmin()` reads the second.
+
+That separation is the entire re-authentication mechanism. Browsing the panel
+for an hour keeps the session alive and does *not* keep the proof fresh, so
+"delete every post by this member" asks again even though nothing expired. A
+single timestamp would make the two indistinguishable, and the natural
+implementation — extend it on every request — would mean the proof was never
+stale for anybody actually using the panel.
+
+Mutation-verified in both directions: a `touch` that also writes
+`authenticated_at`, and a service that drops the freshness check.
+
+#### The allowlist is env, and is checked first
+
+**Env rather than a board setting.** The allowlist defends against a stolen
+administrator credential; storing it somewhere that credential could edit would
+defeat it. It is also the one control an operator wants to survive a database
+restore.
+
+**Prefixes, not CIDR.** A mask is a thing operators get wrong by one bit,
+silently, and the failure mode is being locked out of your own board.
+`203.0.113.` is something you can read back and be sure about. A whole address
+with no trailing dot matches exactly — mutation-verified, because treating every
+entry as a prefix would make `198.51.100.7` admit `.70` through `.79`.
+
+**Empty allows everything**, because the feature is optional by acceptance and
+"unset means nothing is allowed" turns forgetting to configure it into a board
+nobody can administer. But a *missing* address with a non-empty allowlist is
+**refused**: if the deployment cannot say where a request came from, an
+allowlist cannot do its job, and ignoring it would make the whole feature
+theatre.
+
+The address is read from the **left-most** `x-forwarded-for` entry — everything
+after it is the proxy chain, and taking the last one would match the proxy's own
+address and admit the internet. Mutation-verified.
+
+**It is consulted before anything else**, including before the board session is
+read and before the store is resolved. A request from outside the allowlist must
+not learn whether there is a control panel here, who is signed in, or whether
+they would have been admitted. The ordering is pinned by a test in which a
+*guest* from a blocked address gets `address` rather than `permission` — an
+administrator would report `address` either way, so only the guest case pins it.
+That test was written *after* mutation testing showed the first version did not.
+
+The full address is used for the comparison and never stored. F09's rule is
+about what is written down; an allowlist matched on a truncated prefix would
+admit a whole /24 nobody configured.
+
+#### Two denials answer with a 404
+
+`address` and `permission` render as not-found rather than as a message. The
+whole value of an allowlist is that the panel is invisible from outside it, and
+a member without `admincp.access` learning that `/admin` exists gains nothing
+but a target. `signin` and `unavailable` are answered honestly, because by then
+the requester has already been admitted by both earlier gates.
+
+#### `admincp.access` is still the one door no bypass opens
+
+Unchanged from F20/D12, and now load-bearing: `ADMIN_ALWAYS` omits it, so an
+administrator's bypass cannot force-grant it and the explicit `canAccessAdminCp`
+column decides alone. A super-moderator's bypass is forum-scoped, and
+`admincp.access` is not in `FORUM_SCOPED` either. Both are tested here as well
+as in the authorization package, because this is where it now matters.
+
+#### The log had writers and no reader
+
+`admin_log` has existed since `0000` and has had *writers* since F48 — every
+moderation action records a row. What it never had was a **reader outside the
+ModCP's forum-scoped view**. F63 supplies the unscoped one: an administrator
+reading the audit log is reading everything, which is the point of there being
+one. The forum filtering in `modcp-repo.ts` exists because a moderator may only
+see their own forums; that constraint has no analogue here.
+
+Three details. The detail column is rendered as **plain text**, flattened to
+`key value, key value` rather than JSON, because an audit row is read by a
+person under time pressure. A row whose `detail` is not an object — written by a
+previous deploy, or by a plugin (F69) — degrades to empty rather than failing
+the page, since an audit log that will not open is absent exactly when it is
+needed. And `assertLogAction` refuses free text, because the log is read by
+grouping on `action` and a value with a member's name in it makes the column
+useless.
+
+`recordAdminAction` **never throws**. An action that succeeded and failed to log
+is worse reported as a failed action — the caller would retry, and the second
+attempt is the one that does damage. The failure goes to the process log, which
+is where an operator looks when the audit log has a hole in it.
+
+#### The cookie has its own name, path and SameSite
+
+`fs_admin`, `Path=/admin`, `SameSite=Strict`. The path means the browser does
+not send it with ordinary board requests at all. Strict means a cross-site
+request cannot carry ACP authority — there is no legitimate reason to arrive in
+the control panel by following a link from another site, which is exactly why
+the board's cookie is `Lax` and this one is not.
+
+`__Host-` requires `Path=/`, so the ACP cookie deliberately forgoes the prefix
+and takes path scoping instead. That is the better trade for this cookie: the
+prefix defends against subdomain injection, the path defends against the whole
+board's attack surface.
+
+#### What is deliberately not here
+
+- **Every other ACP screen.** F64–F71 each bring their own; the index lists only
+  what exists, and names the rest without linking. A panel advertising nine
+  links to nine 404s would be worse than one that admits it is new (D32).
+- **A separate admin account model.** MyBB has none either, and a second
+  credential to forget is a second credential to reset.
+- **Rate limiting the ACP password form.** Reaching it already requires a valid
+  board session *and* `admincp.access`, so the attacker is already inside; the
+  failed attempt is logged instead, which is the more useful signal. F19's
+  lockout still governs the board login that gets them there.

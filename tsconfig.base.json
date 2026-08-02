@@ -57,6 +57,7 @@
       "@forum/relations": ["packages/relations/src/index.ts"],
       "@forum/reputation": ["packages/reputation/src/index.ts"],
       "@forum/signatures": ["packages/signatures/src/index.ts"],
+      "@forum/admin": ["packages/admin/src/index.ts"],
       "@forum/posts/*": ["packages/posts/src/*"],
       "@forum/bbcode": ["packages/bbcode/src/index.ts"],
       "@forum/bbcode/*": ["packages/bbcode/src/*"],

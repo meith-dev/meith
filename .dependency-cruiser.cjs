@@ -21,6 +21,7 @@ const DOMAIN = [
   'relations',
   'reputation',
   'signatures',
+  'admin',
   'bbcode',
   'moderation',
   'notifications',
