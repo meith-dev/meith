@@ -4016,3 +4016,83 @@ The last two are claims no unit test can reach. Both were mutation-verified
 against the real suite: rendering unprocessed attachments makes the image appear
 before the tick, and moving the file staging to after the post is created leaves
 a thread behind that the refusal test then finds.
+
+---
+
+### D67 — F58's avatar half, on F42's machinery (F58)
+
+The half `0014` named as waiting, and D61 named as blocked rather than
+half-built. F42 built what it was waiting for, so this is mostly *reuse* — and
+what is worth recording is the three places it could not be.
+
+**The lifecycle is F42's exactly.** Two keys on the row, the uploaded bytes
+under one and the encoder's output under the other, swapped in a single
+statement; `pending` until the queued job succeeds; nothing served before that.
+D65 is the argument and none of it is repeated here.
+
+#### An avatar is replaced, and an attachment never is
+
+The difference that shaped the repository. An attachment is created once and
+deleted with its post; an avatar is overwritten, so **something has to collect
+what it replaced**. `beginUpload` and `clear` therefore `RETURNING` the *old*
+key values in the statement that stops pointing at them, and hand them back to
+the caller to sweep.
+
+Reading first and then writing would leave a window in which two concurrent
+uploads both believe they own the previous object, and one of them deletes it
+out from under the other — which is exactly the sort of race that shows up as
+"an avatar sometimes goes blank" and is never reproduced.
+
+The ledger it hands them to is `attachment_orphans`. The name is F42's because
+that is where it started; what it *holds* is object keys nothing owns, and a
+replaced avatar is the second thing to need precisely that. A second identical
+table would be worse than a name one feature out of date.
+
+#### The lock is in the `where`, not in a prior read
+
+`beginUpload` and `clear` both carry `and avatar_locked = false`. A service-level
+check alone loses the race where a moderator locks an avatar while the member
+has the form open — and it is the *member's* write that would win, which is the
+wrong way round.
+
+When the guard refuses, the statement reports the caller's own freshly stored
+object as the thing to collect. That is not a special case bolted on: the object
+was written before the row was touched (the write order D65 sets out), so if the
+row was not touched then nothing owns it and it is garbage by the same rule as
+everything else in the ledger.
+
+#### The permission is global, and the visibility question is `profile.view`
+
+`avatar.upload` joins F22's global actions rather than the forum matrix, for
+`user.warn`'s reason: an avatar follows a member everywhere they appear, so a
+per-forum grant would have to answer "an avatar where?" about an image that has
+no forum. Serving one asks `profile.view` for the same reason — it is shown in a
+member list and on a profile, not only under a post, so the forum a thread
+happens to be in cannot be what decides it.
+
+#### The URL carries a version and never a key
+
+`/avatar/<id>?v=<updated_at>`. Two things follow. A key in a URL is a
+capability, and one that would outlive a moderator's lock. And because a
+replacement changes the URL, the response can carry a long `max-age` — which
+matters, since a thread page fetches one of these per distinct author and a
+board's regulars appear on every page. It stays `private`, because who may see a
+member is still a permission question and a shared cache must not answer it.
+
+#### What is deliberately not here
+
+- **No remote URL and no Gravatar.** See `mybb-parity.md`: rendered it is a
+  tracking beacon, fetched it is SSRF, and the safe version is the upload path
+  with an SSRF problem in front of it.
+- **No crop.** Scaled to fit, aspect preserved. Cropping decides which part of
+  somebody's picture matters and a board cannot know; a theme wanting circles
+  can have them in CSS, which is reversible.
+- **No animated avatars.** GIF is not an accepted type anywhere on this board
+  (D65), and an animated one under every post is the reason many forums ban them
+  even when they can store them.
+- **No default silhouette.** A board where nobody has set one would render a
+  column of identical grey squares. Absent is more honest and costs less.
+- **No per-group size limits.** `canUploadAvatar` is a boolean and the ceiling
+  is a constant. MyBB has `maxavatarsize`; giving it a home means F71's group
+  administration, and inventing a second place to configure it first would be
+  the thing to undo.

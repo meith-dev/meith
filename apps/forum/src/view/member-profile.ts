@@ -40,12 +40,20 @@ export function buildMemberProfileView(
      * lie than a send that explains itself.
      */
     readonly canMessage?: boolean
+    /** F58. Resolved by the page, and null for the great majority. */
+    readonly avatarUrl?: string | null
   } = {},
 ): MemberProfileModel {
-  const { canWarn = false, canMessage = false, timeZone, customFields = [] } = options
+  const {
+    canWarn = false,
+    canMessage = false,
+    timeZone,
+    customFields = [],
+    avatarUrl = null,
+  } = options
   return {
     user: { userId: profile.id, username: profile.username, profileHref: memberHref(profile.id) },
-    avatarUrl: null,
+    avatarUrl,
     title: profile.title,
     joinedAt: formatTime(profile.createdAt, now, timeZone),
     lastVisitAt:

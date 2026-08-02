@@ -10,12 +10,16 @@ import { visibleProfileFields } from '@/server/profile-fields'
 import { relationService } from '@/server/relations'
 import { reputationService, reputationSettings } from '@/server/reputation'
 import { reputationLabel } from '@/view/reputation'
-import { SignatureLockForm } from '@/components/moderation/signature-lock-form'
+import {
+  AvatarLockForm,
+  SignatureLockForm,
+} from '@/components/moderation/signature-lock-form'
 import {
   RemoveRelationForm,
   SetRelationForm,
 } from '@/components/account/relation-forms'
 import { activeTheme } from '@/server/theme'
+import { avatarFor, avatarsFor } from '@/server/avatars'
 import { buildMemberProfileView } from '@/view/member-profile'
 
 export const metadata: Metadata = { title: 'Member profile' }
@@ -93,6 +97,8 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           profile,
           new Date(),
           {
+            /* F58. Null for a member who set none, and for a locked one. */
+            avatarUrl: (await avatarsFor([id])).get(id) ?? null,
             /*
              * F53. Gated on the store as well as the permission — fixture mode
              * has no warnings, and a link to a page that 404s is worse than
@@ -127,6 +133,8 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             Signature: {signatureState.locked ? 'locked' : 'allowed'}
           </span>
           <SignatureLockForm userId={id} locked={signatureState.locked} />
+          {/* F58's other half. Offered on the same terms and in the same place. */}
+          <AvatarLockForm userId={id} locked={(await avatarFor(id)).locked} />
         </div>
       )}
 

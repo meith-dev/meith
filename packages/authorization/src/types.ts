@@ -96,6 +96,15 @@ export type Action =
   | 'memberlist.view'
   | 'pm.use'
   /**
+   * Upload an avatar (F58).
+   *
+   * Global, and deliberately not in the F22 forum matrix: an avatar follows the
+   * member everywhere they appear — a member list, a profile, a quote — so a
+   * per-forum grant would have to answer "an avatar where?" about an image that
+   * has no forum. The same argument `user.warn` makes.
+   */
+  | 'avatar.upload'
+  /**
    * File a report (F49).
    *
    * Global, and deliberately not in the F22 forum matrix: reporting is a

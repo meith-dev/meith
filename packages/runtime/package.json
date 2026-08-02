@@ -8,6 +8,7 @@
   "dependencies": {
     "@forum/accounts": "workspace:*",
     "@forum/attachments": "workspace:*",
+    "@forum/avatars": "workspace:*",
     "@forum/core": "workspace:*",
     "@forum/db": "workspace:*",
     "@forum/drivers": "workspace:*",

@@ -98,6 +98,13 @@ const POST = {
   /* F49. Seeded true for Registered in migration `0001`, like the rest. */
   canReportContent: true,
   /*
+   * F58's other half. Seeded true for Registered in `0001` since day one, with
+   * nothing reading it until now — the same drift `canUsePrivateMessages` and
+   * `canDownloadAttachments` had, and the same fix: the fixture claims to
+   * mirror the seeded ladder, so it has to.
+   */
+  canUploadAvatar: true,
+  /*
    * F60. Also seeded true for Registered in `0001` — the fixture simply never
    * carried it, because nothing read it until now. Same class of drift as the
    * three negative fields below, and the same fix: the fixture claims to mirror

@@ -34,6 +34,7 @@ import {
   type BypassEvent,
 } from '@forum/authorization'
 import type { AttachmentRepository } from '@forum/attachments'
+import type { AvatarRepository } from '@forum/avatars'
 import { env, logger } from '@forum/core'
 import { CachedForumRepository, type ForumRepository } from '@forum/forums'
 import type {
@@ -89,6 +90,7 @@ import {
   PostgresAdminLogRepository,
   PostgresAdminSessionRepository,
   PostgresAttachmentRepository,
+  PostgresAvatarRepository,
   PostgresProfileFieldRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
@@ -249,6 +251,13 @@ export interface Container {
    */
   readonly attachments: AttachmentRepository | null
   /**
+   * Avatars (F58's other half). `null` in fixture mode (D38) — the same reason
+   * attachments are: an upload that survives validation and a queued re-encode
+   * and then vanishes on restart is worse than a board that says it cannot take
+   * one.
+   */
+  readonly avatars: AvatarRepository | null
+  /**
    * The credential store behind identity (F17–F19).
    *
    * Exposed for F57's UserCP, which re-authenticates with the current password
@@ -365,6 +374,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     adminSessions: null,
     adminLog: null,
     attachments: null,
+    avatars: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -473,6 +483,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     adminSessions: new PostgresAdminSessionRepository(db),
     adminLog: new PostgresAdminLogRepository(db),
     attachments: new PostgresAttachmentRepository(db),
+    avatars: new PostgresAvatarRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -558,6 +569,7 @@ export function getContainer(): Container {
     cached.adminSessions === undefined ||
     cached.adminLog === undefined ||
     cached.attachments === undefined ||
+    cached.avatars === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

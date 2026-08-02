@@ -24,6 +24,7 @@ import {
 } from '@forum/events'
 import type { QueueDriver } from '@forum/core'
 import type { AttachmentService } from '@forum/attachments'
+import type { AvatarService } from '@forum/avatars'
 
 import { SEED_GROUP } from './groups'
 
@@ -69,6 +70,8 @@ export interface TaskWorkerDeps {
    * collects nothing every hour is a healthy-looking run of nothing (D32).
    */
   readonly attachments?: AttachmentService
+  /** F58's sweep. Optional for the same reason. */
+  readonly avatars?: AvatarService
 }
 
 /**
@@ -222,6 +225,14 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       : {
           async sweepAttachments(batchSize: number) {
             return deps.attachments!.sweep(batchSize)
+          },
+        }),
+
+    ...(deps.avatars === undefined
+      ? {}
+      : {
+          async sweepAvatars(batchSize: number) {
+            return deps.avatars!.sweep(batchSize)
           },
         }),
   }

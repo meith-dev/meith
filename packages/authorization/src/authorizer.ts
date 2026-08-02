@@ -640,6 +640,8 @@ export class Authorizer {
         return actor.global.canViewMemberList === true
       case 'pm.use':
         return actor.global.canUsePrivateMessages === true
+      case 'avatar.upload':
+        return actor.global.canUploadAvatar === true
       case 'content.report':
         return actor.global.canReportContent === true
       case 'user.warn':

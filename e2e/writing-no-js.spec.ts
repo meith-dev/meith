@@ -12,7 +12,7 @@
  * islands are optional, and a suite that tested the enhanced path would prove
  * the opposite of what is claimed.
  */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
 import { samplePng } from './support/png'
 
@@ -37,6 +37,39 @@ async function signUp(page: Page, label: string): Promise<string> {
   await expect(page).toHaveURL('/')
 
   return username
+}
+
+/**
+ * Run the board's tick until `check` passes.
+ *
+ * A single tick is *not* enough, and the reason is the scheduler working
+ * correctly rather than a flake: `queue.drain` has a sixty-second interval, so
+ * the second spec in a run that needs a drain finds the task not yet due and
+ * the tick reports it skipped. Asserting "after exactly one tick" was
+ * over-specifying — the contract a member experiences is "once the queue has
+ * run", and that is what this waits for.
+ *
+ * The tick URL is the production path: the serverless profile drives it with a
+ * cron, so this is not a test hook.
+ */
+async function drainUntil(
+  request: APIRequestContext,
+  page: Page,
+  url: string,
+  check: () => Promise<void>,
+): Promise<void> {
+  /*
+   * Longer than the default 30s, because the wait is bounded by that interval
+   * and not by anything this test does. Only the specs that wait on the queue
+   * pay it.
+   */
+  test.setTimeout(150_000)
+
+  await expect(async () => {
+    await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
+    await page.goto(url)
+    await check()
+  }).toPass({ timeout: 90_000, intervals: [1_000, 2_000, 5_000, 10_000] })
 }
 
 test('a member posts a thread and a reply, and both land in the database', async ({ page }) => {
@@ -103,16 +136,9 @@ test('an image attachment is not served until it has been re-encoded', async ({ 
   await expect(page.getByText('There should be an image under this.')).toBeVisible()
   await expect(page.locator('article img')).toHaveCount(0)
 
-  /*
-   * Drain the queue. The serverless profile does this with a cron hitting the
-   * same URL, so this is the production path rather than a test hook.
-   */
-  const tick = await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
-  expect(tick.ok()).toBeTruthy()
-
-  await page.goto(threadUrl)
-  const image = page.locator('article img').first()
-  await expect(image).toBeVisible()
+  await drainUntil(request, page, threadUrl, async () => {
+    await expect(page.locator('article img').first()).toBeVisible({ timeout: 2_000 })
+  })
 
   const href = await page.locator('article a[href^="/attachment/"]').first().getAttribute('href')
   expect(href).toMatch(/^\/attachment\/\d+$/)
@@ -181,4 +207,63 @@ test('an attachment in a thread a guest may not read is refused by URL', async (
   expect(notANumber.status()).toBe(404)
 
   void page
+})
+
+test('an avatar is re-encoded before it appears anywhere', async ({ page, request }) => {
+  await signUp(page, 'face')
+
+  await page.goto('/usercp/avatar')
+  await expect(page.getByText('You have not set one.')).toBeVisible()
+
+  await page.getByLabel('Choose an image').setInputFiles({
+    name: 'me.png',
+    mimeType: 'image/png',
+    buffer: samplePng(300, 300),
+  })
+  await page.getByRole('button', { name: 'Upload' }).click()
+
+  /*
+   * The same claim F42 makes, on the other half: what a member uploaded is
+   * never what the board shows, so there is nothing to see until the queue has
+   * run. The screen says so rather than silently showing the old state.
+   */
+  /* The notice and the card both say so; the card is the durable state. */
+  await expect(page.getByText(/It will appear shortly/)).toBeVisible()
+  await expect(page.locator('img[alt="Your avatar"]')).toHaveCount(0)
+
+  const shown = page.locator('img[alt="Your avatar"]')
+  await drainUntil(request, page, '/usercp/avatar', async () => {
+    await expect(shown).toBeVisible({ timeout: 2_000 })
+  })
+
+  /*
+   * The URL carries the member and a version and never the object key — a key
+   * in a URL is a capability that would outlive a moderator's lock.
+   */
+  const src = await shown.getAttribute('src')
+  expect(src).toMatch(/^\/avatar\/\d+\?v=\d+$/)
+
+  const image = await request.get(src!)
+  expect(image.status()).toBe(200)
+  expect(image.headers()['x-content-type-options']).toBe('nosniff')
+
+  const body = await image.body()
+  expect([...body.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47])
+  /* Re-encoded and fitted to the avatar box, so smaller than what was sent. */
+  expect(body.length).toBeLessThan(samplePng(300, 300).length)
+})
+
+test('an avatar that is not an image is refused, and nothing is stored', async ({ page }) => {
+  await signUp(page, 'notaface')
+
+  await page.goto('/usercp/avatar')
+  await page.getByLabel('Choose an image').setInputFiles({
+    name: 'me.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('GIF89a this is not a png'),
+  })
+  await page.getByRole('button', { name: 'Upload' }).click()
+
+  await expect(page.getByText(/not a type this board accepts/)).toBeVisible()
+  await expect(page.locator('img[alt="Your avatar"]')).toHaveCount(0)
 })

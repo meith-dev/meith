@@ -16,6 +16,7 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
 import { ModerationQueue, parseSelection } from '@forum/moderation'
 
+import { avatarService } from './avatars'
 import { getActor } from './context'
 import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
@@ -154,4 +155,54 @@ export async function setSignatureLockAction(
   }
 
   redirect(`${returnTo}?signature=${form.get('locked') === '1' ? 'locked' : 'unlocked'}`)
+}
+
+
+/**
+ * F58 — lock or unlock somebody's avatar.
+ *
+ * The same act on the other half, and gated the same way and for the same
+ * reason: `user.warn`, because both are aimed at a *person* rather than at a
+ * forum's content, and inventing a second switch would give an administrator
+ * two answers to one question.
+ *
+ * A lock and not a delete, again — but here the argument is stronger rather
+ * than merely parallel. Deleting an avatar destroys the evidence: an appeal
+ * about a signature can read the text that was kept, and an appeal about an
+ * image has nothing at all unless the object survives. So the lock stops it
+ * rendering, stops the member replacing it, and keeps the file.
+ */
+export async function setAvatarLockAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const text = (name: string): string => {
+    const value = form.get(name)
+    return typeof value === 'string' ? value.trim() : ''
+  }
+
+  const userId = Number(text('userId'))
+  const returnTo = userId > 0 ? `/member/${userId}` : '/'
+
+  try {
+    const actor = await getActor()
+    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    getContainer().authorizer.require(actor, 'user.warn')
+
+    const service = avatarService()
+    if (service === null) throw new ForbiddenError('This board keeps no avatars.')
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new ValidationError('No such member.')
+    }
+
+    await service.setLock({
+      userId,
+      locked: form.get('locked') === '1',
+      reason: text('reason'),
+    })
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect(`${returnTo}?avatar=${form.get('locked') === '1' ? 'locked' : 'unlocked'}`)
 }

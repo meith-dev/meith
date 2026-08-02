@@ -165,6 +165,21 @@ export interface ImageProcessor {
   process(input: {
     readonly bytes: Uint8Array
     readonly codec: 'png' | 'jpeg'
+    /**
+     * The box the output is fitted into. Defaults to `MAX_IMAGE`.
+     *
+     * A parameter rather than a second port because F58's avatars want the
+     * identical pipeline at a much smaller size, and two implementations of
+     * "decode, fit, encode" would be two places for a codec change to land.
+     */
+    readonly fit?: { readonly width: number; readonly height: number }
+    /**
+     * Whether to make a preview as well. Defaults to true.
+     *
+     * An avatar is already smaller than any thumbnail of it would be, so
+     * generating one is a second lossy encode of an image nothing will ask for.
+     */
+    readonly thumbnail?: boolean
   }): Promise<ProcessedImage>
 }
 

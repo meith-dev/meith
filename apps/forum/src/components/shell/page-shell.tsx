@@ -8,6 +8,7 @@ import { touchActivity } from '@/server/relations'
 import { unreadNotificationCount } from '@/server/notifications'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
+import { avatarsFor } from '@/server/avatars'
 import { activeTheme } from '@/server/theme'
 import {
   buildFooterModel,
@@ -74,9 +75,20 @@ export async function PageShell({
    * `canAccessAdminCp` follows. It is read off the already-resolved actor, so
    * the shell costs no extra query on any page (F48).
    */
+  /*
+   * F58. One read for the signed-in member, memoised per request by
+   * `avatarsFor`, so a page that also renders their avatar in a postbit does
+   * not fetch it twice. Guests skip it entirely.
+   */
+  const ownAvatar =
+    actor.userId === null
+      ? null
+      : ((await avatarsFor([actor.userId])).get(actor.userId) ?? null)
+
   const viewer = buildViewerModel(actor, {
     displayName,
     canAccessModCp: actor.global.canAccessModCp === true,
+    avatarUrl: ownAvatar,
   })
   const header = buildHeaderModel(viewer, [], boardTitle)
 

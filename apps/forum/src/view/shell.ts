@@ -61,6 +61,8 @@ export function buildViewerModel(
     displayName?: string | null
     canAccessAdminCp?: boolean
     canAccessModCp?: boolean
+    /** F58. Null for a guest, for nobody who set one, and for a locked one. */
+    avatarUrl?: string | null
   } = {},
 ): ViewerModel {
   const isGuest = actor.userId === null
@@ -70,8 +72,9 @@ export function buildViewerModel(
     userId: actor.userId,
     username: options.displayName ?? null,
     profileHref: actor.userId === null ? null : memberHref(actor.userId),
-    // F58. No avatar pipeline yet, and a broken <img> is worse than none.
-    avatarUrl: null,
+    /* F58. Supplied by the layout for a signed-in member; null for a guest,
+       for anybody who has not set one, and for a locked one. */
+    avatarUrl: options.avatarUrl ?? null,
     canAccessAdminCp: options.canAccessAdminCp ?? false,
     canAccessModCp: options.canAccessModCp ?? false,
   }

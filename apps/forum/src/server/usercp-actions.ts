@@ -21,11 +21,13 @@
 import { redirect } from 'next/navigation'
 
 import { MemberSettingsService } from '@forum/accounts'
-import { ForbiddenError, isAppError, logger } from '@forum/core'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
+import { drivers } from '@forum/drivers'
 import { prepareSignature } from '@forum/signatures'
 
 import { AUTH_CONFIG } from './auth-config'
 import { adminService } from './admin'
+import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
@@ -261,4 +263,65 @@ export async function saveSignatureAction(_prev: FormState, form: FormData): Pro
   }
 
   redirect('/usercp/signature?saved=1')
+}
+
+
+/* ------------------------------------------------------------------ *
+ * F58 — the avatar
+ * ------------------------------------------------------------------ */
+
+/**
+ * Upload a new avatar.
+ *
+ * Like every attachment (D65) the file is validated in the request and
+ * **re-encoded in a queued job**, so what comes back is "we are working on it"
+ * rather than a finished image. Saying so is the honest thing: an avatar screen
+ * that redirected to a page still showing the old face with no explanation is
+ * how somebody concludes the upload silently failed.
+ */
+export async function saveAvatarAction(_prev: FormState, form: FormData): Promise<FormState> {
+  try {
+    const actor = await getActor()
+    const service = requireAvatarService(actor)
+
+    const file = form.get(AVATAR_FIELD)
+    if (!(file instanceof File) || file.size === 0) {
+      throw new ValidationError('Choose an image first.')
+    }
+
+    await service.upload({
+      userId: actor.userId as number,
+      file: { filename: file.name, bytes: new Uint8Array(await file.arrayBuffer()) },
+      /*
+       * Asked here rather than inside the service: group and permission
+       * reasoning does not leave `@forum/authorization` (R4), so the service
+       * takes the answer. The *lock* is the service's, because it is a sanction
+       * on one member rather than a permission.
+       */
+      mayUpload: canUploadAvatar(actor),
+    })
+
+    await drivers().queue.enqueue(
+      'avatars.process',
+      { userId: actor.userId },
+      { dedupeKey: `avatar:${actor.userId}:${Date.now()}` },
+    )
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect('/usercp/avatar?saved=processing')
+}
+
+/** Remove it. A lock stops this exactly as it stops an upload. */
+export async function removeAvatarAction(_prev: FormState): Promise<FormState> {
+  try {
+    const actor = await getActor()
+    const service = requireAvatarService(actor)
+    await service.remove(actor.userId as number)
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect('/usercp/avatar?saved=removed')
 }

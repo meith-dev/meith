@@ -160,6 +160,23 @@ export const users = pgTable(
     signatureLocked: boolean('signature_locked').notNull().default(false),
     signatureLockedReason: text('signature_locked_reason'),
 
+    /*
+     * F58's other half. The two keys are F42's lifecycle: `avatarSourceKey`
+     * holds what the member uploaded and `avatarKey` what the board serves,
+     * written by an encoder from decoded pixels. `none` is a real state and the
+     * commonest, so it is a value rather than a null every query coalesces.
+     */
+    avatarStatus: text('avatar_status').notNull().default('none'),
+    avatarKey: text('avatar_key'),
+    avatarSourceKey: text('avatar_source_key'),
+    avatarWidth: integer('avatar_width'),
+    avatarHeight: integer('avatar_height'),
+    avatarFailureReason: text('avatar_failure_reason'),
+    /** Part of the served URL, so a replacement is never a cached old image. */
+    avatarUpdatedAt: timestamp('avatar_updated_at', { withTimezone: true }),
+    avatarLocked: boolean('avatar_locked').notNull().default(false),
+    avatarLockedReason: text('avatar_locked_reason'),
+
     /** Truncated per F09 — never a full address. */
     registrationIpPrefix: text('registration_ip_prefix'),
     lastIpPrefix: text('last_ip_prefix'),

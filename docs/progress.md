@@ -771,10 +771,14 @@ output whose `node_modules` contains `.pnpm` and *nothing else*. Three earlier
 attempts passed every test and failed on a booted image, which is the bug class
 D54 exists to record; this one was written against a booted image.
 
-**So F58's avatar half is the natural next step** — the machinery it was waiting
-for now exists, and the shape is already proven: validate, re-encode, store,
-serve through a permission-checked route. F71 and F45 are also unblocked, and
-all three can now be proven in a browser (D66).
+**F58's avatar half is done too** (D67), which was the point of doing F42 when
+it was done: it is mostly reuse. What was not reusable is worth knowing —
+an avatar is *replaced* and an attachment never is, so the repository hands back
+the object it stopped pointing at in the statement that stopped pointing at it,
+and the moderator's lock lives in the `where` so it wins the race against a
+member with the form open. **Phase 5 now has no `PARTIAL` rows left.**
+
+F71 and F45 are also unblocked, and all three can be proven in a browser (D66).
 
 **The standing gap is closed** (D66). The browser suite runs against a real
 Postgres that it starts itself — PGlite behind the wire protocol, nothing to

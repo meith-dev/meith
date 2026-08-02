@@ -25,6 +25,7 @@ import {
 } from '@/view/inline-moderation'
 import { attachmentsByPost } from '@/view/attachments'
 import { attachmentsForPosts } from '@/server/attachments'
+import { avatarsFor } from '@/server/avatars'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 
@@ -299,6 +300,9 @@ export default async function ThreadPage({
    * downloadable, so a re-encode that has not finished is simply absent rather
    * than rendered as a link that would 404.
    */
+  /* F58. Same one-query-per-page shape as the signatures above. */
+  const avatars = await avatarsFor(authorIds)
+
   const attachments = attachmentsByPost(
     await attachmentsForPosts(postPage.rows.map((row) => row.id)),
   )
@@ -320,6 +324,7 @@ export default async function ThreadPage({
     authorFields,
     signatures,
     attachments,
+    avatars,
     ignoredIds,
     revealedPostIds: revealedFrom(query.reveal),
     /*

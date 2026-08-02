@@ -9,6 +9,7 @@
  */
 import type { FileStore, MailDriver, QueueDriver } from '@forum/core'
 import { AttachmentService, type ImageProcessor } from '@forum/attachments'
+import { AvatarService } from '@forum/avatars'
 import { env, logger } from '@forum/core'
 import {
   getDb,
@@ -21,6 +22,7 @@ import {
   PostgresPromotionRepository,
   PostgresRenderBackfill,
   PostgresAttachmentRepository,
+  PostgresAvatarRepository,
   PostgresTaskRepository,
   PostgresThreadViewBuffer,
   PostgresWarningRepository,
@@ -107,6 +109,16 @@ export function buildSchedulerBundle(deps: {
           images: deps.images,
         })
 
+  /* F58, on the same condition and for the same reason. */
+  const avatarService =
+    deps.files === undefined || deps.images === undefined
+      ? undefined
+      : new AvatarService({
+          avatars: new PostgresAvatarRepository(db),
+          files: deps.files,
+          images: deps.images,
+        })
+
   return {
     repository: new PostgresTaskRepository(db),
     onTaskFailure: taskFailureNotifier(notifications),
@@ -119,11 +131,15 @@ export function buildSchedulerBundle(deps: {
         maintenance: new PostgresMaintenanceRepository(db),
         outbox: new PostgresOutboxReader(db),
         ...(attachmentService === undefined ? {} : { attachments: attachmentService }),
+        ...(avatarService === undefined ? {} : { avatars: avatarService }),
         events: buildEventRegistry({
           counters: new PostgresContentCounterRepository(db),
           ...(attachmentService === undefined
             ? {}
             : { attachments: { process: (id) => attachmentService.process(id) } }),
+          ...(avatarService === undefined
+            ? {}
+            : { avatars: { process: (id) => avatarService.process(id) } }),
           ...(mail === undefined
             ? {}
             : {

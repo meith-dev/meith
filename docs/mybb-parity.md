@@ -1071,3 +1071,47 @@ the sweep for abandoned drafts.
 validation loses the chosen files even though the message survives. That is true
 of every no-JS upload. F45's islands are where an incremental upload belongs,
 and it should be an enhancement over this path rather than a replacement for it.
+
+## An avatar is re-encoded and locked, never linked and never deleted
+
+**MyBB:** three ways to have one — upload, a remote URL, or Gravatar. An upload
+is checked for dimensions and extension and stored as sent. A moderator's
+remedy is to delete it.
+
+**Here:** upload only, decoded and re-encoded from raw pixels like every other
+image on this board (D65), fitted to 200×200, and unservable until that
+succeeds. A moderator locks it rather than deleting it.
+
+**Why no remote URL:** rendered directly it is a tracking beacon that reports
+every reader's IP, referrer and user agent to a third party on every page view
+— which F58's own acceptance forbids in as many words. Fetched server-side to
+avoid that, it is SSRF: an attacker supplies a URL and the board makes the
+request, from inside whatever network it runs in. The only safe version ends at
+fetch-validate-re-encode-store, which is what the upload path already is, with
+an SSRF problem bolted on the front. Gravatar is the remote-URL problem with a
+better-known third party.
+
+**Why a lock and not a delete:** the same argument D61 makes for signatures, and
+stronger here. Deleting destroys the evidence — an appeal about a signature can
+read the text that was kept; an appeal about an image has nothing at all unless
+the file survives. Locking stops it rendering, stops the member replacing it,
+keeps the object, and records a reason the member is shown.
+
+**Cost:** a member who wants their existing avatar from elsewhere has to
+download it and upload it, and nobody's Gravatar follows them here. The image
+loses its EXIF, which is the point. And an upload is not visible for as long as
+the queue takes, which the screen says rather than leaving somebody to conclude
+it failed.
+
+## An avatar keeps its aspect ratio; it is not cropped to a square
+
+**MyBB:** scales to fit the configured maximum, same as here.
+
+**Here:** scaled to fit 200×200, aspect preserved, no crop.
+
+**Why:** cropping decides for somebody which part of their picture matters, and
+a board cannot know. A theme that wants circles can have them in CSS, which is
+reversible; a crop at upload time is not.
+
+**Cost:** a wide image renders wide, so a theme laying out a fixed square has to
+say `object-fit: cover` rather than assuming. The default theme does.

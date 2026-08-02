@@ -45,6 +45,8 @@
       "@forum/groups/*": ["packages/groups/src/*"],
       "@forum/attachments": ["packages/attachments/src/index.ts"],
       "@forum/attachments/*": ["packages/attachments/src/*"],
+      "@forum/avatars": ["packages/avatars/src/index.ts"],
+      "@forum/avatars/*": ["packages/avatars/src/*"],
       "@forum/authorization": ["packages/authorization/src/index.ts"],
       "@forum/authorization/*": ["packages/authorization/src/*"],
       "@forum/forums": ["packages/forums/src/index.ts"],

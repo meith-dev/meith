@@ -55,6 +55,9 @@ export interface DomainEventMap {
    */
   'attachment.uploaded': { attachmentId: number }
 
+  /** F58. Same shape and same reason as `attachment.uploaded`. */
+  'avatar.uploaded': { userId: number }
+
   'forum.structure_changed': { forumIds: number[] }
   'settings.changed': { keys: string[] }
   'theme.changed': { themeId: number }

@@ -274,6 +274,15 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/avatars:
+    dependencies:
+      '@forum/attachments':
+        specifier: workspace:*
+        version: link:../attachments
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/bbcode: {}
 
   packages/core:
@@ -299,6 +308,9 @@ importers:
       '@forum/authorization':
         specifier: workspace:*
         version: link:../authorization
+      '@forum/avatars':
+        specifier: workspace:*
+        version: link:../avatars
       '@forum/bbcode':
         specifier: workspace:*
         version: link:../bbcode
@@ -464,6 +476,9 @@ importers:
       '@forum/attachments':
         specifier: workspace:*
         version: link:../attachments
+      '@forum/avatars':
+        specifier: workspace:*
+        version: link:../avatars
       '@forum/core':
         specifier: workspace:*
         version: link:../core

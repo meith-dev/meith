@@ -46,6 +46,8 @@ export interface TaskWorkers {
    * never finished. Returns the two counts.
    */
   sweepAttachments(batchSize: number): Promise<{ deleted: number; failed: number }>
+  /** Fails avatar uploads whose re-encode never finished. Returns the count. */
+  sweepAvatars(batchSize: number): Promise<number>
 }
 
 function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
@@ -291,6 +293,24 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         return { detail: { deleted, failed } }
       },
     },
+
+    {
+      id: 'avatars.sweep',
+      title: 'Fail unfinished avatar uploads',
+      description:
+        'Marks avatar uploads whose re-encode never finished, so the member is ' +
+        'told to try again rather than left looking at a spinner that is not ' +
+        'there. Separate from the attachment sweep because it acts on `users` ' +
+        'rather than on the object ledger, and because an operator asking why ' +
+        'an avatar is stuck should not have to read a task about attachments. ' +
+        'Purely corrective, and safe to run twice.',
+      intervalSeconds: 3_600,
+      maxDurationSeconds: 60,
+      async run() {
+        const failed = await workers.sweepAvatars(200)
+        return { detail: { failed } }
+      },
+    },
   ]
 }
 
@@ -313,6 +333,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'subscriptions.instant': 'notifySubscribers',
   'subscriptions.digest': 'sendDigests',
   'attachments.sweep': 'sweepAttachments',
+  'avatars.sweep': 'sweepAvatars',
 }
 
 /**

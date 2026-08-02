@@ -85,6 +85,8 @@ interface PostContext {
   readonly fields: ReadonlyMap<number, readonly { label: string; value: string }[]>
   /** F58, resolved per author by the page. Empty when nobody has one. */
   readonly signatures: ReadonlyMap<number, string>
+  /** F58's other half: an avatar URL per author, absent for most of them. */
+  readonly avatars: ReadonlyMap<number, string>
   /** F61. The ids this viewer ignores, and the posts they asked to see anyway. */
   readonly ignoredIds: ReadonlySet<number>
   readonly revealedPostIds: ReadonlySet<number>
@@ -138,7 +140,15 @@ function post(
       userId: post.authorUserId,
       username: post.authorUsername,
       profileHref: post.authorUserId === null ? null : memberHref(post.authorUserId),
-      avatarUrl: null,
+      /*
+       * F58. Withheld with the body on a hidden post (F61), like the signature
+       * above: an ignored author's picture is theirs too, and leaving it would
+       * put a face on a post the reader chose not to read.
+       */
+      avatarUrl:
+        hidden || post.authorUserId === null
+          ? null
+          : (context.avatars.get(post.authorUserId) ?? null),
       title: null,
       postCount: post.authorPostCount,
       joinedAt:
@@ -264,6 +274,8 @@ export interface ThreadViewInput {
   readonly authorFields?: ReadonlyMap<number, readonly { label: string; value: string }[]>
   /** F58's rendered signatures, keyed by author user id. */
   readonly signatures?: ReadonlyMap<number, string>
+  /** F58. Avatar URLs by author id. Empty on a board where nobody set one. */
+  readonly avatars?: ReadonlyMap<number, string>
   /** F42. Downloadable attachments, by post id. Empty on most pages. */
   readonly attachments?: ReadonlyMap<number, readonly PostAttachmentModel[]>
   /** F61. The ids this viewer ignores; empty for a guest or a board with none. */
@@ -283,6 +295,7 @@ export interface ThreadViewInput {
 const EMPTY_IDS: ReadonlySet<number> = new Set()
 const EMPTY_SIGNATURES: ReadonlyMap<number, string> = new Map()
 const EMPTY_ATTACHMENTS: ReadonlyMap<number, readonly PostAttachmentModel[]> = new Map()
+const EMPTY_AVATARS: ReadonlyMap<number, string> = new Map()
 
 /**
  * The same page with one more post revealed.
@@ -335,6 +348,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         fields: input.authorFields ?? new Map(),
         signatures: input.signatures ?? EMPTY_SIGNATURES,
         attachments: input.attachments ?? EMPTY_ATTACHMENTS,
+        avatars: input.avatars ?? EMPTY_AVATARS,
         ignoredIds: input.ignoredIds ?? EMPTY_IDS,
         revealedPostIds: input.revealedPostIds ?? EMPTY_IDS,
         revealHref: (postId) => revealHref(input.currentHref ?? '', postId),

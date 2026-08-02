@@ -40,6 +40,21 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
               />
             </label>
           )}
+          {/*
+            F58. Absent for most authors, and absent rather than a placeholder:
+            a default silhouette on every post of a board where nobody has set
+            one is a column of identical grey squares. Sized in the markup as
+            well as in CSS so the row does not reflow as images arrive.
+          */}
+          {post.author.avatarUrl !== null && (
+            <img
+              src={post.author.avatarUrl}
+              alt=""
+              width={24}
+              height={24}
+              className="size-6 rounded object-cover"
+            />
+          )}
           {post.author.profileHref === null ? <span>{post.author.username}</span> : <a href={post.author.profileHref} className="hover:text-foreground">{post.author.username}</a>}
         </span>
         <a href={post.permalink} className="hover:text-foreground">

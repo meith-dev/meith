@@ -89,6 +89,11 @@ export function userCpSections(): readonly UserCpSection[] {
       link: { label: 'Open your messages', href: '/messages' },
     },
     {
+      title: 'Avatar',
+      description: 'The picture shown beside your posts.',
+      link: { label: 'Change your avatar', href: '/usercp/avatar' },
+    },
+    {
       title: 'Signature',
       description: 'What appears under every post you make.',
       link: { label: 'Edit your signature', href: '/usercp/signature' },
@@ -184,6 +189,18 @@ export function userCpNotice(query: {
   readonly confirmed?: string | undefined
   readonly failed?: string | undefined
 }): { kind: 'info' | 'warning'; message: string } | null {
+  if (query.saved === 'processing') {
+    /* F58. An avatar is re-encoded in a queued job, so "Saved." would be a
+       small lie — the old picture is still what everybody sees for a moment. */
+    return {
+      kind: 'info',
+      message:
+        'Your new avatar is being processed and will appear shortly.',
+    }
+  }
+  if (query.saved === 'removed') {
+    return { kind: 'info', message: 'Your avatar has been removed.' }
+  }
   if (query.saved !== undefined) return { kind: 'info', message: 'Saved.' }
   if (query.changed === 'password') {
     return {

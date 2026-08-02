@@ -120,6 +120,13 @@
       "when": 1785529000000,
       "tag": "0016_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1785529100000,
+      "tag": "0017_avatars",
+      "breakpoints": true
     }
   ]
 }

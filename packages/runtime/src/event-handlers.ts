@@ -35,6 +35,10 @@ export interface EventHandlerDeps {
   readonly attachments?: {
     process(attachmentId: number): Promise<unknown>
   }
+  /** F58's re-encode. Optional for the same reason as `attachments`. */
+  readonly avatars?: {
+    process(userId: number): Promise<unknown>
+  }
 }
 
 export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
@@ -89,6 +93,21 @@ export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
       event: 'attachment.uploaded',
       async handle(payload) {
         await deps.attachments!.process(payload.attachmentId)
+      },
+    })
+  }
+
+  if (deps.avatars !== undefined) {
+    registry.register({
+      /*
+       * F58. The same lifecycle as `attachments.process` and for the same
+       * reason: what a member uploaded is never what the board serves, and the
+       * row is `pending` and unservable until this succeeds.
+       */
+      id: 'avatars.process',
+      event: 'avatar.uploaded',
+      async handle(payload) {
+        await deps.avatars!.process(payload.userId)
       },
     })
   }

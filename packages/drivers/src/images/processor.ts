@@ -54,10 +54,12 @@ export const imageProcessor: ImageProcessor = {
       input.codec,
     )
 
-    const fitted = await resizeToFit(decoded, MAX_IMAGE)
+    const fitted = await resizeToFit(decoded, input.fit ?? MAX_IMAGE)
     const bytes = toBytes(await encodeImage(fitted, input.codec, ATTACHMENT_QUALITY))
 
-    const preview = await resizeToFit(fitted, THUMBNAIL)
+    const wantsThumbnail = input.thumbnail ?? true
+    const preview = wantsThumbnail ? await resizeToFit(fitted, THUMBNAIL) : fitted
+
     const processed: ProcessedImage = {
       bytes,
       contentType: input.codec === 'png' ? 'image/png' : 'image/jpeg',
@@ -66,7 +68,8 @@ export const imageProcessor: ImageProcessor = {
       /*
        * Identity means it already fitted, so there is nothing a thumbnail would
        * save. Comparing the object rather than the dimensions keeps this in
-       * step with `resizeToFit` by construction.
+       * step with `resizeToFit` by construction — and covers the
+       * `thumbnail: false` case without a second branch.
        */
       ...(preview === fitted
         ? {}
