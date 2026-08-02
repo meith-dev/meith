@@ -4458,3 +4458,119 @@ through a long chunked run without retyping a password on every press.
   what a member is in.
 - **A per-member group picker.** That is F67's, and putting it here would mean
   two screens that both claim to own membership.
+
+### D71 — A ban is a mechanism, not a state; a search term is not a pattern (F67)
+
+User administration. This half is search, the member screen, activation and
+bans; merge, prune and mass mail follow.
+
+#### `%` in a search box is a character, not a wildcard
+
+`like` treats `%`, `_` and `\` as syntax. A member called `100%` typed into the
+username box would otherwise match **every member on the board** — and this is
+the screen from which people are banned, so a filter that quietly returns
+everybody is not a cosmetic bug.
+
+Every user-supplied fragment therefore goes through `likeFragment` before it
+reaches a pattern. This is not defence against injection — the value was always
+a bound parameter — it is about the query meaning what the operator typed.
+Mutation-verified twice: escaping only `%` leaves `_` matching any single
+character, which is quieter and just as wrong.
+
+The IP search is anchored at the start for a related reason. Only a *prefix* is
+stored (F19 drops the last octet at write time), so a contains would match the
+middle of an address: searching `198.51` would return a member on `10.198.51.0`,
+who shares no network at all. That list is the one an operator reads as "these
+accounts are the same person".
+
+#### Search is keyset-paged because the pages mutate the set
+
+The set being paged is `users`, and the actions on these very pages change
+whether a row still matches — banning somebody changes their state. An OFFSET
+page over a set being modified skips rows, and the rows it skips are precisely
+the ones just acted on. So paging is a cursor on `id`, and a short page reports
+`null` rather than a cursor that would fetch nothing.
+
+#### The filter lives in the address bar
+
+The search form is a plain **GET form**. No Server Action, no JavaScript, no
+POST: the browser does all of it, the filter survives a reload, and the URL can
+be pasted to another administrator. `parseUserFilter` is therefore the boundary
+where anything a person can type into an address bar becomes a query, and it has
+two rules.
+
+**An unparseable criterion is dropped, not refused.** A filter is a question;
+answering a slightly wrong one with the members it does match is more use than
+an error page, and an operator who mistypes a date should not lose the username
+they also typed.
+
+**An absent criterion is absent, not a default.** A blank field is what a GET
+form submits for every input the operator left alone, so reading `''` as a
+criterion would make the first search after "Clear" match nobody.
+
+#### Banning goes through `BanService`, never through the state column
+
+`users.state` has a `banned` value and it is tempting to write it. F23 captures
+the group the member held **at ban time** — that capture is the entire mechanism
+behind "an expired ban restores the prior group", so that a banned moderator
+comes back a moderator rather than being silently demoted to Registered.
+
+A ban applied as a state write produces a member whose column says banned with
+no ban row behind it: nothing expires, and nothing can lift it correctly. So
+`setState` refuses to write `banned`, and refuses to move a member *out* of it
+as well — lifting is F23's, and flipping the column would leave the ban record
+active while the member walked around.
+
+The refusal exists twice on purpose, in the repository and in the action. They
+protect different things: one keeps the column honest against any future caller,
+the other keeps the *screen* from offering an operation that would look like a
+ban and not be one.
+
+This screen is also what F54 was waiting for. F23's mechanism has been complete
+since Phase 2 with no surface at all; F54 considered a ModCP ban screen and
+named the absence instead, because a create/lift screen needs a member search
+and half of one would have been a second place that knew how to ban.
+
+#### Two ban reasons, and only one of them is ever shown
+
+`reason` is the staff note — it routinely says things like "linked to the
+account we banned last week" — and `publicReason` is what F23 shows on a login
+attempt. Collapsing them into one field is exactly how an internal note ends up
+in front of the person it is about. The audit log records the *length* of a ban
+and never either reason, on F64's rule: the log is read by more people than can
+issue one.
+
+#### A shared IP prefix is a network, and the screen says so
+
+The member page lists other accounts seen on the same prefix, and words it as a
+network every time. A household, an office and a campus all look identical here,
+and only a prefix is stored, so the data cannot support "same machine" — an
+operator acting on this list as proof of a second account would be acting on
+something it does not say. An empty prefix returns nothing rather than
+everybody, which is the mutant most worth killing in this file: `like '%'`
+matches every row, and this is the list read as "these are the same person".
+
+#### F20's group-id rule needed six justified exemptions
+
+The lint rule that bans reading `primaryGroupId` outside `@forum/authorization`
+fired on a screen whose entire job is editing that column. Each site got a
+per-line disable with a reason, following the convention `account-repos.ts` and
+`ban-repos.ts` set: transporting a column into a row, rendering it as the
+selected option, filtering on it as a search criterion, writing it back. None of
+them concludes anything from the value, which is what the rule is actually
+about — and keeping the exemptions per-line rather than per-file means the next
+one has to argue for itself too.
+
+#### What is deliberately not here — F67 is PARTIAL
+
+- **Merge, prune and mass mail.** All three are in F67's acceptance and all
+  three are the same shape: bounded, resumable work over a large table. They
+  need the search and the member screen underneath them, which is what this
+  half is.
+- **Secondary groups.** `users.primary_group_id` and `display_group_id` are what
+  this screen edits. Additional-group membership has no table yet, and inventing
+  one here would give the board two answers to "what group is this member in".
+- **Password reset from the panel.** An administrator setting somebody's
+  password is an account takeover with a paper trail. F19's reset flow already
+  exists and mails the member; the panel should trigger *that*, which is a
+  different feature from editing a row.

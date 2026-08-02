@@ -67,6 +67,16 @@ export {
   type MembershipChunkResult,
 } from './group-admin-repo'
 export {
+  PostgresUserAdminRepository,
+  likeFragment,
+  type AccountState,
+  type UserAccountInput,
+  type UserDetail,
+  type UserSearchFilter,
+  type UserSearchPage,
+  type UserSearchRow,
+} from './user-admin-repo'
+export {
   MODERATOR_RIGHTS,
   PostgresForumAdminRepository,
   type AppointModeratorInput,

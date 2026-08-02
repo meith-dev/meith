@@ -27,6 +27,7 @@ import type { PermissionSet } from '@forum/core'
 import type { Database } from './client'
 import { columnName } from './schema/permission-columns'
 import { groupRowToPermissionSet } from './permissions-map'
+import { withPermissionVersionBump, type Tx } from './permission-version'
 import { resultRows } from './result-rows'
 
 /** A group as the grid lists it. */
@@ -278,20 +279,11 @@ export class PostgresGroupAdminRepository {
    *
    * Not a separate call the caller could forget. A lost bump leaves resolved
    * actors holding permissions that have been revoked, which is the failure
-   * direction that matters.
+   * direction that matters. The pairing itself lives in `permission-version.ts`,
+   * because there are now three writers of it.
    */
-  private async withVersionBump<T>(
-    work: (tx: Parameters<Parameters<Database['transaction']>[0]>[0]) => Promise<T>,
-  ): Promise<T> {
-    return this.db.transaction(async (tx) => {
-      const result = await work(tx)
-      await tx.execute(sql`
-        insert into cache_versions (key, version) values ('permissions', 1)
-        on conflict (key) do update
-           set version = cache_versions.version + 1, bumped_at = now()
-      `)
-      return result
-    })
+  private async withVersionBump<T>(work: (tx: Tx) => Promise<T>): Promise<T> {
+    return withPermissionVersionBump(this.db, work)
   }
 }
 
