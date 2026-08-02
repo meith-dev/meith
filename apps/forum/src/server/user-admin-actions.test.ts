@@ -41,6 +41,10 @@ const accounts: Array<{ userId: number; input: Record<string, unknown> }> = []
 const states: Array<{ userId: number; state: string }> = []
 const bans: Array<Record<string, unknown>> = []
 const lifted: number[] = []
+const secondaryGroups: Array<{ userId: number; groupIds: number[]; by: number | null }> = []
+const chunks: Array<{ from: number; to: number; limit: number }> = []
+const finished: Array<{ from: number; to: number }> = []
+const chunkResult = { current: { moved: 2, remaining: 0 } }
 
 vi.mock('./user-admin', () => ({
   requireUserAdmin: () => ({
@@ -49,6 +53,18 @@ vi.mock('./user-admin', () => ({
     },
     async setState(userId: number, state: string) {
       states.push({ userId, state })
+    },
+    async setSecondaryGroups(userId: number, groupIds: number[], by: number | null) {
+      secondaryGroups.push({ userId, groupIds, by })
+    },
+  }),
+  requireUserMerge: () => ({
+    async mergePostsChunk(from: number, to: number, limit: number) {
+      chunks.push({ from, to, limit })
+      return chunkResult.current
+    },
+    async finish(from: number, to: number) {
+      finished.push({ from, to })
     },
   }),
   banService: () => ({
@@ -64,7 +80,9 @@ vi.mock('./user-admin', () => ({
 const {
   banMemberAction,
   liftBanAction,
+  mergeStepAction,
   saveMemberAccountAction,
+  saveSecondaryGroupsAction,
   setMemberStateAction,
 } = await import('./user-admin-actions')
 
@@ -81,6 +99,10 @@ beforeEach(() => {
   states.length = 0
   bans.length = 0
   lifted.length = 0
+  secondaryGroups.length = 0
+  chunks.length = 0
+  finished.length = 0
+  chunkResult.current = { moved: 2, remaining: 0 }
   requireAdminMock.mockClear()
   requireAdminMock.mockResolvedValue({ session: { userId: 1 } })
   requireFreshAdminMock.mockClear()
@@ -266,5 +288,99 @@ describe('liftBanAction', () => {
     expect(state.notice).toBe('lifted')
     expect(lifted).toEqual([7])
     expect(invalidated).toEqual([['permissions']])
+  })
+})
+
+describe('saveSecondaryGroupsAction', () => {
+  it('submits the whole set, so an unticked box is a removal', async () => {
+    /*
+     * `user_group_memberships` has had a reader since F20 and never a writer.
+     * The form shows every group with a checkbox, so what arrives *is* the
+     * intended set — an empty submission means "no additional groups", not
+     * "leave them alone". Kills the mutant that skips the write when nothing
+     * was ticked, which would make removing the last group impossible.
+     */
+    await saveSecondaryGroupsAction({}, form({ userId: '7' }))
+
+    expect(secondaryGroups).toEqual([{ userId: 7, groupIds: [], by: 1 }])
+    expect(invalidated).toEqual([['permissions']])
+  })
+
+  it('passes the ticked groups through, and records who granted them', async () => {
+    const data = new FormData()
+    data.append('userId', '7')
+    data.append('groupIds', '3')
+    data.append('groupIds', '4')
+
+    await saveSecondaryGroupsAction({}, data)
+    expect(secondaryGroups[0]).toEqual({ userId: 7, groupIds: [3, 4], by: 1 })
+  })
+
+  it('refuses a group id that is not one', async () => {
+    const data = new FormData()
+    data.append('userId', '7')
+    data.append('groupIds', 'staff')
+
+    const state = await saveSecondaryGroupsAction({}, data)
+    expect(state.error).toBeDefined()
+    expect(secondaryGroups).toEqual([])
+  })
+
+  it('logs how many groups, never which', async () => {
+    const data = new FormData()
+    data.append('userId', '7')
+    data.append('groupIds', '3')
+
+    await saveSecondaryGroupsAction({}, data)
+    expect(adminCalls[0]).toEqual({
+      action: 'user.groups_changed',
+      detail: { userId: 7, groups: 1 },
+    })
+  })
+})
+
+describe('mergeStepAction', () => {
+  it('finishes in one press when there is nothing left to move', async () => {
+    const state = await mergeStepAction({}, form({ userId: '7', toUserId: '3' }))
+
+    expect(chunks).toEqual([{ from: 7, to: 3, limit: 500 }])
+    expect(finished).toEqual([{ from: 7, to: 3 }])
+    expect(state.notice).toBe('merged')
+    expect(invalidated).toEqual([['permissions']])
+  })
+
+  it('stops after a batch while posts remain, and does not finish', async () => {
+    /*
+     * The claim that makes the chunking safe. `finish` refuses while posts
+     * remain, but calling it at all would be a wasted transaction on a table
+     * this size — and reporting "merged" after one batch would tell an operator
+     * a half-done merge was complete. Kills the mutant that always finishes.
+     */
+    chunkResult.current = { moved: 500, remaining: 1_200 }
+
+    const state = await mergeStepAction({}, form({ userId: '7', toUserId: '3' }))
+
+    expect(finished).toEqual([])
+    expect(state.notice).toBe('more')
+    expect(state.values?.remaining).toBe('1200')
+  })
+
+  it('refuses to merge an account into itself', async () => {
+    const state = await mergeStepAction({}, form({ userId: '7', toUserId: '7' }))
+
+    expect(state.error).toBeDefined()
+    expect(chunks).toEqual([])
+  })
+
+  it('refuses without a destination', async () => {
+    const state = await mergeStepAction({}, form({ userId: '7' }))
+    expect(state.error).toBeDefined()
+    expect(chunks).toEqual([])
+  })
+
+  it('is re-authenticated, because a merge has no undo', async () => {
+    await mergeStepAction({}, form({ userId: '7', toUserId: '3' }))
+    expect(requireFreshAdminMock).toHaveBeenCalledTimes(1)
+    expect(requireAdminMock).not.toHaveBeenCalled()
   })
 })

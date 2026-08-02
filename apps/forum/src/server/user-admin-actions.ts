@@ -20,8 +20,11 @@ import { CacheTags, ValidationError, isAppError, logger } from '@forum/core'
 import { drivers } from '@forum/drivers'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
-import { banService, requireUserAdmin } from './user-admin'
+import { banService, requireUserAdmin, requireUserMerge } from './user-admin'
 import type { FormState } from './auth-form-state'
+
+/** Posts moved per press of the merge button. */
+const MERGE_CHUNK = 500
 
 function text(form: FormData, name: string): string {
   const value = form.get(name)
@@ -165,6 +168,102 @@ export async function banMemberAction(
     })
 
     return { notice: 'banned' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Replace a member's additional groups.
+ *
+ * `user_group_memberships` has been read since F20 — `actor-builder` folds it
+ * into `Actor.groupIds`, so a secondary group grants exactly as the primary one
+ * does under R4.2 — and until this action it had **no writer anywhere**. A
+ * board could resolve secondary groups and had no way to grant one.
+ *
+ * The form submits the whole set, so this replaces rather than adds: an
+ * unticked box is a removal, the same rule the group permission editor follows
+ * and for the same reason.
+ */
+export async function saveSecondaryGroupsAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    const context = await requireAdmin()
+    const id = userId(form)
+
+    const groupIds: number[] = []
+    for (const value of form.getAll('groupIds')) {
+      const parsed = Number(typeof value === 'string' ? value : '')
+      if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+        throw new ValidationError('No such group.')
+      }
+      groupIds.push(parsed)
+    }
+
+    await requireUserAdmin().setSecondaryGroups(id, groupIds, context.session.userId)
+
+    await invalidatePermissions()
+    await recordAdminAction({
+      action: 'user.groups_changed',
+      detail: { userId: id, groups: groupIds.length },
+    })
+
+    return { notice: 'saved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Move one batch of a merge, and finish it when nothing is left.
+ *
+ * **Re-authenticated.** A merge rewrites the authorship of everything one
+ * account ever posted and soft-deletes it; there is no undo at all, and getting
+ * the two accounts the wrong way round destroys the one somebody meant to keep.
+ *
+ * One press per batch, with the state in the form — the same shape as F66's
+ * mass membership move, and for the same reason: `posts` is the one table whose
+ * size is a function of how old the board is, and a single statement over it
+ * holds locks on the table every request reads.
+ */
+export async function mergeStepAction(_prev: FormState, form: FormData): Promise<FormState> {
+  try {
+    await requireFreshAdmin()
+
+    const fromUserId = userId(form)
+    const toUserId = Number(text(form, 'toUserId'))
+    if (!Number.isSafeInteger(toUserId) || toUserId <= 0) {
+      throw new ValidationError('Choose an account to merge into.')
+    }
+    if (fromUserId === toUserId) {
+      throw new ValidationError('Choose two different accounts.')
+    }
+
+    const merge = requireUserMerge()
+    const chunk = await merge.mergePostsChunk(fromUserId, toUserId, MERGE_CHUNK)
+
+    if (chunk.remaining > 0) {
+      await recordAdminAction({
+        action: 'user.merge_progress',
+        detail: { fromUserId, toUserId, moved: chunk.moved, remaining: chunk.remaining },
+      })
+      return {
+        notice: 'more',
+        values: { toUserId: String(toUserId), remaining: String(chunk.remaining) },
+      }
+    }
+
+    await merge.finish(fromUserId, toUserId)
+
+    await invalidatePermissions()
+    await recordAdminAction({
+      action: 'user.merged',
+      detail: { fromUserId, toUserId },
+    })
+
+    return { notice: 'merged', values: { toUserId: String(toUserId) } }
   } catch (err) {
     return toFormState(err)
   }

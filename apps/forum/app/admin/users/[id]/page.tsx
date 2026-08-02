@@ -6,6 +6,7 @@ import {
   LiftBanForm,
   MemberAccountForm,
   MemberStateForm,
+  SecondaryGroupsForm,
 } from '@/components/admin/user-forms'
 import { requireAdmin } from '@/server/admin'
 import { buildMemberView } from '@/server/user-admin'
@@ -94,6 +95,23 @@ export default async function AdminMemberPage({
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <h2 className="font-serif text-lg font-semibold">Additional groups</h2>
+        <p className="text-sm text-muted-foreground">
+          Groups held <em>as well as</em> the primary one. They grant in exactly
+          the same way — a member gets the most permissive answer across all of
+          them — so an extra group can only ever add.
+        </p>
+        <SecondaryGroupsForm
+          userId={member.id}
+          groups={view.groups}
+          selected={view.secondaryGroupIds}
+          /* F20: the id whose checkbox is suppressed, not a decision about it. */
+          // eslint-disable-next-line no-restricted-properties -- F20: transporting the column into a form
+          primaryGroupId={member.primaryGroupId}
+        />
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">State</h2>
         {member.state === 'banned' ? (
           <p className="text-sm text-muted-foreground">
@@ -138,6 +156,22 @@ export default async function AdminMemberPage({
             <LiftBanForm userId={member.id} />
           </>
         )}
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <h2 className="font-serif text-lg font-semibold">Merge</h2>
+        <p className="text-sm text-muted-foreground">
+          Fold this account into another one — for a member who registered
+          twice, or a duplicate made by an importer.
+        </p>
+        <p>
+          <a
+            href={`/admin/users/${member.id}/merge`}
+            className="text-sm text-primary hover:underline"
+          >
+            Merge {member.username} into another account →
+          </a>
+        </p>
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">

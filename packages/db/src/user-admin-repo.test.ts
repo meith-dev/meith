@@ -417,6 +417,67 @@ describe('sharingIpPrefix', () => {
   })
 })
 
+describe('secondary groups', () => {
+  it('round-trips a set', async () => {
+    /*
+     * `user_group_memberships` has had a reader since F20 — `actor-builder`
+     * folds it into `Actor.groupIds`, so these combine into what the member may
+     * do under R4.2 — and had no writer at all until this.
+     */
+    await seed({ id: 1, username: 'ann' })
+    await seed({ id: 9, username: 'granter' })
+
+    await repo.setSecondaryGroups(1, [ADMINS, 4], 9)
+    expect(await repo.readSecondaryGroups(1)).toEqual([ADMINS, 4])
+  })
+
+  it('replaces rather than adds, so unticking a box removes the group', async () => {
+    /*
+     * The screen shows every group with a checkbox, so what it submits is the
+     * intended *set*. Kills the mutant that inserts without clearing — under
+     * which unticking would silently do nothing, which is the direction that
+     * leaves somebody holding a permission they were meant to lose.
+     */
+    await seed({ id: 1, username: 'ann' })
+
+    await repo.setSecondaryGroups(1, [ADMINS, 4], null)
+    await repo.setSecondaryGroups(1, [4], null)
+
+    expect(await repo.readSecondaryGroups(1)).toEqual([4])
+  })
+
+  it('never stores the primary group as a secondary one', async () => {
+    /*
+     * It is already on `users`. A row here would be a second place saying the
+     * same thing, and the two would disagree the moment the primary changed.
+     */
+    await seed({ id: 1, username: 'ann', groupId: REGISTERED })
+
+    await repo.setSecondaryGroups(1, [REGISTERED, ADMINS], null)
+    expect(await repo.readSecondaryGroups(1)).toEqual([ADMINS])
+  })
+
+  it('is idempotent when the same group arrives twice', async () => {
+    await seed({ id: 1, username: 'ann' })
+    await repo.setSecondaryGroups(1, [ADMINS, ADMINS], null)
+    expect(await repo.readSecondaryGroups(1)).toEqual([ADMINS])
+  })
+
+  it('bumps the permission version', async () => {
+    await seed({ id: 1, username: 'ann' })
+    const before = await permissionVersion()
+
+    await repo.setSecondaryGroups(1, [ADMINS], null)
+    expect(await permissionVersion()).toBe(before + 1)
+  })
+
+  it('refuses a member that does not exist', async () => {
+    await expect(repo.setSecondaryGroups(9_999, [ADMINS], null)).rejects.toThrow(
+      /No such member/,
+    )
+  })
+})
+
 describe('listGroups', () => {
   it('returns the ladder in display order', async () => {
     const groups = await repo.listGroups()

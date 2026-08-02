@@ -18,6 +18,7 @@ import { SEED_GROUP } from '@forum/runtime'
 import {
   PostgresBanRepository,
   PostgresUserAdminRepository,
+  PostgresUserMergeRepository,
   getDb,
   type AccountState,
   type UserDetail,
@@ -57,6 +58,15 @@ export function banService(): BanService {
     bans: new PostgresBanRepository(getDb()),
     bannedGroupId: SEED_GROUP.banned,
   })
+}
+
+export function requireUserMerge(): PostgresUserMergeRepository {
+  if (getContainer().dataSource !== 'postgres') {
+    throw new ForbiddenError(
+      'This board is running on in-memory sample data, so its accounts cannot be merged.',
+    )
+  }
+  return new PostgresUserMergeRepository(getDb())
 }
 
 export function banRepository(): PostgresBanRepository | null {
@@ -139,6 +149,8 @@ export function nextPageQuery(
 
 export interface MemberView {
   readonly member: UserDetail
+  /** The groups the member holds *in addition* to their primary one. */
+  readonly secondaryGroupIds: readonly number[]
   readonly groups: readonly { readonly id: number; readonly title: string }[]
   readonly activeBan: BanRecord | null
   /** Other accounts seen on the same network. Empty when no prefix is stored. */
@@ -162,6 +174,7 @@ export async function buildMemberView(userId: number): Promise<MemberView | null
 
   return {
     member,
+    secondaryGroupIds: await repository.readSecondaryGroups(userId),
     groups: await repository.listGroups(),
     activeBan: await bans.findActive(userId),
     sharedNetwork: await repository.sharingIpPrefix(prefix, userId),

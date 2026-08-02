@@ -356,6 +356,63 @@ export class PostgresUserAdminRepository {
     return rows.map(toSearchRow)
   }
 
+  /**
+   * A member's *additional* groups.
+   *
+   * `user_group_memberships` has been read since F20 — `actor-builder` folds it
+   * into `Actor.groupIds`, so these groups combine into what the member may do
+   * under R4.2 exactly as the primary one does — and until now it had **no
+   * writer anywhere**. A board could resolve secondary groups and had no way to
+   * grant one.
+   */
+  async readSecondaryGroups(userId: number): Promise<readonly number[]> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select group_id from user_group_memberships
+         where user_id = ${userId}
+         order by group_id
+      `),
+    ) as Array<{ group_id: number }>
+
+    return rows.map((row) => Number(row.group_id))
+  }
+
+  /**
+   * Replace the set, rather than add to it.
+   *
+   * The screen shows every group with a checkbox, so what it submits *is* the
+   * intended set — an add-only write would make unticking a box do nothing,
+   * which is the same trap the group permission editor avoids.
+   *
+   * The primary group is never stored here. It is already on `users`, and a row
+   * for it would be a second place saying the same thing that could disagree
+   * after a primary-group change.
+   */
+  async setSecondaryGroups(
+    userId: number,
+    groupIds: readonly number[],
+    grantedByUserId: number | null,
+  ): Promise<void> {
+    await withPermissionVersionBump(this.db, async (tx) => {
+      const rows = resultRows(
+        await tx.execute(sql`select primary_group_id from users where id = ${userId}`),
+      ) as Array<Record<string, unknown>>
+
+      if (rows[0] === undefined) throw new ValidationError('No such member.')
+      const primary = Number(rows[0].primary_group_id)
+
+      const wanted = [...new Set(groupIds)].filter((id) => id !== primary)
+
+      await tx.execute(sql`delete from user_group_memberships where user_id = ${userId}`)
+      for (const groupId of wanted) {
+        await tx.execute(sql`
+          insert into user_group_memberships (user_id, group_id, granted_by_user_id)
+          values (${userId}, ${groupId}, ${grantedByUserId})
+        `)
+      }
+    })
+  }
+
   /** Groups, for the pickers. Ordered as the group screen orders them. */
   async listGroups(): Promise<readonly { readonly id: number; readonly title: string }[]> {
     const rows = resultRows(

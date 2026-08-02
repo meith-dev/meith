@@ -77,6 +77,12 @@ export {
   type UserSearchRow,
 } from './user-admin-repo'
 export {
+  PostgresUserMergeRepository,
+  type MergeChunkResult,
+  type MergePreview,
+} from './user-merge-repo'
+export { mergeMapColumns } from './user-merge-map'
+export {
   MODERATOR_RIGHTS,
   PostgresForumAdminRepository,
   type AppointModeratorInput,

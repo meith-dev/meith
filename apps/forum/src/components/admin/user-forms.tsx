@@ -13,7 +13,9 @@ import { useActionState } from "react"
 import {
   banMemberAction,
   liftBanAction,
+  mergeStepAction,
   saveMemberAccountAction,
+  saveSecondaryGroupsAction,
   setMemberStateAction,
 } from "@/server/user-admin-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
@@ -209,6 +211,120 @@ export function BanMemberForm({ userId }: { userId: number }) {
       <p className="text-xs text-muted-foreground">
         You will be asked for your password again. This revokes their sessions
         immediately.
+      </p>
+    </form>
+  )
+}
+
+/**
+ * A member's additional groups.
+ *
+ * Checkboxes over every group, so what the form submits *is* the intended set —
+ * which is why the action replaces rather than adds. The primary group is shown
+ * but not offered: it is already set above, and a second control for it would
+ * be two places saying the same thing.
+ */
+// eslint-disable-next-line no-restricted-properties -- F20: the id whose checkbox is suppressed, not a decision about it
+export function SecondaryGroupsForm({
+  userId,
+  groups,
+  selected,
+  primaryGroupId,
+}: {
+  userId: number
+  groups: readonly GroupChoice[]
+  selected: readonly number[]
+  primaryGroupId: number
+}) {
+  const [state, action] = useActionState(saveSecondaryGroupsAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-col gap-3" noValidate>
+      <FormError message={state.error} />
+      <Saved when={state.notice === "saved"}>Saved.</Saved>
+      <input type="hidden" name="userId" value={userId} />
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="sr-only">Additional groups</legend>
+        {groups.map((group) =>
+          group.id === primaryGroupId ? (
+            <p key={group.id} className="text-sm text-muted-foreground">
+              {group.title} — their primary group, set above.
+            </p>
+          ) : (
+            <label key={group.id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="groupIds"
+                value={group.id}
+                defaultChecked={selected.includes(group.id)}
+                className="size-4"
+              />
+              <span>{group.title}</span>
+            </label>
+          ),
+        )}
+      </fieldset>
+
+      <div>
+        <SubmitButton>Save groups</SubmitButton>
+      </div>
+    </form>
+  )
+}
+
+/**
+ * The merge, one batch per press.
+ *
+ * The remaining count travels in the form, so a long merge continues across
+ * presses with no JavaScript — the same shape as F66's mass membership move,
+ * and for the same reason.
+ */
+export function MergeForm({
+  fromUserId,
+  toUserId,
+  toUsername,
+  posts,
+}: {
+  fromUserId: number
+  toUserId: number
+  toUsername: string
+  posts: number
+}) {
+  const [state, action] = useActionState(mergeStepAction, EMPTY_STATE)
+  const remaining = state.values?.remaining
+
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <FormError message={state.error} />
+
+      {state.notice === "merged" && (
+        <Saved when>
+          Merged. Everything now belongs to {toUsername}, and this account has
+          been closed.
+        </Saved>
+      )}
+      {state.notice === "more" && (
+        <Saved when>
+          {remaining} post{remaining === "1" ? "" : "s"} still to move. Press
+          again — the run picks up where it stopped.
+        </Saved>
+      )}
+
+      <input type="hidden" name="userId" value={fromUserId} />
+      <input type="hidden" name="toUserId" value={toUserId} />
+
+      <div>
+        <SubmitButton>
+          {state.notice === "more"
+            ? "Move the next batch"
+            : `Merge into ${toUsername} (${posts} post${posts === 1 ? "" : "s"})`}
+        </SubmitButton>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        You will be asked for your password again. There is no undo: everything
+        this account ever posted becomes {toUsername}&rsquo;s, its sessions are
+        destroyed, and the account is closed.
       </p>
     </form>
   )

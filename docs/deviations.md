@@ -4567,10 +4567,119 @@ one has to argue for itself too.
   three are the same shape: bounded, resumable work over a large table. They
   need the search and the member screen underneath them, which is what this
   half is.
-- **Secondary groups.** `users.primary_group_id` and `display_group_id` are what
-  this screen edits. Additional-group membership has no table yet, and inventing
-  one here would give the board two answers to "what group is this member in".
+- **Secondary groups.** *Corrected in the second half — see D72.* This said the
+  table did not exist. It does: `user_group_memberships` has been read since F20
+  and had no writer, which is the opposite problem and a worse one.
 - **Password reset from the panel.** An administrator setting somebody's
   password is an account takeover with a paper trail. F19's reset flow already
   exists and mails the member; the panel should trigger *that*, which is a
   different feature from editing a row.
+
+### D72 — A merge is a map, and the map is checked against the schema (F67)
+
+The second half of user administration: merging accounts, and the writer
+`user_group_memberships` never had.
+
+#### The dangerous failure of a merge is a column nobody remembered
+
+Not a wrong update — a **missed** one. A column left pointing at an account that
+has been merged away produces posts with no author, a warning attached to
+nobody, a subscription that never fires again. None of it raises an error, none
+of it is caught by a test that checks the tables somebody thought of, and it
+surfaces months later as "why does this thread say a deleted member posted it".
+
+So the reassignment is a **declaration** — `user-merge-map.ts` — and a test
+holds it against `information_schema`. Every column in the schema whose name
+looks like a user reference must appear in exactly one of five lists, and a
+migration that adds one fails the suite until somebody *decides* which list it
+belongs to. That is the only version of this that survives twenty more features.
+
+**It earned its place immediately.** The first version of the map had all forty
+id columns and the test failed anyway: there are five denormalised **username**
+columns — `posts.author_username`, `threads.author_username`,
+`threads.last_post_username`, `forums.last_post_username`,
+`private_messages.author_username` — which carry a *name* rather than an id.
+Reassigning `author_user_id` and stopping there leaves every post displaying the
+merged-away account forever, with no foreign key and nothing to notice. The test
+found them; nobody reading the code did.
+
+#### Credentials are destroyed, never moved
+
+`sessions`, `remember_tokens`, `credential_tokens` and `admin_sessions` all have
+a `user_id`, and every one of them is a credential rather than content. Moving
+the losing account's session row to the winner hands the winner's account to
+whoever holds that cookie. **A merge is not an authentication event** — it is
+housekeeping — and this is the one line in the file where treating a pointer
+like every other pointer turns a tidy-up into a takeover.
+
+#### A merge can create rows that were never possible to create
+
+`reputation` and `user_relations` each have two user-shaped ends. Bring the ends
+together and you get a member who has rated themselves, or who has put
+themselves on their own ignore list. Neither is reachable through any screen,
+neither is representable in the UI, and no reader expects them — so those rows
+are deleted rather than moved.
+
+Order matters: collapse the self-references first, then drop the duplicates
+against the winner's existing rows, then move the remainder. The other order
+moves a row *into* a self-reference and then fails to notice it.
+
+The plain duplicates get the ordinary treatment: where both accounts hold a row
+under a uniqueness rule — both subscribed to a thread, both in a group, both
+with a preference for the same notification kind — the loser's row is dropped
+and the winner's stands. That is the choice that loses nothing the winner did
+not already have.
+
+#### A banned account cannot be merged
+
+`bans.user_id` is reassigned like any other pointer, which means merging a
+banned account carries its **active ban onto the winner** and locks out an
+account nobody decided to ban. Refused, with an explanation that says to lift
+the ban first. This is a case where the generic machinery is right and the
+*situation* is wrong.
+
+#### Only `posts` is chunked, and the finish refuses to be skipped
+
+`posts` is the one table whose size is a function of how old the board is rather
+than of one member's settings, so authorship moves 500 to a press and the count
+remaining travels in the form — the same shape as F66's mass membership move,
+working with no JavaScript for the same reason. Everything else is bounded by a
+member's own activity and goes in one finishing transaction, because a
+half-applied merge is the worst of the three states: the loser would own some of
+their history and not the rest, with no record of where the boundary was.
+
+`finish` refuses while posts remain, so a caller who forgot to loop gets an
+error rather than a partial merge.
+
+#### The losing account is closed, not deleted
+
+Soft-deleted, deliberately. Its row is what any column the map missed still
+points at — a deleted account renders as "a former member" where a dangling id
+renders as a crash — and it is the only evidence afterwards that the merge
+happened. **Cost:** its username stays taken. Freeing it would mean renaming the
+row, which destroys the one record of which account was folded into which.
+
+#### The direction is stated in words, everywhere
+
+"Merge A into B" is ambiguous in ordinary speech and unrecoverable if you get it
+backwards. The account in the URL is the one that disappears, the page says so
+in those words three times, and the button names the account being *kept*. The
+screen also lists what a merge does in full — including the session destruction
+and the collapsed ratings — because every one of those is something somebody
+asks about afterwards.
+
+#### `user_group_memberships` gets its first writer, four features late
+
+The fourth table this project has found with a reader and no writer. F20's
+`actor-builder` has folded it into `Actor.groupIds` since Phase 2 — so a
+secondary group grants under R4.2 exactly as the primary one does — and there
+has never been any way to grant one. **F67's first half claimed the table did
+not exist**, which was wrong in the direction that matters: not a missing
+feature but a resolved input nobody could set.
+
+The editor is checkboxes over every group and the write **replaces the set**
+rather than adding to it, because the form submits the whole set — an add-only
+write would make unticking a box do nothing, which is the direction that leaves
+somebody holding a permission they were meant to lose. The primary group is
+shown but not offered: it is already on `users`, and a row for it here would be
+a second place saying the same thing that could disagree after a primary change.
