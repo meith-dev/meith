@@ -45,6 +45,20 @@ export interface AccountRepository {
   /** Replace the credential and record which algorithm produced it (F17 upgrade). */
   updatePassword(userId: number, passwordHash: string, passwordAlgo: string): Promise<void>
   setState(userId: number, state: AccountState): Promise<void>
+  /**
+   * Record that this member is here, at most once per `windowSeconds` (F61).
+   *
+   * `users.last_active_at` has been in the schema since `0000` with **no
+   * writer** — read by the ModCP, by the profile and by nothing that set it.
+   * F61's online buddy state is the first feature that needs it to be true, so
+   * this is where it becomes true.
+   *
+   * The throttle is a property of this method — a conditional UPDATE — not of
+   * the caller, exactly as `touchLocation` below does it: a burst of page views
+   * collapses to one write, and no caller can forget to throttle. Returns true
+   * iff a row was actually written.
+   */
+  touchLastActive(userId: number, now: Date, windowSeconds: number): Promise<boolean>
 }
 
 /** The public subset of a member account, with no credential or contact data. */
@@ -55,6 +69,15 @@ export interface MemberProfileRecord {
   readonly postCount: number
   readonly createdAt: Date
   readonly lastActiveAt: Date | null
+  /**
+   * F57's three self-written fields. Public by definition — this record is the
+   * *public* subset, and a member who fills them in is publishing them.
+   * Rendered as plain text, never as markup: a signature is F58's BBCode and a
+   * different thing entirely.
+   */
+  readonly location: string | null
+  readonly website: string | null
+  readonly bio: string | null
 }
 
 export interface MemberProfileRepository {

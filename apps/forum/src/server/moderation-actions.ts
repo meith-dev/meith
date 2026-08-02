@@ -16,6 +16,7 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
 import { ModerationQueue, parseSelection } from '@forum/moderation'
 
+import { avatarService } from './avatars'
 import { getActor } from './context'
 import { getContainer } from './container'
 import type { FormState } from './auth-form-state'
@@ -96,4 +97,112 @@ export async function moderateQueueAction(
   }
 
   redirect(`/moderation?${outcomeQuery(outcome)}`)
+}
+
+/**
+ * F58 — lock or unlock somebody's signature.
+ *
+ * The "moderated" half of F58's acceptance. A lock rather than a delete: an
+ * emptied signature can be retyped the next minute and says nothing about why,
+ * while a locked one keeps the text — so an appeal can see what was actually
+ * there — and stops it rendering and stops the member editing it.
+ *
+ * Gated on `user.warn` rather than a new permission. Both are aimed at a
+ * *person* rather than at a forum's content, and a board that trusts somebody
+ * to warn a member trusts them to stop that member's signature; inventing a
+ * second switch would give an administrator two answers to one question.
+ */
+export async function setSignatureLockAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const text = (name: string): string => {
+    const value = form.get(name)
+    return typeof value === 'string' ? value.trim() : ''
+  }
+
+  const userId = Number(text('userId'))
+  const returnTo = userId > 0 ? `/member/${userId}` : '/'
+
+  try {
+    const actor = await getActor()
+    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    getContainer().authorizer.require(actor, 'user.warn')
+
+    const store = getContainer().signatures
+    if (store === null) {
+      throw new ForbiddenError('This board keeps no signatures.')
+    }
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new ValidationError('No such member.')
+    }
+
+    const locked = form.get('locked') === '1'
+    const reason = text('reason')
+
+    if (locked && reason === '') {
+      /*
+       * Required, because "your signature has been locked" with no reason is
+       * how somebody concludes the board is broken rather than that they broke
+       * a rule — and the member is shown this text on their own screen.
+       */
+      throw new ValidationError('Say why. The member is shown this reason.')
+    }
+
+    await store.setLocked({ userId, locked, reason: locked ? reason : null })
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect(`${returnTo}?signature=${form.get('locked') === '1' ? 'locked' : 'unlocked'}`)
+}
+
+
+/**
+ * F58 — lock or unlock somebody's avatar.
+ *
+ * The same act on the other half, and gated the same way and for the same
+ * reason: `user.warn`, because both are aimed at a *person* rather than at a
+ * forum's content, and inventing a second switch would give an administrator
+ * two answers to one question.
+ *
+ * A lock and not a delete, again — but here the argument is stronger rather
+ * than merely parallel. Deleting an avatar destroys the evidence: an appeal
+ * about a signature can read the text that was kept, and an appeal about an
+ * image has nothing at all unless the object survives. So the lock stops it
+ * rendering, stops the member replacing it, and keeps the file.
+ */
+export async function setAvatarLockAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const text = (name: string): string => {
+    const value = form.get(name)
+    return typeof value === 'string' ? value.trim() : ''
+  }
+
+  const userId = Number(text('userId'))
+  const returnTo = userId > 0 ? `/member/${userId}` : '/'
+
+  try {
+    const actor = await getActor()
+    if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
+    getContainer().authorizer.require(actor, 'user.warn')
+
+    const service = avatarService()
+    if (service === null) throw new ForbiddenError('This board keeps no avatars.')
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new ValidationError('No such member.')
+    }
+
+    await service.setLock({
+      userId,
+      locked: form.get('locked') === '1',
+      reason: text('reason'),
+    })
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect(`${returnTo}?avatar=${form.get('locked') === '1' ? 'locked' : 'unlocked'}`)
 }

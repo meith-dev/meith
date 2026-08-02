@@ -21,7 +21,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
-import { users } from './identity'
+import { usergroups, users } from './identity'
 
 /**
  * Setting groups — presentation only, for the ACP's tabs (F58).
@@ -346,4 +346,39 @@ export const counterRecountState = pgTable('counter_recount_state', {
   /** Rows corrected across all runs. A steadily rising number means drift. */
   corrected: integer('corrected').notNull().default(0),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * Mass mail (F67).
+ *
+ * A row per *campaign*, not per recipient. The body is stored once and the
+ * queued jobs carry `{ massMailId, userId }`, because a payload holding the
+ * body would put a copy of it in the queue for every member on the board — on
+ * a board with twenty thousand members that is the same text twenty thousand
+ * times, in the table the worker scans.
+ *
+ * `lastUserId` is the resume point. Sending is chunked and keyset-paged like
+ * every other bulk operation in the panel, so a run that stops half way can be
+ * continued rather than restarted — and restarting a mass mail is not a neutral
+ * act, it is mailing everybody twice.
+ */
+export const massMails = pgTable('mass_mails', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  subject: text('subject').notNull(),
+  body: text('body').notNull(),
+  /** Null targets every eligible member; otherwise one group. */
+  targetGroupId: integer('target_group_id').references(() => usergroups.id, {
+    onDelete: 'set null',
+  }),
+  /** Keyset cursor: the last member queued. */
+  lastUserId: integer('last_user_id').notNull().default(0),
+  /** How many jobs have been enqueued so far. */
+  queuedCount: integer('queued_count').notNull().default(0),
+  /** 'sending' | 'finished' */
+  status: text('status').notNull().default('sending'),
+  createdByUserId: integer('created_by_user_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  finishedAt: timestamp('finished_at', { withTimezone: true }),
 })

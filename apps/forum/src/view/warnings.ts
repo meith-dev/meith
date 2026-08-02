@@ -64,6 +64,11 @@ export function buildWarningView(input: {
   readonly history: readonly WarningRow[]
   readonly nextCursor?: string | undefined
   readonly now: Date
+  /**
+   * The viewer's timezone (F57). Defaults to UTC — the zone every timestamp on
+   * this board used before members could choose one.
+   */
+  readonly timeZone?: string
 }): WarningView {
   return {
     member: {
@@ -90,7 +95,7 @@ export function buildWarningView(input: {
         type.expiryDays === null ? ', never expires' : `, expires after ${type.expiryDays} days`
       }`,
     })),
-    history: input.history.map((row) => warningRow(row, input.now)),
+    history: input.history.map((row) => warningRow(row, input.now, input.timeZone)),
     nextHref:
       input.nextCursor === undefined
         ? null
@@ -98,14 +103,18 @@ export function buildWarningView(input: {
   }
 }
 
-function warningRow(row: WarningRow, now: Date): WarningHistoryRow {
+function warningRow(
+  row: WarningRow,
+  now: Date,
+  timeZone: string | undefined,
+): WarningHistoryRow {
   const lapsed =
     row.revokedAt !== null
       ? `Revoked by ${row.revokedByUsername ?? 'a moderator'}${
           row.revokeReason ? ` — ${row.revokeReason}` : ''
         }`
       : row.expiresAt !== null && row.expiresAt <= now
-        ? `Expired ${formatTime(row.expiresAt, now).label}`
+        ? `Expired ${formatTime(row.expiresAt, now, timeZone).label}`
         : null
 
   return {
@@ -114,7 +123,7 @@ function warningRow(row: WarningRow, now: Date): WarningHistoryRow {
     points: row.points,
     reason: row.reason,
     issuedBy: row.issuedByUsername ?? 'a former moderator',
-    issuedAt: formatTime(row.createdAt, now),
+    issuedAt: formatTime(row.createdAt, now, timeZone),
     postId: row.postId,
     lapsed,
     revocable: lapsed === null,

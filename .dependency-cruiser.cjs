@@ -16,9 +16,17 @@ const DOMAIN = [
   'forums',
   'threads',
   'posts',
+  'profile-fields',
+  'messages',
+  'relations',
+  'reputation',
+  'signatures',
+  'admin',
   'bbcode',
   'moderation',
+  'notifications',
   'settings',
+  'subscriptions',
   'events',
   'tasks',
 ].join('|')
@@ -192,7 +200,12 @@ module.exports = {
     exclude: {
       path: [
         'node_modules',
-        '\\.next/',
+        /*
+         * Build output. `.next-e2e` is the same thing under another name — the
+         * browser suite builds into it so a run does not invalidate the dev
+         * server's cache — and it is inside `apps/forum/`, which this scans.
+         */
+        '\\.next(-e2e)?/',
         'dist/',
         '\\.test\\.ts$',
         '\\.spec\\.ts$',

@@ -74,6 +74,21 @@ class MemoryAccounts implements AccountRepository {
     const cur = this.byId.get(userId)
     if (cur) this.byId.set(userId, { ...cur, state })
   }
+
+  /** Last activity per user, for the `touchLastActive` throttle. */
+  private readonly lastActive = new Map<number, Date>()
+
+  async touchLastActive(userId: number, now: Date, windowSeconds: number): Promise<boolean> {
+    if (!this.byId.has(userId)) return false
+
+    const previous = this.lastActive.get(userId)
+    if (previous !== undefined && now.getTime() - previous.getTime() < windowSeconds * 1000) {
+      return false
+    }
+
+    this.lastActive.set(userId, now)
+    return true
+  }
 }
 
 class MemorySessions implements SessionRepository {

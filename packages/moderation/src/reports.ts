@@ -15,7 +15,7 @@
  */
 import { ValidationError } from '@forum/core'
 
-export const REPORT_TARGET_KINDS = ['post', 'thread', 'user'] as const
+export const REPORT_TARGET_KINDS = ['post', 'thread', 'user', 'private_message'] as const
 export type ReportTargetKind = (typeof REPORT_TARGET_KINDS)[number]
 
 export type ReportStatus = 'open' | 'resolved' | 'rejected'
@@ -27,7 +27,7 @@ export const REASON_MAX = 1000
 export interface ReportTarget {
   readonly kind: ReportTargetKind
   readonly id: number
-  /** Null for a user report: a member does not live in a forum. */
+  /** Null for a user or private-message report: neither lives in a forum. */
   readonly forumId: number | null
   readonly threadId: number | null
   /** Captured now, because the target may be edited or removed afterwards. */
@@ -86,8 +86,18 @@ export interface ReportScope {
 }
 
 export interface ReportRepository {
-  /** Resolve what a report points at. Null when it does not exist. */
-  resolveTarget(kind: ReportTargetKind, id: number): Promise<ReportTarget | null>
+  /**
+   * Resolve what a report points at. Null when it does not exist.
+   *
+   * `reporterUserId` is passed because for one kind the two questions are the
+   * same one: a private message "exists" only for somebody who holds a copy of
+   * it (F60). The other kinds ignore it — a post is a post whoever is looking.
+   */
+  resolveTarget(
+    kind: ReportTargetKind,
+    id: number,
+    reporterUserId: number,
+  ): Promise<ReportTarget | null>
 
   /**
    * File it. Returns null when this reporter already has an open report against
@@ -124,12 +134,39 @@ export interface ReportRepository {
 
 export const REPORTS_PAGE_SIZE = 25
 
+/**
+ * How the reporter is told their report was closed (F55).
+ *
+ * The narrowest possible port, and the narrowness is the point: D48's whole
+ * argument is that a report has two audiences and almost every decision keeps
+ * them apart. A moderator's private note lives in `report_events` and is not a
+ * field this port can carry, so there is no version of this call that leaks it.
+ *
+ * Optional, like F53's: a board with no notification store still moderates
+ * reports, and closing one must not fail because telling somebody did.
+ */
+export interface ReportNotifierPort {
+  reportClosed(input: {
+    readonly reporterUserId: number
+    readonly reportId: number
+    readonly outcome: 'resolved' | 'rejected'
+    /** The label captured when the report was filed, never a live read. */
+    readonly targetLabel: string
+  }): Promise<void>
+}
+
 export class ReportService {
   private readonly reports: ReportRepository
+  private readonly notifier: ReportNotifierPort | null
   private readonly now: () => Date
 
-  constructor(deps: { reports: ReportRepository; now?: () => Date }) {
+  constructor(deps: {
+    reports: ReportRepository
+    notifier?: ReportNotifierPort | null
+    now?: () => Date
+  }) {
     this.reports = deps.reports
+    this.notifier = deps.notifier ?? null
     this.now = deps.now ?? (() => new Date())
   }
 
@@ -156,7 +193,11 @@ export class ReportService {
       throw new ValidationError(`A reason may be at most ${REASON_MAX} characters.`)
     }
 
-    const target = await this.reports.resolveTarget(input.kind, input.targetId)
+    const target = await this.reports.resolveTarget(
+      input.kind,
+      input.targetId,
+      input.reporterUserId,
+    )
     if (target === null) throw new ValidationError('That does not exist.')
 
     /*
@@ -246,7 +287,7 @@ export class ReportService {
       throw new ValidationError(`A note may be at most ${REASON_MAX} characters.`)
     }
 
-    await this.requireInScope(input.reportId, input.scope)
+    const report = await this.requireInScope(input.reportId, input.scope)
     const changed = await this.reports.close({
       reportId: input.reportId,
       status: input.status,
@@ -255,6 +296,38 @@ export class ReportService {
       at: this.now(),
     })
     if (!changed) throw new ValidationError('That report has already been closed.')
+
+    await this.notifyReporter(report, input.status, input.actorUserId)
+  }
+
+  /**
+   * Tell the reporter, once, that their report was dealt with.
+   *
+   * Two people are deliberately not told. A reporter whose account has gone
+   * takes their notification with them, and **a moderator closing their own
+   * report is not notified of their own decision** — a notification is for
+   * something you would not otherwise know.
+   *
+   * Failure is swallowed for F53's reason: the report is closed and committed,
+   * so throwing here would report a successful moderator action as a failed
+   * one.
+   */
+  private async notifyReporter(
+    report: ReportRow,
+    outcome: 'resolved' | 'rejected',
+    actorUserId: number,
+  ): Promise<void> {
+    if (this.notifier === null) return
+    if (report.reporterUserId === null || report.reporterUserId === actorUserId) return
+
+    await this.notifier
+      .reportClosed({
+        reporterUserId: report.reporterUserId,
+        reportId: report.id,
+        outcome,
+        targetLabel: report.targetLabel,
+      })
+      .catch(() => undefined)
   }
 
   private async requireInScope(reportId: number, scope: ReportScope): Promise<ReportRow> {

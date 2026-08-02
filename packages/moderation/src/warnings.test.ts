@@ -437,6 +437,80 @@ describe('restrictsPosting', () => {
   })
 })
 
+describe('telling the member (F55)', () => {
+  /** The one verb F55 exposes to this package, recorded rather than performed. */
+  function recordingNotifier() {
+    const told: unknown[] = []
+    return {
+      told,
+      warned: async (input: unknown) => {
+        told.push(input)
+      },
+    }
+  }
+
+  it('reports the warning, the new total and the restriction it applied', async () => {
+    const warnings = new FakeWarnings()
+    warnings.points = 7
+    const notifier = recordingNotifier()
+
+    await new WarningService({ warnings, notifier, now: () => NOW }).issue(ISSUE)
+
+    expect(notifier.told).toEqual([
+      {
+        userId: 5,
+        title: 'Spamming',
+        points: 2,
+        totalPoints: 7,
+        reason: ISSUE.reason,
+        /* Seven points reaches the suspension threshold in LEVELS. */
+        restriction: 'suspend_posting',
+      },
+    ])
+  })
+
+  it('reports no restriction when no threshold was newly reached', async () => {
+    const warnings = new FakeWarnings()
+    warnings.points = 2
+    const notifier = recordingNotifier()
+
+    await new WarningService({ warnings, notifier, now: () => NOW }).issue(ISSUE)
+
+    expect(notifier.told).toMatchObject([{ restriction: null }])
+  })
+
+  it('issues the warning anyway when the notification fails', async () => {
+    const warnings = new FakeWarnings()
+    warnings.points = 2
+
+    const outcome = await new WarningService({
+      warnings,
+      notifier: {
+        warned: async () => {
+          throw new Error('notifications table is unavailable')
+        },
+      },
+      now: () => NOW,
+    }).issue(ISSUE)
+
+    /*
+     * The warning, its points and its restriction are all committed by the time
+     * anybody is told, so a throw here would report a successful moderator
+     * action as a failed one — and there would be nothing to undo.
+     */
+    expect(outcome.points).toBe(2)
+    expect(warnings.issued).toHaveLength(1)
+  })
+
+  it('tells nobody on a board with no notification store', async () => {
+    const warnings = new FakeWarnings()
+    warnings.points = 2
+
+    /* No notifier: F53 predates F55 and must keep working without it. */
+    await expect(serviceFor(warnings).issue(ISSUE)).resolves.toMatchObject({ points: 2 })
+  })
+})
+
 describe('parseWarningAction', () => {
   it('accepts the three known actions and nothing else', () => {
     expect(parseWarningAction('ban')).toBe('ban')

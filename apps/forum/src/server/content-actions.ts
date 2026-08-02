@@ -24,6 +24,7 @@ import { restrictsPosting } from '@forum/moderation'
 // resolves only the workspace aliases from tsconfig.base.json.
 import { POSTS_PER_PAGE } from '../view/paging'
 
+import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { resolvePostScope } from './post-scope'
@@ -87,6 +88,7 @@ export async function createThreadAction(
   const settings = await getSettings()
   let created
   let forum
+  let staged: Awaited<ReturnType<typeof stageAttachments>>
   try {
     forum = await threadWrites.postingRules(forumId)
     if (!forum) throw new ValidationError('That forum does not exist.')
@@ -120,6 +122,16 @@ export async function createThreadAction(
       },
     })
 
+    /*
+     * F42. Staged *before* the thread exists, so a validation failure — a file
+     * of a type this board will not take, a decompression bomb, one file too
+     * many — is reported on the form rather than after a thread has been
+     * created that the member cannot be shown the error on. The cost is that a
+     * failure between here and `attachStaged` leaves objects with no row, which
+     * is exactly what the orphan ledger and the hourly sweep collect.
+     */
+    staged = await stageAttachments(actor, target, await submittedFiles(form))
+
     created = await composer.create(
       {
         title,
@@ -150,6 +162,12 @@ export async function createThreadAction(
       { userId: actor.userId, username: await authorName(actor.userId) },
       forum,
     )
+
+    await attachStaged(staged, {
+      postId: created.postId,
+      forumId,
+      userId: actor.userId,
+    })
   } catch (err) {
     return toFormState(err, values)
   }
@@ -202,6 +220,7 @@ export async function createReplyAction(
 
   const settings = await getSettings()
   let created
+  let staged: Awaited<ReturnType<typeof stageAttachments>>
   try {
     const target = await threadWrites.replyTarget(threadId)
     if (!target) throw new ValidationError('That thread does not exist.')
@@ -225,6 +244,8 @@ export async function createReplyAction(
       },
     })
 
+    staged = await stageAttachments(actor, scope, await submittedFiles(form))
+
     created = await composer.create(
       {
         message,
@@ -245,6 +266,12 @@ export async function createReplyAction(
       { userId: actor.userId, username: await authorName(actor.userId) },
       target,
     )
+
+    await attachStaged(staged, {
+      postId: created.postId,
+      forumId,
+      userId: actor.userId,
+    })
   } catch (err) {
     return toFormState(err, values)
   }

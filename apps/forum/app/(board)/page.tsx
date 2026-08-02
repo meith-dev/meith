@@ -4,6 +4,7 @@ import { requireSlot } from "@forum/theme-kit"
 
 import { getContainer } from "@/server/container"
 import { getActor } from "@/server/context"
+import { getViewerPreferences } from "@/server/viewer-preferences"
 import { activeTheme } from "@/server/theme"
 import { buildBoardIndexView } from "@/view/board-index"
 
@@ -40,10 +41,12 @@ export default async function BoardIndexPage() {
   const actor = await getActor()
   const { forums, authorizer, readState } = getContainer()
 
-  const [rows, visible, read] = await Promise.all([
+  const [rows, visible, read, preferences] = await Promise.all([
     forums.listListing(),
     authorizer.visibleForumIds(actor),
     actor.userId === null || readState === null ? Promise.resolve(null) : readState.forUser(actor.userId),
+    /* F57. One read per request, cached, and the board's defaults for a guest. */
+    getViewerPreferences(),
   ])
 
   const view = buildBoardIndexView({
@@ -57,6 +60,7 @@ export default async function BoardIndexPage() {
      * second apart.
      */
     now: new Date(),
+    timeZone: preferences.timezone,
   })
 
   const BoardIndex = requireSlot(activeTheme, "BoardIndex")

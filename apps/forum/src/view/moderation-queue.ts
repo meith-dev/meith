@@ -41,9 +41,14 @@ export interface QueueViewInput {
   readonly nextCursor?: string | undefined
   readonly moderatesAnything: boolean
   readonly now: Date
+  /**
+   * The viewer's timezone (F57). Defaults to UTC — the zone every timestamp on
+   * this board used before members could choose one.
+   */
+  readonly timeZone?: string
 }
 
-function row(item: QueueItem, now: Date): QueueRowModel {
+function row(item: QueueItem, now: Date, timeZone: string | undefined): QueueRowModel {
   const thread = `/thread/${item.threadId}-${item.threadSlug}`
   return {
     value: `${item.kind}:${item.id}`,
@@ -61,13 +66,13 @@ function row(item: QueueItem, now: Date): QueueRowModel {
      * first audience, in a moderator's browser.
      */
     excerpt: item.excerpt,
-    postedAt: formatTime(item.createdAt, now),
+    postedAt: formatTime(item.createdAt, now, timeZone),
   }
 }
 
 export function buildQueueView(input: QueueViewInput): QueueViewModel {
   return {
-    rows: input.items.map((item) => row(item, input.now)),
+    rows: input.items.map((item) => row(item, input.now, input.timeZone)),
     pending: input.pending,
     nextHref:
       input.nextCursor === undefined

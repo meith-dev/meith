@@ -13,7 +13,7 @@
  * gets a row back and the other gets nothing. A read-then-write would let both
  * observe "unconsumed" and both succeed; that bug is designed out here.
  */
-import { and, eq, gt, isNull, lt } from 'drizzle-orm'
+import { and, eq, gt, isNull, lt, or } from 'drizzle-orm'
 
 import type {
   AccountRecord,
@@ -140,6 +140,26 @@ export class PostgresAccountRepository implements AccountRepository {
 
   async setState(userId: number, state: AccountState): Promise<void> {
     await this.db.update(users).set({ state }).where(eq(users.id, userId))
+  }
+
+  async touchLastActive(userId: number, now: Date, windowSeconds: number): Promise<boolean> {
+    // The throttle IS the WHERE clause, exactly as `touchLocation` does it: a
+    // burst of page views collapses to one write, and no caller can forget.
+    // `IS NULL` is included so a member who has never been seen gets their
+    // first write — the column has had no writer since `0000`, so on an
+    // existing board that is everybody.
+    const cutoff = new Date(now.getTime() - windowSeconds * 1000)
+    const rows = await this.db
+      .update(users)
+      .set({ lastActiveAt: now })
+      .where(
+        and(
+          eq(users.id, userId),
+          or(isNull(users.lastActiveAt), lt(users.lastActiveAt, cutoff)),
+        ),
+      )
+      .returning({ id: users.id })
+    return rows.length > 0
   }
 }
 

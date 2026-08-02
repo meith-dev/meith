@@ -88,12 +88,22 @@ export type Action =
   | 'thread.merge'
   | 'thread.split'
   | 'attachment.upload'
+  | 'attachment.download'
   | 'forum.search'
   | 'forum.subscribe'
   // --- global, need no forum context ---
   | 'profile.view'
   | 'memberlist.view'
   | 'pm.use'
+  /**
+   * Upload an avatar (F58).
+   *
+   * Global, and deliberately not in the F22 forum matrix: an avatar follows the
+   * member everywhere they appear — a member list, a profile, a quote — so a
+   * per-forum grant would have to answer "an avatar where?" about an image that
+   * has no forum. The same argument `user.warn` makes.
+   */
+  | 'avatar.upload'
   /**
    * File a report (F49).
    *
@@ -125,6 +135,36 @@ export type Action =
    * group and permission reasoning does not leave this package (R4).
    */
   | 'flood.bypass'
+  /**
+   * Rate another member (F62).
+   *
+   * Global, and deliberately not in the F22 forum matrix: reputation is about
+   * a *person* and their total follows them across the whole board, so a
+   * per-forum grant would have to answer "well regarded where?" about a number
+   * that has no forum. The same argument `user.warn` makes.
+   */
+  | 'reputation.give'
+  /**
+   * Show a signature under your posts (F58).
+   *
+   * Global, like every other "what may this member have on their account"
+   * capability. `canUseSignature` and `maxSignatureLength` have been in the
+   * permission registry since F22 with nothing reading them; this is the action
+   * they were declared for.
+   */
+  | 'signature.use'
+
+/**
+ * The global numeric permissions, derived from the registry (F60).
+ *
+ * Derived rather than listed so a numeric field added to `PERMISSION_FIELDS`
+ * is immediately readable through `Authorizer.globalLimit`, and a field that
+ * stops being numeric stops compiling at its call sites rather than silently
+ * returning a boolean where a count was expected.
+ */
+export type NumericGlobalPermission = {
+  [K in keyof PermissionSet]: PermissionSet[K] extends number ? K : never
+}[keyof PermissionSet]
 
 /**
  * The visibility state of a piece of content.

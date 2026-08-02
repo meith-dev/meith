@@ -17,6 +17,7 @@ import type { Actor } from '@forum/authorization'
 import type { FooterModel, HeaderModel, LinkModel, UserPanelModel, ViewerModel } from '@forum/theme-kit'
 
 import { memberHref } from './member-profile'
+import { timezoneLabel } from './time'
 
 /**
  * The board's name when nothing has resolved one.
@@ -31,10 +32,13 @@ export const BOARD_TITLE = 'Forum'
 /**
  * Which timezone every `TimeModel.label` on the page was formatted in.
  *
- * A constant for now: per-user timezones are F57 (UserCP), and until then the
- * board formats in UTC. Naming it in the footer is the honest version of that —
- * silently rendering local-looking times in UTC is how "an hour ago" ends up
- * meaning nothing.
+ * The board's default, and the answer for a guest. A signed-in member's own
+ * zone arrives as an argument to `buildFooterModel` — F57 made the constant a
+ * fallback rather than the rule.
+ *
+ * The footer names it either way, and that is the point: silently rendering
+ * local-looking times in a zone the reader did not choose is how "an hour ago"
+ * ends up meaning nothing.
  */
 export const TIMEZONE_LABEL = 'UTC'
 
@@ -57,6 +61,8 @@ export function buildViewerModel(
     displayName?: string | null
     canAccessAdminCp?: boolean
     canAccessModCp?: boolean
+    /** F58. Null for a guest, for nobody who set one, and for a locked one. */
+    avatarUrl?: string | null
   } = {},
 ): ViewerModel {
   const isGuest = actor.userId === null
@@ -66,8 +72,9 @@ export function buildViewerModel(
     userId: actor.userId,
     username: options.displayName ?? null,
     profileHref: actor.userId === null ? null : memberHref(actor.userId),
-    // F58. No avatar pipeline yet, and a broken <img> is worse than none.
-    avatarUrl: null,
+    /* F58. Supplied by the layout for a signed-in member; null for a guest,
+       for anybody who has not set one, and for a locked one. */
+    avatarUrl: options.avatarUrl ?? null,
     canAccessAdminCp: options.canAccessAdminCp ?? false,
     canAccessModCp: options.canAccessModCp ?? false,
   }
@@ -103,7 +110,10 @@ export function buildHeaderModel(
  * viewer model because it is part of the contract themes are written against; it
  * simply has nothing to point at until F63.
  */
-export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
+export function buildUserPanelModel(
+  viewer: ViewerModel,
+  options: { unreadNotifications?: number; unreadMessages?: number } = {},
+): UserPanelModel {
   const links: readonly LinkModel[] = viewer.isGuest
     ? [
         { label: 'Sign in', href: '/login' },
@@ -113,6 +123,23 @@ export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
       ? []
       : [
           { label: 'Profile', href: viewer.profileHref },
+          /* F57. First of the account links, because it is where the rest are. */
+          { label: 'Your control panel', href: '/usercp' },
+          /*
+           * F55. Listed for every member rather than only when something is
+           * unread: the centre is where a member goes to check, and a link that
+           * appears and disappears is one nobody learns the position of. The
+           * count beside it is the part that varies.
+           */
+          { label: 'Notifications', href: '/notifications' },
+          /*
+           * F60. Beside the notification centre, and for the same reason: a
+           * mailbox is somewhere a member goes to check rather than somewhere
+           * they are sent, so the link is always there and only the count moves.
+           */
+          { label: 'Messages', href: '/messages' },
+          /* F56. Beside the centre, because the two answer each other's question. */
+          { label: 'Subscriptions', href: '/subscriptions' },
           ...(viewer.canAccessModCp
             ? [
                 /*
@@ -131,19 +158,25 @@ export function buildUserPanelModel(viewer: ViewerModel): UserPanelModel {
   return {
     viewer,
     links,
-    // F55 supplies both. Zero renders nothing, which is the correct empty state.
-    unreadNotifications: 0,
-    unreadMessages: 0,
+    /*
+     * F55 supplies the first, F60 the second. Zero renders nothing, which is
+     * the correct empty state — and is what a guest, a board with no store, and
+     * a failed count all resolve to.
+     */
+    unreadNotifications: options.unreadNotifications ?? 0,
+    unreadMessages: options.unreadMessages ?? 0,
   }
 }
 
 export function buildFooterModel(
   links: readonly LinkModel[] = [],
   boardTitle: string = BOARD_TITLE,
+  /** The viewer's zone (F57). Defaults to the board's. */
+  zone: string = TIMEZONE_LABEL,
 ): FooterModel {
   return {
     boardTitle,
     links,
-    timezoneLabel: TIMEZONE_LABEL,
+    timezoneLabel: timezoneLabel(zone),
   }
 }

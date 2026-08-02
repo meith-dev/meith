@@ -22,6 +22,7 @@ import type {
   Action,
   Actor,
   AuthorizationSource,
+  NumericGlobalPermission,
   Target,
   Visible,
 } from './types'
@@ -63,6 +64,7 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'thread.merge',
   'thread.split',
   'attachment.upload',
+  'attachment.download',
   'forum.search',
   'forum.subscribe',
 ])
@@ -87,6 +89,8 @@ const ADMIN_ALWAYS: ReadonlySet<Action> = new Set<Action>([
   'memberlist.view',
   'pm.use',
   'content.report',
+  'reputation.give',
+  'signature.use',
   /*
    * An administrator is not rate-limited between posts. The interval exists to
    * slow down abuse, and an administrator who has to wait fifteen seconds while
@@ -275,6 +279,55 @@ export class Authorizer {
   }
 
   /**
+   * Which per-group configuration rows apply to this actor (F59).
+   *
+   * The generic half of what `forumMatrix` does for forum permissions, and it
+   * exists because F59's profile fields carry the same nullable-inheritance
+   * shape F21 gave `forum_permissions` — but for a table this package has no
+   * business knowing about.
+   *
+   * **It returns rows, never ids.** That is the whole design: a caller gets the
+   * subset of *its own configuration* that this actor's groups matched, and can
+   * combine those rows by R4.2's rule without ever learning which groups
+   * somebody is in. Handing out the group ids instead would be an escape hatch
+   * around the lint rule that keeps group-ID reasoning inside this package
+   * (F20/D13), and every caller would then be free to invent its own
+   * combination semantics.
+   *
+   * A guest matches the guest group like anybody else — `Actor.groupIds` always
+   * holds at least one group — so there is no special case here.
+   */
+  applicableGroupRows<T extends { readonly groupId: number }>(
+    actor: Actor,
+    rows: readonly T[],
+  ): readonly T[] {
+    return this.applicableGroupRowsForGroups(actor.groupIds, rows)
+  }
+
+  /**
+   * The same narrowing, for somebody who has no `Actor` yet (F59).
+   *
+   * Exactly one caller is legitimate: registration. An applicant is not a
+   * member of anything — they are about to become a member of the board's
+   * configured default group — so there is no actor to build and no groups to
+   * read off one. Asking "what would this group be allowed to fill in" is the
+   * only way the register form can offer the fields a new member will owe.
+   *
+   * `groupIds` must come from **configuration** (`AuthConfig.defaultMemberGroupId`
+   * and friends), never from an actor: the point of `applicableGroupRows` above
+   * is that no caller reads `Actor.groupIds`, and routing around it through
+   * here would give back exactly what that method exists to withhold. The lint
+   * rule (F20/D13) still refuses the read, which is what keeps this honest.
+   */
+  applicableGroupRowsForGroups<T extends { readonly groupId: number }>(
+    groupIds: readonly number[],
+    rows: readonly T[],
+  ): readonly T[] {
+    const mine = new Set(groupIds)
+    return rows.filter((row) => mine.has(row.groupId))
+  }
+
+  /**
    * This actor's granular moderator rights in one forum (F50).
    *
    * The other half of `moderatedForumIds`: that answers *where*, this answers
@@ -439,6 +492,30 @@ export class Authorizer {
     })
   }
 
+  /**
+   * A resolved global numeric limit (F60).
+   *
+   * The counterpart of `can()` for the fields that answer "how many" rather
+   * than "may they". It exists for the same reason `flood.bypass` is an action
+   * rather than a permission field read at the call site: group and permission
+   * reasoning does not leave this package (R4), and a caller that reaches into
+   * `actor.global` for one number will reach in for a boolean next.
+   *
+   * The value is already combined across the actor's groups by R4.2's rule for
+   * numerics — **MAX, with 0 meaning unlimited and beating everything** — so a
+   * caller must treat 0 as no limit rather than as a limit of zero. Every
+   * numeric permission on this board means that, and the one place it could be
+   * got wrong is a caller that writes `stored >= quota`.
+   *
+   * An administrator is not special-cased here. A limit is not a gate, and the
+   * ladder already gives staff groups 0; inventing a bypass would make the
+   * configured number a lie for exactly the people who set it.
+   */
+  globalLimit(actor: Actor, key: NumericGlobalPermission): number {
+    const value = actor.global[key]
+    return typeof value === 'number' ? value : 0
+  }
+
   /** Drop rows in forums the actor cannot view. Synchronous: caller supplies the visible set. */
   filterVisible<T extends Visible>(
     _actor: Actor,
@@ -496,6 +573,8 @@ export class Authorizer {
         return forum.canPostReplies === true
       case 'attachment.upload':
         return forum.canUploadAttachments === true
+      case 'attachment.download':
+        return forum.canDownloadAttachments === true
       case 'post.editOwn':
         return ownsContent && forum.canEditOwnPosts === true
       case 'post.deleteOwn':
@@ -561,10 +640,16 @@ export class Authorizer {
         return actor.global.canViewMemberList === true
       case 'pm.use':
         return actor.global.canUsePrivateMessages === true
+      case 'avatar.upload':
+        return actor.global.canUploadAvatar === true
       case 'content.report':
         return actor.global.canReportContent === true
       case 'user.warn':
         return actor.global.canWarnUsers === true
+      case 'reputation.give':
+        return actor.global.canGiveReputation === true
+      case 'signature.use':
+        return actor.global.canUseSignature === true
       case 'modcp.access':
         return actor.global.canAccessModCp === true
       case 'admincp.access':

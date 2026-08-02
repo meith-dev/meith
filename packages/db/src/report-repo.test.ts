@@ -44,6 +44,8 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+  await db.execute(sql`delete from private_message_copies`)
+  await db.execute(sql`delete from private_messages`)
   await db.execute(sql`delete from report_events`)
   await db.execute(sql`delete from reports`)
   await db.execute(sql`delete from posts`)
@@ -103,7 +105,7 @@ describe('resolveTarget', () => {
   it('resolves a post to its forum, thread and thread title', async () => {
     const postId = await seedThread(100)
 
-    expect(await repo.resolveTarget('post', postId)).toEqual({
+    expect(await repo.resolveTarget('post', postId, REPORTER)).toEqual({
       kind: 'post',
       id: postId,
       forumId: FORUM,
@@ -115,12 +117,12 @@ describe('resolveTarget', () => {
   it('resolves a thread and a user', async () => {
     await seedThread(100)
 
-    expect(await repo.resolveTarget('thread', 100)).toMatchObject({
+    expect(await repo.resolveTarget('thread', 100, REPORTER)).toMatchObject({
       forumId: FORUM,
       threadId: 100,
       label: 'Thread 100',
     })
-    expect(await repo.resolveTarget('user', AUTHOR)).toEqual({
+    expect(await repo.resolveTarget('user', AUTHOR, REPORTER)).toEqual({
       kind: 'user',
       id: AUTHOR,
       forumId: null,
@@ -136,17 +138,65 @@ describe('resolveTarget', () => {
    */
   it('refuses a target that is not public', async () => {
     const postId = await seedThread(100, FORUM, 'unapproved')
-    expect(await repo.resolveTarget('post', postId)).toBeNull()
-    expect(await repo.resolveTarget('thread', 100)).toBeNull()
+    expect(await repo.resolveTarget('post', postId, REPORTER)).toBeNull()
+    expect(await repo.resolveTarget('thread', 100, REPORTER)).toBeNull()
   })
 
   it('refuses a deleted account', async () => {
     await db.execute(sql`update users set deleted_at = ${AT} where id = ${AUTHOR}`)
-    expect(await repo.resolveTarget('user', AUTHOR)).toBeNull()
+    expect(await repo.resolveTarget('user', AUTHOR, REPORTER)).toBeNull()
   })
 
   it('refuses something that is not there', async () => {
-    expect(await repo.resolveTarget('post', 4242)).toBeNull()
+    expect(await repo.resolveTarget('post', 4242, REPORTER)).toBeNull()
+  })
+
+  /*
+   * F60. A private message is the one target whose existence is relative to
+   * who is asking: holding a copy is what makes it reportable, and somebody who
+   * holds none gets the same answer as for a message that is not there.
+   */
+  describe('a private message', () => {
+    async function seedMessage(): Promise<number> {
+      const rows = resultRows(
+        await db.execute(sql`
+          insert into private_messages (author_user_id, author_username, subject, message)
+          values (${AUTHOR}, 'ada', 'Read this', 'A message.')
+          returning id
+        `),
+      ) as Array<{ id: number }>
+      const id = Number(rows[0]!.id)
+
+      await db.execute(sql`
+        insert into private_message_copies (message_id, owner_user_id, folder, role)
+        values (${id}, ${AUTHOR}, 'sent', 'author'),
+               (${id}, ${REPORTER}, 'inbox', 'to')
+      `)
+      return id
+    }
+
+    it('resolves for somebody who was sent it, with no forum', async () => {
+      const id = await seedMessage()
+
+      expect(await repo.resolveTarget('private_message', id, REPORTER)).toEqual({
+        kind: 'private_message',
+        id,
+        /* No forum, so it routes to `modcp.access` rather than to a forum's
+           moderators — a private message belongs to no forum's staff. */
+        forumId: null,
+        threadId: null,
+        label: 'Read this',
+      })
+    })
+
+    it('refuses somebody who holds no copy of it', async () => {
+      const id = await seedMessage()
+      expect(await repo.resolveTarget('private_message', id, MOD)).toBeNull()
+    })
+
+    it('refuses a message that does not exist', async () => {
+      expect(await repo.resolveTarget('private_message', 4242, REPORTER)).toBeNull()
+    })
   })
 })
 

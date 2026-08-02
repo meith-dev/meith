@@ -28,6 +28,11 @@ import {
 import { foldIdentifier } from '@forum/accounts'
 
 import { getContainer } from './container'
+import {
+  profileFieldService,
+  registrationFieldContext,
+  submittedFields,
+} from './profile-fields'
 import type { FormState } from './auth-form-state'
 import {
   clearSessionCookies,
@@ -83,7 +88,32 @@ export async function registerAction(
 
   const { identity } = getContainer()
   try {
-    await identity.register({ username, email, password })
+    /*
+     * F59's required fields are validated *before* the account exists, and
+     * written after. Doing it the other way round would leave a member the
+     * board considers incomplete: registered, logged in, and missing an answer
+     * the operator made mandatory, with no screen that insists on it.
+     *
+     * A failure here therefore costs nothing — the form comes back with the
+     * message and no account was created.
+     */
+    const fields = profileFieldService()
+    const context = fields === null ? null : await registrationFieldContext()
+    const fieldValues =
+      fields === null || context === null
+        ? []
+        : await fields.validateRegistration({ submitted: submittedFields(form), context })
+
+    const result = await identity.register({ username, email, password })
+
+    /*
+     * Not in the registration transaction, because there is not one to join —
+     * `register` owns its own. A field write that fails here leaves a usable
+     * account with an unanswered required field, which is recoverable from the
+     * UserCP; the reverse (an answer with no account) is not recoverable by
+     * anybody.
+     */
+    if (fields !== null) await fields.applyRegistration(result.account.id, fieldValues)
   } catch (err) {
     return toFormState(err, values)
   }

@@ -14,6 +14,9 @@ import { cookies } from 'next/headers'
 import { env } from '@forum/core'
 
 import {
+  ADMIN_COOKIE,
+  adminCookie,
+  clearedAdminCookie,
   clearedCookie,
   rememberCookieName,
   rememberCookie,
@@ -48,6 +51,22 @@ export async function setRememberCookie(
   const jar = await cookies()
   const isSecure = secure()
   jar.set(rememberCookieName(isSecure), token, rememberCookie(expiresAt, isSecure))
+}
+
+/** F63's ACP cookie. Its own name and path; see `cookies.ts`. */
+export async function setAdminCookie(token: string, expiresAt: Date): Promise<void> {
+  const jar = await cookies()
+  jar.set(ADMIN_COOKIE, token, adminCookie(expiresAt, secure()))
+}
+
+export async function clearAdminCookie(): Promise<void> {
+  const jar = await cookies()
+  jar.set(ADMIN_COOKIE, '', clearedAdminCookie(secure()))
+}
+
+export async function readAdminToken(): Promise<string | null> {
+  const jar = await cookies()
+  return jar.get(ADMIN_COOKIE)?.value ?? null
 }
 
 export async function clearSessionCookies(): Promise<void> {

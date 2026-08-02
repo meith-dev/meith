@@ -348,8 +348,10 @@ with thresholds at 4, 7 and 10.
 
 **Why:** a percentage needs a configured maximum to mean anything, and a board
 that has never opened the admin screen would have every member permanently at 0%
-of nothing — which is precisely the state a v1 board is in, because the screen
-that sets the maximum is F66's and does not exist yet. Points are readable on
+of nothing — which is precisely the state a v1 board is in, because no screen
+configures `warning_levels` yet. F66 landed and is not that screen: levels are
+moderation configuration rather than group permissions, and the seeded ladder is
+what a board runs on until something owns them. Points are readable on
 their own, the seeded ladder works on a fresh board, and "2 points, expires
 after 90 days" is a sentence a moderator can weigh before issuing it. The
 importer (F85) can convert a percentage against the source board's maximum.
@@ -464,3 +466,654 @@ and it has to be filtered, counted and expired everywhere. What it buys is a
 reader who bookmarked a thread finding it — and search (F72) and the thread's
 own permalink already do that, because the thread keeps its id. Revisit if a
 real board reports people losing threads after a move.
+
+---
+
+## A notification centre exists at all
+
+**MyBB:** has no notification centre. What a member is told arrives as e-mail
+(a subscribed thread, a warning, a PM alert), plus the "You have N new
+messages" line in the user CP. When the e-mail is filtered, bounces, or is
+simply never read, nothing on the board records that the member was told.
+
+**Here:** every notification is written to a `notifications` row first and
+delivered by e-mail second. The board's record is the row; the e-mail is one
+transport for it, and the transport can be declined.
+
+**Why:** a warning that changes what a member may do has to be discoverable
+from the board itself. F53 shipped with exactly that gap and its row said so —
+a suspended member found out by trying to post and being refused. Making the
+record the primary artefact also gives every later notifier (F56's
+subscriptions, F60's private messages, F62's reputation) one place to write to
+rather than an e-mail template each.
+
+**Cost:** one more table on the read path — an unread count in the user panel
+on every page for a signed-in member, which is why its index is partial over
+unread rows.
+
+## On-site delivery cannot be switched off; e-mail can
+
+**MyBB:** every notification channel is opt-out. A member can disable e-mail
+about warnings and about subscribed threads.
+
+**Here:** the preferences screen configures **e-mail only**. Every kind is
+recorded in the notification centre regardless.
+
+**Why:** the centre is the board's evidence that somebody was told. A member who
+can erase the record can later say they were never warned, with the board's own
+data agreeing — which is worse for the member too, since a moderator reviewing
+an appeal has nothing to look at. Declining e-mail costs nobody anything,
+because the record survives.
+
+**Cost:** a member who does not want to see a notification cannot remove it,
+only mark it read. If that becomes a real complaint, the answer is a "clear
+read notifications" control, not a channel switch.
+
+## The reporter is told when their report is closed
+
+**MyBB:** tells the reporter nothing. A report is filed and disappears.
+
+**Here:** closing a report raises `report.actioned` for the reporter, naming
+the outcome (actioned or closed without action) and the captured label of what
+they reported. The moderator's private note is never included — the port that
+carries the notification has no field that could hold one (D48).
+
+**Why:** a report button that silently swallows reports trains members to stop
+using it, and "we looked and decided not to act" is a legitimate outcome to
+communicate. E-mail for this kind is **off** by default, because reporting is
+exactly the act a member repeats and a second message about somebody else's
+content is not something to opt somebody into.
+
+**Cost:** a member who reports a lot gets a lot of on-site notifications. They
+coalesce per report rather than per target, so closing and re-closing one report
+is one line.
+
+## A repeated notification is one row with a count
+
+**MyBB:** does not have the problem, having no notification store.
+
+**Here:** a raise may carry a dedupe key. While the notification it produced is
+unread, further raises with the same key increment `occurrences` and update the
+captured facts instead of writing a new row — enforced by a partial unique
+index rather than a prior read. Once the row is read, the next raise starts a
+fresh one.
+
+**Why:** the first notification the board raises without a human behind it is
+`system.task_failed`, and a task failing on every tick would otherwise write
+1,440 rows a day per administrator, with an e-mail behind each. The count is
+also the more useful number: "this has failed 40 times" is the difference
+between a blip and an outage.
+
+**Cost:** the *first* occurrence's details are replaced by the latest one. That
+is deliberate for an operational alert and is why warnings carry no dedupe key
+at all — two warnings are two things that happened, and collapsing them would
+hide the one that crossed a threshold.
+
+---
+
+## "Instant" notification means "within a tick"
+
+**MyBB:** sends a subscription e-mail during the request that created the post,
+inside `add_thread`/`add_post`.
+
+**Here:** the post commits, and the `subscriptions.instant` task tells the
+subscribers on its next run — at most a minute later on a board whose tick runs
+every minute.
+
+**Why:** notifying inline is an unbounded loop inside the board's hottest write.
+One iteration per subscriber, each needing a permission re-check (a subscription
+is not a standing grant), each potentially a mail send — on a thread with 500
+followers that is a posting request that takes seconds and fails if the mail
+provider is down. Every other side effect on this board already works this way
+(F07's outbox, F38's roll-up), and the watermark makes a delayed run
+indistinguishable from a prompt one except in timing.
+
+**Cost:** a subscriber can open a thread and see a reply before the notification
+about it arrives. That is strictly better than the failure it avoids, and the
+delay is bounded by the tick interval an operator controls.
+
+## A digest's clock is per member, not per board
+
+**MyBB:** has no digests at all — every subscription is instant e-mail or
+nothing.
+
+**Here:** a subscription's cadence is `instant`, `daily`, `weekly` or `none`,
+and the daily/weekly clock is stored per member *and* per cadence in
+`digest_runs`.
+
+**Why:** a board-wide "send the digests now" schedule delivers everybody's
+digest at whatever moment the tick happened to fire, and hands somebody who
+subscribed on Sunday a "weekly" digest on Monday. Per member, the interval means
+what it says. Per cadence as well, because a member can follow one thread daily
+and another weekly, and one clock cannot serve both.
+
+**Cost:** one row per member per cadence, written only once a digest has
+actually gone out. A member who has never received one is due immediately, which
+is what makes a new subscriber's first digest arrive rather than never.
+
+## The unsubscribe link acts on POST, not on GET
+
+**MyBB:** unsubscribe links are GETs — following the URL removes the
+subscription.
+
+**Here:** the link opens a page that says what unsubscribing would do and offers
+one button. The button is the act.
+
+**Why:** mail clients, corporate link scanners and preview fetchers request
+every URL in a message. A GET that unsubscribed would mean a member is
+unsubscribed by their own spam filter looking at the mail, and they would never
+know why the notifications stopped. It also matches what one-click unsubscribe
+(RFC 8058) expects of a mail sender.
+
+**Cost:** one extra click for somebody who genuinely wants out. The page needs
+no login and no JavaScript, so it is the cheapest possible extra click.
+
+## Unsubscribing from a digest does not delete subscriptions
+
+**MyBB:** does not have the case, having no digests.
+
+**Here:** the digest's unsubscribe link switches subscription **e-mail** off.
+Every subscription stays, and new posts still appear in the notification centre.
+
+**Why:** a digest covers many subscriptions, so "unsubscribe" cannot mean one of
+them — and taking it to mean "all of them" would delete a member's follow list
+because they wanted fewer e-mails. F55 already separates the record from the
+transport; this is that separation applied to the one-click case. The per-thread
+link in an "as it happens" notification *does* end that one subscription,
+because there the member knows exactly which thread they are silencing.
+
+---
+
+## Timezones are IANA names, never offsets
+
+**MyBB** stores a numeric offset (`timezone` = `-5`, plus a separate
+`dst` flag the board or the member toggles).
+
+**Here:** an IANA zone name (`America/New_York`), validated against the
+runtime's own tz database. Offsets are refused *even though `Intl` accepts
+them*.
+
+**Why:** an offset cannot express summer time, so it is wrong for half the year
+in every zone that observes it — and MyBB's answer to that, a DST flag somebody
+has to flip, is wrong every year for anybody who forgets. The tz database
+already knows when the clocks change in every zone; storing the name lets it
+answer.
+
+**Cost:** an imported MyBB board's offsets do not map cleanly — `-5` is
+`America/New_York` in winter and `America/Chicago`'s summer, and neither is
+certain. F85's importer will have to pick a representative zone per offset and
+say so, rather than pretending the data was there.
+
+## A password change signs out every other device
+
+**MyBB:** changing a password keeps other sessions alive.
+
+**Here:** every session is revoked, and the device that made the change is
+immediately given a fresh one.
+
+**Why:** changing a password is what somebody does when they think an account is
+compromised. One that leaves the attacker's session alive has done nothing.
+Re-issuing for the current device is what stops the safe behaviour from also
+being the annoying one.
+
+**Cost:** somebody who changes their password on a phone is signed out on their
+desktop. That is the intended outcome, and the screen says so before the button.
+
+## Changing an e-mail address requires confirming the new one
+
+**MyBB:** with "verify e-mail" off — the default on many boards — the address
+changes immediately.
+
+**Here:** the address is held in a single-use token and adopted only when the
+link sent to it is followed. The current password is required to ask.
+
+**Why:** two failures, and the second is the serious one. A typo strands an
+account at an address nobody owns, with no way back except an administrator. And
+an unattended session becomes a full takeover: change the address, request a
+password reset, done. Confirming the new address closes both.
+
+**Cost:** a member whose new address bounces keeps the old one, which is the
+safe direction. A board with no mail configured cannot change addresses at all —
+the UserCP says the link was sent, because from the board's side it was.
+
+## A custom profile field's visibility is per group, not a single "hidden" flag
+
+**MyBB:** `profilefields` carries `viewableby` and `editableby` as
+comma-separated group-id lists, plus `hidden` — and resolution is a substring
+check against the member's group string.
+
+**Here:** a row per (field, group) in `profile_field_groups` with nullable
+`can_view` / `can_edit`, resolved by the same R4.2 rule everything else on this
+board uses: NULL abstains, any explicit grant wins.
+
+**Why:** the same shape as `forum_permissions` (F21), so "who can see this" has
+one mental model rather than a second one that only applies to profile fields.
+A NULL that abstains is also what makes "staff may edit this" one row instead of
+a row per group with the other answer copied in — and a comma-separated list of
+ids cannot express "no opinion" at all.
+
+**Cost:** an imported MyBB board's `viewableby=-1` (everyone) maps to the field
+default and its explicit lists map to grant rows, but MyBB's *deny by omission*
+does not survive: a group absent from `viewableby` becomes a group with no
+opinion, which inherits. F85's importer must write an explicit `false` row per
+group MyBB omitted, or set `default_visible` false and grant the listed ones.
+
+## Registration asks only for fields the new member's group may edit
+
+**MyBB:** a field marked `required` is asked at registration regardless of
+whether the registering member's group can edit it afterwards.
+
+**Here:** `requiredAtRegistration` is intersected with what the board's default
+member group may edit, so a field they will never be able to change is not asked
+for either.
+
+**Why:** "what you are asked at registration" and "what you may change
+afterwards" disagreeing is a trap — somebody types an answer they can never
+correct. Resolving against the group registration *puts them in* (not the guest
+group they are currently in) is what makes the two consistent.
+
+**Cost:** an operator who marks a field required but forgets to let the
+registered group edit it gets a field that is silently never asked. The CLI's
+`profile-field:add` says every new field starts editable by every group, which
+is the state where this cannot bite.
+
+## An emptied field is deleted, not stored as an empty string
+
+**MyBB:** `userfields` has a column per field and a text column defaults to
+`''`, so "not answered" and "answered with nothing" are the same value.
+
+**Here:** a row per (member, field), and clearing an answer deletes the row.
+
+**Why:** every read on the board would otherwise have to treat two states as
+one, and one of them would eventually forget — a profile showing an empty
+"Pronouns:" row is the visible half of that. It is also what makes an
+unanswered field cost nothing on a board with twelve fields and ten thousand
+members who filled in two.
+
+**Cost:** a column-per-field table is one join cheaper to read. It is also a
+schema migration every time an operator adds a field, which is the trade MyBB
+made and this does not.
+
+## A private message is stored once, not once per recipient
+
+**MyBB:** `privatemessages` holds a row per copy — the sender's Sent Items and
+each recipient's Inbox carry the full subject and body.
+
+**Here:** `private_messages` holds the content and `private_message_copies`
+holds one small row per participant.
+
+**Why:** a message to twenty people is otherwise twenty copies of the text, and
+re-rendering one is twenty writes. It also makes quota count *copies* — the
+thing a member can actually delete — and lets F36's render cache invalidate
+private messages the same way it invalidates posts, on the next page load,
+with no migration.
+
+**Cost:** a join on every folder listing, which the folder and message indexes
+exist for. And a message everybody has deleted leaves an orphan row rather than
+disappearing by cascade — deliberately, because deleting *your* copy must not
+reach into somebody else's mailbox. Pruning orphans belongs to F70.
+
+## The quota is storage; the daily cap is separate
+
+**MyBB:** `pmquota` caps stored messages and there is no separate send rate for
+most groups.
+
+**Here:** two numbers. `max_private_messages_per_day` has existed since the
+initial schema and caps sends; `private_message_quota` caps what a member may
+keep. Both are 0-means-unlimited like every other numeric permission, combined
+by MAX across groups (R4.2).
+
+**Why:** they answer different abuse questions. A rate limit slows a spammer; a
+storage limit bounds what the board pays to keep. Collapsing them means a board
+that wants to allow a hundred stored messages must also allow a hundred a day.
+
+**Cost:** one more column on `usergroups`, and an operator has two numbers to
+think about instead of one. The seeded ladder sets both, so a board nobody
+configures behaves sensibly.
+
+## A full inbox refuses the whole send, and names who is full
+
+**MyBB:** a send to a member over quota fails and reports it.
+
+**Here:** the same, extended to multiple recipients — if any one of them is
+full, **nothing is sent to anybody**, and every full recipient is named.
+
+**Why:** partial delivery leaves the sender with a Sent copy claiming a message
+went somewhere it did not, and no answer to "did it send?". Naming the full
+recipient trades a small disclosure (their box is full) against the much worse
+failure of a sender who believes they were heard.
+
+**Cost:** one member with a full box blocks a message to nine others until the
+sender removes their name. That is the intended outcome, and the message says
+which name to remove.
+
+## Reporting is the only way staff read a private message
+
+**MyBB:** a reported PM is copied into the report, and administrators with
+database access can read any message.
+
+**Here:** there is no listing, no search and no browse path into private
+messages at all. `forReport` takes an id and is reached only from an existing
+report row, so a moderator reads exactly what was reported and nothing beside
+it. A message can only be reported by somebody who holds a copy of it, which is
+also what makes "not yours" and "does not exist" the same answer.
+
+**Why:** a moderation tool that can enumerate private messages is a
+surveillance tool with a moderation feature attached.
+
+**Cost:** a moderator cannot see the rest of a conversation for context — only
+the message that was reported. Reporting each message is the way to give them
+more, which is also the way the member chooses what staff see.
+
+## Reply addresses the author, not everybody on the message
+
+**MyBB:** reply addresses the sender; a separate "reply to all" addresses
+everyone.
+
+**Here:** reply addresses the author, and there is no reply-all.
+
+**Why:** bcc. A recipient who was bcc'd is hidden from the other recipients, and
+a reply-all composed by one of them would either leak that name or silently drop
+somebody — and whichever it did, it would do it without the member noticing. A
+message that quietly grows its audience is not what a reply button should mean.
+
+**Cost:** answering a group conversation means typing the other names, which the
+composer shows in the "To" line of the message being replied to.
+
+## Ignoring hides a post's body; it does not remove the post
+
+**MyBB:** an ignored member's posts are collapsed client-side, with the body
+still in the HTML.
+
+**Here:** the body is withheld **server-side** — it is not in the response at
+all — and the post keeps its place in the page and its number in the thread. A
+placeholder and a per-post reveal link take its place.
+
+**Why:** shipping the text and hiding it with CSS is a preference rather than a
+feature. And filtering the post *out* instead would give every viewer a
+different page size, make "#12" mean different posts to different people, and
+land permalinks on the wrong page — which is why F61's acceptance names stable
+pagination and counts.
+
+**Cost:** a thread with an ignored member in it still has their posts in it, as
+placeholders. That is the intended reading: a conversation with holes in it is
+still a conversation, and a reader who wants the missing half is one click away.
+
+## Buddy and ignore are one table, and ignoring is not mutual
+
+**MyBB:** `userlist` with a `type` column, which is the same shape — but the
+ignore is often read as symmetric by the code around it.
+
+**Here:** one row per **ordered** pair, primary-keyed, so the two lists are
+mutually exclusive by construction. `(me, them)` is my opinion of them and says
+nothing about theirs of me.
+
+**Why:** a mutual ignore lets anybody silence themselves in somebody else's eyes
+by ignoring them first, which is a griefing tool rather than a preference.
+
+**Cost:** two people who both want to stop reading each other need a row each.
+That is one extra click, and it is the correct model.
+
+## A blocked private message is refused, not silently discarded
+
+**MyBB:** a message to somebody who ignores you is accepted and dropped.
+
+**Here:** the send is refused, with the **same wording** as a permission
+refusal — "X cannot receive private messages" — so it does not disclose the
+ignore.
+
+**Why:** silently discarding it leaves the sender believing they were heard,
+which is the worst outcome for both people. Naming the ignore would make the
+send path a way to read somebody's list, and a list that announces itself is one
+people stop using. The ambiguous refusal is the only option that is honest to
+the sender without betraying the recipient.
+
+**Cost:** a sender cannot tell "they blocked me" from "their group cannot use
+PMs". That ambiguity is the feature.
+
+## A signature's forbidden tags render as text rather than refusing the save
+
+**MyBB:** per-group switches for images, links and HTML in signatures, enforced
+by stripping or by refusing.
+
+**Here:** signatures render with a **narrower tag registry** — bold, italic,
+underline, strikethrough, colour, links, e-mail. `[img]`, `[quote]`, `[size]`,
+`[code]` and `[list]` are not in it, so they come out as literal text.
+
+**Why:** it cannot be bypassed by a tag this build does not know about, and it
+degrades — somebody pasting a signature from another board gets most of it
+rather than an error. `[img]` is the one that matters: a remote image under
+every post is a tracking beacon reporting each reader's IP to whoever hosts it.
+
+**Cost:** an imported MyBB signature that used images loses them, visibly, as
+bracketed text the member can then delete. F85's importer should strip the tags
+rather than leave them, and say how many it touched.
+
+## A signature is locked, not deleted
+
+**MyBB:** `suspendsignature` with an expiry, plus moderators simply clearing the
+text.
+
+**Here:** a boolean lock with a required reason. The text is kept, is shown back
+to the member with the reason on their own signature screen, and cannot be
+edited while locked.
+
+**Why:** an emptied signature can be retyped the next minute and says nothing
+about why it went. Keeping the text is also what lets an appeal look at what was
+actually there rather than at somebody's recollection.
+
+**Cost:** no expiry — an unlock is a second deliberate act. MyBB's timed
+suspension is the nicer behaviour and needs a scheduled task; it belongs with
+F70's maintenance work rather than being faked with a column nothing sweeps.
+
+## Reputation has no per-group power multiplier
+
+**MyBB:** `reputationpower` makes a moderator's vote worth more than a member's.
+
+**Here:** every rating is worth −1, 0 or +1. The per-group settings are *whether*
+you may rate and *how many a day*.
+
+**Why:** a multiplier cannot obey R4.2's rule for numeric permissions — MAX
+across groups with 0 meaning unlimited — because "unlimited power" is
+meaningless and a multiplier has no unlimited state. It is the same shape as the
+`searchfloodtime` problem recorded above, and gets the same answer: leave it out
+rather than invert the combination rule for one field.
+
+**Cost:** a board that wants staff endorsements to carry weight cannot express
+it. An imported `reputationpower` is dropped, and F85's importer should say so
+rather than silently scaling everybody's totals.
+
+## Reputation totals are recomputed, not incremented
+
+**MyBB:** `users.reputation` is adjusted as ratings are added and removed.
+
+**Here:** the column is rebuilt with a `sum` over the live rows, inside the same
+transaction as whatever changed them.
+
+**Why:** an incremented total cannot survive a rating being revised or
+withdrawn, and when it drifts nobody notices until somebody counts by hand. Same
+decision this board made for `warning_points` (F53) and for the thread and forum
+counters (F38).
+
+**Cost:** one extra aggregate per rating. It is bounded by the number of ratings
+one member has, and a rating is a deliberate act rather than a hot path.
+
+## The control panel has its own session, with its own timeout
+
+**MyBB:** an "admin session" keyed to the board login, with a configurable
+timeout, plus an optional `ADMIN_BRANCH`-style secret URL.
+
+**Here:** a row in `admin_sessions` minted by re-entering the password, with a
+30-minute idle timeout, an 8-hour absolute ceiling, and its own cookie
+(`Path=/admin`, `SameSite=Strict`). A board password change revokes it.
+
+**Why:** the threat is an administrator's own browser being used by somebody
+else, not a password being guessed. A board session lasts days by design; an ACP
+session that inherited that would make an unattended laptop a board takeover.
+Separating them is what lets the ACP timeout be short enough to matter.
+
+**Cost:** an administrator types their password twice — once for the board, once
+for the panel — and again after half an hour away. That is the intended price,
+and the sign-in screen says what it buys.
+
+## The re-authentication clock is separate from the activity clock
+
+**MyBB:** the admin session has one timestamp, refreshed on every request.
+
+**Here:** `last_seen_at` moves with activity and `authenticated_at` moves only
+when the password is re-entered. Destructive operations read the second.
+
+**Why:** with one timestamp, an administrator who has been clicking around for
+an hour has a "fresh" session and is never asked again — which makes
+re-authentication a formality that fires only for people who walked away, i.e.
+exactly the people who are about to be asked anyway when it expires.
+
+**Cost:** a long ACP session asks for the password more than once. Fifteen
+minutes is the window; it applies only to operations that are destructive.
+
+## The address allowlist is prefixes in the environment, not CIDR in the database
+
+**MyBB:** `$config['superadmins']` and an optional IP check in `config.php`.
+
+**Here:** `ADMIN_IP_ALLOWLIST`, comma-separated whole addresses or textual
+prefixes ending in `.` or `:`. Empty means no restriction.
+
+**Why:** env rather than a setting, because the allowlist defends against a
+stolen administrator credential and storing it where that credential could edit
+it defeats the point. Prefixes rather than CIDR, because a mask is a thing
+people get wrong by one bit and the failure mode is locking yourself out. And
+the check runs *before* the board session is read, so a request from outside the
+list cannot learn that the panel exists.
+
+**Cost:** no `/28`-style precision, and no way to change it without a redeploy.
+Both are deliberate. A deployment behind no proxy — where no forwarded address
+header arrives — is refused outright when a list is configured, which is the
+documented failure direction rather than a silent bypass.
+
+## An attachment is re-encoded, and until it is, it does not exist
+
+**MyBB:** an upload is checked against a list of allowed extensions and MIME
+types, stored, and served. `verify_attachment` looks at the file's magic bytes
+for images; the file itself is kept as uploaded.
+
+**Here:** PNG and JPEG are decoded to raw pixels and written back out by an
+encoder. The stored object is the encoder's output. The uploaded bytes are held
+in a separate, unservable object until that succeeds, and are then deleted. A
+row is `pending` until the re-encode finishes, and nothing will serve a
+`pending` row.
+
+**Why:** validation cannot make a file safe, and no amount of it can. A valid
+PNG with a ZIP appended after its `IEND` chunk passes every check MyBB makes
+and every check anyone could make, because the file genuinely *is* a valid PNG.
+So does one with a payload in an EXIF block aimed at whichever decoder opens it
+next. None of that survives a decode and re-encode, because the output is
+written from pixels and has never seen the original bytes.
+
+**Cost:** an image is not visible for as long as the queue takes — usually
+seconds, up to a minute on a board whose tick is the only worker. EXIF is gone,
+including the orientation tag and any colour profile, which is a real loss for
+photographers and a real gain for everybody who did not mean to publish where
+they took the picture. Animated GIF is not accepted at all rather than being
+silently flattened to one frame.
+
+## Four file types, not an operator-configurable list
+
+**MyBB:** the ACP has an attachment-types screen; an operator adds any
+extension and MIME type they like.
+
+**Here:** PNG, JPEG, PDF and ZIP, as a constant.
+
+**Why:** a format is on the list only if the board can make a claim about the
+bytes it serves — either "this was re-encoded" or "this is served as an opaque
+download and never rendered". A configurable list is a way to accept a format
+nothing can process, and the switch would be offering an operator a choice the
+code cannot honour. `text/plain` is the instructive omission: it has no
+signature, so "is this a text file" can only ever be a guess.
+
+**Cost:** no `.docx`, no `.mp3`, no `.7z`, and no way to add one without a
+release. F71 owns the ACP screen; what it will be able to configure is *limits*,
+not *formats*, until something can attest to a new one.
+
+## The download is served by the board, not by the object store
+
+**MyBB:** `attachment.php` streams the file through PHP after a permission
+check.
+
+**Here:** the same — a route handler that re-checks `attachment.download` in the
+attachment's forum, checks that the post and thread are visible to this viewer,
+and sets `Content-Disposition: attachment` with `nosniff` and a sandboxing CSP.
+The stored object is always private, even in a public forum, and a signed
+object-store URL is deliberately not used.
+
+**Why:** the parity here is not an accident of implementation. A signed URL is a
+bearer token that outlives the permission that issued it — move a thread into a
+private forum and every URL handed out in the last hour still works — and it
+carries the bucket's headers rather than ours, which is where the safety of
+serving member-supplied bytes actually lives.
+
+**Cost:** the bytes go through the app, so a large attachment costs the board
+bandwidth and, on a serverless platform, function time. Revisit if the
+`FileStore` port ever grows the ability to sign *with* response headers.
+
+## Files are submitted with the post, in one form
+
+**MyBB:** the composer uploads each attachment over its own request, keyed to a
+post id or a "posthash" for a post that does not exist yet, and the abandoned
+ones are swept later.
+
+**Here:** the file input is part of the reply form and the files arrive with the
+message. There is no upload step and no draft token.
+
+**Why:** it works with JavaScript off, which the posthash flow does not without
+a page round trip that loses the typed message. It also removes a whole class of
+state — a draft attachment waiting for a post that may never come — and with it
+the sweep for abandoned drafts.
+
+**Cost:** a browser cannot repopulate a file input, so a submission that fails
+validation loses the chosen files even though the message survives. That is true
+of every no-JS upload. F45's islands are where an incremental upload belongs,
+and it should be an enhancement over this path rather than a replacement for it.
+
+## An avatar is re-encoded and locked, never linked and never deleted
+
+**MyBB:** three ways to have one — upload, a remote URL, or Gravatar. An upload
+is checked for dimensions and extension and stored as sent. A moderator's
+remedy is to delete it.
+
+**Here:** upload only, decoded and re-encoded from raw pixels like every other
+image on this board (D65), fitted to 200×200, and unservable until that
+succeeds. A moderator locks it rather than deleting it.
+
+**Why no remote URL:** rendered directly it is a tracking beacon that reports
+every reader's IP, referrer and user agent to a third party on every page view
+— which F58's own acceptance forbids in as many words. Fetched server-side to
+avoid that, it is SSRF: an attacker supplies a URL and the board makes the
+request, from inside whatever network it runs in. The only safe version ends at
+fetch-validate-re-encode-store, which is what the upload path already is, with
+an SSRF problem bolted on the front. Gravatar is the remote-URL problem with a
+better-known third party.
+
+**Why a lock and not a delete:** the same argument D61 makes for signatures, and
+stronger here. Deleting destroys the evidence — an appeal about a signature can
+read the text that was kept; an appeal about an image has nothing at all unless
+the file survives. Locking stops it rendering, stops the member replacing it,
+keeps the object, and records a reason the member is shown.
+
+**Cost:** a member who wants their existing avatar from elsewhere has to
+download it and upload it, and nobody's Gravatar follows them here. The image
+loses its EXIF, which is the point. And an upload is not visible for as long as
+the queue takes, which the screen says rather than leaving somebody to conclude
+it failed.
+
+## An avatar keeps its aspect ratio; it is not cropped to a square
+
+**MyBB:** scales to fit the configured maximum, same as here.
+
+**Here:** scaled to fit 200×200, aspect preserved, no crop.
+
+**Why:** cropping decides for somebody which part of their picture matters, and
+a board cannot know. A theme that wants circles can have them in CSS, which is
+reversible; a crop at upload time is not.
+
+**Cost:** a wide image renders wide, so a theme laying out a fixed square has to
+say `object-fit: cover` rather than assuming. The default theme does.

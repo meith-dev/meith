@@ -18,6 +18,9 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.4
         version: 0.5.4
+      '@electric-sql/pglite-socket':
+        specifier: ^0.2.7
+        version: 0.2.7(@electric-sql/pglite-age@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pg_hashids@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pg_ivm@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pg_textsearch@0.0.6(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pg_uuidv7@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pgtap@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pgvector@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite@0.5.4)
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.8.0(jiti@2.7.0))
@@ -78,6 +81,9 @@ importers:
       '@forum/forums':
         specifier: workspace:*
         version: link:../../packages/forums
+      '@forum/profile-fields':
+        specifier: workspace:*
+        version: link:../../packages/profile-fields
       '@forum/settings':
         specifier: workspace:*
         version: link:../../packages/settings
@@ -97,6 +103,9 @@ importers:
       '@forum/accounts':
         specifier: workspace:*
         version: link:../../packages/accounts
+      '@forum/admin':
+        specifier: workspace:*
+        version: link:../../packages/admin
       '@forum/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
@@ -121,18 +130,39 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../../packages/groups
+      '@forum/messages':
+        specifier: workspace:*
+        version: link:../../packages/messages
       '@forum/moderation':
         specifier: workspace:*
         version: link:../../packages/moderation
+      '@forum/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@forum/posts':
         specifier: workspace:*
         version: link:../../packages/posts
+      '@forum/profile-fields':
+        specifier: workspace:*
+        version: link:../../packages/profile-fields
+      '@forum/relations':
+        specifier: workspace:*
+        version: link:../../packages/relations
+      '@forum/reputation':
+        specifier: workspace:*
+        version: link:../../packages/reputation
+      '@forum/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       '@forum/settings':
         specifier: workspace:*
         version: link:../../packages/settings
       '@forum/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@forum/signatures':
+        specifier: workspace:*
+        version: link:../../packages/signatures
       '@forum/tasks':
         specifier: workspace:*
         version: link:../../packages/tasks
@@ -229,8 +259,29 @@ importers:
         specifier: ^4.12.0
         version: 4.12.0
 
+  packages/admin:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/attachments:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/authorization:
     dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/avatars:
+    dependencies:
+      '@forum/attachments':
+        specifier: workspace:*
+        version: link:../attachments
       '@forum/core':
         specifier: workspace:*
         version: link:../core
@@ -251,9 +302,18 @@ importers:
       '@forum/accounts':
         specifier: workspace:*
         version: link:../accounts
+      '@forum/admin':
+        specifier: workspace:*
+        version: link:../admin
+      '@forum/attachments':
+        specifier: workspace:*
+        version: link:../attachments
       '@forum/authorization':
         specifier: workspace:*
         version: link:../authorization
+      '@forum/avatars':
+        specifier: workspace:*
+        version: link:../avatars
       '@forum/bbcode':
         specifier: workspace:*
         version: link:../bbcode
@@ -269,12 +329,33 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../groups
+      '@forum/messages':
+        specifier: workspace:*
+        version: link:../messages
       '@forum/moderation':
         specifier: workspace:*
         version: link:../moderation
+      '@forum/notifications':
+        specifier: workspace:*
+        version: link:../notifications
+      '@forum/profile-fields':
+        specifier: workspace:*
+        version: link:../profile-fields
+      '@forum/relations':
+        specifier: workspace:*
+        version: link:../relations
+      '@forum/reputation':
+        specifier: workspace:*
+        version: link:../reputation
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
+      '@forum/signatures':
+        specifier: workspace:*
+        version: link:../signatures
+      '@forum/subscriptions':
+        specifier: workspace:*
+        version: link:../subscriptions
       '@forum/tasks':
         specifier: workspace:*
         version: link:../tasks
@@ -303,12 +384,24 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 3.1098.0
         version: 3.1098.0
+      '@forum/attachments':
+        specifier: workspace:*
+        version: link:../attachments
       '@forum/core':
         specifier: workspace:*
         version: link:../core
       '@forum/db':
         specifier: workspace:*
         version: link:../db
+      '@jsquash/jpeg':
+        specifier: ^1.6.0
+        version: 1.6.0
+      '@jsquash/png':
+        specifier: ^3.1.1
+        version: 3.1.1
+      '@jsquash/resize':
+        specifier: ^2.1.1
+        version: 2.1.1
       drizzle-orm:
         specifier: ^0.44.7
         version: 0.44.7(@electric-sql/pglite@0.5.4)(postgres@3.4.9)
@@ -330,8 +423,26 @@ importers:
 
   packages/groups: {}
 
+  packages/messages:
+    dependencies:
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../bbcode
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/moderation:
     dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/notifications:
+    dependencies:
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../bbcode
       '@forum/core':
         specifier: workspace:*
         version: link:../core
@@ -342,11 +453,35 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/profile-fields:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/relations:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/reputation:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/runtime:
     dependencies:
       '@forum/accounts':
         specifier: workspace:*
         version: link:../accounts
+      '@forum/attachments':
+        specifier: workspace:*
+        version: link:../attachments
+      '@forum/avatars':
+        specifier: workspace:*
+        version: link:../avatars
       '@forum/core':
         specifier: workspace:*
         version: link:../core
@@ -365,6 +500,12 @@ importers:
       '@forum/moderation':
         specifier: workspace:*
         version: link:../moderation
+      '@forum/notifications':
+        specifier: workspace:*
+        version: link:../notifications
+      '@forum/settings':
+        specifier: workspace:*
+        version: link:../settings
       '@forum/tasks':
         specifier: workspace:*
         version: link:../tasks
@@ -383,6 +524,21 @@ importers:
       zod:
         specifier: ^4.4.3
         version: 4.4.3
+
+  packages/signatures:
+    dependencies:
+      '@forum/bbcode':
+        specifier: workspace:*
+        version: link:../bbcode
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/subscriptions:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/tasks:
     dependencies:
@@ -611,6 +767,54 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
+  '@electric-sql/pglite-age@0.0.5':
+    resolution: {integrity: sha512-0PoZu8c5tkvqvVrS77Wcz3hK+nSGw8u8omX8cOWzrg7P95lvS3t4ie9tg5RUPSoFS3xkGJFMBwrqWm5BHTDjiQ==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pg_hashids@0.0.5':
+    resolution: {integrity: sha512-z8iR0ui18LiK8QBCQfq4vrzMIBEUROdYPWJSG5f91v8JHv0lbCc5B/qw5pSKnoht1pXlH0yPcvLF/+GuMYSRdQ==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pg_ivm@0.0.5':
+    resolution: {integrity: sha512-xx9IjXcRmbHivVLB9DbaA9MsMx8vJGk+cqN2N592oCoKqe+k7SXcUuRh/PSglS7jaHPXM/KvE7KDOh+lip3LfA==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pg_textsearch@0.0.6':
+    resolution: {integrity: sha512-n5lTjivQn/ZvVFdMoW3Rn9u30S0LeAh/sOmjKptnF0nsTa1zIZxa0mAuynzIKrMoUQ0wOFHyB3mj1lIK2UWHUA==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pg_uuidv7@0.0.5':
+    resolution: {integrity: sha512-uAatun9hKF6TKYZBc83SaU+snWsg6v2cRatzmty+3e6ai4yDpcOMJBjmA+I73ec0Dk6tykEDsgcsJ0+Eg8af+Q==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pgtap@0.0.5':
+    resolution: {integrity: sha512-Bf2L2mcsN8AjqZJVXKoUOIaXljtrapclfgrgx4MN2UMLxJtzoPju0KR9aD89mi09eJEMZuKIDsKrtEdXUPuzLQ==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pgvector@0.0.5':
+    resolution: {integrity: sha512-KEPAkD/3FN6WlDM6XPi2Ko1Xk0ecjOU9OfzCoclVkiRoEVNRYwKo1iO+tlkelMgp07SszmSC4JdSBueH2p7uOQ==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-socket@0.2.7':
+    resolution: {integrity: sha512-lhYx1OOVueiWJRa2Uj1QiIjCWmpRnYLNs5rRH/g47EqrYXP/Qt3VvcXGGum4uIouKKMVlPlkXb6E5Uw0aHRymw==}
+    hasBin: true
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.4
+      '@electric-sql/pglite-age': 0.0.5
+      '@electric-sql/pglite-pg_hashids': 0.0.5
+      '@electric-sql/pglite-pg_ivm': 0.0.5
+      '@electric-sql/pglite-pg_textsearch': 0.0.6
+      '@electric-sql/pglite-pg_uuidv7': 0.0.5
+      '@electric-sql/pglite-pgtap': 0.0.5
+      '@electric-sql/pglite-pgvector': 0.0.5
+
   '@electric-sql/pglite@0.5.4':
     resolution: {integrity: sha512-yYZUyyXrHU7tPlCjwZQJ6hIG9DscdCCn7Uk0mYKwC1FeHX286AbcmFveMiRBEak8e9iPupjsoVImN3yJZVed2g==}
 
@@ -625,11 +829,11 @@ packages:
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild-kit/esm-loader@2.6.5':
     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild/aix-ppc64@0.25.12':
     resolution: {integrity: sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA==}
@@ -1336,6 +1540,15 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@jsquash/jpeg@1.6.0':
+    resolution: {integrity: sha512-zwN46Awh1VM6gXlIcALwb5WzqK5H2e6+Awcs1QP8AvS8ohsK/sbE4esvmH4jhlhW7+CgiUUww66vg0aTnlSIMA==}
+
+  '@jsquash/png@3.1.1':
+    resolution: {integrity: sha512-C10pc+0H6j0h8fENOfnGOvkXCmvpSQTDGlfGd0sHphZhPSGTyLjIrHba0FaZZdsKqA/wlmhYicUHb92vfZphaw==}
+
+  '@jsquash/resize@2.1.1':
+    resolution: {integrity: sha512-0R5UL1ZLHUT+carjVikcE1QfA+kfNQ2YamYyGVRmhfh4zttU5EY3bQBGxPIPtY2xIAw1P4Kgyxm2xrceRw1r2w==}
 
   '@mswjs/interceptors@0.41.9':
     resolution: {integrity: sha512-VVPPgHyQ6ShqnrmDWuxjmUIsO9gWyOZFmuOfLd9LfBGQJwZfy0gvv9pbHSJuoFNIYC7ZDX9aoFwowjcdSC4E8w==}
@@ -3169,6 +3382,45 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
+  '@electric-sql/pglite-age@0.0.5(@electric-sql/pglite@0.5.4)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pg_hashids@0.0.5(@electric-sql/pglite@0.5.4)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pg_ivm@0.0.5(@electric-sql/pglite@0.5.4)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pg_textsearch@0.0.6(@electric-sql/pglite@0.5.4)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pg_uuidv7@0.0.5(@electric-sql/pglite@0.5.4)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pgtap@0.0.5(@electric-sql/pglite@0.5.4)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-pgvector@0.0.5(@electric-sql/pglite@0.5.4)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.4
+
+  '@electric-sql/pglite-socket@0.2.7(@electric-sql/pglite-age@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pg_hashids@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pg_ivm@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pg_textsearch@0.0.6(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pg_uuidv7@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pgtap@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite-pgvector@0.0.5(@electric-sql/pglite@0.5.4))(@electric-sql/pglite@0.5.4)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.4
+      '@electric-sql/pglite-age': 0.0.5(@electric-sql/pglite@0.5.4)
+      '@electric-sql/pglite-pg_hashids': 0.0.5(@electric-sql/pglite@0.5.4)
+      '@electric-sql/pglite-pg_ivm': 0.0.5(@electric-sql/pglite@0.5.4)
+      '@electric-sql/pglite-pg_textsearch': 0.0.6(@electric-sql/pglite@0.5.4)
+      '@electric-sql/pglite-pg_uuidv7': 0.0.5(@electric-sql/pglite@0.5.4)
+      '@electric-sql/pglite-pgtap': 0.0.5(@electric-sql/pglite@0.5.4)
+      '@electric-sql/pglite-pgvector': 0.0.5(@electric-sql/pglite@0.5.4)
+
   '@electric-sql/pglite@0.5.4': {}
 
   '@emnapi/core@1.11.1':
@@ -3633,6 +3885,12 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@jsquash/jpeg@1.6.0': {}
+
+  '@jsquash/png@3.1.1': {}
+
+  '@jsquash/resize@2.1.1': {}
 
   '@mswjs/interceptors@0.41.9':
     dependencies:

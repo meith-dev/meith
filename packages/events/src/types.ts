@@ -39,9 +39,35 @@ export interface DomainEventMap {
   'post.deleted': { postId: number; threadId: number; forumId: number }
   'post.visibility_changed': { postId: number; threadId: number; forumId: number; visible: boolean }
 
+  /**
+   * F55. Raised inside the same transaction as the notification row, and only
+   * when e-mail is wanted for it — so this event means "send this one", not
+   * "somebody was notified". A notification whose recipient has e-mail switched
+   * off writes no row here at all, which is what keeps the outbox proportional
+   * to the mail the board actually sends rather than to everything it records.
+   */
+  'notification.created': { notificationId: number; userId: number; kind: string }
+
+  /**
+   * F42. Raised once an attachment row exists, and carrying nothing but its id:
+   * the handler re-reads the row, because at-least-once delivery means it may
+   * run after the post was deleted or the row already processed.
+   */
+  'attachment.uploaded': { attachmentId: number }
+
+  /** F58. Same shape and same reason as `attachment.uploaded`. */
+  'avatar.uploaded': { userId: number }
+
   'forum.structure_changed': { forumIds: number[] }
   'settings.changed': { keys: string[] }
   'theme.changed': { themeId: number }
+
+  /*
+   * F67's mass mail. One event per recipient, carrying the campaign id rather
+   * than the body: the body lives on `mass_mails` and would otherwise be copied
+   * into the queue once per member on the board.
+   */
+  'admin.mass_mail_queued': { massMailId: number; userId: number; email: string }
 }
 
 export type DomainEventName = keyof DomainEventMap

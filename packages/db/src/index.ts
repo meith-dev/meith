@@ -54,7 +54,60 @@ export {
 } from './render-backfill'
 export { PostgresPostWriteRepository } from './post-writes'
 export { PostgresModerationQueueRepository } from './moderation-queue'
+export { PostgresMemberSettingsRepository } from './member-settings-repo'
+export { PostgresNotificationRepository } from './notification-repo'
+export { PostgresProfileFieldRepository } from './profile-field-repo'
+export { PostgresMessageRepository } from './message-repo'
+export { PostgresAttachmentRepository } from './attachment-repo'
+export { PostgresAvatarRepository } from './avatar-repo'
+export {
+  PostgresGroupAdminRepository,
+  type GroupIdentityInput,
+  type GroupSummaryRow,
+  type MembershipChunkResult,
+} from './group-admin-repo'
+export {
+  PostgresUserAdminRepository,
+  likeFragment,
+  type AccountState,
+  type UserAccountInput,
+  type UserDetail,
+  type UserSearchFilter,
+  type UserSearchPage,
+  type UserSearchRow,
+} from './user-admin-repo'
+export {
+  PostgresUserMergeRepository,
+  type MergeChunkResult,
+  type MergePreview,
+} from './user-merge-repo'
+export { mergeMapColumns } from './user-merge-map'
+export {
+  PostgresUserBulkRepository,
+  type MassMailChunk,
+  type MassMailRecipient,
+  type MassMailRow,
+  type PruneChunkResult,
+  type PruneCriteria,
+  type PrunePreview,
+} from './user-bulk-repo'
+export {
+  MODERATOR_RIGHTS,
+  PostgresForumAdminRepository,
+  type AppointModeratorInput,
+  type ForumOptionsInput,
+  type ModeratorAppointmentRow,
+  type ModeratorRight,
+} from './forum-admin-repo'
+export { PostgresRelationRepository } from './relation-repo'
+export { PostgresReputationRepository } from './reputation-repo'
+export { PostgresSignatureRepository } from './signature-repo'
+export {
+  PostgresAdminLogRepository,
+  PostgresAdminSessionRepository,
+} from './admin-session-repo'
 export { PostgresReportRepository } from './report-repo'
+export { PostgresSubscriptionRepository } from './subscription-repo'
 export { PostgresThreadToolsRepository } from './thread-tools'
 export { PostgresThreadSurgeryRepository } from './thread-surgery'
 export { PostgresInlineModerationRepository } from './inline-moderation'

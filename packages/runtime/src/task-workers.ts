@@ -13,6 +13,8 @@
  */
 import type { TaskWorkers } from '@forum/tasks'
 import { BanService, type BanRepository } from '@forum/accounts'
+import { SubscriptionNotifier, type SubscriptionRepository, type VisibleForumSource } from '@forum/subscriptions'
+import type { NotificationService } from '@forum/notifications'
 import { WarningService, type WarningRepository } from '@forum/moderation'
 import { PromotionService, type PromotionGuards } from '@forum/groups'
 import {
@@ -21,6 +23,8 @@ import {
   type OutboxReader,
 } from '@forum/events'
 import type { QueueDriver } from '@forum/core'
+import type { AttachmentService } from '@forum/attachments'
+import type { AvatarService } from '@forum/avatars'
 
 import { SEED_GROUP } from './groups'
 
@@ -44,6 +48,30 @@ export interface TaskWorkerDeps {
   readonly renderBackfill: { run(batchSize: number): Promise<{ rendered: number }> }
   /** F53's warning store. */
   readonly warnings: WarningRepository
+  /**
+   * F56's subscriptions, and the two things telling somebody about one needs:
+   * F55's notification service, and the answer to "which forums may this member
+   * still see" — which comes from the Authorizer, per member, because a
+   * subscription is not a standing grant.
+   *
+   * Optional as a set: a build with no notification path registers neither task
+   * rather than one that fails on every tick (D32).
+   */
+  readonly subscriptions?: {
+    readonly repository: SubscriptionRepository
+    readonly notifications: NotificationService
+    readonly forums: VisibleForumSource
+    /** Signs F56's no-login unsubscribe links. Null leaves them out. */
+    readonly unsubscribeSecret: string | null
+  }
+  /**
+   * F42's sweep. Optional for the same reason as `subscriptions`: a deployment
+   * with no file store has nothing to collect, and a registered task that
+   * collects nothing every hour is a healthy-looking run of nothing (D32).
+   */
+  readonly attachments?: AttachmentService
+  /** F58's sweep. Optional for the same reason. */
+  readonly avatars?: AvatarService
 }
 
 /**
@@ -164,7 +192,77 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
         batchSize,
       )
     },
+
+    /*
+     * F56's two tasks share one runner and differ only in cadence. Both are
+     * absent when the board has no notification path, which `builtinTasks`
+     * turns into unregistered tasks rather than healthy runs of nothing (D32).
+     */
+    ...(deps.subscriptions === undefined
+      ? {}
+      : {
+          async notifySubscribers(batchSize: number) {
+            const { notified } = await subscriptionNotifier(deps).runInstant(batchSize)
+            return notified
+          },
+
+          /*
+           * Both digest cadences in one task. They read the same tables and
+           * differ only in the interval the clock compares against, so two
+           * tasks would be two rows in `tasks` for one behaviour — and an
+           * operator asking "did the digests go out" would have to check both.
+           */
+          async sendDigests(batchSize: number) {
+            const notifier = subscriptionNotifier(deps)
+            const daily = await notifier.runDigest('daily', batchSize)
+            const weekly = await notifier.runDigest('weekly', batchSize)
+            return daily.notified + weekly.notified
+          },
+        }),
+
+    ...(deps.attachments === undefined
+      ? {}
+      : {
+          async sweepAttachments(batchSize: number) {
+            return deps.attachments!.sweep(batchSize)
+          },
+        }),
+
+    ...(deps.avatars === undefined
+      ? {}
+      : {
+          async sweepAvatars(batchSize: number) {
+            return deps.avatars!.sweep(batchSize)
+          },
+        }),
   }
+}
+
+/**
+ * F56's runner over F55's service, behind the one-verb port.
+ *
+ * The adapter is what stops a digest run reaching `markAllRead` — the same
+ * argument D52 makes for handing the warning service one `ban` verb rather than
+ * the whole `BanService`.
+ */
+function subscriptionNotifier(deps: TaskWorkerDeps): SubscriptionNotifier {
+  const wiring = deps.subscriptions!
+  return new SubscriptionNotifier({
+    subscriptions: wiring.repository,
+    forums: wiring.forums,
+    unsubscribeSecret: wiring.unsubscribeSecret,
+    notifications: {
+      async raise(input) {
+        await wiring.notifications.raise({
+          userId: input.userId,
+          kind: input.kind,
+          data: input.data as Parameters<NotificationService['raise']>[0]['data'],
+          href: input.href,
+          dedupeKey: input.dedupeKey,
+        })
+      },
+    },
+  })
 }
 
 /**

@@ -20,6 +20,7 @@
  * about — which `task:list` is for.
  */
 import { drivers } from '@forum/drivers'
+import { imageProcessor } from '@forum/drivers/images'
 import { buildSchedulerBundle, type SchedulerBundle } from '@forum/runtime'
 import { tick } from '@forum/tasks'
 
@@ -35,7 +36,12 @@ import { requirePostgres } from './context'
  */
 function scheduler(): SchedulerBundle {
   requirePostgres()
-  return buildSchedulerBundle({ queue: drivers().queue })
+  return buildSchedulerBundle({
+    queue: drivers().queue,
+    mail: drivers().mail,
+    files: drivers().files,
+    images: imageProcessor,
+  })
 }
 
 export async function taskList(): Promise<number> {
@@ -51,7 +57,7 @@ export async function taskList(): Promise<number> {
 
 export async function taskRun(args: readonly string[]): Promise<number> {
   const only = args[0]
-  const { repository, tasks } = scheduler()
+  const { repository, tasks, onTaskFailure } = scheduler()
   const selected = only === undefined ? tasks : tasks.filter((t) => t.id === only)
   if (only !== undefined && selected.length === 0) {
     console.error(
@@ -61,7 +67,12 @@ export async function taskRun(args: readonly string[]): Promise<number> {
     return 1
   }
 
-  const outcomes = await tick({ repository, tasks: selected })
+  /*
+   * The same failure notifier the cron path uses (F55). An operator running a
+   * task by hand is exactly when a failure needs to reach the administrators
+   * who are not watching this terminal.
+   */
+  const outcomes = await tick({ repository, tasks: selected, onError: onTaskFailure })
 
   /*
    * `skipped` is the common case and is not a failure: another instance holds

@@ -20,6 +20,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -341,6 +342,16 @@ export const threadViewBuffer = pgTable(
   (t) => [index('thread_view_buffer_updated_idx').on(t.updatedAt)],
 )
 
+/**
+ * F28's table, given a reader by F56.
+ *
+ * `mode` was `notify_via` and held a *channel* ('none' | 'email' |
+ * 'notification'). F55 answered the channel question board-wide — everything is
+ * recorded on-site and `notification_preferences` decides what also goes by
+ * e-mail — so what a subscription is left to say is *how often*: the MyBB
+ * subscription type, renamed and remapped by migration `0008` rather than added
+ * beside a column nothing reads.
+ */
 export const threadSubscriptions = pgTable(
   'thread_subscriptions',
   {
@@ -350,8 +361,17 @@ export const threadSubscriptions = pgTable(
     threadId: integer('thread_id')
       .notNull()
       .references(() => threads.id, { onDelete: 'cascade' }),
-    /** 'none' | 'email' | 'notification' */
-    notifyVia: text('notify_via').notNull().default('notification'),
+    /** 'none' | 'instant' | 'daily' | 'weekly' — a cadence, not a channel. */
+    mode: text('mode').notNull().default('instant'),
+    /**
+     * The last post this subscriber was told about.
+     *
+     * A watermark rather than a queue of pending rows: "what is outstanding" is
+     * then a range query, and a tick that never ran changes *when* somebody is
+     * told rather than whether. Set on subscribe to the thread's current last
+     * post, so following a 400-post thread notifies nobody about 400 posts.
+     */
+    lastNotifiedPostId: integer('last_notified_post_id').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -360,7 +380,29 @@ export const threadSubscriptions = pgTable(
     uniqueIndex('thread_subscriptions_pkey').on(t.userId, t.threadId),
     // Fan-out on a new reply reads every subscriber of one thread.
     index('thread_subscriptions_thread_idx').on(t.threadId),
+    index('thread_subscriptions_user_idx').on(t.userId, t.createdAt.desc()),
+    index('thread_subscriptions_mode_idx').on(t.mode, t.userId),
   ],
+)
+
+/**
+ * When each member last received each cadence.
+ *
+ * Keyed by member *and* cadence, because a member can follow one thread daily
+ * and another weekly. A task-wide clock would instead send everybody's digest
+ * at whatever moment the tick fired, and hand somebody who subscribed on Sunday
+ * a "weekly" digest on Monday.
+ */
+export const digestRuns = pgTable(
+  'digest_runs',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    cadence: text('cadence').notNull(),
+    lastSentAt: timestamp('last_sent_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ name: 'digest_runs_pkey', columns: [t.userId, t.cadence] })],
 )
 
 /**
@@ -456,4 +498,119 @@ export const reportEvents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('report_events_report_idx').on(t.reportId, t.createdAt)],
+)
+
+/**
+ * Reputation (F62).
+ *
+ * One row per rating. Two uniqueness rules, both partial indexes rather than
+ * checks: one profile rating per pair, and one rating per person per post — see
+ * `migrations/0013_reputation.sql` for why the daily cap is *not* one of them.
+ *
+ * `users.reputation` is derived from these rows and recomputed from them, never
+ * incremented, exactly as F53 handles `warning_points`.
+ */
+export const reputation = pgTable(
+  'reputation',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Null once the giver's account is gone; the rating still counts. */
+    givenByUserId: integer('given_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Null for a rating left on the profile rather than on a post. */
+    /* The FK lives here rather than in identity.ts, which is why this table
+       does: `posts` is declared in this file, and the schema files have a
+       strict dependency order (identity <- structure <- content). */
+    postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }),
+    points: smallint('points').notNull().default(1),
+    comment: text('comment').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('reputation_profile_unique')
+      .on(t.givenByUserId, t.userId)
+      .where(sql`${t.postId} is null`),
+    uniqueIndex('reputation_post_unique')
+      .on(t.givenByUserId, t.postId)
+      .where(sql`${t.postId} is not null`),
+    index('reputation_user_idx').on(t.userId, t.id.desc()),
+    index('reputation_given_idx').on(t.givenByUserId, t.createdAt.desc()),
+  ],
+)
+
+/**
+ * Attachments (F42).
+ *
+ * Two keys, and the difference between them is the feature. `sourceKey` is what
+ * a member uploaded; `storageKey` is what the board serves, written by an
+ * encoder from decoded pixels. A `pending` row has the first and not the
+ * second, and nothing may be downloaded before that swaps — see
+ * `migrations/0016_attachments.sql` and ADR 0003.
+ */
+export const attachments = pgTable(
+  'attachments',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    postId: integer('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    /** Denormalised: authorising a download must not need three joins. */
+    forumId: integer('forum_id')
+      .notNull()
+      .references(() => forums.id, { onDelete: 'cascade' }),
+    uploaderUserId: integer('uploader_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Sanitised, and display-only — it never reaches a path. */
+    filename: text('filename').notNull(),
+    /** The sniffed type, never the browser's claim. */
+    contentType: text('content_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    storageKey: text('storage_key'),
+    sourceKey: text('source_key'),
+    thumbnailKey: text('thumbnail_key'),
+    width: integer('width'),
+    height: integer('height'),
+    /** `pending | ready | failed`. */
+    status: text('status').notNull().default('pending'),
+    failureReason: text('failure_reason'),
+    downloadCount: integer('download_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    readyAt: timestamp('ready_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('attachments_post_idx').on(t.postId),
+    index('attachments_uploader_idx').on(t.uploaderUserId),
+    index('attachments_pending_idx')
+      .on(t.createdAt)
+      .where(sql`${t.status} = 'pending'`),
+    uniqueIndex('attachments_storage_key_key')
+      .on(t.storageKey)
+      .where(sql`${t.storageKey} is not null`),
+    uniqueIndex('attachments_source_key_key')
+      .on(t.sourceKey)
+      .where(sql`${t.sourceKey} is not null`),
+  ],
+)
+
+/**
+ * Every object written to the file store, from the moment it is written.
+ *
+ * Inserted before the `put` and deleted when a row takes ownership of the key.
+ * What remains is exactly the set of keys that may exist in the bucket with
+ * nothing pointing at them — which is a cheap indexed question here and an
+ * impossible one against a bucket.
+ */
+export const attachmentOrphans = pgTable(
+  'attachment_orphans',
+  {
+    storageKey: text('storage_key').primaryKey(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('attachment_orphans_age_idx').on(t.createdAt)],
 )

@@ -34,6 +34,20 @@ export interface TaskWorkers {
    * belonged to. Returns warnings lapsed.
    */
   expireWarnings(batchSize: number): Promise<number>
+  /**
+   * Tells members who follow a thread or forum "as it happens" about posts they
+   * have not been told about. Returns members notified.
+   */
+  notifySubscribers(batchSize: number): Promise<number>
+  /** Sends the daily and weekly digests that are due. Returns members notified. */
+  sendDigests(batchSize: number): Promise<number>
+  /**
+   * Deletes stored objects nothing owns and fails uploads whose processing
+   * never finished. Returns the two counts.
+   */
+  sweepAttachments(batchSize: number): Promise<{ deleted: number; failed: number }>
+  /** Fails avatar uploads whose re-encode never finished. Returns the count. */
+  sweepAvatars(batchSize: number): Promise<number>
 }
 
 function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
@@ -215,6 +229,88 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         return { detail: { expired } }
       },
     },
+    {
+      id: 'subscriptions.instant',
+      title: 'Notify subscribers',
+      description:
+        'Tells members who follow a thread or forum "as it happens" about ' +
+        'posts that have arrived since they were last told. Runs on the ' +
+        'shortest interval the scheduler has, which is what "instant" means ' +
+        'here: fanning out inside the posting request would put an unbounded ' +
+        'loop — one permission check per subscriber — on the board\'s hottest ' +
+        'write, and couple posting to the mail provider being up. Each ' +
+        "subscription carries a watermark, so a skipped tick delays a " +
+        'notification and never loses one.',
+      intervalSeconds: 60,
+      maxDurationSeconds: 45,
+      async run() {
+        const notified = await workers.notifySubscribers(50)
+        return { detail: { notified } }
+      },
+    },
+
+    {
+      id: 'subscriptions.digest',
+      title: 'Send subscription digests',
+      description:
+        'Sends the daily and weekly digests that are due. The clock is per ' +
+        'member and per cadence rather than per run, so somebody who ' +
+        'subscribed on Sunday gets their first weekly digest a week later — ' +
+        'not at whatever moment the board tick happened to fire. Hourly, ' +
+        'because a digest that is due is a query that finds nobody most of the ' +
+        'time, and asking often is what keeps "daily" within an hour of the ' +
+        'same time each day.',
+      intervalSeconds: 3_600,
+      maxDurationSeconds: 60,
+      async run() {
+        const notified = await workers.sendDigests(50)
+        return { detail: { notified } }
+      },
+    },
+
+    {
+      id: 'attachments.sweep',
+      title: 'Collect abandoned attachment files',
+      description:
+        'Deletes objects in the file store that nothing owns, and fails ' +
+        'uploads whose re-encoding never finished. An object key is recorded ' +
+        'before its bytes are written and forgotten when a row takes ownership, ' +
+        'so what this collects is exactly what a crash between those two steps ' +
+        'left behind — a question that is an indexed query here and a full ' +
+        'bucket listing anywhere else. Purely subtractive, and bounded by a ' +
+        'grace period, so an upload in flight is never collected out from ' +
+        'under itself.',
+      /*
+       * Hourly. Every candidate is already older than the grace period by the
+       * time it qualifies, so asking more often finds the same nothing; and the
+       * cost of a delay is storage, which is the cheapest thing to be wrong
+       * about.
+       */
+      intervalSeconds: 3_600,
+      maxDurationSeconds: 60,
+      async run() {
+        const { deleted, failed } = await workers.sweepAttachments(200)
+        return { detail: { deleted, failed } }
+      },
+    },
+
+    {
+      id: 'avatars.sweep',
+      title: 'Fail unfinished avatar uploads',
+      description:
+        'Marks avatar uploads whose re-encode never finished, so the member is ' +
+        'told to try again rather than left looking at a spinner that is not ' +
+        'there. Separate from the attachment sweep because it acts on `users` ' +
+        'rather than on the object ledger, and because an operator asking why ' +
+        'an avatar is stuck should not have to read a task about attachments. ' +
+        'Purely corrective, and safe to run twice.',
+      intervalSeconds: 3_600,
+      maxDurationSeconds: 60,
+      async run() {
+        const failed = await workers.sweepAvatars(200)
+        return { detail: { failed } }
+      },
+    },
   ]
 }
 
@@ -234,6 +330,10 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'promotions.apply': 'applyPromotions',
   'bans.expire': 'expireBans',
   'warnings.expire': 'expireWarnings',
+  'subscriptions.instant': 'notifySubscribers',
+  'subscriptions.digest': 'sendDigests',
+  'attachments.sweep': 'sweepAttachments',
+  'avatars.sweep': 'sweepAvatars',
 }
 
 /**

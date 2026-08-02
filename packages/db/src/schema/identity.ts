@@ -16,7 +16,9 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -145,6 +147,36 @@ export const users = pgTable(
     reputation: integer('reputation').notNull().default(0),
     warningPoints: smallint('warning_points').notNull().default(0),
 
+    /*
+     * F58's signature. Raw BBCode plus F36's render pair, for the third time
+     * (`posts`, `private_messages`, now here) — a signature is member-written
+     * BBCode under every one of their posts, so a renderer security fix has to
+     * reach it the same way it reaches everything else.
+     */
+    signature: text('signature').notNull().default(''),
+    signatureHtml: text('signature_html'),
+    signatureRenderVersion: smallint('signature_render_version').notNull().default(0),
+    /** Locked by a moderator: kept, not rendered, not editable. */
+    signatureLocked: boolean('signature_locked').notNull().default(false),
+    signatureLockedReason: text('signature_locked_reason'),
+
+    /*
+     * F58's other half. The two keys are F42's lifecycle: `avatarSourceKey`
+     * holds what the member uploaded and `avatarKey` what the board serves,
+     * written by an encoder from decoded pixels. `none` is a real state and the
+     * commonest, so it is a value rather than a null every query coalesces.
+     */
+    avatarStatus: text('avatar_status').notNull().default('none'),
+    avatarKey: text('avatar_key'),
+    avatarSourceKey: text('avatar_source_key'),
+    avatarWidth: integer('avatar_width'),
+    avatarHeight: integer('avatar_height'),
+    avatarFailureReason: text('avatar_failure_reason'),
+    /** Part of the served URL, so a replacement is never a cached old image. */
+    avatarUpdatedAt: timestamp('avatar_updated_at', { withTimezone: true }),
+    avatarLocked: boolean('avatar_locked').notNull().default(false),
+    avatarLockedReason: text('avatar_locked_reason'),
+
     /** Truncated per F09 — never a full address. */
     registrationIpPrefix: text('registration_ip_prefix'),
     lastIpPrefix: text('last_ip_prefix'),
@@ -163,6 +195,24 @@ export const users = pgTable(
      */
     suspendedPostingUntil: timestamp('suspended_posting_until', { withTimezone: true }),
     moderatedPostingUntil: timestamp('moderated_posting_until', { withTimezone: true }),
+
+    /**
+     * F57 — the member's own settings.
+     *
+     * Columns rather than a `user_preferences` table for F53's reason: every
+     * one is read on the page-render path for the signed-in member, there is
+     * exactly one of each per account, and a join for a row that always exists
+     * is a join on every page of the board.
+     */
+    /** IANA name, validated against the runtime's tz database. Never an offset. */
+    timezone: text('timezone').notNull().default('UTC'),
+    /** Null = the board setting. Override-only, like `settings` itself. */
+    postsPerPage: smallint('posts_per_page'),
+    threadsPerPage: smallint('threads_per_page'),
+    /** The public profile a member writes about themselves. */
+    location: text('location'),
+    website: text('website'),
+    bio: text('bio'),
 
     /** Set when state='deleted'. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -190,6 +240,11 @@ export const users = pgTable(
       .where(sql`${t.state} = 'active'`),
     // "Who's online" and the last-active column.
     index('users_last_active_idx').on(t.lastActiveAt),
+    /* F36's backfill predicate for signatures; partial, because most rows have
+       no signature at all and the task must not scan them. */
+    index('users_signature_render_version_idx')
+      .on(t.signatureRenderVersion, t.id)
+      .where(sql`${t.signature} <> ''`),
   ],
 )
 
@@ -581,4 +636,262 @@ export const warnings = pgTable(
     revokeReason: text('revoke_reason'),
   },
   (t) => [index('warnings_user_idx').on(t.userId, t.createdAt, t.id)],
+)
+
+/* ------------------------------------------------------------------ *
+ * F55 — notifications
+ * ------------------------------------------------------------------ */
+
+/**
+ * One thing a member has been told.
+ *
+ * `data` holds the facts captured when it was raised, and the wording is
+ * applied on read by `@forum/notifications`. Storing a pointer instead — a post
+ * id read back at render time — breaks in the case notifications exist for: the
+ * post is often the one a moderator has since deleted, so the record would
+ * either vanish or quietly say something different.
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    /** A registry id. Text, so a removed kind still reads back. */
+    kind: text('kind').notNull(),
+    data: jsonb('data').notNull().default({}),
+    /** Board-relative path, or null for a notification pointing nowhere. */
+    href: text('href'),
+
+    /**
+     * Coalescing identity. Null never coalesces; a non-null key is unique per
+     * member *while unread*, which is what turns a task failing every minute
+     * into one row and a count.
+     */
+    dedupeKey: text('dedupe_key'),
+    occurrences: integer('occurrences').notNull().default(1),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Bumped when a raise coalesces into this row. */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    /** Written after a message goes out, so a queue retry does not send twice. */
+    emailSentAt: timestamp('email_sent_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('notifications_user_idx').on(t.userId, t.createdAt.desc(), t.id.desc()),
+    /*
+     * The unread count renders in the user panel on every page for a signed-in
+     * member, so it must not pay for the history: partial, over the rows that
+     * can contribute.
+     */
+    index('notifications_unread_idx')
+      .on(t.userId)
+      .where(sql`${t.readAt} is null`),
+    /*
+     * Coalescing, enforced rather than checked. Partial on unread *and* on a
+     * non-null key: a read notification no longer blocks a fresh one, and a row
+     * that opted out of coalescing is not constrained at all.
+     */
+    uniqueIndex('notifications_dedupe_idx')
+      .on(t.userId, t.dedupeKey)
+      .where(sql`${t.readAt} is null and ${t.dedupeKey} is not null`),
+  ],
+)
+
+/**
+ * Which kinds a member wants by e-mail.
+ *
+ * Overrides only, like `settings`: absence means the registry default, which is
+ * what lets a kind added in a later deploy arrive switched on rather than
+ * switched off for everybody who ever opened the screen. There is no on-site
+ * column on purpose — the centre is the record, and a record somebody can
+ * disable is not one.
+ */
+export const notificationPreferences = pgTable(
+  'notification_preferences',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    email: boolean('email').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ name: 'notification_preferences_pkey', columns: [t.userId, t.kind] }),
+  ],
+)
+
+/* ------------------------------------------------------------------ *
+ * F59 — custom profile fields
+ * ------------------------------------------------------------------ */
+
+/**
+ * A field the operator defines, in the shape F57's fixed trio could not have.
+ *
+ * `key` is the stable machine name, so renaming a label keeps every stored
+ * answer attached. `type` is text rather than an enum for the reason
+ * `visibility` is: a type this build does not know must degrade to a plain
+ * input rather than break the profile screen.
+ */
+export const profileFields = pgTable(
+  'profile_fields',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    key: text('key').notNull(),
+    label: text('label').notNull(),
+    description: text('description'),
+
+    /** 'text' | 'textarea' | 'select' | 'checkbox' | 'url' | 'number'. */
+    type: text('type').notNull().default('text'),
+    /** The choices, for `select`. A JSON array of strings; empty otherwise. */
+    options: jsonb('options').notNull().default([]),
+    /** Null = the type's own default. */
+    maxLength: integer('max_length'),
+
+    displayOrder: integer('display_order').notNull().default(0),
+    /** Inactive keeps the values: "hide this for now" is not "delete it". */
+    isActive: boolean('is_active').notNull().default(true),
+    /** Asked on the registration form, and refused if empty (F18). */
+    requiredAtRegistration: boolean('required_at_registration').notNull().default(false),
+
+    /**
+     * What applies when no group row says otherwise. Two booleans rather than
+     * one visibility word, because "who may see it" and "who may change it" are
+     * genuinely independent.
+     */
+    defaultVisible: boolean('default_visible').notNull().default(true),
+    defaultEditable: boolean('default_editable').notNull().default(true),
+
+    /** Beside every post as well as on the profile. Off by default (F31's cost). */
+    showInPostbit: boolean('show_in_postbit').notNull().default(false),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('profile_fields_key_unique').on(t.key),
+    index('profile_fields_order_idx').on(t.displayOrder, t.id),
+  ],
+)
+
+/**
+ * The per-group override, in F21's `forum_permissions` shape.
+ *
+ * Nullable columns, where NULL means "inherit the field's default" — which is
+ * what makes "staff may edit this" one row rather than a row per group with the
+ * other answer copied in. Resolution is R4.2's: any group granting is a grant.
+ */
+export const profileFieldGroups = pgTable(
+  'profile_field_groups',
+  {
+    fieldId: integer('field_id')
+      .notNull()
+      .references(() => profileFields.id, { onDelete: 'cascade' }),
+    groupId: integer('group_id')
+      .notNull()
+      .references(() => usergroups.id, { onDelete: 'cascade' }),
+    canView: boolean('can_view'),
+    canEdit: boolean('can_edit'),
+  },
+  (t) => [
+    primaryKey({ name: 'profile_field_groups_pkey', columns: [t.fieldId, t.groupId] }),
+  ],
+)
+
+/**
+ * One member's answer to one field.
+ *
+ * A row exists only once somebody answers, so an unanswered field costs
+ * nothing — which matters when a board with twelve fields has ten thousand
+ * members who filled in two.
+ */
+export const profileFieldValues = pgTable(
+  'profile_field_values',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    fieldId: integer('field_id')
+      .notNull()
+      .references(() => profileFields.id, { onDelete: 'cascade' }),
+    value: text('value').notNull().default(''),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ name: 'profile_field_values_pkey', columns: [t.userId, t.fieldId] }),
+    index('profile_field_values_user_idx').on(t.userId),
+  ],
+)
+
+/**
+ * Buddy and ignore lists (F61).
+ *
+ * One table with a `kind` rather than two, because the two are mutually
+ * exclusive and one row per ordered pair makes that the primary key. The pair
+ * is ordered: (me, them) is my opinion of them and says nothing about theirs of
+ * me — ignoring is deliberately not symmetric.
+ */
+export const userRelations = pgTable(
+  'user_relations',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    otherUserId: integer('other_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 'buddy' | 'ignore'. */
+    kind: text('kind').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ name: 'user_relations_pkey', columns: [t.userId, t.otherUserId] }),
+    index('user_relations_kind_idx').on(t.userId, t.kind, t.otherUserId),
+    /* The reverse direction: "does this recipient ignore the sender" (F60). */
+    index('user_relations_reverse_idx').on(t.otherUserId, t.kind),
+  ],
+)
+
+/**
+ * The ACP's own session (F63).
+ *
+ * A second session, not a second account: entering `/admin` asks for the
+ * password again and mints this, with a short idle timeout that can be
+ * aggressive precisely because expiring it logs somebody out of the ACP and
+ * nothing else.
+ *
+ * `authenticatedAt` is a separate clock from `lastSeenAt`. Activity extends the
+ * session; only re-entering the password moves the proof — which is what
+ * "re-authenticate before this destructive operation" reads.
+ */
+export const adminSessions = pgTable(
+  'admin_sessions',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** SHA-256 of the cookie value; never the value itself. */
+    tokenHash: text('token_hash').notNull(),
+    /** Truncated per F09 — never a full address. */
+    ipPrefix: text('ip_prefix'),
+    authenticatedAt: timestamp('authenticated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('admin_sessions_token_hash_key').on(t.tokenHash),
+    index('admin_sessions_user_idx').on(t.userId),
+    index('admin_sessions_expiry_idx').on(t.expiresAt),
+  ],
 )

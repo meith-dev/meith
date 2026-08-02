@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D53. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D63. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -19,10 +19,12 @@ this file.
 
 `pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
 + **guard probes**, the **slot server/client boundary** check + its probe,
-dependency-cruiser (421 modules, 0 violations), typecheck (root **and** app),
-**1833 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+dependency-cruiser (386 modules, 0 violations), typecheck (root **and** app),
+**2457 tests** (a large share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
-`/modcp/forums`, `/modcp/ip` and `/moderation/warn` in the route table. Three consecutive green runs after capping worker
+`/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
+`/notifications/preferences`, `/subscriptions`, `/unsubscribe` and the five
+`/usercp` routes in the route table. Three consecutive green runs after capping worker
 concurrency — fifteen PGlite instances were saturating ten cores and failing
 roughly one run in three (D34) — and after raising the *test* timeout, which
 F38's four extra database suites pushed the Argon2id lockout test past (D41).
@@ -43,7 +45,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
 
 - **Phase 0 (F01–F14)** — workspace, env, db package + migrator, drivers, tick,
   outbox, settings, logging/errors, cache tags + boundary lint, CI, CLI
-  (3 real commands), docs. Checkpoint 0 reached. See D1–D11.
+  (thirteen commands, F59's three included), docs. Checkpoint 0 reached. See D1–D11.
   **Two of these are thinner than this line previously claimed:** F11's testkit
   is an empty package, and F10 has tag names but no cache implementation. Both
   are itemised under NEXT ACTION rather than left implied here.
@@ -361,16 +363,536 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   paid**: `Target.isForumModerator` is now set on every per-page `can()` call.
   See **D53**.
 
+- **F55 notifications and mail — Phase 5 opens.** Three finished features were
+  waiting on this and each said so in its own row: a failing task logged and
+  raised nothing, a closed report told nobody, and a warned member found out by
+  trying to post and being refused. All three now notify.
+
+  The decision the rest follows from is that **the record is the row and the
+  e-mail is a transport**. `notifications` is written first, always; the message
+  is a queued consequence. That is also what settles the preferences screen —
+  it configures e-mail and nothing else, because the centre is the board's
+  evidence that somebody was told, and a member who can erase that evidence can
+  later say they were never warned with the board's own data agreeing.
+
+  Two things are worth carrying forward. **A notification stores captured facts,
+  not pointers**: `data` holds a title and a points total, and the sentence is
+  applied on read — because the post that caused a notification is frequently
+  the post a moderator has since deleted, and a record that changes when its
+  subject changes is not a record. The consequence is that the renderer may
+  never throw, since every row it reads was written by a *previous* deploy.
+  And **coalescing is a partial unique index over unread rows**, not a prior
+  read (D48's trick again): a task failing on every tick is one row with a count
+  and *one* e-mail, and reading that row starts a fresh one, so an
+  administrator who clears an alert is told the next time rather than never
+  again.
+
+  Mail never touches a request path. The raise writes `notification.created` in
+  the same transaction as the row, F07's relay makes it a job, and the
+  `notifications.email` handler renders and sends inside the tick — re-reading
+  the preference, because at-least-once delivery means the "yes" recorded at
+  raise time may be hours stale. The HTML reuses F36's escaping functions and
+  asserts F36's property; "themed" is the board's name, links and accent token,
+  which is what e-mail can actually carry. See **D55** and four parity entries.
+
+- **F56 subscriptions and digests.** The other half of the notification story,
+  and the feature that finally reads two tables the board has been writing since
+  Phase 3: F39's "subscribe to this thread" checkbox has been inserting rows for
+  months with nothing on the other end.
+
+  `notify_via` becomes `mode`, and the change is the point: it held a *channel*,
+  F55 settled channels board-wide, and what a subscription is left to say is
+  **how often** — instant, daily, weekly, or never. Renamed rather than added
+  beside, because a vestigial column nothing reads is a thing everybody has to
+  reason about forever.
+
+  **Progress is a watermark, not a queue.** Each subscription remembers the last
+  post its owner was told about, so "what is outstanding" is a range query. A
+  tick that never ran changes when somebody is told, not whether; a missed week
+  is one bigger digest. The alternative — pending rows written inside the
+  posting transaction, one per subscriber — is an unbounded fan-out on the
+  board's hottest write. Two details carry the feature and both are
+  mutation-verified: the watermark is seeded when you subscribe (following a
+  400-post thread must not produce a digest of 400 posts) and is *not* reset
+  when you change cadence. **The second one was a weak test first**: it passed
+  against a deliberately broken implementation because the fixture never moved
+  the thread's own last-post pointer, so "reset" and "leave alone" produced the
+  same number. The test now moves it, and the mutant dies.
+
+  One runner serves all three cadences, because three code paths would be three
+  places to advance a watermark wrongly. Instant raises one notification per
+  *thread* under F55's dedupe key — five replies are one row and one e-mail —
+  and digests raise one per member per period with no key at all, because two
+  digests are two periods. Permission is re-resolved per member at notify time
+  through the Authorizer: a subscription is not a standing grant, and a forum
+  can go private long after somebody followed it.
+
+  The unsubscribe link is stateless (an HMAC over who/scope/which, no table) and
+  its **GET does nothing** — scanners and mail clients fetch every URL in a
+  message, so acting on the GET means members are unsubscribed by their own spam
+  filter. See **D56** and four parity entries, including why "instant" honestly
+  means "within a tick".
+
+- **F57 the UserCP — and two constants that finally mean something.** The
+  screens are the smaller half. `view/time.ts` had formatted every timestamp on
+  this board in UTC since F29 — the footer said so — and `view/paging.ts` had
+  held two numbers since F40; both named F57 in their own comments. Shipping a
+  timezone dropdown that wrote a column nobody read would have been the hollow
+  version of this feature.
+
+  So `formatTime` takes a zone now, threaded through all eight view builders,
+  and the page sizes are resolved *before* the read they bound — a preference
+  applied after the query would be a setting that does nothing. Two things fell
+  out of doing it properly: zones are **IANA names, and offsets are refused even
+  though `Intl` accepts them** (an offset cannot express summer time, which is
+  also why MyBB needs a DST flag somebody has to remember to flip), and
+  "Yesterday" is computed in the viewer's calendar rather than by subtracting 24
+  hours, so a clocks-change day cannot label something two days old as
+  yesterday.
+
+  Preferences are read once per request through `React.cache`, like the actor,
+  and are deliberately not *on* the actor: that object is cached against
+  `permission_version`, and somebody changing their timezone must not invalidate
+  a permission cache.
+
+  The security screen is the other half worth knowing. Both dangerous changes
+  re-authenticate, because an unattended session is otherwise a full takeover —
+  change the address, request a reset, done. A password change revokes **every**
+  session and then starts a fresh one for the device that made it: signed in
+  where you are, signed out everywhere else. And the e-mail change writes
+  nothing until the link sent to the *new* address is followed, carried in the
+  `email_change` token's `payload` — a column F19 created and nothing had used.
+  See **D57**, including why that confirmation link acts on GET while F56's
+  unsubscribe link deliberately does not.
+
+- **F59 · custom profile fields.** F57 gave a member three fields the *board*
+  decided on; this hands the same idea to the operator, and the moment a field
+  is operator-defined four things F57 could hard-code become data: the type, who
+  may see it, who may change it, and whether it is asked at registration.
+
+  The per-group half is **F21's shape on purpose** — a row per (field, group)
+  with nullable `can_view`/`can_edit`, NULL meaning inherit, combined by R4.2's
+  "any grant is a grant". Not because it was convenient, but because it is the
+  model this board already resolves everywhere else, so "who can see this" has
+  one mental shape. It is also what makes a single row useful: *staff may edit
+  this* is one row, not a row per group with `false` copied into all the others.
+
+  Viewing and editing are two answers rather than one visibility word, and the
+  asymmetry is deliberate: `editableFields` does **not** require `canView`, so a
+  board can collect something only staff read. A mutant that ANDs them dies.
+
+  The interesting problem was the one F20 created. The resolver needs to know
+  which of a field's rows apply to the viewer, and only `@forum/authorization`
+  may reason about group IDs. Handing callers `actor.groupIds` would have ended
+  that rule in practice — every caller then free to invent its own combination
+  semantics, one of which eventually gets "any grant is a grant" backwards. So
+  the Authorizer gained `applicableGroupRows`, which takes the caller's *own*
+  configuration rows and returns the subset that matched. **It returns rows,
+  never ids.**
+
+  Registration is the one caller with no actor to narrow by, and it is the one
+  place this is easy to get wrong: an applicant *is* a guest, so resolving the
+  viewer's context would ask for whatever guests may edit — nothing — and a
+  required field would silently never be asked. `applicableGroupRowsForGroups`
+  takes the **default member group** from `AuthConfig` instead. There is a test
+  whose only job is to fail if somebody "simplifies" that back to the viewer.
+
+  On the write side, everything is downstream of one fact: a field value is
+  attacker-controlled text that ends up on a page other members read. A
+  submitted field id is never trusted, and a field this actor may not edit is
+  dropped **silently** rather than refused, because an error naming it confirms
+  a staff-only field exists. A `select` value must be one of the configured
+  options or the dropdown is a text box in a costume. A `url` is normalised to
+  http(s) or refused — a profile field rendered as a link is an
+  attacker-controlled `href`, which is F36's argument about `[url]` and F57's
+  about the website field, met for a third time. And an **unknown type validates
+  and renders as text**: the field was written by a deploy that knew a type this
+  build does not, and refusing every save until somebody upgrades would let a
+  downgrade lock members out of their own profile.
+
+  Two smaller decisions worth keeping: an emptied answer **deletes its row**
+  rather than storing `''`, so no read on the board has to treat two states as
+  one; and registration **validates before the account exists and writes after**,
+  which is what lets the form refuse before it creates anything. The two are not
+  one transaction — `register` owns its own — so the residual failure is a
+  usable account with an unanswered required field, recoverable from the UserCP.
+  The reverse would be recoverable by nobody.
+
+  See **D58** and three `mybb-parity.md` entries.
+
+- **F60 · private messaging.** The biggest single feature in Phase 5, and
+  almost all of it falls out of one decision made in the migration: **the
+  message is stored once, and each participant owns a copy of it.**
+
+  MyBB stores a row per copy, so a message to twenty people is twenty copies of
+  the body. Splitting it gives four things at once. Quota counts *copies*, which
+  is the thing a member can actually delete. F36's render cache works unchanged
+  — `message_html` and `render_version` sit on the message exactly as they sit
+  on a post, so bumping `RENDER_VERSION` for a renderer security fix reaches
+  private messages on the next page load, with no migration and no second code
+  path to remember. Deleting your copy cannot reach into somebody else's
+  mailbox. And a unique index on (message, owner) is what lets the service
+  *dedupe* recipients rather than handle a duplicate — which is also why sending
+  to yourself is refused rather than modelled as a second row.
+
+  The rule that makes the whole thing safe is that **ownership is part of the
+  query**. Every read and write carries the acting member's id in its `where`
+  clause; nothing fetches a message and then decides whether the caller should
+  have it. That shape works right up until somebody moves the filter, and the
+  failure is silent and total. It is what makes the bulk action bar safe at all
+  — its ids are form values anybody can post, and one from another mailbox
+  matches nothing rather than being caught by a check.
+
+  **Bcc is enforced in SQL**, inside the lateral aggregate that builds the
+  folder listing's counterparty column, so no listing path can forget it. The
+  detail read returns everybody unfiltered and the *service* applies the same
+  rule, because who the viewer may see is a domain decision rather than a query
+  one. Both halves are mutation-verified, because this is the kind of leak that
+  is invisible until somebody notices they were named. It is also why there is
+  no reply-all: reply addresses the author, and a reply that quietly grows its
+  audience would either leak a bcc'd name or silently drop somebody.
+
+  Quota turned out to be a *second* number rather than the one that existed.
+  `maxPrivateMessagesPerDay` has been in the permission registry since F22 and
+  is a send rate; `privateMessageQuota` is storage. It is checked for the sender
+  and every recipient before anything is written, the send is all-or-nothing,
+  and a full recipient is **named** — their full box is not a secret worth
+  keeping against a sender who believes they were heard. Trash counts toward it,
+  which is what makes "empty your trash" the actual remedy.
+
+  Reading a limit needed a new accessor, `Authorizer.globalLimit`, for the same
+  reason `flood.bypass` is an action rather than a permission field read at the
+  call site: group and permission reasoning does not leave that package, and a
+  caller that reaches into `actor.global` for one number will reach in for a
+  boolean next.
+
+  The last piece is **reporting, which is the only way staff ever read a private
+  message**. F49 gained a `private_message` kind, and `resolveTarget` gained a
+  `reporterUserId` — because for that one kind the message "exists" only for
+  somebody who holds a copy, so "not yours" and "does not exist" give the same
+  answer. The queue fetches reported bodies by id, for the reports on that page
+  only: no listing, no search, no way to reach the message beside it, and the
+  body shown as source rather than rendered. A moderation tool that can
+  enumerate private messages is a surveillance tool with a moderation feature
+  attached.
+
+  See **D59** and five `mybb-parity.md` entries.
+
+### Two things F60 found that had been wrong for a while
+
+**The fixture ladder had drifted from the seeded one again.** `seed-board.ts`
+claims to mirror migration `0001`, and it was missing `canUsePrivateMessages` —
+seeded true for Registered since `0001`, never carried in the fixture because
+nothing read it. Exactly the class of drift the file's own comment records about
+the three negative fields. Fixed, along with the new quota.
+
+**The test container had no `ActorSource`.** Nothing in the app tier had ever
+built an actor for *somebody else* — every screen resolves the viewer's through
+`getActor`, which tests mock. F60's message policy asks about the recipient, and
+an absent source threw. `installTestContainer` now wires the same
+`FixtureActorSource` fixture mode does, over the same store.
+
+**And one weak test, caught by mutation testing.** "Refuses a sender whose
+groups do not allow private messages" passed with the permission check deleted:
+it used a user id with no account, so the "you must be logged in" branch fired
+first and the assertion only checked that *some* error came back. Now it uses a
+real account in a group without the grant and asserts the exact message, and the
+mutant dies.
+
+- **F61 · buddy and ignore lists.** One table with a `kind`, not two, because
+  the two lists are mutually exclusive — so one row per ordered pair makes that
+  the primary key rather than a cross-table check nothing enforces, and moving
+  somebody between them is an upsert. The pair is deliberately asymmetric: a
+  mutual ignore would let anybody silence themselves in somebody else's eyes by
+  ignoring them first.
+
+  The decision worth knowing is that **ignoring withholds a body and leaves the
+  post in the page**. Filtering ignored authors out of the query is the obvious
+  implementation and it breaks four things at once: every viewer gets a
+  different page size, "#12" means different posts to different people,
+  permalinks land on the wrong page, and the reply count stops matching what is
+  on screen. F61's acceptance names *stable pagination and counts* for exactly
+  that reason. So the body is simply not in the response — not hidden with CSS,
+  which is a preference rather than a feature — and a reveal link brings it
+  back, per post and additively, so working down a thread does not re-hide what
+  you just chose to read.
+
+  Staff cannot be ignored, and the refusal is explicit. A moderator's post is
+  often the one saying why a thread was locked, and somebody who thinks they
+  have hidden it and has not is worse off than somebody who was told.
+
+  The PM block gives the **same wording as a permission refusal**. Naming the
+  ignore would turn F60's send path into a way to read somebody's list; MyBB's
+  alternative — accept and deliver nowhere — is worse than either, because the
+  sender believes they were heard. A *failed* block check answers "blocked", not
+  "allowed": an ignore nobody could verify must not be a message that gets
+  through.
+
+  Building this found that **`users.last_active_at` has had no writer since
+  `0000`** — read by the ModCP and the profile, set by nothing. Online state
+  needed it true, so it has one now: a conditional UPDATE whose throttle is the
+  WHERE clause, exactly as `touchLocation` does it. See **D60**.
+
+- **F62 · reputation.** The line worth carrying forward: **the two rate limits
+  are two mechanisms, because they are two shapes.**
+
+  "One rating per person per target" is *uniqueness*, so it is a partial unique
+  index — a check-then-insert lets two clicks through, and a reputation button
+  that adds a row per click is the cheapest way to inflate a total. There are
+  two indexes rather than one, because rating somebody's post is a different
+  statement from rating them. "At most N a day" is a *window*, which no index
+  expresses, so it is a count inside the writing transaction — and the residual
+  race is written down in the migration rather than hidden: N+1 for somebody
+  scripting it, which is a rate limit doing its job rather than a security
+  event.
+
+  `users.reputation` was the second column this pass to have no writer since
+  `0000`. It has one now, and it is **derived rather than incremented** — the
+  same call F53 made for `warning_points`, and for the same reason: an
+  incremented total cannot survive a rating being revised or withdrawn. There
+  is a test that corrupts the column and watches the next write repair it.
+
+  A submitted `-1` on a board with negatives off is **refused, not clamped**:
+  quietly turning a criticism into praise is the worst possible reading of
+  somebody's intent. And a test found a real hole — `parseRating('')` returned
+  `0`, because `Number('')` is zero and zero is a valid rating, so a form posted
+  with no value would have recorded a neutral one. See **D62**.
+
+- **F58 · signatures (the avatar half is not built, and that is the finding).**
+
+  The signature half is complete: a **narrower tag registry** rather than a
+  validator, so a forbidden tag renders as literal text — which cannot be
+  bypassed by a tag this build does not know, and degrades for somebody pasting
+  an old signature instead of refusing them. `[img]` is the omission that
+  matters, because a remote image under every post is a tracking beacon
+  reporting each reader's IP; `[quote]`, `[size]`, `[code]` and `[list]` go for
+  the same reason, which is that **a signature repeats under every post its
+  author ever made**. F37 built `ParseOptions.tags` for custom tags; this is
+  that seam used as designed.
+
+  Moderation is a **lock, not a delete**: the text is kept so an appeal can see
+  it, it stops rendering, the member cannot edit it, and the required reason is
+  shown to them. The lock lives in the UPDATE's `where` rather than in a prior
+  read, which closes the race where a moderator locks a signature while the
+  member has the form open.
+
+  The avatar half is deliberately absent, and **D61 records why a remote URL is
+  not the cheap way round F42**: rendered directly it is the tracking vector
+  F58's own acceptance forbids, and fetched server-side it is SSRF. Both
+  mitigations end at validate-fetch-re-encode-store, which *is* F42.
+
+### Three pre-existing gaps this pass closed
+
+1. **`users.last_active_at` had no writer** (F61) — see above.
+2. **`users.reputation` had no writer** (F62) — see above.
+3. **The fixture ladder had drifted from the seeded one twice more.**
+   `seed-board.ts` claims to mirror migration `0001`, and was missing
+   `canUsePrivateMessages` (F60) and then `canGiveReputation` (F62) — both
+   seeded true for Registered, neither carried in the fixture because nothing
+   read them. Exactly the class of drift the file's own comment records about
+   the three negative fields. Each was caught by a test failing for the wrong
+   reason, which is worth noting: the fixture is the thing that makes app-tier
+   tests meaningful, and it silently disagrees with the real board until
+   somebody reads the column.
+
+Also worth recording: **`installTestContainer` had no `ActorSource`** until F60
+needed one. Nothing in the app tier had ever built an actor for *somebody other
+than the viewer* — every screen resolves the viewer's through `getActor`, which
+tests mock.
+
+- **F63 · the ACP foundation.** Phase 6 opens with the thing every other panel
+  sits on: a front door.
+
+  **A second session, not a second account.** Entering `/admin` re-enters the
+  password and mints a session in its own table, separate from the board's, with
+  a thirty-minute idle timeout and an eight-hour absolute ceiling. The threat is
+  not somebody guessing a password — they would need the board password anyway —
+  it is an administrator's own browser being used by somebody else. A board
+  session lasts days by design, so one that inherited that would make an
+  unattended laptop a board takeover rather than an embarrassment. Separating
+  them is what lets the ACP timeout be short enough to matter.
+
+  **Two clocks, and only one moves with activity.** `last_seen_at` is extended
+  by use; `authenticated_at` moves only when the password is re-entered. That is
+  the whole re-authentication mechanism: browsing the panel for an hour keeps
+  the session alive and does *not* keep the proof fresh, so a destructive
+  operation asks again even though nothing expired. With one timestamp — MyBB's
+  shape — re-authentication fires only for people who walked away, which is
+  exactly the group who were about to be asked anyway.
+
+  **The allowlist is env, prefixes, and checked first.** Env because it defends
+  against a stolen administrator credential and a board setting could be edited
+  by one. Prefixes rather than CIDR because a mask is a thing operators get
+  wrong by one bit, silently, and the failure mode is being locked out of your
+  own board. First — before the board session is read, before the store is
+  resolved — because a request from outside it must not learn that there is a
+  control panel here.
+
+  That last one is worth reading twice, because **mutation testing caught it**.
+  The obvious test ("a blocked address is denied") passes whether the check runs
+  first or last, since the actor in the test is an administrator either way.
+  Moving the allowlist behind the permission gate killed nothing. The fix was a
+  test where a *guest* from a blocked address gets `address` rather than
+  `permission` — which only passes if the ordering is real.
+
+  `admin_log` turned out to be the third column-with-no-reader this project has
+  found: it has had *writers* since F48, and the only reader was the ModCP's
+  forum-scoped view. `/admin/log` is the unscoped one.
+
 ## NEXT ACTION — resume here
 
-**Phase 4 is closed: eight of eight.** Copy landed once the product question
-behind it was answered — credit the authors, as MyBB does — and the move
-redirect stub became a recorded parity divergence rather than an open gap. The
-flagged leftovers from the last pass are paid down too: `forum task:run` and
-`task:list`, the schema-drift CI step (which had inspected a directory that has
-never existed), `installTestContainer()`, the board title from `board.name`,
-`ViewerModel.username`, and F51's hand-picked split now that F52 supplies the
-checkboxes.
+**Phase 6 is one of nine, and the rest are unblocked** — F64, F65, F66, F67,
+F68, F69 and F70 all depend only on F63 (plus F08/F21/F26/F38, all done). F71
+additionally needs F42.
+
+**F64 is done** (D68). The screen is generated from F08's registry and names no
+setting; the control kind is derived from `typeof default` rather than declared,
+so it cannot drift from the schema that validates. Two things in it are worth
+carrying forward to F65–F71: the hidden `keys` field, without which a save from
+a filtered screen reads every unseen checkbox as `false` and switches off the
+features behind them; and the rule that the audit log records *which* settings
+changed and never what they became, because a value can be a secret and the log
+is read by more people than can edit it.
+
+`invalidates` also has a caller for the first time since F08 wrote it.
+
+**F65 is done** (D69), including the two things it was `PARTIAL` for. Moderator
+appointments gave `forum_moderators` its first writer — it gained a reader in
+F48 and could only be configured with SQL until now — and create/move now sit on
+F16's forest-locked repository methods.
+
+The matrix is worth reading before touching anything permission-shaped: a cell
+is three states because null means inherit, every cell says what it resolves to
+and from where, and a row resolves for its own group rather than for the
+combination the Authorizer would compute. The copy is previewed cell by cell and
+re-authenticated, which is the first use of F63's `requireFreshAdmin` outside
+F63 itself.
+
+**F66 is done** (D70): the group grid, a per-group permission editor, the
+promotion dry run, and a chunked mass-membership screen.
+
+**Phase 6 is 4 of 9 with nothing partial in it.**
+
+Three things in F66 are worth carrying into F67–F71.
+
+**A group cell is two states, and that is not an inconsistency with F65.** A
+group's global permissions are R4.1 layer 1 — the bottom of the resolution, with
+nothing above them — so a third state would be an "inherit" that resolves to
+nothing. The corollary is the trap: an off checkbox submits *nothing*, so an
+action that read only the fields that arrived could never turn a permission off.
+Every registry field is read whether it arrived or not. This is the same shape as
+F64's hidden `keys` field arriving at the opposite answer, for the opposite
+reason — F64's screen is filtered and must not touch what it did not show; this
+one shows everything and must write everything.
+
+**Every group write bumps `permission_version` inside the same transaction.**
+Not a call the caller could forget: a lost bump leaves resolved actors holding
+permissions that have been revoked. A refused write rolls the bump back with it.
+Any feature that changes a permission input should copy `withVersionBump` rather
+than invent its own pairing.
+
+**A bulk membership change is a resumable run.** 500 members per press on a
+keyset cursor, because one UPDATE over every member holds row locks on `users`
+for the whole run. The cursor lives in a hidden form field, so it resumes with
+no JavaScript — which is the pattern to reuse for anything else in the panel
+that touches every row of a big table (F70's maintenance, F71's content).
+
+**F67 is done** (D71, D72, D73): search, the member screen, activation, the
+board's first ban surface, account merging, pruning and mass mail.
+
+**Phase 6 is 5 of 9 with nothing partial in it.**
+
+Four things from it are worth carrying forward.
+
+**The merge map is the pattern to copy for anything that touches every table.**
+The dangerous failure of an account merge is not a wrong update but a column
+nobody remembered, so the reassignment is a *declaration* and a test holds it
+against `information_schema`. It paid for itself twice before shipping: on the
+first run it failed on five denormalised **username** columns that carry a name
+rather than an id, and later it failed on this feature's own `mass_mails`
+migration. If F71 grows anything that fans out across the schema, do this.
+
+**A guard you rename around is a guard you have destroyed.** `last_user_id` on
+`mass_mails` looks like a pointer and is a cursor. Renaming the column until the
+test stopped noticing would have been one line and would have taught the next
+person that the check is an obstacle; instead there is a fifth list holding one
+entry and an argument, and the disjointness assertion keeps it a decision.
+
+**Credentials are never data.** `sessions`, `remember_tokens`,
+`credential_tokens` and `admin_sessions` all carry a `user_id` and all are
+destroyed rather than moved. Any future operation that reassigns rows in bulk
+has to make the same distinction.
+
+**Bulk operations in this panel now share one shape**: a dry run that shows
+rows and not just a count, bounded batches, a cursor in a hidden form field so
+the run resumes without JavaScript, and re-authentication. F66's mass move,
+F67's merge, prune and mass mail are all built this way — F70's maintenance and
+F71's content administration should be too.
+
+**F68 · the theme manager** is next: theme selection plus a token, layout and
+custom-CSS editor with live preview, reset, and exact JSON export/import. Two
+things already in the tree matter to it. `themes` has had a table since the
+initial schema and a `theme.changed` event since F07, with no ACP writer — the
+same reader-with-no-writer shape this project has now found five times. And
+F63's ACP deliberately lives outside the board's layout precisely so that a
+theme an administrator is editing cannot render the screen that edits it; that
+constraint is the reason the panel looks the way it does, and F68 is the feature
+it was written for.
+
+The one remaining gap named in F67's row: **no password reset from the panel.**
+An administrator setting somebody's password is an account takeover with a paper
+trail; the panel should trigger F19's existing reset flow, which mails the
+member, and that is a different feature from editing a row.
+
+**F42 is done, and the decision it was waiting on is recorded in
+[ADR 0003](adr/0003-jsquash-image-codecs.md).** `@jsquash` — the Squoosh codecs
+as WebAssembly — is the re-encoder, chosen over `sharp` for the reason ADR 0001
+rejected native Argon2id bindings: per-platform prebuilt binaries against libc,
+which fail at runtime rather than at install. `sharp`'s presence in the tree as
+a transitive of Next's image optimiser is a coincidence and stays one.
+
+The part that cost the most is worth knowing about before touching it.
+`@jsquash` loads its own `.wasm` with `fetch(new URL(…, import.meta.url))`, and
+**there is no configuration in which that works on a Node server**: unbundled,
+Node's `fetch` refuses `file:` URLs; bundled, `import.meta.url` inside a
+Turbopack chunk is the literal string `"unknown"`. So the codecs never
+initialise themselves — `codec.ts` reads, compiles and hands each module to
+`init()`, and `locate-wasm.ts` finds the files, including in the standalone
+output whose `node_modules` contains `.pnpm` and *nothing else*. Three earlier
+attempts passed every test and failed on a booted image, which is the bug class
+D54 exists to record; this one was written against a booted image.
+
+**F58's avatar half is done too** (D67), which was the point of doing F42 when
+it was done: it is mostly reuse. What was not reusable is worth knowing —
+an avatar is *replaced* and an attachment never is, so the repository hands back
+the object it stopped pointing at in the statement that stopped pointing at it,
+and the moderator's lock lives in the `where` so it wins the race against a
+member with the form open. **Phase 5 now has no `PARTIAL` rows left.**
+
+F71 and F45 are also unblocked, and all three can be proven in a browser (D66).
+
+**The standing gap is closed** (D66). The browser suite runs against a real
+Postgres that it starts itself — PGlite behind the wire protocol, nothing to
+install — so `pnpm test:e2e` covers **writing**: a thread and a reply through
+native forms with scripting off, an image attachment that is absent until the
+queue is drained and then downloadable with the right headers, and a file whose
+bytes disagree with its name refused without creating a thread. Seven specs,
+two of them mutation-verified against claims no unit test can reach.
+
+What that changes for everything after this: a feature's browser-level proof is
+now **ordinary work rather than a blocked capability**. Fixture mode still has
+no writers (D38) and that is fine — it is the sample-data mode, and the suite no
+longer depends on it.
+
+The obvious next specs, in rough order of what they would catch:
+
+- **F52's inline moderation.** Its entire claim is that the HTML `form`
+  attribute submits checkboxes that live outside the form, with scripting off.
+  That is a browser behaviour and nothing else can test it.
+- **F57's UserCP and F58's signature**, where a save round-trips through a form
+  and back into a page that renders it.
+- **F60's private messages**, where the bulk bar uses the same `form`-attribute
+  trick and ownership is the whole security model.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -407,13 +929,6 @@ runs against a real server — skipped unless `TEST_DATABASE_URL` is set, so a
 normal `pnpm test` needs no service, and switched on in CI's `migrations` job.
 The whole scheduler now runs against real Postgres, which it never had.
 
-### Then
-
-**F55 · notification infrastructure** remains the right next feature. Three
-finished features are waiting on it and each says so in its own row: a failing
-task logs and raises nothing (ten tasks now), F49's reports notify nobody, and
-F53's warnings notify nobody — a warned member finds out by trying to post.
-
 ### What the image job found
 
 F04 asked CI to build **and boot** the image. Building it for the first time
@@ -442,11 +957,23 @@ optimisation yet (F42/F58 would).
 Still outstanding and worth keeping visible:
 
 - **The e2e board cannot post.** Playwright runs against fixture mode, which has
-  no writer, so no browser test covers posting, moderating or warning without
-  JavaScript — including F52's central claim that `form`-attribute-associated
-  checkboxes submit with scripting off. Either the e2e harness gains a real
-  database or the fixture gains a content store. D38's "fixture writes throw"
-  rule was written for *structure*; this is the third time it has cost coverage.
+  no writer, so no browser test covers posting, moderating, warning or the
+  notification centre without JavaScript — including F52's central claim that
+  `form`-attribute-associated checkboxes submit with scripting off, and F55's
+  that marking a notification read is a POST. Either the e2e harness gains a
+  real database or the fixture gains a content store. D38's "fixture writes
+  throw" rule was written for *structure*; this is the fourth time it has cost
+  coverage.
+- **Nobody is notified when a report is filed.** F55 tells the reporter when one
+  is closed; telling the forum's moderators needs `moderatedForumIds` inverted,
+  which means resolving the forum matrix per *group* rather than per actor. It
+  is named in D55 and in F49's row rather than left to be discovered.
+- **The notifier costs an actor build per member per run.** F56 resolves
+  `visibleForumIds` through the Authorizer for every member it notifies, which
+  is the only correct answer (F47) and is bounded at 50 members per run. On a
+  board where thousands follow something busy, that ceiling is what to raise
+  first — and the query budget helper (F11) is how to find out whether it
+  matters before changing it.
 - **`ViewerModel.canAccessModCp` is group-level only**, so the shell's ModCP
   link does not appear for a per-forum appointee even though `/modcp` admits
   them. Answering it properly costs the tree on every page render.
@@ -463,7 +990,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D53). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D73). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

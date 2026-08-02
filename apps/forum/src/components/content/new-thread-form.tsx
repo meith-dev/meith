@@ -18,6 +18,9 @@ import { useActionState } from "react"
 import { createThreadAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
+import type { UploadLimits } from "@forum/attachments/limits"
+
+import { AttachmentField } from "./attachment-field"
 import { Field, FormError, SubmitButton } from "../auth/form-controls"
 
 export interface PrefixOption {
@@ -30,14 +33,24 @@ export function NewThreadForm({
   prefixes,
   requiresPrefix,
   canSubscribe,
+  attachmentLimits,
 }: {
   forumId: number
   prefixes: readonly PrefixOption[]
   requiresPrefix: boolean
   canSubscribe: boolean
+  /** F42. Null when this member may not attach here, or the board cannot. */
+  attachmentLimits: UploadLimits | null
 }) {
   const [state, action] = useActionState(createThreadAction, EMPTY_STATE)
 
+  /*
+   * No `encType` on the form: React renders a Server Action form as
+   * `multipart/form-data` itself, and warns if you say so as well. That is
+   * what carries F42's file input — with scripting off it is the rendered
+   * HTML doing the work and not a handler, so the attribute has to be right
+   * in the markup rather than set on submit.
+   */
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
@@ -103,6 +116,8 @@ export function NewThreadForm({
           className="rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
       </label>
+
+      {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}
 
       {canSubscribe && (
         <label className="flex items-center gap-2 text-sm">

@@ -24,6 +24,7 @@ import {
   createMemoryStore,
   type AccountStore,
   type MemberProfileRepository,
+  type MemberSettingsRepository,
 } from '@forum/accounts'
 import {
   Authorizer,
@@ -32,6 +33,8 @@ import {
   type AuthorizationSource,
   type BypassEvent,
 } from '@forum/authorization'
+import type { AttachmentRepository } from '@forum/attachments'
+import type { AvatarRepository } from '@forum/avatars'
 import { env, logger } from '@forum/core'
 import { CachedForumRepository, type ForumRepository } from '@forum/forums'
 import type {
@@ -44,7 +47,14 @@ import type {
   WarningBanPort,
   WarningRepository,
 } from '@forum/moderation'
+import type { NotificationRepository } from '@forum/notifications'
 import type { PostRepository, PostWriteRepository } from '@forum/posts'
+import type { MessageRepository } from '@forum/messages'
+import type { RelationRepository } from '@forum/relations'
+import type { AdminLogRepository, AdminSessionRepository } from '@forum/admin'
+import type { ReputationRepository } from '@forum/reputation'
+import type { ProfileFieldRepository } from '@forum/profile-fields'
+import type { SubscriptionRepository } from '@forum/subscriptions'
 import type {
   ReadStateRepository,
   ReplyWriteRepository,
@@ -52,6 +62,7 @@ import type {
   ThreadWriteRepository,
 } from '@forum/threads'
 import type { TaskDefinition, TaskRepository } from '@forum/tasks'
+import { imageProcessor } from '@forum/drivers/images'
 import { buildSchedulerBundle } from '@forum/runtime'
 import {
   getDb,
@@ -69,6 +80,18 @@ import {
   PostgresThreadSurgeryRepository,
   PostgresInlineModerationRepository,
   PostgresWarningRepository,
+  PostgresNotificationRepository,
+  PostgresSubscriptionRepository,
+  PostgresMemberSettingsRepository,
+  PostgresMessageRepository,
+  PostgresRelationRepository,
+  PostgresReputationRepository,
+  PostgresSignatureRepository,
+  PostgresAdminLogRepository,
+  PostgresAdminSessionRepository,
+  PostgresAttachmentRepository,
+  PostgresAvatarRepository,
+  PostgresProfileFieldRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
   PostgresReadStateRepository,
@@ -76,6 +99,8 @@ import {
   PostgresThreadViewBuffer,
 } from '@forum/db'
 import { drivers } from '@forum/drivers'
+
+import forumConfig from '../../forum.config'
 
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
@@ -159,6 +184,88 @@ export interface Container {
   readonly warningBans: WarningBanPort | null
   /** The ModCP's reads (F54). `null` in fixture mode (D38). */
   readonly modcp: ModCpRepository | null
+  /**
+   * Notifications and their e-mail preferences (F55). `null` in fixture mode
+   * (D38): a notification that vanishes on restart is worse than none, because
+   * the centre is the board's record of what a member was told — and the mail
+   * half needs an outbox row, which sample data has nowhere to put.
+   */
+  readonly notifications: NotificationRepository | null
+  /**
+   * Thread and forum subscriptions (F56). `null` in fixture mode (D38): both
+   * tables are durable by nature — a follow list that resets on restart is a
+   * member being silently unsubscribed — and the notifier behind them needs a
+   * scheduler, which fixture mode also refuses.
+   */
+  readonly subscriptions: SubscriptionRepository | null
+  /**
+   * The member's own settings (F57): timezone, page sizes, profile fields.
+   * `null` in fixture mode (D38), where the UserCP is absent rather than a
+   * screen whose Save button loses everything on restart.
+   */
+  readonly memberSettings: MemberSettingsRepository | null
+  /**
+   * Custom profile fields (F59). `null` in fixture mode (D38): the fields are
+   * operator configuration and the answers are member data, and both would
+   * vanish on restart — so the board offers neither rather than a form whose
+   * Save button forgets.
+   */
+  readonly profileFields: ProfileFieldRepository | null
+  /**
+   * Private messages (F60). `null` in fixture mode (D38): a message is
+   * addressed to one person and is the one thing on this board nobody else
+   * will mention to them, so a mailbox that empties on restart is worse than a
+   * board that plainly has no messaging.
+   */
+  readonly messages: MessageRepository | null
+  /**
+   * Buddy and ignore lists (F61). `null` in fixture mode (D38): an ignore list
+   * that resets on restart is a member discovering they can read somebody they
+   * decided not to, which is the one failure this feature exists to prevent.
+   */
+  readonly relations: RelationRepository | null
+  /**
+   * Reputation (F62). `null` in fixture mode (D38): the total on `users` is
+   * derived from these rows, so a store that empties on restart would leave
+   * every member's number at whatever the sample data says.
+   */
+  readonly reputation: ReputationRepository | null
+  /**
+   * Signatures (F58). `null` in fixture mode (D38), where the UserCP is absent
+   * anyway — and a signature that resets on restart is a moderator's lock
+   * quietly lifting itself.
+   */
+  readonly signatures: PostgresSignatureRepository | null
+  /**
+   * The ACP's own session store and audit log (F63). Both `null` in fixture
+   * mode (D38) — a control panel whose session dies with the process is one
+   * that cannot be signed into twice, and an audit log that resets on restart
+   * is the opposite of an audit log.
+   */
+  readonly adminSessions: AdminSessionRepository | null
+  readonly adminLog: AdminLogRepository | null
+  /**
+   * Attachments (F42). `null` in fixture mode (D38) — an upload that survives
+   * validation, re-encoding and a queued job and *then* disappears on restart
+   * is worse than a board that says it cannot accept files.
+   */
+  readonly attachments: AttachmentRepository | null
+  /**
+   * Avatars (F58's other half). `null` in fixture mode (D38) — the same reason
+   * attachments are: an upload that survives validation and a queued re-encode
+   * and then vanishes on restart is worse than a board that says it cannot take
+   * one.
+   */
+  readonly avatars: AvatarRepository | null
+  /**
+   * The credential store behind identity (F17–F19).
+   *
+   * Exposed for F57's UserCP, which re-authenticates with the current password
+   * and issues an `email_change` token — both of which are `AccountStore`
+   * operations that `IdentityService` deliberately does not wrap, because they
+   * are not part of registering or logging in.
+   */
+  readonly accountStore: AccountStore
   /** Keyset-paged visible posts (F31). */
   readonly posts: PostRepository
   /** Durable member read state. Fixture mode deliberately has none. */
@@ -194,6 +301,8 @@ export interface ThreadViewRecorder {
 export interface SchedulerBundle {
   readonly repository: TaskRepository
   readonly tasks: readonly TaskDefinition[]
+  /** F55's failure notifier, passed to `tick()` as `onError`. */
+  readonly onTaskFailure: (taskId: string, error: unknown) => void
 }
 
 /*
@@ -254,12 +363,25 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     warnings: null,
     warningBans: null,
     modcp: null,
+    notifications: null,
+    subscriptions: null,
+    memberSettings: null,
+    profileFields: null,
+    messages: null,
+    relations: null,
+    reputation: null,
+    signatures: null,
+    adminSessions: null,
+    adminLog: null,
+    attachments: null,
+    avatars: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
     threadViews: null,
     fixtureDataVersion: FIXTURE_DATA_VERSION,
     ...identityServices(store),
+    accountStore: store,
     // See SchedulerBundle: a tick without durable, cross-instance state cannot
     // honour its concurrency guarantee, so fixture mode has no scheduler.
     scheduler: null,
@@ -350,6 +472,18 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     inlineModeration: new PostgresInlineModerationRepository(db),
     warnings: warningRepo,
     modcp: new PostgresModCpRepository(db),
+    notifications: new PostgresNotificationRepository(db),
+    subscriptions: new PostgresSubscriptionRepository(db),
+    memberSettings: new PostgresMemberSettingsRepository(db),
+    profileFields: new PostgresProfileFieldRepository(db),
+    messages: new PostgresMessageRepository(db),
+    relations: new PostgresRelationRepository(db),
+    reputation: new PostgresReputationRepository(db),
+    signatures: new PostgresSignatureRepository(db),
+    adminSessions: new PostgresAdminSessionRepository(db),
+    adminLog: new PostgresAdminLogRepository(db),
+    attachments: new PostgresAttachmentRepository(db),
+    avatars: new PostgresAvatarRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -363,6 +497,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     memberProfiles: new PostgresMemberProfileRepository(db),
     threadViews,
     fixtureDataVersion: null,
+    accountStore: store,
     ...identityServices(store),
     /*
      * F13's `task:run` and F04's worker build the identical object, so the
@@ -370,7 +505,28 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
      * header for why it is allowed to import `@forum/db` when domain packages
      * are not. The client is handed in so a request does not open a second pool.
      */
-    scheduler: buildSchedulerBundle({ queue: drivers().queue, db }),
+    scheduler: buildSchedulerBundle({
+      queue: drivers().queue,
+      db,
+      /*
+       * F55. The mail driver and the installed theme's key are app knowledge —
+       * `forum.config.ts` is read by the app tier and neither the worker nor
+       * the CLI can see it — so the app hands both to the bundle rather than
+       * letting it guess. Without the driver the mail handler is not registered
+       * at all, which is the D32 shape: absent rather than failing.
+       */
+      mail: drivers().mail,
+      themeKey: forumConfig.defaultTheme,
+      /*
+       * F42. The serverless profile drains the queue through
+       * `/api/system/tick`, so the re-encode handler has to be registered here
+       * too — a board on Vercel has no worker process, and an attachment that
+       * only processes on a self-hosted deployment would be a feature that
+       * exists on one target and not the other.
+       */
+      files: drivers().files,
+      images: imageProcessor,
+    }),
     dataSource: 'postgres',
   }
 }
@@ -402,6 +558,18 @@ export function getContainer(): Container {
     cached.warnings === undefined ||
     cached.warningBans === undefined ||
     cached.modcp === undefined ||
+    cached.notifications === undefined ||
+    cached.subscriptions === undefined ||
+    cached.memberSettings === undefined ||
+    cached.profileFields === undefined ||
+    cached.messages === undefined ||
+    cached.relations === undefined ||
+    cached.reputation === undefined ||
+    cached.signatures === undefined ||
+    cached.adminSessions === undefined ||
+    cached.adminLog === undefined ||
+    cached.attachments === undefined ||
+    cached.avatars === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

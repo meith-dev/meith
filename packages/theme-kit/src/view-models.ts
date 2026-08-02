@@ -241,6 +241,16 @@ export interface PostAuthorModel extends UserRefModel {
   /** Pre-rendered BBCode (F36). Trusted output of the sanitising renderer. */
   readonly signatureHtml: string | null
   readonly isOnline: boolean
+  /**
+   * F59's custom fields, for the ones an operator marked for the postbit and
+   * this viewer may see.
+   *
+   * The same `{label, value}` shape `MemberProfileModel.fields` uses, and
+   * **plain text** for the same reason: it is rendered as text by the theme,
+   * and a field that could carry markup is stored XSS on the board's heaviest
+   * page. Empty on a board with no custom fields, which is most of them.
+   */
+  readonly fields: readonly { readonly label: string; readonly value: string }[]
 }
 
 export interface PostActionsModel {
@@ -275,6 +285,15 @@ export interface PostActionsModel {
    * than a documented `null`.
    */
   readonly moderateHref: string | null
+  /**
+   * Rate this post's author, for this post (F62).
+   *
+   * Null on your own post, on a board with reputation off, and for anybody
+   * without the permission. It carries the post so the rating is attached to
+   * *this* post rather than to the author generally — which is what makes one
+   * rating per post a meaningful rule.
+   */
+  readonly rateHref: string | null
 }
 
 export interface PostBitModel {
@@ -291,7 +310,57 @@ export interface PostBitModel {
   readonly isFirstPost: boolean
   /** F47: a moderator sees deleted and unapproved posts, marked as such. */
   readonly visibility: 'visible' | 'unapproved' | 'deleted'
+  /**
+   * F61. Set when this viewer ignores the author and has not revealed this
+   * post; `null` otherwise, which is the case on almost every post.
+   *
+   * The body is **withheld server-side** when this is set — `bodyHtml` is
+   * empty, the signature and custom fields are gone — rather than hidden with
+   * CSS, because "ignored" that ships the text to the browser is a preference
+   * rather than a feature. The post keeps its place and its number: filtering
+   * it out would give every viewer a different page size and make "#12" mean
+   * different posts to different people.
+   *
+   * A theme renders the placeholder and the link. Both are required — a hidden
+   * post with no way to see it is a hole in a conversation.
+   */
+  readonly ignored: {
+    readonly authorUsername: string
+    /** Same page, this post revealed. A GET: revealing changes nothing. */
+    readonly revealHref: string
+  } | null
+  /**
+   * The files attached to this post (F42).
+   *
+   * Empty on almost every post, and empty rather than absent so a theme has one
+   * shape to render. **Every entry is already downloadable**: a `pending`
+   * upload — one whose re-encode has not finished — and a failed one are not in
+   * this list, because a link to a file that is not there yet is worse than the
+   * file appearing a minute later.
+   *
+   * `thumbnailHref` is `null` for anything that is not an image, and for an
+   * image small enough that a thumbnail would be the same picture again. A
+   * theme showing an image inline uses `thumbnailHref ?? href` and gets the
+   * right answer in both cases.
+   */
+  readonly attachments: readonly PostAttachmentModel[]
   readonly actions: PostActionsModel
+}
+
+/** One file attached to a post (F42). */
+export interface PostAttachmentModel {
+  readonly id: number
+  /** Sanitised, and always ending in the extension the *bytes* imply. */
+  readonly filename: string
+  /** Already formatted — "1.4 MB" — because a theme is not a unit converter. */
+  readonly size: string
+  /** Whether the board is willing to show this inline rather than link it. */
+  readonly isImage: boolean
+  /** The download. Permission is re-checked on every fetch. */
+  readonly href: string
+  readonly thumbnailHref: string | null
+  readonly width: number | null
+  readonly height: number | null
 }
 
 /* ------------------------------------------------------------------ *

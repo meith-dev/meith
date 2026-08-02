@@ -14,6 +14,11 @@ import process from 'node:process'
 
 import { taskList, taskRun } from './tasks'
 import {
+  profileFieldAdd,
+  profileFieldList,
+  profileFieldRemove,
+} from './profile-fields'
+import {
   forumCreate,
   settingsGet,
   settingsSet,
@@ -189,6 +194,29 @@ const commands: Command[] = [
     summary: 'Set one setting, validated by the registry.',
     usage: 'forum settings:set <key> <value>',
     run: settingsSet,
+  },
+
+  {
+    name: 'profile-field:list',
+    summary: 'List the custom profile fields this board defines.',
+    run: profileFieldList,
+  },
+
+  {
+    name: 'profile-field:add',
+    summary: 'Define a custom profile field.',
+    usage:
+      'forum profile-field:add --key <key> --label <label> ' +
+      '--type text|textarea|select|checkbox|url|number ' +
+      '[--options a,b,c] [--required] [--postbit] [--order <n>]',
+    run: profileFieldAdd,
+  },
+
+  {
+    name: 'profile-field:remove',
+    summary: "Delete a custom profile field and every member's answer to it.",
+    usage: 'forum profile-field:remove <key>',
+    run: profileFieldRemove,
   },
 
   {

@@ -29,6 +29,7 @@
  */
 import { assertEnv, logger } from '@forum/core'
 import { drivers } from '@forum/drivers'
+import { imageProcessor } from '@forum/drivers/images'
 import { buildSchedulerBundle } from '@forum/runtime'
 import { tick } from '@forum/tasks'
 
@@ -71,7 +72,14 @@ async function main(): Promise<number> {
     return 1
   }
 
-  const bundle = buildSchedulerBundle({ queue: drivers().queue })
+  const bundle = buildSchedulerBundle({
+    queue: drivers().queue,
+    mail: drivers().mail,
+    /* F42. The worker is where a re-encode belongs — see ADR 0003 on why
+       nothing decodes an image on the request path. */
+    files: drivers().files,
+    images: imageProcessor,
+  })
   log().info({ tasks: bundle.tasks.length, intervalMs: INTERVAL_MS }, 'worker started')
 
   /*
@@ -91,7 +99,10 @@ async function main(): Promise<number> {
   while (!stopping) {
     const startedAt = Date.now()
     try {
-      const outcomes = await withTimeout(tick(bundle), TICK_TIMEOUT_MS)
+      const outcomes = await withTimeout(
+        tick({ ...bundle, onError: bundle.onTaskFailure }),
+        TICK_TIMEOUT_MS,
+      )
       const ran = outcomes.filter((o) => o.status === 'ran')
       const failed = outcomes.filter((o) => o.status === 'failed')
       if (ran.length > 0 || failed.length > 0) {
@@ -103,8 +114,8 @@ async function main(): Promise<number> {
       /*
        * A failing task is logged and the loop continues. It is already recorded
        * in `task_log` by `tick()` itself, and stopping the worker because one
-       * task threw would take the other nine down with it. Raising an admin
-       * notification is F55's, and F06's row says so.
+       * task threw would take the other nine down with it. The admin
+       * notification is raised by `onTaskFailure` (F55); this is the log half.
        */
       for (const outcome of failed) {
         log().error({ taskId: outcome.taskId, err: outcome.error }, 'task failed')

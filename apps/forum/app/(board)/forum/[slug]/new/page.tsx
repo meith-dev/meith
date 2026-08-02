@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { requireSlot } from '@forum/theme-kit'
 
 import { NewThreadForm } from '@/components/content/new-thread-form'
+import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { activeTheme } from '@/server/theme'
@@ -81,6 +82,9 @@ export default async function NewThreadPage({
                 prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
                 requiresPrefix={rules.requiresPrefix}
                 canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
+                attachmentLimits={
+                  canAttach(actor, target) ? attachmentLimits(target) : null
+                }
               />
             ) : null,
           // F45's island. Absent by design: the plain textarea above is the

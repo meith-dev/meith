@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { formatTime } from './time'
+import { formatTime, timezoneLabel } from './time'
 
 const NOW = new Date('2026-07-30T12:00:00Z')
 
@@ -90,5 +90,56 @@ describe('formatTime', () => {
     } finally {
       process.env.TZ = original
     }
+  })
+})
+
+describe('the viewer’s timezone (F57)', () => {
+  const NOW = new Date('2026-07-31T12:00:00Z')
+
+  it('formats in the zone it is given', () => {
+    const at = new Date('2026-07-31T08:41:00Z')
+
+    expect(formatTime(at, NOW, 'UTC').label).toBe('Today, 08:41')
+    /* Summer time is real: London is UTC+1 on this date, Sydney is UTC+10. */
+    expect(formatTime(at, NOW, 'Europe/London').label).toBe('Today, 09:41')
+    expect(formatTime(at, NOW, 'Australia/Sydney').label).toBe('Today, 18:41')
+  })
+
+  it('keeps the machine-readable value in UTC whatever the label says', () => {
+    const at = new Date('2026-07-31T08:41:00Z')
+    /* `<time datetime>` is the instant; only the human string moves. */
+    expect(formatTime(at, NOW, 'Australia/Sydney').iso).toBe('2026-07-31T08:41:00.000Z')
+  })
+
+  it('says "Today" by the viewer’s calendar, not by UTC’s', () => {
+    /*
+     * 23:30 UTC is already tomorrow morning in Sydney. A board that called this
+     * "Today" for a Sydney reader would be naming a day they are not in.
+     */
+    const at = new Date('2026-07-30T23:30:00Z')
+    const now = new Date('2026-07-31T00:30:00Z')
+
+    expect(formatTime(at, now, 'UTC').label).toBe('Yesterday, 23:30')
+    expect(formatTime(at, now, 'Australia/Sydney').label).toBe('Today, 09:30')
+  })
+
+  it('defaults to UTC, which is what every timestamp used before F57', () => {
+    const at = new Date('2026-07-31T08:41:00Z')
+    expect(formatTime(at, NOW).label).toBe(formatTime(at, NOW, 'UTC').label)
+  })
+
+  it('falls back to UTC for a zone the runtime has never heard of', () => {
+    /*
+     * Unreachable through the UserCP, which validates. Reachable from a row
+     * written against an older tz database — and a page that 500s because a
+     * member's saved zone was retired is worse than one showing UTC.
+     */
+    const at = new Date('2026-07-31T08:41:00Z')
+    expect(formatTime(at, NOW, 'Middle/Earth').label).toBe('Today, 08:41')
+  })
+
+  it('names a zone the way the footer shows it', () => {
+    expect(timezoneLabel('America/New_York')).toBe('America/New York')
+    expect(timezoneLabel('UTC')).toBe('UTC')
   })
 })

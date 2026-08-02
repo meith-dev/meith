@@ -376,6 +376,32 @@ export const PERMISSION_FIELDS = [
     description: 'Daily PM send cap. 0 = unlimited.',
   },
   {
+    key: 'canGiveReputation',
+    kind: 'boolean',
+    scope: 'global',
+    fallback: false,
+    description:
+      'Rate other members (F62). Global like canReportContent: reputation is ' +
+      'a board-wide capability, so it is not in the F22 forum matrix.',
+  },
+  {
+    key: 'maxReputationPerDay',
+    kind: 'numeric',
+    scope: 'global',
+    fallback: 0,
+    description: 'Daily cap on ratings given. 0 = unlimited.',
+  },
+  {
+    key: 'privateMessageQuota',
+    kind: 'numeric',
+    scope: 'global',
+    fallback: 0,
+    description:
+      'How many private messages a member may keep. 0 = unlimited. Distinct ' +
+      'from maxPrivateMessagesPerDay, which is a send rate: this one is ' +
+      'storage, and it is what a full inbox means (F60).',
+  },
+  {
     key: 'maxSignatureLength',
     kind: 'numeric',
     scope: 'global',

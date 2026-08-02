@@ -74,6 +74,12 @@ const READ = {
   canViewOthersThreads: true,
   canSearch: true,
   canViewProfiles: true,
+  /*
+   * F42. Seeded true for *guests* in migration `0001`, which is the level this
+   * has to sit at: an image in a public thread that only members can see would
+   * make every guest's view of that thread a page of broken links.
+   */
+  canDownloadAttachments: true,
 } as const
 
 const POST = {
@@ -91,6 +97,30 @@ const POST = {
   canDeleteOwnPosts: true,
   /* F49. Seeded true for Registered in migration `0001`, like the rest. */
   canReportContent: true,
+  /*
+   * F58's other half. Seeded true for Registered in `0001` since day one, with
+   * nothing reading it until now — the same drift `canUsePrivateMessages` and
+   * `canDownloadAttachments` had, and the same fix: the fixture claims to
+   * mirror the seeded ladder, so it has to.
+   */
+  canUploadAvatar: true,
+  /*
+   * F60. Also seeded true for Registered in `0001` — the fixture simply never
+   * carried it, because nothing read it until now. Same class of drift as the
+   * three negative fields below, and the same fix: the fixture claims to mirror
+   * the seeded ladder, so it has to.
+   */
+  canUsePrivateMessages: true,
+  /* The storage quota migration `0011` gives Registered. */
+  privateMessageQuota: 100,
+  /*
+   * F62, seeded true for Registered in migration `0013` with a daily cap. Same
+   * class of drift as the two above: the fixture claims to mirror the seeded
+   * ladder, so a permission the migration grants has to appear here too or the
+   * fixture board silently refuses a feature the real one allows.
+   */
+  canGiveReputation: true,
+  maxReputationPerDay: 10,
   /*
    * The three negative fields, matching migration `0001_seed_usergroups`.
    *
@@ -472,5 +502,9 @@ export const SEED_MEMBER_PROFILES: readonly MemberProfileRecord[] = [
     postCount: 5,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     lastActiveAt: new Date('2026-07-30T08:41:00Z'),
+    /* F57's self-written fields, filled in so the fixture profile shows them. */
+    location: 'The server room',
+    website: 'https://example.test/',
+    bio: 'Runs this board. Fixture data — nothing here is durable.',
   },
 ]

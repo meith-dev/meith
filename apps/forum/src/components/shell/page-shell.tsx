@@ -3,7 +3,12 @@ import type { Actor } from '@forum/authorization'
 
 import { LogoutForm } from '@/components/account/logout-form'
 import { getContainer } from '@/server/container'
+import { unreadMessageCount } from '@/server/messages'
+import { touchActivity } from '@/server/relations'
+import { unreadNotificationCount } from '@/server/notifications'
+import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
+import { avatarsFor } from '@/server/avatars'
 import { activeTheme } from '@/server/theme'
 import {
   buildFooterModel,
@@ -70,16 +75,57 @@ export async function PageShell({
    * `canAccessAdminCp` follows. It is read off the already-resolved actor, so
    * the shell costs no extra query on any page (F48).
    */
+  /*
+   * F58. One read for the signed-in member, memoised per request by
+   * `avatarsFor`, so a page that also renders their avatar in a postbit does
+   * not fetch it twice. Guests skip it entirely.
+   */
+  const ownAvatar =
+    actor.userId === null
+      ? null
+      : ((await avatarsFor([actor.userId])).get(actor.userId) ?? null)
+
   const viewer = buildViewerModel(actor, {
     displayName,
     canAccessModCp: actor.global.canAccessModCp === true,
+    avatarUrl: ownAvatar,
   })
   const header = buildHeaderModel(viewer, [], boardTitle)
+
+  /*
+   * F55's badge. One count per page render for a signed-in member — the reason
+   * `notifications_unread_idx` is partial — and zero queries for a guest or on
+   * a board with no notification store. Swallowed to 0 on failure inside
+   * `unreadNotificationCount`, because the shell also renders the error pages.
+   */
+  const unreadNotifications = await unreadNotificationCount(actor.userId)
+
+  /*
+   * F60's badge, filling a `UserPanelModel` field the theme contract has
+   * carried since F27 with nothing to put in it. Same shape and same costs as
+   * the count above, over its own partial index.
+   */
+  const unreadMessages = await unreadMessageCount(actor.userId)
+
+  /*
+   * F61. `users.last_active_at` has been in the schema since `0000` with no
+   * writer; this is it. A conditional UPDATE that usually matches nothing —
+   * the throttle is in the repository's WHERE clause — so it is not a write per
+   * page view, and it never throws.
+   */
+  await touchActivity(actor.userId)
+
+  /*
+   * F57. The zone the footer names, and the one every timestamp on the page was
+   * formatted in — resolved once per request and shared with the page body
+   * through `React.cache`, so this costs no second read.
+   */
+  const preferences = await getViewerPreferences()
 
   return (
     <Shell boardTitle={header.boardTitle} viewer={viewer}>
       <Header {...header}>
-        <UserPanel {...buildUserPanelModel(viewer)}>
+        <UserPanel {...buildUserPanelModel(viewer, { unreadNotifications, unreadMessages })}>
           {/*
            * Only for a signed-in viewer, and only as a form: log out is a POST to
            * a Server Action, which cannot cross into the theme as data. A theme
@@ -91,7 +137,7 @@ export async function PageShell({
 
       {children}
 
-      <Footer {...buildFooterModel([], boardTitle)} />
+      <Footer {...buildFooterModel([], boardTitle, preferences.timezone)} />
     </Shell>
   )
 }

@@ -5,17 +5,19 @@ import { hasAnyModeratorRight } from "@forum/authorization";
 import { requireSlot } from "@forum/theme-kit";
 import { InlineModerationForm } from "@/components/moderation/inline-moderation-form";
 import { getContainer } from "@/server/container";
-import { getActor } from "@/server/context";
+import { getActor } from "@/server/context"
+import { getViewerPreferences } from "@/server/viewer-preferences";
 import { activeTheme } from "@/server/theme";
 import { decodeForumCursor, encodeForumCursor } from "@/view/forum-cursor";
+import { FollowForm } from "@/components/account/subscription-forms";
 import { buildForumDisplayView } from "@/view/forum-display";
+import { buildSubscriptionsView } from "@/view/subscriptions";
 import {
   INLINE_FORM_ID,
   anyInlineTool,
   inlineOutcomeNotice,
   selectionFor,
 } from "@/view/inline-moderation";
-import { THREADS_PER_PAGE } from "@/view/paging";
 
 export const metadata: Metadata = { title: "Forum" };
 
@@ -73,9 +75,16 @@ export default async function ForumPage({
    * one answer instead of one per query.
    */
   const scope = authorizer.contentScope(actor, { forumId: id, forum: matrix });
+  /*
+   * F57. The member's own page size, falling back to the board setting and then
+   * to the module constant — resolved *before* the read, because the page size
+   * is the read's `limit` and a preference applied after the query would be a
+   * setting that does nothing.
+   */
+  const preferences = await getViewerPreferences();
   const threadPage = await threads.listForum(id, {
     ...(after === undefined ? {} : { after }),
-    limit: THREADS_PER_PAGE,
+    limit: preferences.threadsPerPage,
     scope,
   });
   const nextHref = threadPage.nextCursor
@@ -142,7 +151,17 @@ export default async function ForumPage({
     readState: read,
     markReadAction: read === null ? null : `/api/read/forum/${id}`,
     now: new Date(),
+    timeZone: preferences.timezone,
   });
+
+  /* F56, same shape as the thread page's control. */
+  const { subscriptions } = getContainer();
+  const followMode =
+    subscriptions === null || actor.userId === null
+      ? null
+      : await subscriptions.modeFor(actor.userId, "forum", forum.id);
+  const followOffered = subscriptions !== null && actor.userId !== null;
+  const followModes = buildSubscriptionsView({ rows: [], now: new Date() }).modes;
 
   const ForumDisplay = requireSlot(activeTheme, "ForumDisplay");
   const Notice = requireSlot(activeTheme, "Notice");
@@ -169,6 +188,18 @@ export default async function ForumPage({
             kind="info"
             message={notice}
             dismissHref={`/forum/${id}-${forum.slug}`}
+          />
+        </div>
+      )}
+      {followOffered && (
+        <div className="px-6 pt-4">
+          <FollowForm
+            target="forum"
+            targetId={forum.id}
+            mode={followMode}
+            modes={followModes}
+            back={`/forum/${id}-${forum.slug}`}
+            label="Follow this forum"
           />
         </div>
       )}

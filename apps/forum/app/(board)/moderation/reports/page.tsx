@@ -10,6 +10,7 @@ import {
 } from '@/components/moderation/report-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { activeTheme } from '@/server/theme'
 import { formatTime } from '@/view/time'
@@ -42,6 +43,17 @@ export default async function ReportsPage({
     service.countOpen(scope),
   ])
 
+  /*
+   * F60. A reported private message is the one target a moderator cannot open:
+   * `/messages/<id>` requires a copy, and staff hold none. So the message is
+   * fetched here, for the reported ids on this page only, and shown inline.
+   *
+   * That is the **entire** staff read path into private messages — there is no
+   * listing, no search, and no way to reach the message beside it. A report is
+   * the door, and it opens exactly one message.
+   */
+  const reportedMessages = await reportedPrivateMessages(page.rows)
+
   const now = new Date()
   const Notice = requireSlot(activeTheme, 'Notice')
   const notice =
@@ -70,20 +82,29 @@ export default async function ReportsPage({
         <ul className="flex flex-col gap-3">
           {page.rows.map((report) => {
             const posted = formatTime(report.createdAt, now)
+            const message = reportedMessages.get(report.targetId)
             const href =
               report.kind === 'user'
                 ? `/member/${report.targetId}`
                 : report.kind === 'thread'
                   ? `/thread/${report.targetId}`
-                  : `/thread/${report.threadId ?? 0}#post-${report.targetId}`
+                  : report.kind === 'private_message'
+                    ? null
+                    : `/thread/${report.threadId ?? 0}#post-${report.targetId}`
 
             return (
               <li key={report.id} className="rounded-lg border border-border bg-card p-4">
                 <div className="flex flex-wrap items-baseline gap-2 text-sm">
-                  <span className="font-medium capitalize">{report.kind}</span>
-                  <a href={href} className="text-primary hover:underline">
-                    {report.targetLabel}
-                  </a>
+                  <span className="font-medium capitalize">
+                    {report.kind === 'private_message' ? 'Private message' : report.kind}
+                  </span>
+                  {href === null ? (
+                    <span className="font-medium">{report.targetLabel}</span>
+                  ) : (
+                    <a href={href} className="text-primary hover:underline">
+                      {report.targetLabel}
+                    </a>
+                  )}
                   <span className="text-xs text-muted-foreground">
                     reported by {report.reporterUsername ?? 'a deleted account'} ·{' '}
                     <time dateTime={posted.iso}>{posted.label}</time>
@@ -94,6 +115,27 @@ export default async function ReportsPage({
                 <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">
                   {report.reason}
                 </p>
+
+                {report.kind === 'private_message' && (
+                  <div className="mt-2 rounded-md border border-border bg-muted/50 p-3">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {message === undefined
+                        ? 'The reported message'
+                        : `The reported message, from ${
+                            message.authorUsername === '' ? 'a deleted member' : message.authorUsername
+                          }`}
+                    </p>
+                    {/*
+                      The **source**, as plain text, not the rendered HTML. A
+                      moderator deciding what somebody sent should see what they
+                      actually typed — and a staff screen gains nothing from a
+                      second rendering surface for attacker-controlled markup.
+                    */}
+                    <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+                      {message?.message ?? 'This message has since been deleted by everybody who held it.'}
+                    </p>
+                  </div>
+                )}
 
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   <span>
@@ -124,4 +166,31 @@ export default async function ReportsPage({
       </div>
     </main>
   )
+}
+
+/**
+ * The bodies of the private messages this page's reports point at.
+ *
+ * Bounded by the page size, and only for reports that are actually about a
+ * message — a page of post reports costs nothing. Failures are swallowed to an
+ * absent entry rather than taking down the queue: a moderator with one
+ * unreadable row can still work the other twenty-four.
+ */
+async function reportedPrivateMessages(
+  rows: readonly { kind: string; targetId: number }[],
+): Promise<ReadonlyMap<number, { authorUsername: string; message: string }>> {
+  const ids = rows.filter((row) => row.kind === 'private_message').map((row) => row.targetId)
+  if (ids.length === 0) return new Map()
+
+  const service = messageService()
+  if (service === null) return new Map()
+
+  const found = new Map<number, { authorUsername: string; message: string }>()
+  for (const id of new Set(ids)) {
+    const message = await service.forReport(id).catch(() => null)
+    if (message !== null) {
+      found.set(id, { authorUsername: message.authorUsername, message: message.message })
+    }
+  }
+  return found
 }

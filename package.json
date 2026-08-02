@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "forum": "pnpm --filter @forum/cli start",
     "format": "prettier --write .",
-    "verify": "pnpm guards && pnpm guards:probe && pnpm slots:check && pnpm slots:probe && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm test",
+    "verify": "pnpm workspace:check && pnpm guards && pnpm guards:probe && pnpm slots:check && pnpm slots:probe && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm test",
+    "workspace:check": "node scripts/workspace-check.mjs",
     "guards": "node scripts/guards.mjs",
     "guards:probe": "node scripts/guards-probe.mjs",
     "slots:check": "node scripts/slot-kinds.mjs",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",
+    "@electric-sql/pglite-socket": "^0.2.7",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "1.51.1",
     "@types/node": "^24.0.0",

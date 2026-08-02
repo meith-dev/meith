@@ -59,8 +59,21 @@ export const GUARDS = [
     /*
      * scripts/ and the CLI run on a real filesystem outside the request path,
      * and the migration runner legitimately reads its own directory.
+     *
+     * `locate-wasm.ts` is the one exemption that needed arguing for. The rule's
+     * harm is that *what is installed* becomes unknowable at build time, and
+     * that is not what happens here: the four `.wasm` specifiers are constants
+     * in `codec.ts`, the packages holding them are declared dependencies, and
+     * `serverExternalPackages` is what puts them in the bundle. The `readdir` is
+     * of `node_modules/.pnpm`, and it answers *where the installer put a file
+     * that is already known to be needed* — a question with no static answer,
+     * because the directory name carries a version. It is also the opposite of
+     * the failure the rule describes: this path exists **because** the developer
+     * machine and the standalone image differ, and it was written against a
+     * booted standalone image rather than a dev server. See ADR 0003.
      */
-    allow: /^(scripts\/|apps\/cli\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts)/,
+    allow:
+      /^(scripts\/|apps\/cli\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts|packages\/drivers\/src\/images\/locate-wasm\.ts)/,
     probe: {
       violates: "const themes = await readdir('./themes')",
       clean: "import themes from './forum.config'",

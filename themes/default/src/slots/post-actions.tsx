@@ -9,6 +9,9 @@ export function PostActions({ actions }: PostActionsSlotModel) {
       {actions.restoreHref !== null && <a href={actions.restoreHref} className="hover:text-primary">Restore</a>}
       {actions.reportHref !== null && <a href={actions.reportHref} className="hover:text-primary">Report</a>}
       {actions.warnHref !== null && <a href={actions.warnHref} className="hover:text-primary">Warn</a>}
+      {/* F62. A link rather than a button: it opens the rating form, which is
+          where the actual POST happens. */}
+      {actions.rateHref !== null && <a href={actions.rateHref} className="hover:text-primary">Rate</a>}
       {actions.moderateHref !== null && <a href={actions.moderateHref} className="hover:text-primary">Moderate</a>}
     </nav>
   )

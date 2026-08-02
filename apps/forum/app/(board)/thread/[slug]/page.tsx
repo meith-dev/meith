@@ -3,12 +3,18 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@forum/theme-kit'
 
+import { FollowForm } from '@/components/account/subscription-forms'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
 import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
 import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { getViewerPreferences } from '@/server/viewer-preferences'
+import { postbitProfileFields } from '@/server/profile-fields'
+import { viewerIgnoredIds } from '@/server/relations'
+import { reputationSettings } from '@/server/reputation'
+import { signaturesFor } from '@/server/signatures'
 import { moderatorTargetFor } from '@/server/modcp'
 import { activeTheme } from '@/server/theme'
 import {
@@ -17,8 +23,11 @@ import {
   inlineOutcomeNotice,
   selectionFor,
 } from '@/view/inline-moderation'
-import { POSTS_PER_PAGE } from '@/view/paging'
-import { buildThreadView } from '@/view/thread-view'
+import { attachmentsByPost } from '@/view/attachments'
+import { attachmentsForPosts } from '@/server/attachments'
+import { avatarsFor } from '@/server/avatars'
+import { buildThreadView, revealedFrom } from '@/view/thread-view'
+import { buildSubscriptionsView } from '@/view/subscriptions'
 
 export const metadata: Metadata = { title: 'Thread' }
 
@@ -68,6 +77,8 @@ export default async function ThreadPage({
     refused?: string
     gone?: string
     skipped?: string
+    /* F61. Repeatable: `?reveal=12&reveal=15`. */
+    reveal?: string | string[]
   }>
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams])
@@ -115,9 +126,11 @@ export default async function ThreadPage({
    * contains the row — filtering in the theme would put the body in the HTML
    * and hide it with CSS, which F33 already refused to do for profile fields.
    */
+  /* F57's per-member page size, resolved before the read that uses it. */
+  const preferences = await getViewerPreferences()
   const postPage = await posts.listThread(thread.id, {
     ...(after === undefined ? {} : { afterId: after }),
-    limit: POSTS_PER_PAGE,
+    limit: preferences.postsPerPage,
     scope,
   })
   const nextHref = postPage.nextAfterId === null
@@ -169,6 +182,15 @@ export default async function ThreadPage({
     canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
     /* F53. Global too, and gated on there being a warning store at all (D38). */
     canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
+    /*
+     * F62. Global as well, gated on a reputation store *and* on the board
+     * setting — a Rate link that leads to a 404 because reputation is switched
+     * off is worse than no link.
+     */
+    canRate:
+      getContainer().reputation !== null &&
+      authorizer.can(actor, 'reputation.give') &&
+      (await reputationSettings()).enabled,
   }
 
   /*
@@ -237,6 +259,54 @@ export default async function ThreadPage({
    */
   const inlineOffered = anyInlineTool(inlineRights) || surgeryRights.split
 
+  /*
+   * F59. One resolution per *distinct author* on the page, not per post: a
+   * thread is mostly the same few people, and the rules themselves are read
+   * once per request and cached. A board with no custom fields pays one cached
+   * lookup and gets an empty map.
+   */
+  const authorIds = [
+    ...new Set(
+      postPage.rows
+        .map((row) => row.authorUserId)
+        .filter((id): id is number => id !== null),
+    ),
+  ]
+  const authorFields = new Map(
+    await Promise.all(
+      authorIds.map(
+        async (id) => [id, await postbitProfileFields(id)] as const,
+      ),
+    ),
+  )
+
+  /*
+   * F61's ignore list, resolved once per request. Empty for a guest, for a
+   * board with no relation store, and if the read fails — a thread page is not
+   * worth failing over a preference.
+   */
+  const ignoredIds = await viewerIgnoredIds()
+
+  /*
+   * F58. One query for the whole page, keyed by author — a signature per post
+   * would be an N+1 on the board's heaviest page, which is exactly what the
+   * repository's `readMany` exists to avoid.
+   */
+  const signatures = await signaturesFor(authorIds)
+
+  /*
+   * F42. One query for every attachment on the page, for the same reason as the
+   * signatures above. `attachmentsByPost` drops anything that is not
+   * downloadable, so a re-encode that has not finished is simply absent rather
+   * than rendered as a link that would 404.
+   */
+  /* F58. Same one-query-per-page shape as the signatures above. */
+  const avatars = await avatarsFor(authorIds)
+
+  const attachments = attachmentsByPost(
+    await attachmentsForPosts(postPage.rows.map((row) => row.id)),
+  )
+
   const view = buildThreadView({
     thread,
     capabilities,
@@ -250,7 +320,36 @@ export default async function ThreadPage({
         ? null
         : `/api/read/thread/${thread.id}?post=${postPage.rows.at(-1)!.id}`,
     now: new Date(),
+    timeZone: preferences.timezone,
+    authorFields,
+    signatures,
+    attachments,
+    avatars,
+    ignoredIds,
+    revealedPostIds: revealedFrom(query.reveal),
+    /*
+     * The page's own URL, with the page number kept: a reveal link that dropped
+     * it would send the reader back to page 1 of a long thread, which is worse
+     * than not offering one.
+     */
+    currentHref:
+      `/thread/${thread.id}-${thread.slug}` +
+      (after === undefined ? `?page=${page}` : `?after=${after}&page=${page}`),
   })
+
+  /*
+   * F56's follow control. Two reads for a signed-in member — the current mode,
+   * and nothing else — and none at all for a guest or on a board with no
+   * subscription store, where the control is absent rather than offered and
+   * then refused.
+   */
+  const { subscriptions } = getContainer()
+  const followMode =
+    subscriptions === null || actor.userId === null
+      ? null
+      : await subscriptions.modeFor(actor.userId, 'thread', thread.id)
+  const followOffered = subscriptions !== null && actor.userId !== null
+  const followModes = buildSubscriptionsView({ rows: [], now: new Date() }).modes
 
   const ThreadView = requireSlot(activeTheme, 'ThreadView')
   const Notice = requireSlot(activeTheme, 'Notice')
@@ -301,6 +400,18 @@ export default async function ThreadPage({
             splitPoints={splitPoints}
           />
         </ThreadToolsForm>
+      )}
+      {followOffered && (
+        <div className="px-6 pt-4">
+          <FollowForm
+            target="thread"
+            targetId={thread.id}
+            mode={followMode}
+            modes={followModes}
+            back={`/thread/${thread.id}-${thread.slug}`}
+            label="Follow this thread"
+          />
+        </div>
       )}
       <ThreadView
         {...view.view}

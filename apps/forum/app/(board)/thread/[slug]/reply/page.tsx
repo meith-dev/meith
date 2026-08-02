@@ -5,6 +5,7 @@ import { quotePrefill } from '@forum/threads'
 import { requireSlot } from '@forum/theme-kit'
 
 import { ReplyForm } from '@/components/content/reply-form'
+import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { activeTheme } from '@/server/theme'
@@ -92,6 +93,9 @@ export default async function ReplyPage({
               seenLastPostId={target.lastPostId}
               prefill={prefill}
               canSubscribe={authorizer.can(actor, 'forum.subscribe', scope)}
+              attachmentLimits={
+                canAttach(actor, scope) ? attachmentLimits(scope) : null
+              }
             />
           ),
           toolbar: null,

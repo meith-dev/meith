@@ -5,7 +5,7 @@ import type { ForumRow } from '@forum/forums'
 import type { PostListingRow } from '@forum/posts'
 import type { ThreadListingRow } from '@forum/threads'
 
-import { buildThreadView } from './thread-view'
+import { buildThreadView, revealedFrom } from './thread-view'
 
 const forum: ForumRow = {
   id: 2,
@@ -360,5 +360,137 @@ describe('the report link (F49)', () => {
   /* A deleted post is on the page only because a moderator is reading it. */
   it('does not offer it on a post nobody else can see', () => {
     expect(reportHrefFor({ visibility: 'deleted' })).toBeNull()
+  })
+})
+
+describe('ignored posts (F61)', () => {
+  function row(overrides: Partial<PostListingRow> = {}): PostListingRow {
+    return {
+      id: 4,
+      threadId: 3,
+      forumId: 2,
+      number: 1,
+      authorUserId: 9,
+      authorUsername: 'noisy',
+      authorPostCount: 0,
+      authorJoinedAt: null,
+      message: 'Something.',
+      messageHtml: null,
+      renderVersion: 0,
+      editedAt: null,
+      editedByUsername: null,
+      editReason: null,
+      isFirstPost: true,
+      visibility: 'visible',
+      createdAt: new Date('2026-07-30T08:41:00Z'),
+      ...overrides,
+    }
+  }
+
+  function build(
+    rows: readonly PostListingRow[],
+    options: Partial<Parameters<typeof buildThreadView>[0]> = {},
+  ) {
+    return buildThreadView({
+      thread,
+      forum,
+      page: { rows: [...rows], nextAfterId: null },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date('2026-07-30T09:00:00Z'),
+      capabilities: {
+        viewerUserId: 1,
+        editOwn: false,
+        editOthers: false,
+        softDelete: false,
+        editWindowMinutes: 0,
+        bypassesWindow: false,
+        canReport: true,
+        canWarn: false,
+      },
+      currentHref: '/thread/3-a-thread?page=2',
+      ...options,
+    })
+  }
+
+  it('withholds the body rather than hiding it', () => {
+    /*
+     * The claim that makes this "server-side ignore" rather than a stylesheet:
+     * the text is not in the model at all, so nothing a browser does can reveal
+     * it. Kills the mutant that sets `ignored` but still renders the body.
+     */
+    const view = build([row()], { ignoredIds: new Set([9]) })
+
+    expect(view.posts[0]?.bodyHtml).toBe('')
+    expect(view.posts[0]?.ignored).toEqual({
+      authorUsername: 'noisy',
+      revealHref: '/thread/3-a-thread?page=2&reveal=4#post-4',
+    })
+  })
+
+  it('keeps the post in the page, with its number', () => {
+    /*
+     * F61's "stable pagination and counts". Filtering the post out instead
+     * would give every viewer a different page size and make "#2" mean
+     * different posts to different people.
+     */
+    const view = build([row({ id: 4, number: 1 }), row({ id: 5, number: 2, authorUserId: 8 })], {
+      ignoredIds: new Set([9]),
+    })
+
+    expect(view.posts).toHaveLength(2)
+    expect(view.posts.map((post) => post.number)).toEqual([1, 2])
+    expect(view.posts[1]?.ignored).toBeNull()
+  })
+
+  it('shows it once revealed, and leaves the others hidden', () => {
+    const view = build([row({ id: 4, number: 1 }), row({ id: 5, number: 2 })], {
+      ignoredIds: new Set([9]),
+      revealedPostIds: new Set([4]),
+    })
+
+    expect(view.posts[0]?.ignored).toBeNull()
+    expect(view.posts[0]?.bodyHtml).not.toBe('')
+    expect(view.posts[1]?.ignored).not.toBeNull()
+  })
+
+  it('withholds the custom fields with the body', () => {
+    /* A postbit field is the author's text too, and leaving it would put
+       somebody's signature line back on a post the reader hid. */
+    const view = build([row()], {
+      ignoredIds: new Set([9]),
+      authorFields: new Map([[9, [{ label: 'Steam', value: 'noisy99' }]]]),
+    })
+
+    expect(view.posts[0]?.author.fields).toEqual([])
+  })
+
+  it('offers no quote link for a hidden post', () => {
+    const view = build([row()], {
+      ignoredIds: new Set([9]),
+      replyHref: '/thread/3-a-thread/reply',
+    })
+
+    expect(view.posts[0]?.actions.quoteHref).toBeNull()
+  })
+
+  it('hides nothing when nobody is ignored', () => {
+    const view = build([row()])
+    expect(view.posts[0]?.ignored).toBeNull()
+    expect(view.posts[0]?.bodyHtml).not.toBe('')
+  })
+})
+
+describe('revealedFrom', () => {
+  it('reads one value, several, and a comma-separated list', () => {
+    expect([...revealedFrom('4')]).toEqual([4])
+    expect([...revealedFrom(['4', '5'])]).toEqual([4, 5])
+    expect([...revealedFrom('4,5')]).toEqual([4, 5])
+  })
+
+  it('drops anything that is not a post id, rather than failing', () => {
+    /* The query string is anybody's to write. */
+    expect([...revealedFrom('4,nonsense,-1,0')]).toEqual([4])
+    expect([...revealedFrom(undefined)]).toEqual([])
   })
 })
