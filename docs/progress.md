@@ -745,13 +745,24 @@ tests mock.
 F68, F69 and F70 all depend only on F63 (plus F08/F21/F26/F38, all done). F71
 additionally needs F42.
 
-The natural order is the roadmap's, and **F64 · settings administration** is the
-smallest next step with the largest immediate payoff: the registry, its
-migration and its CLI commands have existed since F08, and `getSettings()` reads
-them — but the only way to change one today is `forum settings:set` over a
-terminal. F64 is a registry-driven form, which means it is mostly view code over
-machinery that already works, plus the cache invalidation F08 already declares
-per setting (`invalidates`).
+**F64 is done** (D68). The screen is generated from F08's registry and names no
+setting; the control kind is derived from `typeof default` rather than declared,
+so it cannot drift from the schema that validates. Two things in it are worth
+carrying forward to F65–F71: the hidden `keys` field, without which a save from
+a filtered screen reads every unseen checkbox as `false` and switches off the
+features behind them; and the rule that the audit log records *which* settings
+changed and never what they became, because a value can be a secret and the log
+is read by more people than can edit it.
+
+`invalidates` also has a caller for the first time since F08 wrote it.
+
+**F65 · forum administration** is next, and it is the biggest of the remaining
+Admin CP screens: the tree, per-forum options, moderators, and the visual
+permission matrix with inherit/grant/deny and previewed copy-to-subforums. F21's
+resolution and F48's appointments are both done, so this is a surface over
+machinery that works — but the matrix is the part to design carefully, because
+"inherit" being visually distinct from "deny" is the whole reason operators get
+permissions wrong.
 
 **F42 is done, and the decision it was waiting on is recorded in
 [ADR 0003](adr/0003-jsquash-image-codecs.md).** `@jsquash` — the Squoosh codecs

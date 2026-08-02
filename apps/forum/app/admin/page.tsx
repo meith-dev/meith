@@ -39,6 +39,14 @@ export default async function AdminHomePage() {
         <h2 className="font-serif text-lg font-semibold">Sections</h2>
         <ul className="flex flex-col gap-2 text-sm">
           <li>
+            <a href="/admin/settings" className="text-primary hover:underline">
+              Board settings
+            </a>{' '}
+            <span className="text-muted-foreground">
+              — every setting this build has, grouped and searchable.
+            </span>
+          </li>
+          <li>
             <a href="/admin/log" className="text-primary hover:underline">
               Admin log
             </a>{' '}
@@ -52,8 +60,8 @@ export default async function AdminHomePage() {
           to a page that does not exist is worse than an honest note.
         */}
         <p className="text-xs text-muted-foreground">
-          Settings, forums, groups, users, themes, plugins, maintenance and
-          content administration each arrive with their own feature.
+          Forums, groups, users, themes, plugins, maintenance and content
+          administration each arrive with their own feature.
         </p>
       </section>
 

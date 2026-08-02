@@ -42,6 +42,31 @@ interface SettingDefinitionBase<T> {
    * that legitimately live in the database rather than the environment.
    */
   readonly secret?: boolean
+  /**
+   * Hints the generated form (F64) cannot derive.
+   *
+   * Everything derivable is derived: `typeof default` already says string,
+   * number or boolean. Only what a type cannot say is declared here — see
+   * `fields.ts`, and note that `min`/`max` restate what the schema validates
+   * and are checked against it by a test.
+   */
+  readonly ui?: {
+    /** A string that wants a textarea rather than one line. */
+    readonly multiline?: boolean
+    /** An enum's choices, with the words an operator should see. */
+    readonly options?: readonly { readonly value: string; readonly label: string }[]
+    readonly min?: number
+    readonly max?: number
+    /**
+     * Hidden unless the operator asks for advanced settings.
+     *
+     * For the ones where a wrong value is not merely wrong but *locks somebody
+     * out* or breaks a running board — not merely for the ones that are rarely
+     * changed. A screen that hides half of itself by default teaches people to
+     * click "advanced" first, which defeats it.
+     */
+    readonly advanced?: boolean
+  }
 }
 
 export type SettingDefinition<T = unknown> = SettingDefinitionBase<T>
@@ -70,6 +95,7 @@ export const SETTING_DEFINITIONS = [
     schema: z.string().max(300),
     default: '',
     invalidates: ['settings', 'layout'],
+    ui: { multiline: true },
   }),
   define({
     key: 'board.offline',
@@ -81,6 +107,7 @@ export const SETTING_DEFINITIONS = [
     schema: z.boolean(),
     default: false,
     invalidates: ['settings', 'layout'],
+    ui: { advanced: true },
   }),
   define({
     key: 'board.offline_message',
@@ -90,6 +117,7 @@ export const SETTING_DEFINITIONS = [
     schema: z.string().max(2000),
     default: 'The board is temporarily unavailable for maintenance.',
     invalidates: ['settings'],
+    ui: { multiline: true, advanced: true },
   }),
 
   /* ---------------------------- registration --------------------------- */
@@ -112,6 +140,14 @@ export const SETTING_DEFINITIONS = [
     schema: z.enum(['none', 'email', 'admin', 'both']),
     default: 'email',
     invalidates: ['settings'],
+    ui: {
+      options: [
+        { value: 'none', label: 'Nothing further — the account works at once' },
+        { value: 'email', label: 'Confirm the e-mail address' },
+        { value: 'admin', label: 'An administrator approves each account' },
+        { value: 'both', label: 'Confirm the address, then an administrator approves' },
+      ],
+    },
   }),
   define({
     key: 'registration.min_password_length',
@@ -122,6 +158,7 @@ export const SETTING_DEFINITIONS = [
       'ones — those are rehashed on next login (see F17).',
     schema: z.number().int().min(8).max(128),
     default: 10,
+    ui: { min: 8, max: 128 },
   }),
   define({
     key: 'registration.username_min',
@@ -130,6 +167,7 @@ export const SETTING_DEFINITIONS = [
     description: 'Counted in Unicode code points, not bytes.',
     schema: z.number().int().min(1).max(64),
     default: 3,
+    ui: { min: 1, max: 64 },
   }),
   define({
     key: 'registration.username_max',
@@ -138,6 +176,7 @@ export const SETTING_DEFINITIONS = [
     description: 'Must not exceed the 64-character database column.',
     schema: z.number().int().min(1).max(64),
     default: 30,
+    ui: { min: 1, max: 64 },
   }),
 
   /* ------------------------------ posting ------------------------------ */
@@ -150,6 +189,7 @@ export const SETTING_DEFINITIONS = [
       'Users with "bypass flood check" are exempt.',
     schema: z.number().int().min(0).max(3600),
     default: 15,
+    ui: { min: 0, max: 3600 },
   }),
   define({
     key: 'posting.max_length',
@@ -158,6 +198,7 @@ export const SETTING_DEFINITIONS = [
     description: 'Characters of source text, before rendering.',
     schema: z.number().int().min(100).max(200_000),
     default: 30_000,
+    ui: { min: 100, max: 200_000 },
   }),
   define({
     key: 'posting.edit_grace_seconds',
@@ -168,6 +209,7 @@ export const SETTING_DEFINITIONS = [
       'shows the notice.',
     schema: z.number().int().min(0).max(86_400),
     default: 300,
+    ui: { min: 0, max: 86_400 },
   }),
 
   /* ------------------------------ display ------------------------------ */
@@ -179,6 +221,7 @@ export const SETTING_DEFINITIONS = [
     schema: z.number().int().min(5).max(100),
     default: 25,
     invalidates: ['settings'],
+    ui: { min: 5, max: 100 },
   }),
   define({
     key: 'display.posts_per_page',
@@ -188,6 +231,7 @@ export const SETTING_DEFINITIONS = [
     schema: z.number().int().min(5).max(100),
     default: 20,
     invalidates: ['settings'],
+    ui: { min: 5, max: 100 },
   }),
   define({
     key: 'display.default_theme_id',
@@ -197,6 +241,7 @@ export const SETTING_DEFINITIONS = [
     schema: z.number().int().positive(),
     default: 1,
     invalidates: ['settings', 'theme', 'layout'],
+    ui: { min: 1, advanced: true },
   }),
 
   /* ------------------------------- search ------------------------------ */
@@ -219,6 +264,7 @@ export const SETTING_DEFINITIONS = [
       'combination rule — see docs/mybb-parity.md.',
     schema: z.number().int().min(0).max(3600),
     default: 30,
+    ui: { min: 0, max: 3600 },
   }),
   define({
     key: 'search.min_word_length',
@@ -227,6 +273,7 @@ export const SETTING_DEFINITIONS = [
     description: 'Shorter terms are dropped from the query.',
     schema: z.number().int().min(1).max(10),
     default: 3,
+    ui: { min: 1, max: 10 },
   }),
 
   /* -------------------------------- mail ------------------------------- */
@@ -283,6 +330,7 @@ export const SETTING_DEFINITIONS = [
     schema: z.number().int().min(0).max(1000),
     default: 5,
     invalidates: ['settings'],
+    ui: { min: 0, max: 1000 },
   }),
 
   /* ------------------------------ security ----------------------------- */
@@ -293,6 +341,7 @@ export const SETTING_DEFINITIONS = [
     description: 'Sessions unused for this long are treated as expired.',
     schema: z.number().int().min(1).max(365),
     default: 30,
+    ui: { min: 1, max: 365, advanced: true },
   }),
   define({
     key: 'security.max_login_attempts',
@@ -301,6 +350,7 @@ export const SETTING_DEFINITIONS = [
     description: '0 disables lockout. Counted per account, not per IP.',
     schema: z.number().int().min(0).max(100),
     default: 5,
+    ui: { min: 0, max: 100, advanced: true },
   }),
   define({
     key: 'security.lockout_minutes',
@@ -309,6 +359,7 @@ export const SETTING_DEFINITIONS = [
     description: 'How long an account stays locked after too many failures.',
     schema: z.number().int().min(1).max(10_080),
     default: 15,
+    ui: { min: 1, max: 10_080, advanced: true },
   }),
 ] as const
 

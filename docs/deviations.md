@@ -4096,3 +4096,111 @@ member is still a permission question and a shared cache must not answer it.
   is a constant. MyBB has `maxavatarsize`; giving it a home means F71's group
   administration, and inventing a second place to configure it first would be
   the thing to undo.
+
+---
+
+### D68 — The settings screen is generated, and the hidden field is load-bearing (F64)
+
+F08 promised that adding a setting means "one entry — not an entry plus a form
+field plus a migration plus a parser, each of which could disagree with the
+others". F64 is the half that makes the form, and it keeps the promise: neither
+`admin-settings.ts` nor `settings-form.tsx` names a single setting.
+
+#### The control kind is derived, not declared
+
+`typeof definition.default` already says string, number or boolean, and it says
+so as a *value* — which is the one form of the statement that cannot disagree
+with itself. Adding a `kind:` field would be a second statement of the same
+fact, free to drift from the schema that actually validates. The CLI's `coerce`
+reads the default for the same reason.
+
+Only what a type cannot say is declared, in `ui`: whether a string wants a
+textarea, what an enum's choices are *called*, what bounds a number input should
+advertise, and whether a setting is advanced.
+
+#### The bounds are a duplicate, and a test says so
+
+`z.number().int().min(0).max(3600)` knows the range, and zod is not
+introspectable for it without unwrapping every wrapper type. So `ui.min`/`ui.max`
+restate it — and `fields.test.ts` probes every numeric schema *at* each declared
+bound and one step outside it. A hint that disagrees with its validator fails
+there rather than shipping a spinner that offers values the save refuses.
+
+The same test asserts the set is **exhaustive**: a numeric setting with no `ui`
+hint renders an unbounded box, which is a silent downgrade rather than a visible
+one, so adding one without bounds fails.
+
+#### The hidden `keys` field is the whole safety of a filtered save
+
+The screen shows one group at a time, filtered further by a search. **An
+unchecked checkbox submits nothing at all**, and a form cannot tell "off" from
+"not on this screen". An action that iterated the registry would therefore read
+every boolean the operator could not see as `false` — and a save of the board
+name would switch off search, reputation and registration.
+
+So the form declares exactly what it is showing and the action touches nothing
+else. Unknown keys in that field are dropped rather than passed on: it is form
+data and therefore attacker-supplied, and `saveSettings` rejects a whole batch
+containing an unknown key, so one forged entry would otherwise be a way to stop
+an administrator saving anything at all.
+
+Mutation-verified: replacing `submittedKeys` with the registry fails six tests.
+
+#### The audit log gets keys, never values
+
+A settings value can be a secret (`secret: true`), and the admin log is read by
+more people than can edit settings. A log that recorded `board.name = X` would
+be a log that eventually recorded a token. The row answers *who changed which
+settings, and when*, which is what an audit log is for; the value is in the
+settings table for anybody entitled to read it.
+
+For the same reason a secret's current value never reaches the view model at
+all — it would otherwise be in the page source of every administrator's browser,
+their history, and any proxy that logged it.
+
+#### Invalidation, and two tags that name nothing yet
+
+`invalidates` has been on every definition since F08 with **nothing ever calling
+it**: `settings.ts` reads through `cachedGlobal` with a sixty-second TTL
+precisely because the CLI writes out of process and cannot invalidate. This is
+the writer that closes it, so an operator changing the board name sees it
+immediately rather than concluding the save failed.
+
+`CacheTags.settings()` always goes, because the snapshot itself is what was
+cached. The declared tags go too — and `layout` and `theme` name regions that
+have no cached entry yet, because F08 wrote them ahead of the caches they
+describe. Passing an unknown tag to a driver is a no-op, and passing it is what
+makes those caches correct on the day somebody adds them rather than on the day
+somebody remembers.
+
+#### The filters are links, and the state is in the URL
+
+A group tab is an anchor and the search is a GET form, so an operator can
+bookmark "the posting settings", send a colleague the URL of the one they are
+arguing about, and use the back button. A client-side filter would have none of
+that and would need JavaScript on a screen that otherwise does not.
+
+A **search spans every group and selects none**. Filtering to a group *and* a
+term would mean somebody who typed a word and saw nothing had to work out that
+they were also filtered — which is exactly how a search box gets reported as
+broken.
+
+#### "Advanced" is about danger, not about frequency
+
+Hidden by default, and **counted while hidden** so the screen says what it is
+not showing. What earns the flag is a setting where a wrong value locks somebody
+out or stops the board serving — `board.offline`, the lockout window, the
+session lifetime — not merely one that is rarely changed. A screen that hides
+half of itself by default teaches people to click "advanced" first, which
+defeats the point of having it.
+
+#### What is deliberately not here
+
+- **No per-setting revert.** "Changed" is shown against anything that is not its
+  default, and clearing an override is what saving the default value already
+  does — the store deletes rather than writes it. A separate button would be a
+  second path to the same write.
+- **No setting history.** The log records that the key changed and who did it.
+  A before/after would be the values problem again.
+- **No new settings.** F64 is the screen; the registry is F08's, and every entry
+  in it already had a reader.
