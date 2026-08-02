@@ -761,8 +761,6 @@ appointments gave `forum_moderators` its first writer — it gained a reader in
 F48 and could only be configured with SQL until now — and create/move now sit on
 F16's forest-locked repository methods.
 
-**Phase 6 is 3 of 9 with nothing partial in it.**
-
 The matrix is worth reading before touching anything permission-shaped: a cell
 is three states because null means inherit, every cell says what it resolves to
 and from where, and a row resolves for its own group rather than for the
@@ -770,14 +768,43 @@ combination the Authorizer would compute. The copy is previewed cell by cell and
 re-authenticated, which is the first use of F63's `requireFreshAdmin` outside
 F63 itself.
 
-**F66 · groups** is the natural next feature: the same shape one layer up — a
-grid of groups against the *global* permission registry rather than the
-forum-scoped subset — plus promotions with a dry run and chunked mass
-memberships. `CacheTags.permissions()` now has several writers to follow, and
-`matrix-editor.ts` is the model to copy **minus the inheritance**: a group's
-global permission has no ancestor chain, so its cells are two states and not
-three. That difference is worth being deliberate about rather than reusing the
-three-state control out of symmetry.
+**F66 is done** (D70): the group grid, a per-group permission editor, the
+promotion dry run, and a chunked mass-membership screen.
+
+**Phase 6 is 4 of 9 with nothing partial in it.**
+
+Three things in F66 are worth carrying into F67–F71.
+
+**A group cell is two states, and that is not an inconsistency with F65.** A
+group's global permissions are R4.1 layer 1 — the bottom of the resolution, with
+nothing above them — so a third state would be an "inherit" that resolves to
+nothing. The corollary is the trap: an off checkbox submits *nothing*, so an
+action that read only the fields that arrived could never turn a permission off.
+Every registry field is read whether it arrived or not. This is the same shape as
+F64's hidden `keys` field arriving at the opposite answer, for the opposite
+reason — F64's screen is filtered and must not touch what it did not show; this
+one shows everything and must write everything.
+
+**Every group write bumps `permission_version` inside the same transaction.**
+Not a call the caller could forget: a lost bump leaves resolved actors holding
+permissions that have been revoked. A refused write rolls the bump back with it.
+Any feature that changes a permission input should copy `withVersionBump` rather
+than invent its own pairing.
+
+**A bulk membership change is a resumable run.** 500 members per press on a
+keyset cursor, because one UPDATE over every member holds row locks on `users`
+for the whole run. The cursor lives in a hidden form field, so it resumes with
+no JavaScript — which is the pattern to reuse for anything else in the panel
+that touches every row of a big table (F70's maintenance, F71's content).
+
+**F67 · user management** is next. Two of its pieces are already named as
+F66's deliberate gaps and should land there rather than being retro-fitted here:
+secondary group membership (this screen moves `primary_group_id` only, and a
+mass-move that silently understood one of the two would lie about what a member
+is in) and a per-member group picker. Promotion *rule* editing is the third —
+`promotion_rules` has a repository and an evaluator but no editor, and a screen
+that ran rules it could not show you would be worse than the honest link the
+promotions page carries today.
 
 **F42 is done, and the decision it was waiting on is recorded in
 [ADR 0003](adr/0003-jsquash-image-codecs.md).** `@jsquash` — the Squoosh codecs
@@ -925,7 +952,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D63). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D70). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

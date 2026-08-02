@@ -61,6 +61,12 @@ export { PostgresMessageRepository } from './message-repo'
 export { PostgresAttachmentRepository } from './attachment-repo'
 export { PostgresAvatarRepository } from './avatar-repo'
 export {
+  PostgresGroupAdminRepository,
+  type GroupIdentityInput,
+  type GroupSummaryRow,
+  type MembershipChunkResult,
+} from './group-admin-repo'
+export {
   MODERATOR_RIGHTS,
   PostgresForumAdminRepository,
   type AppointModeratorInput,

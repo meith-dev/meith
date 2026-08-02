@@ -4349,3 +4349,112 @@ inherits has changed, and resolved actors carry that.
   happens to them is a decision (move them? delete them? refuse while any
   remain?) that belongs with F71's content administration rather than being
   guessed at here.
+
+### D70 — A group permission is two states, and a mass change is a run (F66)
+
+Group administration, and the three decisions in it that are not CRUD.
+
+#### Two states here, three on a forum — and that is not an inconsistency
+
+D69 argued at length that a forum permission cell must be `inherit | grant |
+deny`, because `forum_permissions` is nullable and null means inherit. It would
+be easy to reuse that control here out of symmetry, and it would be wrong.
+
+A group's global permissions are **R4.1 layer 1** — the bottom of the
+resolution. There is nothing above them. A third state would be an "inherit"
+that resolves to nothing, which is worse than no control at all: it is a control
+that looks like it defers to something and does not.
+
+So the group editor is checkboxes and number boxes, and that is honest. The
+corollary is the thing the app-layer test exists for: **an unticked box is a
+revocation, not an absence.** An off checkbox submits nothing, so an action that
+read only the fields that arrived could never turn a permission off — the
+operator would untick it, press save, and watch it come back. Every field in
+`PERMISSION_FIELDS` is therefore read whether it arrived or not, and the write is
+a whole set rather than a patch.
+
+The forum-scoped fields are on this screen too. They are the group's *default*
+for every forum that does not override them, so leaving them off would hide the
+value most forums actually resolve to — an operator would set `canPostThreads`
+nowhere and wonder why nobody can post.
+
+#### Every write bumps the permission version, inside the same transaction
+
+F20 resolves an Actor once and caches it against `permission_version`. A group
+write whose bump is lost leaves everybody holding their old permissions for the
+cache's lifetime: a grant that appears not to have worked, and — the direction
+that matters — **a revocation that silently did not take effect**.
+
+So the bump is not a call the caller could forget. `withVersionBump` wraps every
+write in one transaction with the increment, which also means a refused write
+rolls the bump back with everything else. Mutation-verified in both directions:
+dropping the bump fails three tests, and moving it outside the transaction fails
+the one that checks a refusal leaves the number alone. Bumping *before* the work
+rather than after is an equivalent mutant — same transaction either way — and the
+test says so rather than pretending to kill it.
+
+A rename bumps too. The badge and the staff flag ride on the same resolved
+actor, so the invalidation is unconditional rather than a judgement about which
+columns are "really" permissions.
+
+#### A mass membership change is a resumable run, not a button
+
+Moving every member of a group in one UPDATE holds row locks on `users` — the
+table every request on the board reads — for as long as it takes. On a board
+with five figures of members that is indistinguishable from an outage.
+
+So it is chunked: bounded batches on a keyset cursor over `users.id`, 500 to a
+press, exactly as F24's promotion loop pages for the same reason. **A short
+chunk reports `nextCursor: null`**, which is what lets a caller stop without a
+second query that finds nothing — mutation-verified, because a sequential run
+still totals correctly with that mutant in place and only an explicit assertion
+catches it.
+
+The cursor travels in a hidden form field, so the run continues across presses
+**with no JavaScript** (D06). That is also why the screen has no progress bar: a
+bar would be an island, and this works without one.
+
+#### The promotion screen is a caller, not a second implementation
+
+`PromotionService.preview()` has existed since F24 with no caller outside the
+scheduler. The ACP screen calls it. It does not compute the affected list
+itself, because `preview()` and `apply()` are the same evaluation differing only
+in whether outcomes are written — and a screen with its own copy of the
+evaluation would eventually disagree with the run it was previewing, about who
+is being moved between groups.
+
+The dry run is unconditional: opening the page runs it. It writes nothing, and a
+promotions screen that showed rules without their consequences would be asking
+an operator to evaluate the rules in their head.
+
+#### Deleting a group asks where its members go
+
+`users.primary_group_id` is NOT NULL, so a delete without a destination either
+fails on the constraint or — with a cascade — takes the members with it. Asking
+is the only version of the operation that is not a trap.
+
+System groups are refused. `is_system` marks the ones the board's own code
+resolves by key, and deleting one breaks registration rather than a screen.
+Their *permissions* stay editable, which is most of what this panel is for; the
+screen says which of those two it is rather than hiding the group.
+
+#### Three operations are re-authenticated
+
+Deleting a group, moving members en masse, and applying promotions. Each changes
+what a population of members may do, with no undo, and none of them has a blast
+radius visible from the button — which is what F63 built `requireFreshAdmin`
+for. The freshness window means an operator confirms once and can then work
+through a long chunked run without retyping a password on every press.
+
+#### What is deliberately not here
+
+- **Editing promotion rules.** `promotion_rules` has a repository and an
+  evaluator; a rule *editor* is a screen over criteria whose natural home is
+  beside the user administration F67 brings, and half of it — a screen that runs
+  rules it cannot show you — would be worse than the honest link.
+- **Secondary groups.** `users.primary_group_id` is what this screen moves.
+  Additional-group membership is a join table F67 owns, and a mass-move screen
+  that silently only understood one of the two would be a screen that lies about
+  what a member is in.
+- **A per-member group picker.** That is F67's, and putting it here would mean
+  two screens that both claim to own membership.

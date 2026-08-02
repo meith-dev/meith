@@ -348,8 +348,10 @@ with thresholds at 4, 7 and 10.
 
 **Why:** a percentage needs a configured maximum to mean anything, and a board
 that has never opened the admin screen would have every member permanently at 0%
-of nothing — which is precisely the state a v1 board is in, because the screen
-that sets the maximum is F66's and does not exist yet. Points are readable on
+of nothing — which is precisely the state a v1 board is in, because no screen
+configures `warning_levels` yet. F66 landed and is not that screen: levels are
+moderation configuration rather than group permissions, and the seeded ladder is
+what a board runs on until something owns them. Points are readable on
 their own, the seeded ladder works on a fresh board, and "2 points, expires
 after 90 days" is a sentence a moderator can weigh before issuing it. The
 importer (F85) can convert a percentage against the source board's maximum.

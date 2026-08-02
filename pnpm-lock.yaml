@@ -151,6 +151,9 @@ importers:
       '@forum/reputation':
         specifier: workspace:*
         version: link:../../packages/reputation
+      '@forum/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       '@forum/settings':
         specifier: workspace:*
         version: link:../../packages/settings
