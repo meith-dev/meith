@@ -5,11 +5,15 @@ import { formatTime } from '@/view/time'
 /**
  * F63 — the panel's index.
  *
- * Deliberately thin. It lists the sections that **exist**, which today is the
- * admin log and nothing else: F64–F71 each add their own, and a panel that
- * advertised nine links to nine 404s would be worse than one that admits it is
- * new. Same rule the CLI follows about never advertising a capability that is
- * not there (D32).
+ * Deliberately thin, and it lists only the sections that **exist** — a panel
+ * advertising links to pages that are not there would be worse than one that
+ * admits it is new. Same rule the CLI follows about never advertising a
+ * capability that is not there (D32).
+ *
+ * As of F71 every section Phase 6 promised is here. Each screen is honest about
+ * its own limits rather than the index being honest on their behalf: the plugin
+ * page says what a plugin cannot do yet, the theme page says that switching one
+ * is a redeploy, and the content page names what it does not administer.
  */
 export default async function AdminHomePage() {
   /* Re-run, because a layout is not a security boundary (see the layout). */
@@ -79,6 +83,30 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
+            <a href="/admin/plugins" className="text-primary hover:underline">
+              Plugins
+            </a>{' '}
+            <span className="text-muted-foreground">
+              — what is configured, and what a plugin can do so far.
+            </span>
+          </li>
+          <li>
+            <a href="/admin/system" className="text-primary hover:underline">
+              System health
+            </a>{' '}
+            <span className="text-muted-foreground">
+              — whether the scheduler is running, and the maintenance sweeps.
+            </span>
+          </li>
+          <li>
+            <a href="/admin/content" className="text-primary hover:underline">
+              Content
+            </a>{' '}
+            <span className="text-muted-foreground">
+              — word filters, applied when a post is shown, and thread prefixes.
+            </span>
+          </li>
+          <li>
             <a href="/admin/log" className="text-primary hover:underline">
               Admin log
             </a>{' '}
@@ -87,14 +115,6 @@ export default async function AdminHomePage() {
             </span>
           </li>
         </ul>
-        {/*
-          Named rather than linked. The remaining panels are F64–F71, and a link
-          to a page that does not exist is worse than an honest note.
-        */}
-        <p className="text-xs text-muted-foreground">
-          Plugins, maintenance and content administration each arrive with
-          their own feature.
-        </p>
       </section>
 
       <section className="flex flex-col gap-3">

@@ -26,6 +26,7 @@ import {
 import { attachmentsByPost } from '@/view/attachments'
 import { attachmentsForPosts } from '@/server/attachments'
 import { avatarsFor } from '@/server/avatars'
+import { activeWordFilter } from '@/server/content-admin'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 
@@ -309,6 +310,11 @@ export default async function ThreadPage({
 
   const view = buildThreadView({
     thread,
+    /*
+     * F71. Compiled once for the page rather than per post, and `undefined` on
+     * a board with no filters — which is most of them, and they pay nothing.
+     */
+    wordFilter: await activeWordFilter(),
     capabilities,
     replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
     forum,

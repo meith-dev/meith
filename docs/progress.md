@@ -864,14 +864,52 @@ operation here that is *not* re-authenticated, because reset is the undo — a
 password prompt in front of the recovery path is how somebody stares at a board
 they cannot fix.
 
-**F69 · the plugin manager** is next: enable/disable, migrations, settings, ACP
-pages, hook health, and honest install/redeploy instructions. `forum.config.ts`
-already has a `plugins: []` array and `InstalledPlugin` is deliberately an
-opaque placeholder — the roadmap puts the lifecycle itself in F79, so F69 is the
-*management* surface over whatever is configured, and the honest-instructions
-half is the same argument F68 just made about themes. Expect the same shape:
-what is configured is build-time, what is stored is runtime, and the screen says
-which is which.
+**F69, F70 and F71 are done** (D75, D76, D77), and **Phase 6 is finished**: 7
+of 9 complete, 2 partial, nothing untouched. Every section the phase promised
+has a screen, and the panel index no longer names anything it cannot link to.
+
+**Two rows are deliberately PARTIAL, for different reasons.**
+
+**F69 is blocked by F79, and the roadmap has them in the wrong order.** Five of
+its six deliverables — enable/disable, migrations, settings, ACP pages, hook
+health — describe the plugin *lifecycle*, and none of it exists: no hook
+registry, no plugin migration runner, no settings namespace, no way for a plugin
+to contribute a page. The row lists F63 as its dependency; the real one is F79,
+two phases later. That is worth fixing in the roadmap rather than working
+around. What shipped is the half that is true today: the inventory and the
+install story.
+
+**F71 stops where the renderer's vocabulary begins.** The word filter and thread
+prefixes are done; smilies and custom BBCode are not, because both extend what a
+post is allowed to *contain* — a safety decision about the sanitised tag set,
+not a CRUD screen. Attachment administration needs an answer to what deleting
+somebody else's upload does to the post displaying it, and there is no
+announcement model on this board at all.
+
+**Three things from this batch are worth carrying forward.**
+
+**A screen that admits a limit beats a control that does nothing.** F68 said it
+about theme switching, F69 says it about five missing controls, F71 says it
+about smilies. Each names what is absent and what it waits on. The alternative —
+four stubs — is what D32 has refused since Phase 1, and it is easier to justify
+a stub each time than to notice the habit forming.
+
+**Applying at render is what makes a transformation reversible.** F71's word
+filter never touches stored text, so removing a filter restores the word
+everywhere, a bad pattern does no lasting damage, and a new filter applies to
+everything ever written. Anything else that transforms content should be asked
+the same question before it is written to disk.
+
+**An equivalent mutant is a finding, not a nuisance.** F71's filter had a
+defensive `lastIndex` reset that no test could kill, because `String#replace`
+with `/g` resets it already. The line was deleted and the comment rewritten to
+say what is true. A line that cannot be proven by a test will be believed for
+the wrong reason.
+
+**Phase 7 is next** — the roadmap's F72 onward. Before starting it, two
+corrections belong in `docs/roadmap.md`: F69's dependency (F79, not F63), and
+the fact that F71's smilie/BBCode half also depends on a renderer-extension
+decision that no feature currently owns.
 
 The one remaining gap named in F67's row: **no password reset from the panel.**
 An administrator setting somebody's password is an account takeover with a paper
@@ -1024,7 +1062,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D74). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D77). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

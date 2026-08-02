@@ -134,6 +134,13 @@
       "when": 1785529200000,
       "tag": "0018_mass_mail",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785529300000,
+      "tag": "0019_word_filters",
+      "breakpoints": true
     }
   ]
 }

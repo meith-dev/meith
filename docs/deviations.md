@@ -4884,3 +4884,180 @@ Two of its columns stay unread, deliberately:
   accent from `token_overrides`; there is no third thing it wants. A logo upload
   is the obvious candidate and is F42's attachment pipeline plus a decision about
   where it renders, which is a feature rather than a column.
+
+### D75 — F69 is blocked by F79, and the roadmap has them in the wrong order
+
+The plugin manager's line asks for six things: enable/disable, migrations,
+settings, ACP pages, hook health, and honest install instructions. **Five of
+them describe the plugin lifecycle**, which is F79's — and none of it exists.
+`InstalledPlugin` is `{ key, enabled? }` and deliberately opaque; there is no
+hook registry, no plugin migration runner, no plugin settings namespace, and no
+way for a plugin to contribute a page.
+
+So the dependency in the roadmap is wrong. F69 is listed as depending on F63,
+and it genuinely depends on F79 — two phases later. That is a roadmap error
+rather than an implementation shortfall, and it is recorded here rather than
+worked around.
+
+What F69 delivers is the half that is true today: the inventory, the install
+story (`pnpm add`, a line in `forum.config.ts`, redeploy — the same three steps
+a theme takes, for the same bundler reason), and a precise statement of what
+each missing control is waiting on. Building the other five would mean a
+migrations screen for plugins with no migrations, a settings editor for plugins
+with no settings, and a hook-health dashboard for a hook system that does not
+exist. Four stubs, which is what D32 refuses and what F68 argued against one
+feature earlier.
+
+One thing in it is a real trap worth the test it has: **`enabled` is optional
+and absent means enabled.** A plugin somebody added to the config is one they
+want; reading `undefined` as "off" would make every plugin registered without
+the flag silently inert, and the symptom — installs cleanly, does nothing — is
+one nobody would think to look for in an accessor.
+
+### D76 — Staleness is measured per task, and a stopped scheduler is its own alarm (F70)
+
+System health, and the two judgements that make it worth having.
+
+#### Every catch-up operation is invisible when it stops
+
+Bans expire, digests send, counters reconcile, orphaned uploads are swept and
+queued mail is delivered — all on the tick. When the tick stops, **none of that
+fails**. It simply does not happen, and the board looks completely normal until
+somebody notices that a member banned for a week is still banned a month later.
+There is no error anywhere to find. That is why this screen exists and why its
+warning is loud.
+
+#### One threshold cannot judge two cadences
+
+Staleness is measured against **each task's own interval**. A five-minute task
+that last ran an hour ago is broken; a daily task that last ran an hour ago is
+fine, and a single global threshold says the wrong thing about one of them.
+
+The threshold is three intervals rather than one, because serverless cron
+legitimately drifts — a deploy, a cold start or a platform hiccup skips a tick,
+and F06 wrote every task to catch up precisely so that a single miss is a
+non-event. Warning on the first miss trains an operator to ignore the warning,
+which is worse than not having one.
+
+Four other states are distinguished for the same reason: `disabled` is a
+decision and must never read as a fault, `failing` is a task that *is* running
+and losing (different problem, different fix), and `never-run` is "it has not
+started" rather than "it stopped".
+
+#### A stopped scheduler is not the same as a stale task
+
+The screen raises a separate, louder alarm when **every enabled task** is
+overdue, because that is a tick that is not firing at all — one cause, breaking
+bans and digests and counters together — rather than a bug in one task. An
+empty registry is explicitly not that alarm: a board with no tasks registered
+has a different problem and must not be told this one. (`every` on an empty
+array is vacuously true, which is exactly the mutant that test kills.)
+
+The verdict is a pure function in `@forum/tasks`, not in the repository, so the
+screen, the CLI and any future alerting reach the same answer from the same
+code.
+
+#### The maintenance actions are bounded, and deliberately not re-authenticated
+
+Bounded because this panel runs inside a request: a sweep that ran to completion
+over a large table would be killed by the platform's execution limit somewhere
+in the middle, leaving an operator with no idea how far it got. Each reports its
+count, because "removed 0" and "removed 4,812" are different answers to the same
+press.
+
+Not re-authenticated because there is nothing here to destroy: expired sessions
+no longer authenticate anybody, expired tokens can no longer be used, and a
+cleared cache is a copy of data that still exists. A password prompt on
+operations that do not need one is what makes the prompt meaningless on the
+operations that do.
+
+Two smaller choices: clearing a cache is **tag-scoped**, never a blanket flush
+(on a busy board that is a stampede, and the reason somebody reaches for it is
+almost always one stale thing they can name); and dead-lettered jobs are retried
+**one at a time by id**, because a job dead-letters after exhausting its
+attempts, so the reason is usually still true — retrying the lot puts the same
+failures straight back and buries the one that was actually fixed.
+
+### D77 — The word filter is applied at render, which is what makes it reversible (F71)
+
+Content administration. The word filter is the whole of the interesting part.
+
+#### Filtering on save destroys the original; filtering on render does not
+
+MyBB and most boards rewrite the stored text when a post is saved. Three things
+follow, and all three are bad: turning a filter off does not bring the word
+back, a badly chosen pattern cannot be undone across three years of posts, and a
+filter added today never touches anything written yesterday.
+
+Applying at render costs a pass over the rendered HTML and buys all three back.
+A filter becomes a **view** of the board — changeable and removable with no
+consequence at all — which is also why `delete` here is a real delete rather
+than a soft one, and why the delete is not re-authenticated. There is nothing to
+lose.
+
+#### Only text is substituted, never markup
+
+This runs on rendered HTML, so a naive `replace` rewrites the inside of
+`<a href="…">` and `<img src="…">` — a filtered word inside a URL becomes a
+broken link, silently, with nothing about the post looking wrong. The scanner
+walks tag by tag and substitutes only in the spans between them.
+
+That is sound *because the input is the renderer's own output*: `@forum/bbcode`
+emits a fixed sanitised tag set and escapes `<` in text to `&lt;`, so a bare
+angle bracket in a post cannot desynchronise the scan. An unterminated tag —
+which cannot arise from that renderer — is copied through rather than filtered,
+because leaving it alone is the failure that does not also corrupt it.
+
+#### A pattern is literal text, never a pattern language
+
+Patterns are escaped before compiling. A regular expression typed into an admin
+form runs on every post body the board renders, and a catastrophically
+backtracking one is a board that stops rendering. The feature is "replace this
+word", not "run this program on every post".
+
+**Whole-word is the default**, for the reason the Scunthorpe problem is named
+after: a substring filter on an inoffensive fragment silently mangles place
+names and surnames, and the member it happens to has no idea why their post
+looks wrong.
+
+An empty pattern is refused on the way in *and* dropped on the way out, because
+it compiles to a matcher that hits at every position — which would insert the
+replacement between every character of every post.
+
+#### The filter applies to what the board publishes, not to private mail
+
+It is wired at the thread view's render site rather than inside `postBodyHtml`,
+even though that would have been fewer lines. The same renderer serves private
+messages, and filtering private correspondence between two members is a
+different decision from filtering what the board publishes — one this feature
+does not make on a board owner's behalf.
+
+#### An equivalent mutant, named rather than hidden
+
+The first version reset `lastIndex` on each matcher before use, with a comment
+about global regexes being stateful across a render pass. No test could kill
+removing it: `String#replace` with a `/g` pattern scans from the start and
+resets `lastIndex` itself. The line was deleted and the comment rewritten to say
+what is actually true — including that anything added later using `exec` or
+`test` on those matchers *does* need one. A line that cannot be proven by a test
+is a line that will be believed for the wrong reason.
+
+#### `thread_prefixes` gets its first writer
+
+Read by the thread composer since F33, populated only by SQL until now — the
+sixth reader-with-no-writer this project has found. Deleting a prefix leaves the
+threads that used it and simply removes the label (`on delete set null`):
+refusing to delete one in use would make a mistyped prefix permanent, and
+deleting the threads would be absurd.
+
+#### What content administration does not administer
+
+- **Smilies and custom BBCode.** Both extend the *renderer's vocabulary* rather
+  than adding rows an operator edits. The renderer has a fixed, sanitised tag
+  set on purpose, and letting a panel extend it is a change to what a post can
+  contain — a decision about safety, not a CRUD screen.
+- **Attachment administration.** The lifecycle, the orphan ledger and the sweep
+  all exist; what is missing is a listing an operator can act on, which needs an
+  answer to what deleting somebody else's upload does to the post displaying it.
+- **Announcements.** There is no announcement model on this board at all. A
+  screen for editing something that does not exist is the emptiest kind of stub.

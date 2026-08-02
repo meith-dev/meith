@@ -133,7 +133,18 @@ export {
 } from './ban-repos'
 export { PostgresPromotionRepository } from './promotion-repo'
 export { PostgresTaskRepository } from './task-repo'
+export {
+  PostgresSystemHealthRepository,
+  type BoardVolumes,
+  type RecountStateRow,
+  type TaskRunRow,
+} from './system-health-repo'
 export { PostgresMaintenanceRepository } from './maintenance-repo'
+export {
+  PostgresContentAdminRepository,
+  type ThreadPrefixRow,
+  type WordFilterRow,
+} from './content-admin-repo'
 export {
   PostgresAdminRepository,
   type GroupSummary,
