@@ -29,6 +29,7 @@
  */
 import { assertEnv, logger } from '@forum/core'
 import { drivers } from '@forum/drivers'
+import { imageProcessor } from '@forum/drivers/images'
 import { buildSchedulerBundle } from '@forum/runtime'
 import { tick } from '@forum/tasks'
 
@@ -71,7 +72,14 @@ async function main(): Promise<number> {
     return 1
   }
 
-  const bundle = buildSchedulerBundle({ queue: drivers().queue, mail: drivers().mail })
+  const bundle = buildSchedulerBundle({
+    queue: drivers().queue,
+    mail: drivers().mail,
+    /* F42. The worker is where a re-encode belongs — see ADR 0003 on why
+       nothing decodes an image on the request path. */
+    files: drivers().files,
+    images: imageProcessor,
+  })
   log().info({ tasks: bundle.tasks.length, intervalMs: INTERVAL_MS }, 'worker started')
 
   /*

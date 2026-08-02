@@ -7,7 +7,8 @@
  * whose worker does not exist yet is absent rather than stubbed — so it never
  * appears as a healthy run of nothing.
  */
-import type { MailDriver, QueueDriver } from '@forum/core'
+import type { FileStore, MailDriver, QueueDriver } from '@forum/core'
+import { AttachmentService, type ImageProcessor } from '@forum/attachments'
 import { env, logger } from '@forum/core'
 import {
   getDb,
@@ -19,6 +20,7 @@ import {
   PostgresOutboxReader,
   PostgresPromotionRepository,
   PostgresRenderBackfill,
+  PostgresAttachmentRepository,
   PostgresTaskRepository,
   PostgresThreadViewBuffer,
   PostgresWarningRepository,
@@ -75,11 +77,35 @@ export function buildSchedulerBundle(deps: {
   readonly mail?: MailDriver
   /** The installed theme's key, for mail branding. See `mail-brand.ts`. */
   readonly themeKey?: string
+  /**
+   * F42's object store and codecs. Optional as a pair: neither half is any use
+   * alone, and a deployment that supplies neither registers no attachment
+   * handler and no sweep — which is the same D32 rule `mail` follows, and is
+   * why the upload path refuses before it accepts a byte rather than accepting
+   * files that would sit `pending` forever.
+   */
+  readonly files?: FileStore
+  readonly images?: ImageProcessor
 }): SchedulerBundle {
   const db = deps.db ?? getDb()
   const threadViews = new PostgresThreadViewBuffer(db)
   const notifications = new PostgresNotificationRepository(db)
   const mail = deps.mail
+
+  /*
+   * One service, shared by the queued job and the hourly sweep. They are two
+   * halves of the same lifecycle — the job publishes what it can and the sweep
+   * collects what it could not — and giving them separate instances would be
+   * two places to configure the same grace periods.
+   */
+  const attachmentService =
+    deps.files === undefined || deps.images === undefined
+      ? undefined
+      : new AttachmentService({
+          attachments: new PostgresAttachmentRepository(db),
+          files: deps.files,
+          images: deps.images,
+        })
 
   return {
     repository: new PostgresTaskRepository(db),
@@ -92,8 +118,12 @@ export function buildSchedulerBundle(deps: {
         guards: defaultPromotionGuards(),
         maintenance: new PostgresMaintenanceRepository(db),
         outbox: new PostgresOutboxReader(db),
+        ...(attachmentService === undefined ? {} : { attachments: attachmentService }),
         events: buildEventRegistry({
           counters: new PostgresContentCounterRepository(db),
+          ...(attachmentService === undefined
+            ? {}
+            : { attachments: { process: (id) => attachmentService.process(id) } }),
           ...(mail === undefined
             ? {}
             : {

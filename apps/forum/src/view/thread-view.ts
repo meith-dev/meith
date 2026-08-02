@@ -2,7 +2,12 @@
 import { postBodyHtml } from '@forum/bbcode'
 import { suppress } from '@forum/relations'
 import type { ForumRow } from '@forum/forums'
-import type { PaginationModel, PostBitModel, ThreadViewModel } from '@forum/theme-kit'
+import type {
+  PaginationModel,
+  PostAttachmentModel,
+  PostBitModel,
+  ThreadViewModel,
+} from '@forum/theme-kit'
 import { editedNote, type PostListingRow, type PostPage } from '@forum/posts'
 import type { ThreadListingRow } from '@forum/threads'
 
@@ -85,6 +90,14 @@ interface PostContext {
   readonly revealedPostIds: ReadonlySet<number>
   /** Where a reveal link points, given the post to reveal. */
   readonly revealHref: (postId: number) => string
+  /**
+   * F42, resolved for the whole page in one query and grouped by post.
+   *
+   * Only downloadable attachments are in here — a `pending` re-encode and a
+   * failed one are absent, because a link to a file that is not there yet is
+   * worse than the file appearing a minute later.
+   */
+  readonly attachments: ReadonlyMap<number, readonly PostAttachmentModel[]>
 }
 
 function post(
@@ -170,6 +183,12 @@ function post(
     ),
     isFirstPost: post.isFirstPost,
     visibility: post.visibility,
+    /*
+     * F42. Withheld with the body when the post is hidden (F61): an ignored
+     * author's images are their content too, and a row of thumbnails under a
+     * "post hidden" placeholder would be the ignore doing nothing.
+     */
+    attachments: hidden ? [] : (context.attachments.get(post.id) ?? []),
     ignored: hidden
       ? {
           authorUsername: post.authorUsername,
@@ -245,6 +264,8 @@ export interface ThreadViewInput {
   readonly authorFields?: ReadonlyMap<number, readonly { label: string; value: string }[]>
   /** F58's rendered signatures, keyed by author user id. */
   readonly signatures?: ReadonlyMap<number, string>
+  /** F42. Downloadable attachments, by post id. Empty on most pages. */
+  readonly attachments?: ReadonlyMap<number, readonly PostAttachmentModel[]>
   /** F61. The ids this viewer ignores; empty for a guest or a board with none. */
   readonly ignoredIds?: ReadonlySet<number>
   /** F61. The posts this viewer has asked to see anyway, from `?reveal=`. */
@@ -261,6 +282,7 @@ export interface ThreadViewInput {
 
 const EMPTY_IDS: ReadonlySet<number> = new Set()
 const EMPTY_SIGNATURES: ReadonlyMap<number, string> = new Map()
+const EMPTY_ATTACHMENTS: ReadonlyMap<number, readonly PostAttachmentModel[]> = new Map()
 
 /**
  * The same page with one more post revealed.
@@ -312,6 +334,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         timeZone: input.timeZone,
         fields: input.authorFields ?? new Map(),
         signatures: input.signatures ?? EMPTY_SIGNATURES,
+        attachments: input.attachments ?? EMPTY_ATTACHMENTS,
         ignoredIds: input.ignoredIds ?? EMPTY_IDS,
         revealedPostIds: input.revealedPostIds ?? EMPTY_IDS,
         revealHref: (postId) => revealHref(input.currentHref ?? '', postId),

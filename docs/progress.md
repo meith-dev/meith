@@ -753,20 +753,42 @@ terminal. F64 is a registry-driven form, which means it is mostly view code over
 machinery that already works, plus the cache invalidation F08 already declares
 per setting (`invalidates`).
 
-**F42 remains the one decision that needs you.** It blocks F58's avatars, F71
-and F45. The options are unchanged and are recorded above: find a re-encoder
-that does not break `next build` (**do not add `sharp` to
-`onlyBuiltDependencies`** — its postinstall fails at prerender), accept stored
-originals with strict magic-byte validation and no re-encode, or leave it.
-Nothing else in Phase 6 waits on it.
+**F42 is done, and the decision it was waiting on is recorded in
+[ADR 0003](adr/0003-jsquash-image-codecs.md).** `@jsquash` — the Squoosh codecs
+as WebAssembly — is the re-encoder, chosen over `sharp` for the reason ADR 0001
+rejected native Argon2id bindings: per-platform prebuilt binaries against libc,
+which fail at runtime rather than at install. `sharp`'s presence in the tree as
+a transitive of Next's image optimiser is a coincidence and stays one.
 
-**The standing gap has not moved and is now nine features wide.** Fixture mode
+The part that cost the most is worth knowing about before touching it.
+`@jsquash` loads its own `.wasm` with `fetch(new URL(…, import.meta.url))`, and
+**there is no configuration in which that works on a Node server**: unbundled,
+Node's `fetch` refuses `file:` URLs; bundled, `import.meta.url` inside a
+Turbopack chunk is the literal string `"unknown"`. So the codecs never
+initialise themselves — `codec.ts` reads, compiles and hands each module to
+`init()`, and `locate-wasm.ts` finds the files, including in the standalone
+output whose `node_modules` contains `.pnpm` and *nothing else*. Three earlier
+attempts passed every test and failed on a booted image, which is the bug class
+D54 exists to record; this one was written against a booted image.
+
+**So F58's avatar half is the natural next step** — the machinery it was waiting
+for now exists, and the shape is already proven: validate, re-encode, store,
+serve through a permission-checked route. F71 and F45 are also unblocked.
+
+**The standing gap has not moved and is now ten features wide.** Fixture mode
 has no store for notifications, subscriptions, member settings, profile fields,
-messages, relations, reputation, signatures or the admin session/log (D38), so
-the browser suite still covers **reading only** — unchanged since F39. Either
-the e2e harness gains a real database or the fixture gains writers. It is the
-single largest hole in this project's testing, and every feature added since
-F39 has widened it.
+messages, relations, reputation, signatures, the admin session/log or
+attachments (D38), so the browser suite still covers **reading only** —
+unchanged since F39. Either the e2e harness gains a real database or the fixture
+gains writers. It is the single largest hole in this project's testing, and
+every feature added since F39 has widened it.
+
+F42 sharpens the point rather than just widening it: attachments have a
+**booted-image** failure mode that no unit test reaches, and the one this
+feature already hit — WASM that resolves on a developer machine and not in the
+standalone output — was found by running the image by hand. That is not a
+process. A real-Postgres e2e run is the next piece of infrastructure this
+project needs, ahead of any further feature.
 
 ### Fixed since: the Postgres path had never run anywhere
 

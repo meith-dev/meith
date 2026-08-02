@@ -88,6 +88,7 @@ export type Action =
   | 'thread.merge'
   | 'thread.split'
   | 'attachment.upload'
+  | 'attachment.download'
   | 'forum.search'
   | 'forum.subscribe'
   // --- global, need no forum context ---

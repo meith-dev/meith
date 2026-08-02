@@ -23,6 +23,7 @@ import {
   type OutboxReader,
 } from '@forum/events'
 import type { QueueDriver } from '@forum/core'
+import type { AttachmentService } from '@forum/attachments'
 
 import { SEED_GROUP } from './groups'
 
@@ -62,6 +63,12 @@ export interface TaskWorkerDeps {
     /** Signs F56's no-login unsubscribe links. Null leaves them out. */
     readonly unsubscribeSecret: string | null
   }
+  /**
+   * F42's sweep. Optional for the same reason as `subscriptions`: a deployment
+   * with no file store has nothing to collect, and a registered task that
+   * collects nothing every hour is a healthy-looking run of nothing (D32).
+   */
+  readonly attachments?: AttachmentService
 }
 
 /**
@@ -207,6 +214,14 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
             const daily = await notifier.runDigest('daily', batchSize)
             const weekly = await notifier.runDigest('weekly', batchSize)
             return daily.notified + weekly.notified
+          },
+        }),
+
+    ...(deps.attachments === undefined
+      ? {}
+      : {
+          async sweepAttachments(batchSize: number) {
+            return deps.attachments!.sweep(batchSize)
           },
         }),
   }

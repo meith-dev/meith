@@ -41,6 +41,11 @@ export interface TaskWorkers {
   notifySubscribers(batchSize: number): Promise<number>
   /** Sends the daily and weekly digests that are due. Returns members notified. */
   sendDigests(batchSize: number): Promise<number>
+  /**
+   * Deletes stored objects nothing owns and fails uploads whose processing
+   * never finished. Returns the two counts.
+   */
+  sweepAttachments(batchSize: number): Promise<{ deleted: number; failed: number }>
 }
 
 function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
@@ -260,6 +265,32 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         return { detail: { notified } }
       },
     },
+
+    {
+      id: 'attachments.sweep',
+      title: 'Collect abandoned attachment files',
+      description:
+        'Deletes objects in the file store that nothing owns, and fails ' +
+        'uploads whose re-encoding never finished. An object key is recorded ' +
+        'before its bytes are written and forgotten when a row takes ownership, ' +
+        'so what this collects is exactly what a crash between those two steps ' +
+        'left behind — a question that is an indexed query here and a full ' +
+        'bucket listing anywhere else. Purely subtractive, and bounded by a ' +
+        'grace period, so an upload in flight is never collected out from ' +
+        'under itself.',
+      /*
+       * Hourly. Every candidate is already older than the grace period by the
+       * time it qualifies, so asking more often finds the same nothing; and the
+       * cost of a delay is storage, which is the cheapest thing to be wrong
+       * about.
+       */
+      intervalSeconds: 3_600,
+      maxDurationSeconds: 60,
+      async run() {
+        const { deleted, failed } = await workers.sweepAttachments(200)
+        return { detail: { deleted, failed } }
+      },
+    },
   ]
 }
 
@@ -281,6 +312,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'warnings.expire': 'expireWarnings',
   'subscriptions.instant': 'notifySubscribers',
   'subscriptions.digest': 'sendDigests',
+  'attachments.sweep': 'sweepAttachments',
 }
 
 /**

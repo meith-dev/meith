@@ -14,6 +14,9 @@ import { useActionState } from "react"
 import { createReplyAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
+import type { UploadLimits } from "@forum/attachments/limits"
+
+import { AttachmentField } from "./attachment-field"
 import { FormError, SubmitButton } from "../auth/form-controls"
 
 export function ReplyForm({
@@ -21,16 +24,25 @@ export function ReplyForm({
   seenLastPostId,
   prefill,
   canSubscribe,
+  attachmentLimits,
 }: {
   threadId: number
   seenLastPostId: number | null
   prefill: string
   canSubscribe: boolean
+  /** F42. Null when this member may not attach here, or the board cannot. */
+  attachmentLimits: UploadLimits | null
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)
 
   return (
-    <form action={action} className="flex flex-col gap-4" noValidate>
+    <form
+      action={action}
+      className="flex flex-col gap-4"
+      noValidate
+      /* F42. Without this a file input submits its *name* and no bytes. */
+      encType="multipart/form-data"
+    >
       <FormError message={state.error} />
       {state.notice === "preview" && (
         <section
@@ -76,6 +88,8 @@ export function ReplyForm({
           className="rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
       </label>
+
+      {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}
 
       {canSubscribe && (
         <label className="flex items-center gap-2 text-sm">

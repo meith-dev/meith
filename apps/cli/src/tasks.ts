@@ -20,6 +20,7 @@
  * about — which `task:list` is for.
  */
 import { drivers } from '@forum/drivers'
+import { imageProcessor } from '@forum/drivers/images'
 import { buildSchedulerBundle, type SchedulerBundle } from '@forum/runtime'
 import { tick } from '@forum/tasks'
 
@@ -35,7 +36,12 @@ import { requirePostgres } from './context'
  */
 function scheduler(): SchedulerBundle {
   requirePostgres()
-  return buildSchedulerBundle({ queue: drivers().queue, mail: drivers().mail })
+  return buildSchedulerBundle({
+    queue: drivers().queue,
+    mail: drivers().mail,
+    files: drivers().files,
+    images: imageProcessor,
+  })
 }
 
 export async function taskList(): Promise<number> {

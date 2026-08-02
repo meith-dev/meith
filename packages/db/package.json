@@ -18,6 +18,7 @@
     "@forum/relations": "workspace:*",
     "@forum/reputation": "workspace:*",
     "@forum/admin": "workspace:*",
+    "@forum/attachments": "workspace:*",
     "@forum/signatures": "workspace:*",
     "@forum/profile-fields": "workspace:*",
     "@forum/notifications": "workspace:*",

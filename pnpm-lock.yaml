@@ -259,6 +259,12 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/attachments:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/authorization:
     dependencies:
       '@forum/core':
@@ -284,6 +290,9 @@ importers:
       '@forum/admin':
         specifier: workspace:*
         version: link:../admin
+      '@forum/attachments':
+        specifier: workspace:*
+        version: link:../attachments
       '@forum/authorization':
         specifier: workspace:*
         version: link:../authorization
@@ -357,6 +366,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 3.1098.0
         version: 3.1098.0
+      '@forum/attachments':
+        specifier: workspace:*
+        version: link:../attachments
       '@forum/core':
         specifier: workspace:*
         version: link:../core
@@ -446,6 +458,9 @@ importers:
       '@forum/accounts':
         specifier: workspace:*
         version: link:../accounts
+      '@forum/attachments':
+        specifier: workspace:*
+        version: link:../attachments
       '@forum/core':
         specifier: workspace:*
         version: link:../core

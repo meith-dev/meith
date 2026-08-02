@@ -23,6 +23,8 @@ import {
   inlineOutcomeNotice,
   selectionFor,
 } from '@/view/inline-moderation'
+import { attachmentsByPost } from '@/view/attachments'
+import { attachmentsForPosts } from '@/server/attachments'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 
@@ -291,6 +293,16 @@ export default async function ThreadPage({
    */
   const signatures = await signaturesFor(authorIds)
 
+  /*
+   * F42. One query for every attachment on the page, for the same reason as the
+   * signatures above. `attachmentsByPost` drops anything that is not
+   * downloadable, so a re-encode that has not finished is simply absent rather
+   * than rendered as a link that would 404.
+   */
+  const attachments = attachmentsByPost(
+    await attachmentsForPosts(postPage.rows.map((row) => row.id)),
+  )
+
   const view = buildThreadView({
     thread,
     capabilities,
@@ -307,6 +319,7 @@ export default async function ThreadPage({
     timeZone: preferences.timezone,
     authorFields,
     signatures,
+    attachments,
     ignoredIds,
     revealedPostIds: revealedFrom(query.reveal),
     /*

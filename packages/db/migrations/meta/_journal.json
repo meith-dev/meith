@@ -113,6 +113,13 @@
       "when": 1785528900000,
       "tag": "0015_admin_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1785529000000,
+      "tag": "0016_attachments",
+      "breakpoints": true
     }
   ]
 }

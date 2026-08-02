@@ -48,6 +48,13 @@ export interface DomainEventMap {
    */
   'notification.created': { notificationId: number; userId: number; kind: string }
 
+  /**
+   * F42. Raised once an attachment row exists, and carrying nothing but its id:
+   * the handler re-reads the row, because at-least-once delivery means it may
+   * run after the post was deleted or the row already processed.
+   */
+  'attachment.uploaded': { attachmentId: number }
+
   'forum.structure_changed': { forumIds: number[] }
   'settings.changed': { keys: string[] }
   'theme.changed': { themeId: number }

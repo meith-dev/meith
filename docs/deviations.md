@@ -3835,3 +3835,101 @@ Version ranges, licence fields, or whether a `dependencies` entry is actually
 imported. dependency-cruiser owns the import graph and already fails on an
 undeclared cross-package import. This check owns exactly one question: **do the
 two definitions of the workspace agree?**
+
+---
+
+### D65 — An upload is made safe by being re-encoded, not by being validated (F42)
+
+The single idea F42 is built around, and the reason its lifecycle looks the way
+it does.
+
+**Validation establishes what a file claims to be.** Magic bytes say the first
+eight bytes look like a PNG. They say nothing about the ZIP appended after the
+`IEND` chunk, the payload in an EXIF block aimed at whichever decoder opens the
+file next, or the GIF/JavaScript polyglot that is simultaneously a valid image
+and a valid script. Every one of those passes every check, because the file
+genuinely *is* a valid image.
+
+**Re-encoding establishes what a file is.** Decode to raw pixels, encode from
+those pixels, store the encoder's output. Nothing of the original survives —
+`codec.test.ts` appends a payload to a real PNG and proves it is absent
+afterwards. ADR 0003 is where the codec choice is argued; this is what it is
+for.
+
+#### The lifecycle follows from that
+
+An upload lands as `pending` with its bytes under `source_key`. A queued job
+decodes, re-encodes, writes the result under `storage_key`, and only then is the
+row `ready`. `markReady` swaps both keys in one statement, so **no row ever
+points at both the uploaded bytes and the safe ones**, and the download path
+refuses anything that is not `ready` — which means what a member uploaded is
+never served, in any state, to anybody.
+
+A file the board cannot re-encode has no source phase: a PDF or a ZIP is stored
+once and is `ready` immediately, because there is no transformation to wait for.
+What is promised about those is narrower and is stated as such — served with
+`Content-Disposition: attachment`, `nosniff`, and a sandboxing CSP, never
+rendered inline.
+
+#### Why the decode is not on the request path
+
+A condition of ADR 0003, not an implementation detail. The request reads
+*headers* — magic bytes and declared dimensions — which is bounded work on a
+bounded prefix. It never allocates a bitmap.
+
+That distinction is what `dimensions.ts` exists for, and it is not a
+micro-optimisation. **A 30,000 × 30,000 PNG is about 90 KB on the wire and 3.6
+GB decoded.** The ratio between file size and decoded size is unbounded, so no
+size limit catches it; the defence is to read the dimensions out of the header —
+which both formats put near the front and neither compresses — and refuse before
+allocating anything. An image whose header cannot be *read* is refused too,
+rather than handed to the decoder to find out.
+
+#### The order of writes, and why there is an orphan table
+
+`remember key → put object → create post → insert row → forget key`.
+
+Every step can be the last one. The invariant that has to survive a process
+dying anywhere in that sequence is **no object in the store without something
+that knows about it**. Inserting the row first would leave a row pointing at
+bytes that were never written; putting the object first without recording the
+key leaves bytes nobody can name.
+
+So `attachment_orphans` records a key *before* its object exists and drops it
+when a row takes ownership. What remains after the grace period is garbage by
+construction rather than by inference — and "which objects does nothing own" is
+an indexed query on a small table instead of a full bucket listing that is wrong
+the moment an upload is in flight.
+
+The grace period is what makes the sweep safe at all: without it, the sweep
+would race every upload in flight and delete the bytes out from under it.
+
+#### Two permissions, and the visibility check that is easy to miss
+
+`attachment.upload` and `attachment.download` are separate — a board may let
+everybody read a thread and only members fetch its files — so F22's matrix grew
+a twentieth column (640 cells). The download path additionally refuses an
+attachment on an unapproved or deleted post to anybody who cannot see the
+content itself. That check lives in the download route and not in the postbit,
+**because a direct URL never goes through the postbit**, which is exactly how
+this class of check gets missed.
+
+Every refusal is the same 404 with no reason. The id is a small integer anybody
+can enumerate, and distinguishing "no such attachment" from "not for you" would
+make the route an oracle for what exists in forums the caller cannot see.
+
+#### What is deliberately not here
+
+- **No avatars.** F58's other half, and next — the machinery it was waiting for
+  now exists.
+- **No attachment administration.** F71 owns it. Until then the type list is a
+  constant, which is the honest state: an operator cannot be given a switch for
+  a format nothing can process.
+- **No re-encode of GIF or WebP.** Each is another codec and another ~200 KB of
+  WebAssembly, and an animated GIF flattened to one frame is worse than a
+  refusal.
+- **No attachment on a private message.** F60's tables have no join to
+  `attachments`, and a quota that counts copies would have to count bytes too.
+- **No progress, no drag-and-drop, no per-file removal before posting.** All
+  three are F45's islands, and all three must be enhancements over the one-form
+  path rather than replacements for it.

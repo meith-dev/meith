@@ -542,3 +542,75 @@ export const reputation = pgTable(
     index('reputation_given_idx').on(t.givenByUserId, t.createdAt.desc()),
   ],
 )
+
+/**
+ * Attachments (F42).
+ *
+ * Two keys, and the difference between them is the feature. `sourceKey` is what
+ * a member uploaded; `storageKey` is what the board serves, written by an
+ * encoder from decoded pixels. A `pending` row has the first and not the
+ * second, and nothing may be downloaded before that swaps — see
+ * `migrations/0016_attachments.sql` and ADR 0003.
+ */
+export const attachments = pgTable(
+  'attachments',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    postId: integer('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    /** Denormalised: authorising a download must not need three joins. */
+    forumId: integer('forum_id')
+      .notNull()
+      .references(() => forums.id, { onDelete: 'cascade' }),
+    uploaderUserId: integer('uploader_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Sanitised, and display-only — it never reaches a path. */
+    filename: text('filename').notNull(),
+    /** The sniffed type, never the browser's claim. */
+    contentType: text('content_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    storageKey: text('storage_key'),
+    sourceKey: text('source_key'),
+    thumbnailKey: text('thumbnail_key'),
+    width: integer('width'),
+    height: integer('height'),
+    /** `pending | ready | failed`. */
+    status: text('status').notNull().default('pending'),
+    failureReason: text('failure_reason'),
+    downloadCount: integer('download_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    readyAt: timestamp('ready_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('attachments_post_idx').on(t.postId),
+    index('attachments_uploader_idx').on(t.uploaderUserId),
+    index('attachments_pending_idx')
+      .on(t.createdAt)
+      .where(sql`${t.status} = 'pending'`),
+    uniqueIndex('attachments_storage_key_key')
+      .on(t.storageKey)
+      .where(sql`${t.storageKey} is not null`),
+    uniqueIndex('attachments_source_key_key')
+      .on(t.sourceKey)
+      .where(sql`${t.sourceKey} is not null`),
+  ],
+)
+
+/**
+ * Every object written to the file store, from the moment it is written.
+ *
+ * Inserted before the `put` and deleted when a row takes ownership of the key.
+ * What remains is exactly the set of keys that may exist in the bucket with
+ * nothing pointing at them — which is a cheap indexed question here and an
+ * impossible one against a bucket.
+ */
+export const attachmentOrphans = pgTable(
+  'attachment_orphans',
+  {
+    storageKey: text('storage_key').primaryKey(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('attachment_orphans_age_idx').on(t.createdAt)],
+)

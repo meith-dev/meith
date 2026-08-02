@@ -987,3 +987,87 @@ list cannot learn that the panel exists.
 Both are deliberate. A deployment behind no proxy — where no forwarded address
 header arrives — is refused outright when a list is configured, which is the
 documented failure direction rather than a silent bypass.
+
+## An attachment is re-encoded, and until it is, it does not exist
+
+**MyBB:** an upload is checked against a list of allowed extensions and MIME
+types, stored, and served. `verify_attachment` looks at the file's magic bytes
+for images; the file itself is kept as uploaded.
+
+**Here:** PNG and JPEG are decoded to raw pixels and written back out by an
+encoder. The stored object is the encoder's output. The uploaded bytes are held
+in a separate, unservable object until that succeeds, and are then deleted. A
+row is `pending` until the re-encode finishes, and nothing will serve a
+`pending` row.
+
+**Why:** validation cannot make a file safe, and no amount of it can. A valid
+PNG with a ZIP appended after its `IEND` chunk passes every check MyBB makes
+and every check anyone could make, because the file genuinely *is* a valid PNG.
+So does one with a payload in an EXIF block aimed at whichever decoder opens it
+next. None of that survives a decode and re-encode, because the output is
+written from pixels and has never seen the original bytes.
+
+**Cost:** an image is not visible for as long as the queue takes — usually
+seconds, up to a minute on a board whose tick is the only worker. EXIF is gone,
+including the orientation tag and any colour profile, which is a real loss for
+photographers and a real gain for everybody who did not mean to publish where
+they took the picture. Animated GIF is not accepted at all rather than being
+silently flattened to one frame.
+
+## Four file types, not an operator-configurable list
+
+**MyBB:** the ACP has an attachment-types screen; an operator adds any
+extension and MIME type they like.
+
+**Here:** PNG, JPEG, PDF and ZIP, as a constant.
+
+**Why:** a format is on the list only if the board can make a claim about the
+bytes it serves — either "this was re-encoded" or "this is served as an opaque
+download and never rendered". A configurable list is a way to accept a format
+nothing can process, and the switch would be offering an operator a choice the
+code cannot honour. `text/plain` is the instructive omission: it has no
+signature, so "is this a text file" can only ever be a guess.
+
+**Cost:** no `.docx`, no `.mp3`, no `.7z`, and no way to add one without a
+release. F71 owns the ACP screen; what it will be able to configure is *limits*,
+not *formats*, until something can attest to a new one.
+
+## The download is served by the board, not by the object store
+
+**MyBB:** `attachment.php` streams the file through PHP after a permission
+check.
+
+**Here:** the same — a route handler that re-checks `attachment.download` in the
+attachment's forum, checks that the post and thread are visible to this viewer,
+and sets `Content-Disposition: attachment` with `nosniff` and a sandboxing CSP.
+The stored object is always private, even in a public forum, and a signed
+object-store URL is deliberately not used.
+
+**Why:** the parity here is not an accident of implementation. A signed URL is a
+bearer token that outlives the permission that issued it — move a thread into a
+private forum and every URL handed out in the last hour still works — and it
+carries the bucket's headers rather than ours, which is where the safety of
+serving member-supplied bytes actually lives.
+
+**Cost:** the bytes go through the app, so a large attachment costs the board
+bandwidth and, on a serverless platform, function time. Revisit if the
+`FileStore` port ever grows the ability to sign *with* response headers.
+
+## Files are submitted with the post, in one form
+
+**MyBB:** the composer uploads each attachment over its own request, keyed to a
+post id or a "posthash" for a post that does not exist yet, and the abandoned
+ones are swept later.
+
+**Here:** the file input is part of the reply form and the files arrive with the
+message. There is no upload step and no draft token.
+
+**Why:** it works with JavaScript off, which the posthash flow does not without
+a page round trip that loses the typed message. It also removes a whole class of
+state — a draft attachment waiting for a post that may never come — and with it
+the sweep for abandoned drafts.
+
+**Cost:** a browser cannot repopulate a file input, so a submission that fails
+validation loses the chosen files even though the message survives. That is true
+of every no-JS upload. F45's islands are where an incremental upload belongs,
+and it should be an enhancement over this path rather than a replacement for it.

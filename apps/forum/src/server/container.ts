@@ -33,6 +33,7 @@ import {
   type AuthorizationSource,
   type BypassEvent,
 } from '@forum/authorization'
+import type { AttachmentRepository } from '@forum/attachments'
 import { env, logger } from '@forum/core'
 import { CachedForumRepository, type ForumRepository } from '@forum/forums'
 import type {
@@ -60,6 +61,7 @@ import type {
   ThreadWriteRepository,
 } from '@forum/threads'
 import type { TaskDefinition, TaskRepository } from '@forum/tasks'
+import { imageProcessor } from '@forum/drivers/images'
 import { buildSchedulerBundle } from '@forum/runtime'
 import {
   getDb,
@@ -86,6 +88,7 @@ import {
   PostgresSignatureRepository,
   PostgresAdminLogRepository,
   PostgresAdminSessionRepository,
+  PostgresAttachmentRepository,
   PostgresProfileFieldRepository,
   PostgresModCpRepository,
   PostgresPostRepository,
@@ -240,6 +243,12 @@ export interface Container {
   readonly adminSessions: AdminSessionRepository | null
   readonly adminLog: AdminLogRepository | null
   /**
+   * Attachments (F42). `null` in fixture mode (D38) — an upload that survives
+   * validation, re-encoding and a queued job and *then* disappears on restart
+   * is worse than a board that says it cannot accept files.
+   */
+  readonly attachments: AttachmentRepository | null
+  /**
    * The credential store behind identity (F17–F19).
    *
    * Exposed for F57's UserCP, which re-authenticates with the current password
@@ -355,6 +364,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     signatures: null,
     adminSessions: null,
     adminLog: null,
+    attachments: null,
     posts: new FixturePostRepository(),
     readState: null,
     memberProfiles: new FixtureMemberProfileRepository(),
@@ -462,6 +472,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     signatures: new PostgresSignatureRepository(db),
     adminSessions: new PostgresAdminSessionRepository(db),
     adminLog: new PostgresAdminLogRepository(db),
+    attachments: new PostgresAttachmentRepository(db),
     warningBans: {
       async ban(input) {
         await new BanService({
@@ -495,6 +506,15 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
        */
       mail: drivers().mail,
       themeKey: forumConfig.defaultTheme,
+      /*
+       * F42. The serverless profile drains the queue through
+       * `/api/system/tick`, so the re-encode handler has to be registered here
+       * too — a board on Vercel has no worker process, and an attachment that
+       * only processes on a self-hosted deployment would be a feature that
+       * exists on one target and not the other.
+       */
+      files: drivers().files,
+      images: imageProcessor,
     }),
     dataSource: 'postgres',
   }
@@ -537,6 +557,7 @@ export function getContainer(): Container {
     cached.signatures === undefined ||
     cached.adminSessions === undefined ||
     cached.adminLog === undefined ||
+    cached.attachments === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     (cached.dataSource === 'fixture' && cached.fixtureDataVersion !== FIXTURE_DATA_VERSION) ||
     (cached.dataSource === 'postgres' && typeof cached.readState?.forUser !== 'function')

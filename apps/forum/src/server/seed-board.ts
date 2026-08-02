@@ -74,6 +74,12 @@ const READ = {
   canViewOthersThreads: true,
   canSearch: true,
   canViewProfiles: true,
+  /*
+   * F42. Seeded true for *guests* in migration `0001`, which is the level this
+   * has to sit at: an image in a public thread that only members can see would
+   * make every guest's view of that thread a page of broken links.
+   */
+  canDownloadAttachments: true,
 } as const
 
 const POST = {

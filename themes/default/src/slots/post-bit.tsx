@@ -90,6 +90,48 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
         </div>
       )}
       {/*
+        F42's attachments. Every entry is already downloadable — the app drops
+        anything still being re-encoded — so there is no "processing" state to
+        render here. An image is shown inline at its thumbnail, which is a link
+        to the full file; anything else is a plain download link, because the
+        board does not parse those formats and will not pretend to preview them.
+      */}
+      {post.attachments.length > 0 && (
+        <div className="border-t border-border px-4 py-3">
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Attachments
+          </h4>
+          <ul className="flex flex-wrap gap-3">
+            {post.attachments.map((file) => (
+              <li key={file.id}>
+                <a
+                  href={file.href}
+                  className="block text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {file.isImage ? (
+                    /*
+                      `thumbnailHref ?? href` is the whole rule: an image small
+                      enough that a thumbnail would be the same picture has none,
+                      and the full file is already the right size.
+                    */
+                    <img
+                      src={file.thumbnailHref ?? file.href}
+                      alt={file.filename}
+                      width={file.width ?? undefined}
+                      height={file.height ?? undefined}
+                      className="max-h-48 w-auto rounded border border-border"
+                    />
+                  ) : null}
+                  <span className="mt-1 block">
+                    {file.filename} <span className="opacity-70">({file.size})</span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {/*
         F58's signature. Trusted HTML from `@forum/bbcode`, rendered with the
         narrower signature registry — the app resolves it, and a hidden post
         (F61) carries none.

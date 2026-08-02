@@ -64,6 +64,7 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'thread.merge',
   'thread.split',
   'attachment.upload',
+  'attachment.download',
   'forum.search',
   'forum.subscribe',
 ])
@@ -572,6 +573,8 @@ export class Authorizer {
         return forum.canPostReplies === true
       case 'attachment.upload':
         return forum.canUploadAttachments === true
+      case 'attachment.download':
+        return forum.canDownloadAttachments === true
       case 'post.editOwn':
         return ownsContent && forum.canEditOwnPosts === true
       case 'post.deleteOwn':

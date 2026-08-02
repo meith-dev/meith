@@ -55,6 +55,7 @@ export type {
   PostActionsModel,
   PostActionsSlotModel,
   PostAuthorModel,
+  PostAttachmentModel,
   PostBitModel,
   PostBitSlotModel,
   PostFormModel,

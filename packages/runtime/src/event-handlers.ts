@@ -27,6 +27,14 @@ export interface EventHandlerDeps {
   readonly notifications?: {
     deliverEmail(notificationId: number): Promise<void>
   }
+  /**
+   * F42's re-encode. Optional for the same reason `notifications` is: a
+   * deployment with no file store registers no handler rather than one that
+   * can only fail, and the upload path refuses before it accepts anything.
+   */
+  readonly attachments?: {
+    process(attachmentId: number): Promise<unknown>
+  }
 }
 
 export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
@@ -65,6 +73,25 @@ export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
       await deps.counters.applyVisibilityChange(payload.postId)
     },
   })
+
+  if (deps.attachments !== undefined) {
+    registry.register({
+      /*
+       * F42. The whole of "an upload is made safe by being re-encoded": the row
+       * is `pending` and unservable until this succeeds, and what it writes is
+       * the encoder's output rather than anything the member sent.
+       *
+       * Idempotent in the service, not here — the row's `status = 'pending'`
+       * guard lives in the UPDATE, so a redelivery is a no-op at the database
+       * rather than a race this handler would have to detect.
+       */
+      id: 'attachments.process',
+      event: 'attachment.uploaded',
+      async handle(payload) {
+        await deps.attachments!.process(payload.attachmentId)
+      },
+    })
+  }
 
   if (deps.notifications === undefined) return registry
 

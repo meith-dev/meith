@@ -91,7 +91,11 @@ describe('re-encoding is what makes an upload safe', () => {
      * *is* a valid image and validation passes it. Only re-encoding removes the
      * payload, because the output is written from pixels and has never seen it.
      */
-    const payload = new TextEncoder().encode('PKMALICIOUS-PAYLOAD')
+    /* A ZIP local file header, written as bytes: the two after `PK` are
+       control characters and belong in source as numbers, not literals. */
+    const payload = new Uint8Array([
+      0x50, 0x4b, 0x03, 0x04, ...new TextEncoder().encode('MALICIOUS-PAYLOAD'),
+    ])
     const original = bytes(await encodeImage(gradient(16, 16), 'png'))
 
     const polyglot = new Uint8Array(original.length + payload.length)

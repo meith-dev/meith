@@ -25,6 +25,8 @@
       "@forum/accounts/*": ["../../packages/accounts/src/*"],
       "@forum/groups": ["../../packages/groups/src/index.ts"],
       "@forum/groups/*": ["../../packages/groups/src/*"],
+      "@forum/attachments": ["../../packages/attachments/src/index.ts"],
+      "@forum/attachments/*": ["../../packages/attachments/src/*"],
       "@forum/authorization": ["../../packages/authorization/src/index.ts"],
       "@forum/authorization/*": ["../../packages/authorization/src/*"],
       "@forum/forums": ["../../packages/forums/src/index.ts"],

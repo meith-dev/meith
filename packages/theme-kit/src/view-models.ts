@@ -329,7 +329,38 @@ export interface PostBitModel {
     /** Same page, this post revealed. A GET: revealing changes nothing. */
     readonly revealHref: string
   } | null
+  /**
+   * The files attached to this post (F42).
+   *
+   * Empty on almost every post, and empty rather than absent so a theme has one
+   * shape to render. **Every entry is already downloadable**: a `pending`
+   * upload — one whose re-encode has not finished — and a failed one are not in
+   * this list, because a link to a file that is not there yet is worse than the
+   * file appearing a minute later.
+   *
+   * `thumbnailHref` is `null` for anything that is not an image, and for an
+   * image small enough that a thumbnail would be the same picture again. A
+   * theme showing an image inline uses `thumbnailHref ?? href` and gets the
+   * right answer in both cases.
+   */
+  readonly attachments: readonly PostAttachmentModel[]
   readonly actions: PostActionsModel
+}
+
+/** One file attached to a post (F42). */
+export interface PostAttachmentModel {
+  readonly id: number
+  /** Sanitised, and always ending in the extension the *bytes* imply. */
+  readonly filename: string
+  /** Already formatted — "1.4 MB" — because a theme is not a unit converter. */
+  readonly size: string
+  /** Whether the board is willing to show this inline rather than link it. */
+  readonly isImage: boolean
+  /** The download. Permission is re-checked on every fetch. */
+  readonly href: string
+  readonly thumbnailHref: string | null
+  readonly width: number | null
+  readonly height: number | null
 }
 
 /* ------------------------------------------------------------------ *

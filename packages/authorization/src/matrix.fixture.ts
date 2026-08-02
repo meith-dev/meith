@@ -40,13 +40,14 @@ export const F22_ACTIONS = [
   'merge', // merge one thread into another    -> thread.merge
   'split', // split posts into a new thread    -> thread.split
   'upload', // attach a file                  -> attachment.upload
+  'download', // fetch an attachment          -> attachment.download
   'search', // search within the forum        -> forum.search
   'subscribe', // subscribe to the forum      -> forum.subscribe
 ] as const
 
 export type F22Action = (typeof F22_ACTIONS)[number]
 
-/** All nineteen, for the "everything" cells (staff bypass). */
+/** All twenty, for the "everything" cells (staff bypass). */
 const ALL: readonly F22Action[] = F22_ACTIONS
 
 /** The registered-member baseline in an ordinary forum. */
@@ -57,6 +58,7 @@ const MEMBER_PUBLIC: readonly F22Action[] = [
   'editOwn',
   'deleteOwn',
   'upload',
+  'download',
   'search',
   'subscribe',
 ]
@@ -67,6 +69,7 @@ const MEMBER_READONLY: readonly F22Action[] = [
   'editOwn',
   'deleteOwn',
   'upload',
+  'download',
   'search',
   'subscribe',
 ]
@@ -97,6 +100,7 @@ const MOD_READONLY: readonly F22Action[] = [
   'merge',
   'split',
   'upload',
+  'download',
   'search',
   'subscribe',
 ]

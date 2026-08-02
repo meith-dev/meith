@@ -15,3 +15,4 @@ export {
   type ImageFormat,
 } from './codec'
 export { locateAsset, compileAsset } from './locate-wasm'
+export { imageProcessor } from './processor'
