@@ -18,9 +18,11 @@ import { SEED_GROUP } from '@forum/runtime'
 import {
   PostgresBanRepository,
   PostgresUserAdminRepository,
+  PostgresUserBulkRepository,
   PostgresUserMergeRepository,
   getDb,
   type AccountState,
+  type PruneCriteria,
   type UserDetail,
   type UserSearchFilter,
   type UserSearchRow,
@@ -178,5 +180,54 @@ export async function buildMemberView(userId: number): Promise<MemberView | null
     groups: await repository.listGroups(),
     activeBan: await bans.findActive(userId),
     sharedNetwork: await repository.sharingIpPrefix(prefix, userId),
+  }
+}
+
+export function requireUserBulk(): PostgresUserBulkRepository {
+  if (getContainer().dataSource !== 'postgres') {
+    throw new ForbiddenError(
+      'This board is running on in-memory sample data, so it has no membership to sweep or mail.',
+    )
+  }
+  return new PostgresUserBulkRepository(getDb())
+}
+
+export function userBulkRepository(): PostgresUserBulkRepository | null {
+  return getContainer().dataSource === 'postgres'
+    ? new PostgresUserBulkRepository(getDb())
+    : null
+}
+
+/**
+ * Read prune criteria out of a query string.
+ *
+ * Returns `null` when there is no registration boundary, because a prune
+ * without one matches the entire membership. That is not a filter an operator
+ * could mean, and defaulting it to "today" would be a screen that offers to
+ * remove everybody by pressing Search.
+ */
+export function parsePruneCriteria(
+  params: Record<string, string | string[] | undefined>,
+): PruneCriteria | null {
+  const one = (key: string): string | undefined => {
+    const value = params[key]
+    const text = Array.isArray(value) ? value[0] : value
+    return text === undefined || text.trim() === '' ? undefined : text.trim()
+  }
+
+  const date = (key: string): Date | undefined => {
+    const raw = one(key)
+    if (raw === undefined) return undefined
+    const parsed = new Date(raw)
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed
+  }
+
+  const registeredBefore = date('before')
+  if (registeredBefore === undefined) return null
+
+  return {
+    registeredBefore,
+    ...(date('inactive') === undefined ? {} : { inactiveSince: date('inactive') }),
+    ...(one('awaiting') === undefined ? {} : { onlyAwaitingActivation: true }),
   }
 }

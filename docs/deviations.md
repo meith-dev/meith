@@ -4683,3 +4683,90 @@ write would make unticking a box do nothing, which is the direction that leaves
 somebody holding a permission they were meant to lose. The primary group is
 shown but not offered: it is already on `users`, and a row for it here would be
 a second place saying the same thing that could disagree after a primary change.
+
+### D73 — The prune's exclusions are not options, and mass mail is verified-only (F67)
+
+The last of user administration, and the two rules in it that an operator
+cannot switch off.
+
+#### A prune cannot reach an account whose loss is unrecoverable
+
+Four exclusions, all unconditional, none of them a checkbox:
+
+- **anybody who has posted.** Their account is attached to content, and what
+  should happen to that content is a decision — F71's — rather than something a
+  date filter guesses at;
+- **staff, by primary *or* additional group.** A quiet administrator who
+  registered years ago and reads more than they write is the likeliest person to
+  match a naive inactivity filter and the least acceptable to remove. Checking
+  only the primary group is the obvious version and the incomplete one, now that
+  F67 has given `user_group_memberships` a writer;
+- **forum moderators**, whatever group they are in. An appointment is a job
+  somebody was given; a sweep must not undo it;
+- **banned accounts.** The ban record is the reason they are quiet, and removing
+  the account removes the evidence of the decision.
+
+Each has its own test, because each is a different way for a maintenance sweep
+to do real damage.
+
+Two more shapes matter. **`last_active_at` is null for somebody who registered
+and never came back** — which is most of what a prune is for — so the inactivity
+filter has to say `is null or <`; a plain comparison silently excludes exactly
+the group being swept. And **the preview and the write share one predicate**: a
+prune that removed something the dry run did not list would make every future
+dry run worthless.
+
+The screen refuses to do anything at all without a registration boundary,
+because a prune without one matches the entire membership. Defaulting it to
+today would be a screen that offers to close every account by pressing Search.
+
+Pruning **closes** rather than deletes, like a merge's losing account: ten
+thousand `deleted_at` values can be cleared, ten thousand deleted rows cannot.
+
+#### Mass mail goes only to verified addresses, and that is not a preference
+
+An unverified address is as likely to be a typo — or somebody else's mailbox —
+as it is to be the member's. A board that mails thousands of them is a board
+whose domain stops being delivered anywhere, which costs every *other* thing the
+board sends: password resets, notifications, activation. So the rule is in the
+query rather than in a checkbox an operator can clear on a bad day.
+
+**One job per recipient, and nothing sent from the request.** The body lives on
+`mass_mails` and the job carries `{ massMailId, userId, email }`, because a
+payload holding the body would put a copy of it in the queue for every member on
+the board. One job per member also means a provider rejecting one address costs
+that member's message a retry rather than the whole batch's, and the queue's own
+dead-letter list becomes the record of who could not be reached. The driver is
+touched only inside the tick — F55's rule — so a provider hanging for ten
+seconds is a task's budget rather than a ten-second button press.
+
+**The cursor advances in the same transaction as the read.** Two presses of the
+button, or one double-submitted form, would otherwise both start from the same
+point and mail those members twice; a duplicate mass mail is the one mistake in
+this panel that cannot be taken back. A finished campaign also refuses to claim
+anything more, so pressing the button on an old one does nothing rather than
+starting it over.
+
+There is no unsubscribe link and no per-member opt-out, and the screen says so:
+this is for things every member needs to know, not for anything promotional.
+Naming that is the honest version — a link that unsubscribed somebody from
+*nothing in particular* would be worse.
+
+#### The coverage guard caught the table this feature added
+
+`mass_mails` has two columns ending in `user_id`, and the merge map's
+schema-driven test failed the moment the migration landed. That is the guard
+working exactly as intended — but one of the two is interesting.
+
+`created_by_user_id` is an ordinary pointer and joins the reassign list.
+**`last_user_id` is a cursor**: the position a campaign's send reached in an
+ordering of recipients, not a reference to a member. Reassigning it would fix
+nothing and would corrupt the resume point of a run in progress, mailing part of
+the board twice.
+
+The tempting fix was to rename the column until the test stopped noticing it.
+That is precisely how a guard becomes useless — renaming to dodge a check
+teaches the next person that the check is an obstacle — so there is now a fifth
+list, `MERGE_NOT_A_REFERENCE`, holding one entry and an argument. Because the
+test also asserts the lists are disjoint, a column parked there is a decision on
+the record rather than an omission.

@@ -34,6 +34,16 @@ vi.mock('@forum/drivers', () => ({
         invalidated.push(tags)
       },
     },
+    queue: {
+      async enqueue(
+        kind: string,
+        payload: Record<string, unknown>,
+        options?: { dedupeKey?: string },
+      ) {
+        enqueued.push({ kind, payload, ...(options?.dedupeKey === undefined ? {} : { dedupeKey: options.dedupeKey }) })
+        return { id: 'job', deduplicated: false }
+      },
+    },
   }),
 }))
 
@@ -45,6 +55,17 @@ const secondaryGroups: Array<{ userId: number; groupIds: number[]; by: number | 
 const chunks: Array<{ from: number; to: number; limit: number }> = []
 const finished: Array<{ from: number; to: number }> = []
 const chunkResult = { current: { moved: 2, remaining: 0 } }
+const prunes: Array<{ criteria: Record<string, unknown>; limit: number }> = []
+const campaigns: Array<Record<string, unknown>> = []
+const claims: Array<{ massMailId: number; limit: number }> = []
+const enqueued: Array<{ kind: string; payload: Record<string, unknown>; dedupeKey?: string }> = []
+const pruneResult = { current: { pruned: 2, remaining: 0 } }
+const claimResult = {
+  current: {
+    recipients: [{ userId: 1, email: 'a@example.test', username: 'ann' }],
+    finished: true,
+  },
+}
 
 vi.mock('./user-admin', () => ({
   requireUserAdmin: () => ({
@@ -67,6 +88,23 @@ vi.mock('./user-admin', () => ({
       finished.push({ from, to })
     },
   }),
+  requireUserBulk: () => ({
+    async pruneChunk(criteria: Record<string, unknown>, limit: number) {
+      prunes.push({ criteria, limit })
+      return pruneResult.current
+    },
+    async createMassMail(input: Record<string, unknown>) {
+      campaigns.push(input)
+      return 55
+    },
+    async claimMassMailChunk(massMailId: number, limit: number) {
+      claims.push({ massMailId, limit })
+      return claimResult.current
+    },
+    async readMassMail() {
+      return { queuedCount: 7 }
+    },
+  }),
   banService: () => ({
     async ban(input: Record<string, unknown>) {
       bans.push(input)
@@ -80,10 +118,13 @@ vi.mock('./user-admin', () => ({
 const {
   banMemberAction,
   liftBanAction,
+  continueMassMailAction,
   mergeStepAction,
+  pruneMembersAction,
   saveMemberAccountAction,
   saveSecondaryGroupsAction,
   setMemberStateAction,
+  startMassMailAction,
 } = await import('./user-admin-actions')
 
 function form(fields: Record<string, string>): FormData {
@@ -103,6 +144,15 @@ beforeEach(() => {
   chunks.length = 0
   finished.length = 0
   chunkResult.current = { moved: 2, remaining: 0 }
+  prunes.length = 0
+  campaigns.length = 0
+  claims.length = 0
+  enqueued.length = 0
+  pruneResult.current = { pruned: 2, remaining: 0 }
+  claimResult.current = {
+    recipients: [{ userId: 1, email: 'a@example.test', username: 'ann' }],
+    finished: true,
+  }
   requireAdminMock.mockClear()
   requireAdminMock.mockResolvedValue({ session: { userId: 1 } })
   requireFreshAdminMock.mockClear()
@@ -380,6 +430,140 @@ describe('mergeStepAction', () => {
 
   it('is re-authenticated, because a merge has no undo', async () => {
     await mergeStepAction({}, form({ userId: '7', toUserId: '3' }))
+    expect(requireFreshAdminMock).toHaveBeenCalledTimes(1)
+    expect(requireAdminMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('pruneMembersAction', () => {
+  it('passes the confirmed criteria through, not something re-read elsewhere', async () => {
+    /*
+     * The operator approved a dry run against *these* dates. A prune that
+     * rebuilt its criteria from anywhere else would be acting on a preview
+     * nobody saw. Kills the mutant that ignores the submitted fields.
+     */
+    const state = await pruneMembersAction(
+      {},
+      form({ before: '2025-01-01', inactive: '2024-01-01', awaiting: '1' }),
+    )
+
+    expect(prunes[0]?.limit).toBe(500)
+    expect(prunes[0]?.criteria).toMatchObject({ onlyAwaitingActivation: true })
+    expect((prunes[0]?.criteria.registeredBefore as Date).toISOString())
+      .toBe('2025-01-01T00:00:00.000Z')
+    expect(state.notice).toBe('finished')
+  })
+
+  it('refuses without a registration boundary, which would match everybody', async () => {
+    const state = await pruneMembersAction({}, form({}))
+    expect(state.error).toBeDefined()
+    expect(prunes).toEqual([])
+  })
+
+  it('refuses an inactivity date that is not a date', async () => {
+    const state = await pruneMembersAction(
+      {},
+      form({ before: '2025-01-01', inactive: 'ages ago' }),
+    )
+    expect(state.error).toBeDefined()
+    expect(prunes).toEqual([])
+  })
+
+  it('reports more to do while accounts remain', async () => {
+    pruneResult.current = { pruned: 500, remaining: 120 }
+    const state = await pruneMembersAction({}, form({ before: '2025-01-01' }))
+
+    expect(state.notice).toBe('more')
+    expect(state.values?.remaining).toBe('120')
+  })
+
+  it('is re-authenticated', async () => {
+    await pruneMembersAction({}, form({ before: '2025-01-01' }))
+    expect(requireFreshAdminMock).toHaveBeenCalledTimes(1)
+    expect(requireAdminMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('mass mail', () => {
+  it('enqueues one job per recipient rather than one for the batch', async () => {
+    /*
+     * A provider rejecting one address then costs that member's message a retry
+     * rather than the whole batch's, and the queue's dead-letter list becomes
+     * the record of who could not be reached. Kills the mutant that enqueues a
+     * single job carrying the whole list.
+     */
+    claimResult.current = {
+      recipients: [
+        { userId: 1, email: 'a@example.test', username: 'ann' },
+        { userId: 2, email: 'b@example.test', username: 'bob' },
+      ],
+      finished: true,
+    }
+
+    await startMassMailAction({}, form({ subject: 'Hi', body: 'All' }))
+
+    expect(enqueued).toHaveLength(2)
+    expect(enqueued[0]).toEqual({
+      kind: 'admin.mass_mail',
+      payload: { massMailId: 55, userId: 1, email: 'a@example.test' },
+      dedupeKey: 'mass-mail:55:1',
+    })
+  })
+
+  it('sends nothing itself — the driver is only touched in the tick', async () => {
+    /*
+     * F55's rule. An SMTP provider hanging for ten seconds must not be a
+     * ten-second Server Action, so this enqueues and returns.
+     */
+    await startMassMailAction({}, form({ subject: 'Hi', body: 'All' }))
+    expect(enqueued.every((job) => job.kind === 'admin.mass_mail')).toBe(true)
+  })
+
+  it('dedupes per member per campaign, so a double submit mails nobody twice', async () => {
+    await startMassMailAction({}, form({ subject: 'Hi', body: 'All' }))
+    expect(enqueued[0]?.dedupeKey).toBe('mass-mail:55:1')
+  })
+
+  it('records the campaign and its target, never the body', async () => {
+    await startMassMailAction(
+      {},
+      form({ subject: 'Downtime', body: 'secret internal wording', targetGroupId: '3' }),
+    )
+
+    expect(campaigns[0]).toMatchObject({ subject: 'Downtime', targetGroupId: 3 })
+    expect(adminCalls[0]).toEqual({
+      action: 'user.mass_mail_started',
+      detail: { massMailId: 55, targetGroupId: 3 },
+    })
+    expect(JSON.stringify(adminCalls)).not.toContain('secret internal wording')
+  })
+
+  it('continues an existing campaign rather than starting a new one', async () => {
+    /*
+     * Restarting a mass mail is not a neutral act — it is mailing everybody
+     * twice. Kills the mutant that creates a second campaign on continue.
+     */
+    claimResult.current = {
+      recipients: [{ userId: 3, email: 'c@example.test', username: 'cal' }],
+      finished: false,
+    }
+
+    const state = await continueMassMailAction({}, form({ massMailId: '55' }))
+
+    expect(campaigns).toEqual([])
+    expect(claims[0]).toEqual({ massMailId: 55, limit: 500 })
+    expect(state.notice).toBe('more')
+    expect(state.values?.queued).toBe('7')
+  })
+
+  it('refuses to continue a campaign that is not one', async () => {
+    const state = await continueMassMailAction({}, form({ massMailId: 'latest' }))
+    expect(state.error).toBeDefined()
+    expect(claims).toEqual([])
+  })
+
+  it('is re-authenticated, because an email cannot be unsent', async () => {
+    await startMassMailAction({}, form({ subject: 'Hi', body: 'All' }))
     expect(requireFreshAdminMock).toHaveBeenCalledTimes(1)
     expect(requireAdminMock).not.toHaveBeenCalled()
   })

@@ -127,6 +127,13 @@
       "when": 1785529100000,
       "tag": "0017_avatars",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785529200000,
+      "tag": "0018_mass_mail",
+      "breakpoints": true
     }
   ]
 }

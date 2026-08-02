@@ -797,14 +797,52 @@ for the whole run. The cursor lives in a hidden form field, so it resumes with
 no JavaScript — which is the pattern to reuse for anything else in the panel
 that touches every row of a big table (F70's maintenance, F71's content).
 
-**F67 · user management** is next. Two of its pieces are already named as
-F66's deliberate gaps and should land there rather than being retro-fitted here:
-secondary group membership (this screen moves `primary_group_id` only, and a
-mass-move that silently understood one of the two would lie about what a member
-is in) and a per-member group picker. Promotion *rule* editing is the third —
-`promotion_rules` has a repository and an evaluator but no editor, and a screen
-that ran rules it could not show you would be worse than the honest link the
-promotions page carries today.
+**F67 is done** (D71, D72, D73): search, the member screen, activation, the
+board's first ban surface, account merging, pruning and mass mail.
+
+**Phase 6 is 5 of 9 with nothing partial in it.**
+
+Four things from it are worth carrying forward.
+
+**The merge map is the pattern to copy for anything that touches every table.**
+The dangerous failure of an account merge is not a wrong update but a column
+nobody remembered, so the reassignment is a *declaration* and a test holds it
+against `information_schema`. It paid for itself twice before shipping: on the
+first run it failed on five denormalised **username** columns that carry a name
+rather than an id, and later it failed on this feature's own `mass_mails`
+migration. If F71 grows anything that fans out across the schema, do this.
+
+**A guard you rename around is a guard you have destroyed.** `last_user_id` on
+`mass_mails` looks like a pointer and is a cursor. Renaming the column until the
+test stopped noticing would have been one line and would have taught the next
+person that the check is an obstacle; instead there is a fifth list holding one
+entry and an argument, and the disjointness assertion keeps it a decision.
+
+**Credentials are never data.** `sessions`, `remember_tokens`,
+`credential_tokens` and `admin_sessions` all carry a `user_id` and all are
+destroyed rather than moved. Any future operation that reassigns rows in bulk
+has to make the same distinction.
+
+**Bulk operations in this panel now share one shape**: a dry run that shows
+rows and not just a count, bounded batches, a cursor in a hidden form field so
+the run resumes without JavaScript, and re-authentication. F66's mass move,
+F67's merge, prune and mass mail are all built this way — F70's maintenance and
+F71's content administration should be too.
+
+**F68 · the theme manager** is next: theme selection plus a token, layout and
+custom-CSS editor with live preview, reset, and exact JSON export/import. Two
+things already in the tree matter to it. `themes` has had a table since the
+initial schema and a `theme.changed` event since F07, with no ACP writer — the
+same reader-with-no-writer shape this project has now found five times. And
+F63's ACP deliberately lives outside the board's layout precisely so that a
+theme an administrator is editing cannot render the screen that edits it; that
+constraint is the reason the panel looks the way it does, and F68 is the feature
+it was written for.
+
+The one remaining gap named in F67's row: **no password reset from the panel.**
+An administrator setting somebody's password is an account takeover with a paper
+trail; the panel should trigger F19's existing reset flow, which mails the
+member, and that is a different feature from editing a row.
 
 **F42 is done, and the decision it was waiting on is recorded in
 [ADR 0003](adr/0003-jsquash-image-codecs.md).** `@jsquash` — the Squoosh codecs
@@ -952,7 +990,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D70). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D73). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

@@ -17,6 +17,7 @@ import {
   PostgresNotificationRepository,
   PostgresContentCounterRepository,
   PostgresCounterRecount,
+  PostgresUserBulkRepository,
   PostgresMaintenanceRepository,
   PostgresOutboxReader,
   PostgresPromotionRepository,
@@ -143,6 +144,25 @@ export function buildSchedulerBundle(deps: {
           ...(mail === undefined
             ? {}
             : {
+                /*
+                 * F67. Reads the campaign by id and sends one message; the job
+                 * payload carries the address so a member deleted between the
+                 * enqueue and the send is still reached at the address the
+                 * campaign was aimed at, rather than silently skipped.
+                 */
+                massMail: {
+                  async send({ massMailId, email }) {
+                    const campaign = await new PostgresUserBulkRepository(db).readMassMail(
+                      massMailId,
+                    )
+                    if (campaign === null) return
+                    await mail.send({
+                      to: email,
+                      subject: campaign.subject,
+                      text: campaign.body,
+                    })
+                  },
+                },
                 notifications: {
                   async deliverEmail(notificationId) {
                     await deliverNotificationEmail({

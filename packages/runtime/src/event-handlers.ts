@@ -39,6 +39,14 @@ export interface EventHandlerDeps {
   readonly avatars?: {
     process(userId: number): Promise<unknown>
   }
+  /**
+   * F67's mass mail. Optional on the same rule: a deployment with no mail
+   * driver registers no handler, so the screen's jobs are never enqueued to
+   * fail forever rather than being sent.
+   */
+  readonly massMail?: {
+    send(input: { massMailId: number; userId: number; email: string }): Promise<void>
+  }
 }
 
 export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
@@ -108,6 +116,26 @@ export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
       event: 'avatar.uploaded',
       async handle(payload) {
         await deps.avatars!.process(payload.userId)
+      },
+    })
+  }
+
+  if (deps.massMail !== undefined) {
+    registry.register({
+      /*
+       * F67. One job per recipient, and the *only* place a mass mail is
+       * actually handed to a driver — which is what keeps a provider hanging
+       * for ten seconds out of the request that pressed the button, and what
+       * makes a failed send retry one member rather than a whole campaign.
+       */
+      id: 'admin.mass_mail',
+      event: 'admin.mass_mail_queued',
+      async handle(payload) {
+        await deps.massMail!.send({
+          massMailId: payload.massMailId,
+          userId: payload.userId,
+          email: payload.email,
+        })
       },
     })
   }

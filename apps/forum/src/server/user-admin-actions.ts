@@ -20,11 +20,17 @@ import { CacheTags, ValidationError, isAppError, logger } from '@forum/core'
 import { drivers } from '@forum/drivers'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
-import { banService, requireUserAdmin, requireUserMerge } from './user-admin'
+import { banService, requireUserAdmin, requireUserBulk, requireUserMerge } from './user-admin'
 import type { FormState } from './auth-form-state'
 
 /** Posts moved per press of the merge button. */
 const MERGE_CHUNK = 500
+
+/** Accounts closed per press of the prune button. */
+const PRUNE_CHUNK = 500
+
+/** Recipients queued per press of the mass-mail button. */
+const MASS_MAIL_CHUNK = 500
 
 function text(form: FormData, name: string): string {
   const value = form.get(name)
@@ -266,6 +272,152 @@ export async function mergeStepAction(_prev: FormState, form: FormData): Promise
     return { notice: 'merged', values: { toUserId: String(toUserId) } }
   } catch (err) {
     return toFormState(err)
+  }
+}
+
+/**
+ * Prune one batch of dormant accounts.
+ *
+ * **Re-authenticated**, and the criteria travel in the form rather than being
+ * re-read from a URL — the operator confirmed a dry run against *these* dates,
+ * and a prune that used anything else would be acting on a preview nobody saw.
+ *
+ * Closes rather than deletes. A prune run against a wrong date is then
+ * recoverable, which a delete of ten thousand rows is not.
+ */
+export async function pruneMembersAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireFreshAdmin()
+
+    const before = new Date(text(form, 'before'))
+    if (Number.isNaN(before.getTime())) {
+      throw new ValidationError('Choose the date members must have registered before.')
+    }
+
+    const inactiveRaw = text(form, 'inactive')
+    const inactive = inactiveRaw === '' ? undefined : new Date(inactiveRaw)
+    if (inactive !== undefined && Number.isNaN(inactive.getTime())) {
+      throw new ValidationError('That inactivity date is not a date.')
+    }
+
+    const chunk = await requireUserBulk().pruneChunk(
+      {
+        registeredBefore: before,
+        ...(inactive === undefined ? {} : { inactiveSince: inactive }),
+        ...(form.get('awaiting') === null ? {} : { onlyAwaitingActivation: true }),
+      },
+      PRUNE_CHUNK,
+    )
+
+    await invalidatePermissions()
+    await recordAdminAction({
+      action: 'user.pruned',
+      detail: { pruned: chunk.pruned, remaining: chunk.remaining },
+    })
+
+    return {
+      notice: chunk.remaining > 0 ? 'more' : 'finished',
+      values: { pruned: String(chunk.pruned), remaining: String(chunk.remaining) },
+    }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Start a mass mail: create the campaign and queue its first batch.
+ *
+ * **Re-authenticated.** It is the one operation in the panel whose effect
+ * leaves the board entirely — an email cannot be unsent, and a mistake reaches
+ * every member at once.
+ */
+export async function startMassMailAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    const context = await requireFreshAdmin()
+
+    const groupRaw = text(form, 'targetGroupId')
+    const targetGroupId = groupRaw === '' ? null : Number(groupRaw)
+    if (targetGroupId !== null && (!Number.isSafeInteger(targetGroupId) || targetGroupId <= 0)) {
+      throw new ValidationError('No such group.')
+    }
+
+    const bulk = requireUserBulk()
+    const massMailId = await bulk.createMassMail({
+      subject: text(form, 'subject'),
+      body: text(form, 'body'),
+      targetGroupId,
+      createdByUserId: context.session.userId,
+    })
+
+    await recordAdminAction({
+      action: 'user.mass_mail_started',
+      /* The subject, never the body: the log is not the place to keep prose. */
+      detail: { massMailId, targetGroupId },
+    })
+
+    return queueMassMailBatch(bulk, massMailId)
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/** Queue the next batch of an existing campaign. */
+export async function continueMassMailAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireFreshAdmin()
+
+    const massMailId = Number(text(form, 'massMailId'))
+    if (!Number.isSafeInteger(massMailId) || massMailId <= 0) {
+      throw new ValidationError('No such message.')
+    }
+
+    return queueMassMailBatch(requireUserBulk(), massMailId)
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Claim a batch of recipients and enqueue one job each.
+ *
+ * One job per member rather than one job for the batch: a provider rejecting a
+ * single address then costs that member's message a retry rather than the whole
+ * batch's, and the queue's own dead-letter list becomes the record of who could
+ * not be reached.
+ *
+ * Nothing is sent here. The driver is touched only inside the tick (F55's
+ * rule), because an SMTP provider hanging for ten seconds must not be a
+ * ten-second Server Action.
+ */
+async function queueMassMailBatch(
+  bulk: ReturnType<typeof requireUserBulk>,
+  massMailId: number,
+): Promise<FormState> {
+  const chunk = await bulk.claimMassMailChunk(massMailId, MASS_MAIL_CHUNK)
+
+  for (const recipient of chunk.recipients) {
+    await drivers().queue.enqueue(
+      'admin.mass_mail',
+      { massMailId, userId: recipient.userId, email: recipient.email },
+      /* One message per member per campaign, whatever the form does. */
+      { dedupeKey: `mass-mail:${massMailId}:${recipient.userId}` },
+    )
+  }
+
+  const total = (await bulk.readMassMail(massMailId))?.queuedCount ?? 0
+
+  return {
+    notice: chunk.finished ? 'sent' : 'more',
+    values: { massMailId: String(massMailId), queued: String(total) },
   }
 }
 

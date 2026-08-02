@@ -83,6 +83,15 @@ export {
 } from './user-merge-repo'
 export { mergeMapColumns } from './user-merge-map'
 export {
+  PostgresUserBulkRepository,
+  type MassMailChunk,
+  type MassMailRecipient,
+  type MassMailRow,
+  type PruneChunkResult,
+  type PruneCriteria,
+  type PrunePreview,
+} from './user-bulk-repo'
+export {
   MODERATOR_RIGHTS,
   PostgresForumAdminRepository,
   type AppointModeratorInput,

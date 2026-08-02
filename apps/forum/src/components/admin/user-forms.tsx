@@ -12,11 +12,14 @@ import { useActionState } from "react"
 
 import {
   banMemberAction,
+  continueMassMailAction,
   liftBanAction,
   mergeStepAction,
+  pruneMembersAction,
   saveMemberAccountAction,
   saveSecondaryGroupsAction,
   setMemberStateAction,
+  startMassMailAction,
 } from "@/server/user-admin-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
@@ -343,6 +346,152 @@ export function LiftBanForm({ userId }: { userId: number }) {
       <div>
         <SubmitButton>Lift this ban</SubmitButton>
       </div>
+    </form>
+  )
+}
+
+/**
+ * The prune, one batch per press.
+ *
+ * The criteria are hidden fields rather than something the action re-reads from
+ * the URL: the operator confirmed a dry run against *these* dates, and a prune
+ * that used anything else would be acting on a preview nobody saw.
+ */
+export function PruneForm({
+  before,
+  inactive,
+  awaiting,
+  total,
+}: {
+  before: string
+  inactive: string
+  awaiting: boolean
+  total: number
+}) {
+  const [state, action] = useActionState(pruneMembersAction, EMPTY_STATE)
+  const pruned = state.values?.pruned ?? "0"
+  const remaining = state.values?.remaining ?? "0"
+
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <FormError message={state.error} />
+
+      {state.notice === "finished" && (
+        <Saved when>Finished. {pruned} account{pruned === "1" ? "" : "s"} closed in this batch, and none are left.</Saved>
+      )}
+      {state.notice === "more" && (
+        <Saved when>
+          {pruned} closed, {remaining} still matching. Press again to continue.
+        </Saved>
+      )}
+
+      <input type="hidden" name="before" value={before} />
+      <input type="hidden" name="inactive" value={inactive} />
+      {awaiting && <input type="hidden" name="awaiting" value="1" />}
+
+      <div>
+        <SubmitButton>
+          Close {total > 500 ? "the first 500" : `${total}`} account
+          {total === 1 ? "" : "s"}
+        </SubmitButton>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        You will be asked for your password again. Accounts are closed rather
+        than deleted, so a wrong date can be undone — but they disappear from
+        the board immediately.
+      </p>
+    </form>
+  )
+}
+
+/**
+ * Mass mail: create the campaign, then queue it a batch at a time.
+ *
+ * Nothing is sent from this form. It enqueues one job per recipient and the
+ * tick hands each to the driver, because a provider hanging for ten seconds
+ * must not be a ten-second button press.
+ */
+export function MassMailForm({
+  groups,
+  audience,
+}: {
+  groups: readonly GroupChoice[]
+  audience: number
+}) {
+  const [state, action] = useActionState(startMassMailAction, EMPTY_STATE)
+  const [continueState, continueAction] = useActionState(continueMassMailAction, EMPTY_STATE)
+
+  const current = continueState.values?.massMailId ?? state.values?.massMailId
+  const queued = continueState.values?.queued ?? state.values?.queued ?? "0"
+  const notice = continueState.notice ?? state.notice
+
+  if (current !== undefined && notice !== undefined) {
+    return (
+      <form action={continueAction} className="flex flex-col gap-3">
+        <FormError message={continueState.error} />
+        {notice === "sent" ? (
+          <Saved when>
+            Queued for all {queued} member{queued === "1" ? "" : "s"}. They will
+            go out as the queue drains.
+          </Saved>
+        ) : (
+          <Saved when>
+            {queued} queued so far, and there are more. Press again to continue.
+          </Saved>
+        )}
+
+        <input type="hidden" name="massMailId" value={current} />
+        {notice !== "sent" && (
+          <div>
+            <SubmitButton>Queue the next batch</SubmitButton>
+          </div>
+        )}
+      </form>
+    )
+  }
+
+  return (
+    <form action={action} className="flex flex-col gap-3" noValidate>
+      <FormError message={state.error} />
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Send to</span>
+        <select name="targetGroupId" defaultValue="" className={INPUT}>
+          <option value="">Every member with a verified address</option>
+          {groups.map((group) => (
+            <option key={group.id} value={group.id}>
+              {group.title}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">
+          A group means members who hold it as their primary group or as an
+          additional one. {audience} member{audience === 1 ? "" : "s"} would be
+          reached right now.
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Subject</span>
+        <input name="subject" className={INPUT} required />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Message</span>
+        <textarea name="body" rows={10} className={INPUT} required />
+        <span className="text-xs text-muted-foreground">
+          Plain text. It is sent as written — there is no template and no
+          unsubscribe link, so keep it to things every member needs to know.
+        </span>
+      </label>
+
+      <div>
+        <SubmitButton>Queue this message</SubmitButton>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        You will be asked for your password again. An email cannot be unsent,
+        and a mistake reaches everybody at once.
+      </p>
     </form>
   )
 }

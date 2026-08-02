@@ -73,6 +73,15 @@ export default async function AdminUsersPage({
         </p>
       </div>
 
+      <nav className="flex flex-wrap gap-4 text-sm">
+        <a href="/admin/users/prune" className="text-primary hover:underline">
+          Prune dormant accounts
+        </a>
+        <a href="/admin/users/mail" className="text-primary hover:underline">
+          Mass mail
+        </a>
+      </nav>
+
       <form method="get" className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="flex flex-col gap-1 text-sm">

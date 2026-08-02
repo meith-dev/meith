@@ -61,6 +61,13 @@ export interface DomainEventMap {
   'forum.structure_changed': { forumIds: number[] }
   'settings.changed': { keys: string[] }
   'theme.changed': { themeId: number }
+
+  /*
+   * F67's mass mail. One event per recipient, carrying the campaign id rather
+   * than the body: the body lives on `mass_mails` and would otherwise be copied
+   * into the queue once per member on the board.
+   */
+  'admin.mass_mail_queued': { massMailId: number; userId: number; email: string }
 }
 
 export type DomainEventName = keyof DomainEventMap

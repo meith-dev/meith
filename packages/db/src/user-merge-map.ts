@@ -15,7 +15,9 @@
  * decides which list it belongs to, which is the only version of this that
  * survives the next twenty features.
  *
- * Three lists, because there are three genuinely different answers.
+ * Five lists, because there are five genuinely different answers — and one of
+ * them is "this is not a reference at all", which had to exist the moment a
+ * column called `last_user_id` turned out to be a cursor.
  */
 
 /** A plain pointer: the winner simply inherits it. */
@@ -68,6 +70,7 @@ export const MERGE_REASSIGN: readonly ReassignColumn[] = [
   { table: 'reports', column: 'resolved_by_user_id' },
   { table: 'settings', column: 'updated_by_user_id' },
   { table: 'threads', column: 'author_user_id' },
+  { table: 'mass_mails', column: 'created_by_user_id' },
   { table: 'user_group_memberships', column: 'granted_by_user_id' },
   { table: 'warnings', column: 'issued_by_user_id' },
   { table: 'warnings', column: 'revoked_by_user_id' },
@@ -152,6 +155,26 @@ export const MERGE_RENAME: readonly RenameColumn[] = [
 ]
 
 /**
+ * Columns whose name looks like a user reference and which are **not** one.
+ *
+ * There is exactly one so far, and it is worth the escape hatch existing:
+ * `mass_mails.last_user_id` is a *cursor* — the position a campaign's send
+ * reached in an ordering of recipients — not a pointer to a member. Reassigning
+ * it would fix nothing and would corrupt the resume point of a run in progress,
+ * mailing part of the board twice.
+ *
+ * The temptation on finding this was to rename the column until the coverage
+ * test stopped noticing it. That is exactly how a guard becomes useless:
+ * renaming to dodge a check teaches the next person that the check is an
+ * obstacle. Naming it here costs one line, keeps the guard honest, and — since
+ * the test also asserts the lists are disjoint — leaves the decision on the
+ * record rather than as an omission.
+ */
+export const MERGE_NOT_A_REFERENCE: readonly ReassignColumn[] = [
+  { table: 'mass_mails', column: 'last_user_id' },
+]
+
+/**
  * Every column the map accounts for, for the coverage test.
  *
  * `users.username` and `users.username_lower` are excluded: they are the
@@ -165,6 +188,7 @@ export function mergeMapColumns(): readonly string[] {
     ...MERGE_DISCARD,
     ...MERGE_BESPOKE,
     ...MERGE_RENAME,
+    ...MERGE_NOT_A_REFERENCE,
   ]
     .map((entry) => `${entry.table}.${entry.column}`)
     .sort()
