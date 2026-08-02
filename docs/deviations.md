@@ -4204,3 +4204,107 @@ defeats the point of having it.
   A before/after would be the values problem again.
 - **No new settings.** F64 is the screen; the registry is F08's, and every entry
   in it already had a reader.
+
+---
+
+### D69 — A permission cell is three states, and the copy is previewed (F65)
+
+The forum administration screen, and the two decisions in it that are not
+cosmetic.
+
+#### Inherit is a value, not an unset checkbox
+
+`forum_permissions` columns are nullable and **null means inherit** (R4.1 layer
+2). A two-state checkbox cannot represent that. A screen built from checkboxes
+has to render an inherited-false cell as "off" — and saving the form then writes
+an explicit `false` into it, pinning the forum forever and making a later change
+at the parent do nothing at all.
+
+That is not a hypothetical failure; it is the single commonest way a forum's
+permissions end up wrong, and every board where "I changed it at the top and
+nothing happened" is true has this bug. So a cell is `inherit | grant | deny`,
+inherit is listed first and is the default, and a numeric cell's empty box means
+inherit rather than zero.
+
+**`readMatrixCell` refuses to coerce.** An unparseable number reads as
+`inherit`, never as `0` — because 0 is *unlimited* under R4.2, so a typo
+coerced to zero would silently grant the opposite of what was typed.
+
+#### Every cell says what it resolves to, and from where
+
+"Inherit" alone tells an operator nothing: inherit *what*? So each cell carries
+its effective value and, when that came from an ancestor, which forum supplied
+it. `inheritedFrom: null` on an inherited cell is a *different* explanation —
+nothing in the chain set it and the group's own default applies — and the screen
+words it differently.
+
+#### A row resolves for its own group, not for the combination
+
+`Authorizer.forumMatrix` combines across an actor's groups (R4.2: booleans OR,
+numerics MAX). The **editor must not**: the operator is editing the Registered
+row, and showing them `allowed` because Staff has it would make the cell a lie
+about the thing they are about to change. Each row therefore resolves as if that
+group were the actor's only one, which is exactly what the stored row means.
+
+Mutation-verified: passing every group to the resolver at once fails.
+
+#### Copy-to-subforums is previewed, re-authenticated, and means *identical*
+
+It is the only operation in the panel that rewrites forums the operator is not
+looking at, across a subtree of any size, with no undo. Three things follow.
+
+**It is previewed in full** — every cell, on every forum, from what to what —
+before the button appears. `planCopyToDescendants` is a pure function that
+answers exactly that, so what the screen promises and what the SQL does come
+from the same description of the change.
+
+**It asks for the password again.** F63 built `requireFreshAdmin` for
+destructive operations; this is the first one outside F63 itself to use it.
+
+**It copies nulls, and clears rows the source does not have.** The
+cautious-sounding alternative — copy only the non-null values — is wrong: a
+descendant that explicitly denies something the source inherits would keep
+denying it, and the operator who pressed "copy" would be looking at two forums
+that are not the same. *Identical* is the only meaning of the word an operator
+can predict, so the SQL deletes the target rows and re-inserts from the source
+inside one transaction.
+
+#### Two caches that had never been cleared
+
+`CacheTags.forumTree()` has had `CachedForumRepository` behind it since F16 and
+**no writer had ever invalidated it** — `forum:create` runs out of process, like
+the settings CLI before F64. Renaming a forum in the panel and still seeing the
+old name is how an operator concludes a save failed, so every write here clears
+it. Permission edits clear `CacheTags.permissions()` instead, which is F20's
+en-masse actor invalidation: a rename is a tree change and a grant is not.
+
+#### A row of all nulls is deleted
+
+Saving a group's row with every cell on inherit removes the row rather than
+storing one full of nulls. A row that says nothing still costs the resolver a
+lookup on every permission check on every page — and an operator who cleared a
+forum's overrides would otherwise have no way to tell it had worked.
+
+#### The subtree is a prefix match, and the dot matters
+
+`forums.path` is the materialised dot-path F16 maintains, so "everything under
+this" is one index scan rather than a recursive CTE per level. The prefix is
+`path || '.%'` and **not** `path || '%'`: without the dot, forum `10.2` matches
+`10.20`, and a copy reaches into a sibling subtree silently. There is a fixture
+forum in the test whose whole job is to be `10.200`.
+
+#### What is deliberately not here — F65 is PARTIAL
+
+- **Moderator appointments.** `forum_moderators` gained its first reader in F48
+  and still has no writer, so appointing one is a CLI-less, panel-less gap.
+  Named rather than half-built (D32): the granular rights it carries are the
+  same ones F48 resolves, and a screen that could appoint but not edit rights
+  would be worse than none.
+- **Creating and moving forums.** `create` and `move` exist in `forum-repo.ts`,
+  both taking the forest lock and re-reading the tree inside their transaction.
+  A create form without a move screen gives an operator a tree they cannot
+  rearrange, which is the shape a forum administration screen must not have.
+  The listing says so and points at the CLI.
+- **Forum passwords.** `forums.password_hash` exists and is F21's; setting one
+  from the panel needs the same care as any credential write and belongs with
+  whatever screen owns forum access as a whole.

@@ -60,6 +60,10 @@ export { PostgresProfileFieldRepository } from './profile-field-repo'
 export { PostgresMessageRepository } from './message-repo'
 export { PostgresAttachmentRepository } from './attachment-repo'
 export { PostgresAvatarRepository } from './avatar-repo'
+export {
+  PostgresForumAdminRepository,
+  type ForumOptionsInput,
+} from './forum-admin-repo'
 export { PostgresRelationRepository } from './relation-repo'
 export { PostgresReputationRepository } from './reputation-repo'
 export { PostgresSignatureRepository } from './signature-repo'

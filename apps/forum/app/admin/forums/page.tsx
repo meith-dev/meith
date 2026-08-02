@@ -1,0 +1,86 @@
+import type { Metadata } from 'next'
+
+import { buildTree, type ForumNode, type ForumRow } from '@forum/forums'
+
+import { requireAdmin } from '@/server/admin'
+import { getContainer } from '@/server/container'
+
+export const metadata: Metadata = { title: 'Forums' }
+
+/**
+ * F65 — the forum tree.
+ *
+ * A read-only listing with links, deliberately: creating and moving forums are
+ * F16's `create` and `move`, both of which take the forest lock and re-read the
+ * tree inside their transaction. Putting a create form here before the screen
+ * that can *show* a move would be a panel that lets an operator build a tree it
+ * cannot rearrange — which is the shape a forum administration screen must not
+ * have. See the F65 row for what that costs.
+ */
+export default async function AdminForumsPage() {
+  /* Re-run, because a layout is not a security boundary (see the ACP layout). */
+  await requireAdmin()
+
+  const forums = await getContainer().forums.listAll()
+
+  /*
+   * Flattened depth-first from the tree rather than sorted by `path`, so the
+   * order on screen is the order the board renders — which is what makes
+   * "display order" mean anything to somebody editing it.
+   */
+  type Row = { forum: ForumRow; depth: number }
+  const rows: Row[] = []
+  const walk = (nodes: readonly ForumNode<ForumRow>[], depth: number): void => {
+    for (const node of nodes) {
+      rows.push({ forum: node, depth })
+      walk(node.children, depth + 1)
+    }
+  }
+  walk(buildTree(forums), 0)
+
+  return (
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
+      <div className="flex flex-col gap-1">
+        <h1 className="font-serif text-2xl font-semibold">Forums</h1>
+        <p className="text-sm text-muted-foreground">
+          The board&rsquo;s tree, in the order it renders. A category holds no
+          threads; a link is a redirect row.
+        </p>
+      </div>
+
+      <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        {rows.map(({ forum, depth }) => (
+          <li key={forum.id} className="flex items-center justify-between gap-3 px-4 py-3">
+            <span
+              className="flex min-w-0 flex-col"
+              style={{ paddingLeft: `${depth * 1.25}rem` }}
+            >
+              <span className="truncate text-sm font-medium">{forum.title}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {forum.type} · /{forum.slug} · path {forum.path}
+              </span>
+            </span>
+            <span className="flex shrink-0 gap-3 text-sm">
+              <a href={`/admin/forums/${forum.id}`} className="text-primary hover:underline">
+                Options
+              </a>
+              <a
+                href={`/admin/forums/${forum.id}/permissions`}
+                className="text-primary hover:underline"
+              >
+                Permissions
+              </a>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="text-xs text-muted-foreground">
+        Creating and moving forums is <code>forum forum:create</code> on the
+        command line for now — both take the forest lock and re-read the tree
+        inside their transaction, and a move needs a screen that can show where a
+        subtree is going.
+      </p>
+    </div>
+  )
+}

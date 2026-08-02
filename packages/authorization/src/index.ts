@@ -27,3 +27,14 @@ export type { MemoryAppointment } from './memory-source'
 
 /** F47's vocabulary, re-exported so a caller needs one import. */
 export { PUBLIC_CONTENT, type ContentScope } from '@forum/core'
+
+export {
+  buildPermissionMatrix,
+  planCopyToDescendants,
+  readMatrixCell,
+  type CopyChange,
+  type CopyPlan,
+  type MatrixCell,
+  type MatrixInput,
+  type MatrixRow,
+} from './matrix-editor'

@@ -47,6 +47,14 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
+            <a href="/admin/forums" className="text-primary hover:underline">
+              Forums
+            </a>{' '}
+            <span className="text-muted-foreground">
+              — the tree, each forum&rsquo;s options, and the permission matrix.
+            </span>
+          </li>
+          <li>
             <a href="/admin/log" className="text-primary hover:underline">
               Admin log
             </a>{' '}
@@ -60,8 +68,8 @@ export default async function AdminHomePage() {
           to a page that does not exist is worse than an honest note.
         */}
         <p className="text-xs text-muted-foreground">
-          Forums, groups, users, themes, plugins, maintenance and content
-          administration each arrive with their own feature.
+          Groups, users, themes, plugins, maintenance and content administration
+          each arrive with their own feature.
         </p>
       </section>
 

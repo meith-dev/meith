@@ -756,13 +756,25 @@ is read by more people than can edit it.
 
 `invalidates` also has a caller for the first time since F08 wrote it.
 
-**F65 · forum administration** is next, and it is the biggest of the remaining
-Admin CP screens: the tree, per-forum options, moderators, and the visual
-permission matrix with inherit/grant/deny and previewed copy-to-subforums. F21's
-resolution and F48's appointments are both done, so this is a surface over
-machinery that works — but the matrix is the part to design carefully, because
-"inherit" being visually distinct from "deny" is the whole reason operators get
-permissions wrong.
+**F65 is `PARTIAL`** (D69). The tree, the per-forum options and the permission
+matrix are done, including the previewed copy-to-subforums. What is not done is
+named on the row: **moderator appointments** — `forum_moderators` gained its
+first reader in F48 and still has no writer at all — and **create/move**, which
+exist in `forum-repo.ts` and want a screen that can show where a subtree is
+going before it lets somebody build one.
+
+Those two are the obvious next piece of work, and they are the last thing
+standing between F65 and `DONE`.
+
+The matrix is worth reading before touching anything permission-shaped: a cell
+is three states because null means inherit, every cell says what it resolves to
+and from where, and a row resolves for its own group rather than for the
+combination the Authorizer would compute. The copy is previewed cell by cell and
+re-authenticated, which is the first use of F63's `requireFreshAdmin` outside
+F63 itself.
+
+After that, F66 (groups) is the natural next feature: it is the same shape one
+layer up, and `CacheTags.permissions()` now has a writer to follow.
 
 **F42 is done, and the decision it was waiting on is recorded in
 [ADR 0003](adr/0003-jsquash-image-codecs.md).** `@jsquash` — the Squoosh codecs
