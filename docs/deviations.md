@@ -4770,3 +4770,117 @@ teaches the next person that the check is an obstacle — so there is now a fift
 list, `MERGE_NOT_A_REFERENCE`, holding one entry and an argument. Because the
 test also asserts the lists are disjoint, a column parked there is a decision on
 the record rather than an omission.
+
+### D74 — There is no "switch theme" button, and the editor validates with the renderer's own code (F68)
+
+The theme manager, and the two things about it that are decisions rather than
+implementation.
+
+#### Selecting a theme is a redeploy, and the screen says so
+
+The roadmap line begins "theme selection", and the honest answer is that this
+panel cannot do it. `forum.config.ts` is the build-time registry (invariant 6):
+a serverless bundle contains only what the bundler saw, nothing is discovered by
+scanning a directory at request time, and `activeTheme` is a module-level
+constant because a theme's `extends` chain cannot change between requests.
+
+A control that appeared to switch themes would therefore either not work, or
+would buy the illusion by making every render wait on a database read that first
+paint currently does not need. So the listing marks the theme in use and spends
+a paragraph on what installing actually involves — `pnpm add`, a line in
+`forum.config.ts`, redeploy — in the same words F69 will use about plugins. A
+panel that admits a limit is worth more than one that hides it behind a control
+that does nothing.
+
+What *is* runtime is everything `theme-runtime.ts` reads per request: the token
+overrides and the custom CSS. That is the editor, and it is the whole of what a
+board can restyle without a deploy.
+
+#### The editor validates with the functions that paint
+
+`validateTokenOverrides` and `validateCustomCss` are F26's, and they run on
+**every page render** against the stored row. The editor calls the same two
+before writing.
+
+That is not tidiness. A second validator would drift, and the direction it would
+drift in is the dangerous one: a value the editor accepts and the renderer
+rejects is a board that goes blank on the next request — from an
+administrator's own save, with the panel reporting success. Running the
+renderer's own code is what makes "saved" mean "will render".
+
+It follows that the submitted fields are read from the *form* rather than from
+the theme's declared token list. Walking the declared names would silently drop
+a field naming a token the theme does not have, which is the one case where the
+editor and the renderer would disagree about the same input — and disagreeing
+quietly is worse than either answer. F26 refuses it with a message; the screen
+shows the message.
+
+A blank field is "use the theme's value", not an empty override. Most fields are
+blank on any real board, and storing them would write `--primary:;` into the
+cascade: a token that overrides the theme with nothing.
+
+#### The preview is a post-back, and it is scoped
+
+No island. The form has two submits — save, and preview — which is what a
+browser does with two buttons and needs no JavaScript at all (D06). The preview
+action runs the *same* validation and the *same* declaration rendering a save
+would, so it shows what a save would paint rather than an approximation of it,
+and a value the renderer would reject fails in the preview too.
+
+The style block it produces is scoped to `[data-theme-preview]` rather than
+`:root`. An operator previewing an unreadable colour combination must still be
+able to read the form that changes it back — a preview that could break the
+panel around it is a trap, and the mutant that emits `:root` is one of the
+fourteen this feature kills.
+
+The sample is real board chrome — a forum row, three buttons, body text and a
+link — rather than colour swatches, because the question being answered is "is
+this readable", and a row of squares cannot answer it.
+
+#### A reset deletes the row, and is deliberately not re-authenticated
+
+"No overrides" and "no row" are indistinguishable to every reader, and deleting
+is the one that leaves the board in the state a fresh install is in — which is
+what an operator pressing reset means, and what keeps "has this board been
+customised?" answerable.
+
+Reset is also the only destructive-looking operation in this panel that does
+*not* ask for a password again, and that is on purpose: **reset is the undo.**
+Everything it can destroy is recoverable by pasting back an export, and putting
+a password prompt in front of the recovery path is how somebody ends up staring
+at a board they have broken and cannot fix. The destructive direction here is
+`save`, and that one is always undoable by resetting.
+
+#### Export is exact, and import ignores the key in the file
+
+The export carries no timestamp and no board identity — only the overrides —
+because `updated_at` is when *this* board saved, and carrying it across would
+make an import claim a history it does not have. A `version` field is there so a
+document from a later shape is refused rather than silently mis-read: an import
+is a file somebody has been emailed.
+
+The key inside the document is **ignored** in favour of the theme being edited.
+Copying a look from one board to another is the case import exists for, and
+refusing a document whose key differs would make the feature useless for exactly
+that. Both checks are needed and they check different things: the envelope
+(`parseThemeExport`) and the values (F26's validator, because a file that
+arrived by email is exactly as untrusted as a hand-edited row).
+
+#### `themes` gets its first writer, and two columns are named rather than used
+
+The fifth reader-with-no-writer this project has found. `themes` has been read
+on every page render since F26 and could only be changed with SQL.
+
+Two of its columns stay unread, deliberately:
+
+- **`layout_options`.** There is nothing to put in it. The default theme
+  expresses layout through Tailwind classes, which are compile-time, and through
+  CSS custom properties, which *are* tokens — so anything an operator can change
+  at runtime is already the token editor. A free-text JSON blob that no theme
+  declares and no component reads would be the stub D32 refuses. Making it real
+  means a theme-side declaration of the options it has, which belongs with the
+  second theme (F78) — the first one with a layout choice to declare.
+- **`branding`.** F55's mail branding reads the board name from settings and the
+  accent from `token_overrides`; there is no third thing it wants. A logo upload
+  is the obvious candidate and is F42's attachment pipeline plus a decision about
+  where it renders, which is a feature rather than a column.

@@ -83,6 +83,12 @@ export {
 } from './user-merge-repo'
 export { mergeMapColumns } from './user-merge-map'
 export {
+  PostgresThemeAdminRepository,
+  parseThemeExport,
+  type ThemeExport,
+  type ThemeRecord,
+} from './theme-admin-repo'
+export {
   PostgresUserBulkRepository,
   type MassMailChunk,
   type MassMailRecipient,

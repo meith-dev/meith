@@ -829,15 +829,49 @@ the run resumes without JavaScript, and re-authentication. F66's mass move,
 F67's merge, prune and mass mail are all built this way — F70's maintenance and
 F71's content administration should be too.
 
-**F68 · the theme manager** is next: theme selection plus a token, layout and
-custom-CSS editor with live preview, reset, and exact JSON export/import. Two
-things already in the tree matter to it. `themes` has had a table since the
-initial schema and a `theme.changed` event since F07, with no ACP writer — the
-same reader-with-no-writer shape this project has now found five times. And
-F63's ACP deliberately lives outside the board's layout precisely so that a
-theme an administrator is editing cannot render the screen that edits it; that
-constraint is the reason the panel looks the way it does, and F68 is the feature
-it was written for.
+**F68 is done** (D74): the theme listing, a token and custom-CSS editor, a
+post-back preview, reset, and exact JSON export/import. `themes` has its first
+writer — the fifth reader-with-no-writer this project has found.
+
+**Phase 6 is 6 of 9 with nothing partial in it.**
+
+Two things in it are worth carrying into F69 and F70.
+
+**A panel that admits a limit beats one that hides it behind a dead control.**
+The roadmap line begins "theme selection" and this panel cannot do it:
+`forum.config.ts` is the build-time registry (invariant 6), `activeTheme` is a
+module-level constant because an `extends` chain cannot change between requests,
+and a switcher would either not work or would cost first paint a database read
+it does not currently need. So the screen spends a paragraph on what installing
+really is — `pnpm add`, a config line, redeploy. **F69 needs exactly this
+paragraph about plugins**, and it is already written here in the words to reuse.
+
+**Validate with the code that renders, not with a copy of it.** The editor calls
+F26's own `validateTokenOverrides` and `validateCustomCss` — the functions that
+run on every page against the stored row. A second validator drifts, and the
+direction it drifts is a board going blank on the next request from an
+administrator's own save while the panel reports success. The corollary shaped
+the implementation: submitted fields are read from the *form* rather than from
+the theme's declared token list, because walking the declared names would
+silently drop an undeclared one — the single input where editor and renderer
+would disagree.
+
+Also worth knowing before touching this area: the preview is a **post-back with
+two submits on one form**, not an island, and its style block is scoped to
+`[data-theme-preview]` so previewing an unreadable colour cannot break the form
+that changes it back. And `reset` is deliberately the one destructive-looking
+operation here that is *not* re-authenticated, because reset is the undo — a
+password prompt in front of the recovery path is how somebody stares at a board
+they cannot fix.
+
+**F69 · the plugin manager** is next: enable/disable, migrations, settings, ACP
+pages, hook health, and honest install/redeploy instructions. `forum.config.ts`
+already has a `plugins: []` array and `InstalledPlugin` is deliberately an
+opaque placeholder — the roadmap puts the lifecycle itself in F79, so F69 is the
+*management* surface over whatever is configured, and the honest-instructions
+half is the same argument F68 just made about themes. Expect the same shape:
+what is configured is build-time, what is stored is runtime, and the screen says
+which is which.
 
 The one remaining gap named in F67's row: **no password reset from the panel.**
 An administrator setting somebody's password is an account takeover with a paper
@@ -990,7 +1024,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D73). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D74). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a
