@@ -24,7 +24,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { FORUM_PERMISSION_FIELDS } from '@forum/core'
+import { FORUM_PERMISSION_FIELDS, ValidationError } from '@forum/core'
 import type { ForumOverride } from '@forum/authorization'
 
 import type { Database } from './client'
@@ -46,6 +46,57 @@ export interface ForumOptionsInput {
   readonly requiresPrefix: boolean
   readonly moderateNewThreads: boolean
   readonly moderateNewPosts: boolean
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Moderator appointments
+ * ------------------------------------------------------------------ */
+
+/**
+ * The rights an appointment carries, as the ACP edits them.
+ *
+ * A superset of `ModeratorRights`: the Authorizer only asks about the nine it
+ * decides actions with, and the table has three more (`canHardDeletePosts`,
+ * `canManagePolls`, `canViewIps`) that no action reads yet. They are edited
+ * anyway rather than hidden, because a right that exists in the schema and not
+ * in the screen is one an operator will assume they have granted.
+ */
+export const MODERATOR_RIGHTS = [
+  'canEditPosts',
+  'canSoftDeletePosts',
+  'canRestorePosts',
+  'canHardDeletePosts',
+  'canApproveContent',
+  'canOpenCloseThreads',
+  'canStickThreads',
+  'canMoveThreads',
+  'canMergeThreads',
+  'canSplitThreads',
+  'canManagePolls',
+  'canViewIps',
+] as const
+
+export type ModeratorRight = (typeof MODERATOR_RIGHTS)[number]
+
+export interface ModeratorAppointmentRow {
+  readonly id: number
+  readonly forumId: number
+  /** Exactly one of these is set. See `appoint` for why the table allows both. */
+  readonly userId: number | null
+  readonly groupId: number | null
+  /** Resolved for display: the member's name or the group's title. */
+  readonly subject: string
+  readonly cascadeToSubforums: boolean
+  readonly rights: Readonly<Record<ModeratorRight, boolean>>
+}
+
+export interface AppointModeratorInput {
+  readonly forumId: number
+  readonly userId: number | null
+  readonly groupId: number | null
+  readonly cascadeToSubforums: boolean
+  readonly rights: Readonly<Record<ModeratorRight, boolean>>
 }
 
 export class PostgresForumAdminRepository {
@@ -105,6 +156,116 @@ export class PostgresForumAdminRepository {
       moderateNewPosts: row.moderate_new_posts === true,
     }
   }
+
+
+  /**
+   * The appointments on one forum, with the name of whoever holds them.
+   *
+   * `forum_moderators` has had a *reader* since F48 — `authorization-source.ts`
+   * resolves appointments into `Target.isForumModerator` — and until now no
+   * writer at all, so "moderator" could only be configured with SQL.
+   */
+  async listModerators(forumId: number): Promise<readonly ModeratorAppointmentRow[]> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select m.*, u.username, g.title as group_title
+          from forum_moderators m
+          left join users u on u.id = m.user_id
+          left join usergroups g on g.id = m.group_id
+         where m.forum_id = ${forumId}
+         order by m.group_id nulls last, u.username_lower
+      `),
+    ) as Array<Record<string, unknown>>
+
+    return rows.map((row) => {
+      const rights: Record<string, boolean> = {}
+      for (const right of MODERATOR_RIGHTS) rights[right] = row[columnName(right)] === true
+
+      return {
+        id: Number(row.id),
+        forumId: Number(row.forum_id),
+        userId: row.user_id === null ? null : Number(row.user_id),
+        groupId: row.group_id === null ? null : Number(row.group_id),
+        /*
+         * Resolved here rather than left to the caller. A row whose member has
+         * been deleted cascades away, so a missing name means a row written by
+         * hand against an id that never existed — which should read as what it
+         * is rather than as a blank line.
+         */
+        subject:
+          row.group_title !== null && row.group_title !== undefined
+            ? `${String(row.group_title)} (group)`
+            : row.username !== null && row.username !== undefined
+              ? String(row.username)
+              : 'unknown',
+        cascadeToSubforums: row.cascade_to_subforums === true,
+        rights: rights as Record<ModeratorRight, boolean>,
+      }
+    })
+  }
+
+  /**
+   * Appoint, or replace an existing appointment's rights.
+   *
+   * The partial unique indexes on (forum, user) and (forum, group) are what
+   * make this an upsert rather than a check-then-insert: appointing somebody
+   * twice is a rights change, and two administrators doing it at once must not
+   * produce two rows that disagree.
+   *
+   * The table permits a row with neither a user nor a group, and one with both.
+   * Neither is meaningful, so the *caller* is required to supply exactly one —
+   * and this asserts it rather than trusting the caller, because a row with
+   * both would be resolved by F48 as two appointments that cannot be edited
+   * apart.
+   */
+  async appoint(input: AppointModeratorInput): Promise<void> {
+    const hasUser = input.userId !== null
+    const hasGroup = input.groupId !== null
+    if (hasUser === hasGroup) {
+      throw new ValidationError('An appointment names a member or a group, not both.')
+    }
+
+    const columns = MODERATOR_RIGHTS.map((right) => sql.raw(columnName(right)))
+    const literals = MODERATOR_RIGHTS.map((right) => sql`${input.rights[right] === true}`)
+    const assignments = MODERATOR_RIGHTS.map(
+      (right) => sql`${sql.raw(columnName(right))} = excluded.${sql.raw(columnName(right))}`,
+    )
+    const conflict = hasUser
+      ? sql`(forum_id, user_id) where user_id is not null`
+      : sql`(forum_id, group_id) where group_id is not null`
+
+    await this.db.execute(sql`
+      insert into forum_moderators
+             (forum_id, user_id, group_id, cascade_to_subforums,
+              ${sql.join(columns, sql`, `)})
+      values (${input.forumId}, ${input.userId}, ${input.groupId},
+              ${input.cascadeToSubforums}, ${sql.join(literals, sql`, `)})
+      on conflict ${conflict} do update
+         set cascade_to_subforums = excluded.cascade_to_subforums,
+             ${sql.join(assignments, sql`, `)}
+    `)
+  }
+
+  /** Remove one appointment. Scoped to the forum, so an id from elsewhere misses. */
+  async removeModerator(forumId: number, appointmentId: number): Promise<void> {
+    await this.db.execute(sql`
+      delete from forum_moderators
+       where id = ${appointmentId} and forum_id = ${forumId}
+    `)
+  }
+
+  /** A member by name, for the appointment form. Exact, case-insensitive. */
+  async findMemberByUsername(username: string): Promise<{ id: number; username: string } | null> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select id, username from users where username_lower = ${username.trim().toLowerCase()}
+      `),
+    ) as Array<{ id: number; username: string }>
+
+    const row = rows[0]
+    return row === undefined ? null : { id: Number(row.id), username: row.username }
+  }
+
 
   async updateOptions(forumId: number, input: ForumOptionsInput): Promise<void> {
     await this.db.execute(sql`

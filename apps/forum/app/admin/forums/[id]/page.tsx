@@ -1,7 +1,13 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { ForumOptionsForm } from '@/components/admin/forum-forms'
+import { MODERATOR_RIGHTS } from '@forum/db'
+
+import {
+  ForumOptionsForm,
+  ModeratorsPanel,
+  MoveForumForm,
+} from '@/components/admin/forum-forms'
 import { requireAdmin } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { forumAdminRepository } from '@/server/forum-admin'
@@ -28,11 +34,18 @@ export default async function AdminForumPage({
    * board's forum query deliberately does not carry eight posting toggles it
    * never renders.
    */
-  const options = await forumAdminRepository()?.readOptions(forum.id)
-  if (options === null || options === undefined) notFound()
+  const repository = forumAdminRepository()
+  const options = await repository?.readOptions(forum.id)
+  if (options === null || options === undefined || repository === null) notFound()
+
+  const moderators = await repository.listModerators(forum.id)
+  const groups = (await repository.listGroups()).map((group) => ({
+    groupId: group.id,
+    title: group.title,
+  }))
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-8">
       <div className="flex flex-col gap-1">
         <a href="/admin/forums" className="text-sm text-primary hover:underline">
           ← All forums
@@ -63,6 +76,31 @@ export default async function AdminForumPage({
             moderateNewPosts: options.moderateNewPosts,
           },
         }}
+      />
+
+      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <h2 className="font-serif text-lg font-semibold">Move</h2>
+        <MoveForumForm
+          forumId={forum.id}
+          currentParentId={forum.parentId}
+          parents={forums
+            .filter(
+              (row) =>
+                row.type !== 'link' &&
+                row.id !== forum.id &&
+                /* Not into its own subtree: `move` refuses it under the forest
+                   lock, and offering the option would be offering an error. */
+                !row.path.startsWith(`${forum.path}.`),
+            )
+            .map((row) => ({ id: row.id, title: row.title, depth: row.depth }))}
+        />
+      </section>
+
+      <ModeratorsPanel
+        forumId={forum.id}
+        rights={[...MODERATOR_RIGHTS]}
+        moderators={moderators}
+        groups={groups}
       />
     </div>
   )

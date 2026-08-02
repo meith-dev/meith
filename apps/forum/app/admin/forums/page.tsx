@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import { buildTree, type ForumNode, type ForumRow } from '@forum/forums'
 
+import { CreateForumForm } from '@/components/admin/forum-forms'
 import { requireAdmin } from '@/server/admin'
 import { getContainer } from '@/server/container'
 
@@ -75,12 +76,14 @@ export default async function AdminForumsPage() {
         ))}
       </ul>
 
-      <p className="text-xs text-muted-foreground">
-        Creating and moving forums is <code>forum forum:create</code> on the
-        command line for now — both take the forest lock and re-read the tree
-        inside their transaction, and a move needs a screen that can show where a
-        subtree is going.
-      </p>
+      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <h2 className="font-serif text-lg font-semibold">Add a forum</h2>
+        <CreateForumForm
+          parents={rows
+            .filter(({ forum }) => forum.type !== 'link')
+            .map(({ forum, depth }) => ({ id: forum.id, title: forum.title, depth }))}
+        />
+      </section>
     </div>
   )
 }

@@ -4293,18 +4293,59 @@ this" is one index scan rather than a recursive CTE per level. The prefix is
 `10.20`, and a copy reaches into a sibling subtree silently. There is a fixture
 forum in the test whose whole job is to be `10.200`.
 
-#### What is deliberately not here — F65 is PARTIAL
+#### Moderator appointments: the table's first writer
 
-- **Moderator appointments.** `forum_moderators` gained its first reader in F48
-  and still has no writer, so appointing one is a CLI-less, panel-less gap.
-  Named rather than half-built (D32): the granular rights it carries are the
-  same ones F48 resolves, and a screen that could appoint but not edit rights
-  would be worse than none.
-- **Creating and moving forums.** `create` and `move` exist in `forum-repo.ts`,
-  both taking the forest lock and re-reading the tree inside their transaction.
-  A create form without a move screen gives an operator a tree they cannot
-  rearrange, which is the shape a forum administration screen must not have.
-  The listing says so and points at the CLI.
+`forum_moderators` gained its first *reader* in F48 — appointments resolve into
+`Target.isForumModerator` and carry twelve granular rights — and had no writer
+at all, so "moderator" could only be configured with SQL.
+
+Three things about the write.
+
+**Exactly one of member or group.** The table permits a row with both columns
+set, and F48 would resolve such a row as two appointments that cannot be edited
+apart. The screen offers one field or the other and the repository *asserts* it
+rather than trusting the caller, because the assertion is what makes the
+resolver's assumption true.
+
+**Appointing twice is a rights change, not a second row.** The partial unique
+indexes on (forum, user) and (forum, group) make it an upsert, so two
+administrators doing it at once cannot leave two rows that disagree.
+
+**A removal is scoped to the forum in the statement.** The appointment id is a
+form value; scoping the `delete` means an id from another forum matches nothing
+rather than being caught by a check somebody could forget — the same shape F60's
+mailbox ownership uses.
+
+All twelve rights are editable, including the three (`canHardDeletePosts`,
+`canManagePolls`, `canViewIps`) that no action reads yet. A right that exists in
+the schema and not in the screen is one an operator will believe they granted.
+
+Appointing is `requireAdmin`, not a moderator permission: it is how moderation
+is *granted*, and a moderator who could appoint moderators could grant
+themselves everything F48 resolves.
+
+#### Moving a forum is re-authenticated, like the copy
+
+`move` rewrites every descendant's path in one transaction and changes what all
+of them inherit — moving a busy forum under a private category hides its whole
+subtree. That is a large effect from one dropdown, so it asks for the password
+again. The cycle check stays inside F16's `move`, which re-reads the tree under
+the forest lock; the screen simply does not *offer* the forum's own subtree as a
+destination, because offering an option that will be refused is not a check, it
+is a trap.
+
+A move invalidates the permission version as well as the tree: what a subtree
+inherits has changed, and resolved actors carry that.
+
+#### What is deliberately not here
+
 - **Forum passwords.** `forums.password_hash` exists and is F21's; setting one
   from the panel needs the same care as any credential write and belongs with
   whatever screen owns forum access as a whole.
+- **Reordering by drag.** `MoveTarget.position` exists and clamps, and `move`
+  applies it — but a drag handle is an island, and F45 is where islands are
+  proven removable. Display order is a number on the options form until then.
+- **Deleting a forum.** Not an oversight: a forum holds threads, and what
+  happens to them is a decision (move them? delete them? refuse while any
+  remain?) that belongs with F71's content administration rather than being
+  guessed at here.

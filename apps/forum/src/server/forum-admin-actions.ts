@@ -18,7 +18,10 @@ import { FORUM_PERMISSION_FIELDS } from '@forum/core'
 import { readMatrixCell } from '@forum/authorization'
 import { drivers } from '@forum/drivers'
 
+import { MODERATOR_RIGHTS } from '@forum/db'
+
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
+import { getContainer } from './container'
 import { requireForumAdmin } from './forum-admin'
 import type { FormState } from './auth-form-state'
 
@@ -187,6 +190,217 @@ export async function copyForumPermissionsAction(
     })
 
     return { notice: 'copied' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Creating and moving
+ * ------------------------------------------------------------------ */
+
+/**
+ * Create a category, forum or link.
+ *
+ * Delegates to F16's `create`, which takes the forest lock and re-reads the
+ * tree inside its transaction — planning a position against a stale snapshot is
+ * how two concurrent creates end up with the same display order.
+ */
+export async function createForumAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+    const { forums } = getContainer()
+
+    const type = text(form, 'type')
+    if (type !== 'category' && type !== 'forum' && type !== 'link') {
+      throw new ValidationError('Choose a category, a forum or a link.')
+    }
+
+    const title = text(form, 'title')
+    const slug = text(form, 'slug')
+    if (title === '') throw new ValidationError('A forum needs a title.')
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
+      throw new ValidationError(
+        'A slug may contain lower-case letters, numbers and single hyphens.',
+      )
+    }
+
+    const parent = text(form, 'parentId')
+    const parentId = parent === '' ? null : Number(parent)
+    if (parentId !== null && (!Number.isSafeInteger(parentId) || parentId <= 0)) {
+      throw new ValidationError('No such parent forum.')
+    }
+
+    await forums.create({
+      type,
+      title,
+      slug,
+      /* `NewForum` takes `undefined` for absent, not `null`. */
+      ...(text(form, 'description') === ''
+        ? {}
+        : { description: text(form, 'description') }),
+      parentId,
+      ...(text(form, 'linkUrl') === '' ? {} : { linkUrl: text(form, 'linkUrl') }),
+    })
+
+    await invalidateTree()
+    await recordAdminAction({ action: 'forum.created', detail: { slug, type } })
+
+    return { notice: 'created' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Move a forum, taking its subtree with it.
+ *
+ * **Re-authenticated**, like the permission copy, and for the same reason: it
+ * rewrites the path of every descendant in one transaction, changes which
+ * permissions they inherit, and there is no undo. Moving a busy forum under a
+ * private category makes its whole subtree invisible, which is a large effect
+ * from one dropdown.
+ *
+ * The cycle check is F16's and lives inside `move` — it re-reads the tree under
+ * the forest lock, because planning against a caller's stale copy is how a
+ * concurrent move slips a cycle past validation.
+ */
+export async function moveForumAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireFreshAdmin()
+    const id = forumId(form)
+
+    const parent = text(form, 'newParentId')
+    const newParentId = parent === '' ? null : Number(parent)
+    if (newParentId !== null && (!Number.isSafeInteger(newParentId) || newParentId <= 0)) {
+      throw new ValidationError('No such parent forum.')
+    }
+    if (newParentId === id) {
+      throw new ValidationError('A forum cannot be its own parent.')
+    }
+
+    await getContainer().forums.move(id, { newParentId })
+
+    await invalidateTree()
+    /*
+     * A move changes what every descendant inherits, so resolved actors have to
+     * go too — the permission version, not only the tree.
+     */
+    await drivers().cache.invalidateTags([CacheTags.permissions()])
+    await recordAdminAction({
+      action: 'forum.moved',
+      detail: { forumId: id, newParentId },
+    })
+
+    return { notice: 'moved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Moderator appointments
+ * ------------------------------------------------------------------ */
+
+/**
+ * Appoint a member or a group, or change what an existing appointment allows.
+ *
+ * `forum_moderators` has had a reader since F48 — appointments resolve into
+ * `Target.isForumModerator` and carry granular rights — and until now no writer
+ * at all, so "moderator" could only be configured with SQL.
+ *
+ * Gated on `requireAdmin` rather than on `user.warn` or a moderator permission:
+ * appointing moderators is how somebody grants moderation, and a moderator who
+ * could appoint moderators could grant themselves anything F48 resolves.
+ */
+export async function appointModeratorAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+    const id = forumId(form)
+    const repository = requireForumAdmin()
+
+    const username = text(form, 'username')
+    const groupRaw = text(form, 'groupId')
+
+    /*
+     * Exactly one. The table permits both columns to be set and F48 would
+     * resolve such a row as two appointments that cannot be edited apart, so
+     * the screen offers one field or the other and this enforces it.
+     */
+    if ((username === '') === (groupRaw === '')) {
+      throw new ValidationError('Name a member or choose a group, not both.')
+    }
+
+    let userId: number | null = null
+    let groupId: number | null = null
+
+    if (username !== '') {
+      const member = await repository.findMemberByUsername(username)
+      if (member === null) throw new ValidationError(`No member called “${username}”.`)
+      userId = member.id
+    } else {
+      groupId = Number(groupRaw)
+      if (!Number.isSafeInteger(groupId) || groupId <= 0) {
+        throw new ValidationError('No such group.')
+      }
+    }
+
+    const rights = Object.fromEntries(
+      MODERATOR_RIGHTS.map((right) => [right, checkbox(form, right)]),
+    ) as Record<(typeof MODERATOR_RIGHTS)[number], boolean>
+
+    await repository.appoint({
+      forumId: id,
+      userId,
+      groupId,
+      cascadeToSubforums: checkbox(form, 'cascadeToSubforums'),
+      rights,
+    })
+
+    await drivers().cache.invalidateTags([CacheTags.permissions()])
+    await recordAdminAction({
+      action: 'forum.moderator_appointed',
+      detail: { forumId: id, userId, groupId },
+    })
+
+    return { notice: 'saved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+export async function removeModeratorAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+    const id = forumId(form)
+    const appointmentId = Number(text(form, 'appointmentId'))
+    if (!Number.isSafeInteger(appointmentId) || appointmentId <= 0) {
+      throw new ValidationError('No such appointment.')
+    }
+
+    /* Scoped to the forum in the statement: the id is a form value. */
+    await requireForumAdmin().removeModerator(id, appointmentId)
+
+    await drivers().cache.invalidateTags([CacheTags.permissions()])
+    await recordAdminAction({
+      action: 'forum.moderator_removed',
+      detail: { forumId: id, appointmentId },
+    })
+
+    return { notice: 'removed' }
   } catch (err) {
     return toFormState(err)
   }

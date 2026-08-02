@@ -756,15 +756,12 @@ is read by more people than can edit it.
 
 `invalidates` also has a caller for the first time since F08 wrote it.
 
-**F65 is `PARTIAL`** (D69). The tree, the per-forum options and the permission
-matrix are done, including the previewed copy-to-subforums. What is not done is
-named on the row: **moderator appointments** — `forum_moderators` gained its
-first reader in F48 and still has no writer at all — and **create/move**, which
-exist in `forum-repo.ts` and want a screen that can show where a subtree is
-going before it lets somebody build one.
+**F65 is done** (D69), including the two things it was `PARTIAL` for. Moderator
+appointments gave `forum_moderators` its first writer — it gained a reader in
+F48 and could only be configured with SQL until now — and create/move now sit on
+F16's forest-locked repository methods.
 
-Those two are the obvious next piece of work, and they are the last thing
-standing between F65 and `DONE`.
+**Phase 6 is 3 of 9 with nothing partial in it.**
 
 The matrix is worth reading before touching anything permission-shaped: a cell
 is three states because null means inherit, every cell says what it resolves to
@@ -773,8 +770,14 @@ combination the Authorizer would compute. The copy is previewed cell by cell and
 re-authenticated, which is the first use of F63's `requireFreshAdmin` outside
 F63 itself.
 
-After that, F66 (groups) is the natural next feature: it is the same shape one
-layer up, and `CacheTags.permissions()` now has a writer to follow.
+**F66 · groups** is the natural next feature: the same shape one layer up — a
+grid of groups against the *global* permission registry rather than the
+forum-scoped subset — plus promotions with a dry run and chunked mass
+memberships. `CacheTags.permissions()` now has several writers to follow, and
+`matrix-editor.ts` is the model to copy **minus the inheritance**: a group's
+global permission has no ancestor chain, so its cells are two states and not
+three. That difference is worth being deliberate about rather than reusing the
+three-state control out of symmetry.
 
 **F42 is done, and the decision it was waiting on is recorded in
 [ADR 0003](adr/0003-jsquash-image-codecs.md).** `@jsquash` — the Squoosh codecs

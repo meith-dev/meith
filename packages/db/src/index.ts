@@ -61,8 +61,12 @@ export { PostgresMessageRepository } from './message-repo'
 export { PostgresAttachmentRepository } from './attachment-repo'
 export { PostgresAvatarRepository } from './avatar-repo'
 export {
+  MODERATOR_RIGHTS,
   PostgresForumAdminRepository,
+  type AppointModeratorInput,
   type ForumOptionsInput,
+  type ModeratorAppointmentRow,
+  type ModeratorRight,
 } from './forum-admin-repo'
 export { PostgresRelationRepository } from './relation-repo'
 export { PostgresReputationRepository } from './reputation-repo'

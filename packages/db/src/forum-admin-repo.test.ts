@@ -15,6 +15,8 @@ import { sql } from 'drizzle-orm'
 
 import { FORUM_PERMISSION_FIELDS } from '@forum/core'
 
+import { MODERATOR_RIGHTS } from './forum-admin-repo'
+
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresForumAdminRepository } from './forum-admin-repo'
@@ -265,5 +267,140 @@ describe('copyToDescendants', () => {
 
     const [override] = await repo.readOverrides([GRANDCHILD])
     expect(override?.overrides.maxAttachmentsPerPost).toBe(0)
+  })
+})
+
+describe('moderator appointments', () => {
+  beforeEach(async () => {
+    await db.execute(sql`delete from forum_moderators`)
+    await db.execute(sql`delete from users`)
+    await db.execute(sql`
+      insert into users (id, username, username_lower, email, email_lower,
+                         password_hash, password_algo, primary_group_id)
+      values (1, 'Ada', 'ada', 'a@example.test', 'a@example.test', 'x', 'argon2id', 2),
+             (2, 'Bob', 'bob', 'b@example.test', 'b@example.test', 'x', 'argon2id', 2)
+    `)
+  })
+
+  const noRights = Object.fromEntries(
+    MODERATOR_RIGHTS.map((right) => [right, false]),
+  ) as Record<(typeof MODERATOR_RIGHTS)[number], boolean>
+
+  it('appoints a member and reads the appointment back with their name', async () => {
+    await repo.appoint({
+      forumId: CHILD,
+      userId: 1,
+      groupId: null,
+      cascadeToSubforums: true,
+      rights: { ...noRights, canApproveContent: true },
+    })
+
+    const [row] = await repo.listModerators(CHILD)
+    expect(row).toMatchObject({
+      forumId: CHILD,
+      userId: 1,
+      groupId: null,
+      subject: 'Ada',
+      cascadeToSubforums: true,
+    })
+    expect(row?.rights.canApproveContent).toBe(true)
+    expect(row?.rights.canEditPosts).toBe(false)
+  })
+
+  it('appoints a group, and says so in the name', async () => {
+    await repo.appoint({
+      forumId: CHILD,
+      userId: null,
+      groupId: STAFF,
+      cascadeToSubforums: false,
+      rights: noRights,
+    })
+
+    expect((await repo.listModerators(CHILD))[0]?.subject).toMatch(/\(group\)$/)
+  })
+
+  it('replaces the rights of an existing appointment rather than duplicating it', async () => {
+    /*
+     * The partial unique indexes make this an upsert rather than a
+     * check-then-insert: appointing somebody twice is a rights change, and two
+     * administrators doing it at once must not leave two rows that disagree.
+     */
+    await repo.appoint({
+      forumId: CHILD,
+      userId: 1,
+      groupId: null,
+      cascadeToSubforums: false,
+      rights: { ...noRights, canEditPosts: true },
+    })
+    await repo.appoint({
+      forumId: CHILD,
+      userId: 1,
+      groupId: null,
+      cascadeToSubforums: true,
+      rights: { ...noRights, canStickThreads: true },
+    })
+
+    const rows = await repo.listModerators(CHILD)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.cascadeToSubforums).toBe(true)
+    expect(rows[0]?.rights).toMatchObject({ canEditPosts: false, canStickThreads: true })
+  })
+
+  it('refuses an appointment that names both a member and a group, or neither', async () => {
+    /*
+     * The table permits both columns to be set, and F48 would resolve such a
+     * row as two appointments that cannot be edited apart. Kills the mutant
+     * that trusts the caller.
+     */
+    const base = { forumId: CHILD, cascadeToSubforums: false, rights: noRights }
+    await expect(repo.appoint({ ...base, userId: 1, groupId: STAFF })).rejects.toThrow(
+      /member or a group/,
+    )
+    await expect(repo.appoint({ ...base, userId: null, groupId: null })).rejects.toThrow(
+      /member or a group/,
+    )
+  })
+
+  it('keeps two people apart on the same forum', async () => {
+    const base = { forumId: CHILD, groupId: null, cascadeToSubforums: false, rights: noRights }
+    await repo.appoint({ ...base, userId: 1 })
+    await repo.appoint({ ...base, userId: 2 })
+
+    expect(await repo.listModerators(CHILD)).toHaveLength(2)
+  })
+
+  it('removes one appointment, and only from the forum it belongs to', async () => {
+    /*
+     * The id comes from a form and is therefore attacker-supplied. Scoping the
+     * delete to the forum means an id from another forum matches nothing rather
+     * than being caught by a check somebody could forget.
+     */
+    await repo.appoint({
+      forumId: CHILD,
+      userId: 1,
+      groupId: null,
+      cascadeToSubforums: false,
+      rights: noRights,
+    })
+    const [row] = await repo.listModerators(CHILD)
+
+    await repo.removeModerator(GRANDCHILD, row!.id)
+    expect(await repo.listModerators(CHILD)).toHaveLength(1)
+
+    await repo.removeModerator(CHILD, row!.id)
+    expect(await repo.listModerators(CHILD)).toEqual([])
+  })
+
+  it('goes with the forum, and with the member, by cascade', async () => {
+    const base = { forumId: CHILD, groupId: null, cascadeToSubforums: false, rights: noRights }
+    await repo.appoint({ ...base, userId: 1 })
+
+    await db.execute(sql`delete from users where id = 1`)
+    expect(await repo.listModerators(CHILD)).toEqual([])
+  })
+
+  it('finds a member by name, case-insensitively, and nobody otherwise', async () => {
+    expect(await repo.findMemberByUsername('  ADA ')).toEqual({ id: 1, username: 'Ada' })
+    expect(await repo.findMemberByUsername('nobody')).toBeNull()
   })
 })
