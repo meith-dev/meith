@@ -29,6 +29,7 @@
       "@forum/db": ["packages/db/src/index.ts"],
       "@forum/db/*": ["packages/db/src/*"],
       "@forum/drivers": ["packages/drivers/src/index.ts"],
+      "@forum/drivers/images": ["packages/drivers/src/images/index.ts"],
       "@forum/drivers/*": ["packages/drivers/src/*"],
       "@forum/events": ["packages/events/src/index.ts"],
       "@forum/events/*": ["packages/events/src/*"],

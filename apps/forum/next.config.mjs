@@ -30,6 +30,18 @@ const nextConfig = {
     "@aws-sdk/client-s3",
     "@aws-sdk/s3-request-presigner",
     "postgres",
+    /*
+     * F42's image codecs (ADR 0003). External for a reason beyond bundle size:
+     * the tracer copies an external package's directory whole, `.wasm`
+     * included, and `packages/drivers/src/images/locate-wasm.ts` needs those
+     * files to be *on disk* — it reads and compiles them itself, because
+     * letting the codec load its own module means `fetch()` of a `file:` URL,
+     * which Node refuses. Bundling them would leave the `.wasm` untraced and
+     * the standalone image unable to decode anything.
+     */
+    "@jsquash/jpeg",
+    "@jsquash/png",
+    "@jsquash/resize",
   ],
   outputFileTracingRoot: path.join(here, "../../"),
   images: {

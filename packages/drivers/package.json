@@ -10,6 +10,9 @@
     "@aws-sdk/s3-request-presigner": "3.1098.0",
     "@forum/core": "workspace:*",
     "@forum/db": "workspace:*",
+    "@jsquash/jpeg": "^1.6.0",
+    "@jsquash/png": "^3.1.1",
+    "@jsquash/resize": "^2.1.1",
     "drizzle-orm": "^0.44.7"
   },
   "peerDependencies": {
