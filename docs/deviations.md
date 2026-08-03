@@ -5061,3 +5061,91 @@ deleting the threads would be absurd.
   answer to what deleting somebody else's upload does to the post displaying it.
 - **Announcements.** There is no announcement model on this board at all. A
   screen for editing something that does not exist is the emptiest kind of stub.
+
+### D78 — The permission filter is in the query, and the guard caught the search (F72)
+
+Postgres full-text search, and the four decisions that make it safe rather than
+merely fast.
+
+#### Filtering after the query is a leak *and* a bug
+
+The visible forum ids go into the `where` clause. Fetching a page and dropping
+what the viewer may not see would be wrong twice over: the page comes back short
+— twenty hits becoming three — and the **cursor** is computed from rows the
+viewer cannot see, so paging skips and repeats. An empty scope therefore returns
+nothing rather than everything, and the scope is a *required* argument rather
+than an optional filter, so no call shape accidentally searches the whole board.
+
+#### R3's guard caught this file on its first run
+
+The first version hand-wrote its visibility predicate — `p.visibility` compared
+to a literal, plus an own-post clause I had invented. `pnpm guards` failed the
+build: F47 allows exactly one module to compare that column, and every read path
+takes a `ContentScope` and turns it into SQL through `visibleIn`.
+
+That was the guard doing its job, and the fix was better than the code it
+replaced. `SearchScope` now carries a `ContentScope` rather than a "staff?"
+boolean, the provider decides nothing, and the own-post rule went away — it was
+an invention, and no other read path on this board has it.
+
+It then caught the *comment* explaining the fix, because the comment contained
+the pattern. That is the guard being blunt in the right direction: a string it
+cannot distinguish from code is one it should flag, and rewording a comment
+costs nothing next to the class of bug it exists for.
+
+**Both sides of the join are filtered.** A `visible` post inside a `deleted`
+thread must not surface, or search becomes the way to read threads that were
+taken down.
+
+#### Ranking is weighted, and paging breaks ties
+
+The subject is indexed at weight `A` and the body at `B`, because without
+weights a two-word subject loses to a thousand-word post that says the term once.
+
+Ranks tie constantly — identical posts score identically — so the cursor is
+`(rank, id)` and the `order by` matches it exactly. Paging on rank alone silently
+skips and repeats across any page boundary that lands inside a run of equal
+ranks, which is most of them.
+
+#### `websearch_to_tsquery`, not `to_tsquery`
+
+A search box is not a query language. People type apostrophes, brackets and
+stray ampersands without meaning anything by them, and `to_tsquery` answers
+those with a syntax error — a board whose search looks broken. `websearch_to_tsquery`
+accepts arbitrary text and understands the two conventions members actually use:
+`"quoted phrases"` and a leading `-` for exclusion.
+
+`@forum/search`'s parser therefore does **not** build a query. It normalises
+whitespace, strips control characters, and answers one question the engine
+cannot: is there anything here worth running? Length is measured on the *words*
+rather than the raw string, because `"a"` and `-a` are one-character searches
+dressed up, and running one scans the index to return everything. "Empty" and
+"too short" are different refusals, because they lead to different next actions.
+
+#### The index is maintained explicitly, not by a generated column
+
+Postgres would compute `search_vector` as `GENERATED ALWAYS AS … STORED`, and on
+an empty database that is the better design. Adding one to a table with two
+million posts rewrites the table under an exclusive lock — an outage on a live
+board. So the column is written when a post is created or edited, and existing
+rows are filled by a **resumable backfill**: the batch is "posts with no vector",
+a set that only shrinks, so an interrupted run resumes from anywhere and a
+repeated one does nothing. `searchVectorSql` is shared between the writer and
+the backfill, because a post indexed today and one reindexed tomorrow must
+produce the same document or results would depend on when a post was written.
+
+#### The provider seam is narrow on purpose
+
+Everything above `SearchProvider` speaks in queries and hits; nothing outside
+`@forum/db` knows what a `tsquery` is. Replacing Postgres search with a hosted
+index is a new implementation of one interface. Ranking internals, stemming
+configuration and index maintenance stay behind the seam, because no two
+providers would agree on them.
+
+#### A mutation-testing note
+
+Two guards overlapped: an explicit `scope.forumIds.length === 0` check and the
+`allowed.length === 0` check below it. No mutation of the first could fail a
+test, because the second already covered it. It was removed rather than kept —
+the same call F71 made about a defensive `lastIndex` reset. A guard that cannot
+be shown to matter is one the next reader will trust for the wrong reason.

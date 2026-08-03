@@ -347,6 +347,9 @@ importers:
       '@forum/reputation':
         specifier: workspace:*
         version: link:../reputation
+      '@forum/search':
+        specifier: workspace:*
+        version: link:../search
       '@forum/settings':
         specifier: workspace:*
         version: link:../settings
@@ -509,6 +512,12 @@ importers:
       '@forum/tasks':
         specifier: workspace:*
         version: link:../tasks
+
+  packages/search:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/settings:
     dependencies:

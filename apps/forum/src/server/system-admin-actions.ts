@@ -21,6 +21,7 @@ import { CacheTags, ValidationError, isAppError, logger } from '@forum/core'
 import { drivers } from '@forum/drivers'
 
 import { recordAdminAction, requireAdmin } from './admin'
+import { requireSearch } from './search'
 import { requireMaintenance, requireRecount } from './system-admin'
 import type { FormState } from './auth-form-state'
 
@@ -29,6 +30,15 @@ const SWEEP_LIMIT = 5_000
 
 /** Rows the recount reconciles per press. */
 const RECOUNT_BATCH = 500
+
+/**
+ * Posts indexed per press.
+ *
+ * Larger than the recount's batch because indexing is a single UPDATE over a
+ * bounded id range rather than a per-row reconciliation — and because a
+ * two-million-post backfill at 500 a press is four thousand presses.
+ */
+const REINDEX_BATCH = 2_000
 
 function toFormState(err: unknown): FormState {
   if (isAppError(err)) return { error: err.message }
@@ -86,6 +96,36 @@ export async function recountAction(): Promise<FormState> {
 
     await recordAdminAction({ action: 'system.recount_ran', detail: { corrected } })
     return { notice: 'ran', values: { corrected: String(corrected) } }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Index one batch of posts that have never been indexed.
+ *
+ * F72's `search_vector` is written when a post is created or edited, so this is
+ * only ever a *backfill*: an existing board adopting search, or a board whose
+ * index was invalidated because the indexed document changed. It resumes by
+ * construction — the batch is "posts with no vector", a set that only shrinks —
+ * so an interrupted run costs nothing and a repeated one does nothing.
+ */
+export async function reindexSearchAction(): Promise<FormState> {
+  try {
+    await requireAdmin()
+
+    const result = await requireSearch().reindexChunk(0, REINDEX_BATCH)
+    const progress = await requireSearch().indexProgress()
+
+    await recordAdminAction({
+      action: 'system.search_reindexed',
+      detail: { indexed: result.indexed, pending: progress.pending },
+    })
+
+    return {
+      notice: progress.pending > 0 ? 'more' : 'finished',
+      values: { indexed: String(result.indexed), pending: String(progress.pending) },
+    }
   } catch (err) {
     return toFormState(err)
   }

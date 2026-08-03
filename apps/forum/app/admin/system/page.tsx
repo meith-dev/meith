@@ -5,6 +5,7 @@ import {
   PruneSessionsForm,
   PruneTokensForm,
   RecountForm,
+  ReindexSearchForm,
   RetryJobForm,
 } from '@/components/admin/system-forms'
 import { requireAdmin } from '@/server/admin'
@@ -200,6 +201,28 @@ export default async function AdminSystemPage() {
           </ul>
         )}
         <RecountForm />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-serif text-lg font-semibold">Search index</h2>
+        <p className="text-sm text-muted-foreground">
+          A post is indexed when it is written or edited, so this is only ever a
+          backfill — an existing board adopting search, or one whose index was
+          invalidated. It resumes by construction: the batch is &ldquo;posts with
+          no index entry&rdquo;, a set that only shrinks, so an interrupted run
+          costs nothing and a repeated one does nothing.
+        </p>
+        <p className="text-sm">
+          {view.searchIndex.indexed} indexed
+          {view.searchIndex.pending > 0 && (
+            <span className="font-medium text-destructive">
+              {' '}
+              · {view.searchIndex.pending} not yet searchable
+            </span>
+          )}
+          .
+        </p>
+        <ReindexSearchForm pending={view.searchIndex.pending} />
       </section>
 
       <section className="flex flex-col gap-4 rounded-lg border border-border p-4">

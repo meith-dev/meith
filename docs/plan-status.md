@@ -52,10 +52,10 @@ couple of `PARTIAL` rows are an afternoon.
 | 4 — Moderation | 8 | 8 | 0 | 0 |
 | 5 — Members and social | 8 | 8 | 0 | 0 |
 | 6 — Admin CP | 9 | 7 | 2 | 0 |
-| 7 — Search and discovery | 5 | 0 | 0 | 5 |
+| 7 — Search and discovery | 5 | 1 | 0 | 4 |
 | 8 — Public APIs | 5 | 0 | 0 | 5 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **57** | **5** | **27** |
+| **Total** | **89** | **58** | **5** | **26** |
 
 ---
 
@@ -214,7 +214,7 @@ No `tsvector` column, `search_sessions` table, or `packages/search` contents.
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
-| F72 | Postgres full-text search | `TODO` | No FTS index/provider/reindex task. |
+| F72 | Search core | `DONE` | Postgres full-text search behind a provider seam, with a resumable backfill. **The permission filter is in the query**: filtering a fetched page would be wrong twice over — twenty hits come back as three, and the cursor is computed from rows the viewer cannot see, so paging skips and repeats. An empty scope returns nothing, and the scope is a required argument rather than an optional filter so no call shape accidentally searches everything. **R3's guard caught this file on its first run**: the first version hand-wrote its visibility predicate and invented an own-post rule no other read path has. `SearchScope` now carries a `ContentScope`, the provider decides nothing, and `visibleIn` does the comparison — the fix was better than the code it replaced. Both sides of the join are filtered, since a visible post in a removed thread must not surface. Ranking is **weighted** (subject `A`, body `B`) or a two-word subject loses to a long post that says the term once, and paging is keyset on **(rank, id)** because ranks tie constantly. `websearch_to_tsquery` rather than `to_tsquery`: a search box is not a query language, and answering an apostrophe with a syntax error is how search stops being used. The parser measures length on the *words*, so `"a"` and `-a` are refused, and distinguishes "empty" from "too short". The index is written on insert and edit and backfilled resumably — a generated column would rewrite a two-million-row table under an exclusive lock — with one shared `searchVectorSql` so a post indexed today and reindexed tomorrow produce the same document. 33 tests, sixteen mutants killed; one overlapping guard removed as unprovable. See **D78**. |
 | F73 | Search UI | `TODO` | No query UI or stored result sessions. |
 | F74 | Discovery shortcuts | `TODO` | No new/today/my/unanswered queries. |
 | F75 | Who's online and statistics | `TODO` | No online presence/rollup screens or task. |

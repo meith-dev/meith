@@ -19,6 +19,7 @@ import { assessScheduler, type SchedulerHealth } from '@forum/tasks'
 import {
   PostgresCounterRecount,
   PostgresMaintenanceRepository,
+  PostgresSearchRepository,
   PostgresSystemHealthRepository,
   getDb,
   type BoardVolumes,
@@ -53,6 +54,8 @@ export function requireRecount(): PostgresCounterRecount {
 }
 
 export interface SystemHealthView {
+  /** F72's index coverage. Pending is what a backfill still has to do. */
+  readonly searchIndex: { readonly indexed: number; readonly pending: number }
   readonly scheduler: SchedulerHealth
   readonly runs: readonly TaskRunRow[]
   readonly recount: readonly RecountStateRow[]
@@ -65,16 +68,18 @@ export async function buildSystemHealthView(now: Date): Promise<SystemHealthView
   if (repository === null) return null
 
   const maintenance = new PostgresMaintenanceRepository(getDb())
-  const [tasks, runs, recount, volumes, prunableSessions] = await Promise.all([
+  const [tasks, runs, recount, volumes, prunableSessions, searchIndex] = await Promise.all([
     repository.taskHealth(),
     repository.recentRuns(20),
     repository.recountState(),
     repository.volumes(),
     maintenance.countPrunableSessions(now),
+    new PostgresSearchRepository(getDb()).indexProgress(),
   ])
 
   return {
     scheduler: assessScheduler(tasks, now),
+    searchIndex,
     runs,
     recount,
     volumes,

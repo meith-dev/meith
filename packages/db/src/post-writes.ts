@@ -18,6 +18,7 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { searchVectorSql } from './search-repo'
 import { applyVisibilityChangeCounters } from './visibility-counters'
 
 /**
@@ -122,6 +123,13 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
         update posts
            set message = ${record.message},
                message_html = ${body.html},
+               /*
+                * F72: the indexed document is rewritten with the text, in the
+                * same statement. An edit that changed the body and left the
+                * vector alone would make the post findable by words it no
+                * longer contains — and unfindable by the ones it does.
+                */
+               search_vector = ${searchVectorSql(sql`subject`, sql`${record.message}`)},
                render_version = ${body.version},
                visibility = ${record.toVisibility},
                edited_at = ${record.editedAt},

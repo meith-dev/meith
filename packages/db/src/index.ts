@@ -141,6 +141,11 @@ export {
 } from './system-health-repo'
 export { PostgresMaintenanceRepository } from './maintenance-repo'
 export {
+  PostgresSearchRepository,
+  searchVectorSql,
+  type ReindexResult,
+} from './search-repo'
+export {
   PostgresContentAdminRepository,
   type ThreadPrefixRow,
   type WordFilterRow,

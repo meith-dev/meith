@@ -15,6 +15,7 @@ import {
   pruneSessionsAction,
   pruneTokensAction,
   recountAction,
+  reindexSearchAction,
   retryJobAction,
 } from "@/server/system-admin-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
@@ -132,6 +133,32 @@ export function RetryJobForm() {
 
       <div>
         <SubmitButton>Retry</SubmitButton>
+      </div>
+    </form>
+  )
+}
+
+export function ReindexSearchForm({ pending }: { pending: number }) {
+  const [state, action] = useActionState(reindexSearchAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <FormError message={state.error} />
+      {state.notice === "finished" && (
+        <Result>
+          {state.values?.indexed} indexed. Every post on the board is searchable.
+        </Result>
+      )}
+      {state.notice === "more" && (
+        <Result>
+          {state.values?.indexed} indexed, {state.values?.pending} still to go.
+          Press again — it resumes where it stopped.
+        </Result>
+      )}
+      <div>
+        <SubmitButton>
+          {pending === 0 ? "Nothing to index" : `Index the next batch of ${pending}`}
+        </SubmitButton>
       </div>
     </form>
   )
