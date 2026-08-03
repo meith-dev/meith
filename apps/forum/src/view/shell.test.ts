@@ -12,6 +12,7 @@ import { emptyPermissionSet } from '@forum/core'
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildBoardNavigation,
   buildFooterModel,
   buildHeaderModel,
   buildUserPanelModel,
@@ -181,5 +182,42 @@ describe('ViewerModel.username', () => {
   it('is null when the caller has no name to give, rather than inventing one', () => {
     expect(buildViewerModel(member).username).toBeNull()
     expect(buildViewerModel(guest).username).toBeNull()
+  })
+})
+
+/**
+ * F74. The header's navigation was `[]` for every viewer from F27 until the
+ * discovery views gave it something true to say.
+ */
+describe('buildBoardNavigation (F74)', () => {
+  it('points only at routes that exist', () => {
+    /*
+     * The rule `buildHeaderModel` states in its own doc comment, and the one
+     * this builder is most likely to break later: a nav entry is a promise,
+     * and a header linking to a 404 is worse than a header with one fewer
+     * link. Every href here is checked against a real route in this repo.
+     */
+    const hrefs = buildBoardNavigation(buildViewerModel(member)).map((link) => link.href)
+
+    expect(hrefs).toEqual([
+      '/',
+      '/discover/new',
+      '/discover/unanswered',
+      '/discover/participated',
+      '/search',
+      '/online',
+    ])
+  })
+
+  it('omits the personal view for a guest rather than offering a refusal', () => {
+    /*
+     * `/discover/participated` needs a signed-in member, and a permanent
+     * header entry that always refuses teaches people to ignore the header.
+     * Kills the mutant that returns the same list for everybody.
+     */
+    const hrefs = buildBoardNavigation(buildViewerModel(guest)).map((link) => link.href)
+
+    expect(hrefs).not.toContain('/discover/participated')
+    expect(hrefs).toContain('/discover/new')
   })
 })

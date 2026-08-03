@@ -50,6 +50,8 @@ export interface MemberSettings {
   /** Null = follow the board setting. */
   readonly postsPerPage: number | null
   readonly threadsPerPage: number | null
+  /** F75. Browse without appearing in the online list — or its count. */
+  readonly invisible: boolean
   readonly location: string | null
   readonly website: string | null
   readonly bio: string | null
@@ -70,6 +72,7 @@ export interface MemberSettingsRepository {
     readonly timezone: string
     readonly postsPerPage: number | null
     readonly threadsPerPage: number | null
+    readonly invisible: boolean
   }): Promise<void>
 
   /**
@@ -191,6 +194,7 @@ export class MemberSettingsService {
     readonly timezone: string
     readonly postsPerPage: string
     readonly threadsPerPage: string
+    readonly invisible: boolean
   }): Promise<void> {
     const timezone = input.timezone.trim()
     if (!isKnownTimezone(timezone)) {
@@ -202,6 +206,7 @@ export class MemberSettingsService {
       timezone,
       postsPerPage: parsePageSize(input.postsPerPage, 'Posts per page'),
       threadsPerPage: parsePageSize(input.threadsPerPage, 'Threads per page'),
+      invisible: input.invisible,
     })
   }
 

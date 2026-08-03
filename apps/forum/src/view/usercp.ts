@@ -136,11 +136,15 @@ export function optionsFormValues(settings: MemberSettings): {
   timezone: string
   postsPerPage: string
   threadsPerPage: string
+  invisible: boolean
 } {
   return {
     timezone: settings.timezone,
     postsPerPage: settings.postsPerPage === null ? '' : String(settings.postsPerPage),
     threadsPerPage: settings.threadsPerPage === null ? '' : String(settings.threadsPerPage),
+    /* F75. The one boolean on this form, and the only one whose default —
+       visible — is what somebody who never opens this page should get. */
+    invisible: settings.invisible,
   }
 }
 

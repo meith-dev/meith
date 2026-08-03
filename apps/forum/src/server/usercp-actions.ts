@@ -118,6 +118,13 @@ export async function saveOptionsAction(_prev: FormState, form: FormData): Promi
       timezone: text(form, 'timezone'),
       postsPerPage: text(form, 'postsPerPage'),
       threadsPerPage: text(form, 'threadsPerPage'),
+      /*
+       * F75. An unchecked checkbox submits nothing at all, so absence is
+       * false — which is also the safe reading: a member who did not tick the
+       * box is visible, and a form that lost the field cannot silently hide
+       * somebody who did not ask to be hidden.
+       */
+      invisible: form.get('invisible') !== null,
     })
   } catch (err) {
     return toFormState(err)

@@ -11,6 +11,7 @@ import { activeTheme } from "@/server/theme";
 import { decodeForumCursor, encodeForumCursor } from "@/view/forum-cursor";
 import { FollowForm } from "@/components/account/subscription-forms";
 import { buildForumDisplayView } from "@/view/forum-display";
+import { canonicalPath } from "@/view/metadata";
 import { buildSubscriptionsView } from "@/view/subscriptions";
 import {
   INLINE_FORM_ID,
@@ -19,7 +20,66 @@ import {
   selectionFor,
 } from "@/view/inline-moderation";
 
-export const metadata: Metadata = { title: "Forum" };
+/**
+ * F76 — one forum's metadata, resolved in the viewer's scope.
+ *
+ * Same shape and same reasoning as the thread page's: it repeats the locate →
+ * authorise sequence rather than trusting the page to have run it, because a
+ * metadata function that assumed would put a private forum's title into an
+ * Open Graph card on any request where the two got out of step.
+ *
+ * The canonical carries the page number, so page 3 of a forum is its own
+ * document rather than a duplicate of page 1 — which is the single most common
+ * way a board ends up with only its first pages in an index.
+ */
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
+}): Promise<Metadata> {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
+  const id = forumId(slug);
+  if (id === null) return { title: "Forum" };
+
+  const actor = await getActor();
+  const { forums, authorizer } = getContainer();
+
+  const forum = await forums.findById(id);
+  if (!forum || forum.type !== "forum") return { title: "Forum" };
+
+  const matrix = await authorizer.forumMatrix(actor, forum.id);
+  if (!authorizer.can(actor, "thread.view", { forumId: forum.id, forum: matrix })) {
+    /* The same title an unknown forum gets — see the thread page. */
+    return { title: "Forum" };
+  }
+
+  const page = Number(query.page ?? "1");
+  const canonical = canonicalPath({
+    path: `/forum/${forum.id}-${forum.slug}`,
+    page: Number.isSafeInteger(page) && page > 0 ? page : 1,
+  });
+  const description = forum.description ?? `Discussions in ${forum.title}.`;
+
+  return {
+    title: forum.title,
+    description,
+    alternates: {
+      canonical,
+      types: {
+        "application/rss+xml": `/forum/${forum.id}-${forum.slug}/feed.xml`,
+      },
+    },
+    openGraph: {
+      type: "website",
+      title: forum.title,
+      description,
+      url: canonical,
+    },
+    twitter: { card: "summary", title: forum.title, description },
+  };
+}
 
 function forumId(value: string): number | null {
   const match = /^(\d+)-/.exec(value);

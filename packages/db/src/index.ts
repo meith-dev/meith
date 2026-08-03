@@ -83,6 +83,12 @@ export {
 } from './user-merge-repo'
 export { mergeMapColumns } from './user-merge-map'
 export {
+  PostgresThemeAdminRepository,
+  parseThemeExport,
+  type ThemeExport,
+  type ThemeRecord,
+} from './theme-admin-repo'
+export {
   PostgresUserBulkRepository,
   type MassMailChunk,
   type MassMailRecipient,
@@ -127,7 +133,59 @@ export {
 } from './ban-repos'
 export { PostgresPromotionRepository } from './promotion-repo'
 export { PostgresTaskRepository } from './task-repo'
+export {
+  PostgresSystemHealthRepository,
+  type BoardVolumes,
+  type RecountStateRow,
+  type TaskRunRow,
+} from './system-health-repo'
 export { PostgresMaintenanceRepository } from './maintenance-repo'
+export {
+  PostgresSearchRepository,
+  searchVectorSql,
+  type ReindexResult,
+} from './search-repo'
+export {
+  PostgresFeedRepository,
+  type FeedPost,
+  type FeedScope,
+  type FeedThread,
+  type SitemapForum,
+  type SitemapThread,
+} from './feed-repo'
+export {
+  ONLINE_WINDOW_MINUTES,
+  PostgresPresenceRepository,
+  type OnlineMember,
+  type OnlineRecord,
+  type OnlineScope,
+  type OnlineSnapshot,
+} from './presence-repo'
+export {
+  PostgresStatsRepository,
+  type BoardTotals,
+  type StatsScope,
+  type TopPoster,
+  type TopThread,
+} from './stats-repo'
+export {
+  PostgresDiscoveryRepository,
+  type DiscoveryPage,
+  type DiscoveryQuery,
+  type DiscoveryRow,
+  type DiscoveryScope,
+} from './discovery-repo'
+export {
+  PostgresSearchStore,
+  ownsSearch,
+  type CreateSearchInput,
+  type StoredSearch,
+} from './search-store'
+export {
+  PostgresContentAdminRepository,
+  type ThreadPrefixRow,
+  type WordFilterRow,
+} from './content-admin-repo'
 export {
   PostgresAdminRepository,
   type GroupSummary,

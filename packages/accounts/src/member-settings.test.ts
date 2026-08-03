@@ -36,6 +36,7 @@ class MemorySettings implements MemberSettingsRepository {
     timezone: 'UTC',
     postsPerPage: null,
     threadsPerPage: null,
+    invisible: false,
     location: null,
     website: null,
     bio: null,
@@ -212,7 +213,7 @@ describe('the options', () => {
       userId: 7,
       timezone: 'Europe/London',
       postsPerPage: '',
-      threadsPerPage: '',
+      threadsPerPage: '', invisible: false,
     })
     expect(settings.row.timezone).toBe('Europe/London')
   })
@@ -228,7 +229,7 @@ describe('the options', () => {
         userId: 7,
         timezone: 'Middle/Earth',
         postsPerPage: '',
-        threadsPerPage: '',
+        threadsPerPage: '', invisible: false,
       }),
     ).rejects.toThrow('not a timezone')
   })
@@ -239,7 +240,7 @@ describe('the options', () => {
         userId: 7,
         timezone: '+01:00',
         postsPerPage: '',
-        threadsPerPage: '',
+        threadsPerPage: '', invisible: false,
       }),
     ).rejects.toThrow('not a timezone')
   })
@@ -249,7 +250,7 @@ describe('the options', () => {
       userId: 7,
       timezone: 'UTC',
       postsPerPage: '',
-      threadsPerPage: '  ',
+      threadsPerPage: '  ', invisible: false,
     })
 
     /* Null, not the board's current number — which would freeze this member at
@@ -265,7 +266,7 @@ describe('the options', () => {
           userId: 7,
           timezone: 'UTC',
           postsPerPage: value,
-          threadsPerPage: '',
+          threadsPerPage: '', invisible: false,
         }),
       ).rejects.toThrow(/Posts per page/)
     }

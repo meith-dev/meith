@@ -7,6 +7,9 @@ import { getActor } from "@/server/context"
 import { getViewerPreferences } from "@/server/viewer-preferences"
 import { activeTheme } from "@/server/theme"
 import { buildBoardIndexView } from "@/view/board-index"
+import { presenceRepository, readOnline } from "@/server/presence"
+import { readTotals } from "@/server/stats"
+import { buildBoardStatsModel, buildWhoIsOnlineModel } from "@/view/presence"
 
 export const metadata: Metadata = { title: "Forums" }
 
@@ -49,6 +52,20 @@ export default async function BoardIndexPage() {
     getViewerPreferences(),
   ])
 
+  /*
+   * F75. Both panels, and both are allowed to be absent: `readOnline` and
+   * `readTotals` answer null on a board with no store and swallow their own
+   * failures, because the index must render when statistics do not. Rendering
+   * nothing beats rendering a zero — "0 members online" on a page somebody is
+   * reading is visibly false.
+   */
+  const now = new Date()
+  const [online, totals, record] = await Promise.all([
+    readOnline(actor, now),
+    readTotals(),
+    presenceRepository()?.readRecord() ?? Promise.resolve({ count: 0, at: null }),
+  ])
+
   const view = buildBoardIndexView({
     rows,
     visibleForumIds: new Set(visible),
@@ -59,13 +76,15 @@ export default async function BoardIndexPage() {
      * page straddle midnight and render "Today" above "Yesterday" for posts a
      * second apart.
      */
-    now: new Date(),
+    now,
     timeZone: preferences.timezone,
   })
 
   const BoardIndex = requireSlot(activeTheme, "BoardIndex")
   const CategoryBlock = requireSlot(activeTheme, "CategoryBlock")
   const ForumRow = requireSlot(activeTheme, "ForumRow")
+  const BoardStats = requireSlot(activeTheme, "BoardStats")
+  const WhoIsOnline = requireSlot(activeTheme, "WhoIsOnline")
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
@@ -79,9 +98,25 @@ export default async function BoardIndexPage() {
               ))}
             </CategoryBlock>
           )),
-          /* F75 supplies both. Rendering nothing beats rendering a zero. */
-          stats: null,
-          online: null,
+          stats:
+            totals === null ? null : (
+              <BoardStats
+                {...buildBoardStatsModel({ ...totals, now, timeZone: preferences.timezone })}
+              />
+            ),
+          online:
+            online === null ? null : (
+              <WhoIsOnline
+                {...buildWhoIsOnlineModel({
+                  members: online.members,
+                  guestCount: online.guestCount,
+                  recordCount: record.count,
+                  recordAt: record.at,
+                  now,
+                  timeZone: preferences.timezone,
+                })}
+              />
+            ),
         }}
       />
     </main>

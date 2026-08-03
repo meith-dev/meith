@@ -24,6 +24,7 @@ import type {
 import type { Database } from './client'
 import { applyCreatedContentCounters } from './content-counters'
 import { resultRows } from './result-rows'
+import { searchVectorSql } from './search-repo'
 
 export class PostgresThreadWriteRepository
   implements ThreadWriteRepository, ReplyWriteRepository
@@ -87,11 +88,13 @@ export class PostgresThreadWriteRepository
         await tx.execute(sql`
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
-             message_html, render_version, visibility, is_first_post, created_at)
+             message_html, render_version, visibility, is_first_post, created_at,
+             search_vector)
           values
             (${threadId}, ${record.forumId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
-             ${body.version}, ${record.visibility}, true, ${record.createdAt})
+             ${body.version}, ${record.visibility}, true, ${record.createdAt},
+             ${searchVectorSql(sql`${null}`, sql`${record.message}`)})
           returning id
         `),
       ) as Array<{ id: number }>
@@ -213,11 +216,13 @@ export class PostgresThreadWriteRepository
         await tx.execute(sql`
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
-             message_html, render_version, visibility, is_first_post, created_at)
+             message_html, render_version, visibility, is_first_post, created_at,
+             search_vector)
           values
             (${record.threadId}, ${record.forumId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
-             ${body.version}, ${record.visibility}, false, ${record.createdAt})
+             ${body.version}, ${record.visibility}, false, ${record.createdAt},
+             ${searchVectorSql(sql`${null}`, sql`${record.message}`)})
           returning id
         `),
       ) as Array<{ id: number }>

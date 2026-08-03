@@ -1117,3 +1117,173 @@ reversible; a crop at upload time is not.
 
 **Cost:** a wide image renders wide, so a theme laying out a fixed square has to
 say `object-fit: cover` rather than assuming. The default theme does.
+
+## "New posts" lists threads, and its window is a day rather than your last visit
+
+**MyBB:** `search.php?action=getnew` runs a search for posts made since
+`lastvisit` and shows the *threads* those posts are in, ordered by last post. A
+member's `lastvisit` is stamped by the session handling on each new visit.
+
+**Here:** `/discover/new` lists threads whose last post landed in the last 24
+hours. `/discover/today` uses midnight in the member's own timezone (F57).
+Both are thread listings ordered by last post, permission-filtered in SQL and
+keyset-paged.
+
+**Why:** a genuine "since your last visit" needs the per-thread read state F32
+keeps, and folding it into this query means either a join per row or a second
+query per page — against a feature specified as *budgeted*, with a test that
+holds it to one query on two board sizes. MyBB pays that cost as a full search
+run per page view, which is why the screen is one of the heaviest on a large
+board and why several hosts disable it.
+
+**Cost:** a member who has been away a week sees a day, not a week. The label
+says so, and `/discover/participated` and the subscription list (F56) are the
+two screens that do not have a window at all. When F32's read state and this
+query can be joined without a per-row cost, the window becomes a fallback for
+guests rather than the rule.
+
+## A busy thread is one row, not forty
+
+**MyBB:** the "new posts" and "today's posts" screens are searches over
+*posts*, so a thread with forty new replies contributes forty hits — collapsed
+into one thread row by the results template, but counted, paged and ranked as
+forty.
+
+**Here:** every discovery view returns one row per thread, and the `limit` is a
+limit on threads.
+
+**Why:** "what is new" is a question about conversations. Paging over posts
+means a page of twenty hits can be three threads, the page count is a number
+about something the member cannot see, and one busy thread buries the rest of
+the board.
+
+**Cost:** the row says *when* the last post was and *who* wrote it, but not how
+many of the replies are new to this reader — that is the same read-state
+dependency the window above names.
+
+## Invisible browsing hides you from the count as well as the list
+
+**MyBB:** `users.invisible` removes a member from the online list. The board's
+"N users online" figure is computed from the same session table and the
+administrator-visible list shows invisible members marked.
+
+**Here:** the same setting, and it removes the member from the **count** too,
+for everybody who cannot see them. Staff — anybody with `modcp.access` — see
+them listed and marked.
+
+**Why:** a member removed from the list but left in the total can be found by
+subtraction. "Eleven online, ten listed" names an invisible member as surely as
+printing their name would, and it does it on a page that refreshes. Hiding
+somebody halfway is worse than not offering the setting, because the member
+believes they are hidden.
+
+**Cost:** the visible total is a different number for staff and for everybody
+else, which looks like a bug until you know why. The "most ever online" record
+counts everybody, invisible included, because it is a fact about the board's
+traffic rather than about who anybody may see — so the record can exceed any
+total a member has ever been shown.
+
+## An online list says where somebody is only when the reader may know
+
+**MyBB:** the online list shows each user's location as a description derived
+from the script they are on ("Viewing Thread X"), and the thread and forum
+titles are resolved without reference to the reader. Private forums leak by
+title through this screen on stock MyBB, which is why several plugins exist to
+suppress it.
+
+**Here:** the location is resolved **in the query, against the reader's own
+permissions**. A forum they cannot see arrives at the page as null and renders
+"Somewhere on the board" — there is no title in the data for a theme, a feed or
+a debug dump to print. A thread needs its forum to be nameable *and* the thread
+itself to be in the reader's content scope, so a moderator reading a
+soft-deleted thread does not put its title on the front page.
+
+**Why:** the alternative is to fetch titles and let the page decide, which puts
+the decision in every theme anybody writes, and one of them will get it wrong.
+
+**Cost:** the online list cannot be cached across readers — it is one query per
+reader, which is why it is one query. The location is stored without a query
+string, so "reading page 4" is not distinguishable from "reading page 1", and a
+member browsing the admin panel shows as somewhere on the board rather than in
+the panel.
+
+## Board totals are a rollup with a timestamp, not a live count
+
+**MyBB:** `datacache` holds the board statistics and they are updated on the
+write path — every new post, thread and member updates the cached figures.
+
+**Here:** a scheduled task recomputes them every five minutes and the panel says
+when it last ran. `computed_at` is null before the first run and the panel says
+"not counted yet" rather than showing zeroes.
+
+**Why:** the member count is a count of `users`, and the board index is the
+most-requested page there is. Updating on the write path is the other way to
+avoid that scan, and it makes every post pay for a number nobody reads on the
+posting screen — plus a cache that drifts from the truth with no way to notice.
+The thread and post totals are summed from the root forums, where F38's counters
+have already accumulated the tree, so those two are nearly free; the member
+count is what sets the shape.
+
+**Cost:** the numbers on the index can be five minutes old. They say so. And a
+brand-new board shows "not counted yet" until the first tick, which is a truer
+statement than three zeroes.
+
+## A feed shows what a signed-out visitor sees, whoever fetches it
+
+**MyBB:** `syndication.php` resolves the requesting user from their cookie and
+filters the feed against that member's forum permissions, so a signed-in
+member's feed carries their private forums.
+
+**Here:** every feed is built from the **guest** scope, regardless of who asks.
+
+**Why:** a feed URL is handed to software, not read in the browser that holds
+the cookie. Aggregators, corporate proxies and CDNs cache one response per URL
+and serve it to everybody who asks for that URL next — so a personalised feed
+under a shared address is a private forum served to a stranger, in somebody
+else's cache, with nothing about the request that caused it visible from here.
+MyBB's version is only safe because most readers never send the cookie at all,
+which means the personalisation mostly does not happen.
+
+**Cost:** a member cannot follow a private forum by RSS. That is a real
+capability lost, and the honest replacement is F56's subscriptions, which
+deliver to a member rather than to a URL. A per-member feed token would restore
+it — a capability URL, cached safely because it is unguessable — and it is a
+feature with its own decisions to make, not a flag on this one.
+
+## Every page of a thread is its own canonical URL
+
+**MyBB:** emits no canonical link. Duplicate URLs for one page — `showthread.php`
+with and without a `pid`, with and without `page=1` — are left for the crawler
+to work out.
+
+**Here:** every thread and forum page carries `rel="canonical"` naming **the
+page being read**, with the permalink, cursor and reveal parameters dropped.
+
+**Why:** the tempting version points every page at page 1, and it is worse than
+having none: it asks a crawler to drop every page but the first from its index,
+which is why so many forums are searchable only for their opening posts. What a
+canonical is actually for here is collapsing `?post=812`, `?after=…` and
+`?reveal=…` — three ways to reach one document.
+
+**Cost:** a permalink to post 812 is canonicalised to the page containing it, so
+a search result lands on the page rather than the post. The anchor still works
+for anybody who follows the original link.
+
+## The sitemap is an index of chunks, ordered by id
+
+**MyBB:** ships no sitemap. Plugins that add one generally emit a single
+document.
+
+**Here:** `/sitemap.xml` is always an index. Chunks are 5,000 URLs, keyset-paged
+on the thread id ascending.
+
+**Why:** one document does not survive the target data volume, and switching
+shapes later means every crawler that cached the old one has to rediscover the
+new — so it is an index from the first thread. The ordering is by id rather than
+by activity because a crawler works through the chunks over hours or days, and a
+boundary that moved whenever somebody posted would make the crawl skip threads
+and revisit others.
+
+**Cost:** a chunk request costs one skip into the primary-key index to find its
+own starting id — the only OFFSET in this codebase — because the index names the
+chunks by number before any of them exists. It is paid by crawlers, not readers.

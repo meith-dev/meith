@@ -26,10 +26,97 @@ import {
 import { attachmentsByPost } from '@/view/attachments'
 import { attachmentsForPosts } from '@/server/attachments'
 import { avatarsFor } from '@/server/avatars'
+import { activeWordFilter } from '@/server/content-admin'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
+import { cardDescription, jsonLdScript, pageLinks, threadJsonLd } from '@/view/metadata'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 
-export const metadata: Metadata = { title: 'Thread' }
+/**
+ * F76 — the thread's own metadata, resolved in the viewer's scope.
+ *
+ * Next calls this alongside the page, and it repeats the page's locate →
+ * authorise → read sequence rather than sharing state with it. That is not
+ * duplication to remove: a metadata function that trusted the page to have
+ * checked first would emit a private thread's title into an Open Graph card on
+ * any request where the two got out of step, and the reads are cached per
+ * request anyway.
+ *
+ * The **canonical points at the page being read**, not at page 1 — see
+ * `view/metadata.ts`. What it drops is the surplus: `?post=`, `?after=` and
+ * `?reveal=` are three URLs for one document, and only the page number
+ * survives.
+ */
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ page?: string }>
+}): Promise<Metadata> {
+  const [{ slug }, query] = await Promise.all([params, searchParams])
+  const id = threadId(slug)
+  if (id === null) return { title: 'Thread' }
+
+  const actor = await getActor()
+  const { forums, threads, authorizer } = getContainer()
+
+  const forumId = await threads.locateForum(id)
+  if (forumId === null) return { title: 'Thread' }
+
+  const forum = await forums.findById(forumId)
+  if (!forum || forum.type !== 'forum') return { title: 'Thread' }
+
+  const matrix = await authorizer.forumMatrix(actor, forum.id)
+  if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) {
+    /*
+     * The same title an unknown thread gets. A metadata function that said
+     * "Private thread" would answer, in the page title of a 404, a question the
+     * 404 exists to refuse.
+     */
+    return { title: 'Thread' }
+  }
+
+  const thread = await threads.findById(
+    id,
+    authorizer.contentScope(actor, { forumId: forum.id, forum: matrix }),
+  )
+  if (!thread) return { title: 'Thread' }
+
+  const page = Number(query.page ?? '1')
+  const links = pageLinks({
+    path: `/thread/${thread.id}-${thread.slug}`,
+    page: Number.isSafeInteger(page) && page > 0 ? page : 1,
+    hasNext: false,
+  })
+
+  /*
+   * The forum, not the opening post. This function runs beside the page rather
+   * than inside it, and reading the first post here would be a second post
+   * query on every thread view to fill a description only a link unfurler
+   * sees. The page itself has the posts already and puts the real text into
+   * the JSON-LD, which is where a crawler reads it.
+   */
+  const description = `A discussion in ${forum.title}.`
+
+  return {
+    title: thread.title,
+    description,
+    alternates: {
+      canonical: links.canonical,
+      types: {
+        'application/rss+xml': `/thread/${thread.id}-${thread.slug}/feed.xml`,
+      },
+    },
+    openGraph: {
+      type: 'article',
+      title: thread.title,
+      description,
+      url: links.canonical,
+      siteName: forum.title,
+    },
+    twitter: { card: 'summary', title: thread.title, description },
+  }
+}
 
 /** What each tool says when it worked. Unknown values fall through to null. */
 const TOOL_NOTICE: Readonly<Record<string, string>> = {
@@ -309,6 +396,11 @@ export default async function ThreadPage({
 
   const view = buildThreadView({
     thread,
+    /*
+     * F71. Compiled once for the page rather than per post, and `undefined` on
+     * a board with no filters — which is most of them, and they pay nothing.
+     */
+    wordFilter: await activeWordFilter(),
     capabilities,
     replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
     forum,
@@ -370,8 +462,47 @@ export default async function ThreadPage({
             ? 'Nothing changed — that post was already in this state.'
             : inlineOutcomeNotice(query)
 
+  /*
+   * F76. JSON-LD, from rows this page has already read **inside the viewer's
+   * scope** — which is what makes the leak impossible rather than unlikely:
+   * there is no private post in scope here for it to describe.
+   *
+   * Serialised by `jsonLdScript`, not `JSON.stringify`. The difference is not
+   * cosmetic: `stringify` does not escape the forward slash, so a thread titled
+   * `</script>` would end this block and turn the rest of the document into
+   * markup. A test found that; see `view/metadata.ts`.
+   */
+  const opening = postPage.rows.find((row) => row.isFirstPost) ?? null
+  const jsonLd =
+    opening === null
+      ? /*
+         * Only where the opening post is on the page — which is page one. The
+         * structured record describes the *thread*, and page four has neither
+         * its opening text nor its creation date without a second read. A
+         * crawler reading page four already has the record from page one, and
+         * the canonical here still points at page four because that is the
+         * document it is looking at.
+         */
+        null
+      : threadJsonLd({
+          title: thread.title,
+          url: `/thread/${thread.id}-${thread.slug}`,
+          author: thread.authorUsername,
+          published: opening.createdAt,
+          modified: thread.lastPostAt,
+          replyCount: thread.replyCount,
+          forumTitle: forum.title,
+          description: cardDescription(opening.message, `A discussion in ${forum.title}.`),
+        })
+
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
+      {jsonLd !== null && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
+        />
+      )}
       {notice !== null && (
         <div className="px-6 pt-6">
           <Notice

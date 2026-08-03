@@ -158,6 +158,16 @@ export default tseslint.config(
       sourceType: 'commonjs',
       globals: globals.node,
     },
+    rules: {
+      /*
+       * `require()` is the only import a CommonJS file has. The rule exists to
+       * keep the *application* on ES modules, and these files are neither
+       * bundled nor imported by it — they are read by a CLI that demands
+       * CommonJS. Disabling it here rather than per line, because every
+       * `require` in a `.cjs` file is correct by definition.
+       */
+      '@typescript-eslint/no-require-imports': 'off',
+    },
   },
 
   {

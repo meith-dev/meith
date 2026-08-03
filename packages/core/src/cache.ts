@@ -19,6 +19,11 @@ export const CacheTags = {
   /** Global content collections rendered into posts. */
   smilies: () => "smilies",
   prefixes: () => "prefixes",
+  /**
+   * F71's word filters. Read on the render path, so a stale set is visible on
+   * every thread page until it is cleared.
+   */
+  wordFilters: () => "word-filters",
   /** Board-wide statistics shown on the index. */
   boardStats: () => "board-stats",
   /** One forum's metadata and counters. */

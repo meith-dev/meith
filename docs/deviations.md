@@ -4770,3 +4770,878 @@ teaches the next person that the check is an obstacle — so there is now a fift
 list, `MERGE_NOT_A_REFERENCE`, holding one entry and an argument. Because the
 test also asserts the lists are disjoint, a column parked there is a decision on
 the record rather than an omission.
+
+### D74 — There is no "switch theme" button, and the editor validates with the renderer's own code (F68)
+
+The theme manager, and the two things about it that are decisions rather than
+implementation.
+
+#### Selecting a theme is a redeploy, and the screen says so
+
+The roadmap line begins "theme selection", and the honest answer is that this
+panel cannot do it. `forum.config.ts` is the build-time registry (invariant 6):
+a serverless bundle contains only what the bundler saw, nothing is discovered by
+scanning a directory at request time, and `activeTheme` is a module-level
+constant because a theme's `extends` chain cannot change between requests.
+
+A control that appeared to switch themes would therefore either not work, or
+would buy the illusion by making every render wait on a database read that first
+paint currently does not need. So the listing marks the theme in use and spends
+a paragraph on what installing actually involves — `pnpm add`, a line in
+`forum.config.ts`, redeploy — in the same words F69 will use about plugins. A
+panel that admits a limit is worth more than one that hides it behind a control
+that does nothing.
+
+What *is* runtime is everything `theme-runtime.ts` reads per request: the token
+overrides and the custom CSS. That is the editor, and it is the whole of what a
+board can restyle without a deploy.
+
+#### The editor validates with the functions that paint
+
+`validateTokenOverrides` and `validateCustomCss` are F26's, and they run on
+**every page render** against the stored row. The editor calls the same two
+before writing.
+
+That is not tidiness. A second validator would drift, and the direction it would
+drift in is the dangerous one: a value the editor accepts and the renderer
+rejects is a board that goes blank on the next request — from an
+administrator's own save, with the panel reporting success. Running the
+renderer's own code is what makes "saved" mean "will render".
+
+It follows that the submitted fields are read from the *form* rather than from
+the theme's declared token list. Walking the declared names would silently drop
+a field naming a token the theme does not have, which is the one case where the
+editor and the renderer would disagree about the same input — and disagreeing
+quietly is worse than either answer. F26 refuses it with a message; the screen
+shows the message.
+
+A blank field is "use the theme's value", not an empty override. Most fields are
+blank on any real board, and storing them would write `--primary:;` into the
+cascade: a token that overrides the theme with nothing.
+
+#### The preview is a post-back, and it is scoped
+
+No island. The form has two submits — save, and preview — which is what a
+browser does with two buttons and needs no JavaScript at all (D06). The preview
+action runs the *same* validation and the *same* declaration rendering a save
+would, so it shows what a save would paint rather than an approximation of it,
+and a value the renderer would reject fails in the preview too.
+
+The style block it produces is scoped to `[data-theme-preview]` rather than
+`:root`. An operator previewing an unreadable colour combination must still be
+able to read the form that changes it back — a preview that could break the
+panel around it is a trap, and the mutant that emits `:root` is one of the
+fourteen this feature kills.
+
+The sample is real board chrome — a forum row, three buttons, body text and a
+link — rather than colour swatches, because the question being answered is "is
+this readable", and a row of squares cannot answer it.
+
+#### A reset deletes the row, and is deliberately not re-authenticated
+
+"No overrides" and "no row" are indistinguishable to every reader, and deleting
+is the one that leaves the board in the state a fresh install is in — which is
+what an operator pressing reset means, and what keeps "has this board been
+customised?" answerable.
+
+Reset is also the only destructive-looking operation in this panel that does
+*not* ask for a password again, and that is on purpose: **reset is the undo.**
+Everything it can destroy is recoverable by pasting back an export, and putting
+a password prompt in front of the recovery path is how somebody ends up staring
+at a board they have broken and cannot fix. The destructive direction here is
+`save`, and that one is always undoable by resetting.
+
+#### Export is exact, and import ignores the key in the file
+
+The export carries no timestamp and no board identity — only the overrides —
+because `updated_at` is when *this* board saved, and carrying it across would
+make an import claim a history it does not have. A `version` field is there so a
+document from a later shape is refused rather than silently mis-read: an import
+is a file somebody has been emailed.
+
+The key inside the document is **ignored** in favour of the theme being edited.
+Copying a look from one board to another is the case import exists for, and
+refusing a document whose key differs would make the feature useless for exactly
+that. Both checks are needed and they check different things: the envelope
+(`parseThemeExport`) and the values (F26's validator, because a file that
+arrived by email is exactly as untrusted as a hand-edited row).
+
+#### `themes` gets its first writer, and two columns are named rather than used
+
+The fifth reader-with-no-writer this project has found. `themes` has been read
+on every page render since F26 and could only be changed with SQL.
+
+Two of its columns stay unread, deliberately:
+
+- **`layout_options`.** There is nothing to put in it. The default theme
+  expresses layout through Tailwind classes, which are compile-time, and through
+  CSS custom properties, which *are* tokens — so anything an operator can change
+  at runtime is already the token editor. A free-text JSON blob that no theme
+  declares and no component reads would be the stub D32 refuses. Making it real
+  means a theme-side declaration of the options it has, which belongs with the
+  second theme (F78) — the first one with a layout choice to declare.
+- **`branding`.** F55's mail branding reads the board name from settings and the
+  accent from `token_overrides`; there is no third thing it wants. A logo upload
+  is the obvious candidate and is F42's attachment pipeline plus a decision about
+  where it renders, which is a feature rather than a column.
+
+### D75 — F69 is blocked by F79, and the roadmap has them in the wrong order
+
+The plugin manager's line asks for six things: enable/disable, migrations,
+settings, ACP pages, hook health, and honest install instructions. **Five of
+them describe the plugin lifecycle**, which is F79's — and none of it exists.
+`InstalledPlugin` is `{ key, enabled? }` and deliberately opaque; there is no
+hook registry, no plugin migration runner, no plugin settings namespace, and no
+way for a plugin to contribute a page.
+
+So the dependency in the roadmap is wrong. F69 is listed as depending on F63,
+and it genuinely depends on F79 — two phases later. That is a roadmap error
+rather than an implementation shortfall, and it is recorded here rather than
+worked around.
+
+What F69 delivers is the half that is true today: the inventory, the install
+story (`pnpm add`, a line in `forum.config.ts`, redeploy — the same three steps
+a theme takes, for the same bundler reason), and a precise statement of what
+each missing control is waiting on. Building the other five would mean a
+migrations screen for plugins with no migrations, a settings editor for plugins
+with no settings, and a hook-health dashboard for a hook system that does not
+exist. Four stubs, which is what D32 refuses and what F68 argued against one
+feature earlier.
+
+One thing in it is a real trap worth the test it has: **`enabled` is optional
+and absent means enabled.** A plugin somebody added to the config is one they
+want; reading `undefined` as "off" would make every plugin registered without
+the flag silently inert, and the symptom — installs cleanly, does nothing — is
+one nobody would think to look for in an accessor.
+
+### D76 — Staleness is measured per task, and a stopped scheduler is its own alarm (F70)
+
+System health, and the two judgements that make it worth having.
+
+#### Every catch-up operation is invisible when it stops
+
+Bans expire, digests send, counters reconcile, orphaned uploads are swept and
+queued mail is delivered — all on the tick. When the tick stops, **none of that
+fails**. It simply does not happen, and the board looks completely normal until
+somebody notices that a member banned for a week is still banned a month later.
+There is no error anywhere to find. That is why this screen exists and why its
+warning is loud.
+
+#### One threshold cannot judge two cadences
+
+Staleness is measured against **each task's own interval**. A five-minute task
+that last ran an hour ago is broken; a daily task that last ran an hour ago is
+fine, and a single global threshold says the wrong thing about one of them.
+
+The threshold is three intervals rather than one, because serverless cron
+legitimately drifts — a deploy, a cold start or a platform hiccup skips a tick,
+and F06 wrote every task to catch up precisely so that a single miss is a
+non-event. Warning on the first miss trains an operator to ignore the warning,
+which is worse than not having one.
+
+Four other states are distinguished for the same reason: `disabled` is a
+decision and must never read as a fault, `failing` is a task that *is* running
+and losing (different problem, different fix), and `never-run` is "it has not
+started" rather than "it stopped".
+
+#### A stopped scheduler is not the same as a stale task
+
+The screen raises a separate, louder alarm when **every enabled task** is
+overdue, because that is a tick that is not firing at all — one cause, breaking
+bans and digests and counters together — rather than a bug in one task. An
+empty registry is explicitly not that alarm: a board with no tasks registered
+has a different problem and must not be told this one. (`every` on an empty
+array is vacuously true, which is exactly the mutant that test kills.)
+
+The verdict is a pure function in `@forum/tasks`, not in the repository, so the
+screen, the CLI and any future alerting reach the same answer from the same
+code.
+
+#### The maintenance actions are bounded, and deliberately not re-authenticated
+
+Bounded because this panel runs inside a request: a sweep that ran to completion
+over a large table would be killed by the platform's execution limit somewhere
+in the middle, leaving an operator with no idea how far it got. Each reports its
+count, because "removed 0" and "removed 4,812" are different answers to the same
+press.
+
+Not re-authenticated because there is nothing here to destroy: expired sessions
+no longer authenticate anybody, expired tokens can no longer be used, and a
+cleared cache is a copy of data that still exists. A password prompt on
+operations that do not need one is what makes the prompt meaningless on the
+operations that do.
+
+Two smaller choices: clearing a cache is **tag-scoped**, never a blanket flush
+(on a busy board that is a stampede, and the reason somebody reaches for it is
+almost always one stale thing they can name); and dead-lettered jobs are retried
+**one at a time by id**, because a job dead-letters after exhausting its
+attempts, so the reason is usually still true — retrying the lot puts the same
+failures straight back and buries the one that was actually fixed.
+
+### D77 — The word filter is applied at render, which is what makes it reversible (F71)
+
+Content administration. The word filter is the whole of the interesting part.
+
+#### Filtering on save destroys the original; filtering on render does not
+
+MyBB and most boards rewrite the stored text when a post is saved. Three things
+follow, and all three are bad: turning a filter off does not bring the word
+back, a badly chosen pattern cannot be undone across three years of posts, and a
+filter added today never touches anything written yesterday.
+
+Applying at render costs a pass over the rendered HTML and buys all three back.
+A filter becomes a **view** of the board — changeable and removable with no
+consequence at all — which is also why `delete` here is a real delete rather
+than a soft one, and why the delete is not re-authenticated. There is nothing to
+lose.
+
+#### Only text is substituted, never markup
+
+This runs on rendered HTML, so a naive `replace` rewrites the inside of
+`<a href="…">` and `<img src="…">` — a filtered word inside a URL becomes a
+broken link, silently, with nothing about the post looking wrong. The scanner
+walks tag by tag and substitutes only in the spans between them.
+
+That is sound *because the input is the renderer's own output*: `@forum/bbcode`
+emits a fixed sanitised tag set and escapes `<` in text to `&lt;`, so a bare
+angle bracket in a post cannot desynchronise the scan. An unterminated tag —
+which cannot arise from that renderer — is copied through rather than filtered,
+because leaving it alone is the failure that does not also corrupt it.
+
+#### A pattern is literal text, never a pattern language
+
+Patterns are escaped before compiling. A regular expression typed into an admin
+form runs on every post body the board renders, and a catastrophically
+backtracking one is a board that stops rendering. The feature is "replace this
+word", not "run this program on every post".
+
+**Whole-word is the default**, for the reason the Scunthorpe problem is named
+after: a substring filter on an inoffensive fragment silently mangles place
+names and surnames, and the member it happens to has no idea why their post
+looks wrong.
+
+An empty pattern is refused on the way in *and* dropped on the way out, because
+it compiles to a matcher that hits at every position — which would insert the
+replacement between every character of every post.
+
+#### The filter applies to what the board publishes, not to private mail
+
+It is wired at the thread view's render site rather than inside `postBodyHtml`,
+even though that would have been fewer lines. The same renderer serves private
+messages, and filtering private correspondence between two members is a
+different decision from filtering what the board publishes — one this feature
+does not make on a board owner's behalf.
+
+#### An equivalent mutant, named rather than hidden
+
+The first version reset `lastIndex` on each matcher before use, with a comment
+about global regexes being stateful across a render pass. No test could kill
+removing it: `String#replace` with a `/g` pattern scans from the start and
+resets `lastIndex` itself. The line was deleted and the comment rewritten to say
+what is actually true — including that anything added later using `exec` or
+`test` on those matchers *does* need one. A line that cannot be proven by a test
+is a line that will be believed for the wrong reason.
+
+#### `thread_prefixes` gets its first writer
+
+Read by the thread composer since F33, populated only by SQL until now — the
+sixth reader-with-no-writer this project has found. Deleting a prefix leaves the
+threads that used it and simply removes the label (`on delete set null`):
+refusing to delete one in use would make a mistyped prefix permanent, and
+deleting the threads would be absurd.
+
+#### What content administration does not administer
+
+- **Smilies and custom BBCode.** Both extend the *renderer's vocabulary* rather
+  than adding rows an operator edits. The renderer has a fixed, sanitised tag
+  set on purpose, and letting a panel extend it is a change to what a post can
+  contain — a decision about safety, not a CRUD screen.
+- **Attachment administration.** The lifecycle, the orphan ledger and the sweep
+  all exist; what is missing is a listing an operator can act on, which needs an
+  answer to what deleting somebody else's upload does to the post displaying it.
+- **Announcements.** There is no announcement model on this board at all. A
+  screen for editing something that does not exist is the emptiest kind of stub.
+
+### D78 — The permission filter is in the query, and the guard caught the search (F72)
+
+Postgres full-text search, and the four decisions that make it safe rather than
+merely fast.
+
+#### Filtering after the query is a leak *and* a bug
+
+The visible forum ids go into the `where` clause. Fetching a page and dropping
+what the viewer may not see would be wrong twice over: the page comes back short
+— twenty hits becoming three — and the **cursor** is computed from rows the
+viewer cannot see, so paging skips and repeats. An empty scope therefore returns
+nothing rather than everything, and the scope is a *required* argument rather
+than an optional filter, so no call shape accidentally searches the whole board.
+
+#### R3's guard caught this file on its first run
+
+The first version hand-wrote its visibility predicate — `p.visibility` compared
+to a literal, plus an own-post clause I had invented. `pnpm guards` failed the
+build: F47 allows exactly one module to compare that column, and every read path
+takes a `ContentScope` and turns it into SQL through `visibleIn`.
+
+That was the guard doing its job, and the fix was better than the code it
+replaced. `SearchScope` now carries a `ContentScope` rather than a "staff?"
+boolean, the provider decides nothing, and the own-post rule went away — it was
+an invention, and no other read path on this board has it.
+
+It then caught the *comment* explaining the fix, because the comment contained
+the pattern. That is the guard being blunt in the right direction: a string it
+cannot distinguish from code is one it should flag, and rewording a comment
+costs nothing next to the class of bug it exists for.
+
+**Both sides of the join are filtered.** A `visible` post inside a `deleted`
+thread must not surface, or search becomes the way to read threads that were
+taken down.
+
+#### Ranking is weighted, and paging breaks ties
+
+The subject is indexed at weight `A` and the body at `B`, because without
+weights a two-word subject loses to a thousand-word post that says the term once.
+
+Ranks tie constantly — identical posts score identically — so the cursor is
+`(rank, id)` and the `order by` matches it exactly. Paging on rank alone silently
+skips and repeats across any page boundary that lands inside a run of equal
+ranks, which is most of them.
+
+#### `websearch_to_tsquery`, not `to_tsquery`
+
+A search box is not a query language. People type apostrophes, brackets and
+stray ampersands without meaning anything by them, and `to_tsquery` answers
+those with a syntax error — a board whose search looks broken. `websearch_to_tsquery`
+accepts arbitrary text and understands the two conventions members actually use:
+`"quoted phrases"` and a leading `-` for exclusion.
+
+`@forum/search`'s parser therefore does **not** build a query. It normalises
+whitespace, strips control characters, and answers one question the engine
+cannot: is there anything here worth running? Length is measured on the *words*
+rather than the raw string, because `"a"` and `-a` are one-character searches
+dressed up, and running one scans the index to return everything. "Empty" and
+"too short" are different refusals, because they lead to different next actions.
+
+#### The index is maintained explicitly, not by a generated column
+
+Postgres would compute `search_vector` as `GENERATED ALWAYS AS … STORED`, and on
+an empty database that is the better design. Adding one to a table with two
+million posts rewrites the table under an exclusive lock — an outage on a live
+board. So the column is written when a post is created or edited, and existing
+rows are filled by a **resumable backfill**: the batch is "posts with no vector",
+a set that only shrinks, so an interrupted run resumes from anywhere and a
+repeated one does nothing. `searchVectorSql` is shared between the writer and
+the backfill, because a post indexed today and one reindexed tomorrow must
+produce the same document or results would depend on when a post was written.
+
+#### The provider seam is narrow on purpose
+
+Everything above `SearchProvider` speaks in queries and hits; nothing outside
+`@forum/db` knows what a `tsquery` is. Replacing Postgres search with a hosted
+index is a new implementation of one interface. Ranking internals, stemming
+configuration and index maintenance stay behind the seam, because no two
+providers would agree on them.
+
+#### A mutation-testing note
+
+Two guards overlapped: an explicit `scope.forumIds.length === 0` check and the
+`allowed.length === 0` check below it. No mutation of the first could fail a
+test, because the second already covered it. It was removed rather than kept —
+the same call F71 made about a defensive `lastIndex` reset. A guard that cannot
+be shown to matter is one the next reader will trust for the wrong reason.
+
+### D79 — A stored search holds the query, not the hits (F73)
+
+The search screens, and the decision everything else follows from.
+
+#### Freezing a result list is faster and wrong
+
+The obvious implementation of "stored result sets" is a frozen list of post
+ids: page two is then a cheap `where id in (…)`. It is wrong in two ways that
+matter and one that is merely untidy.
+
+**It goes stale.** A post deleted, moved to a private forum, or hidden by a
+moderator after the search was run would still be offered on page two.
+
+**It is a permission snapshot.** A member who loses access to a forum would go
+on seeing its hits for as long as the stored set lived — the permission model
+frozen at the instant somebody pressed a button.
+
+So the row holds the **query**, and every page re-resolves it through the
+current viewer's scope. Re-running costs one indexed query, because F72's GiN
+index is doing the work; storing the answer would trade that for a correctness
+problem.
+
+The third benefit is the one an operator notices: "search within results" stops
+being a set intersection and becomes another query. With the terms stored rather
+than a list of ids, *within* is simply *and*, which is what full-text search
+does natively and what a member means.
+
+#### The row is owned, and the reason is the terms rather than the results
+
+A stored search cannot leak results — they are re-resolved against whoever is
+asking, so another member opening the URL would see only what they are entitled
+to. What ownership protects is **what somebody searched for**, which is
+frequently more revealing than what they found.
+
+Two mechanisms, neither sufficient alone: the token is random, so searches
+cannot be enumerated; and ownership is checked, so a forwarded link does not
+work. A search that is not yours is a **404 rather than a 403**, because "this
+exists but is not yours" confirms that somebody ran it — the fact being
+protected.
+
+A guest's search belongs to their session, and **only while they are still that
+guest**. Somebody who signs in afterwards is a different subject; inheriting the
+session's searches would attach a stranger's terms to an account, and on a
+shared computer that stranger is a real person.
+
+#### The flood check is the insert
+
+`search.flood_seconds` and `flood.bypass` were specified in
+`docs/mybb-parity.md#flood-intervals` long before this feature existed — an
+interval cannot obey R4.2's numeric rule, because the most permissive value is
+the smallest non-zero one and MAX gets that exactly backwards. F73 is the first
+consumer.
+
+The check runs **inside the insert** as a `not exists`, so the check and the
+write are one statement. A read-then-write check has a window between them, and
+search flooding is precisely the traffic that arrives twenty requests at once —
+the race is the attack, not a footnote.
+
+Guests are throttled by a **hash of their session token**, never the token. They
+need an identity here for two things, paging and rate limiting, and both work on
+an opaque key — while `searches` is a table that exists to be pruned, listed and
+read by operators, so a live credential in it would make every one of those a
+credential disclosure. Throttling all guests as one bucket was the alternative,
+and it is a denial of service wearing a rate limit's clothes: one visitor
+searching locks out the rest.
+
+#### A third unprovable guard, removed
+
+The insert originally short-circuited on `floodSeconds <= 0` as well as running
+the interval check. No mutation of that clause could fail a test: subtracting
+nothing from `now()` leaves `now()`, no existing row was created after it, and
+the insert proceeds anyway. Removed — the third time this session, after F71's
+`lastIndex` reset and F72's duplicate scope check. The pattern is worth naming:
+a guard added because it *reads* as careful, covered by arithmetic that already
+says the same thing.
+
+#### The merge map caught this feature's table
+
+`searches.user_id` failed F67's schema-driven coverage test the moment the
+migration landed — the second time that guard has caught a later feature. It is
+**discarded** on merge rather than reassigned: not a credential like the rest of
+that list, but a record of what somebody typed, pruned on a schedule anyway, and
+costing the winner nothing to lose. Reassigning would hand one person's search
+terms to another account, and a merge is routinely used on a duplicate somebody
+else created.
+
+### D80 — The discovery views are one query and one shape, and the header finally has something true to say (F74)
+
+Five screens — New, Today, My threads, My posts, Unanswered — that a member
+uses more than any other page except the board index. They share a repository
+with one private `page` helper, which is the whole design decision.
+
+#### Four questions, one statement
+
+Every view differs from the others by exactly one predicate: `last_post_at >=`
+an instant, `reply_count = 0`, `author_user_id =` somebody, or an `exists` over
+their posts. Everything else — the permission filter, the content-scope filter,
+the keyset predicate, the ordering, the forum join — is identical, and five
+copies of that would be five places for it to drift. The one that drifts is
+never the one somebody is looking at.
+
+The permission filter is F72's rule and F47's `visibleIn`, and for the reason
+D78 states: filtering a fetched page returns twenty threads as three and
+computes the cursor from rows the viewer cannot see. **An empty scope returns
+nothing without a query running** — the mutant that omits the `in (…)` clause
+for an empty list shows a member with no visible forums the entire board, and
+that is the first test in the file.
+
+#### They are thread listings, not post listings
+
+"What is new" is a question about conversations. A thread with forty new
+replies is one row a member wants to see, not forty — MyBB's own search-based
+"new posts" answers it the other way and buries the rest of the board under one
+busy thread. The row carries its forum's title *and slug*, because these lists
+cross the whole board and two identically named threads in two forums are
+otherwise indistinguishable; both come off the join that was already there,
+because fetching them per row is the N+1 the budget test exists to catch.
+
+#### "New" is a day, and that is a named limit rather than an oversight
+
+"Since your last visit" is what a member reads into the label, and it is not
+what this ships. A real one needs the per-thread read state F32 keeps, which
+would mean either a join per row or a second query per page — and the budget
+this feature is specified against (`packages/testkit/src/discovery-budget.test.ts`)
+is one query, measured on two board sizes so a per-row walk cannot pass on a
+small fixture. The day window is what MyBB's "today's posts" effectively is,
+it is honest about what it shows, and the limitation is written in the code at
+the line that implements it rather than only here.
+
+#### "Today" is the viewer's today
+
+F57 gave members a timezone and this is the first feature whose *results*
+depend on one rather than its labels. A member in Auckland asking at 9am must
+not be shown the previous day because the server is in London. The boundary is
+computed by **measuring the zone's offset at that instant**, not by string
+arithmetic, so the clocks-change day is right — an hour is exactly enough to
+drop the morning's threads, and the failure looks like a quiet board rather
+than a bug. An unrecognised zone falls back to a day window: a stored
+preference is not a reason to 500 one member's page and nobody else's.
+
+#### `unanswered` trusts the board's own counter
+
+`reply_count = 0`, not a count of posts. A thread whose only reply was deleted
+is unanswered again, and `reply_count` is the answer every other screen already
+shows — F38 maintains it and its recount repairs it. Counting posts here would
+be a second opinion, and the drift would appear only after a deletion, which is
+exactly when somebody is looking.
+
+#### "Threads I posted in" is an `exists`, not a join
+
+A join returns one row per post, so a member with two hundred posts in one
+thread fills the page with one conversation — and the `limit` applies *before*
+any de-duplication, so the page is also short. The `exists` is inside the same
+statement, which is what keeps it one query; the version that fetches the
+member's post ids first is two, and the first of those grows with how much they
+have written.
+
+The subquery carries the viewer's content scope too. A member whose only post in
+a thread was removed should not find it under "threads I posted in" — the post
+they are looking for is not there.
+
+#### A refusal, not an empty list
+
+The two personal views need a signed-in member, and the page says so and offers
+the sign-in link. "No threads" and "you are not signed in" render identically
+and lead to opposite next actions. The tab strip still shows all five to a
+guest, deliberately: somebody already on the page is looking for the list, and
+being told how to reach it beats the tab not existing.
+
+#### The header's navigation was empty for fourteen features
+
+`HeaderModel.navigation` has been part of the theme contract since F27 and
+every caller passed `[]` — correctly, per `buildHeaderModel`'s own comment: a
+builder that guessed would advertise pages that 404. F74 is the first phase
+where enough of them exist *and* the first feature that needs one, because a
+discovery view nothing links to is a page only its author knows about. The
+personal entry is omitted for a guest rather than shown and refused; a
+permanent header entry that always refuses teaches people to ignore the header.
+
+Fourteen mutants killed: the empty-scope filter dropped, the keyset tie-break
+dropped, the thread visibility filter dropped, the post visibility filter
+dropped from the `exists`, the `exists` replaced by a join, `>=` narrowed to
+`>`, `reply_count` replaced by a post count, the zone offset dropped, its sign
+flipped, the view guard made prefix-matching, `mine` and `participated`
+swapped, `today` collapsed into `new`, a guest given an empty list instead of a
+refusal, and the navigation made identical for guests and members.
+
+### D81 — Presence is a session, invisibility is subtraction-proof, and statistics are a rollup (F75)
+
+Who is online, what the board is worth in numbers, and the ability to browse
+without appearing in either.
+
+#### The columns F17 built and nothing read
+
+`sessions.location_path`, `location_forum_id` and `location_thread_id` have been
+in the schema since `0000`, and `touchLocation` — a conditional UPDATE whose
+throttle *is* its `where` clause — since F17. Neither had a caller until now.
+The writer goes in the page shell beside `touchActivity` for the same reason:
+the shell is the one place every reading page passes through, so no page can
+forget.
+
+The path arrives from the proxy as a header rather than being threaded through
+every page. A Server Component cannot ask for its own URL, and a page that
+forgot to pass one would silently record the wrong location. The **path only** —
+the query string is dropped, and dropped again in `parseLocation` rather than
+trusted: a stored search's token (F73), a moderation filter and a page number
+all live there, and none of them belong in a table that an online list reads.
+
+#### Sessions, not `users.last_active_at`
+
+Both exist and they answer different questions. `last_active_at` is *when this
+account was last seen*, which is what a profile shows. A session row is *a
+visitor who is here now* — and it is the only one of the two that can count
+guests at all, or say what anybody is looking at. Guests are most of a real
+board's traffic, and a list that counted only members would report a fraction of
+it.
+
+One row per visitor, not per session: somebody on a phone and a laptop is one
+person, and `distinct on` keeps their most recent session, which is also the one
+whose location is current.
+
+#### The location is resolved against the reader, in the repository
+
+This is the privacy claim and it is easy to build backwards. The session records
+where its owner is; what a reader is *told* is decided against that reader's
+permissions — in SQL, with the forum ids and titles replaced by null when they
+are out of scope. The view builder receives nulls and renders "Viewing a forum";
+it has no title to leak because it was never given one.
+
+Putting that decision in the view instead would mean every theme that rendered
+the panel, and F76's feeds, and any future API, would each have to make the same
+choice again. One of them would get it wrong.
+
+The thread needs **both** checks: its forum must be nameable *and* the thread
+itself must be in the reader's content scope. A moderator reading a soft-deleted
+thread in a public forum must not put its title on the front page.
+
+#### Invisible means absent from the count, not just the list
+
+Hiding somebody from the list while still counting them leaves invisibility as a
+puzzle solved by subtraction — "eleven online, ten listed" names them as surely
+as printing their name. So the drop happens *before* the count is taken. Staff
+see them, marked with text rather than a colour, because moderating requires
+knowing who is present.
+
+The **record** counts everybody, invisible included. "Most ever online" is a
+fact about the board's traffic, not about who anybody may see; deriving it from
+a filtered list would make the record depend on how many members had a
+preference set. It is a separate, cheaper query for that reason.
+
+#### The record is written by its own `where`
+
+`recordIfHigher` compares in the `where` clause, so two peaks arriving together
+keep the higher — the only case where this differs from reading the record and
+writing it back, which is to say the only case worth writing code for. Equal is
+not higher: a record that moved on equality would rewrite its timestamp every
+quiet afternoon, and "most ever online: 5, an hour ago" would stop meaning
+anything.
+
+#### The totals are a rollup, and the page says when it ran
+
+`member_count` is a count of `users`, and the board index is the most-requested
+page there is. Computing it per view is a sequential scan on the front page of a
+board with two hundred thousand accounts. So a task recomputes it every five
+minutes — the same interval as `views.flush`, because the two numbers most
+visible to a member are a thread's view count and the board's post count, and
+having them drift by different amounts is worse than both being five minutes
+old.
+
+The interval is also the **resolution of the record**, which is why it is not
+slower: an hourly task would miss any peak that did not last an hour, which is
+every peak worth recording.
+
+Thread and post totals are summed from the **root forums**, where F38's ancestor
+rollup has already accumulated the whole tree. Counting `threads` and `posts`
+directly would be a second opinion that drifts from the number every forum row
+already shows — and the drift appears after a deletion, which is when somebody
+looks. Summing *every* forum instead of the roots double-counts the tree: eight
+threads reported as twelve.
+
+`computed_at` is null until the first run, and the panel says "not counted yet"
+rather than showing three convincing zeroes. Zeroes on a board with content are
+the worst of the three possible outputs, because nobody doubts them.
+
+#### `board_stats` is one row, and the database enforces it
+
+`id` is a smallint that is always 1, with a check constraint. "There is exactly
+one row of board statistics" becomes something the database holds rather than
+something every reader hopes for, and a second row inserted by a well-meaning
+script cannot silently become the one a query reads first. A key/value table was
+the alternative: it makes reading six numbers six rows and makes updating all
+six atomically impossible — which matters, because a page showing last hour's
+thread count beside this minute's post count is worse than one that is uniformly
+ten minutes old.
+
+#### Top posters is not permission-filtered, and that is deliberate
+
+A post count is on every profile and beside every post already. Filtering the
+leaderboard by which forums a reader can see would mean recomputing every
+member's count per reader — an aggregate over `posts` per page view — to hide a
+number that is public everywhere else. The two *thread* leaderboards are
+filtered, because a "most viewed threads" table that included the staff forum
+would be a leak with a ranking on it.
+
+#### `HeaderModel.navigation` and two theme slots stop being empty
+
+`BoardStats` and `WhoIsOnline` were declared in `slots.ts` at F25 with the note
+"named now; F75 supplies the data", and the board index passed `null` for both
+regions with a comment saying a "0 members online" panel is a lie with a number
+in it. Both are filled here, and both still render nothing when there is no
+store — the distinction between "no panel" and "zero" is kept, not collapsed.
+
+#### Two duplicates removed rather than kept
+
+Mutation verification found two places where the same fact was stored twice.
+`locationOf` checked `forumId !== null && forumTitle !== null` when the
+repository gates both on one predicate and the title column is NOT NULL, so no
+mutation of the first half could fail a test. And the view model carried the
+repository's `total` when it is exactly `members.length + guestCount` by
+construction. Both were reduced to one source. This is the same finding as F71's
+`lastIndex` reset and F73's `floodSeconds` guard, in a new shape: not a guard
+that reads as careful, but a *number carried twice* — and a second copy that no
+test can distinguish is a second copy that will diverge silently.
+
+Twenty-two mutants killed across the four modules: invisible members counted
+after being filtered, the forum title returned regardless of scope, the thread
+named on the forum check alone, an empty forum list read as "no filter", one row
+per session instead of per member, a record that moves on equality, revoked
+sessions counted as present, the record derived from the visible list, the tree
+double-counted, inactive accounts counted as members, a pending registration
+announced as the newest member, the thread leaderboards' permission filter
+dropped, the two orderings collapsed, `computed_at` never stamped, the location
+falling back to a path, the thread branch removed, the invisible marker dropped,
+the query string kept, the route pattern loosened at both ends, the record given
+the member count instead of the online count, and the two writes given separate
+clocks.
+
+### D82 — Everything syndicated is rendered as a guest, and the canonical points at the page you are on (F76)
+
+Feeds, a sitemap, `robots.txt`, canonical URLs and social metadata. Five
+surfaces, one rule, and one bug this feature's own tests found.
+
+#### The rule: a syndicated surface is rendered as a guest, always
+
+Not "as whoever asked". Every URL in this feature is fetched by something that
+**caches one response and hands it to everybody**: aggregators, crawlers, link
+unfurlers, corporate proxies, the CDN in front of the board. A feed built for a
+signed-in member and cached under a shared URL is a private forum served to
+whoever asks next — and the leak happens in somebody else's cache, where nothing
+about the request that caused it is visible.
+
+So `publicScope()` builds its scope from `actorSource.buildGuest()`, explicitly,
+even when a member's cookie is on the request. The cost is real and small: a
+feed shows what a signed-out visitor would see. The alternative is a response
+that must never be cached, which is not a feed.
+
+That decision is also what makes the caching headers safe to write down. A
+response marked `public, max-age=300` and a body containing nothing
+viewer-specific are the same claim stated twice; getting them consistent is the
+whole safety argument.
+
+#### F47's guard finally has a feed to fire on
+
+The F47 row has said since Phase 4 that feeds and search were the two read paths
+its guard had nothing to check. Search arrived with F72 — and the guard caught
+it on the first run. Feeds arrive here, and the leak suite is written as the
+guard's counterpart: seed a private forum *and* a hidden thread in a public
+forum, then assert the private title, slug and body appear nowhere in the
+output. Not "the ids are absent" — a leak through a feed is a leak of text.
+
+The second half of that pair is the one a forum-id filter alone misses, and it
+is why the suite has two fixtures rather than one: a thread awaiting moderation
+sits in a forum a guest may read, and every content check has to be asked
+separately from the forum check.
+
+#### A thread feed checks the thread, not just its posts
+
+`recentPosts` filters on the thread's visibility *and* the post's. A feed URL is
+a bare id, so answering it because the posts are visible would publish a thread
+that is not — at an address anybody can guess. The mutant that drops the thread
+check survived the first version of the leak suite, which had only a private
+*forum* to test against; closing it needed a hidden thread with a visible post
+in it.
+
+#### A private forum's feed is a 404, and so is a nonexistent one
+
+The same answer, deliberately. Distinguishing them turns the route into an
+oracle for which forum ids are private, answered without a cookie, cheaply, in a
+loop. An empty feed was the other option and is worse: a reader subscribed to a
+feed that quietly starts returning zero entries shows nothing for as long as the
+condition lasts, while a 404 appears in the reader's own error list.
+
+#### The canonical points at the page you are on
+
+Not at page 1. A thread's page 4 is a distinct document with distinct content,
+and a canonical naming page 1 asks a crawler to drop three quarters of the
+thread — the single most common way a forum ends up with only its first pages
+searchable. What the canonical *does* collapse is the surplus: `?post=812`,
+`?after=…` and `?reveal=…` are three URLs for one document, and only the page
+number survives.
+
+Page 1 is the bare path rather than `?page=1`. Both work; one of them is what
+every link on the board already points at, and a canonical that disagrees with
+the site's own links is one the crawler has to arbitrate.
+
+#### `JSON.stringify` is not enough for JSON-LD, and a test found it
+
+The first version of the thread page's structured data used
+`JSON.stringify(record)` inside a `<script type="application/ld+json">`, with a
+comment saying that was safe because `stringify` escapes what needs escaping.
+**It does not escape the forward slash.** A thread titled
+`</script><script>alert(1)</script>` serialises to exactly that text, the HTML
+parser ends the block at the first `</script`, and the rest of the title becomes
+markup in the document. The JSON is well formed the whole time; the injection is
+in the layer underneath it.
+
+The test asserting "no `</script>` in the output" failed on the first run, which
+is the only reason this is a paragraph in a decisions file rather than a
+vulnerability. The fix is `jsonLdScript`, which escapes `<`, `>` and `&` as JSON
+`\uXXXX` escapes — valid JSON with the same value — plus U+2028 and U+2029,
+which are legal inside a JSON string and are literal line terminators to a
+JavaScript parser. It is a function rather than a note in a comment because a
+note is something the next page to add JSON-LD has to remember.
+
+#### The sitemap is an index from the first thread
+
+Even on a small board. At the target volume a single document is hundreds of
+thousands of URLs, and switching shapes later means every crawler that cached
+the old one has to rediscover the new. Chunks are keyset-paged **on the id,
+ascending** — not by activity, because a crawler works through them over hours
+and a boundary that moved whenever somebody posted would make the crawl skip
+threads and revisit others.
+
+`sitemapBoundaryId` is the one OFFSET in this codebase, and it earns it: the
+index names the chunks by number before any chunk exists, so a chunk has to find
+its own start from that number alone. It returns a single id, and it answers
+**null rather than zero** past the end — zero means "start at the beginning", so
+collapsing the two would serve the first chunk's threads at
+`/sitemap/threads-99.xml`: the same content under a second URL, published to
+crawlers by the document whose whole job is telling them what to crawl.
+
+#### `robots.txt` is not a security boundary and is not treated as one
+
+It disallows the *computed* views — search, discovery, the online list, the
+statistics page — because each is a per-request computation over content that is
+already indexed at its own URL, and `/discover/new` is a different page every
+hour, which is the definition of something a crawler never settles on.
+
+No content path is listed. A `Disallow: /forum/9-secret` would be a map of the
+board's private forums served to the whole internet. Every private route named
+in that file is one anybody can already find from the header, and every one is
+refused server-side regardless.
+
+An offline board (F08's `board.offline`) refuses everything, and the sitemap
+404s with it. A crawler does not know a maintenance page from a board — it will
+index it, and the board's search results become its downtime notice for as long
+as the recrawl takes.
+
+#### The dependency guard was half-blind, and this feature is what showed it
+
+`no-orphans` fired on the two new view modules. They are not orphans: they are
+imported by route handlers under `app/`. The cause is that dependency-cruiser
+reads path aliases from `tsconfig.base.json`, which holds the `@forum/<name>`
+workspace aliases and deliberately **not** `@/*` — that one belongs to the app
+alone, and putting it in the base config would let any package resolve `@/…`
+into the app.
+
+The consequence was never a loud failure. Every `@/…` edge from `app/` was
+invisible, so any module under `src/` imported *only* by a page or a route
+handler looked like dead code, and every rule matching a path silently never
+fired on those edges. That is the same failure mode the config's own `tsConfig`
+note describes from the other direction: a guard reporting a clean run because
+it cannot see the graph. F76's two modules are the first in this repo imported
+from `app/` and nowhere else, which is why it took this long to surface.
+
+Fixed by giving the tool the alias through a `webpackConfig` — its schema does
+not accept `enhancedResolveOptions.alias` — and the file repeats the extension
+list, because supplying a webpack config *replaces* the resolver defaults rather
+than adding to them; without that the module count drops by a fifth. Verified
+with a probe: a domain package importing `@forum/db` still errors.
+
+Adding the two files to the orphan exemption list would have made the warning go
+away and left the blindness in place. That is the fourth time this session a
+check has been the thing to fix rather than the thing to satisfy.
+
+Seventeen mutants killed: the forum feed's scope replaced by the requested id,
+the thread scope dropped from the board feed, the thread scope dropped from a
+thread's post feed, the opening-post join made inner, the join keyed on the
+thread so one conversation fills the feed, the sitemap boundary's scope dropped,
+the sitemap chunk ordered by activity, the boundary's null collapsed to zero,
+XML escaping reordered so output is double-escaped, control-character stripping
+removed, Atom given RSS's date format, the summary always broken on the last
+space, `lastmod` defaulted to now, the sitemap index rendered as a sitemap, the
+canonical pinned to page 1, `prev` pinned to page 1, and the JSON-LD escape
+removed.

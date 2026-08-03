@@ -38,6 +38,7 @@ export {
 export type {
   BoardIndexModel,
   BoardStatsModel,
+  OnlineMemberModel,
   CategoryBlockModel,
   EditorToolbarModel,
   ErrorNoticeModel,

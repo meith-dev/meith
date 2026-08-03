@@ -72,6 +72,21 @@ export interface TaskWorkerDeps {
   readonly attachments?: AttachmentService
   /** F58's sweep. Optional for the same reason. */
   readonly avatars?: AvatarService
+  /**
+   * F75's rollup and online record.
+   *
+   * Two ports rather than one because they are two subjects — statistics and
+   * presence — that happen to be refreshed on the same tick. Optional as a set,
+   * for the reason above: a build without them registers no task rather than
+   * one that reports a healthy run of nothing.
+   */
+  readonly statistics?: {
+    readonly stats: { rollUp(now: Date): Promise<{ memberCount: number }> }
+    readonly presence: {
+      concurrentCount(now: Date): Promise<number>
+      recordIfHigher(count: number, now: Date): Promise<boolean>
+    }
+  }
 }
 
 /**
@@ -233,6 +248,32 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       : {
           async sweepAvatars(batchSize: number) {
             return deps.avatars!.sweep(batchSize)
+          },
+        }),
+
+    ...(deps.statistics === undefined
+      ? {}
+      : {
+          /**
+           * F75. The rollup and the record, in that order and on one clock.
+           *
+           * One `now` for both, so the record's timestamp and the totals'
+           * `computed_at` cannot disagree about when this tick happened — a
+           * detail that matters only when somebody is reading the run log to
+           * explain a number, which is the only time anybody reads it.
+           *
+           * The record is sampled rather than maintained: the count is taken
+           * here and offered to `recordIfHigher`, whose `where` does the
+           * comparison. Nothing on the request path pays for it, and the cost
+           * of that choice is stated in the task's own description — a peak
+           * shorter than the interval is not recorded.
+           */
+          async rollUpStatistics() {
+            const now = new Date()
+            const { memberCount } = await deps.statistics!.stats.rollUp(now)
+            const online = await deps.statistics!.presence.concurrentCount(now)
+            const record = await deps.statistics!.presence.recordIfHigher(online, now)
+            return { memberCount, online, record }
           },
         }),
   }

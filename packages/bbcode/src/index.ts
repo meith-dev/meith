@@ -22,5 +22,11 @@ export { tokenise, type BBToken, type TokeniseOptions } from './tokenise'
 export { textOf, type BBDocument, type BBNode } from './ast'
 export { escapeHtml, escapeAttribute } from './escape'
 export { safeUrl, safeImageUrl, type UrlPolicy } from './url'
+export {
+  applyWordFilter,
+  compileWordFilter,
+  type CompiledWordFilter,
+  type WordFilterRule,
+} from './word-filter'
 export { RAW_TAGS, TAGS, type RenderContext, type TagSpec } from './tags'
 export { DEFAULT_LIMITS, type BBCodeLimits } from './limits'

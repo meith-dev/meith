@@ -48,6 +48,11 @@ export interface TaskWorkers {
   sweepAttachments(batchSize: number): Promise<{ deleted: number; failed: number }>
   /** Fails avatar uploads whose re-encode never finished. Returns the count. */
   sweepAvatars(batchSize: number): Promise<number>
+  /**
+   * Recomputes the board's totals and raises the online record if the current
+   * count has beaten it. Returns both, for the run log.
+   */
+  rollUpStatistics(): Promise<{ memberCount: number; online: number; record: boolean }>
 }
 
 function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
@@ -311,6 +316,39 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
         return { detail: { failed } }
       },
     },
+
+    {
+      id: 'stats.rollup',
+      title: 'Roll up board statistics',
+      description:
+        'Recomputes the board totals shown on the index and raises the ' +
+        '"most ever online" record when the current count has beaten it. The ' +
+        'totals are computed here rather than per page view because the member ' +
+        'count is a count of `users`, and the index is the most-requested page ' +
+        'on the board. The page shows when this last ran, so a number ten ' +
+        'minutes old is honest rather than wrong. Writes a computed truth, not ' +
+        'a delta, so a skipped tick costs freshness and a doubled one costs ' +
+        'nothing.',
+      /*
+       * Five minutes, matching `views.flush`: the two numbers most visible to a
+       * member are a thread's view count and the board's post count, and having
+       * them drift by different amounts is more confusing than either being
+       * five minutes old.
+       *
+       * The record is the reason this is not slower. It samples the concurrent
+       * count, so the interval is the resolution of "most ever online" — an
+       * hourly task would miss any peak that did not last an hour, which is
+       * every peak worth recording.
+       */
+      intervalSeconds: 300,
+      maxDurationSeconds: 30,
+      async run() {
+        const { memberCount, online, record } = await workers.rollUpStatistics()
+        /* `record` is a boolean and the run log holds strings and numbers; 1
+           and 0 read fine in a detail column and sort. */
+        return { detail: { memberCount, online, record: record ? 1 : 0 } }
+      },
+    },
   ]
 }
 
@@ -334,6 +372,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'subscriptions.digest': 'sendDigests',
   'attachments.sweep': 'sweepAttachments',
   'avatars.sweep': 'sweepAvatars',
+  'stats.rollup': 'rollUpStatistics',
 }
 
 /**

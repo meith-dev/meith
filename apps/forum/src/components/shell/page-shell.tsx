@@ -5,12 +5,14 @@ import { LogoutForm } from '@/components/account/logout-form'
 import { getContainer } from '@/server/container'
 import { unreadMessageCount } from '@/server/messages'
 import { touchActivity } from '@/server/relations'
+import { touchCurrentLocation } from '@/server/presence'
 import { unreadNotificationCount } from '@/server/notifications'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
 import { avatarsFor } from '@/server/avatars'
 import { activeTheme } from '@/server/theme'
 import {
+  buildBoardNavigation,
   buildFooterModel,
   buildHeaderModel,
   buildUserPanelModel,
@@ -90,7 +92,7 @@ export async function PageShell({
     canAccessModCp: actor.global.canAccessModCp === true,
     avatarUrl: ownAvatar,
   })
-  const header = buildHeaderModel(viewer, [], boardTitle)
+  const header = buildHeaderModel(viewer, buildBoardNavigation(viewer), boardTitle)
 
   /*
    * F55's badge. One count per page render for a signed-in member — the reason
@@ -114,6 +116,17 @@ export async function PageShell({
    * page view, and it never throws.
    */
   await touchActivity(actor.userId)
+
+  /*
+   * F75. `sessions.location_*` has been in the schema since `0000` and
+   * `touchLocation` since F17, with no caller; this is it. Beside
+   * `touchActivity` for the same reason — the shell is the one place every
+   * reading page passes through — and throttled the same way, in the `where`
+   * clause, so it is not a write per page view. Guests included: they are most
+   * of an online list, and a board that counted only members would report a
+   * fraction of its own traffic.
+   */
+  await touchCurrentLocation()
 
   /*
    * F57. The zone the footer names, and the one every timestamp on the page was

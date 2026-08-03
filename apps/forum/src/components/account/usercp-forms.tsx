@@ -100,6 +100,7 @@ export function OptionsForm({
   threadsPerPage,
   boardPostsPerPage,
   boardThreadsPerPage,
+  invisible,
 }: {
   timezone: string
   timezones: readonly string[]
@@ -107,6 +108,7 @@ export function OptionsForm({
   threadsPerPage: string
   boardPostsPerPage: number
   boardThreadsPerPage: number
+  invisible: boolean
 }) {
   const [state, action] = useActionState(saveOptionsAction, EMPTY_STATE)
 
@@ -155,6 +157,29 @@ export function OptionsForm({
         Leave a page size empty to follow the board’s setting, so it keeps up
         when an administrator changes it.
       </p>
+
+      {/*
+        F75. The wording is the honest version: this hides you from the online
+        list *and* from its count, so nobody can find you by subtracting. It
+        does not hide your posts, and moderators still see you — a board where
+        staff cannot tell who is present is one they cannot moderate.
+      */}
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="invisible"
+          defaultChecked={invisible}
+          className="mt-1"
+        />
+        <span className="flex flex-col gap-1">
+          <span className="font-medium">Browse invisibly</span>
+          <span className="text-xs text-muted-foreground">
+            You will not appear in the online list, and you will not be counted
+            in it either. Your posts are unaffected, and moderators can still
+            see that you are here.
+          </span>
+        </span>
+      </label>
 
       <div>
         <button type="submit" className={BUTTON}>

@@ -24,6 +24,8 @@ import {
   PostgresRenderBackfill,
   PostgresAttachmentRepository,
   PostgresAvatarRepository,
+  PostgresPresenceRepository,
+  PostgresStatsRepository,
   PostgresTaskRepository,
   PostgresThreadViewBuffer,
   PostgresWarningRepository,
@@ -180,6 +182,15 @@ export function buildSchedulerBundle(deps: {
         }),
         recount: new PostgresCounterRecount(db),
         renderBackfill: new PostgresRenderBackfill(db),
+        /*
+         * F75. Not optional the way the file store and the mailer are: both
+         * tables are in the schema every deployment migrates, so there is no
+         * build where this task would be a healthy run of nothing.
+         */
+        statistics: {
+          stats: new PostgresStatsRepository(db),
+          presence: new PostgresPresenceRepository(db),
+        },
         threadViews,
         warnings: new PostgresWarningRepository(db),
         /*

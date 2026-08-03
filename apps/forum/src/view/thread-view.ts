@@ -1,5 +1,5 @@
 /** F31's pure thread-view model, with F41's edit and delete affordances. */
-import { postBodyHtml } from '@forum/bbcode'
+import { applyWordFilter, postBodyHtml, type CompiledWordFilter } from '@forum/bbcode'
 import { suppress } from '@forum/relations'
 import type { ForumRow } from '@forum/forums'
 import type {
@@ -93,6 +93,11 @@ interface PostContext {
   /** Where a reveal link points, given the post to reveal. */
   readonly revealHref: (postId: number) => string
   /**
+   * F71's compiled word filter, or undefined on a board with none configured —
+   * which is the common case and costs nothing.
+   */
+  readonly wordFilter: CompiledWordFilter | undefined
+  /**
    * F42, resolved for the whole page in one query and grouped by post.
    *
    * Only downloadable attachments are in here — a `pending` re-encode and a
@@ -180,7 +185,19 @@ function post(
      * than the current one, and never fails to be shown because a task has not
      * caught up.
      */
-    bodyHtml: hidden ? '' : postBodyHtml(post),
+    /*
+     * F71's word filter runs here, on the rendered markup, and never on what is
+     * stored — so removing a filter restores the word on the next render. It is
+     * applied at this one site rather than inside `postBodyHtml` because the
+     * same renderer serves private messages, and filtering private
+     * correspondence between two members is a different decision from filtering
+     * what the board publishes. See D75.
+     */
+    bodyHtml: hidden
+      ? ''
+      : context.wordFilter === undefined
+        ? postBodyHtml(post)
+        : applyWordFilter(postBodyHtml(post), context.wordFilter),
     postedAt: formatTime(post.createdAt, now, timeZone),
     /*
      * Shown to everyone who can see the post, reason included. An edit notice
@@ -283,6 +300,11 @@ export interface ThreadViewInput {
   /** F61. The posts this viewer has asked to see anyway, from `?reveal=`. */
   readonly revealedPostIds?: ReadonlySet<number>
   /**
+   * F71's compiled word filter. Absent on a board with no filters configured,
+   * which is the common case and costs nothing.
+   */
+  readonly wordFilter?: CompiledWordFilter | undefined
+  /**
    * The page's own URL, so a reveal link can point back at it.
    *
    * Supplied by the page rather than assembled here, because the thread URL
@@ -352,6 +374,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         ignoredIds: input.ignoredIds ?? EMPTY_IDS,
         revealedPostIds: input.revealedPostIds ?? EMPTY_IDS,
         revealHref: (postId) => revealHref(input.currentHref ?? '', postId),
+        wordFilter: input.wordFilter,
       }),
     ),
     pagination: {

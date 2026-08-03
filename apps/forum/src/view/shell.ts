@@ -101,6 +101,38 @@ export function buildHeaderModel(
 }
 
 /**
+ * The board's own navigation — the header's second row.
+ *
+ * `HeaderModel.navigation` has been part of the theme contract since F27 and
+ * every caller has passed `[]`, for the reason `buildHeaderModel` states: a
+ * builder that guessed would advertise pages that 404. F74 is the first phase
+ * where enough of them exist to fill it, and it is the feature that needs it —
+ * a discovery view nothing links to is a page only its author knows about.
+ *
+ * **Only routes that exist, and only routes this viewer can use.** The two
+ * personal views are omitted for a guest rather than shown and refused: a
+ * refusal is the right answer to a link somebody followed, and the wrong thing
+ * to put in a permanent header. (The tab strip on the page itself does show
+ * all five — somebody already on that page is looking for the list, and being
+ * told to sign in beats the tab not existing.)
+ */
+export function buildBoardNavigation(viewer: ViewerModel): readonly LinkModel[] {
+  return [
+    { label: 'Forums', href: '/' },
+    /* F74. The default view; the rest are tabs once a member is there. */
+    { label: 'New posts', href: '/discover/new' },
+    { label: 'Unanswered', href: '/discover/unanswered' },
+    ...(viewer.isGuest ? [] : [{ label: 'My posts', href: '/discover/participated' }]),
+    /* F73. In the header rather than only on its own page, because search is
+       something a member reaches for from wherever they happen to be. */
+    { label: 'Search', href: '/search' },
+    /* F75. Both are linked from the index panels too; they are here because a
+       member two forums deep should not have to go home to reach them. */
+    { label: "Who's online", href: '/online' },
+  ]
+}
+
+/**
  * The user panel's links.
  *
  * **Only routes that exist.** A guest gets sign-in and register, which are built

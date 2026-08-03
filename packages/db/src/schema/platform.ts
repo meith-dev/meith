@@ -11,6 +11,7 @@
 import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -382,3 +383,94 @@ export const massMails = pgTable('mass_mails', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
 })
+
+/**
+ * Stored searches (F73).
+ *
+ * A search is a row so that paging, sorting and "search within results" refer
+ * to something the board already knows rather than to a query string carrying
+ * every filter. It holds the **query**, not a frozen list of hits — see
+ * `search-store.ts` for why that distinction is the whole design.
+ *
+ * `created_at` is also the flood-control clock: the newest row for a member is
+ * when they last searched, so no second table is needed to rate-limit them.
+ */
+export const searches = pgTable(
+  'searches',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    /** Unguessable, because it appears in a URL a member can bookmark. */
+    token: text('token').notNull(),
+    /** Null for a guest, whose searches are stored against their session. */
+    userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    /**
+     * A *hash* of the guest's session token, never the token itself.
+     *
+     * Guests need this for two things — paging their own results, and being
+     * rate-limited individually rather than as one shared bucket — and both
+     * work on an opaque key. Storing the token would put a live credential in a
+     * table that exists to be pruned and read by operators.
+     */
+    sessionKey: text('session_key'),
+    terms: text('terms').notNull(),
+    /** The rest of the query — authors, forums, dates, sort — as submitted. */
+    filters: jsonb('filters').notNull().default({}),
+    /** What the search found when it was run, for the "N results" line. */
+    hitCount: integer('hit_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('searches_token_key').on(t.token),
+    /* The flood check and the "my recent searches" list both read this. */
+    index('searches_user_recent_idx').on(t.userId, t.createdAt),
+    index('searches_session_recent_idx').on(t.sessionKey, t.createdAt),
+  ],
+)
+
+/**
+ * The board's statistics, and the online record (F75).
+ *
+ * **One row, enforced by the primary key.** `id` is a `smallint` that is always
+ * 1 and a check constraint says so, which turns "there is exactly one row of
+ * board statistics" into something the database holds rather than something
+ * every reader hopes for. The alternative — a key/value table — makes reading
+ * six numbers six rows and makes an atomic update of all six impossible.
+ *
+ * The totals are a **rollup**, recomputed by a task rather than incremented on
+ * every post. F38's counters already do the incremental work per forum and per
+ * user; summing them on demand is a scan of the forum table, which is tens of
+ * rows, but `member_count` is a count of `users` and that one is not free on a
+ * board with two hundred thousand accounts. So the numbers here are as fresh as
+ * the last run and the page says when that was — a number that is ten minutes
+ * old and honest beats one that is exact and costs a full scan per page view.
+ *
+ * `most_online_*` is different in kind: it is a **record**, not a rollup, and it
+ * is written the moment it is beaten by a conditional UPDATE whose `where` is
+ * the comparison. A read-then-write would lose the higher of two simultaneous
+ * peaks, which is the only interesting case.
+ */
+export const boardStats = pgTable(
+  'board_stats',
+  {
+    /** Always 1. The check constraint below is what makes that true. */
+    id: smallint('id').primaryKey().default(1),
+
+    threadCount: integer('thread_count').notNull().default(0),
+    postCount: integer('post_count').notNull().default(0),
+    memberCount: integer('member_count').notNull().default(0),
+
+    /** The most recently registered active account, for the index panel. */
+    newestUserId: integer('newest_user_id'),
+    newestUsername: text('newest_username'),
+
+    /** The peak concurrent visitor count, and when it happened. */
+    mostOnlineCount: integer('most_online_count').notNull().default(0),
+    mostOnlineAt: timestamp('most_online_at', { withTimezone: true }),
+
+    /** When the rollup last ran. The page shows it rather than implying "now". */
+    computedAt: timestamp('computed_at', { withTimezone: true }),
+
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check('board_stats_singleton', sql`${t.id} = 1`)],
+)

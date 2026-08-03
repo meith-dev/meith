@@ -26,12 +26,27 @@ import {
   REMEMBER_COOKIE,
   SESSION_COOKIE,
 } from './src/server/cookies'
+import { PATH_HEADER } from './src/server/location-header'
 
 /** Route prefixes that require a logged-in user. Everything else is public. */
 const PROTECTED_PREFIXES = ['/settings', '/messages', '/modcp', '/admincp']
 
 /** Where the remember-me cookie is exchanged for a session (Node runtime). */
 const RESUME_PATH = '/auth/resume'
+
+/**
+ * Pass the pathname on to the page (F75).
+ *
+ * The **path only** — no query string. A stored search's token, a moderation
+ * filter and a page number are all in there, and none of them belong in a table
+ * that an online list reads. It is a string copy, so it costs the proxy nothing
+ * and keeps its promise to do no work.
+ */
+function withPath(req: NextRequest): NextResponse {
+  const headers = new Headers(req.headers)
+  headers.set(PATH_HEADER, req.nextUrl.pathname)
+  return NextResponse.next({ request: { headers } })
+}
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
@@ -46,7 +61,7 @@ export function proxy(req: NextRequest): NextResponse {
 
   // A live session cookie: nothing to do, let it through. (Validity is checked
   // server-side; presence is all the proxy judges.)
-  if (hasSession) return NextResponse.next()
+  if (hasSession) return withPath(req)
 
   // No session but a remember-me cookie: hand off to the resume endpoint, which
   // rotates the token and sets a session cookie, then returns the user here.
@@ -67,7 +82,7 @@ export function proxy(req: NextRequest): NextResponse {
     return NextResponse.redirect(url)
   }
 
-  return NextResponse.next()
+  return withPath(req)
 }
 
 export const config = {

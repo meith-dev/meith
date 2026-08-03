@@ -71,6 +71,13 @@ export const MERGE_REASSIGN: readonly ReassignColumn[] = [
   { table: 'settings', column: 'updated_by_user_id' },
   { table: 'threads', column: 'author_user_id' },
   { table: 'mass_mails', column: 'created_by_user_id' },
+  /*
+   * F75's rollup output. The next run recomputes it, so reassigning changes
+   * nothing five minutes later — but the five minutes matter: it is the board's
+   * front page, and it would spend them announcing an account that no longer
+   * exists.
+   */
+  { table: 'board_stats', column: 'newest_user_id' },
   { table: 'user_group_memberships', column: 'granted_by_user_id' },
   { table: 'warnings', column: 'issued_by_user_id' },
   { table: 'warnings', column: 'revoked_by_user_id' },
@@ -104,6 +111,15 @@ export const MERGE_DEDUPE: readonly DedupeColumn[] = [
 
 export const MERGE_DISCARD: readonly DiscardColumn[] = [
   { table: 'admin_sessions', column: 'user_id' },
+  /*
+   * F73's stored searches. Not a credential like the rest of this list, but
+   * discarded for a related reason: a stored search is a record of *what
+   * somebody typed*, it is pruned on a schedule anyway, and the winner loses
+   * nothing by searching again. Reassigning would hand one person's search
+   * terms to another account — and a merge is routinely used on a duplicate
+   * somebody else created.
+   */
+  { table: 'searches', column: 'user_id' },
   { table: 'credential_tokens', column: 'user_id' },
   { table: 'remember_tokens', column: 'user_id' },
   { table: 'sessions', column: 'user_id' },
@@ -147,6 +163,7 @@ export interface RenameColumn {
 }
 
 export const MERGE_RENAME: readonly RenameColumn[] = [
+  { table: 'board_stats', column: 'newest_username', idColumn: 'newest_user_id' },
   { table: 'forums', column: 'last_post_username', idColumn: 'last_post_user_id' },
   { table: 'posts', column: 'author_username', idColumn: 'author_user_id' },
   { table: 'private_messages', column: 'author_username', idColumn: 'author_user_id' },

@@ -209,6 +209,20 @@ export const users = pgTable(
     /** Null = the board setting. Override-only, like `settings` itself. */
     postsPerPage: smallint('posts_per_page'),
     threadsPerPage: smallint('threads_per_page'),
+    /**
+     * F75 — browse without appearing in the online list.
+     *
+     * Beside the other F57 preferences and for the same reason: it is read on
+     * every render of the online panel for every listed member, and a join for
+     * a row that always exists is a join on every page that shows the list.
+     *
+     * It hides the member from the list *and from the count*, for everyone but
+     * staff. Hiding them from the list alone would make invisibility a puzzle
+     * anybody can solve by subtraction — "eleven online, ten listed" names an
+     * invisible member as surely as printing their name.
+     */
+    invisible: boolean('invisible').notNull().default(false),
+
     /** The public profile a member writes about themselves. */
     location: text('location'),
     website: text('website'),

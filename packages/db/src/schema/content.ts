@@ -614,3 +614,27 @@ export const attachmentOrphans = pgTable(
   },
   (t) => [index('attachment_orphans_age_idx').on(t.createdAt)],
 )
+
+/**
+ * Word filters (F71).
+ *
+ * Applied when a post is *rendered*, never when it is saved — so the stored
+ * text is untouched and a filter is reversible: turning one off restores the
+ * word everywhere on the next render, a bad pattern can be corrected with no
+ * lasting damage, and a filter added today applies to everything ever written.
+ * Boards that rewrite on save have none of that, because the original is gone.
+ *
+ * The set is small by design and read on the render path, so it is cached and
+ * compiled once per render rather than per post.
+ */
+export const wordFilters = pgTable('word_filters', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  /** Matched case-insensitively, and always as literal text. */
+  pattern: text('pattern').notNull(),
+  /** What readers see instead. May be empty, which removes the word. */
+  replacement: text('replacement').notNull().default(''),
+  /** Whole-word by default: see the Scunthorpe problem. */
+  wholeWord: boolean('whole_word').notNull().default(true),
+  enabled: boolean('enabled').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})

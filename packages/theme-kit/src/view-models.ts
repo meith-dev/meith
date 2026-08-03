@@ -445,13 +445,41 @@ export interface BoardStatsModel {
   readonly postCount: number
   readonly memberCount: number
   readonly newestMember: UserRefModel | null
+  /**
+   * When the totals were last rolled up, or null before the first run (F75).
+   *
+   * Part of the contract rather than a detail the app hides, because a theme
+   * that shows the numbers should be able to say how old they are — and
+   * "computed ten minutes ago" is the difference between a number that is
+   * stale and one that is wrong.
+   */
+  readonly computedAt: TimeModel | null
+}
+
+/**
+ * One visitor in the online list (F75).
+ *
+ * `location` is **already resolved against the reader**: a forum they may not
+ * see arrives as the bare label, never as a title with a link. The theme
+ * renders what it is given and cannot leak what it was not.
+ */
+export interface OnlineMemberModel extends UserRefModel {
+  /** Where they are, as this reader may be told. Never null — see `label`. */
+  readonly location: { readonly label: string; readonly href: string | null }
+  /** True only for staff, who see hidden members marked rather than absent. */
+  readonly isInvisible: boolean
+  readonly lastSeen: TimeModel
 }
 
 export interface WhoIsOnlineModel {
   readonly guestCount: number
-  readonly members: readonly UserRefModel[]
+  readonly members: readonly OnlineMemberModel[]
+  /** Members plus guests, as this reader is permitted to count them (F75). */
+  readonly total: number
   readonly recordCount: number
   readonly recordAt: TimeModel | null
+  /** The full list, for a theme that shows only a summary here. */
+  readonly fullListHref: string
 }
 
 export interface ForumDisplayModel {
