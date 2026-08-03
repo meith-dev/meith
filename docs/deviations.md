@@ -5645,3 +5645,118 @@ removed, Atom given RSS's date format, the summary always broken on the last
 space, `lastmod` defaulted to now, the sitemap index rendered as a sitemap, the
 canonical pinned to page 1, `prev` pinned to page 1, and the JSON-LD escape
 removed.
+
+### D83 — A freeze is machinery, not a paragraph; a slot nothing renders is not a contract (F77)
+
+theme-kit v1. Four things fell out of freezing it, and two of them were bugs the
+freeze found rather than decisions it made.
+
+#### `SearchForm` was documented, exported, typed — and rendered by nothing
+
+The slot has existed since F25. F73 built the search page and wrote its own form
+inline, so for four features the registry advertised a region no theme could
+fill and no page would have used if it had. That is worse than an absent slot,
+because it reads as available: somebody writing a theme implements it, and the
+board renders the page's own markup instead, silently.
+
+Freezing it in that state was not an option — a props contract that has never
+been handed to a component is a guess with a version number on it — and neither
+was quietly removing it, because search *is* a themeable region. So the markup
+moved into `themes/default/src/slots/search-form.tsx` and the page builds the
+model.
+
+Wiring it is what found the model wrong. `SearchFormModel.forums` was
+`readonly LinkModel[]`, and a forum filter is a `<select>`: an option is a value
+and a label, not an href. A theme handed links would have had to invent the
+submitted value, most likely by parsing it back out of the URL. It is now
+`OptionModel[]`, with `isSelected` per option so the theme writes no comparison,
+and the query-parameter names travel in `fields` — a `name="q"` typed into a
+theme is the app's URL contract hardcoded into markup the app does not own, the
+same rule `LinkModel` exists to enforce, broken from the other end.
+
+**The general point:** the freeze is only worth something for slots that are
+actually rendered. Every stable slot in v1 has a page rendering it and a theme
+filling it. The two that do not — `QuickReply` and `EditorToolbar`, F45's editor
+islands — are marked `provisional` and explicitly excluded, rather than frozen
+optimistically and broken later.
+
+#### The profile page ignored three fields it was handed
+
+`MemberProfileModel` has carried `fields`, `signatureHtml` and `actions` since
+F25. F59 fills the custom fields, F58 the signature, the page the actions — and
+the default theme's `MemberProfile` destructured none of them. A board could
+define a "Location" field, watch members fill it in, and show it only in the
+postbit.
+
+Nothing was broken. No test failed, no page 500'd, no reviewer would see it in a
+diff: a component that ignores a prop looks exactly like one that does not
+receive it. It took the rendering-contract suite — which asks every theme to
+render the values its fixture says a reader is owed — to make the absence
+visible. That is the strongest argument for the suite, and it is the reason its
+`requires` lists are hand-written decisions about what a theme owes rather than
+a generated "every field must appear": the generated version would have caught
+this too, and would also have made every legitimate design choice a failure.
+
+#### Stability is a record, not a boolean, and the exhaustive map is the mechanism
+
+`SLOT_STABILITY` is `Record<SlotName, Stability>`. Adding a slot without
+classifying it is a type error naming the slot — so a new slot cannot arrive
+quietly as "stable", which is what any default would have allowed. The same
+trick as `SlotModels`, in a different dimension.
+
+`DEPRECATIONS` is empty at v1, correctly: this is the first frozen version, so
+there is no earlier promise to withdraw. The machinery around it is not empty,
+and it is tested against fixtures rather than against the shipped list — a
+policy engine whose only input is `[]` has never run (D10). Five refusals, each
+with a mutant: an unknown slot, a `Model.field` that is not one, a removal
+scheduled for a minor, a removal in the same major it was deprecated in, and a
+schedule that disagrees with the stability mark in either direction.
+
+The load-bearing one is the fifth check: **a removal that has fallen due fails
+the build**. Reaching the major named in `removeIn` with the thing still present
+throws. Without it, "will be removed in the next major" is a sentence that
+accumulates rather than a schedule — which is the normal fate of a deprecation
+notice, and the reason to prefer machinery over a paragraph.
+
+#### The generated reference is a gate, and that is the feature
+
+`docs/theme-slots.md` is written by `scripts/theme-api-docs.mjs` from the three
+files that *are* the contract, and `pnpm theme:docs:check` fails when they
+disagree. Hand-written API documentation is wrong within about two features, and
+wrong in the worst direction: it describes fields that no longer exist, so
+somebody writes a theme against it and finds out at render time.
+
+The consequence is deliberate. **You cannot change the theme contract without
+the documentation change appearing in the same diff** — which is exactly the
+moment a reviewer should be asked whether the change is allowed at all. The
+generator refuses to guess in the same way `slot-kinds.mjs` does: an interface
+member it cannot parse fails the run naming the line, and a parse that finds
+implausibly few slots or models refuses to write anything, because a document
+that looks complete and is missing the field somebody needed is the failure
+being prevented.
+
+#### An unprovable clause, removed rather than kept
+
+The rendering-contract suite asserts a server slot emits no script. The first
+version also matched `\son[a-z]+=` for inline handlers. React strips event
+handlers from static markup entirely, so an `onClick` added to a server slot
+never appears in the rendered string and **no mutation could kill the clause**;
+it was also redundant, since a handler that does anything needs a client
+component, which `slot-kinds.mjs` already refuses. Deleted, with the reasoning
+left at the line. That is the fifth feature in a row to remove a guard it could
+not prove — F71, F73, F75, F76 and now this one.
+
+The `<script` half is provable and stayed: adding a `<script>` element to the
+footer fails the suite, as does an `href=""`.
+
+#### Two smaller things
+
+**Themes had nowhere to put a test.** `themes/**` was not in vitest's include
+list, so the only coverage of the default theme lived in `apps/forum` and a
+theme could assert nothing about itself. Added, and `themes/default` now holds
+its own contract test.
+
+**The theme list in the rendering suite comes from `forum.config.ts`**, not from
+a constant in the test. Registering a theme is therefore also enrolling it in
+the suite — the only version of "CI covers the second theme" that cannot be
+forgotten when the second theme arrives.

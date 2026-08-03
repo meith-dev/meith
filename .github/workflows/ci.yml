@@ -60,6 +60,13 @@ jobs:
       - name: Slot server/client boundary — probe
         run: pnpm slots:probe
 
+      # F77: docs/theme-slots.md is generated from the theme contract. Failing
+      # here means the contract changed and its published reference did not —
+      # which is how a theme author ends up writing against a field that was
+      # removed two releases ago.
+      - name: Theme API reference is current
+        run: pnpm theme:docs:check
+
       - name: Lint
         run: pnpm lint
 

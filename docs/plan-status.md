@@ -53,9 +53,9 @@ couple of `PARTIAL` rows are an afternoon.
 | 5 — Members and social | 8 | 8 | 0 | 0 |
 | 6 — Admin CP | 9 | 7 | 2 | 0 |
 | 7 — Search and discovery | 5 | 2 | 0 | 3 |
-| 8 — Public APIs | 5 | 0 | 0 | 5 |
+| 8 — Public APIs | 5 | 1 | 0 | 4 |
 | 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **59** | **5** | **25** |
+| **Total** | **89** | **60** | **5** | **24** |
 
 ---
 
@@ -222,12 +222,12 @@ No `tsvector` column, `search_sessions` table, or `packages/search` contents.
 
 ## Phase 8 — Public APIs
 
-`packages/theme-kit` is the active F25 foundation, but its public contract is
-not frozen; `packages/plugin-kit` does not exist.
+`packages/theme-kit` is frozen as v1.0 (F77) with a generated, CI-gated
+reference; `packages/plugin-kit` does not exist.
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
-| F77 | theme-kit v1 freeze | `TODO` | Slots exist; generated public docs and deprecation policy do not. |
+| F77 | theme-kit v1 freeze | `DONE` | The contract frozen as v1.0, a generated reference that is a CI gate, an enforced deprecation policy, and a rendering-contract suite over every registered theme. **A slot nothing renders is not a contract.** `SearchForm` had been in the registry since F25, exported and typed, while F73's page rendered its own form inline — four features of advertising a region no theme could fill. Wiring it into the theme is what found the model wrong: `forums` was `LinkModel[]` and a filter is a `<select>`, so a theme would have had to invent the submitted value by parsing it out of an href. It is `OptionModel[]` now, with the query-parameter names travelling in `fields`, because a `name="q"` typed into a theme is the app's URL contract hardcoded into markup the app does not own. **Stability is an exhaustive record, which is the mechanism rather than the annotation**: `Record<SlotName, Stability>` means adding a slot without classifying it is a type error naming it, so a new slot cannot arrive quietly as "stable". 23 slots are stable; the two excluded are F45's editor islands, which no page renders — freezing props that have never been handed to a component is a guess with a version number on it. **`DEPRECATIONS` is empty and its machinery is not**, tested against fixtures because a policy engine whose only input is `[]` has never run (D10); the load-bearing rule is that a removal which has fallen due **fails the build**, which is what turns "will be removed in the next major" from a sentence that accumulates into a schedule. **The generated reference is a gate**: `docs/theme-slots.md` is written from the three source files that are the contract and `pnpm theme:docs:check` fails when they disagree, so a contract change cannot be reviewed without its documentation in the same diff. The generator refuses to guess — an unparseable interface member fails the run naming the line. **The rendering suite found a real hole**: the default theme's `MemberProfile` ignored `fields`, `signatureHtml` and `actions`, all three of which have had producers since F58/F59, so a board could define a custom field, watch members fill it in, and show it only in the postbit. Nothing was broken and nothing failed — a component that ignores a prop looks exactly like one that does not receive it. Its theme list comes from `forum.config.ts`, so registering a theme enrols it. One unprovable clause deleted (an inline-handler check React makes unreachable — the fifth feature running to remove a guard it could not prove). 52 tests, sixteen mutants killed. See **D83** and [`theme-api.md`](./theme-api.md). |
 | F78 | Second theme | `TODO` | Only the default theme exists. |
 | F79 | plugin-kit v1 | `TODO` | No lifecycle/hook/UI extension package. |
 | F80 | Reference plugin | `TODO` | Depends on F79; no reference plugin. |
