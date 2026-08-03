@@ -16,7 +16,7 @@
     "test:e2e": "playwright test",
     "forum": "pnpm --filter @forum/cli start",
     "format": "prettier --write .",
-    "verify": "pnpm workspace:check && pnpm guards && pnpm guards:probe && pnpm slots:check && pnpm slots:probe && pnpm theme:docs:check && pnpm plugin:docs:check && pnpm hooks:wired && pnpm api:docs:check && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm test",
+    "verify": "pnpm workspace:check && pnpm guards && pnpm guards:probe && pnpm slots:check && pnpm slots:probe && pnpm theme:docs:check && pnpm plugin:docs:check && pnpm hooks:wired && pnpm api:docs:check && pnpm docs:index:check && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm test",
     "workspace:check": "node scripts/workspace-check.mjs",
     "guards": "node scripts/guards.mjs",
     "guards:probe": "node scripts/guards-probe.mjs",
@@ -28,7 +28,8 @@
     "plugin:docs:check": "node scripts/plugin-hook-docs.mjs --check",
     "hooks:wired": "node scripts/hook-callsites.mjs",
     "api:docs": "node scripts/api-docs.mjs",
-    "api:docs:check": "node scripts/api-docs.mjs --check"
+    "api:docs:check": "node scripts/api-docs.mjs --check",
+    "docs:index:check": "node scripts/docs-index.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",

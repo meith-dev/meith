@@ -744,9 +744,10 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### Phase 9 is 3 of 8 with one PARTIAL. F86 is next, and F85 needs a decision.
+### Phase 9 is 6 of 8. F89 is the only feature left, and F85 still needs a decision.
 
-**F83, F84 and F85** are done or partial (D89–D91). Phase 8 is closed.
+**F86, F87 and F88** are done (D92, F87's `mybb-parity.md` section, D93). The
+only remaining Phase 9 feature is **F89**, plus the `PARTIAL` rows F81 and F85.
 
 **Read this before F85's remainder: there is an open question with your name on
 it.** Reading a live MyBB board needs a MySQL client, which is a runtime
@@ -757,20 +758,28 @@ a recommendation. Everything else about the import is built and tested: the
 mapping, the ordering, the chunking, the resumability, the idempotency and the
 counter comparison.
 
-**F86 is next and does not need that decision.** It has two halves:
+**F89 is next.** Its acceptance criterion is load evidence, not an optimisation:
+p95 budgets held on a board with roughly two million posts. Three things it will
+need, and the first is the hard one:
 
-- **Legacy password hashes.** F85 already carries them as `mybb$<salt>$<hash>`.
-  Verify-and-upgrade means: on a successful sign-in against the MyBB hash,
-  re-hash with Argon2id and replace. The interesting part is that the check must
-  be constant-time and must not leak *which* scheme a given account is on.
-- **The URL table.** `legacy_ids` is populated by the import and indexed both
-  ways, so `/showthread.php?tid=91` is one lookup. Every MyBB URL form wants a
-  row in a table-driven test — `showthread.php`, `forumdisplay.php`,
-  `member.php`, the `-Thread-Title` SEO forms, and the `&pid=` anchor variants.
-  Toggleable, per the acceptance criterion, because a board that was never a MyBB
-  board should not carry the routes.
+- **A seeded board at that scale.** Generating it is the feature. Two million
+  posts through the ordinary posting path would take hours and exercise the
+  outbox rather than the reader, so it wants a bulk seeder that produces a
+  realistic *shape* — a long tail of small threads, a handful of very long ones,
+  and a distribution of authors — because a board of uniform 20-post threads
+  makes keyset pagination look better than it is.
+- **A budget that fails the build.** The query-count budgets already exist; what
+  is missing is latency. A p95 number in a document nobody re-measures is a
+  number that was true once.
+- **Remediation, which the criterion asks for explicitly.** F89 is not "measure
+  and report" — a violated budget has to be fixed. The likeliest two on a corpus
+  that size are search and the forum index's aggregates.
 
-Two things from this phase worth carrying:
+Also outstanding from F82: nothing in this monorepo is published to npm, so a
+scaffolded project cannot yet `npm install`. That is a release task rather than a
+feature, and F88's handbook describes the flow that will work once it is.
+
+Three things from this phase worth carrying:
 
 **The two-gate pattern.** F83's installer cannot run twice because two
 *independent* checks say so — the marker and the account count — and either alone
@@ -781,6 +790,13 @@ gate with a gap behind it.
 upgrade's version record are both written last, for the same reason: a marker
 written first means a failure halfway leaves a board claiming to be something it
 is not, and the next run does nothing.
+
+**Documentation rots in a direction a script can check.** The prose cannot be
+generated, but "every document is linked and every link resolves" can, and
+`pnpm docs:index:check` now gates it. Writing F88 also produced two invented CLI
+commands and one wrong claim about installer recovery, all three caught by
+reading the source rather than by remembering it — which is the argument for the
+check in miniature.
 
 ### Fixed since: the Postgres path had never run anywhere
 

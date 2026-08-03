@@ -6723,3 +6723,97 @@ a setting's key prefix agrees with it. Renamed to `board.legacy_redirects`.
 
 A convention with a test behind it is a convention; without one it is a habit
 that half the registry follows.
+
+---
+
+### D93 — Documentation for somebody whose board is broken (F88)
+
+F88's acceptance criterion is unusual in naming its reader rather than its
+artefact: *"usable by a new operator."* That is the whole design constraint, and
+the shape of [`operating.md`](./operating.md) follows from it. The reader has not
+read the source and is not going to; they are looking something up, probably
+while something is wrong.
+
+So it is not a tour of the architecture, and it is not a list of every setting —
+the settings registry already answers that, and `forum settings:list` prints it.
+What is in the handbook is the set of things that have no other home.
+
+#### The things that are only written down here
+
+Each of these is a place where the correct behaviour is not guessable and the
+wrong guess is expensive:
+
+- **Why there are three configuration surfaces.** Anything in `forum.config.ts`
+  must be visible to the bundler, because a serverless build contains only what
+  it could see statically — so "install a plugin" cannot be a database row, and
+  the absence of an upload-a-zip button is a consequence rather than an omission.
+- **Null means inherit** in the forum permission matrix, and 0 means *unlimited*.
+  Both are the opposite of the naive reading. A checkbox editor would write an
+  explicit value into every cell on first save, pinning the forum so a later
+  change at the parent does nothing — the commonest way a board's permissions end
+  up wrong, and invisible when it happens.
+- **`admincp.access` is the one door no bypass opens.** Every other
+  administrator and super-moderator bypass applies everywhere; this one does not.
+
+#### Backup is documented as the rollback plan
+
+Not as a precaution. Migrations are forward-only (open question 1), so restore is
+the only way back from a bad upgrade — which makes the backup section the
+recovery procedure and makes rehearsing it a real instruction rather than
+boilerplate. A backup nobody has restored is a file.
+
+The detail that costs an hour otherwise is in there too: `pg_dump` needs the
+**direct** connection string, not the pooler, and the failure is a dump that
+starts and then stops rather than one that says why.
+
+#### Pooling and troubleshooting are organised around when the failure appears
+
+Pooling has its own section because it is the failure that **does not appear in
+testing**. A board on the direct connection string installs perfectly, works
+while you are the only visitor, and starts refusing connections the first day it
+is busy, with an error that names the database rather than the cause.
+
+Troubleshooting is indexed by **symptom** rather than by subsystem, because the
+operator does not yet know which subsystem it is — "nothing happens on a
+schedule" is findable, "the tick" is not. Every entry is a failure this
+repository has actually produced.
+
+#### Writing the install section found a doc bug
+
+The first draft said the installer resumes at the first failed step and that
+every step is idempotent. Both were wrong, and checking rather than assuming is
+what caught it: the runner starts from the top every time, and the preflight
+blocks on *any* account existing, independently of the seal. So a failure after
+the administrator was created is not a retry — it is a database-level recovery,
+and the section now says so.
+
+That gate is deliberate and doubled: a second run would otherwise add a second
+administrator to a board that already has members, which is the one outcome an
+installer must make impossible. Documenting it as "just run it again" would have
+sent people looking for a bug in the right behaviour.
+
+#### The index is checked, not generated
+
+[`docs/README.md`](./README.md) is the fourth member of the reference family, and
+the odd one out. The theme, hook and REST references are *generated* because
+their content is a registry. This one is prose — it says which document a
+particular reader wants, and no script can derive that.
+
+What is machine-checked by `pnpm docs:index:check` is the property that actually
+rots: every document in `docs/` is reachable from the index, and every link in
+the index resolves. Both directions fail loudly, and both are mutation-tested,
+because both are silent otherwise. A document added without an entry is a
+document nobody finds — and it is the *new* one, the likeliest to matter. A link
+left by a rename is worse: it tells a reader the document exists.
+
+#### What is not here
+
+No screenshots and no video: this repository has no way to keep either honest,
+and a screenshot of a panel that has since changed is a confident lie.
+
+No CLI reference page either. `forum --help` is the list, and a hand-written copy
+of it is a copy that goes stale — the generated-reference pattern would be the
+fix if it becomes worth one. Writing the troubleshooting section, an earlier
+draft referenced a `forum doctor` and a `forum cache:clear`; neither exists. They
+were invented by analogy with other projects, which is exactly the failure a
+generated reference prevents and a hand-written one invites.
