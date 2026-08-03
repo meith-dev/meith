@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@forum/theme-kit'
 
+import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
+
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -90,10 +92,15 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
       : await signatures.read(id).catch(() => null)
 
   const MemberProfile = requireSlot(activeTheme, 'MemberProfile')
-  return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <MemberProfile
-        {...buildMemberProfileView(
+
+  /*
+   * F80. The profile is one filter and one region — the natural home for a
+   * plugin that adds a panel of its own data about a member.
+   */
+  const profileModel = await filterView(
+    'view.member-profile',
+    {
+      ...buildMemberProfileView(
           profile,
           new Date(),
           {
@@ -124,8 +131,21 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             /* F59's operator-defined fields, after F57's three fixed ones. */
             customFields,
           },
-        )}
-      />
+      ),
+      regions: {
+        plugins: pluginRegion('profile.panel', {
+          viewer: viewerRef(actor),
+          subjectId: id,
+          authorId: id,
+        }),
+      },
+    },
+    viewerRef(actor),
+  )
+
+  return (
+    <main id="board-content" tabIndex={-1} className="flex-1">
+      <MemberProfile {...profileModel} />
 
       {signatureState !== null && (
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3 px-6 pt-4 text-sm">

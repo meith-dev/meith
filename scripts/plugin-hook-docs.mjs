@@ -20,6 +20,8 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
+import { scanCallSites } from './hook-callsites.mjs'
+
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 
 const HOOKS_FILE = 'packages/plugin-kit/src/hooks.ts'
@@ -211,7 +213,7 @@ async function readRegions() {
  * Rendering
  * ------------------------------------------------------------------ */
 
-function render({ hooks, signatures, regions }) {
+function render({ hooks, signatures, regions, wired }) {
   const filters = hooks.filter((hook) => hook.kind === 'filter').length
   const out = []
   const push = (...lines) => out.push(...lines)
@@ -229,7 +231,15 @@ function render({ hooks, signatures, regions }) {
     '-->',
     '',
     `**${hooks.length} hooks** — ${filters} filters, ${hooks.length - filters} events — and ` +
-      `${regions.length} UI regions.`,
+      `${regions.length} UI regions. **${wired.size} are wired**: something in the board fires`,
+    'them today, and the rest are declared but not yet reached by a call site.',
+    '',
+    'The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not',
+    'maintained by hand — a registry entry with no call site is a promise about code',
+    'that never runs, and it fails in the quietest possible way: the plugin installs,',
+    'the handler registers, nothing happens. `plugins/reference` is required by its own',
+    'test to handle every wired hook, so a hook cannot join that column without',
+    'something proving it fires.',
     '',
     'A **filter** is handed a value and returns a replacement; its result is used, so a',
     'filter that throws or returns nothing leaves the value as it was and the chain',
@@ -250,15 +260,15 @@ function render({ hooks, signatures, regions }) {
   const groups = [...new Set(hooks.map((hook) => hook.group))]
   for (const group of groups) {
     push(`## ${group}`, '')
-    push('| Hook | Kind | Value | Context | Feature |', '|---|---|---|---|---|')
+    push('| Hook | Kind | Wired | Value | Context | Feature |', '|---|---|---|---|---|---|')
     for (const hook of hooks.filter((entry) => entry.group === group)) {
       const signature = signatures.get(hook.name)
       if (signature === undefined) {
         throw new Error(`plugin-hook-docs: hook "${hook.name}" has no entry in HookSignatures.`)
       }
       push(
-        `| \`${hook.name}\` | ${hook.kind} | \`${cell(signature.value)}\` | ` +
-          `\`${cell(signature.context)}\` | ${hook.feature} |`,
+        `| \`${hook.name}\` | ${hook.kind} | ${wired.has(hook.name) ? 'yes' : '—'} | ` +
+          `\`${cell(signature.value)}\` | \`${cell(signature.context)}\` | ${hook.feature} |`,
       )
     }
     push('')
@@ -300,13 +310,18 @@ const hooks = await readHooks()
 const signatures = await readSignatures()
 const regions = await readRegions()
 
+const { wired, problems: callSiteProblems } = await scanCallSites()
+if (callSiteProblems.length > 0) {
+  throw new Error(`plugin-hook-docs: ${callSiteProblems.join('; ')}`)
+}
+
 for (const name of signatures.keys()) {
   if (!hooks.some((hook) => hook.name === name)) {
     throw new Error(`plugin-hook-docs: HookSignatures documents "${name}", which is not a hook.`)
   }
 }
 
-const generated = render({ hooks, signatures, regions })
+const generated = render({ hooks, signatures, regions, wired })
 const target = join(ROOT, OUTPUT_FILE)
 
 if (process.argv.includes('--check')) {
@@ -328,8 +343,13 @@ if (process.argv.includes('--check')) {
     process.exit(1)
   }
 
-  console.log(`${OUTPUT_FILE} is up to date (${hooks.length} hooks, ${regions.length} regions).`)
+  console.log(
+    `${OUTPUT_FILE} is up to date (${hooks.length} hooks, ${wired.size} wired, ` +
+      `${regions.length} regions).`,
+  )
 } else {
   await writeFile(target, generated, 'utf8')
-  console.log(`Wrote ${OUTPUT_FILE} — ${hooks.length} hooks, ${regions.length} regions.`)
+  console.log(
+    `Wrote ${OUTPUT_FILE} — ${hooks.length} hooks, ${wired.size} wired, ${regions.length} regions.`,
+  )
 }

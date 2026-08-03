@@ -21,6 +21,7 @@ export function MemberProfile({
   signatureHtml,
   fields,
   actions,
+  regions,
 }: MemberProfileModel) {
   return (
     <article className="mx-auto w-full max-w-3xl space-y-5 px-6 py-8">
@@ -91,6 +92,9 @@ export function MemberProfile({
           />
         </section>
       )}
+
+      {/* F80's `profile.panel` region. */}
+      {regions?.plugins}
 
       {actions.length > 0 && (
         <nav aria-label="Member actions" className="flex flex-wrap gap-3">

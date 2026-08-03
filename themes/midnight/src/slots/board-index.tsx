@@ -21,6 +21,9 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
 
       <div className="flex flex-col gap-3">{regions.categories}</div>
 
+      {/* F80's `index.footer` region. */}
+      {regions.plugins}
+
       {markAllReadAction !== null && (
         /* A form, not a link: marking every forum read is a state change. */
         <form action={markAllReadAction} method="post">

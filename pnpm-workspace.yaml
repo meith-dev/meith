@@ -2,6 +2,7 @@ packages:
   - "apps/*"
   - "packages/*"
   - "themes/*"
+  - "plugins/*"
 
 # hono is pulled in transitively; pin it to avoid duplicate copies in the graph.
 overrides:

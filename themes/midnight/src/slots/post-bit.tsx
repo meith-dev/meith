@@ -55,6 +55,8 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             )}
           </p>
 
+          {regions.pluginBadges}
+
           {post.author.title !== null && (
             <p className="font-mono text-xs text-muted-foreground">{post.author.title}</p>
           )}
@@ -155,6 +157,13 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             <p className="border-t border-border px-3 py-1 font-mono text-xs text-muted-foreground">
               {post.editedNote}
             </p>
+          )}
+
+          {/* F80's `postbit.footer` region. */}
+          {regions.pluginFooter !== undefined && regions.pluginFooter !== null && (
+            <div className="border-t border-border px-3 py-1 font-mono text-xs">
+              {regions.pluginFooter}
+            </div>
           )}
 
           {regions.actions !== null && (

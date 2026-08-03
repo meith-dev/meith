@@ -24,6 +24,8 @@ import { restrictsPosting } from '@forum/moderation'
 // resolves only the workspace aliases from tsconfig.base.json.
 import { POSTS_PER_PAGE } from '../view/paging'
 
+import { emitEvent, viewerRef } from './plugin-view'
+
 import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import { getActor } from './context'
 import { getContainer } from './container'
@@ -173,6 +175,25 @@ export async function createThreadAction(
   }
 
   /*
+   * F80. After the commit and outside the try, in that order and for two
+   * reasons: an event fired inside the transaction would tell a plugin about a
+   * thread that may still roll back, and one fired inside the `catch` scope
+   * would make a plugin's own failure look like a failed post — which it cannot
+   * be, because the host swallows it, but the shape would invite somebody to
+   * "improve" that later.
+   */
+  await emitEvent(
+    'thread.created',
+    {
+      threadId: created.threadId,
+      forumId,
+      authorId: actor.userId,
+      subject: values.title,
+    },
+    viewerRef(actor),
+  )
+
+  /*
    * Outside the try: `redirect()` works by throwing, so catching it would turn
    * a successful post into a silent no-op (see auth-actions.ts).
    */
@@ -220,12 +241,14 @@ export async function createReplyAction(
 
   const settings = await getSettings()
   let created
+  let replyForumId: number
   let staged: Awaited<ReturnType<typeof stageAttachments>>
   try {
     const target = await threadWrites.replyTarget(threadId)
     if (!target) throw new ValidationError('That thread does not exist.')
 
     const forumId = target.forum.id
+    replyForumId = forumId
     const scope = { forumId, forum: await authorizer.forumMatrix(actor, forumId) }
     if (!authorizer.can(actor, 'thread.view', scope)) {
       throw new ValidationError('That thread does not exist.')
@@ -275,6 +298,17 @@ export async function createReplyAction(
   } catch (err) {
     return toFormState(err, values)
   }
+
+  await emitEvent(
+    'post.created',
+    {
+      postId: created.postId,
+      threadId: created.threadId,
+      forumId: replyForumId,
+      authorId: actor.userId,
+    },
+    viewerRef(actor),
+  )
 
   const thread = `/thread/${created.threadId}-${created.slug}`
   if (created.visibility === 'unapproved') {
@@ -381,6 +415,27 @@ export async function editPostAction(
     )
   } catch (err) {
     return toFormState(err, values)
+  }
+
+  /*
+   * `changed: false` means the body was identical and nothing was written, so
+   * no event fires: telling a plugin a post was edited when the row did not
+   * move is how an integration ends up reposting the same webhook on every
+   * accidental double-submit.
+   */
+  const editorId = (await getActor()).userId
+  if (edited.changed && editorId !== null) {
+    await emitEvent(
+      'post.edited',
+      {
+        postId: edited.postId,
+        threadId: edited.threadId,
+        forumId: scope.target.forum.id,
+        editorId: editorId,
+        revision: 0,
+      },
+      { userId: editorId, isGuest: false },
+    )
   }
 
   const thread = `/thread/${edited.threadId}-${edited.threadSlug}`

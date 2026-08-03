@@ -74,6 +74,11 @@ jobs:
       - name: Plugin hook reference is current
         run: pnpm plugin:docs:check
 
+      # F80: fails on a hook literal that is not in the registry — the typo that
+      # would otherwise be a call nothing listens to, with no error anywhere.
+      - name: Hook call sites resolve
+        run: pnpm hooks:wired
+
       - name: Lint
         run: pnpm lint
 

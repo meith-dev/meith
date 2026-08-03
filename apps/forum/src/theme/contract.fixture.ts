@@ -161,6 +161,17 @@ const PAGINATION = {
  */
 const region = (name: string): string => `REGION-${name}`
 
+/**
+ * A plugin's contribution to a region (F80).
+ *
+ * Distinct from `region()` because it is a different claim: a theme that
+ * forgets `regions.plugins` drops *plugin* output specifically, and nothing
+ * else about the page changes. That failure is invisible from the plugin's
+ * side — the host collected the node and handed it over — so it has to be
+ * caught here, by requiring both themes to render it.
+ */
+const pluginRegion = (name: string): string => `PLUGIN-${name}`
+
 export interface SlotFixture<K extends SlotName> {
   readonly model: SlotModels[K]
   /** Strings the rendered output must contain. See this file's header. */
@@ -246,9 +257,19 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
   BoardIndex: {
     model: {
       markAllReadAction: '/mark-read',
-      regions: { categories: region('categories'), stats: region('stats'), online: region('online') },
+      regions: {
+        categories: region('categories'),
+        stats: region('stats'),
+        online: region('online'),
+        plugins: pluginRegion('index.footer'),
+      },
     },
-    requires: [region('categories'), region('stats'), region('online')],
+    requires: [
+      region('categories'),
+      region('stats'),
+      region('online'),
+      pluginRegion('index.footer'),
+    ],
   },
 
   CategoryBlock: {
@@ -346,12 +367,27 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
   },
 
   PostBit: {
-    model: { post: POST, select: null, regions: { actions: region('post-actions') } },
+    model: {
+      post: POST,
+      select: null,
+      regions: {
+        actions: region('post-actions'),
+        pluginBadges: pluginRegion('postbit.badges'),
+        pluginFooter: pluginRegion('postbit.footer'),
+      },
+    },
     /*
      * The body, who wrote it, and a link to the post itself. Everything else on
      * a postbit is a theme's business; these three are the post.
      */
-    requires: ['The shed should be teak.', 'Marlow', '#post-4102', region('post-actions')],
+    requires: [
+      'The shed should be teak.',
+      'Marlow',
+      '#post-4102',
+      region('post-actions'),
+      pluginRegion('postbit.badges'),
+      pluginRegion('postbit.footer'),
+    ],
   },
 
   PostActions: {
@@ -387,8 +423,9 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       signatureHtml: '<p>Sent from a rotary telephone</p>',
       fields: [{ label: 'Location', value: 'Bristol' }],
       actions: [{ label: 'Send a message', href: '/messages/new?to=12' }],
+      regions: { plugins: pluginRegion('profile.panel') },
     },
-    requires: ['Marlow', '318', 'Bristol'],
+    requires: ['Marlow', '318', 'Bristol', pluginRegion('profile.panel')],
   },
 
   SearchForm: {

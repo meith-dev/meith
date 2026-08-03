@@ -172,6 +172,28 @@ module.exports = {
       },
     },
     {
+      /*
+       * F80. The strongest form of "a plugin cannot leak a private forum" is
+       * that it cannot reach the query layer at all. `@forum/plugin-kit` hands a
+       * plugin what a viewer may already see; a plugin importing `@forum/db` or a
+       * domain package would be outside every guarantee the host makes, and no
+       * amount of failure isolation would help.
+       */
+      name: 'plugins-use-the-kit-only',
+      severity: 'error',
+      comment:
+        'A plugin extends the board through @forum/plugin-kit. It must not import ' +
+        '@forum/db, a driver, or a domain package: the host isolates failures, not ' +
+        'privilege, and a plugin with its own database access can read anything.',
+      from: { path: '^plugins/' },
+      to: {
+        path: [
+          `^packages/(db|drivers|${DOMAIN})/`,
+          `(^|/)node_modules/@forum/(db|drivers|${DOMAIN})(/|$)`,
+        ],
+      },
+    },
+    {
       name: 'ui-is-presentation-only',
       severity: 'error',
       comment:

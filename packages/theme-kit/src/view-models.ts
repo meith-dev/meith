@@ -446,6 +446,15 @@ export interface BoardIndexModel {
     readonly categories: ReactNode
     readonly stats: ReactNode
     readonly online: ReactNode
+    /**
+     * F80's `index.footer` region: whatever plugins contributed, already
+     * rendered and ordered by the host.
+     *
+     * Optional, which is what makes this a **minor** addition under the v1
+     * policy — a theme written against 1.0 keeps compiling and simply does not
+     * render plugin output. Every region field below follows the same rule.
+     */
+    readonly plugins?: ReactNode
   }
 }
 
@@ -607,6 +616,10 @@ export interface MemberProfileModel {
   /** F59's custom fields, already filtered by visibility. */
   readonly fields: readonly { readonly label: string; readonly value: string }[]
   readonly actions: readonly LinkModel[]
+  readonly regions?: {
+    /** F80's `profile.panel` region. */
+    readonly plugins?: ReactNode
+  }
 }
 
 /**
@@ -695,6 +708,10 @@ export interface PostBitSlotModel {
   readonly regions: {
     /** The `PostActions` slot, rendered by the page. */
     readonly actions: ReactNode
+    /** F80's `postbit.badges` region, beside the author's name. */
+    readonly pluginBadges?: ReactNode
+    /** F80's `postbit.footer` region, below the body. */
+    readonly pluginFooter?: ReactNode
   }
 }
 

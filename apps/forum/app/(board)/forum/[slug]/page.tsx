@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 
 import { hasAnyModeratorRight } from "@forum/authorization";
 import { requireSlot } from "@forum/theme-kit";
+
+import { filterView, viewerRef } from "@/server/plugin-view";
 import { InlineModerationForm } from "@/components/moderation/inline-moderation-form";
 import { getContainer } from "@/server/container";
 import { getActor } from "@/server/context"
@@ -234,6 +236,42 @@ export default async function ForumPage({
       ? "Your thread was posted and is waiting for a moderator to approve it."
       : inlineOutcomeNotice(query);
 
+  /* F80. `view.thread-row` runs once per row; see the index page for the cost. */
+  const pluginContext = { ...viewerRef(actor), forumId: id }
+
+  const threadRows = await Promise.all(
+    view.threads.map((thread) =>
+      filterView(
+        "view.thread-row",
+        {
+          thread,
+          select: selectionFor("thread", thread.id, `“${thread.title}”`, inlineOffered),
+        },
+        pluginContext,
+      ),
+    ),
+  )
+
+  const subforums =
+    view.subforums === null
+      ? null
+      : await filterView("view.subforum-list", view.subforums, pluginContext)
+
+  const pagination = await filterView("view.pagination", view.pagination, viewerRef(actor))
+
+  const forumDisplayModel = await filterView(
+    "view.forum-display",
+    {
+      ...view.display,
+      regions: {
+        subforums: subforums === null ? null : <SubforumList {...subforums} />,
+        threads: threadRows.map((row) => <ThreadRow key={row.thread.id} {...row} />),
+        pagination: <Pagination {...pagination} />,
+      },
+    },
+    pluginContext,
+  )
+
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       {/*
@@ -263,28 +301,7 @@ export default async function ForumPage({
           />
         </div>
       )}
-      <ForumDisplay
-        {...view.display}
-        regions={{
-          subforums:
-            view.subforums === null ? null : (
-              <SubforumList {...view.subforums} />
-            ),
-          threads: view.threads.map((thread) => (
-            <ThreadRow
-              key={thread.id}
-              thread={thread}
-              select={selectionFor(
-                "thread",
-                thread.id,
-                `“${thread.title}”`,
-                inlineOffered,
-              )}
-            />
-          )),
-          pagination: <Pagination {...view.pagination} />,
-        }}
-      />
+      <ForumDisplay {...forumDisplayModel} />
       {/*
         Below the listing, not around it: the checkboxes reach this form by id
         (see `SelectionModel`), so it does not have to contain them — and it

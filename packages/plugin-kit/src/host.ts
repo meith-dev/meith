@@ -52,6 +52,8 @@
  * lie that also leaks. Measuring and reporting is what can honestly be done.
  */
 
+import type { ReactNode } from 'react'
+
 import { HOOKS, type HookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
 import type { HookRegistration, PluginContribution, PluginDefinition } from './plugin'
@@ -243,11 +245,14 @@ export class PluginHost {
    * return a component that does work. That is stated in the plugin docs and
    * enforced by nothing, which is the honest position.
    */
-  renderRegion(region: PluginRegion, context: PluginRegionContext): readonly { key: string; node: unknown }[] {
+  renderRegion(
+    region: PluginRegion,
+    context: PluginRegionContext,
+  ): readonly { key: string; node: ReactNode }[] {
     const entries = this.#contributions.get(region)
     if (entries === undefined) return []
 
-    const nodes: { key: string; node: unknown }[] = []
+    const nodes: { key: string; node: ReactNode }[] = []
     for (const entry of entries) {
       if (!this.#isEnabled(entry.pluginKey)) continue
 

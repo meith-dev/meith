@@ -9,6 +9,7 @@ import { getContainer } from '@/server/container'
 import { runSearch, type SearchFilters } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
 import { activeTheme } from '@/server/theme'
+import { filterView, viewerRef } from '@/server/plugin-view'
 
 export const metadata: Metadata = { title: 'Search' }
 
@@ -88,17 +89,18 @@ export default async function SearchPage({
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
         <h1 className="font-serif text-2xl font-semibold">Search</h1>
         <SearchForm
-          {...(await formModel({ terms, forum, sort }))}
-          hint={null}
-          errorMessage={
-            outcome.kind === 'flooded'
-              ? `You are searching very quickly. Try again in ${outcome.seconds} seconds.`
-              : outcome.reason === 'too-short'
-                ? 'That search is too short — try a whole word.'
-                : outcome.reason === 'too-long'
-                  ? 'That search is too long to run.'
-                  : 'Type something to search for.'
-          }
+          {...(await filteredForm({
+            ...(await formModel({ terms, forum, sort })),
+            hint: null,
+            errorMessage:
+              outcome.kind === 'flooded'
+                ? `You are searching very quickly. Try again in ${outcome.seconds} seconds.`
+                : outcome.reason === 'too-short'
+                  ? 'That search is too short — try a whole word.'
+                  : outcome.reason === 'too-long'
+                    ? 'That search is too long to run.'
+                    : 'Type something to search for.',
+          }))}
         />
       </div>
     )
@@ -108,9 +110,11 @@ export default async function SearchPage({
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
       <h1 className="font-serif text-2xl font-semibold">Search</h1>
       <SearchForm
-        {...(await formModel({ terms: '', forum, sort }))}
-        hint={HINT}
-        errorMessage={null}
+        {...(await filteredForm({
+          ...(await formModel({ terms: '', forum, sort })),
+          hint: HINT,
+          errorMessage: null,
+        }))}
       />
     </div>
   )
@@ -158,6 +162,15 @@ async function formModel({
     forums,
     sorts,
   }
+}
+
+/**
+ * F80. The filter runs over the whole model including the two message fields,
+ * so a plugin sees the form as the theme will — which is what a hook named
+ * `view.search-form` has to mean, or it would be filtering half a form.
+ */
+async function filteredForm(model: SearchFormModel): Promise<SearchFormModel> {
+  return filterView('view.search-form', model, viewerRef(await getActor()))
 }
 
 /** The forums this viewer may search, for the filter. */

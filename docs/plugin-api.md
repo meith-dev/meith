@@ -181,17 +181,28 @@ Hook documentation goes stale faster than most, because a hook is added in the
 feature that needs it and documented, if at all, afterwards. If the check fails,
 run `pnpm plugin:docs` and commit the result.
 
-## What is not built yet
+## What is wired, and what is not
 
 Honest inventory, because the alternative is a document describing a system that
-does not run:
+does not run — and it is derived rather than remembered.
 
-- **Nothing in core fires these hooks yet.** The registry, the type map and the
-  host are here and tested; wiring each call site into the feature that owns it
-  is the work of the features themselves, and F80's reference plugin is what
-  will prove the wiring exists rather than merely the registry.
-- **Migrations, settings and tasks are declared but not yet executed.** The
-  descriptors are validated and namespaced; the runner, the settings surface and
-  the task registration are F69's completion — its row has named F79 as the
-  blocker since Phase 6.
-- **Admin pages are descriptors.** There is no catch-all route mounting them.
+**21 of the 91 hooks are wired**: the shell filters, the index, forum, thread,
+member, search and error-page view models, and the three posting events. The
+generated reference marks each hook's column, and
+`scripts/hook-callsites.mjs` computes it by scanning the tree, so the column
+cannot drift from the code.
+
+A hook that is declared but not wired is not broken — it is a call site that has
+not been written. Registering a handler for one is legal, does nothing, and the
+reference marks it so you find out before you ship.
+
+**`plugins/reference` must handle every wired hook**, enforced by its own test.
+That is the ratchet: wiring a new call site into the board fails the reference
+plugin's test until a handler is added there, so a hook cannot join the running
+product without something proving it fires.
+
+Still descriptors rather than execution: migrations are validated and namespaced
+but no runner applies them, settings are declared but no ACP surface reads
+`plugin.<key>.<name>`, tasks are declared but not registered into F06's
+registry, and admin pages have no route mounting them. All four are F69's
+completion, whose row has named F79 as its blocker since Phase 6.

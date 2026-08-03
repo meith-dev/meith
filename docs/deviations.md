@@ -5992,3 +5992,105 @@ are validated and namespaced but not yet executed — that is F69's completion,
 whose row has named F79 as its blocker since Phase 6. Saying so in
 `plugin-api.md` is the alternative to a document describing a system that does
 not run.
+
+### D86 — The reference plugin is a ratchet, not a demo (F80)
+
+A plugin that exercises every documented extension point, and — the larger half
+of the work — the call sites that make "documented" and "fires" the same thing.
+
+#### F79 shipped a registry nothing called
+
+That was said plainly in its row, and F80 is where it stops being true. Twenty-one
+hooks now have call sites: the four shell filters in `PageShell`, the index,
+forum, thread, member, search and error-page view models, and the three posting
+events. The remaining seventy are declared and unreached.
+
+The interesting part is not the wiring, it is that **the wired set is derived
+rather than maintained**. `scripts/hook-callsites.mjs` scans the tree for the
+four call shapes and reports what it finds. Three consumers:
+
+- the generated reference gains a **Wired** column, so a plugin author is told
+  before they write a handler for a hook nothing fires;
+- `plugins/reference` is required by its own test to handle every wired hook;
+- a literal that *looks* like a hook name and is not in the registry **fails the
+  run**, which catches the typo that would otherwise be a call nobody listens to.
+
+The middle one is the ratchet, and it is the point of the feature. Wiring a new
+call site fails the reference plugin's test until a handler is added there. A
+hook cannot join the running product without something proving it fires.
+
+The scanner's first run reported three wired hooks as unwired: the forum page is
+double-quoted and the regex knew only about single quotes. A false negative in a
+coverage tool is the worst kind — it makes the gap invisible — so the pattern
+takes both and the reason is at the line.
+
+#### "Every extension point" is two claims, and conflating them is theatre
+
+- **Every kind**: a filter, an event, a setting of each type, two migrations, a
+  task, an admin page, a contribution to all six regions, and all four lifecycle
+  callbacks. Asserted against the manifest.
+- **Every wired hook**: asserted against the scanner.
+
+Requiring all ninety-one hooks instead would mean writing seventy handlers for
+call sites that do not exist. It would be a bigger number and a smaller
+guarantee.
+
+Two of the "kinds" assertions are deliberately more specific than they look. The
+plugin declares a **string, a number and a boolean** setting, because the ACP
+derives its control from `typeof default` and a test with one string setting
+proves a third of that. And it declares **two** migrations, because one cannot
+demonstrate the ascending-order rule that `definePlugin` refuses a manifest over.
+
+#### The plugin records rather than does
+
+Handlers push into a module-level `RECORDED` object. That is right for a test
+double and wrong for anything else — a plugin holding state across requests on a
+serverless platform is a leak between viewers — so it is named in shouting case
+and documented, because a reference plugin is the file people copy.
+
+It also keeps the thing under test the *host*. A reference plugin that logged, or
+wrote a row, or called out would need a fixture for each of those before any of
+it could be asserted.
+
+#### theme-kit 1.0 → 1.1, which is the versioning policy having its first real use
+
+Plugin regions need somewhere to render, and four of the six are inside a theme's
+markup rather than between slots. So the models gained optional region fields —
+`BoardIndexModel.regions.plugins`, `PostBitSlotModel.regions.pluginBadges` and
+`pluginFooter`, `MemberProfileModel.regions.plugins`.
+
+Optional, additive, nothing renamed and nothing removed: a **minor** by F77's own
+rules, and the first time that policy has been applied to something real rather
+than to a fixture. A theme written against 1.0 compiles and runs unchanged and
+simply does not render plugin output.
+
+The other two regions — `header.notice` and `admin.dashboard` — are app-rendered,
+and that is their definition rather than a shortcut: `header.notice` sits
+*between* the header and the page body, which is the shell's structure and not
+any theme's. It is the same reason `PageShell` is not itself a slot.
+
+**Both themes are required to render all four theme-side regions**, by the
+contract fixture. A theme that quietly drops one is invisible from the plugin's
+side — the host collected the node and handed it over, and nothing failed — so
+the check has to live where the markup is.
+
+#### Where the events fire, and one that deliberately does not
+
+After the commit and outside the `try`. Inside the transaction would tell a
+plugin about a thread that may still roll back; inside the catch scope would put
+a plugin's failure in the same block as a failed post, which it can never be
+because the host swallows it — but the shape would invite somebody to "improve"
+that later.
+
+`post.edited` does not fire when `changed` is false. An edit that rewrote nothing
+did not move the row, and telling a plugin otherwise is how an integration
+reposts the same webhook on every accidental double-submit.
+
+#### A boundary rule, because isolation is not privilege
+
+`plugins-use-the-kit-only` makes a plugin importing `@forum/db`, a driver or a
+domain package a dependency-cruiser error. The host isolates *failures*; it does
+nothing about access. A plugin with its own database handle is outside every
+guarantee this codebase makes, and "the host catches the exception" is no comfort
+when the plugin succeeded at reading a private forum. Probed with a deliberate
+violation before being trusted.

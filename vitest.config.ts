@@ -78,6 +78,7 @@ export default defineConfig({
        * theme that is not the default.
        */
       'themes/**/*.test.ts',
+      'plugins/**/*.test.ts',
       'tests/**/*.test.ts',
     ],
     exclude: ['**/node_modules/**', '**/.next/**'],

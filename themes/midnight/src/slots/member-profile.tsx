@@ -19,6 +19,7 @@ export function MemberProfile({
   signatureHtml,
   fields,
   actions,
+  regions,
 }: MemberProfileModel) {
   return (
     <article className="flex flex-col gap-3 p-3">
@@ -74,6 +75,9 @@ export function MemberProfile({
           <div className="prose-forum" dangerouslySetInnerHTML={{ __html: signatureHtml }} />
         </section>
       )}
+
+      {/* F80's `profile.panel` region. */}
+      {regions?.plugins}
 
       {actions.length > 0 && (
         <nav aria-label="Member actions" className="flex flex-wrap gap-2 font-mono text-xs">

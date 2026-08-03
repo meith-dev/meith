@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v1.0.** 25 slots: 23 stable, 2 provisional, 0 deprecated.
+**theme-kit v1.1.** 25 slots: 23 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -145,7 +145,7 @@ Props: `BoardIndexModel`
 | Field | Type | Notes |
 |---|---|---|
 | `markAllReadAction` | `string \| null` | F32's "mark all read" — a form target, not a client handler. |
-| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode }` |  |
+| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * F80's `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the v1 * policy — a theme written against 1.0 keeps compiling and simply does not * render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode }` |  |
 
 ### CategoryBlock
 
@@ -289,7 +289,7 @@ Props: `PostBitSlotModel`
 |---|---|---|
 | `post` | `PostBitModel` |  |
 | `select` | `SelectionModel \| null` | F52's checkbox, or `null`. A theme that ignores it loses only bulk actions. |
-| `regions` | `{ /** The `PostActions` slot, rendered by the page. */ readonly actions: ReactNode }` |  |
+| `regions` | `{ /** The `PostActions` slot, rendered by the page. */ readonly actions: ReactNode /** F80's `postbit.badges` region, beside the author's name. */ readonly pluginBadges?: ReactNode /** F80's `postbit.footer` region, below the body. */ readonly pluginFooter?: ReactNode }` |  |
 
 ### PostActions
 
@@ -370,6 +370,7 @@ Props: `MemberProfileModel`
 | `signatureHtml` | `string \| null` |  |
 | `fields` | `readonly { readonly label: string; readonly value: string }[]` | F59's custom fields, already filtered by visibility. |
 | `actions` | `readonly LinkModel[]` |  |
+| `regions` | `{ /** F80's `profile.panel` region. */ readonly plugins?: ReactNode }` | optional |
 
 ### SearchForm
 
@@ -618,5 +619,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v1.0. Nothing can be: this is the first
+Nothing is deprecated in v1.1. Nothing can be: this is the first
 frozen version, so there is no earlier promise to withdraw.

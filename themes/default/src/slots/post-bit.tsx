@@ -57,6 +57,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           )}
           {post.author.profileHref === null ? <span>{post.author.username}</span> : <a href={post.author.profileHref} className="hover:text-foreground">{post.author.username}</a>}
         </span>
+        {regions.pluginBadges}
         <a href={post.permalink} className="hover:text-foreground">
           <time dateTime={post.postedAt.iso}>{post.postedAt.label}</time> #{post.number}
         </a>
@@ -156,6 +157,10 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           className="border-t border-border px-4 py-2 text-xs text-muted-foreground"
           dangerouslySetInnerHTML={{ __html: post.author.signatureHtml }}
         />
+      )}
+      {/* F80's `postbit.footer` region, between the body and the actions. */}
+      {regions.pluginFooter !== undefined && regions.pluginFooter !== null && (
+        <div className="border-t border-border px-4 py-2 text-xs">{regions.pluginFooter}</div>
       )}
       {regions.actions !== null && <footer className="border-t border-border px-4 py-2">{regions.actions}</footer>}
     </article>

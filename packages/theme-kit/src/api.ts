@@ -52,8 +52,14 @@ import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
  *
  * Not a patch component: this is a type-level contract with no runtime behaviour
  * to fix. A bug in `resolveTheme` is a package version, not an API version.
+ *
+ * **1.1** added the optional plugin-region fields F80 needs
+ * (`BoardIndexModel.regions.plugins` and its siblings). Optional, additive, no
+ * slot renamed and none removed — a theme written against 1.0 compiles and runs
+ * unchanged, which is the promise a minor is. It is also the first exercise of
+ * this policy on something real rather than on a fixture.
  */
-export const THEME_API_VERSION = '1.0'
+export const THEME_API_VERSION = '1.1'
 
 /**
  * How much of a promise a slot carries.

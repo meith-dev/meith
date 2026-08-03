@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 
 import { requireSlot } from "@forum/theme-kit"
 
+import { boardRegion, filterView, viewerRef } from "@/server/plugin-view"
+
 import { getContainer } from "@/server/container"
 import { getActor } from "@/server/context"
 import { getViewerPreferences } from "@/server/viewer-preferences"
@@ -86,39 +88,75 @@ export default async function BoardIndexPage() {
   const BoardStats = requireSlot(activeTheme, "BoardStats")
   const WhoIsOnline = requireSlot(activeTheme, "WhoIsOnline")
 
+  /*
+   * F80. `view.forum-row` runs once per row, which is the reason its purpose
+   * line says "keep it cheap" — a board index is fifty rows, and a plugin doing
+   * a query in this filter turns one page into fifty.
+   *
+   * The rows are filtered before the blocks are rendered rather than inside the
+   * JSX, so the await is a single pass over data the page already has rather
+   * than fifty awaits interleaved with rendering.
+   */
+  const pluginContext = viewerRef(actor)
+
+  const blocks = await Promise.all(
+    view.blocks.map(async (entry) => ({
+      block: entry.block,
+      forums: await Promise.all(
+        entry.forums.map((forum) => filterView('view.forum-row', { forum }, pluginContext)),
+      ),
+    })),
+  )
+
+  const stats =
+    totals === null
+      ? null
+      : await filterView(
+          'view.board-stats',
+          buildBoardStatsModel({ ...totals, now, timeZone: preferences.timezone }),
+          pluginContext,
+        )
+
+  const whoIsOnline =
+    online === null
+      ? null
+      : await filterView(
+          'view.who-is-online',
+          buildWhoIsOnlineModel({
+            members: online.members,
+            guestCount: online.guestCount,
+            recordCount: record.count,
+            recordAt: record.at,
+            now,
+            timeZone: preferences.timezone,
+          }),
+          pluginContext,
+        )
+
+  const index = await filterView(
+    'view.board-index',
+    {
+      ...view.index,
+      regions: {
+        categories: blocks.map((entry) => (
+          <CategoryBlock key={entry.block.category.id} category={entry.block.category}>
+            {entry.forums.map((row) => (
+              <ForumRow key={row.forum.id} {...row} />
+            ))}
+          </CategoryBlock>
+        )),
+        stats: stats === null ? null : <BoardStats {...stats} />,
+        online: whoIsOnline === null ? null : <WhoIsOnline {...whoIsOnline} />,
+        /* F80's `index.footer` region, rendered by the theme at the foot of the body. */
+        plugins: boardRegion('index.footer', actor),
+      },
+    },
+    pluginContext,
+  )
+
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
-      <BoardIndex
-        {...view.index}
-        regions={{
-          categories: view.blocks.map((entry) => (
-            <CategoryBlock key={entry.block.category.id} category={entry.block.category}>
-              {entry.forums.map((forum) => (
-                <ForumRow key={forum.id} forum={forum} />
-              ))}
-            </CategoryBlock>
-          )),
-          stats:
-            totals === null ? null : (
-              <BoardStats
-                {...buildBoardStatsModel({ ...totals, now, timeZone: preferences.timezone })}
-              />
-            ),
-          online:
-            online === null ? null : (
-              <WhoIsOnline
-                {...buildWhoIsOnlineModel({
-                  members: online.members,
-                  guestCount: online.guestCount,
-                  recordCount: record.count,
-                  recordAt: record.at,
-                  now,
-                  timeZone: preferences.timezone,
-                })}
-              />
-            ),
-        }}
-      />
+      <BoardIndex {...index} />
     </main>
   )
 }
