@@ -29,7 +29,8 @@
     "@forum/tasks": "workspace:*",
     "@forum/threads": "workspace:*",
     "drizzle-orm": "^0.44.7",
-    "postgres": "^3.4.7"
+    "postgres": "^3.4.7",
+    "@forum/api": "workspace:*"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.6",

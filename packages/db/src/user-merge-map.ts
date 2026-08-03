@@ -120,6 +120,18 @@ export const MERGE_DISCARD: readonly DiscardColumn[] = [
    * somebody else created.
    */
   { table: 'searches', column: 'user_id' },
+  /*
+   * F81's API tokens. A credential in the plainest sense, and the one on this
+   * list with the widest blast radius: a token is a long-lived string somebody
+   * else may already hold, so reassigning it would hand the winner's account to
+   * whoever has it — without an authentication event, a session, or anything in
+   * a log to notice.
+   *
+   * The owner of the account that survives can mint a new one in a minute. The
+   * owner of the one that did not is, in the usual case, somebody who registered
+   * twice, and their integration was pointed at an account that is now gone.
+   */
+  { table: 'api_tokens', column: 'user_id' },
   { table: 'credential_tokens', column: 'user_id' },
   { table: 'remember_tokens', column: 'user_id' },
   { table: 'sessions', column: 'user_id' },

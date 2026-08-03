@@ -29,6 +29,7 @@ const DOMAIN = [
   'subscriptions',
   'events',
   'tasks',
+  'api',
 ].join('|')
 
 module.exports = {

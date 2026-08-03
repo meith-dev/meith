@@ -201,3 +201,11 @@ export {
 } from './account-repos'
 
 export * from './schema'
+
+/* F81 — the public API's stores. */
+export {
+  PostgresApiTokenRepository,
+  PostgresRateLimitStore,
+  PostgresWebhookRepository,
+  type WebhookDeliveryRow,
+} from './api-repo'

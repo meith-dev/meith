@@ -106,6 +106,9 @@ importers:
       '@forum/admin':
         specifier: workspace:*
         version: link:../../packages/admin
+      '@forum/api':
+        specifier: workspace:*
+        version: link:../../packages/api
       '@forum/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
@@ -271,6 +274,12 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/api:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/attachments:
     dependencies:
       '@forum/core':
@@ -311,6 +320,9 @@ importers:
       '@forum/admin':
         specifier: workspace:*
         version: link:../admin
+      '@forum/api':
+        specifier: workspace:*
+        version: link:../api
       '@forum/attachments':
         specifier: workspace:*
         version: link:../attachments

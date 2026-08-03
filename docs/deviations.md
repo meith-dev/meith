@@ -6094,3 +6094,145 @@ nothing about access. A plugin with its own database handle is outside every
 guarantee this codebase makes, and "the host catches the exception" is no comfort
 when the plugin succeeded at reading a private forum. Probed with a deliberate
 violation before being trusted.
+
+### D87 — A token is a restriction on an actor, never a grant to one (F81)
+
+A scoped, rate-limited REST API and signed webhooks. The decisions worth
+recording are mostly about what is deliberately *not* possible.
+
+#### The load-bearing sentence
+
+A token authenticates as a member and can never do more than that member can.
+Every request resolves the owner's `Actor` and asks the Authorizer — the same
+`forumIdsWhere`, the same `visibleIn`, the same F47 filter a page uses — and the
+scope check happens **as well**, never instead.
+
+The consequence is that there is no API-specific visibility path, and that is the
+point: a second implementation of F47 is a second thing to get wrong, on a
+surface designed for software to hammer. It also means a member banned an hour
+ago loses their API access in the same instant, because nothing about permissions
+is baked into the token at creation.
+
+#### Fixed order, one file, and why not a folder of route files
+
+`route match → token → scope → rate limit → authorization → handler`, in one
+catch-all dispatching through `ROUTES`.
+
+One file per route is the idiomatic Next arrangement and is worse here. Adding an
+endpoint would mean remembering to authenticate it, to check a scope, to meter
+it, and to document it — four things, and the one that gets forgotten is the
+scope check, because it is the one whose absence nothing notices. Through a
+registry an endpoint *cannot* exist without a declared scope.
+
+#### SHA-256 for tokens, and it is the opposite reasoning from F17
+
+A password is low-entropy and human-chosen, so it needs Argon2id to survive an
+offline attack. A token is 32 bytes from a CSPRNG: there is no dictionary, and a
+slow hash would put ~100ms on every API request — which for an API is the
+difference between usable and not. The threat model, not the habit, picks the
+algorithm.
+
+The token is `forum_pat_<lookup>_<secret>`: a greppable prefix so a leaked token
+is findable by secret scanners, a clear indexed lookup so authenticating one
+request is one index probe rather than a hash against every token on the board,
+and the secret stored only as a digest.
+
+#### A test found the parser wrong before anybody used it
+
+`parseToken` split on `_` and required four parts. The secret is base64url, whose
+alphabet **includes `_`** — so roughly any token containing one failed to parse
+and came back "malformed": an intermittent authentication failure depending on
+which bytes the CSPRNG produced, which would have looked exactly like a flaky
+client.
+
+Fixed by splitting at the first underscore after the prefix rather than by
+changing the alphabet, because the alphabet was not the problem: a delimiter that
+assumes anything about what follows it is.
+
+#### Failures are one 401, and the ordering of the checks is a leak
+
+Every token failure — expired, revoked, unknown, malformed — is the same 401 with
+the same message, and the reason goes to the log where the operator can see it
+and a caller cannot. "Expired" confirms the token was real.
+
+The check order matters for the same reason: revocation and expiry are tested
+**after** the secret. Answering "revoked" to a wrong secret would confirm that a
+lookup prefix names a real token, turning eight characters into an enumerable
+space.
+
+`admin:read` exists and there is no `admin:write`, asserted by a test rather than
+left to the review that omitted it — the pressure to add it arrives with the
+first person who wants to script their settings.
+
+#### The rate limit meters work, not requests
+
+A limit in requests prices `/me` the same as a full-text search, so the cheapest
+way for a token to be expensive is to hit the expensive endpoint — the one thing
+the limit exists to prevent. Each route declares a cost; search costs ten.
+
+Postgres, because the serverless profile has no Redis and an in-memory counter is
+per-instance (a limit that silently multiplies by however many instances the
+platform decided to run). **The check is the write**: one upsert returning the
+total after incrementing, because API traffic is exactly the traffic that arrives
+twenty requests at once, and a check-then-write races with every one of them
+under the limit.
+
+The window is fixed, which permits a burst of twice the budget across a boundary.
+That is written down in the file rather than discovered later: a sliding window
+costs a second table and an ordering, and for a limit whose job is stopping a
+runaway script rather than shaping traffic, the fixed window is the right trade.
+
+Limit headers go on **every** response, not only refusals. A client that learns
+its budget only by exhausting it cannot slow down before it does.
+
+#### Webhooks: the timestamp is inside the signature
+
+`sha256=HMAC(secret, "<timestamp>.<body>")`. Signing the body alone gives an
+attacker who captured one delivery an infinitely replayable message; putting the
+timestamp in the signed material means it cannot be moved without breaking the
+signature, and the receiver's freshness check does the rest.
+
+`verifySignature` is exported and tested because it is the code the documentation
+asks third parties to reimplement, and a signing scheme whose verifier the board
+has never run is a scheme with an off-by-one nobody has found. The freshness
+check is *inside* it rather than a step a receiver can forget — verifying and
+then meaning to check the age is the standard way replay protection is lost.
+
+The **delivery id is stable across retries**, which is what makes a receiver's
+de-duplication possible at all; a fresh id per attempt turns "we retried" into
+"we sent two events". Backoff has jitter, and the jitter is not decoration: a
+subscriber going down takes every pending delivery with it, and a fixed schedule
+brings all of them back at the same instant, repeatedly, at a server that is
+already unwell. A `410 Gone` stops the retries immediately.
+
+Deliveries dead-letter rather than disappear, and `retryDead` is the operator's
+undo — which is the whole reason a dead letter is a row and not a log line.
+
+`WEBHOOK_TOPICS` is deliberately **not** the plugin hook registry. A hook is an
+in-process extension point that moves as the board is built; a webhook topic is a
+contract with somebody else's software, and the two must be free to move at
+different speeds.
+
+#### F67's merge map earned itself again
+
+Adding `api_tokens` failed `user-merge-repo.test.ts` immediately — the test holds
+the merge map against `information_schema`, so a migration that adds a
+user-pointing column cannot land until somebody decides what a merge does with
+it. That is the second time that test has caught a new table rather than a
+reviewer catching it.
+
+The answer is the **discard** list, with the widest blast radius on it: an API
+token is a long-lived string somebody else may already hold, so reassigning it
+would hand the winner's account to whoever has it — with no authentication event
+and nothing in a log to notice.
+
+#### Two smaller things
+
+**`@/` had no vitest alias**, so no route handler under `app/` could be imported
+by a test at all — which is how the API's route table would have gone uncovered.
+Added, with the reason at the line.
+
+**Fixture mode closes the API rather than opening it.** A sample-data board has
+no token store, and the honest answer to "authenticate this token" with no store
+is no. A demo that accepted any token would be a demo with an authentication
+bypass in it.
