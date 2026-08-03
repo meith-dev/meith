@@ -72,8 +72,15 @@ export const GUARDS = [
      * machine and the standalone image differ, and it was written against a
      * booted standalone image rather than a dev server. See ADR 0003.
      */
+    /*
+     * F82's `create-forum` joins the exemption for the plainest possible reason:
+     * it is a CLI that runs *before a board exists*, on a real filesystem, and
+     * its `readdir` asks "is this directory empty" — the check that stops it
+     * overwriting somebody's `.git`. Nothing about it makes an installed set
+     * unknowable at build time, which is the harm the rule exists to prevent.
+     */
     allow:
-      /^(scripts\/|apps\/cli\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts|packages\/drivers\/src\/images\/locate-wasm\.ts)/,
+      /^(scripts\/|apps\/cli\/|packages\/create-forum\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts|packages\/drivers\/src\/images\/locate-wasm\.ts)/,
     probe: {
       violates: "const themes = await readdir('./themes')",
       clean: "import themes from './forum.config'",

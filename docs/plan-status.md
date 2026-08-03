@@ -54,8 +54,8 @@ couple of `PARTIAL` rows are an afternoon.
 | 6 — Admin CP | 9 | 7 | 2 | 0 |
 | 7 — Search and discovery | 5 | 2 | 0 | 3 |
 | 8 — Public APIs | 5 | 4 | 1 | 0 |
-| 9 — Ship it | 8 | 0 | 0 | 8 |
-| **Total** | **89** | **63** | **6** | **20** |
+| 9 — Ship it | 8 | 1 | 0 | 7 |
+| **Total** | **89** | **64** | **6** | **19** |
 
 ---
 
@@ -240,7 +240,7 @@ the wired set honest.
 
 | ID | Feature | Status | Evidence / gap |
 |---|---|---|---|
-| F82 | `create-forum` CLI | `TODO` | Existing operator CLI is not a project scaffold. |
+| F82 | `create-forum` CLI | `DONE`* | `packages/create-forum` — `npx create-forum my-board` writes `package.json`, `forum.config.ts`, `.env.example`, `vercel.json`, `.gitignore` and a README with a Deploy-to-Vercel button. **The scaffold is a pure function** from options to a map of path → contents, and the CLI is the thin part that writes it: a generator whose output can only be inspected by running it and looking at a directory is one nobody asserts anything about, so here every file's contents are a value a test reads. **"Push-to-deploy without manual build configuration" decomposes into three things that have each been wrong in this repository**, so each is in the generated tree rather than in prose — the build must not need a database (`next build` prerenders, and a preview deployment has none attached); **the cron must be committed**, which is the difference between a board that works and one that silently stops a month later, because every catch-up operation runs on the tick and when it does not run *nothing fails* (F70's argument one layer out); and the two secrets with no default have to be named where somebody will see them. The **pooler warning is in both files** an operator reads before deploying, with a test asserting it, because the one that matters is whichever they opened first. **A test found a documented command that could not have worked**: the first version evaluated `node -e "…require('crypto')…"` inside the test's own ESM scope and failed with `require is not defined` — true there, false in `node -e` — so it is now spawned exactly as an operator would type it. The command was fine; the test was measuring the wrong context. **The refusal is the important behaviour**: an existing empty directory is fine, one with anything in it (dot files included) is refused with no `--force`, and `.`/`..` are rejected before the name pattern gets a chance, since a project called `..` scaffolds into the parent — the one failure deleting a folder does not undo. 25 tests. See **D88**. *The template's dependencies name `@forum/web` and `@forum/cli` at a pinned version and nothing is published to npm yet, so a scaffolded project cannot `npm install` until F88's release work; the tree, the config and the platform wiring are what F82 owed and they are real. No `/install` route for the button to land on — that is F83. |
 | F83 | Install wizard | `TODO` | No `/install` preflight/setup/self-disable flow. |
 | F84 | Upgrade path | `TODO` | Migrator exists; no versioned core/plugin upgrade command. |
 | F85 | MyBB importer | `TODO` | No importer or legacy-ID mapping. |

@@ -6236,3 +6236,77 @@ Added, with the reason at the line.
 no token store, and the honest answer to "authenticate this token" with no store
 is no. A demo that accepted any token would be a demo with an authentication
 bypass in it.
+
+### D88 — A generator's behaviour is its output, so the output is a value (F82)
+
+`npx create-forum my-board`. Six files, and the interesting decisions are in
+what they contain rather than in the CLI that writes them.
+
+#### The scaffold is a pure function
+
+`scaffold(options)` returns a `Map` of path → contents; `cli.ts` parses argv,
+refuses to destroy anything, and writes it. The split is not ceremony: a
+generator whose output can only be inspected by running it and looking at a
+directory is a generator nobody asserts anything about. Here every file's
+contents are a value a test can read, and the CLI's own suite is left to cover
+the three things that need a filesystem — writing, refusing, and the repository
+override.
+
+#### What "push-to-deploy without manual configuration" actually requires
+
+Three things, each of which has been wrong in this repository at some point, so
+each is in the generated tree rather than in prose:
+
+- **the build must not need a database.** `next build` prerenders; a build that
+  opens a connection fails on a preview deployment with none attached. The
+  generated project builds in fixture mode, exactly as CI does.
+- **the cron must be committed.** This is the one that would otherwise be a
+  README step, and it is the difference between a board that works and one that
+  silently stops doing anything a month later. Every catch-up operation runs on
+  the tick — bans expiring, digests sending, counters reconciling — and when it
+  does not run, *nothing fails*. `vercel.json` ships with it (F70's argument,
+  applied one layer out).
+- **the secrets must be named where somebody will see them.** `AUTH_SECRET` and
+  `TICK_SECRET` have no default on purpose, so they are in `.env.example` with
+  the command that generates one.
+
+#### The pooler warning is in both files somebody reads before deploying
+
+It is the one operational mistake that looks like a database problem and is not:
+on the direct connection string a serverless board works in testing and starts
+refusing connections under the first real traffic, with an error naming the
+database rather than the cause. It is in `.env.example` and in the README, and a
+test asserts it is in both — because the file people read is whichever one they
+opened first.
+
+#### A test found a documented command that could not have worked
+
+`.env.example` tells the operator to run
+`node -e "console.log(require('crypto')…)"`. The first version of the test
+evaluated that snippet inside the test's own ESM scope and failed with `require
+is not defined` — which is true there and false in `node -e`, where the default
+scope is CommonJS.
+
+Evaluating a command somewhere it does not run is not a test of anything, so it
+is now **spawned**, exactly as an operator would type it. The command was fine;
+the test was measuring the wrong context, which is a distinction worth keeping
+because the next documented command might not be.
+
+#### The refusal is the important behaviour
+
+An existing *empty* directory is fine — `mkdir my-board && cd ..` is how half of
+people start. A directory with anything in it, including dot files, is refused
+outright, with no `--force`.
+
+Overwriting somebody's `.git` or their existing `.env` is the single worst thing
+this tool could do, and "it asked first" is no defence when the prompt is one
+flag away from being skipped. `.` and `..` are rejected before the name pattern
+gets a chance, because a project called `..` scaffolds into the parent directory
+— the one failure of a generator that deleting a folder does not undo.
+
+#### One eslint exemption, and why it belongs
+
+`packages/create-forum` joins `scripts/`, `apps/cli` and `apps/worker` in the
+`no-console` exemption. It is a console program in the same sense as those: it
+prints to a terminal and exits, and it runs *before a board exists* and therefore
+before there is any validated `env` to log through.

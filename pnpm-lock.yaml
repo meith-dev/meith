@@ -312,6 +312,8 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  packages/create-forum: {}
+
   packages/db:
     dependencies:
       '@forum/accounts':
