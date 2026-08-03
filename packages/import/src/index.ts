@@ -50,3 +50,12 @@ export {
   type RunOptions,
   type WriteResult,
 } from './run'
+
+/* F86 — the MyBB URL table. Here rather than in its own package because it is
+ * the same compatibility concern as the import and reads the map the import
+ * writes: `legacy_ids`. */
+export {
+  legacyRedirectPath,
+  resolveLegacyUrl,
+  type LegacyTarget,
+} from './legacy-urls'

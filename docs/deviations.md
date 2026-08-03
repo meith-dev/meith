@@ -6633,3 +6633,93 @@ full reads once more and gets nothing. The runner was handing that empty array t
 the sink — a no-op write per kind per run, and against Postgres a transaction per
 kind for the privilege. Caught by the chunking test's call log, which is the
 assertion that exists to see calls rather than results.
+
+### D92 — Carrying somebody else's password hashes, and somebody else's URLs (F86)
+
+Two halves, and both exist because the alternative loses something that cannot
+be recovered after migration day.
+
+#### The hashes: one comparison against losing your quiet members
+
+MyBB's scheme is `md5(md5(salt) . md5(password))`, which is not a password hash
+by any modern standard. Carrying it is still right: the alternative is forcing
+every member through a password reset, and the people who do not read the e-mail
+simply stop being members. The plaintext is not in the export, so verify-and-
+upgrade is the only way to migrate a hash at all.
+
+**The upgrade half needed no new code.** `needsRehash` already returns true for
+anything that is not a current-policy Argon2id hash, so the login service
+replaces a legacy hash on the first successful sign-in and the row stops being a
+liability. F17's design anticipated this exactly.
+
+Dispatch is on the **prefix**, never on the shape. A bare 32-character hex string
+is not treated as a password hash, because that is precisely what an unprefixed
+legacy column looks like, and "verify anything of the right shape" is how an
+unrelated hex field becomes a login.
+
+The parser refuses an **empty salt**, and that is the case worth naming: MyBB's
+algorithm with an empty salt is a *valid* hash of every password under a known
+constant, so an accepting parser turns one corrupt row into an account anybody
+can log into. Stored hex is compared case-insensitively, because PHP
+installations differ and a migration that failed for half a board over letter
+case would be almost undiagnosable from "incorrect password".
+
+#### The URLs: a table, because the links are on other people's servers
+
+A forum's inbound links accumulate for years — search results, other forums'
+posts, bookmarks, e-mails from 2013 — and an import that changes every address
+without redirecting throws that away permanently. Unlike most migration mistakes
+it cannot be fixed later.
+
+So the parser is **pure**: path plus query in, `{ kind, legacyId }` out, with the
+id lookup and the redirect in the app. That is what makes every form a row in a
+table-driven test rather than a route somebody has to exercise by hand.
+
+MyBB serves the same page under several addresses — the bare script, the script
+with a post anchor, the "SEO" rewrite, the rewrite with a page — and boards
+turned the rewrites on at different times, so a real board's history contains
+**all** of them. Handling only the modern shape misses the older half.
+
+**The slug is ignored entirely.** MyBB regenerates it from the subject, so
+matching on it would break every link to a thread that was ever renamed. Only the
+id is read.
+
+**A post anchor beats a page number.** MyBB's `pid` means "this specific post",
+and this board pages by post id (F31), so `?post=` lands on the right page *and*
+the right post — where copying the page number across would be correct only if
+both boards paginated identically, which they do not.
+
+#### An unresolvable legacy URL is a 404, deliberately
+
+Not a redirect to the index. A soft 404 reads to a crawler as a real page, so
+every broken old link would sit in the index forever pointing at a front page —
+worse for the board than the honest answer, and it hides the breakage from
+whoever could fix it. `/member.php?action=login` resolves to nothing for the same
+reason: a bookmark of a login form is not a member's profile.
+
+The eleven refusals are rows in the table too, because "what this deliberately
+does not match" is as much of the contract as what it does.
+
+#### Off by default, and `permanentRedirect` rather than `redirect`
+
+A board that was never a MyBB board should not answer `/showthread.php` — that is
+a fingerprint of software it is not running — so the setting defaults to off and
+the check happens *before* any lookup, so the answer is identical to any unknown
+path.
+
+The redirect is `permanentRedirect`. Next's `redirect` is a **307**, and its
+second argument is push-versus-replace rather than permanence — an easy thing to
+reach for and get wrong, and the first version of this file did. A temporary
+redirect transfers none of the link equity that made the feature worth building.
+
+Permanence is also why the toggle matters: browsers cache a 301 aggressively, so
+switching it on is a decision rather than a default.
+
+#### The settings registry caught a convention violation
+
+The setting was written as `legacy.redirects` in the `board` group, and
+`admin-settings.test.ts` failed: the ACP navigates by group and a test pins that
+a setting's key prefix agrees with it. Renamed to `board.legacy_redirects`.
+
+A convention with a test behind it is a convention; without one it is a habit
+that half the registry follows.

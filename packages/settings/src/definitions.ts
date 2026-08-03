@@ -254,6 +254,33 @@ export const SETTING_DEFINITIONS = [
     default: true,
     invalidates: ['settings'],
   }),
+  /*
+   * F86. Off by default, and that is the honest default: a board that was never
+   * a MyBB board should not carry routes for somebody else's URL scheme, and a
+   * `/showthread.php` that answers on a fresh install is a fingerprint of
+   * software the board is not running.
+   *
+   * An import turns it on. It stays a setting rather than being inferred from
+   * "has anything been imported", because an operator who imported once and has
+   * since rebuilt should be able to stop serving the old shapes.
+   */
+  define({
+    /*
+     * `board.` rather than `legacy.`, because a setting's key prefix and its
+     * group have to agree — the ACP navigates by group and a test pins the
+     * correspondence. The first version of this entry was `legacy.redirects` in
+     * the `board` group and that test caught it, which is the registry's
+     * convention doing exactly what it is for.
+     */
+    key: 'board.legacy_redirects',
+    group: 'board',
+    label: 'Redirect old MyBB URLs',
+    description:
+      'Answer MyBB addresses (showthread.php, Thread-Title-91 and the rest) with a 301 to ' +
+      'the imported content. Needs an import: the redirect is a lookup in the legacy id map.',
+    schema: z.boolean(),
+    default: false,
+  }),
   define({
     key: 'search.flood_seconds',
     group: 'search',

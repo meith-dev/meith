@@ -1,5 +1,7 @@
 import { argon2id, argon2Verify } from 'hash-wasm'
 
+import { isLegacyHash, verifyMybbPassword } from './legacy'
+
 /**
  * Argon2id cost parameters. One source of truth; `needsRehash` compares a
  * stored hash's embedded parameters against these, so raising a value here is
@@ -62,6 +64,20 @@ export async function verifyPassword(
   encodedHash: string | null | undefined,
 ): Promise<boolean> {
   if (!encodedHash) return false
+
+  /*
+   * F86. A hash imported from MyBB takes the legacy verifier, dispatched on its
+   * prefix rather than guessed from its shape — a bare 32-character hex string
+   * is never treated as a password hash, because that is what an unprefixed
+   * legacy column looks like and "verify anything of the right shape" is how an
+   * unrelated field becomes a login.
+   *
+   * Nothing else changes: `needsRehash` already returns true for anything that
+   * is not a current-policy Argon2id hash, so the caller replaces this on the
+   * first successful sign-in and the row stops being a liability.
+   */
+  if (isLegacyHash(encodedHash)) return verifyMybbPassword(password, encodedHash)
+
   try {
     return await argon2Verify({ password, hash: encodedHash })
   } catch {
