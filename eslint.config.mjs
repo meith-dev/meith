@@ -180,6 +180,12 @@ export default tseslint.config(
       'scripts/**',
       'apps/cli/**',
       'apps/worker/**',
+      /*
+       * F82. `create-forum` is a console program in the same sense: it prints to
+       * a terminal and exits, and it runs before a board — and therefore before
+       * any validated env — exists at all.
+       */
+      'packages/create-forum/**',
       '**/*.config.{ts,mts,mjs,js,cjs}',
       '**/drizzle.config.ts',
       '**/*.test.ts',

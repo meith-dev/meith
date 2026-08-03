@@ -62,6 +62,13 @@ export default defineConfig({
       // Next injects `server-only`; there is no bundler boundary under vitest,
       // so alias it to a harmless stub to let server modules be tested directly.
       'server-only': resolve(root, 'tests/stubs/server-only.ts'),
+      /*
+       * F81: `@/` is the app's own alias and is deliberately absent from
+       * tsconfig.base.json (see the depcruise webpack config, D82). Without it
+       * here, a route handler under `app/` cannot be imported by a test at all —
+       * which is how the API's route table would have gone uncovered.
+       */
+      '@': resolve(root, 'apps/forum/src'),
     },
   },
   test: {
@@ -70,6 +77,15 @@ export default defineConfig({
     include: [
       'packages/**/*.test.ts',
       'apps/**/*.test.ts',
+      /*
+       * F77: themes are workspace packages and were the one tier with nowhere to
+       * put a test. Their coverage lived in `apps/forum` (the token sync test),
+       * which meant a theme could not assert anything about itself — and F78
+       * ships a second one whose whole job is to prove the contract holds for a
+       * theme that is not the default.
+       */
+      'themes/**/*.test.ts',
+      'plugins/**/*.test.ts',
       'tests/**/*.test.ts',
     ],
     exclude: ['**/node_modules/**', '**/.next/**'],

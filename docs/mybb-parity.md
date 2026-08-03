@@ -1287,3 +1287,73 @@ and revisit others.
 **Cost:** a chunk request costs one skip into the primary-key index to find its
 own starting id — the only OFFSET in this codebase — because the index names the
 chunks by number before any of them exists. It is paid by crawlers, not readers.
+
+## The BBCode parity pass (F87)
+
+The corpus is `packages/bbcode/src/parity.test.ts`. Every case below is a
+difference asserted there, so this document and the renderer cannot disagree
+without a test failing.
+
+**No MyBB source artefacts are copied**, and that is not only a licensing rule:
+MyBB's parser is a pile of regular expressions accumulated over fifteen years,
+and reproducing them would reproduce their bugs as though the bugs were the
+specification. The corpus is written from the *observable* side — the BBCode
+people actually type, the shapes that appear in real posts — and every case is a
+claim about what a reader sees.
+
+### Where parity is exact
+
+Bold, italic, underline, strikethrough, quote, code, list, and case-insensitive
+tag names. `[B]` matters more than it looks: boards are full of it, and a parser
+that matched only lower case would render fifteen years of emphasis as literal
+text.
+
+### Difference: URLs and CSS this renderer refuses
+
+**MyBB:** has historically rendered `[url=javascript:…]`, `[img]data:…[/img]`
+and `[color=red;background:…]` with varying degrees of filtering by version.
+
+**Here:** refused. The tag is dropped and its content survives as escaped text —
+no anchor, no image element, no attribute.
+
+**Why:** each is an XSS in a forum post, and "MyBB renders it" is a description
+of MyBB's history rather than a requirement.
+
+**Cost:** an imported post containing one shows the URL as text instead of a
+link. That is the intended outcome, and it is visible rather than silent.
+
+### Difference: malformed input is handled consistently
+
+**MyBB:** leaves an unclosed tag as literal text in some contexts and swallows it
+in others, depending on which regular expression ran first. Its behaviour on
+crossed tags (`[b][i]x[/b][/i]`) likewise depends on the order of replacement.
+
+**Here:** the input is parsed, so the answer is the same everywhere. An unclosed
+tag renders as text; a crossed pair keeps its content; a stray closing tag does
+not eat the line.
+
+**Why:** consistency is worth more than bug-compatibility here, and the rule is
+chosen so nothing is silently dropped — a post whose second half vanished is
+worse than a post with a visible `[b]` in it.
+
+**Cost:** posts that relied on MyBB's particular recovery may render slightly
+differently. In every case the text is present.
+
+### Difference: an unknown tag renders as text
+
+**MyBB:** drops unknown tags in some paths.
+
+**Here:** an unknown tag is text, and its content is kept.
+
+**Why:** dropping is the worse default. A plugin tag that stopped being installed
+would silently erase whatever it wrapped, and nobody would know which posts were
+affected.
+
+### Gap: tags MyBB has and this board does not
+
+`[table]`, `[align]`, `[font]`, `[video]`, `[spoiler]`. Their content renders as
+text, which is legible; a tag that vanishes takes its content with it.
+
+The corpus pins the current behaviour, so implementing one is a deliberate change
+to that file rather than something that quietly starts working. `[table]` and
+`[align]` are the two most likely to matter on an imported board.

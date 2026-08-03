@@ -6,12 +6,13 @@
  * binding to its module to check which side of the server/client boundary the
  * implementation is on, and a slot map assembled dynamically cannot be checked.
  *
- * **This theme is deliberately incomplete.** The shell (F27), the reading
- * surfaces (F29–F34) and the composer (F39) are filled; the rest are
- * unimplemented because the pages they belong to are not built (F40–F45). That
- * is the normal state for this phase: `resolveTheme` reports what is missing and `requireSlot` names
- * the slot if a page asks for one that is not there, rather than a theme shipping
- * placeholder components that look like features.
+ * **This theme satisfies theme-kit v1 (F77) and is still not complete**, and the
+ * difference is the freeze: it fills every `stable` slot, and leaves the two
+ * `provisional` ones — `QuickReply` and `EditorToolbar` — unimplemented, because
+ * F45 does not exist and a placeholder island would look like a feature.
+ * `assertThemeContract` in `apps/forum/src/server/theme.ts` fails the boot if a
+ * required slot ever goes missing; `resolveTheme` still reports the provisional
+ * pair as missing, which is accurate.
  */
 
 import { defineTheme } from '@forum/theme-kit'
@@ -36,6 +37,7 @@ import { PostBit } from './slots/post-bit'
 import { PostForm } from './slots/post-form'
 import { PostActions } from './slots/post-actions'
 import { MemberProfile } from './slots/member-profile'
+import { SearchForm } from './slots/search-form'
 import { RedirectNotice } from './slots/redirect-notice'
 import { ErrorNotice } from './slots/error-notice'
 
@@ -68,6 +70,8 @@ export const defaultTheme = defineTheme({
     PostForm,
 
     MemberProfile,
+
+    SearchForm,
 
     RedirectNotice,
     ErrorNotice,

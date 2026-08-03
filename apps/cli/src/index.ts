@@ -131,6 +131,34 @@ const commands: Command[] = [
   },
 
   {
+    name: 'upgrade',
+    summary: 'Apply core and plugin migrations, then record the version.',
+    usage: 'forum upgrade [--dry-run]',
+    async run(args: readonly string[]) {
+      const { assertEnv } = await import('@forum/core')
+      const env = assertEnv()
+
+      if (env.DATA_SOURCE !== 'postgres') {
+        console.error('Nothing to upgrade: DATA_SOURCE is "fixture". Set DATABASE_URL first.')
+        return 1
+      }
+
+      const { upgrade } = await import('./upgrade')
+      return upgrade({
+        dryRun: args.includes('--dry-run'),
+        /*
+         * Empty, and honestly so: `forum.config.ts` lives in the board's project
+         * and an operator CLI installed from npm has no path to it. Plugin
+         * migrations are applied by the board's own upgrade entry point; this
+         * command handles core, which is what an operator at a terminal has.
+         */
+        plugins: [],
+        log: (line) => console.log(line),
+      })
+    },
+  },
+
+  {
     name: 'settings:list',
     summary: 'Print the setting registry with default values.',
     async run() {

@@ -94,3 +94,12 @@ export type {
   Clock,
   NewAccount,
 } from './ports'
+
+/* F86 — MyBB's password scheme, for verify-and-upgrade on the first sign-in. */
+export {
+  MYBB_PREFIX,
+  isLegacyHash,
+  parseMybbHash,
+  verifyMybbPassword,
+  type LegacyMybbHash,
+} from './crypto/legacy'

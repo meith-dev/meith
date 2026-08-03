@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import { requireAdmin } from '@/server/admin'
-import { configuredPlugins } from '@/server/plugin-admin'
+import { configuredPlugins } from '@/server/plugin-host'
 
 export const metadata: Metadata = { title: 'Plugins' }
 

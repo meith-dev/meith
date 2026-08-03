@@ -106,6 +106,9 @@ importers:
       '@forum/admin':
         specifier: workspace:*
         version: link:../../packages/admin
+      '@forum/api':
+        specifier: workspace:*
+        version: link:../../packages/api
       '@forum/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
@@ -130,6 +133,9 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../../packages/groups
+      '@forum/install':
+        specifier: workspace:*
+        version: link:../../packages/install
       '@forum/messages':
         specifier: workspace:*
         version: link:../../packages/messages
@@ -139,6 +145,9 @@ importers:
       '@forum/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
+      '@forum/plugin-kit':
+        specifier: workspace:*
+        version: link:../../packages/plugin-kit
       '@forum/posts':
         specifier: workspace:*
         version: link:../../packages/posts
@@ -172,6 +181,9 @@ importers:
       '@forum/theme-kit':
         specifier: workspace:*
         version: link:../../packages/theme-kit
+      '@forum/theme-midnight':
+        specifier: workspace:*
+        version: link:../../themes/midnight
       '@forum/threads':
         specifier: workspace:*
         version: link:../../packages/threads
@@ -265,6 +277,12 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/api:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/attachments:
     dependencies:
       '@forum/core':
@@ -297,6 +315,8 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  packages/create-forum: {}
+
   packages/db:
     dependencies:
       '@forum/accounts':
@@ -305,6 +325,9 @@ importers:
       '@forum/admin':
         specifier: workspace:*
         version: link:../admin
+      '@forum/api':
+        specifier: workspace:*
+        version: link:../api
       '@forum/attachments':
         specifier: workspace:*
         version: link:../attachments
@@ -426,6 +449,17 @@ importers:
 
   packages/groups: {}
 
+  packages/import: {}
+
+  packages/install:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+
   packages/messages:
     dependencies:
       '@forum/bbcode':
@@ -449,6 +483,19 @@ importers:
       '@forum/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/plugin-kit:
+    dependencies:
+      '@forum/theme-kit':
+        specifier: workspace:*
+        version: link:../theme-kit
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.14
 
   packages/posts:
     dependencies:
@@ -623,8 +670,39 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
 
+  packages/upgrade: {}
+
+  plugins/reference:
+    dependencies:
+      '@forum/plugin-kit':
+        specifier: workspace:*
+        version: link:../../packages/plugin-kit
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.14
+
   themes/default:
     dependencies:
+      '@forum/theme-kit':
+        specifier: workspace:*
+        version: link:../../packages/theme-kit
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.14
+
+  themes/midnight:
+    dependencies:
+      '@forum/theme-default':
+        specifier: workspace:*
+        version: link:../default
       '@forum/theme-kit':
         specifier: workspace:*
         version: link:../../packages/theme-kit

@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/server/admin'
+import { pendingUpgradeNotice } from '@/server/upgrade-notice'
 import { getContainer } from '@/server/container'
 import { formatTime } from '@/view/time'
 
@@ -23,8 +24,21 @@ export default async function AdminHomePage() {
   const recent = adminLog === null ? [] : await adminLog.list({ limit: 5 })
   const now = new Date()
 
+  /* F84. `null` on a current board — a panel that always says "fine" stops being read. */
+  const upgradeNotice = await pendingUpgradeNotice()
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
+      {upgradeNotice !== null && (
+        <p
+          role="alert"
+          className="rounded-md border border-thread-pinned bg-muted px-3 py-2 text-sm"
+        >
+          <span className="font-mono text-xs uppercase text-muted-foreground">upgrade · </span>
+          {upgradeNotice}
+        </p>
+      )}
+
       <section className="flex flex-col gap-2">
         <h1 className="font-serif text-2xl font-semibold">Overview</h1>
         <p className="text-sm text-muted-foreground">

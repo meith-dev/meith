@@ -171,6 +171,21 @@ export interface PrefixModel {
   readonly token: string | null
 }
 
+/**
+ * One choice in a `<select>` or a radio group, with the current one marked.
+ *
+ * `isSelected` rather than a separate `selected` field on the parent: a theme
+ * renders options in a loop, and "which of these is current" answered per option
+ * is one comparison the theme does not have to write — and cannot write wrongly
+ * by comparing a string to a number.
+ */
+export interface OptionModel {
+  /** Submitted as the form value. Opaque to the theme. */
+  readonly value: string
+  readonly label: string
+  readonly isSelected: boolean
+}
+
 /* ------------------------------------------------------------------ *
  * Listing models
  * ------------------------------------------------------------------ */
@@ -431,6 +446,15 @@ export interface BoardIndexModel {
     readonly categories: ReactNode
     readonly stats: ReactNode
     readonly online: ReactNode
+    /**
+     * F80's `index.footer` region: whatever plugins contributed, already
+     * rendered and ordered by the host.
+     *
+     * Optional, which is what makes this a **minor** addition under the v1
+     * policy — a theme written against 1.0 keeps compiling and simply does not
+     * render plugin output. Every region field below follows the same rule.
+     */
+    readonly plugins?: ReactNode
   }
 }
 
@@ -592,12 +616,45 @@ export interface MemberProfileModel {
   /** F59's custom fields, already filtered by visibility. */
   readonly fields: readonly { readonly label: string; readonly value: string }[]
   readonly actions: readonly LinkModel[]
+  readonly regions?: {
+    /** F80's `profile.panel` region. */
+    readonly plugins?: ReactNode
+  }
 }
 
+/**
+ * The search form (F73), reshaped at the v1 freeze (F77).
+ *
+ * It was declared at F25 as `{ action, query, forums: LinkModel[], errorMessage }`
+ * and never rendered — F73 shipped its own form inside the page, so the slot was
+ * a contract nothing had ever tested. Wiring it up is what found the shape wrong:
+ * a filter is a `<select>`, and an option is a value and a label, not an href.
+ * A theme handed `LinkModel[]` would have had to invent the value, most likely by
+ * parsing it out of the URL.
+ *
+ * **`fields` carries the query-parameter names.** Themes never build hrefs (see
+ * `LinkModel`), and a `name="q"` typed into a theme is the same rule broken from
+ * the other end: it hardcodes the app's URL contract into markup the app does not
+ * own, and renaming the parameter silently breaks every installed theme's form
+ * while the page keeps rendering.
+ */
 export interface SearchFormModel {
+  /** Where the form submits. A GET form: a search is a URL. */
   readonly action: string
+  /** The names to give the controls, owned by the app. */
+  readonly fields: {
+    readonly query: string
+    readonly forum: string
+    readonly sort: string
+  }
   readonly query: string
-  readonly forums: readonly LinkModel[]
+  /** The server's limit, so the browser can refuse over-long input first. */
+  readonly maxQueryLength: number
+  /** Forums this viewer may search. The first option is "everywhere". */
+  readonly forums: readonly OptionModel[]
+  readonly sorts: readonly OptionModel[]
+  /** Guidance for an empty form: quoting, exclusion. `null` once submitted. */
+  readonly hint: string | null
   readonly errorMessage: string | null
 }
 
@@ -651,6 +708,10 @@ export interface PostBitSlotModel {
   readonly regions: {
     /** The `PostActions` slot, rendered by the page. */
     readonly actions: ReactNode
+    /** F80's `postbit.badges` region, beside the author's name. */
+    readonly pluginBadges?: ReactNode
+    /** F80's `postbit.footer` region, below the body. */
+    readonly pluginFooter?: ReactNode
   }
 }
 

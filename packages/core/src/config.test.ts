@@ -79,4 +79,35 @@ describe('defineForumConfig', () => {
       defineForumConfig({ themes: { default: theme('default') }, defaultTheme: 'default' }),
     ).not.toThrow()
   })
+
+  /*
+   * F79. The same check the themes get, and for the same reason: every lookup
+   * round-trips through one key or the other. A plugin's settings are stored
+   * under `plugin.<key>.…` and its admin routes are namespaced by it, so a
+   * mismatch makes it configurable under one name and running under another —
+   * with nothing failing, because both names are valid.
+   */
+  it('refuses a plugin whose declared key disagrees with its registration', () => {
+    expect(() =>
+      defineForumConfig({
+        themes: { default: theme('default') },
+        defaultTheme: 'default',
+        plugins: [{ key: 'hello', plugin: { key: 'goodbye' } }],
+      }),
+    ).toThrow(/declares key "goodbye"/)
+  })
+
+  it('accepts a plugin entry that carries no definition', () => {
+    /*
+     * A board may list a plugin it has switched off without the bundler pulling
+     * in its code. The key check must not fire on the absence.
+     */
+    expect(() =>
+      defineForumConfig({
+        themes: { default: theme('default') },
+        defaultTheme: 'default',
+        plugins: [{ key: 'hello', enabled: false }],
+      }),
+    ).not.toThrow()
+  })
 })

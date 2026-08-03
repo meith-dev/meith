@@ -12,7 +12,7 @@ import 'server-only'
  * installing a second theme must be a line in `forum.config.ts` and a redeploy,
  * not an edit to every file that renders a slot.
  */
-import { resolveTheme, type ResolvedTheme } from '@forum/theme-kit'
+import { assertThemeContract, resolveTheme, type ResolvedTheme } from '@forum/theme-kit'
 
 import forumConfig from '../../forum.config'
 
@@ -28,3 +28,17 @@ import forumConfig from '../../forum.config'
 export const activeTheme: ResolvedTheme = resolveTheme(
   forumConfig.themes[forumConfig.defaultTheme]!.theme!,
 )
+
+/**
+ * F77 — a theme with a hole in it fails the deployment, not the page.
+ *
+ * `requireSlot` already throws naming the slot, but it throws on the request
+ * that reaches the page: install a theme missing `MemberProfile` and the board
+ * looks perfect until somebody clicks a username, possibly days later. This runs
+ * at module load, so the same mistake is a boot failure with the whole list in
+ * one message.
+ *
+ * It asks for the **v1 contract**, not for completeness: two slots belong to F45
+ * and no theme can fill them. See `SLOT_STABILITY`.
+ */
+assertThemeContract(activeTheme)

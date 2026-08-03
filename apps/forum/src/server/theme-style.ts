@@ -121,8 +121,62 @@ function declarations(overrides: TokenOverrides): string {
     .join('')
 }
 
-export function renderThemeStyle(tokens: ThemeTokens, rawOverrides: unknown, customCss: string | null): ThemeRuntimeStyle {
+/**
+ * The active theme's own values, as the difference from what is already
+ * compiled into `globals.css` (F78).
+ *
+ * The stylesheet carries **one** theme's tokens — the default's, held to them by
+ * `tokens.test.ts` — because they are compiled at build time and a board picks
+ * its theme at deploy time. So until this existed, installing a second theme
+ * gave you its markup painted in the first theme's palette: every colour wrong,
+ * nothing broken, no error anywhere. That is the gap F78 found, and it is in the
+ * app rather than in `theme-kit`, which is why the second theme needed no core
+ * change.
+ *
+ * Emitted as a **diff**, not as the whole palette. Two reasons, and the second
+ * is the one that matters: a board on the default theme emits nothing at all, so
+ * this costs the common case zero bytes on every page; and a token whose value
+ * this theme did not change is left to the stylesheet, where a future edit to
+ * the compiled default still reaches it.
+ *
+ * Light and dark are separate because they are separate blocks in the cascade —
+ * a theme may differ from the baseline in one scheme and not the other.
+ */
+function themeDefaults(
+  tokens: ThemeTokens,
+  baseline: ThemeTokens,
+): { light: TokenOverrides; dark: TokenOverrides } {
+  const differing = (
+    values: Readonly<Record<string, string>>,
+    against: Readonly<Record<string, string>>,
+  ): TokenOverrides => {
+    const out: Record<string, string> = {}
+    for (const [name, value] of Object.entries(values)) {
+      if (against[name] !== value) {
+        assertSafeTokenValue(name, value)
+        out[name] = value
+      }
+    }
+    return out
+  }
+
+  return { light: differing(tokens.light, baseline.light), dark: differing(tokens.dark, baseline.dark) }
+}
+
+/**
+ * @param baseline - the token values the compiled stylesheet already carries.
+ * Anything equal to it is not re-declared. Defaults to `tokens` itself, which
+ * means "the stylesheet is this theme's" and emits no defaults — the right
+ * answer for a caller previewing overrides rather than rendering a page.
+ */
+export function renderThemeStyle(
+  tokens: ThemeTokens,
+  rawOverrides: unknown,
+  customCss: string | null,
+  baseline: ThemeTokens = tokens,
+): ThemeRuntimeStyle {
   const overrides = validateTokenOverrides(tokens, rawOverrides)
+  const defaults = themeDefaults(tokens, baseline)
   const css = declarations(overrides)
   const lightBackground = overrides.background ?? tokens.light.background
   const darkBackground = overrides.background ?? tokens.dark.background
@@ -132,13 +186,31 @@ export function renderThemeStyle(tokens: ThemeTokens, rawOverrides: unknown, cus
     throw new Error('Theme background tokens must be sRGB hex or OKLCH colours.')
   }
 
+  /*
+   * Order is the cascade, and it is the whole correctness argument: the theme's
+   * own values first, then the board's overrides on top of them, then custom
+   * CSS. Emitting the overrides first would let a theme default win over the
+   * operator's explicit choice, which is F26's rule inverted.
+   *
+   * The media selector matches the fallback block in globals.css, so both
+   * layers win even when the board follows the operating system scheme.
+   */
+  const scoped = (declared: string): string =>
+    declared === ''
+      ? ''
+      : `:root{${declared}}.dark{${declared}}@media (prefers-color-scheme: dark){:root:not(.light){${declared}}}`
+
+  const lightDefaults = declarations(defaults.light)
+  const darkDefaults = declarations(defaults.dark)
+
   return {
-    // The media selector matches the fallback block in globals.css, so an
-    // override wins even when the board follows the operating system scheme.
     css:
-      css === ''
-        ? validateCustomCss(customCss) ?? ''
-        : `:root{${css}}.dark{${css}}@media (prefers-color-scheme: dark){:root:not(.light){${css}}}${validateCustomCss(customCss) ?? ''}`,
+      (lightDefaults === '' ? '' : `:root{${lightDefaults}}`) +
+      (darkDefaults === ''
+        ? ''
+        : `.dark{${darkDefaults}}@media (prefers-color-scheme: dark){:root:not(.light){${darkDefaults}}}`) +
+      scoped(css) +
+      (validateCustomCss(customCss) ?? ''),
     browserThemeColor: { light, dark },
   }
 }

@@ -50,6 +50,14 @@
       "@forum/posts/*": ["../../packages/posts/src/*"],
       "@forum/bbcode": ["../../packages/bbcode/src/index.ts"],
       "@forum/bbcode/*": ["../../packages/bbcode/src/*"],
+      "@forum/plugin-reference": ["../../plugins/reference/src/index.ts"],
+      "@forum/import": ["../../packages/import/src/index.ts"],
+      "@forum/upgrade": ["../../packages/upgrade/src/index.ts"],
+      "@forum/install": ["../../packages/install/src/index.ts"],
+      "@forum/api": ["../../packages/api/src/index.ts"],
+      "@forum/api/*": ["../../packages/api/src/*"],
+      "@forum/plugin-kit": ["../../packages/plugin-kit/src/index.ts"],
+      "@forum/plugin-kit/*": ["../../packages/plugin-kit/src/*"],
       "@forum/theme-kit": ["../../packages/theme-kit/src/index.ts"],
       "@forum/theme-kit/*": ["../../packages/theme-kit/src/*"],
       "@forum/ui": ["../../packages/ui/src/index.ts"],
@@ -58,6 +66,8 @@
       "@forum/shared/*": ["../../packages/shared/src/*"],
       "@forum/theme-default": ["../../themes/default/src/index.ts"],
       "@forum/theme-default/*": ["../../themes/default/src/*"],
+      "@forum/theme-midnight": ["../../themes/midnight/src/index.ts"],
+      "@forum/theme-midnight/*": ["../../themes/midnight/src/*"],
       /*
        * Needed even though the app never imports it: this config compiles
        * `../../packages/**`, which includes package *tests*, and those import

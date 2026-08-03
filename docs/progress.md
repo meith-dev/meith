@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D63. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D91. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -17,10 +17,13 @@ this file.
 
 ## Gate state (all green)
 
-`pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
-+ **guard probes**, the **slot server/client boundary** check + its probe,
-dependency-cruiser (386 modules, 0 violations), typecheck (root **and** app),
-**2457 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+`pnpm verify` → exit 0: workspace integrity, textual invariants (nine guards,
+F47's included) + **guard probes**, the **slot server/client boundary** check +
+its probe, the **three generated-reference staleness gates** (F77's
+`docs/theme-slots.md`, F79's `docs/plugin-hooks.md` and F81's `docs/rest-api.md` — a contract change that
+does not update its published reference fails CI), dependency-cruiser (560
+modules, 0 violations), typecheck (root **and** app), **3680 tests** (a large
+share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
 `/notifications/preferences`, `/subscriptions`, `/unsubscribe` and the five
@@ -741,268 +744,71 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-**Phase 6 is one of nine, and the rest are unblocked** — F64, F65, F66, F67,
-F68, F69 and F70 all depend only on F63 (plus F08/F21/F26/F38, all done). F71
-additionally needs F42.
+### Phase 9 is closed. Every plan feature has been attempted; two need a human.
 
-**F64 is done** (D68). The screen is generated from F08's registry and names no
-setting; the control kind is derived from `typeof default` rather than declared,
-so it cannot drift from the schema that validates. Two things in it are worth
-carrying forward to F65–F71: the hidden `keys` field, without which a save from
-a filtered screen reads every unseen checkbox as `false` and switches off the
-features behind them; and the rule that the audit log records *which* settings
-changed and never what they became, because a value can be a secret and the log
-is read by more people than can edit it.
+**F89 is done** (D94), and with it the last `TODO` in the roadmap. The board it
+was measured against was real: 2,343,847 posts, 100,030 threads, 20,000 users,
+longest thread 14,741 posts, on Postgres 16. Nine of ten scenarios land between
+2% and 76% of budget, and both keyset claims hold at scale.
 
-`invalidates` also has a caller for the first time since F08 wrote it.
+**Two open questions are the only things left, and both are yours.** Neither can
+be resolved unilaterally under the working rules, and each blocks a `PARTIAL`:
 
-**F65 is done** (D69), including the two things it was `PARTIAL` for. Moderator
-appointments gave `forum_moderators` its first writer — it gained a reader in
-F48 and could only be configured with SQL until now — and create/move now sit on
-F16's forest-locked repository methods.
+1. **Question 5 — a MySQL client, for F85's importer.** A runtime dependency.
+   Everything else about the import is built and tested: the mapping, the
+   ordering, the chunking, the resumability, the idempotency and the counter
+   comparison. Recommendation: `mysql2` behind the existing port.
+2. **Question 6 — bounding search relevance, for F89's one budget violation.**
+   A relevance search for a term matching 96% of posts costs 5.5 s; the same
+   path over 1,171 matches costs 35 ms. Not an index — `ts_rank_cd` has to score
+   every match before it can name the top twenty. Bounding the candidate set
+   measured 140 ms but changes what a member sees. Recorded as a `limit` so it
+   cannot get worse quietly.
 
-The matrix is worth reading before touching anything permission-shaped: a cell
-is three states because null means inherit, every cell says what it resolves to
-and from where, and a row resolves for its own group rather than for the
-combination the Authorizer would compute. The copy is previewed cell by cell and
-re-authenticated, which is the first use of F63's `requireFreshAdmin` outside
-F63 itself.
+**The other `PARTIAL` rows** (F81's webhooks, and the phase 0–8 entries) are
+listed with their gaps in `plan-status.md` and need no decision — they are work.
 
-**F66 is done** (D70): the group grid, a per-group permission editor, the
-promotion dry run, and a chunked mass-membership screen.
+**Also outstanding from F82:** nothing in this monorepo is published to npm, so a
+scaffolded project cannot yet `npm install`. A release task, not a feature.
 
-**Phase 6 is 4 of 9 with nothing partial in it.**
+### How to re-run the performance pass
 
-Three things in F66 are worth carrying into F67–F71.
+```sh
+docker compose -f docker-compose.dev.yml up -d
+pnpm forum migrate
+pnpm perf seed                 # ~20 min; --phase posts|counters|search|analyze to resume
+pnpm perf measure --record     # writes docs/perf-results.json
+pnpm perf:docs                 # regenerates docs/performance.md
+```
 
-**A group cell is two states, and that is not an inconsistency with F65.** A
-group's global permissions are R4.1 layer 1 — the bottom of the resolution, with
-nothing above them — so a third state would be an "inherit" that resolves to
-nothing. The corollary is the trap: an off checkbox submits *nothing*, so an
-action that read only the fields that arrived could never turn a permission off.
-Every registry field is read whether it arrived or not. This is the same shape as
-F64's hidden `keys` field arriving at the opposite answer, for the opposite
-reason — F64's screen is filtered and must not touch what it did not show; this
-one shows everything and must write everything.
+`--scale tenth` exercises the harness in a couple of minutes. Only `full` may be
+recorded — `docs/performance.md` says which board a number came from, and a
+number from a tenth-scale board under that heading would be a lie with a
+provenance table attached.
 
-**Every group write bumps `permission_version` inside the same transaction.**
-Not a call the caller could forget: a lost bump leaves resolved actors holding
-permissions that have been revoked. A refused write rolls the bump back with it.
-Any feature that changes a permission input should copy `withVersionBump` rather
-than invent its own pairing.
+Four things from this phase worth carrying:
 
-**A bulk membership change is a resumable run.** 500 members per press on a
-keyset cursor, because one UPDATE over every member holds row locks on `users`
-for the whole run. The cursor lives in a hidden form field, so it resumes with
-no JavaScript — which is the pattern to reuse for anything else in the panel
-that touches every row of a big table (F70's maintenance, F71's content).
+**The two-gate pattern.** F83's installer cannot run twice because two
+*independent* checks say so — the marker and the account count — and either alone
+leaves a hole. When something must happen exactly once, one gate is usually a
+gate with a gap behind it.
 
-**F67 is done** (D71, D72, D73): search, the member screen, activation, the
-board's first ban surface, account merging, pruning and mass mail.
+**"Last, and irreversible" keeps recurring.** The installer's seal and the
+upgrade's version record are both written last, for the same reason: a marker
+written first means a failure halfway leaves a board claiming to be something it
+is not, and the next run does nothing.
 
-**Phase 6 is 5 of 9 with nothing partial in it.**
+**Documentation rots in a direction a script can check.** The prose cannot be
+generated, but "every document is linked and every link resolves" can, and
+`pnpm docs:index:check` now gates it. Writing F88 also produced two invented CLI
+commands and one wrong claim about installer recovery, all three caught by
+reading the source rather than by remembering it.
 
-Four things from it are worth carrying forward.
-
-**The merge map is the pattern to copy for anything that touches every table.**
-The dangerous failure of an account merge is not a wrong update but a column
-nobody remembered, so the reassignment is a *declaration* and a test holds it
-against `information_schema`. It paid for itself twice before shipping: on the
-first run it failed on five denormalised **username** columns that carry a name
-rather than an id, and later it failed on this feature's own `mass_mails`
-migration. If F71 grows anything that fans out across the schema, do this.
-
-**A guard you rename around is a guard you have destroyed.** `last_user_id` on
-`mass_mails` looks like a pointer and is a cursor. Renaming the column until the
-test stopped noticing would have been one line and would have taught the next
-person that the check is an obstacle; instead there is a fifth list holding one
-entry and an argument, and the disjointness assertion keeps it a decision.
-
-**Credentials are never data.** `sessions`, `remember_tokens`,
-`credential_tokens` and `admin_sessions` all carry a `user_id` and all are
-destroyed rather than moved. Any future operation that reassigns rows in bulk
-has to make the same distinction.
-
-**Bulk operations in this panel now share one shape**: a dry run that shows
-rows and not just a count, bounded batches, a cursor in a hidden form field so
-the run resumes without JavaScript, and re-authentication. F66's mass move,
-F67's merge, prune and mass mail are all built this way — F70's maintenance and
-F71's content administration should be too.
-
-**F68 is done** (D74): the theme listing, a token and custom-CSS editor, a
-post-back preview, reset, and exact JSON export/import. `themes` has its first
-writer — the fifth reader-with-no-writer this project has found.
-
-**Phase 6 is 6 of 9 with nothing partial in it.**
-
-Two things in it are worth carrying into F69 and F70.
-
-**A panel that admits a limit beats one that hides it behind a dead control.**
-The roadmap line begins "theme selection" and this panel cannot do it:
-`forum.config.ts` is the build-time registry (invariant 6), `activeTheme` is a
-module-level constant because an `extends` chain cannot change between requests,
-and a switcher would either not work or would cost first paint a database read
-it does not currently need. So the screen spends a paragraph on what installing
-really is — `pnpm add`, a config line, redeploy. **F69 needs exactly this
-paragraph about plugins**, and it is already written here in the words to reuse.
-
-**Validate with the code that renders, not with a copy of it.** The editor calls
-F26's own `validateTokenOverrides` and `validateCustomCss` — the functions that
-run on every page against the stored row. A second validator drifts, and the
-direction it drifts is a board going blank on the next request from an
-administrator's own save while the panel reports success. The corollary shaped
-the implementation: submitted fields are read from the *form* rather than from
-the theme's declared token list, because walking the declared names would
-silently drop an undeclared one — the single input where editor and renderer
-would disagree.
-
-Also worth knowing before touching this area: the preview is a **post-back with
-two submits on one form**, not an island, and its style block is scoped to
-`[data-theme-preview]` so previewing an unreadable colour cannot break the form
-that changes it back. And `reset` is deliberately the one destructive-looking
-operation here that is *not* re-authenticated, because reset is the undo — a
-password prompt in front of the recovery path is how somebody stares at a board
-they cannot fix.
-
-**F69, F70 and F71 are done** (D75, D76, D77), and **Phase 6 is finished**: 7
-of 9 complete, 2 partial, nothing untouched. Every section the phase promised
-has a screen, and the panel index no longer names anything it cannot link to.
-
-**Two rows are deliberately PARTIAL, for different reasons.**
-
-**F69 is blocked by F79, and the roadmap has them in the wrong order.** Five of
-its six deliverables — enable/disable, migrations, settings, ACP pages, hook
-health — describe the plugin *lifecycle*, and none of it exists: no hook
-registry, no plugin migration runner, no settings namespace, no way for a plugin
-to contribute a page. The row lists F63 as its dependency; the real one is F79,
-two phases later. That is worth fixing in the roadmap rather than working
-around. What shipped is the half that is true today: the inventory and the
-install story.
-
-**F71 stops where the renderer's vocabulary begins.** The word filter and thread
-prefixes are done; smilies and custom BBCode are not, because both extend what a
-post is allowed to *contain* — a safety decision about the sanitised tag set,
-not a CRUD screen. Attachment administration needs an answer to what deleting
-somebody else's upload does to the post displaying it, and there is no
-announcement model on this board at all.
-
-**Three things from this batch are worth carrying forward.**
-
-**A screen that admits a limit beats a control that does nothing.** F68 said it
-about theme switching, F69 says it about five missing controls, F71 says it
-about smilies. Each names what is absent and what it waits on. The alternative —
-four stubs — is what D32 has refused since Phase 1, and it is easier to justify
-a stub each time than to notice the habit forming.
-
-**Applying at render is what makes a transformation reversible.** F71's word
-filter never touches stored text, so removing a filter restores the word
-everywhere, a bad pattern does no lasting damage, and a new filter applies to
-everything ever written. Anything else that transforms content should be asked
-the same question before it is written to disk.
-
-**An equivalent mutant is a finding, not a nuisance.** F71's filter had a
-defensive `lastIndex` reset that no test could kill, because `String#replace`
-with `/g` resets it already. The line was deleted and the comment rewritten to
-say what is true. A line that cannot be proven by a test will be believed for
-the wrong reason.
-
-**Phase 7 is complete** — F72 through F76, all five `DONE` with the gaps named
-in their rows. Two corrections still belong in `docs/roadmap.md`: F69's
-dependency (F79, not F63), and the fact that F71's smilie/BBCode half also
-depends on a renderer-extension decision that no feature currently owns.
-
-**What Phase 7 was actually about, in one line: the scope plumbing got built
-four times and it came out the same shape each time.** Search (F72), discovery
-(F74), the online list (F75) and the feeds (F76) all resolve "which forums may
-this reader see" from `Authorizer.forumIdsWhere` and turn it into SQL through
-`visibleIn`, with an empty list meaning *nothing* rather than *no filter*. That
-last one is the first assertion in three of the four suites, because it is the
-mutation that turns a permission filter into a board-wide leak and it reads as
-a harmless optimisation in a diff.
-
-**Three things from this phase are worth carrying forward.**
-
-**F47's guard was right about where it could not see.** Its row named search and
-feeds as the two read paths it had nothing to fire on, in Phase 4. It caught
-F72's first version on the first run — a hand-written visibility predicate and
-an invented own-post rule — and F76's leak suite was written as its counterpart
-rather than as an afterthought. A guard that documents its own blind spots is
-what made both of those ordinary work instead of discoveries.
-
-**A check that fires is more often right than the code is.** Four times now the
-answer has been to fix the check's *reach* rather than the code under it: F67's
-merge map caught three later features' own tables, and F76 found that
-dependency-cruiser could not resolve `@/…` at all, so any module imported only
-by a page looked like dead code and every path rule was inert on those edges.
-Exempting the two files would have taken one line and left the hole.
-
-**Mutation verification keeps finding things reviews would not.** F76's JSON-LD
-test failed on its first run because `JSON.stringify` does not escape the
-forward slash — a thread titled `</script>` broke out of the script block. The
-code had a comment claiming it was safe. The test is why that is a paragraph in
-`deviations.md` rather than a vulnerability.
-
-**Phase 8 is next** — F77 (freeze and document the slot/view-model APIs), then
-F78's second theme and F79's plugin lifecycle. F77 is the gate for the rest, and
-two things this phase did to the theme contract are now its problem: F75 changed
-`WhoIsOnlineModel` and `BoardStatsModel` from placeholders to real shapes, and
-F74 gave `HeaderModel.navigation` its first non-empty value since F27. Both were
-free to change because no theme implemented them; after F77 neither is.
-
-The one remaining gap named in F67's row: **no password reset from the panel.**
-An administrator setting somebody's password is an account takeover with a paper
-trail; the panel should trigger F19's existing reset flow, which mails the
-member, and that is a different feature from editing a row.
-
-**F42 is done, and the decision it was waiting on is recorded in
-[ADR 0003](adr/0003-jsquash-image-codecs.md).** `@jsquash` — the Squoosh codecs
-as WebAssembly — is the re-encoder, chosen over `sharp` for the reason ADR 0001
-rejected native Argon2id bindings: per-platform prebuilt binaries against libc,
-which fail at runtime rather than at install. `sharp`'s presence in the tree as
-a transitive of Next's image optimiser is a coincidence and stays one.
-
-The part that cost the most is worth knowing about before touching it.
-`@jsquash` loads its own `.wasm` with `fetch(new URL(…, import.meta.url))`, and
-**there is no configuration in which that works on a Node server**: unbundled,
-Node's `fetch` refuses `file:` URLs; bundled, `import.meta.url` inside a
-Turbopack chunk is the literal string `"unknown"`. So the codecs never
-initialise themselves — `codec.ts` reads, compiles and hands each module to
-`init()`, and `locate-wasm.ts` finds the files, including in the standalone
-output whose `node_modules` contains `.pnpm` and *nothing else*. Three earlier
-attempts passed every test and failed on a booted image, which is the bug class
-D54 exists to record; this one was written against a booted image.
-
-**F58's avatar half is done too** (D67), which was the point of doing F42 when
-it was done: it is mostly reuse. What was not reusable is worth knowing —
-an avatar is *replaced* and an attachment never is, so the repository hands back
-the object it stopped pointing at in the statement that stopped pointing at it,
-and the moderator's lock lives in the `where` so it wins the race against a
-member with the form open. **Phase 5 now has no `PARTIAL` rows left.**
-
-F71 and F45 are also unblocked, and all three can be proven in a browser (D66).
-
-**The standing gap is closed** (D66). The browser suite runs against a real
-Postgres that it starts itself — PGlite behind the wire protocol, nothing to
-install — so `pnpm test:e2e` covers **writing**: a thread and a reply through
-native forms with scripting off, an image attachment that is absent until the
-queue is drained and then downloadable with the right headers, and a file whose
-bytes disagree with its name refused without creating a thread. Seven specs,
-two of them mutation-verified against claims no unit test can reach.
-
-What that changes for everything after this: a feature's browser-level proof is
-now **ordinary work rather than a blocked capability**. Fixture mode still has
-no writers (D38) and that is fine — it is the sample-data mode, and the suite no
-longer depends on it.
-
-The obvious next specs, in rough order of what they would catch:
-
-- **F52's inline moderation.** Its entire claim is that the HTML `form`
-  attribute submits checkboxes that live outside the form, with scripting off.
-  That is a browser behaviour and nothing else can test it.
-- **F57's UserCP and F58's signature**, where a save round-trips through a form
-  and back into a page that renders it.
-- **F60's private messages**, where the bulk bar uses the same `form`-attribute
-  trick and ownership is the whole security model.
+**A measurement harness fails towards looking good.** Every mistake available
+while building F89's — a wrong id, an empty scope, an unindexed corpus, a board
+with no long threads — produces a *fast* number, and a fast number reads as
+success. The `minRows` guard that refuses to time a scenario producing nothing
+caught two of them on the first run. Build the refusal before the measurement.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -1100,7 +906,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D82). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D91). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

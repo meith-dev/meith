@@ -15,6 +15,7 @@
  * between pnpm layouts.
  */
 @source "../../../../themes";
+@source "../../../../plugins";
 @source "../../../../packages/ui/src";
 
 /*

@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@forum/theme-kit'
 
+import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
+
 import { FollowForm } from '@/components/account/subscription-forms'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
 import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
@@ -495,6 +497,64 @@ export default async function ThreadPage({
           description: cardDescription(opening.message, `A discussion in ${forum.title}.`),
         })
 
+  /*
+   * F80. The busiest hooks on the board: `view.post-bit` and `view.post-actions`
+   * run once per post, so twenty posts is forty filter chains. Both are built
+   * here in one pass rather than inside the JSX, so the awaits happen over data
+   * the page already has instead of interleaving with rendering.
+   *
+   * The postbit's two regions are handed the post *and* its author, because the
+   * commonest plugin badge — a role marker, a country flag, a post-count tier —
+   * is about the person rather than the post.
+   */
+  const pluginContext = { ...viewerRef(actor), threadId: thread.id, forumId: forum.id }
+
+  const postModels = await Promise.all(
+    view.posts.map(async (post) => {
+      const actions = await filterView(
+        'view.post-actions',
+        { actions: post.actions, postId: post.id },
+        pluginContext,
+      )
+      return filterView(
+        'view.post-bit',
+        {
+          post,
+          select: selectionFor('post', post.id, `post #${post.number}`, inlineOffered),
+          regions: {
+            actions: <PostActions {...actions} />,
+            pluginBadges: pluginRegion('postbit.badges', {
+              viewer: viewerRef(actor),
+              subjectId: post.id,
+              authorId: post.author.userId,
+            }),
+            pluginFooter: pluginRegion('postbit.footer', {
+              viewer: viewerRef(actor),
+              subjectId: post.id,
+              authorId: post.author.userId,
+            }),
+          },
+        },
+        pluginContext,
+      )
+    }),
+  )
+
+  const pagination = await filterView('view.pagination', view.pagination, viewerRef(actor))
+
+  const threadViewModel = await filterView(
+    'view.thread-view',
+    {
+      ...view.view,
+      regions: {
+        posts: postModels.map((model) => <PostBit key={model.post.id} {...model} />),
+        pagination: <Pagination {...pagination} />,
+        quickReply: null,
+      },
+    },
+    pluginContext,
+  )
+
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       {jsonLd !== null && (
@@ -544,21 +604,7 @@ export default async function ThreadPage({
           />
         </div>
       )}
-      <ThreadView
-        {...view.view}
-        regions={{
-          posts: view.posts.map((post) => (
-            <PostBit
-              key={post.id}
-              post={post}
-              select={selectionFor('post', post.id, `post #${post.number}`, inlineOffered)}
-              regions={{ actions: <PostActions actions={post.actions} postId={post.id} /> }}
-            />
-          )),
-          pagination: <Pagination {...view.pagination} />,
-          quickReply: null,
-        }}
-      />
+      <ThreadView {...threadViewModel} />
       {inlineOffered && (
         <InlineModerationForm
           formId={INLINE_FORM_ID}

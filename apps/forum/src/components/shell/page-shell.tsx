@@ -1,5 +1,6 @@
 import { requireSlot } from '@forum/theme-kit'
 import type { Actor } from '@forum/authorization'
+import { currentRequestId } from '@forum/core/logger'
 
 import { LogoutForm } from '@/components/account/logout-form'
 import { getContainer } from '@/server/container'
@@ -11,6 +12,7 @@ import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
 import { avatarsFor } from '@/server/avatars'
 import { activeTheme } from '@/server/theme'
+import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
 import {
   buildBoardNavigation,
   buildFooterModel,
@@ -135,10 +137,34 @@ export async function PageShell({
    */
   const preferences = await getViewerPreferences()
 
+  /*
+   * F80 — the four shell filters, in the one place every page passes through.
+   *
+   * A plugin that adds a navigation link or a footer link does it here and gets
+   * it on every page, which is the shape a board actually wants; the alternative
+   * — filtering in each layout — is thirty call sites and one of them forgotten.
+   *
+   * The context carries `{ userId, isGuest }` and a request id, never the actor.
+   */
+  const pluginContext = { ...viewerRef(actor), requestId: currentRequestId() ?? null }
+
+  const shellModel = await filterView('view.shell', { boardTitle, viewer }, pluginContext)
+  const headerModel = await filterView('view.header', header, pluginContext)
+  const userPanelModel = await filterView(
+    'view.user-panel',
+    buildUserPanelModel(viewer, { unreadNotifications, unreadMessages }),
+    pluginContext,
+  )
+  const footerModel = await filterView(
+    'view.footer',
+    buildFooterModel([], boardTitle, preferences.timezone),
+    pluginContext,
+  )
+
   return (
-    <Shell boardTitle={header.boardTitle} viewer={viewer}>
-      <Header {...header}>
-        <UserPanel {...buildUserPanelModel(viewer, { unreadNotifications, unreadMessages })}>
+    <Shell boardTitle={shellModel.boardTitle} viewer={shellModel.viewer}>
+      <Header {...headerModel}>
+        <UserPanel {...userPanelModel}>
           {/*
            * Only for a signed-in viewer, and only as a form: log out is a POST to
            * a Server Action, which cannot cross into the theme as data. A theme
@@ -148,9 +174,17 @@ export async function PageShell({
         </UserPanel>
       </Header>
 
+      {/*
+       * F80's `header.notice` region. App-rendered rather than passed to a
+       * theme, and that is the region's definition: it sits *between* the header
+       * and the page body, which is the shell's structure rather than any
+       * theme's — the same reason PageShell is not itself a slot.
+       */}
+      {boardRegion('header.notice', actor)}
+
       {children}
 
-      <Footer {...buildFooterModel([], boardTitle, preferences.timezone)} />
+      <Footer {...footerModel} />
     </Shell>
   )
 }

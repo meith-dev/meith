@@ -17,6 +17,12 @@ import {
   defaultTheme,
   LIGHT_TOKENS,
 } from '@forum/theme-default'
+import {
+  BROWSER_THEME_COLOR as MIDNIGHT_BROWSER_THEME_COLOR,
+  DARK_TOKENS as MIDNIGHT_DARK_TOKENS,
+  LIGHT_TOKENS as MIDNIGHT_LIGHT_TOKENS,
+  midnightTheme,
+} from '@forum/theme-midnight'
 
 export default defineForumConfig({
   themes: {
@@ -31,6 +37,22 @@ export default defineForumConfig({
        * edit to a layout that has a theme's components imported into it.
        */
       theme: defaultTheme,
+    },
+    /*
+     * F78's second theme — registered, not active.
+     *
+     * Switching the board to it is changing `defaultTheme` below and
+     * redeploying; there is no runtime switcher, for the reasons F68 sets out.
+     * Registering it anyway is what makes the promise real rather than
+     * theoretical: `contract.test.ts` reads this map, so midnight is driven
+     * through every stable slot on every CI run whether or not a board uses it.
+     */
+    midnight: {
+      key: 'midnight',
+      title: 'Midnight',
+      tokens: { light: MIDNIGHT_LIGHT_TOKENS, dark: MIDNIGHT_DARK_TOKENS },
+      browserThemeColor: MIDNIGHT_BROWSER_THEME_COLOR,
+      theme: midnightTheme,
     },
   },
   defaultTheme: 'default',

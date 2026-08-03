@@ -201,3 +201,36 @@ export {
 } from './account-repos'
 
 export * from './schema'
+
+/* F81 — the public API's stores. */
+export {
+  PostgresApiTokenRepository,
+  PostgresRateLimitStore,
+  PostgresWebhookRepository,
+  type WebhookDeliveryRow,
+} from './api-repo'
+
+/* F83 — the installer's probes and its one write. */
+export { canConnect, countUsers, isInstalled, markInstalled } from './install-repo'
+
+/* F84 — component versions and the plugin migration runner. */
+export {
+  appliedPluginMigrations,
+  applyPluginMigration,
+  readVersion,
+  readVersions,
+  recordVersion,
+} from './upgrade-repo'
+
+/* F85 — the legacy-id map and the import run's state. */
+export {
+  currentImportRun,
+  finishImportRun,
+  mapLegacyId,
+  resolveLegacyId,
+  resolveLegacyIds,
+  saveImportProgress,
+  startImportRun,
+  type ImportRunRow,
+  type LegacyKind,
+} from './import-repo'

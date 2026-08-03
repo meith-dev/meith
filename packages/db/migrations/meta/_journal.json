@@ -155,6 +155,34 @@
       "when": 1785740220969,
       "tag": "0021_presence_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1785740220970,
+      "tag": "0022_api_tokens_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1785740220971,
+      "tag": "0023_install_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1785740220972,
+      "tag": "0024_component_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1785740220973,
+      "tag": "0025_import",
+      "breakpoints": true
     }
   ]
 }

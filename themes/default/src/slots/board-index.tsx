@@ -35,6 +35,9 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
           {regions.stats}
         </div>
       )}
+
+      {/* F80's `index.footer` region. Absent when no plugin contributes. */}
+      {regions.plugins}
     </div>
   )
 }

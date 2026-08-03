@@ -5645,3 +5645,1278 @@ removed, Atom given RSS's date format, the summary always broken on the last
 space, `lastmod` defaulted to now, the sitemap index rendered as a sitemap, the
 canonical pinned to page 1, `prev` pinned to page 1, and the JSON-LD escape
 removed.
+
+### D83 — A freeze is machinery, not a paragraph; a slot nothing renders is not a contract (F77)
+
+theme-kit v1. Four things fell out of freezing it, and two of them were bugs the
+freeze found rather than decisions it made.
+
+#### `SearchForm` was documented, exported, typed — and rendered by nothing
+
+The slot has existed since F25. F73 built the search page and wrote its own form
+inline, so for four features the registry advertised a region no theme could
+fill and no page would have used if it had. That is worse than an absent slot,
+because it reads as available: somebody writing a theme implements it, and the
+board renders the page's own markup instead, silently.
+
+Freezing it in that state was not an option — a props contract that has never
+been handed to a component is a guess with a version number on it — and neither
+was quietly removing it, because search *is* a themeable region. So the markup
+moved into `themes/default/src/slots/search-form.tsx` and the page builds the
+model.
+
+Wiring it is what found the model wrong. `SearchFormModel.forums` was
+`readonly LinkModel[]`, and a forum filter is a `<select>`: an option is a value
+and a label, not an href. A theme handed links would have had to invent the
+submitted value, most likely by parsing it back out of the URL. It is now
+`OptionModel[]`, with `isSelected` per option so the theme writes no comparison,
+and the query-parameter names travel in `fields` — a `name="q"` typed into a
+theme is the app's URL contract hardcoded into markup the app does not own, the
+same rule `LinkModel` exists to enforce, broken from the other end.
+
+**The general point:** the freeze is only worth something for slots that are
+actually rendered. Every stable slot in v1 has a page rendering it and a theme
+filling it. The two that do not — `QuickReply` and `EditorToolbar`, F45's editor
+islands — are marked `provisional` and explicitly excluded, rather than frozen
+optimistically and broken later.
+
+#### The profile page ignored three fields it was handed
+
+`MemberProfileModel` has carried `fields`, `signatureHtml` and `actions` since
+F25. F59 fills the custom fields, F58 the signature, the page the actions — and
+the default theme's `MemberProfile` destructured none of them. A board could
+define a "Location" field, watch members fill it in, and show it only in the
+postbit.
+
+Nothing was broken. No test failed, no page 500'd, no reviewer would see it in a
+diff: a component that ignores a prop looks exactly like one that does not
+receive it. It took the rendering-contract suite — which asks every theme to
+render the values its fixture says a reader is owed — to make the absence
+visible. That is the strongest argument for the suite, and it is the reason its
+`requires` lists are hand-written decisions about what a theme owes rather than
+a generated "every field must appear": the generated version would have caught
+this too, and would also have made every legitimate design choice a failure.
+
+#### Stability is a record, not a boolean, and the exhaustive map is the mechanism
+
+`SLOT_STABILITY` is `Record<SlotName, Stability>`. Adding a slot without
+classifying it is a type error naming the slot — so a new slot cannot arrive
+quietly as "stable", which is what any default would have allowed. The same
+trick as `SlotModels`, in a different dimension.
+
+`DEPRECATIONS` is empty at v1, correctly: this is the first frozen version, so
+there is no earlier promise to withdraw. The machinery around it is not empty,
+and it is tested against fixtures rather than against the shipped list — a
+policy engine whose only input is `[]` has never run (D10). Five refusals, each
+with a mutant: an unknown slot, a `Model.field` that is not one, a removal
+scheduled for a minor, a removal in the same major it was deprecated in, and a
+schedule that disagrees with the stability mark in either direction.
+
+The load-bearing one is the fifth check: **a removal that has fallen due fails
+the build**. Reaching the major named in `removeIn` with the thing still present
+throws. Without it, "will be removed in the next major" is a sentence that
+accumulates rather than a schedule — which is the normal fate of a deprecation
+notice, and the reason to prefer machinery over a paragraph.
+
+#### The generated reference is a gate, and that is the feature
+
+`docs/theme-slots.md` is written by `scripts/theme-api-docs.mjs` from the three
+files that *are* the contract, and `pnpm theme:docs:check` fails when they
+disagree. Hand-written API documentation is wrong within about two features, and
+wrong in the worst direction: it describes fields that no longer exist, so
+somebody writes a theme against it and finds out at render time.
+
+The consequence is deliberate. **You cannot change the theme contract without
+the documentation change appearing in the same diff** — which is exactly the
+moment a reviewer should be asked whether the change is allowed at all. The
+generator refuses to guess in the same way `slot-kinds.mjs` does: an interface
+member it cannot parse fails the run naming the line, and a parse that finds
+implausibly few slots or models refuses to write anything, because a document
+that looks complete and is missing the field somebody needed is the failure
+being prevented.
+
+#### An unprovable clause, removed rather than kept
+
+The rendering-contract suite asserts a server slot emits no script. The first
+version also matched `\son[a-z]+=` for inline handlers. React strips event
+handlers from static markup entirely, so an `onClick` added to a server slot
+never appears in the rendered string and **no mutation could kill the clause**;
+it was also redundant, since a handler that does anything needs a client
+component, which `slot-kinds.mjs` already refuses. Deleted, with the reasoning
+left at the line. That is the fifth feature in a row to remove a guard it could
+not prove — F71, F73, F75, F76 and now this one.
+
+The `<script` half is provable and stayed: adding a `<script>` element to the
+footer fails the suite, as does an `href=""`.
+
+#### Two smaller things
+
+**Themes had nowhere to put a test.** `themes/**` was not in vitest's include
+list, so the only coverage of the default theme lived in `apps/forum` and a
+theme could assert nothing about itself. Added, and `themes/default` now holds
+its own contract test.
+
+**The theme list in the rendering suite comes from `forum.config.ts`**, not from
+a constant in the test. Registering a theme is therefore also enrolling it in
+the suite — the only version of "CI covers the second theme" that cannot be
+forgotten when the second theme arrives.
+
+### D84 — The second theme rendered in the first theme's colours, and nothing said so (F78)
+
+`midnight`: nineteen slots overridden, four inherited, a palette that shares no
+value with the default's. The acceptance criterion is "materially different,
+with **no core or theme-kit changes**", and the second half held — nothing in
+`packages/` changed. What did change is one thing in `apps/forum`, and it was a
+hole rather than an accommodation.
+
+#### The compiled stylesheet only ever carried one theme
+
+`globals.css` declares every token in `:root` and `.dark`, and
+`apps/forum/src/styles/tokens.test.ts` holds those values to the *default*
+theme's. `renderThemeStyle` emitted the board's database **overrides** and
+nothing else. So a board that switched `defaultTheme` to `midnight` got
+midnight's markup painted in the default theme's palette: every colour wrong,
+the build green, no error anywhere, and no test that could have noticed because
+there had never been a second theme.
+
+That is the F26 cascade with a missing layer. "Theme defaults → DB overrides →
+custom CSS" was true only while "theme defaults" and "the compiled stylesheet"
+were the same thing, which stopped being true the moment a second theme existed.
+
+The fix emits the active theme's values as the **difference** from the compiled
+baseline. As a diff rather than the whole palette for two reasons, and the
+second is the one that matters:
+
+- a board on the default theme emits nothing at all, so the common case pays
+  zero bytes on every page;
+- a token this theme did not change is left to the stylesheet, where a later
+  edit to the compiled default still reaches it. Restating all thirty-eight
+  would freeze midnight against a baseline it never meant to override.
+
+The `baseline` parameter defaults to the theme's own tokens — "the stylesheet is
+this theme's" — so the admin preview path, which is about overrides rather than
+about rendering a page, is unchanged. Ordering is the correctness argument and
+has its own test: theme defaults, then the board's overrides, then custom CSS. A
+board's explicit choice must beat the theme's value, and emitting them the other
+way round inverts F26's rule while looking identical in review.
+
+#### It extends the default theme, and that is not laziness
+
+A copy stops receiving fixes the moment it is made, and — more to the point
+under a freeze — it stops receiving *slots*. theme-kit v1 promises that a minor
+release may add one. An inheriting theme renders the parent's implementation of
+a new slot and keeps working; a copy has a hole in it and nothing says so.
+
+Four slots are inherited on purpose: `PostForm`, `SearchForm`, `RedirectNotice`
+and `ErrorNotice` — forms and interstitials whose default markup is already
+plain and token-only. The diff is the part that differs, which is what a partial
+override is for.
+
+#### The coupling that lives inside a theme
+
+Midnight renders listings as tables, so `ForumRow` and `ThreadRow` return `<tr>`.
+That works only because `CategoryBlock` and `ForumDisplay` — the slots handed the
+rendered rows as a region — put a `<table>` around them. **Those pairs must be
+overridden together**, and a test pins each pair.
+
+This is worth recording because it looks like an argument against flat
+composition and is the opposite. The page composes the two and sees neither
+element; the coupling is between two slots of one theme and lives in that
+theme's manifest, where a theme author can see it. If a slot rendered another
+slot, the same coupling would be spread across the parent theme, the child, and
+whatever the page decided to pass — and overriding one half would be a runtime
+failure in somebody else's package.
+
+Inheriting a container and overriding its row produces `<tr>` inside `<ul>`,
+which browsers silently unwrap: the rows do not error, they simply stop being a
+table. That is the failure mode the pairing test exists for.
+
+#### "Materially different" is asserted, not claimed
+
+A second theme whose palette is the first one's with a hue rotation is a colour
+scheme. So the test measures the overlap: no colour token may share a value with
+the default theme's, in **either** scheme — matching on one of them is how a
+dark-only reskin would sneak through — and geometry (`radius`, `density-unit`)
+must differ too. It caught two dark tokens that had been copied across without
+being thought about.
+
+The names, meanwhile, must match exactly, in both directions. `globals.css` maps
+each token to a Tailwind utility, so a theme missing one has utilities pointing
+at nothing and renders unstyled in that one respect with the build green; an
+extra one is a value no stylesheet will ever read, and is usually a typo of a
+real token.
+
+#### What the rendering-contract suite proved by not failing
+
+Midnight passed all of F77's rendering assertions on its first run. That is the
+result the feature was for: the contract was sufficient to build a materially
+different theme against, and the suite was measuring contract rather than
+appearance — if it had been asserting the default theme's markup, a theme built
+to be different would have failed every case.
+
+### D85 — Filters and events are two kinds because one of them can corrupt what it watches (F79)
+
+plugin-kit v1: 91 typed hooks, six UI regions, a declarative manifest, and a
+host that is the only thing which ever calls a plugin. Six decisions worth
+recording, and one API-quality bug the tests found.
+
+#### Two kinds, and the split is the safety model
+
+A **filter** is handed a value and returns a replacement; its result is used. An
+**event** is told what happened and its return value is discarded.
+
+The temptation is one kind — "a hook is a function you register" — and it is
+wrong in a specific way. A plugin that only wants to *know* about a new post (a
+webhook, a counter, an audit trail) registered against a filter is a plugin that
+can silently replace the post. Not maliciously: by returning the wrong thing,
+which is the commonest bug in any handler. Making the kind part of the registry
+means an integration that merely observes **cannot** corrupt what it observes,
+however wrong it is.
+
+The kind is declared rather than inferred because the same handler signature
+fits both, so nothing at the plugin's call site distinguishes them.
+
+#### Determinism is the harder half of "typed deterministic hooks"
+
+Two plugins filtering one value must compose the same way on the dev server, in
+a serverless bundle and in the worker — otherwise a board's rendered output
+depends on module evaluation order, and a bug reproduces on one instance and not
+the next.
+
+Ordering is **(priority, plugin key)**: both total, both declared, neither
+derived from registration order or from how `forum.config.ts` lists its plugins.
+The test for it registers the plugins in an order the assertion would fail
+under, which is the only way to prove the sort is doing anything.
+
+`localeCompare` is deliberately not used for the tie-break. It is
+locale-dependent, and "deterministic" has to mean across machines too.
+
+The sort runs once at construction. `view.post-bit` fires once per post; sorting
+a list on every post to obtain the same answer is a cost that only appears on a
+real board.
+
+#### Declared, not imperative
+
+A plugin exports an object; it does not call `registerHook` at import time.
+Registration by side effect makes the installed set a function of module
+evaluation order, which is the direct cause of the "works locally, missing in
+production" bug every PHP board has. The lifecycle callbacks are the one
+exception, because they *are* behaviour rather than a description of it.
+
+#### Three limits stated rather than papered over
+
+**Auto-disable is per instance and in memory.** Five failures switch a plugin
+off for the rest of the process, and it never re-enables itself — a plugin that
+recovers silently means the operator never learns their board spent a day
+without the feature they installed. But the counter resets when the platform
+recycles the instance. Making it durable means a write, a write means the
+database, and a host that opened a connection from inside a render to decide
+whether to call a hook would be a worse problem than the one it solved. Durable
+disabling is an operator action, which is where F69 puts it.
+
+**Timing is measured, never enforced.** There is no timeout, because JavaScript
+cannot abort a handler: a `Promise.race` that "times out" hands back control
+while the handler keeps running, keeps its connection, and resolves later. That
+is not a timeout, it is a lie that also leaks. A failing call is timed too — a
+plugin that throws after four seconds is a performance problem as well as a
+broken one, and only timing the successes would hide exactly that case.
+
+**UI contributions are isolated when built, not while rendered.** The host calls
+the contribution inside a try/catch, so a throw there drops it and the region
+renders without it. A node that throws during React's own render cannot be
+caught from the server: that needs an error boundary, error boundaries are
+client components, and putting one around every contribution would ship
+JavaScript to every page to guard against a bug.
+
+#### Regions are not theme slots
+
+If a plugin could fill a slot, an installed plugin would decide what a post
+looks like, and two plugins filling one slot would need a resolution rule that
+does not exist. A region is the other arrangement: an explicit "plugins may add
+something here" point that a *theme* renders. The theme keeps control of where
+plugin output appears; the plugin keeps control of what it is; several plugins
+compose by concatenation in the usual order. Six of them, because every region
+is a commitment every theme has to render or silently drop.
+
+#### What the registry deliberately does not contain
+
+No hook filters `authorization.can()`, and none sits inside F47's visibility
+filter. Those are not omissions to be added later: a plugin that can change an
+authorization answer can grant itself anything, and one that can rewrite a
+`where` clause can publish a private forum. Payloads carry `{ userId, isGuest }`
+rather than an `Actor` for the same reason — an `Actor` carries resolved group
+membership, and handing one over invites the plugin to make its own permission
+decision from group ids, which is what R4 forbids of core code and doubly of
+code an operator installed from a directory.
+
+The absence is asserted by a test that scans every hook name, rather than
+trusted to the review that left them out.
+
+#### The naming test found a real inconsistency
+
+The `view.*` hooks were written as `view.postBit`, `view.userPanel` — mirroring
+the PascalCase slot names — beside `post.created` and `bbcode.render.html`. Two
+conventions in one public API, and the one a plugin author guesses is the one
+that silently never fires, because an unknown hook name is just a handler
+nobody calls.
+
+Renamed to kebab-case throughout. The fix produced something better than
+consistency: the mapping from slot to hook is now mechanical (`PostBit` →
+`view.post-bit`), so the test could stop checking a naming pattern and start
+checking the *correspondence* — every stable slot has a view hook and every view
+hook names a stable slot. That in turn showed eight stable slots with no hook at
+all, which were added. A test written to check spelling ended up completing the
+API surface.
+
+#### `InstalledPlugin` finally has a shape
+
+It has been `{ key, enabled? }` and explicitly opaque since F01, with a comment
+saying F79 would fill it in. It now carries the definition as a **type
+parameter**, exactly as `InstalledTheme.theme` does and for the same reason:
+`PluginDefinition` lives in a package that imports React, and
+`core-depends-on-nothing` keeps `@forum/core` importable by the CLI and the
+worker.
+
+The definition stays optional, because the registry entry and the definition
+answer different questions — a board can list a plugin it has switched off
+without the bundler pulling in its code path — and the ACP has to tell those
+apart or "enabled" means two things in one column.
+
+#### Honest about what does not run yet
+
+Nothing in core fires these hooks. The registry, the type map, the manifest
+validation and the host are here and tested; wiring each call site belongs to
+the feature that owns it, and F80's reference plugin is what will prove the
+wiring exists rather than merely the registry. Migrations, settings and tasks
+are validated and namespaced but not yet executed — that is F69's completion,
+whose row has named F79 as its blocker since Phase 6. Saying so in
+`plugin-api.md` is the alternative to a document describing a system that does
+not run.
+
+### D86 — The reference plugin is a ratchet, not a demo (F80)
+
+A plugin that exercises every documented extension point, and — the larger half
+of the work — the call sites that make "documented" and "fires" the same thing.
+
+#### F79 shipped a registry nothing called
+
+That was said plainly in its row, and F80 is where it stops being true. Twenty-one
+hooks now have call sites: the four shell filters in `PageShell`, the index,
+forum, thread, member, search and error-page view models, and the three posting
+events. The remaining seventy are declared and unreached.
+
+The interesting part is not the wiring, it is that **the wired set is derived
+rather than maintained**. `scripts/hook-callsites.mjs` scans the tree for the
+four call shapes and reports what it finds. Three consumers:
+
+- the generated reference gains a **Wired** column, so a plugin author is told
+  before they write a handler for a hook nothing fires;
+- `plugins/reference` is required by its own test to handle every wired hook;
+- a literal that *looks* like a hook name and is not in the registry **fails the
+  run**, which catches the typo that would otherwise be a call nobody listens to.
+
+The middle one is the ratchet, and it is the point of the feature. Wiring a new
+call site fails the reference plugin's test until a handler is added there. A
+hook cannot join the running product without something proving it fires.
+
+The scanner's first run reported three wired hooks as unwired: the forum page is
+double-quoted and the regex knew only about single quotes. A false negative in a
+coverage tool is the worst kind — it makes the gap invisible — so the pattern
+takes both and the reason is at the line.
+
+#### "Every extension point" is two claims, and conflating them is theatre
+
+- **Every kind**: a filter, an event, a setting of each type, two migrations, a
+  task, an admin page, a contribution to all six regions, and all four lifecycle
+  callbacks. Asserted against the manifest.
+- **Every wired hook**: asserted against the scanner.
+
+Requiring all ninety-one hooks instead would mean writing seventy handlers for
+call sites that do not exist. It would be a bigger number and a smaller
+guarantee.
+
+Two of the "kinds" assertions are deliberately more specific than they look. The
+plugin declares a **string, a number and a boolean** setting, because the ACP
+derives its control from `typeof default` and a test with one string setting
+proves a third of that. And it declares **two** migrations, because one cannot
+demonstrate the ascending-order rule that `definePlugin` refuses a manifest over.
+
+#### The plugin records rather than does
+
+Handlers push into a module-level `RECORDED` object. That is right for a test
+double and wrong for anything else — a plugin holding state across requests on a
+serverless platform is a leak between viewers — so it is named in shouting case
+and documented, because a reference plugin is the file people copy.
+
+It also keeps the thing under test the *host*. A reference plugin that logged, or
+wrote a row, or called out would need a fixture for each of those before any of
+it could be asserted.
+
+#### theme-kit 1.0 → 1.1, which is the versioning policy having its first real use
+
+Plugin regions need somewhere to render, and four of the six are inside a theme's
+markup rather than between slots. So the models gained optional region fields —
+`BoardIndexModel.regions.plugins`, `PostBitSlotModel.regions.pluginBadges` and
+`pluginFooter`, `MemberProfileModel.regions.plugins`.
+
+Optional, additive, nothing renamed and nothing removed: a **minor** by F77's own
+rules, and the first time that policy has been applied to something real rather
+than to a fixture. A theme written against 1.0 compiles and runs unchanged and
+simply does not render plugin output.
+
+The other two regions — `header.notice` and `admin.dashboard` — are app-rendered,
+and that is their definition rather than a shortcut: `header.notice` sits
+*between* the header and the page body, which is the shell's structure and not
+any theme's. It is the same reason `PageShell` is not itself a slot.
+
+**Both themes are required to render all four theme-side regions**, by the
+contract fixture. A theme that quietly drops one is invisible from the plugin's
+side — the host collected the node and handed it over, and nothing failed — so
+the check has to live where the markup is.
+
+#### Where the events fire, and one that deliberately does not
+
+After the commit and outside the `try`. Inside the transaction would tell a
+plugin about a thread that may still roll back; inside the catch scope would put
+a plugin's failure in the same block as a failed post, which it can never be
+because the host swallows it — but the shape would invite somebody to "improve"
+that later.
+
+`post.edited` does not fire when `changed` is false. An edit that rewrote nothing
+did not move the row, and telling a plugin otherwise is how an integration
+reposts the same webhook on every accidental double-submit.
+
+#### A boundary rule, because isolation is not privilege
+
+`plugins-use-the-kit-only` makes a plugin importing `@forum/db`, a driver or a
+domain package a dependency-cruiser error. The host isolates *failures*; it does
+nothing about access. A plugin with its own database handle is outside every
+guarantee this codebase makes, and "the host catches the exception" is no comfort
+when the plugin succeeded at reading a private forum. Probed with a deliberate
+violation before being trusted.
+
+### D87 — A token is a restriction on an actor, never a grant to one (F81)
+
+A scoped, rate-limited REST API and signed webhooks. The decisions worth
+recording are mostly about what is deliberately *not* possible.
+
+#### The load-bearing sentence
+
+A token authenticates as a member and can never do more than that member can.
+Every request resolves the owner's `Actor` and asks the Authorizer — the same
+`forumIdsWhere`, the same `visibleIn`, the same F47 filter a page uses — and the
+scope check happens **as well**, never instead.
+
+The consequence is that there is no API-specific visibility path, and that is the
+point: a second implementation of F47 is a second thing to get wrong, on a
+surface designed for software to hammer. It also means a member banned an hour
+ago loses their API access in the same instant, because nothing about permissions
+is baked into the token at creation.
+
+#### Fixed order, one file, and why not a folder of route files
+
+`route match → token → scope → rate limit → authorization → handler`, in one
+catch-all dispatching through `ROUTES`.
+
+One file per route is the idiomatic Next arrangement and is worse here. Adding an
+endpoint would mean remembering to authenticate it, to check a scope, to meter
+it, and to document it — four things, and the one that gets forgotten is the
+scope check, because it is the one whose absence nothing notices. Through a
+registry an endpoint *cannot* exist without a declared scope.
+
+#### SHA-256 for tokens, and it is the opposite reasoning from F17
+
+A password is low-entropy and human-chosen, so it needs Argon2id to survive an
+offline attack. A token is 32 bytes from a CSPRNG: there is no dictionary, and a
+slow hash would put ~100ms on every API request — which for an API is the
+difference between usable and not. The threat model, not the habit, picks the
+algorithm.
+
+The token is `forum_pat_<lookup>_<secret>`: a greppable prefix so a leaked token
+is findable by secret scanners, a clear indexed lookup so authenticating one
+request is one index probe rather than a hash against every token on the board,
+and the secret stored only as a digest.
+
+#### A test found the parser wrong before anybody used it
+
+`parseToken` split on `_` and required four parts. The secret is base64url, whose
+alphabet **includes `_`** — so roughly any token containing one failed to parse
+and came back "malformed": an intermittent authentication failure depending on
+which bytes the CSPRNG produced, which would have looked exactly like a flaky
+client.
+
+Fixed by splitting at the first underscore after the prefix rather than by
+changing the alphabet, because the alphabet was not the problem: a delimiter that
+assumes anything about what follows it is.
+
+#### Failures are one 401, and the ordering of the checks is a leak
+
+Every token failure — expired, revoked, unknown, malformed — is the same 401 with
+the same message, and the reason goes to the log where the operator can see it
+and a caller cannot. "Expired" confirms the token was real.
+
+The check order matters for the same reason: revocation and expiry are tested
+**after** the secret. Answering "revoked" to a wrong secret would confirm that a
+lookup prefix names a real token, turning eight characters into an enumerable
+space.
+
+`admin:read` exists and there is no `admin:write`, asserted by a test rather than
+left to the review that omitted it — the pressure to add it arrives with the
+first person who wants to script their settings.
+
+#### The rate limit meters work, not requests
+
+A limit in requests prices `/me` the same as a full-text search, so the cheapest
+way for a token to be expensive is to hit the expensive endpoint — the one thing
+the limit exists to prevent. Each route declares a cost; search costs ten.
+
+Postgres, because the serverless profile has no Redis and an in-memory counter is
+per-instance (a limit that silently multiplies by however many instances the
+platform decided to run). **The check is the write**: one upsert returning the
+total after incrementing, because API traffic is exactly the traffic that arrives
+twenty requests at once, and a check-then-write races with every one of them
+under the limit.
+
+The window is fixed, which permits a burst of twice the budget across a boundary.
+That is written down in the file rather than discovered later: a sliding window
+costs a second table and an ordering, and for a limit whose job is stopping a
+runaway script rather than shaping traffic, the fixed window is the right trade.
+
+Limit headers go on **every** response, not only refusals. A client that learns
+its budget only by exhausting it cannot slow down before it does.
+
+#### Webhooks: the timestamp is inside the signature
+
+`sha256=HMAC(secret, "<timestamp>.<body>")`. Signing the body alone gives an
+attacker who captured one delivery an infinitely replayable message; putting the
+timestamp in the signed material means it cannot be moved without breaking the
+signature, and the receiver's freshness check does the rest.
+
+`verifySignature` is exported and tested because it is the code the documentation
+asks third parties to reimplement, and a signing scheme whose verifier the board
+has never run is a scheme with an off-by-one nobody has found. The freshness
+check is *inside* it rather than a step a receiver can forget — verifying and
+then meaning to check the age is the standard way replay protection is lost.
+
+The **delivery id is stable across retries**, which is what makes a receiver's
+de-duplication possible at all; a fresh id per attempt turns "we retried" into
+"we sent two events". Backoff has jitter, and the jitter is not decoration: a
+subscriber going down takes every pending delivery with it, and a fixed schedule
+brings all of them back at the same instant, repeatedly, at a server that is
+already unwell. A `410 Gone` stops the retries immediately.
+
+Deliveries dead-letter rather than disappear, and `retryDead` is the operator's
+undo — which is the whole reason a dead letter is a row and not a log line.
+
+`WEBHOOK_TOPICS` is deliberately **not** the plugin hook registry. A hook is an
+in-process extension point that moves as the board is built; a webhook topic is a
+contract with somebody else's software, and the two must be free to move at
+different speeds.
+
+#### F67's merge map earned itself again
+
+Adding `api_tokens` failed `user-merge-repo.test.ts` immediately — the test holds
+the merge map against `information_schema`, so a migration that adds a
+user-pointing column cannot land until somebody decides what a merge does with
+it. That is the second time that test has caught a new table rather than a
+reviewer catching it.
+
+The answer is the **discard** list, with the widest blast radius on it: an API
+token is a long-lived string somebody else may already hold, so reassigning it
+would hand the winner's account to whoever has it — with no authentication event
+and nothing in a log to notice.
+
+#### Two smaller things
+
+**`@/` had no vitest alias**, so no route handler under `app/` could be imported
+by a test at all — which is how the API's route table would have gone uncovered.
+Added, with the reason at the line.
+
+**Fixture mode closes the API rather than opening it.** A sample-data board has
+no token store, and the honest answer to "authenticate this token" with no store
+is no. A demo that accepted any token would be a demo with an authentication
+bypass in it.
+
+### D88 — A generator's behaviour is its output, so the output is a value (F82)
+
+`npx create-forum my-board`. Six files, and the interesting decisions are in
+what they contain rather than in the CLI that writes them.
+
+#### The scaffold is a pure function
+
+`scaffold(options)` returns a `Map` of path → contents; `cli.ts` parses argv,
+refuses to destroy anything, and writes it. The split is not ceremony: a
+generator whose output can only be inspected by running it and looking at a
+directory is a generator nobody asserts anything about. Here every file's
+contents are a value a test can read, and the CLI's own suite is left to cover
+the three things that need a filesystem — writing, refusing, and the repository
+override.
+
+#### What "push-to-deploy without manual configuration" actually requires
+
+Three things, each of which has been wrong in this repository at some point, so
+each is in the generated tree rather than in prose:
+
+- **the build must not need a database.** `next build` prerenders; a build that
+  opens a connection fails on a preview deployment with none attached. The
+  generated project builds in fixture mode, exactly as CI does.
+- **the cron must be committed.** This is the one that would otherwise be a
+  README step, and it is the difference between a board that works and one that
+  silently stops doing anything a month later. Every catch-up operation runs on
+  the tick — bans expiring, digests sending, counters reconciling — and when it
+  does not run, *nothing fails*. `vercel.json` ships with it (F70's argument,
+  applied one layer out).
+- **the secrets must be named where somebody will see them.** `AUTH_SECRET` and
+  `TICK_SECRET` have no default on purpose, so they are in `.env.example` with
+  the command that generates one.
+
+#### The pooler warning is in both files somebody reads before deploying
+
+It is the one operational mistake that looks like a database problem and is not:
+on the direct connection string a serverless board works in testing and starts
+refusing connections under the first real traffic, with an error naming the
+database rather than the cause. It is in `.env.example` and in the README, and a
+test asserts it is in both — because the file people read is whichever one they
+opened first.
+
+#### A test found a documented command that could not have worked
+
+`.env.example` tells the operator to run
+`node -e "console.log(require('crypto')…)"`. The first version of the test
+evaluated that snippet inside the test's own ESM scope and failed with `require
+is not defined` — which is true there and false in `node -e`, where the default
+scope is CommonJS.
+
+Evaluating a command somewhere it does not run is not a test of anything, so it
+is now **spawned**, exactly as an operator would type it. The command was fine;
+the test was measuring the wrong context, which is a distinction worth keeping
+because the next documented command might not be.
+
+#### The refusal is the important behaviour
+
+An existing *empty* directory is fine — `mkdir my-board && cd ..` is how half of
+people start. A directory with anything in it, including dot files, is refused
+outright, with no `--force`.
+
+Overwriting somebody's `.git` or their existing `.env` is the single worst thing
+this tool could do, and "it asked first" is no defence when the prompt is one
+flag away from being skipped. `.` and `..` are rejected before the name pattern
+gets a chance, because a project called `..` scaffolds into the parent directory
+— the one failure of a generator that deleting a folder does not undo.
+
+#### One eslint exemption, and why it belongs
+
+`packages/create-forum` joins `scripts/`, `apps/cli` and `apps/worker` in the
+`no-console` exemption. It is a console program in the same sense as those: it
+prints to a terminal and exits, and it runs *before a board exists* and therefore
+before there is any validated `env` to log through.
+
+### D89 — An installer's real job is explaining why a board is not working (F83)
+
+`/install`: a preflight, five steps, and an irreversible seal. The decisions
+worth recording are about the preflight and about what "one-time" has to mean.
+
+#### The preflight is a pure function over probes
+
+Nearly every failure a new operator hits is visible *before* anything is
+written — no database URL, the wrong connection string, a missing secret, a board
+that is already installed. So the checks are a function from a plain record of
+what the environment looks like to a list of findings, and nothing in
+`@forum/install` opens a connection, reads `process.env` or touches Next.
+
+That is what makes "what does the installer say when the connection string is the
+direct one" a unit test rather than an experiment against a real Supabase
+project. Forty-five of them, against a database that does not exist.
+
+#### Blockers and warnings are different, and the warning is the dangerous one
+
+A blocker means installing cannot succeed. A **warning means it will succeed and
+something will be wrong later**, which is worse precisely because nothing
+complains at the time.
+
+The pooler check is the archetype and the reason the distinction exists: a board
+on the direct connection string installs perfectly, works in testing, and starts
+refusing connections under the first real traffic — with an error that names the
+database rather than the cause. It warns rather than blocks because a self-hosted
+board on 5432 is entirely correct, and telling that operator they are wrong
+trains them to ignore the installer.
+
+`looksLikePooler` is explicitly a heuristic (port 6543, a host that says so, or
+`pgbouncer=true`), which is defensible for a warning and would not be for a
+blocker.
+
+#### Two independent gates, because either alone leaves a hole
+
+The `install_state` marker is one row with a check constraint saying so. The
+other gate is "does this board have any accounts", which needs no schema.
+
+Neither is sufficient. The marker alone misses the run that created the
+administrator and then failed before reaching the last step — a second attempt
+would add a **second administrator to a board that already has members**, which
+is the one outcome an installer must make impossible. The account count alone
+would let a board that was installed and then pruned to zero accounts be
+reinstalled.
+
+**The marker is written last**, and that ordering is the argument. Written first,
+a failure halfway through leaves a board that is "installed", has no
+administrator, and cannot be installed again — unrecoverable without SQL. Written
+last, a partial failure is fixable by trying again, and the case that must not
+repeat is covered by the other gate.
+
+#### `null` means "not determined", consistently
+
+A connection that was never attempted and one that failed are different
+situations, and an installer that conflated them would report a database problem
+to somebody who has not configured a database. So `canConnect: null` produces no
+check at all, and `userCount: null` does not gate — while `countUsers` returning
+`null` for a *missing table* is right, because reading a connection failure as
+zero would let an install proceed against a board it could not see.
+
+The pending-migration count is `null` deliberately: measuring it needs the
+applied-migrations table, which does not exist on the database this page usually
+runs against. The installer says nothing rather than guessing.
+
+#### It renders its own markup, and answers 404 once sealed
+
+No theme. `activeTheme` resolves at module load and a theme's slots are the
+*board's* look — but this page runs before there is a board, and has to render
+when the database is unreachable. Same rule `ErrorNotice` follows.
+
+Once sealed the route is a **404, not an "already installed" page**. An
+informative page would confirm to anybody who asks that this is a
+forum-software board, that it has been installed, and — more usefully to
+them — that the route was reachable. A 404 is the answer the board gives for
+every path it does not serve, and it is the only one that says nothing.
+
+#### The action re-runs the preflight rather than trusting the page
+
+A form submission is a separate request. The board may have been installed by
+somebody else in between, which on a public URL somebody found by guessing is not
+hypothetical. Same rule as every other Server Action here: re-authorise in the
+action, never trust the render.
+
+When it finds the board sealed mid-submit it **redirects to the board** rather
+than reporting an error — the board exists now, and "already installed" on a form
+asking for an administrator reads as a bug.
+
+#### It builds its own services, and reuses the registration command
+
+`getContainer()` resolves repositories against a schema that, at the moment the
+installer runs, does not exist — several read settings or the group ladder while
+constructing. So the installer wires the three services it needs directly, after
+its own migrations.
+
+But the administrator goes through `IdentityService.register`, the same command a
+member uses, and is then promoted. A second account-creation path would be a
+second home for the password policy and the uniqueness rules, and the copy that
+drifts is always the one used once. `activationMethod: 'none'`, for the reason
+the CLI uses it: an e-mail round trip cannot be a prerequisite for the account
+that would have to activate it.
+
+Groups are looked up **by key**, not by seeded id. The keys are what the
+migration promises; an id that shifted would put the administrator in the wrong
+group, which is the least recoverable mistake this function could make.
+
+#### Twelve characters, and only for this account
+
+The board's own policy applies to members. The installer asks more of the
+administrator's password because it is the one credential that can reconfigure
+the board, it is chosen before any lockout or rate limit exists to protect it,
+and its owner is in a hurry — which is exactly when `password1` gets typed.
+
+The password is also the one field never echoed back on a failed submit. A
+password re-rendered into HTML is a password in a proxy log and in the browser's
+back-forward cache.
+
+### D90 — An upgrade is four things, and three of them are what go wrong (F84)
+
+`forum upgrade`, migration `0024`, and an admin notice. "Run the migrations" is
+the part everybody remembers; the other three are where boards break.
+
+#### Plugins have migrations, and plugins depend on each other
+
+A plugin's table nearly always references one of core's, and often one of another
+plugin's — so "after core" is not an order, it is a partial order. Applying
+plugins in configuration order works until the day somebody lists them
+differently.
+
+`dependsOn` is **declared** rather than inferred, because the dependency that
+matters is a schema one and nothing in an import graph reveals it. The planner
+sorts topologically and **breaks ties on the plugin key**, which is the
+difference between an order that is correct and one that is *reproducible*: a
+partial order has many valid linearisations, and picking the same one every time
+is the only thing that makes rehearsing an upgrade on staging worth anything.
+
+The sort re-derives its ready set after each removal rather than taking whole
+batches. Batching is faster and makes the sequence depend on how the batches
+happened to fall.
+
+A cycle names the tangled keys rather than reporting that a cycle exists — with
+twenty plugins installed, *which three* is the entire diagnostic. A missing
+dependency is named too, because the alternative is a plugin quietly running
+against a table that does not exist.
+
+#### The board has to know it is out of date
+
+An operator deploys new code and forgets the command. The board then runs new
+application logic against an old schema and fails in whichever request happens to
+touch the missing column — with an error naming a column rather than naming the
+upgrade.
+
+The admin notice names both versions and the migration count. It returns `null`
+on a current board, deliberately: a panel that permanently displays "everything
+is fine" is one people stop reading, and this notice's whole value is being
+unusual.
+
+It is on the admin index only. One indexed lookup, and the panel is not a hot
+page — but putting it in the board's shell would be a query on every page view
+for a message only an administrator can act on.
+
+#### A plugin migration is applied and recorded in one transaction
+
+The only arrangement that survives a crash between the two.
+Applied-and-unrecorded means the next run applies it again — a `create table`
+that fails, or worse, an `insert` that does not. Recorded-and-unapplied means a
+column that never exists and a plugin that fails on every request.
+
+The insert is also the **claim**: `on conflict do nothing … returning`, and the
+statements are skipped when it returns nothing. So an interrupted upgrade re-run
+is a no-op rather than a second application, which is what makes "try it again"
+a safe instruction rather than a hopeful one.
+
+#### Two majors, and the limit is honesty rather than caution
+
+Supporting an arbitrary jump means every migration must remain correct against
+every schema that ever existed — a promise nobody can test, and therefore one
+that should not be made. Two majors is what the migration set is exercised
+against, so it is what `SUPPORTED_MAJOR_SPAN` claims, and a board further behind
+upgrades in documented stages rather than hitting an error.
+
+Downgrades are refused outright. Migrations are forward-only, so "downgrading" is
+old code against a schema already migrated past it, which usually appears to work
+and corrupts something later.
+
+#### The version is recorded last, and recorded even with no migrations
+
+Last, for the same reason the installer's seal is: a version written before the
+work leaves a failed upgrade claiming to be something it is not, and the next run
+finds nothing to do.
+
+Recorded even when nothing was pending, because a release can change behaviour
+without changing the schema — a board whose recorded version never moved would
+show the pending notice forever.
+
+#### Two tables, not one
+
+`component_versions` says what version core and each plugin are at;
+`plugin_migrations` says which migrations have run. Separate, because a plugin
+can ship a release with no migrations at all, and a migration list alone could
+not tell that board it was out of date.
+
+#### An absent version reads as "current"
+
+A board installed before F84 has no `component_versions` row. Reading that as a
+low version would tell every existing board it is out of date on the day it
+upgrades; reading it as the code's own version means the first `forum upgrade`
+records the truth and says nothing alarming. The notice is also
+failure-tolerant — a board whose table does not exist yet must show the panel,
+not a 500.
+
+#### One limitation, written down rather than discovered
+
+`forum upgrade` installed from npm applies **core** migrations only. Plugin
+migrations need `forum.config.ts`, which lives in the board's project — an
+operator CLI installed as a dependency has no path to it. The command says so,
+`docs/upgrading.md` says so, and the plugin-migration runner is exported so the
+board's own entry point can call it.
+
+Finding that out during an upgrade would be the wrong moment.
+
+### D91 — The importer ships everything except the part that needs a dependency (F85)
+
+A source port, the mapping, a chunked resumable runner, the legacy-id map and a
+fixture round trip. Not a MySQL reader.
+
+#### The dependency this feature stopped for
+
+Reading a live MyBB board means talking to MySQL, and every client is a runtime
+dependency — which the roadmap's working rules say to stop for a human on. So the
+port ships and the reader is an open question, recorded in `plan-status.md` with
+three options rather than left as a gap somebody discovers.
+
+That is not a workaround, and the acceptance criterion agrees: it asks for a
+**fixture round trip**, because a reader is
+`SELECT * FROM mybb_posts WHERE pid > ? LIMIT ?` and everything genuinely hard is
+on this side of the port.
+
+#### Three constraints wearing adjectives
+
+**Chunked.** A page at a time, bounded by a row budget. A board with two million
+posts cannot be imported in one request on any platform this targets.
+
+**Resumable.** The cursor is a *legacy id*, so it means the same thing in the
+next process after a crash. An OFFSET would not: the source board is usually
+still being posted to during a migration, and an OFFSET walk over a growing table
+**skips rows** — silently, and in proportion to how busy the board is, which is
+to say worst on exactly the boards people care about migrating.
+
+**Idempotent.** Every write is keyed on `(kind, legacyId)`. A chunked import
+*will* be interrupted, and the recovery instruction has to be "run it again".
+
+The fixture source pages exactly as a database one must — ascending, `> afterId`,
+bounded. An importer tested against a source that hands over everything at once
+has never had its cursor tested, and the chunking test asserts on the **call
+log** rather than the totals for the same reason: an importer that quietly
+fetched everything would pass every count assertion.
+
+#### The mapping is where importers lose data quietly
+
+Each of these is a line with a test, because each is a real bug in somebody's
+migration:
+
+- **Timestamps are Unix seconds.** Getting it wrong gives dates in 1970, which is
+  obvious — until somebody "fixes" it the other way and gets sub-second offsets
+  from the epoch that sort correctly relative to each other. The second version
+  ships.
+- **`closed` is the string `'1'`**, not an integer. A truthiness check locks every
+  thread on the board.
+- **`edittime` is 0 on an unedited post**, so a naive map puts "last edited 1
+  January 1970" under a third of an old board's posts.
+- **An unknown `visible` value reads as unapproved**, not visible. It came from a
+  plugin, and the safe reading of "I do not know whether this should be public" is
+  that it should not be.
+- **An unknown forum type becomes a forum**, because that is the reading that does
+  not orphan its threads.
+- **E-mails are lower-cased**, because this board's uniqueness is
+  case-insensitive and MyBB's is not — so two MyBB accounts differing only in
+  case collide here, and the sink reports that rather than silently keeping one.
+
+#### Password hashes are carried, not discarded
+
+`mybb$<salt>$<hash>`, for F86 to verify against and re-hash with Argon2id on the
+member's next successful sign-in — the only way to migrate a hash at all, since
+the plaintext is not in the export. A board that dropped them would force every
+member through a password reset, which is the largest single source of attrition
+in a forum migration.
+
+#### MyBB's counters are imported and not trusted
+
+They drift: incremented on post, not always decremented on delete. Importing them
+as truth bakes somebody else's bug into a fresh board; discarding them loses the
+chance to say how far off they were.
+
+So they are imported, `compareCounters` reports the differences, and F38's
+recount produces the real ones. A mismatch is explicitly **not** an import
+failure — reporting it is what turns "the counts look wrong" a week after a
+migration from a mystery into a line somebody read on the day.
+
+Only visible content counts, which is the rule the board's own counters follow
+(F38/F47). Counting deleted posts would make every imported board disagree with
+itself the moment a moderator looked at it.
+
+#### `legacy_ids` is what stops the import being a one-way door
+
+Every MyBB URL contains an id, so F86's redirects are a lookup in this table. An
+import that did not record the mapping would break every inbound link a board has
+accumulated — which for a forum is most of its traffic, and is not recoverable
+afterwards.
+
+`resolveLegacyIds` takes a list, because the runner needs a page's parents at
+once and one query per row makes a 200-row page 200 round trips: on a pooled
+serverless connection, the difference between an import that finishes and one
+that times out every run.
+
+#### A test caught a write that did nothing
+
+`nextCursor` is null only on a *short* page, so a run whose last page was exactly
+full reads once more and gets nothing. The runner was handing that empty array to
+the sink — a no-op write per kind per run, and against Postgres a transaction per
+kind for the privilege. Caught by the chunking test's call log, which is the
+assertion that exists to see calls rather than results.
+
+### D92 — Carrying somebody else's password hashes, and somebody else's URLs (F86)
+
+Two halves, and both exist because the alternative loses something that cannot
+be recovered after migration day.
+
+#### The hashes: one comparison against losing your quiet members
+
+MyBB's scheme is `md5(md5(salt) . md5(password))`, which is not a password hash
+by any modern standard. Carrying it is still right: the alternative is forcing
+every member through a password reset, and the people who do not read the e-mail
+simply stop being members. The plaintext is not in the export, so verify-and-
+upgrade is the only way to migrate a hash at all.
+
+**The upgrade half needed no new code.** `needsRehash` already returns true for
+anything that is not a current-policy Argon2id hash, so the login service
+replaces a legacy hash on the first successful sign-in and the row stops being a
+liability. F17's design anticipated this exactly.
+
+Dispatch is on the **prefix**, never on the shape. A bare 32-character hex string
+is not treated as a password hash, because that is precisely what an unprefixed
+legacy column looks like, and "verify anything of the right shape" is how an
+unrelated hex field becomes a login.
+
+The parser refuses an **empty salt**, and that is the case worth naming: MyBB's
+algorithm with an empty salt is a *valid* hash of every password under a known
+constant, so an accepting parser turns one corrupt row into an account anybody
+can log into. Stored hex is compared case-insensitively, because PHP
+installations differ and a migration that failed for half a board over letter
+case would be almost undiagnosable from "incorrect password".
+
+#### The URLs: a table, because the links are on other people's servers
+
+A forum's inbound links accumulate for years — search results, other forums'
+posts, bookmarks, e-mails from 2013 — and an import that changes every address
+without redirecting throws that away permanently. Unlike most migration mistakes
+it cannot be fixed later.
+
+So the parser is **pure**: path plus query in, `{ kind, legacyId }` out, with the
+id lookup and the redirect in the app. That is what makes every form a row in a
+table-driven test rather than a route somebody has to exercise by hand.
+
+MyBB serves the same page under several addresses — the bare script, the script
+with a post anchor, the "SEO" rewrite, the rewrite with a page — and boards
+turned the rewrites on at different times, so a real board's history contains
+**all** of them. Handling only the modern shape misses the older half.
+
+**The slug is ignored entirely.** MyBB regenerates it from the subject, so
+matching on it would break every link to a thread that was ever renamed. Only the
+id is read.
+
+**A post anchor beats a page number.** MyBB's `pid` means "this specific post",
+and this board pages by post id (F31), so `?post=` lands on the right page *and*
+the right post — where copying the page number across would be correct only if
+both boards paginated identically, which they do not.
+
+#### An unresolvable legacy URL is a 404, deliberately
+
+Not a redirect to the index. A soft 404 reads to a crawler as a real page, so
+every broken old link would sit in the index forever pointing at a front page —
+worse for the board than the honest answer, and it hides the breakage from
+whoever could fix it. `/member.php?action=login` resolves to nothing for the same
+reason: a bookmark of a login form is not a member's profile.
+
+The eleven refusals are rows in the table too, because "what this deliberately
+does not match" is as much of the contract as what it does.
+
+#### Off by default, and `permanentRedirect` rather than `redirect`
+
+A board that was never a MyBB board should not answer `/showthread.php` — that is
+a fingerprint of software it is not running — so the setting defaults to off and
+the check happens *before* any lookup, so the answer is identical to any unknown
+path.
+
+The redirect is `permanentRedirect`. Next's `redirect` is a **307**, and its
+second argument is push-versus-replace rather than permanence — an easy thing to
+reach for and get wrong, and the first version of this file did. A temporary
+redirect transfers none of the link equity that made the feature worth building.
+
+Permanence is also why the toggle matters: browsers cache a 301 aggressively, so
+switching it on is a decision rather than a default.
+
+#### The settings registry caught a convention violation
+
+The setting was written as `legacy.redirects` in the `board` group, and
+`admin-settings.test.ts` failed: the ACP navigates by group and a test pins that
+a setting's key prefix agrees with it. Renamed to `board.legacy_redirects`.
+
+A convention with a test behind it is a convention; without one it is a habit
+that half the registry follows.
+
+---
+
+### D93 — Documentation for somebody whose board is broken (F88)
+
+F88's acceptance criterion is unusual in naming its reader rather than its
+artefact: *"usable by a new operator."* That is the whole design constraint, and
+the shape of [`operating.md`](./operating.md) follows from it. The reader has not
+read the source and is not going to; they are looking something up, probably
+while something is wrong.
+
+So it is not a tour of the architecture, and it is not a list of every setting —
+the settings registry already answers that, and `forum settings:list` prints it.
+What is in the handbook is the set of things that have no other home.
+
+#### The things that are only written down here
+
+Each of these is a place where the correct behaviour is not guessable and the
+wrong guess is expensive:
+
+- **Why there are three configuration surfaces.** Anything in `forum.config.ts`
+  must be visible to the bundler, because a serverless build contains only what
+  it could see statically — so "install a plugin" cannot be a database row, and
+  the absence of an upload-a-zip button is a consequence rather than an omission.
+- **Null means inherit** in the forum permission matrix, and 0 means *unlimited*.
+  Both are the opposite of the naive reading. A checkbox editor would write an
+  explicit value into every cell on first save, pinning the forum so a later
+  change at the parent does nothing — the commonest way a board's permissions end
+  up wrong, and invisible when it happens.
+- **`admincp.access` is the one door no bypass opens.** Every other
+  administrator and super-moderator bypass applies everywhere; this one does not.
+
+#### Backup is documented as the rollback plan
+
+Not as a precaution. Migrations are forward-only (open question 1), so restore is
+the only way back from a bad upgrade — which makes the backup section the
+recovery procedure and makes rehearsing it a real instruction rather than
+boilerplate. A backup nobody has restored is a file.
+
+The detail that costs an hour otherwise is in there too: `pg_dump` needs the
+**direct** connection string, not the pooler, and the failure is a dump that
+starts and then stops rather than one that says why.
+
+#### Pooling and troubleshooting are organised around when the failure appears
+
+Pooling has its own section because it is the failure that **does not appear in
+testing**. A board on the direct connection string installs perfectly, works
+while you are the only visitor, and starts refusing connections the first day it
+is busy, with an error that names the database rather than the cause.
+
+Troubleshooting is indexed by **symptom** rather than by subsystem, because the
+operator does not yet know which subsystem it is — "nothing happens on a
+schedule" is findable, "the tick" is not. Every entry is a failure this
+repository has actually produced.
+
+#### Writing the install section found a doc bug
+
+The first draft said the installer resumes at the first failed step and that
+every step is idempotent. Both were wrong, and checking rather than assuming is
+what caught it: the runner starts from the top every time, and the preflight
+blocks on *any* account existing, independently of the seal. So a failure after
+the administrator was created is not a retry — it is a database-level recovery,
+and the section now says so.
+
+That gate is deliberate and doubled: a second run would otherwise add a second
+administrator to a board that already has members, which is the one outcome an
+installer must make impossible. Documenting it as "just run it again" would have
+sent people looking for a bug in the right behaviour.
+
+#### The index is checked, not generated
+
+[`docs/README.md`](./README.md) is the fourth member of the reference family, and
+the odd one out. The theme, hook and REST references are *generated* because
+their content is a registry. This one is prose — it says which document a
+particular reader wants, and no script can derive that.
+
+What is machine-checked by `pnpm docs:index:check` is the property that actually
+rots: every document in `docs/` is reachable from the index, and every link in
+the index resolves. Both directions fail loudly, and both are mutation-tested,
+because both are silent otherwise. A document added without an entry is a
+document nobody finds — and it is the *new* one, the likeliest to matter. A link
+left by a rename is worse: it tells a reader the document exists.
+
+#### What is not here
+
+No screenshots and no video: this repository has no way to keep either honest,
+and a screenshot of a panel that has since changed is a confident lie.
+
+No CLI reference page either. `forum --help` is the list, and a hand-written copy
+of it is a copy that goes stale — the generated-reference pattern would be the
+fix if it becomes worth one. Writing the troubleshooting section, an earlier
+draft referenced a `forum doctor` and a `forum cache:clear`; neither exists. They
+were invented by analogy with other projects, which is exactly the failure a
+generated reference prevents and a hand-written one invites.
+
+---
+
+### D94 — A load test that measures nothing is the default outcome (F89)
+
+F89's deliverable is evidence, and evidence is the kind of thing that is easy to
+manufacture by accident. Almost every mistake available while building a load
+harness produces a *fast* number, which reads as success — so most of the work
+here went into making the harness refuse to report one.
+
+#### The board is real, and that decided the tooling
+
+2,343,847 posts, 100,030 threads, 20,000 users, longest thread 14,741 posts, on
+a real Postgres 16. Not PGlite: it is Postgres compiled to WASM holding the
+database in process memory, which is exactly right for the test suite and cannot
+take two million posts — and even if it could, the numbers would describe the
+WASM boundary rather than the query plan.
+
+Seeding it is phased — `--phase posts | counters | search | analyze` — because
+twenty minutes of work is long enough that something interrupts it, and a
+monolithic seeder that loses everything is one you run overnight and never
+again. It is the shape F85's importer and F38's recount already have; the
+standard applies to the tooling too. It was not a hypothetical: the first
+full-scale run was killed twice.
+
+#### Four ways this would have measured nothing, all of which look like success
+
+Each was found while building, and each would have published a flattering
+number:
+
+1. **The seeder held every post in heap** before writing a row. Two million post
+   objects carrying paragraphs of body text is several gigabytes, and it simply
+   died. Now generated and flushed in batches, with the random sequence
+   unchanged so a given seed still produces exactly the same board — every
+   existing budget assertion is written against this data.
+2. **`FULL_SCALE` had no long threads.** 100k threads of 10–30 replies is two
+   million posts and *no thread over one page*, which makes deep pagination free
+   by construction: a keyset cursor and an `OFFSET` cost the same when there is
+   nothing to skip. The deep-page budgets would have passed while proving
+   nothing about the claim they exist to check. Now a 30-thread long tail of
+   2,000–15,000 posts.
+3. **Bulk-inserted posts have a null `search_vector`.** It is filled by the write
+   path, per post. Both search scenarios would have timed an index lookup
+   against an empty index — very fast, and a claim about nothing.
+4. **The corpus had no rare term.** Sixteen common words, 20–60 per post, so
+   every word matches nearly every post and "rare term" was a synonym for
+   "common term". One distinctive word is now injected into one post in 2,000,
+   placed by counting rather than by drawing from `random` so the sequence — and
+   therefore every other board — is untouched.
+
+The first two were caught by the harness rather than by inspection.
+`measure.ts` refuses to time a scenario whose average result is below a declared
+`minRows`, and it fired on the first real run: `thread-page-first` averaged 7
+rows where it claimed 20. That guard is the single most valuable thing in the
+harness, because the failure it prevents is silent and looks like the best
+result in the report.
+
+#### Nine of ten pass, and the two keyset claims hold
+
+Between 2% and 76% of budget. The two worth naming: a thread page 14,000 posts
+deep costs 16.5 ms against 3.3 ms for page one, and a deep forum page costs
+*less* than its first page — the first page pays for sticky-first ordering that
+a deep cursor has already passed. Under `OFFSET` both would grow with depth.
+
+#### The tenth is real, and fixing it is not this pass's call
+
+Relevance search for a term matching 96% of posts: **p95 5.5 seconds**. The same
+code path over a term matching 1,171 posts: **35 ms**. The GIN index is present
+and used; the cost is that `order by ts_rank_cd(...)` has to score every matching
+row before it can name the top twenty, and ranking 2.26M rows takes what it
+takes. No index changes that, which is why the two search scenarios are
+separate — a fast rare-term search would otherwise have hidden it entirely.
+
+Bounding the candidate set — rank the 20,000 most recent matches instead of all
+of them — measured 140 ms, a 39× improvement. It is also a change to what a
+member sees, so it is **open question 6** rather than a commit. There is a fair
+counter-argument in there too: no *real* term matches 96% of a board, because
+the ones that would be are stopwords the tsvector drops, so the scenario may be
+measuring an artefact of a sixteen-word vocabulary rather than a product
+problem.
+
+#### `target` and `limit` are different, and the registry says which
+
+Leaving that budget at 400 ms would have made CI permanently red, and a build
+that is always red is a build nobody reads. Deleting the scenario would have
+made the slowness undocumented. So `budgets.ts` distinguishes a **target** — a
+number with headroom that the page is expected to meet — from a **limit**: a
+number that was measured, is *not* considered good, and is recorded anyway so it
+cannot get worse quietly. A limit is a debt with a number on it, not a pass mark,
+and a test requires every one of them to say so and to name the open question.
+
+#### What the budgets deliberately do not cover
+
+Data-layer time, not end-to-end HTTP. The boundary is deliberate: React
+rendering a twenty-post page costs the same on a board with two thousand posts
+and one with two million, while `select … order by … limit 20` does not. A
+budget exists to fail when a change makes the board worse *as it grows*, and
+folding in a large constant that moves with the Next.js version would mask
+exactly that.
+
+The absolute numbers belong to the machine that produced them. What travels is
+the shape — which scenarios sit near their budget, and whether depth costs
+anything — which is why the generated document says so at the top of the table.

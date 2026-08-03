@@ -23,7 +23,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
-const WORKSPACE_GLOBS = ['apps', 'packages', 'themes']
+const WORKSPACE_GLOBS = ['apps', 'packages', 'themes', 'plugins']
 
 const problems = []
 

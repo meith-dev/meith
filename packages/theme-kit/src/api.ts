@@ -1,0 +1,384 @@
+/**
+ * F77 — the v1 freeze, stated as data rather than as a promise.
+ *
+ * Phases 2–7 built the slot registry and the view models opportunistically: a
+ * page needed a region, a region needed a model, and both were free to change
+ * because the only consumer was in this repository. That stops here. F78 ships a
+ * second theme and F79 lets a plugin fill a slot, so from this point a rename is
+ * somebody else's broken board.
+ *
+ * A freeze that is only a paragraph in a document is not a freeze. What is here
+ * is the machinery that makes the promise checkable:
+ *
+ *  - `SLOT_STABILITY` says, **for every slot**, whether v1 covers it. The record
+ *    is exhaustive over `SlotName`, so adding a slot without classifying it fails
+ *    `pnpm typecheck` — a new slot cannot arrive quietly as "stable".
+ *  - `DEPRECATIONS` is the machine-readable removal schedule, and
+ *    `assertDeprecationPolicy` refuses a schedule that contradicts itself or has
+ *    fallen due. A deprecation notice nobody acts on is how an API accumulates
+ *    twelve years of "will be removed in the next major".
+ *  - `checkThemeContract` answers whether a theme satisfies v1, which is what
+ *    `apps/forum` asserts at boot and what the ACP's theme screen can show.
+ *  - `scripts/theme-api-docs.mjs` renders all of it to `docs/theme-slots.md` and
+ *    fails the build when the file and the code disagree, so a contract change
+ *    cannot be reviewed without its documentation in the same diff.
+ *
+ * ## Why "stable" is not simply "every slot"
+ *
+ * Two slots — `QuickReply` and `EditorToolbar` — are the F45 editor islands, and
+ * F45 is not built. Nothing renders them, so nothing has ever handed their models
+ * to a component; freezing a props contract that has never been passed to
+ * anything is guessing with a version number attached. They stay `provisional`:
+ * named, documented, and explicitly outside the compatibility promise until the
+ * feature that renders them exists. A theme is not required to implement them and
+ * is warned, not broken, if their shape changes.
+ *
+ * That distinction is the whole reason this file is a record and not a boolean.
+ * The alternative — freeze everything, then break it — is worse than admitting
+ * which parts are not ready.
+ */
+
+import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
+
+/**
+ * The version of the theme contract this build ships.
+ *
+ * `major.minor`, and the two halves mean different things:
+ *
+ *  - **minor** — additive only. A new slot, a new optional field, a new stable
+ *    export. Every existing theme keeps working, so upgrading is a redeploy.
+ *  - **major** — a removal or a rename may land. Only things scheduled through
+ *    `DEPRECATIONS` at least one minor earlier may go.
+ *
+ * Not a patch component: this is a type-level contract with no runtime behaviour
+ * to fix. A bug in `resolveTheme` is a package version, not an API version.
+ *
+ * **1.1** added the optional plugin-region fields F80 needs
+ * (`BoardIndexModel.regions.plugins` and its siblings). Optional, additive, no
+ * slot renamed and none removed — a theme written against 1.0 compiles and runs
+ * unchanged, which is the promise a minor is. It is also the first exercise of
+ * this policy on something real rather than on a fixture.
+ */
+export const THEME_API_VERSION = '1.1'
+
+/**
+ * How much of a promise a slot carries.
+ *
+ * `stable` — v1 covers it. Its name, its kind and its model's existing fields
+ * do not change before v2, and a change to any of them goes through
+ * `DEPRECATIONS` first.
+ *
+ * `provisional` — named and documented, outside the promise. It exists so themes
+ * can see what is coming and so the registry is not retrofitted onto finished
+ * pages later (see `slots.ts`), but nothing renders it yet and its model may
+ * change in a minor release. Every provisional slot names the feature that will
+ * make it stable.
+ *
+ * `deprecated` — still works, scheduled for removal, with an entry in
+ * `DEPRECATIONS` saying when and what to use instead. Enforced in both
+ * directions: a slot marked deprecated here with no entry there is a warning
+ * nobody can act on, and an entry there for a slot not marked here is a removal
+ * nobody was told about.
+ */
+export type Stability = 'stable' | 'provisional' | 'deprecated'
+
+/**
+ * Every slot's place in v1.
+ *
+ * Exhaustive by construction — `Record<SlotName, Stability>` — which is the
+ * mechanism, not the annotation. Adding a slot to `SLOTS` and not to this map is
+ * a type error naming the slot, so classifying it is a step somebody has to take
+ * deliberately rather than a default they inherit.
+ */
+export const SLOT_STABILITY: Readonly<Record<SlotName, Stability>> = {
+  Shell: 'stable',
+  Header: 'stable',
+  UserPanel: 'stable',
+  Navigation: 'stable',
+  Footer: 'stable',
+  Notice: 'stable',
+
+  BoardIndex: 'stable',
+  CategoryBlock: 'stable',
+  ForumRow: 'stable',
+  BoardStats: 'stable',
+  WhoIsOnline: 'stable',
+
+  ForumDisplay: 'stable',
+  ThreadRow: 'stable',
+  SubforumList: 'stable',
+  Pagination: 'stable',
+
+  ThreadView: 'stable',
+  PostBit: 'stable',
+  PostActions: 'stable',
+  /* F45. No page renders an island yet; freezing its props would be a guess. */
+  QuickReply: 'provisional',
+
+  PostForm: 'stable',
+  /* F45, same reason as QuickReply. */
+  EditorToolbar: 'provisional',
+
+  MemberProfile: 'stable',
+
+  SearchForm: 'stable',
+
+  RedirectNotice: 'stable',
+  ErrorNotice: 'stable',
+}
+
+/**
+ * A scheduled removal.
+ *
+ * `name` is a slot name for `kind: 'slot'` and a dotted `Model.field` for
+ * `kind: 'field'`, because those are the two things a theme can be written
+ * against. A whole model is never deprecated on its own — a model exists because
+ * a slot is handed it, so removing the slot is the deprecation.
+ */
+export interface Deprecation {
+  readonly kind: 'slot' | 'field'
+  /** `PostBit`, or `PostBitModel.legacyId`. */
+  readonly name: string
+  /** The version it was first marked in. */
+  readonly since: string
+  /** The **major** version it may be removed in. Never the current one. */
+  readonly removeIn: string
+  /** What to use instead, or `null` when the capability is simply going. */
+  readonly replacement: string | null
+  /** Why, in a sentence a theme author can act on. */
+  readonly reason: string
+}
+
+/**
+ * Everything scheduled for removal. **Empty at v1**, which is the correct
+ * content for a freeze and not a placeholder: nothing has been deprecated
+ * because nothing has been frozen before now.
+ *
+ * The machinery around it is not empty, and is tested against fixtures rather
+ * than against this list — a check that only ever runs on `[]` is a check that
+ * has never run. See `api.test.ts`.
+ */
+export const DEPRECATIONS: readonly Deprecation[] = []
+
+/* ------------------------------------------------------------------ *
+ * Versions
+ * ------------------------------------------------------------------ */
+
+export interface ApiVersion {
+  readonly major: number
+  readonly minor: number
+}
+
+/**
+ * Parse `major.minor`, refusing anything else.
+ *
+ * Strict on purpose. A version string is compared to decide whether a removal
+ * has fallen due, and a lenient parser that reads `"2"` as `2.0` or `"v2.1"` as
+ * `2.1` eventually reads something as `NaN` — at which point every comparison is
+ * false and the policy check passes by never firing.
+ */
+export function parseApiVersion(value: string): ApiVersion {
+  const match = /^(\d+)\.(\d+)$/.exec(value)
+  if (match === null) {
+    throw new Error(
+      `theme-kit: "${value}" is not an API version. Expected major.minor, e.g. "1.0".`,
+    )
+  }
+  return { major: Number(match[1]), minor: Number(match[2]) }
+}
+
+/** `a` before `b`? Negative, zero or positive, in the `Array#sort` convention. */
+export function compareApiVersions(a: string, b: string): number {
+  const left = parseApiVersion(a)
+  const right = parseApiVersion(b)
+  return left.major - right.major || left.minor - right.minor
+}
+
+/* ------------------------------------------------------------------ *
+ * The deprecation policy, enforced
+ * ------------------------------------------------------------------ */
+
+/**
+ * Prove the removal schedule is coherent, and that nothing has outstayed it.
+ *
+ * Takes its inputs rather than reading the module's own, so the failure cases
+ * can be exercised — the shipped list is empty and always will be for a while,
+ * and a policy engine whose only test data is `[]` proves nothing (D10).
+ *
+ * The five refusals, and the failure each one prevents:
+ *
+ *  - **an unknown slot name** — a deprecation for a slot that does not exist is
+ *    a notice pointing at nothing, usually a rename that happened anyway;
+ *  - **`removeIn` not later than `since`** — "deprecated in 1.2, removed in 1.2"
+ *    gives nobody a release to migrate in, which is the entire point of a cycle;
+ *  - **`removeIn` not a major** — a removal in a minor breaks a board on a
+ *    redeploy it was told was additive;
+ *  - **a removal that has fallen due** — the current version has reached
+ *    `removeIn` and the thing is still here. This is the check that makes the
+ *    schedule real: it turns "we said we would remove it" into a failing build
+ *    at exactly the release that promised to;
+ *  - **`stability` and the list disagreeing** — a slot marked `deprecated` with
+ *    no schedule, or scheduled without being marked.
+ */
+export function assertDeprecationPolicy(
+  deprecations: readonly Deprecation[],
+  stability: Readonly<Record<string, Stability>>,
+  currentVersion: string,
+): void {
+  const current = parseApiVersion(currentVersion)
+  const scheduledSlots = new Set<string>()
+
+  for (const entry of deprecations) {
+    const where = `${entry.kind} "${entry.name}"`
+
+    if (entry.kind === 'slot') {
+      if (!isSlotName(entry.name)) {
+        throw new Error(
+          `theme-kit: deprecation for ${where} names a slot that does not exist. ` +
+            'Remove the entry, or restore the slot it points at.',
+        )
+      }
+      scheduledSlots.add(entry.name)
+    } else if (!/^[A-Z]\w*\.\w+$/.test(entry.name)) {
+      throw new Error(
+        `theme-kit: deprecation for ${where} must name a field as Model.field.`,
+      )
+    }
+
+    const since = parseApiVersion(entry.since)
+    const removeIn = parseApiVersion(entry.removeIn)
+
+    if (removeIn.minor !== 0) {
+      throw new Error(
+        `theme-kit: ${where} is scheduled for removal in ${entry.removeIn}, which is ` +
+          'a minor release. Minors are additive; removals land in a major.',
+      )
+    }
+    if (removeIn.major <= since.major) {
+      throw new Error(
+        `theme-kit: ${where} was deprecated in ${entry.since} and removed in ` +
+          `${entry.removeIn}. A deprecation must leave at least one major to migrate in.`,
+      )
+    }
+    if (current.major >= removeIn.major) {
+      throw new Error(
+        `theme-kit: ${where} was scheduled for removal in ${entry.removeIn} and this ` +
+          `build is ${currentVersion}. Remove it, or move the schedule out — a ` +
+          'deadline that passes quietly is how a deprecation becomes permanent.',
+      )
+    }
+    if (entry.reason.trim() === '') {
+      throw new Error(`theme-kit: ${where} is deprecated with no reason given.`)
+    }
+  }
+
+  for (const [name, mark] of Object.entries(stability)) {
+    if (mark === 'deprecated' && !scheduledSlots.has(name)) {
+      throw new Error(
+        `theme-kit: slot "${name}" is marked deprecated but has no entry in ` +
+          'DEPRECATIONS, so nothing tells a theme author when it goes or what replaces it.',
+      )
+    }
+    if (mark !== 'deprecated' && scheduledSlots.has(name)) {
+      throw new Error(
+        `theme-kit: slot "${name}" is scheduled for removal but is still marked ` +
+          `"${mark}". Mark it deprecated so themes and the generated docs say so.`,
+      )
+    }
+  }
+}
+
+/** Every deprecation touching a slot or one of its model's fields. */
+export function deprecationsFor(
+  name: string,
+  deprecations: readonly Deprecation[] = DEPRECATIONS,
+): readonly Deprecation[] {
+  return deprecations.filter(
+    (entry) => entry.name === name || entry.name.startsWith(`${name}Model.`),
+  )
+}
+
+/* ------------------------------------------------------------------ *
+ * What v1 asks of a theme
+ * ------------------------------------------------------------------ */
+
+/** Slots a theme must fill to satisfy v1, in registry order. */
+export function requiredSlots(
+  stability: Readonly<Record<string, Stability>> = SLOT_STABILITY,
+): readonly SlotName[] {
+  return SLOT_NAMES.filter((name) => stability[name] !== 'provisional')
+}
+
+export interface ThemeContractReport {
+  readonly version: string
+  /** Stable or deprecated slots the theme (and its ancestors) do not fill. */
+  readonly missing: readonly SlotName[]
+  /** Provisional slots it does fill. Legal, and worth saying: they may change. */
+  readonly provisionalInUse: readonly SlotName[]
+  /** Deprecated slots it fills, each with its removal schedule. */
+  readonly deprecatedInUse: readonly Deprecation[]
+  readonly satisfies: boolean
+}
+
+/**
+ * Measure a resolved theme against v1.
+ *
+ * Deliberately a *report* rather than a throw. Three callers want three
+ * different reactions to the same facts: the app fails to boot, the ACP's theme
+ * screen lists them, and a theme's own CI test asserts on them. A function that
+ * threw would give the second two nothing but a try/catch and a string.
+ *
+ * `missing` counts deprecated slots as required, which looks backwards and is
+ * not: a deprecated slot is still rendered by a page in this version, so a theme
+ * that drops it early has a hole in it until the major that removes the page's
+ * call.
+ */
+export function checkThemeContract(
+  theme: { readonly slots: Readonly<Record<string, unknown>> },
+  stability: Readonly<Record<string, Stability>> = SLOT_STABILITY,
+  deprecations: readonly Deprecation[] = DEPRECATIONS,
+): ThemeContractReport {
+  const filled = (name: SlotName): boolean => theme.slots[name] !== undefined
+
+  const missing = requiredSlots(stability).filter((name) => !filled(name))
+  const provisionalInUse = SLOT_NAMES.filter(
+    (name) => stability[name] === 'provisional' && filled(name),
+  )
+  const deprecatedInUse = deprecations.filter(
+    (entry) => entry.kind === 'slot' && isSlotName(entry.name) && filled(entry.name),
+  )
+
+  return {
+    version: THEME_API_VERSION,
+    missing,
+    provisionalInUse,
+    deprecatedInUse,
+    satisfies: missing.length === 0,
+  }
+}
+
+/**
+ * Throw unless a theme satisfies v1.
+ *
+ * This is what `assertComplete` was reserved for and is not quite the same
+ * thing: completeness means every slot, and two of them belong to a feature that
+ * does not exist. Requiring those would make the freeze unsatisfiable and the
+ * check would be switched off — which is how a boot assertion becomes a comment.
+ *
+ * Called at module load in the app so a theme with a hole in it fails the
+ * deployment rather than the first request that happens to reach the page.
+ */
+export function assertThemeContract(
+  theme: { readonly key: string; readonly slots: Readonly<Record<string, unknown>> },
+  stability: Readonly<Record<string, Stability>> = SLOT_STABILITY,
+): ThemeContractReport {
+  const report = checkThemeContract(theme, stability)
+  if (!report.satisfies) {
+    throw new Error(
+      `Theme "${theme.key}" does not satisfy theme-kit v${THEME_API_VERSION}: ` +
+        `${report.missing.length} required slot(s) unfilled — ${report.missing.join(', ')}. ` +
+        'Implement them, or extend a theme that does.',
+    )
+  }
+  return report
+}
