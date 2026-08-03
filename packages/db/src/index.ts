@@ -146,6 +146,13 @@ export {
   type ReindexResult,
 } from './search-repo'
 export {
+  PostgresDiscoveryRepository,
+  type DiscoveryPage,
+  type DiscoveryQuery,
+  type DiscoveryRow,
+  type DiscoveryScope,
+} from './discovery-repo'
+export {
   PostgresSearchStore,
   ownsSearch,
   type CreateSearchInput,

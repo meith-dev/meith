@@ -11,6 +11,7 @@ import { getSettings } from '@/server/settings'
 import { avatarsFor } from '@/server/avatars'
 import { activeTheme } from '@/server/theme'
 import {
+  buildBoardNavigation,
   buildFooterModel,
   buildHeaderModel,
   buildUserPanelModel,
@@ -90,7 +91,7 @@ export async function PageShell({
     canAccessModCp: actor.global.canAccessModCp === true,
     avatarUrl: ownAvatar,
   })
-  const header = buildHeaderModel(viewer, [], boardTitle)
+  const header = buildHeaderModel(viewer, buildBoardNavigation(viewer), boardTitle)
 
   /*
    * F55's badge. One count per page render for a signed-in member — the reason

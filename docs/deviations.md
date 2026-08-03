@@ -5235,3 +5235,104 @@ that list, but a record of what somebody typed, pruned on a schedule anyway, and
 costing the winner nothing to lose. Reassigning would hand one person's search
 terms to another account, and a merge is routinely used on a duplicate somebody
 else created.
+
+### D80 — The discovery views are one query and one shape, and the header finally has something true to say (F74)
+
+Five screens — New, Today, My threads, My posts, Unanswered — that a member
+uses more than any other page except the board index. They share a repository
+with one private `page` helper, which is the whole design decision.
+
+#### Four questions, one statement
+
+Every view differs from the others by exactly one predicate: `last_post_at >=`
+an instant, `reply_count = 0`, `author_user_id =` somebody, or an `exists` over
+their posts. Everything else — the permission filter, the content-scope filter,
+the keyset predicate, the ordering, the forum join — is identical, and five
+copies of that would be five places for it to drift. The one that drifts is
+never the one somebody is looking at.
+
+The permission filter is F72's rule and F47's `visibleIn`, and for the reason
+D78 states: filtering a fetched page returns twenty threads as three and
+computes the cursor from rows the viewer cannot see. **An empty scope returns
+nothing without a query running** — the mutant that omits the `in (…)` clause
+for an empty list shows a member with no visible forums the entire board, and
+that is the first test in the file.
+
+#### They are thread listings, not post listings
+
+"What is new" is a question about conversations. A thread with forty new
+replies is one row a member wants to see, not forty — MyBB's own search-based
+"new posts" answers it the other way and buries the rest of the board under one
+busy thread. The row carries its forum's title *and slug*, because these lists
+cross the whole board and two identically named threads in two forums are
+otherwise indistinguishable; both come off the join that was already there,
+because fetching them per row is the N+1 the budget test exists to catch.
+
+#### "New" is a day, and that is a named limit rather than an oversight
+
+"Since your last visit" is what a member reads into the label, and it is not
+what this ships. A real one needs the per-thread read state F32 keeps, which
+would mean either a join per row or a second query per page — and the budget
+this feature is specified against (`packages/testkit/src/discovery-budget.test.ts`)
+is one query, measured on two board sizes so a per-row walk cannot pass on a
+small fixture. The day window is what MyBB's "today's posts" effectively is,
+it is honest about what it shows, and the limitation is written in the code at
+the line that implements it rather than only here.
+
+#### "Today" is the viewer's today
+
+F57 gave members a timezone and this is the first feature whose *results*
+depend on one rather than its labels. A member in Auckland asking at 9am must
+not be shown the previous day because the server is in London. The boundary is
+computed by **measuring the zone's offset at that instant**, not by string
+arithmetic, so the clocks-change day is right — an hour is exactly enough to
+drop the morning's threads, and the failure looks like a quiet board rather
+than a bug. An unrecognised zone falls back to a day window: a stored
+preference is not a reason to 500 one member's page and nobody else's.
+
+#### `unanswered` trusts the board's own counter
+
+`reply_count = 0`, not a count of posts. A thread whose only reply was deleted
+is unanswered again, and `reply_count` is the answer every other screen already
+shows — F38 maintains it and its recount repairs it. Counting posts here would
+be a second opinion, and the drift would appear only after a deletion, which is
+exactly when somebody is looking.
+
+#### "Threads I posted in" is an `exists`, not a join
+
+A join returns one row per post, so a member with two hundred posts in one
+thread fills the page with one conversation — and the `limit` applies *before*
+any de-duplication, so the page is also short. The `exists` is inside the same
+statement, which is what keeps it one query; the version that fetches the
+member's post ids first is two, and the first of those grows with how much they
+have written.
+
+The subquery carries the viewer's content scope too. A member whose only post in
+a thread was removed should not find it under "threads I posted in" — the post
+they are looking for is not there.
+
+#### A refusal, not an empty list
+
+The two personal views need a signed-in member, and the page says so and offers
+the sign-in link. "No threads" and "you are not signed in" render identically
+and lead to opposite next actions. The tab strip still shows all five to a
+guest, deliberately: somebody already on the page is looking for the list, and
+being told how to reach it beats the tab not existing.
+
+#### The header's navigation was empty for fourteen features
+
+`HeaderModel.navigation` has been part of the theme contract since F27 and
+every caller passed `[]` — correctly, per `buildHeaderModel`'s own comment: a
+builder that guessed would advertise pages that 404. F74 is the first phase
+where enough of them exist *and* the first feature that needs one, because a
+discovery view nothing links to is a page only its author knows about. The
+personal entry is omitted for a guest rather than shown and refused; a
+permanent header entry that always refuses teaches people to ignore the header.
+
+Fourteen mutants killed: the empty-scope filter dropped, the keyset tie-break
+dropped, the thread visibility filter dropped, the post visibility filter
+dropped from the `exists`, the `exists` replaced by a join, `>=` narrowed to
+`>`, `reply_count` replaced by a post count, the zone offset dropped, its sign
+flipped, the view guard made prefix-matching, `mine` and `participated`
+swapped, `today` collapsed into `new`, a guest given an empty list instead of a
+refusal, and the navigation made identical for guests and members.

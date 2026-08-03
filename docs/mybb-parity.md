@@ -1117,3 +1117,46 @@ reversible; a crop at upload time is not.
 
 **Cost:** a wide image renders wide, so a theme laying out a fixed square has to
 say `object-fit: cover` rather than assuming. The default theme does.
+
+## "New posts" lists threads, and its window is a day rather than your last visit
+
+**MyBB:** `search.php?action=getnew` runs a search for posts made since
+`lastvisit` and shows the *threads* those posts are in, ordered by last post. A
+member's `lastvisit` is stamped by the session handling on each new visit.
+
+**Here:** `/discover/new` lists threads whose last post landed in the last 24
+hours. `/discover/today` uses midnight in the member's own timezone (F57).
+Both are thread listings ordered by last post, permission-filtered in SQL and
+keyset-paged.
+
+**Why:** a genuine "since your last visit" needs the per-thread read state F32
+keeps, and folding it into this query means either a join per row or a second
+query per page — against a feature specified as *budgeted*, with a test that
+holds it to one query on two board sizes. MyBB pays that cost as a full search
+run per page view, which is why the screen is one of the heaviest on a large
+board and why several hosts disable it.
+
+**Cost:** a member who has been away a week sees a day, not a week. The label
+says so, and `/discover/participated` and the subscription list (F56) are the
+two screens that do not have a window at all. When F32's read state and this
+query can be joined without a per-row cost, the window becomes a fallback for
+guests rather than the rule.
+
+## A busy thread is one row, not forty
+
+**MyBB:** the "new posts" and "today's posts" screens are searches over
+*posts*, so a thread with forty new replies contributes forty hits — collapsed
+into one thread row by the results template, but counted, paged and ranked as
+forty.
+
+**Here:** every discovery view returns one row per thread, and the `limit` is a
+limit on threads.
+
+**Why:** "what is new" is a question about conversations. Paging over posts
+means a page of twenty hits can be three threads, the page count is a number
+about something the member cannot see, and one busy thread buries the rest of
+the board.
+
+**Cost:** the row says *when* the last post was and *who* wrote it, but not how
+many of the replies are new to this reader — that is the same read-state
+dependency the window above names.
