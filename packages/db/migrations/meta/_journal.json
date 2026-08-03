@@ -141,6 +141,13 @@
       "when": 1785529300000,
       "tag": "0019_word_filters",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1785529400000,
+      "tag": "0020_searches",
+      "breakpoints": true
     }
   ]
 }

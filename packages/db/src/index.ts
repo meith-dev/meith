@@ -146,6 +146,12 @@ export {
   type ReindexResult,
 } from './search-repo'
 export {
+  PostgresSearchStore,
+  ownsSearch,
+  type CreateSearchInput,
+  type StoredSearch,
+} from './search-store'
+export {
   PostgresContentAdminRepository,
   type ThreadPrefixRow,
   type WordFilterRow,

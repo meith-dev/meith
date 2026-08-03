@@ -5149,3 +5149,89 @@ Two guards overlapped: an explicit `scope.forumIds.length === 0` check and the
 test, because the second already covered it. It was removed rather than kept —
 the same call F71 made about a defensive `lastIndex` reset. A guard that cannot
 be shown to matter is one the next reader will trust for the wrong reason.
+
+### D79 — A stored search holds the query, not the hits (F73)
+
+The search screens, and the decision everything else follows from.
+
+#### Freezing a result list is faster and wrong
+
+The obvious implementation of "stored result sets" is a frozen list of post
+ids: page two is then a cheap `where id in (…)`. It is wrong in two ways that
+matter and one that is merely untidy.
+
+**It goes stale.** A post deleted, moved to a private forum, or hidden by a
+moderator after the search was run would still be offered on page two.
+
+**It is a permission snapshot.** A member who loses access to a forum would go
+on seeing its hits for as long as the stored set lived — the permission model
+frozen at the instant somebody pressed a button.
+
+So the row holds the **query**, and every page re-resolves it through the
+current viewer's scope. Re-running costs one indexed query, because F72's GiN
+index is doing the work; storing the answer would trade that for a correctness
+problem.
+
+The third benefit is the one an operator notices: "search within results" stops
+being a set intersection and becomes another query. With the terms stored rather
+than a list of ids, *within* is simply *and*, which is what full-text search
+does natively and what a member means.
+
+#### The row is owned, and the reason is the terms rather than the results
+
+A stored search cannot leak results — they are re-resolved against whoever is
+asking, so another member opening the URL would see only what they are entitled
+to. What ownership protects is **what somebody searched for**, which is
+frequently more revealing than what they found.
+
+Two mechanisms, neither sufficient alone: the token is random, so searches
+cannot be enumerated; and ownership is checked, so a forwarded link does not
+work. A search that is not yours is a **404 rather than a 403**, because "this
+exists but is not yours" confirms that somebody ran it — the fact being
+protected.
+
+A guest's search belongs to their session, and **only while they are still that
+guest**. Somebody who signs in afterwards is a different subject; inheriting the
+session's searches would attach a stranger's terms to an account, and on a
+shared computer that stranger is a real person.
+
+#### The flood check is the insert
+
+`search.flood_seconds` and `flood.bypass` were specified in
+`docs/mybb-parity.md#flood-intervals` long before this feature existed — an
+interval cannot obey R4.2's numeric rule, because the most permissive value is
+the smallest non-zero one and MAX gets that exactly backwards. F73 is the first
+consumer.
+
+The check runs **inside the insert** as a `not exists`, so the check and the
+write are one statement. A read-then-write check has a window between them, and
+search flooding is precisely the traffic that arrives twenty requests at once —
+the race is the attack, not a footnote.
+
+Guests are throttled by a **hash of their session token**, never the token. They
+need an identity here for two things, paging and rate limiting, and both work on
+an opaque key — while `searches` is a table that exists to be pruned, listed and
+read by operators, so a live credential in it would make every one of those a
+credential disclosure. Throttling all guests as one bucket was the alternative,
+and it is a denial of service wearing a rate limit's clothes: one visitor
+searching locks out the rest.
+
+#### A third unprovable guard, removed
+
+The insert originally short-circuited on `floodSeconds <= 0` as well as running
+the interval check. No mutation of that clause could fail a test: subtracting
+nothing from `now()` leaves `now()`, no existing row was created after it, and
+the insert proceeds anyway. Removed — the third time this session, after F71's
+`lastIndex` reset and F72's duplicate scope check. The pattern is worth naming:
+a guard added because it *reads* as careful, covered by arithmetic that already
+says the same thing.
+
+#### The merge map caught this feature's table
+
+`searches.user_id` failed F67's schema-driven coverage test the moment the
+migration landed — the second time that guard has caught a later feature. It is
+**discarded** on merge rather than reassigned: not a credential like the rest of
+that list, but a record of what somebody typed, pruned on a schedule anyway, and
+costing the winner nothing to lose. Reassigning would hand one person's search
+terms to another account, and a merge is routinely used on a duplicate somebody
+else created.

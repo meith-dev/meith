@@ -382,3 +382,46 @@ export const massMails = pgTable('mass_mails', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
 })
+
+/**
+ * Stored searches (F73).
+ *
+ * A search is a row so that paging, sorting and "search within results" refer
+ * to something the board already knows rather than to a query string carrying
+ * every filter. It holds the **query**, not a frozen list of hits — see
+ * `search-store.ts` for why that distinction is the whole design.
+ *
+ * `created_at` is also the flood-control clock: the newest row for a member is
+ * when they last searched, so no second table is needed to rate-limit them.
+ */
+export const searches = pgTable(
+  'searches',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    /** Unguessable, because it appears in a URL a member can bookmark. */
+    token: text('token').notNull(),
+    /** Null for a guest, whose searches are stored against their session. */
+    userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    /**
+     * A *hash* of the guest's session token, never the token itself.
+     *
+     * Guests need this for two things — paging their own results, and being
+     * rate-limited individually rather than as one shared bucket — and both
+     * work on an opaque key. Storing the token would put a live credential in a
+     * table that exists to be pruned and read by operators.
+     */
+    sessionKey: text('session_key'),
+    terms: text('terms').notNull(),
+    /** The rest of the query — authors, forums, dates, sort — as submitted. */
+    filters: jsonb('filters').notNull().default({}),
+    /** What the search found when it was run, for the "N results" line. */
+    hitCount: integer('hit_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('searches_token_key').on(t.token),
+    /* The flood check and the "my recent searches" list both read this. */
+    index('searches_user_recent_idx').on(t.userId, t.createdAt),
+    index('searches_session_recent_idx').on(t.sessionKey, t.createdAt),
+  ],
+)

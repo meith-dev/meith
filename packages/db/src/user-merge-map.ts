@@ -104,6 +104,15 @@ export const MERGE_DEDUPE: readonly DedupeColumn[] = [
 
 export const MERGE_DISCARD: readonly DiscardColumn[] = [
   { table: 'admin_sessions', column: 'user_id' },
+  /*
+   * F73's stored searches. Not a credential like the rest of this list, but
+   * discarded for a related reason: a stored search is a record of *what
+   * somebody typed*, it is pruned on a schedule anyway, and the winner loses
+   * nothing by searching again. Reassigning would hand one person's search
+   * terms to another account — and a merge is routinely used on a duplicate
+   * somebody else created.
+   */
+  { table: 'searches', column: 'user_id' },
   { table: 'credential_tokens', column: 'user_id' },
   { table: 'remember_tokens', column: 'user_id' },
   { table: 'sessions', column: 'user_id' },
