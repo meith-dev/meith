@@ -34,6 +34,41 @@ export interface SeedScale {
   readonly threads: number
   /** Replies per thread, inclusive. The first post is extra. */
   readonly repliesPerThread: readonly [number, number]
+  /**
+   * A handful of enormous threads, on top of `threads`.
+   *
+   * A board of uniformly 20-post threads is not a small version of a real
+   * board, it is a different shape — and it is the shape that makes deep
+   * pagination look free. Every thread fits on one page, so a keyset cursor and
+   * an `OFFSET` cost exactly the same and the load test proves nothing about
+   * the claim it exists to check.
+   *
+   * Real boards have a long tail: thousands of short threads and a few with
+   * tens of thousands of posts, and those few are where the reading happens.
+   * Omit for a uniform board.
+   */
+  readonly longThreads?: {
+    readonly count: number
+    /** Posts per long thread, inclusive. */
+    readonly posts: readonly [number, number]
+  }
+  /**
+   * A distinctive word sprinkled into one post in `everyNthPost`.
+   *
+   * The seeder's vocabulary is sixteen common words, and a post is twenty to
+   * sixty of them — so *every* word matches nearly every post, and there is no
+   * such thing as a selective query against this corpus. That is fine for the
+   * listings and useless for search, where the two cases that matter are a term
+   * matching a million rows and a term matching a handful.
+   *
+   * Injecting a rare word makes the second case exist. It is placed by counting
+   * posts rather than by drawing from `random`, so adding it does not shift the
+   * pseudo-random sequence and a board seeded without it is unchanged.
+   */
+  readonly rareTerm?: {
+    readonly word: string
+    readonly everyNthPost: number
+  }
 }
 
 /**
@@ -49,13 +84,23 @@ export const SMOKE_SCALE: SeedScale = {
   repliesPerThread: [0, 6],
 }
 
-/** The plan's F11 target. Real Postgres only — see the note above. */
+/**
+ * The plan's F11 target. Real Postgres only — see the note above.
+ *
+ * The long tail is on top of the plan's number rather than carved out of it:
+ * 100k ordinary threads still produce their ~2M posts, and thirty archive
+ * threads add a few hundred thousand more. F89's deep-page budgets are
+ * meaningless without them — with every thread under one page, a keyset cursor
+ * and an `OFFSET` are indistinguishable.
+ */
 export const FULL_SCALE: SeedScale = {
   users: 20_000,
   categories: 6,
   forums: 50,
   threads: 100_000,
   repliesPerThread: [10, 30],
+  longThreads: { count: 30, posts: [2_000, 15_000] },
+  rareTerm: { word: 'quinsyflange', everyNthPost: 2_000 },
 }
 
 /**
@@ -270,30 +315,119 @@ async function seedThreads(
     threadIds.push(...inserted.map((r) => r.id))
   })
 
-  const posts: (typeof schema.posts.$inferInsert)[] = []
+  /*
+   * Posts are generated and flushed in batches rather than accumulated.
+   *
+   * The first version built the whole array first, which is fine at
+   * `SMOKE_SCALE` and impossible at `FULL_SCALE`: two million post objects, each
+   * carrying one to three paragraphs of body text, is several gigabytes of live
+   * JS heap before a single row is written. F89 needed the full board on real
+   * Postgres, and the seeder was the thing standing in the way.
+   *
+   * The **generation order is unchanged**, so the pseudo-random sequence is
+   * identical and a given seed still produces exactly the same board. That
+   * matters more than it sounds: every existing budget assertion is written
+   * against this data, and a seeder whose output shifted would have quietly
+   * rewritten what those tests mean.
+   */
+  let batch: (typeof schema.posts.$inferInsert)[] = []
+  let postCount = 0
+  let generated = 0
 
-  threadIds.forEach((threadId, index) => {
+  const flush = async (): Promise<void> => {
+    if (batch.length === 0) return
+    await db.insert(schema.posts).values(batch)
+    postCount += batch.length
+    batch = []
+  }
+
+  /** The body, with the rare term appended to every nth post. */
+  const body = (text: string): string => {
+    const rare = scale.rareTerm
+    generated++
+    return rare !== undefined && generated % rare.everyNthPost === 0
+      ? `${text}\n\n${rare.word}`
+      : text
+  }
+
+  for (const [index, threadId] of threadIds.entries()) {
     const thread = threadRows[index] as (typeof threadRows)[number]
     const replies = random.int(scale.repliesPerThread[0], scale.repliesPerThread[1])
 
     for (let p = 0; p <= replies; p++) {
       const authorIndex = random.int(0, userIds.length - 1)
-      posts.push({
+      batch.push({
         threadId,
         forumId: thread.forumId,
         authorUserId: userIds[authorIndex] as number,
         authorUsername: `user${authorIndex + 1}`,
         subject: p === 0 ? thread.title : null,
-        message: paragraphs(random, random.int(1, 3)),
+        message: body(paragraphs(random, random.int(1, 3))),
         isFirstPost: p === 0,
         createdAt: thread.createdAt,
       })
+
+      if (batch.length >= 500) await flush()
     }
-  })
+  }
 
-  await inBatches(posts, 500, (batch) => db.insert(schema.posts).values([...batch]))
+  /*
+   * The long tail, appended after the uniform threads.
+   *
+   * Appended rather than interleaved so the random sequence for the first
+   * `scale.threads` threads is byte-for-byte what it was before this option
+   * existed. A board seeded without `longThreads` is unchanged, which is what
+   * lets every existing budget assertion keep meaning what it meant.
+   */
+  if (scale.longThreads !== undefined) {
+    const { count, posts: range } = scale.longThreads
 
-  return { threadIds, postCount: posts.length }
+    for (let i = 0; i < count; i++) {
+      const authorIndex = random.int(0, userIds.length - 1)
+      const createdAt = daysAgo(random.int(200, 900))
+      const forumId = random.pick(forumIds)
+      const title = `${words(random, 4)} archive ${i + 1}`
+
+      const [inserted] = await db
+        .insert(schema.threads)
+        .values({
+          forumId,
+          title,
+          slug: `archive-thread-${i + 1}`,
+          authorUserId: userIds[authorIndex] as number,
+          authorUsername: `user${authorIndex + 1}`,
+          isSticky: false,
+          isLocked: false,
+          createdAt,
+          lastPostAt: createdAt,
+        })
+        .returning({ id: schema.threads.id })
+
+      const threadId = inserted?.id as number
+      threadIds.push(threadId)
+
+      const total = random.int(range[0], range[1])
+      for (let p = 0; p < total; p++) {
+        const poster = random.int(0, userIds.length - 1)
+        batch.push({
+          threadId,
+          forumId,
+          authorUserId: userIds[poster] as number,
+          authorUsername: `user${poster + 1}`,
+          subject: p === 0 ? title : null,
+          message: body(paragraphs(random, random.int(1, 3))),
+          isFirstPost: p === 0,
+          createdAt,
+        })
+
+        if (batch.length >= 500) await flush()
+      }
+    }
+  }
+
+  await flush()
+
+  return { threadIds, postCount }
 }
 
 function daysAgo(days: number): Date {

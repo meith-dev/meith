@@ -6817,3 +6817,106 @@ fix if it becomes worth one. Writing the troubleshooting section, an earlier
 draft referenced a `forum doctor` and a `forum cache:clear`; neither exists. They
 were invented by analogy with other projects, which is exactly the failure a
 generated reference prevents and a hand-written one invites.
+
+---
+
+### D94 — A load test that measures nothing is the default outcome (F89)
+
+F89's deliverable is evidence, and evidence is the kind of thing that is easy to
+manufacture by accident. Almost every mistake available while building a load
+harness produces a *fast* number, which reads as success — so most of the work
+here went into making the harness refuse to report one.
+
+#### The board is real, and that decided the tooling
+
+2,343,847 posts, 100,030 threads, 20,000 users, longest thread 14,741 posts, on
+a real Postgres 16. Not PGlite: it is Postgres compiled to WASM holding the
+database in process memory, which is exactly right for the test suite and cannot
+take two million posts — and even if it could, the numbers would describe the
+WASM boundary rather than the query plan.
+
+Seeding it is phased — `--phase posts | counters | search | analyze` — because
+twenty minutes of work is long enough that something interrupts it, and a
+monolithic seeder that loses everything is one you run overnight and never
+again. It is the shape F85's importer and F38's recount already have; the
+standard applies to the tooling too. It was not a hypothetical: the first
+full-scale run was killed twice.
+
+#### Four ways this would have measured nothing, all of which look like success
+
+Each was found while building, and each would have published a flattering
+number:
+
+1. **The seeder held every post in heap** before writing a row. Two million post
+   objects carrying paragraphs of body text is several gigabytes, and it simply
+   died. Now generated and flushed in batches, with the random sequence
+   unchanged so a given seed still produces exactly the same board — every
+   existing budget assertion is written against this data.
+2. **`FULL_SCALE` had no long threads.** 100k threads of 10–30 replies is two
+   million posts and *no thread over one page*, which makes deep pagination free
+   by construction: a keyset cursor and an `OFFSET` cost the same when there is
+   nothing to skip. The deep-page budgets would have passed while proving
+   nothing about the claim they exist to check. Now a 30-thread long tail of
+   2,000–15,000 posts.
+3. **Bulk-inserted posts have a null `search_vector`.** It is filled by the write
+   path, per post. Both search scenarios would have timed an index lookup
+   against an empty index — very fast, and a claim about nothing.
+4. **The corpus had no rare term.** Sixteen common words, 20–60 per post, so
+   every word matches nearly every post and "rare term" was a synonym for
+   "common term". One distinctive word is now injected into one post in 2,000,
+   placed by counting rather than by drawing from `random` so the sequence — and
+   therefore every other board — is untouched.
+
+The first two were caught by the harness rather than by inspection.
+`measure.ts` refuses to time a scenario whose average result is below a declared
+`minRows`, and it fired on the first real run: `thread-page-first` averaged 7
+rows where it claimed 20. That guard is the single most valuable thing in the
+harness, because the failure it prevents is silent and looks like the best
+result in the report.
+
+#### Nine of ten pass, and the two keyset claims hold
+
+Between 2% and 76% of budget. The two worth naming: a thread page 14,000 posts
+deep costs 16.5 ms against 3.3 ms for page one, and a deep forum page costs
+*less* than its first page — the first page pays for sticky-first ordering that
+a deep cursor has already passed. Under `OFFSET` both would grow with depth.
+
+#### The tenth is real, and fixing it is not this pass's call
+
+Relevance search for a term matching 96% of posts: **p95 5.5 seconds**. The same
+code path over a term matching 1,171 posts: **35 ms**. The GIN index is present
+and used; the cost is that `order by ts_rank_cd(...)` has to score every matching
+row before it can name the top twenty, and ranking 2.26M rows takes what it
+takes. No index changes that, which is why the two search scenarios are
+separate — a fast rare-term search would otherwise have hidden it entirely.
+
+Bounding the candidate set — rank the 20,000 most recent matches instead of all
+of them — measured 140 ms, a 39× improvement. It is also a change to what a
+member sees, so it is **open question 6** rather than a commit. There is a fair
+counter-argument in there too: no *real* term matches 96% of a board, because
+the ones that would be are stopwords the tsvector drops, so the scenario may be
+measuring an artefact of a sixteen-word vocabulary rather than a product
+problem.
+
+#### `target` and `limit` are different, and the registry says which
+
+Leaving that budget at 400 ms would have made CI permanently red, and a build
+that is always red is a build nobody reads. Deleting the scenario would have
+made the slowness undocumented. So `budgets.ts` distinguishes a **target** — a
+number with headroom that the page is expected to meet — from a **limit**: a
+number that was measured, is *not* considered good, and is recorded anyway so it
+cannot get worse quietly. A limit is a debt with a number on it, not a pass mark,
+and a test requires every one of them to say so and to name the open question.
+
+#### What the budgets deliberately do not cover
+
+Data-layer time, not end-to-end HTTP. The boundary is deliberate: React
+rendering a twenty-post page costs the same on a board with two thousand posts
+and one with two million, while `select … order by … limit 20` does not. A
+budget exists to fail when a change makes the board worse *as it grows*, and
+folding in a large constant that moves with the Next.js version would mask
+exactly that.
+
+The absolute numbers belong to the machine that produced them. What travels is
+the shape — which scenarios sit near their budget, and whether depth costs
+anything — which is why the generated document says so at the top of the table.

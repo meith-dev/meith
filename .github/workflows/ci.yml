@@ -84,6 +84,11 @@ jobs:
       - name: REST API reference is current
         run: pnpm api:docs:check
 
+      # F89: the p95 reference is generated from the budget registry and the
+      # recorded run. A published number no run produced is worse than none.
+      - name: Performance reference is current
+        run: pnpm perf:docs:check
+
       # F88: not a generated file — the index is prose. What is checked is that
       # every document in docs/ is reachable from it and every link resolves.
       # The new document is the one likeliest to matter and likeliest to be

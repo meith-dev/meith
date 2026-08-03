@@ -744,42 +744,49 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### Phase 9 is 6 of 8. F89 is the only feature left, and F85 still needs a decision.
+### Phase 9 is closed. Every plan feature has been attempted; two need a human.
 
-**F86, F87 and F88** are done (D92, F87's `mybb-parity.md` section, D93). The
-only remaining Phase 9 feature is **F89**, plus the `PARTIAL` rows F81 and F85.
+**F89 is done** (D94), and with it the last `TODO` in the roadmap. The board it
+was measured against was real: 2,343,847 posts, 100,030 threads, 20,000 users,
+longest thread 14,741 posts, on Postgres 16. Nine of ten scenarios land between
+2% and 76% of budget, and both keyset claims hold at scale.
 
-**Read this before F85's remainder: there is an open question with your name on
-it.** Reading a live MyBB board needs a MySQL client, which is a runtime
-dependency, and the working rules say a human decides. Question 5 in
-`plan-status.md` lays out three options — `mysql2` behind the existing port, a
-`mysqldump` reader, or a separate tool that writes through F81's REST API — with
-a recommendation. Everything else about the import is built and tested: the
-mapping, the ordering, the chunking, the resumability, the idempotency and the
-counter comparison.
+**Two open questions are the only things left, and both are yours.** Neither can
+be resolved unilaterally under the working rules, and each blocks a `PARTIAL`:
 
-**F89 is next.** Its acceptance criterion is load evidence, not an optimisation:
-p95 budgets held on a board with roughly two million posts. Three things it will
-need, and the first is the hard one:
+1. **Question 5 — a MySQL client, for F85's importer.** A runtime dependency.
+   Everything else about the import is built and tested: the mapping, the
+   ordering, the chunking, the resumability, the idempotency and the counter
+   comparison. Recommendation: `mysql2` behind the existing port.
+2. **Question 6 — bounding search relevance, for F89's one budget violation.**
+   A relevance search for a term matching 96% of posts costs 5.5 s; the same
+   path over 1,171 matches costs 35 ms. Not an index — `ts_rank_cd` has to score
+   every match before it can name the top twenty. Bounding the candidate set
+   measured 140 ms but changes what a member sees. Recorded as a `limit` so it
+   cannot get worse quietly.
 
-- **A seeded board at that scale.** Generating it is the feature. Two million
-  posts through the ordinary posting path would take hours and exercise the
-  outbox rather than the reader, so it wants a bulk seeder that produces a
-  realistic *shape* — a long tail of small threads, a handful of very long ones,
-  and a distribution of authors — because a board of uniform 20-post threads
-  makes keyset pagination look better than it is.
-- **A budget that fails the build.** The query-count budgets already exist; what
-  is missing is latency. A p95 number in a document nobody re-measures is a
-  number that was true once.
-- **Remediation, which the criterion asks for explicitly.** F89 is not "measure
-  and report" — a violated budget has to be fixed. The likeliest two on a corpus
-  that size are search and the forum index's aggregates.
+**The other `PARTIAL` rows** (F81's webhooks, and the phase 0–8 entries) are
+listed with their gaps in `plan-status.md` and need no decision — they are work.
 
-Also outstanding from F82: nothing in this monorepo is published to npm, so a
-scaffolded project cannot yet `npm install`. That is a release task rather than a
-feature, and F88's handbook describes the flow that will work once it is.
+**Also outstanding from F82:** nothing in this monorepo is published to npm, so a
+scaffolded project cannot yet `npm install`. A release task, not a feature.
 
-Three things from this phase worth carrying:
+### How to re-run the performance pass
+
+```sh
+docker compose -f docker-compose.dev.yml up -d
+pnpm forum migrate
+pnpm perf seed                 # ~20 min; --phase posts|counters|search|analyze to resume
+pnpm perf measure --record     # writes docs/perf-results.json
+pnpm perf:docs                 # regenerates docs/performance.md
+```
+
+`--scale tenth` exercises the harness in a couple of minutes. Only `full` may be
+recorded — `docs/performance.md` says which board a number came from, and a
+number from a tenth-scale board under that heading would be a lie with a
+provenance table attached.
+
+Four things from this phase worth carrying:
 
 **The two-gate pattern.** F83's installer cannot run twice because two
 *independent* checks say so — the marker and the account count — and either alone
@@ -795,8 +802,13 @@ is not, and the next run does nothing.
 generated, but "every document is linked and every link resolves" can, and
 `pnpm docs:index:check` now gates it. Writing F88 also produced two invented CLI
 commands and one wrong claim about installer recovery, all three caught by
-reading the source rather than by remembering it — which is the argument for the
-check in miniature.
+reading the source rather than by remembering it.
+
+**A measurement harness fails towards looking good.** Every mistake available
+while building F89's — a wrong id, an empty scope, an unindexed corpus, a board
+with no long threads — produces a *fast* number, and a fast number reads as
+success. The `minRows` guard that refuses to time a scenario producing nothing
+caught two of them on the first run. Build the refusal before the measurement.
 
 ### Fixed since: the Postgres path had never run anywhere
 

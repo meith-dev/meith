@@ -21,6 +21,7 @@ reader guess, and most of them guess the roadmap.
 |---|---|
 | [`operating.md`](./operating.md) | Configuration, permissions, themes, plugins, migrations, backup and restore, connection pooling, and the failures that actually happen. **The operator handbook — start here.** |
 | [`upgrading.md`](./upgrading.md) | How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
+| [`performance.md`](./performance.md) | The p95 budgets for hot pages and what the last recorded run measured on a full-scale board. Generated — do not edit. |
 
 ## Themes
 
