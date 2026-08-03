@@ -12,6 +12,7 @@
 
 import process from 'node:process'
 
+import { importCommand } from './import'
 import { taskList, taskRun } from './tasks'
 import {
   profileFieldAdd,
@@ -127,6 +128,26 @@ const commands: Command[] = [
           : `Applied ${applied} migration(s).`,
       )
       return 0
+    },
+  },
+
+  {
+    name: 'import',
+    summary: 'Import a MyBB board. Resumable — run it again to continue.',
+    usage:
+      'MYBB_PASSWORD=… forum import --host H --user U --database D ' +
+      '[--prefix mybb_] [--port 3306] [--charset utf8mb4] [--ssl] ' +
+      '[--budget 20000] [--page-size 200]',
+    async run(args: readonly string[]) {
+      const { assertEnv } = await import('@forum/core')
+      const env = assertEnv()
+
+      if (env.DATA_SOURCE !== 'postgres') {
+        console.error('Nothing to import into: DATA_SOURCE is "fixture". Set DATABASE_URL first.')
+        return 1
+      }
+
+      return importCommand(args)
     },
   },
 

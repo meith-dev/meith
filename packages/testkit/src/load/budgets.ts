@@ -45,13 +45,18 @@
  * what was measured. A **limit** is a number that was measured, is *not*
  * considered good, and is written down anyway so it cannot get worse quietly.
  *
- * The distinction exists because one scenario here is genuinely slow and cannot
- * be fixed without a decision nobody has taken yet (open question 6). The
- * alternatives were both worse: delete the scenario and the slowness becomes
- * undocumented, or leave the budget at its target and CI is permanently red —
- * and a build that is always red is a build nobody reads.
- *
  * A `limit` is a debt with a number on it, not a pass mark.
+ *
+ * **Nothing is currently a limit.** The field was added for `search-common`,
+ * which F89 measured at 5.5 seconds and could not fix without a decision the
+ * working rules reserved for a human; once that decision was taken it became a
+ * 98ms target and the debt was paid inside one pass.
+ *
+ * It is kept rather than deleted because the alternatives it displaced are both
+ * bad and both tempting: delete the scenario and the slowness goes undocumented,
+ * or leave the budget at its unmet target and CI is permanently red — and a
+ * build that is always red is a build nobody reads. The next scenario in that
+ * position should have somewhere honest to sit.
  */
 export type BudgetKind = 'target' | 'limit'
 
@@ -138,18 +143,16 @@ export const BUDGETS: readonly Budget[] = [
     id: 'search-common',
     page: 'Search, near-universal term',
     work: 'Relevance search for a term matching 96% of the board',
-    p95Ms: 9_000,
-    kind: 'limit',
+    p95Ms: 300,
+    kind: 'target',
     why:
-      'A **measured limit, not a target** — see open question 6. Relevance ordering is ' +
-      'not indexable: `order by ts_rank_cd(...)` has to score every matching row before ' +
-      'it can name the top twenty, so a term matching 2.26M of 2.34M posts costs six ' +
-      'seconds and no index changes that. The GIN index is present and used; the work is ' +
-      'the ranking. `search-rare` is the same code path over 1,171 matches at 46ms, ' +
-      'which localises the cost to the size of the match set rather than to the query. ' +
-      'The fix is to bound the candidate set — ranking the most recent N matches instead ' +
-      'of all of them measured 140ms — but that changes which results a member sees, ' +
-      'which is a decision for a human rather than for this pass.',
+      'The worst query a member can trigger, and it was the one budget F89 failed. ' +
+      'Relevance ordering is not indexable: `ts_rank_cd` has to score every matching ' +
+      'row before it can name the top twenty, so a term matching 2.26M of 2.34M posts ' +
+      'cost a p95 of 5.5 seconds with the GIN index present and used. The fix was to ' +
+      'bound the ranked set to the most recent 20,000 matches, which measured 98ms — ' +
+      'and changes nothing for any term selective enough that the window holds the ' +
+      'whole match set, which is every real query. Recorded in mybb-parity.md.',
   },
   {
     id: 'search-rare',
@@ -158,9 +161,10 @@ export const BUDGETS: readonly Budget[] = [
     p95Ms: 200,
     kind: 'target',
     why:
-      'Separated because a fast rare-term search can hide a slow common-term one — and ' +
-      'here it does exactly that, by a factor of 130. Together the two scenarios say the ' +
-      'cost is the match count, not the code.',
+      'Separated because a fast rare-term search hides a slow common-term one, and here ' +
+      'it did: before the window bound these two differed by a factor of 130, and only ' +
+      'the pair made it visible that the cost was the match count rather than the code. ' +
+      'They still differ, by about 5×, which is the residual and expected shape.',
   },
   {
     id: 'member-profile',

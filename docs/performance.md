@@ -31,23 +31,16 @@ page costs more than a first page. Compare ratios, not milliseconds.
 
 | Page | Budget | | Measured p95 | p50 | p99 | Used |
 |---|---:|---|---:|---:|---:|---:|
-| Thread, page 1 | 50 ms | target | 3.2 ms | 2.4 ms | 5.6 ms | 6% |
-| Thread, deep page | 60 ms | target | 15.8 ms | 12.5 ms | 16.9 ms | 26% |
-| Forum, page 1 | 50 ms | target | 6.6 ms | 5.8 ms | 9.7 ms | 13% |
-| Forum, deep page | 60 ms | target | 6.4 ms | 4.3 ms | 7.1 ms | 11% |
-| Board index | 80 ms | target | 1.7 ms | 1.3 ms | 4.0 ms | 2% |
-| Permission filter | 40 ms | target | 5.7 ms | 3.9 ms | 7.5 ms | 14% |
-| Latest threads | 80 ms | target | 51.9 ms | 38.9 ms | 54.6 ms | 65% |
-| Search, near-universal term | 9000 ms | limit | 5412.0 ms | 5091.8 ms | 5472.8 ms | 60% |
-| Search, rare term | 200 ms | target | 33.9 ms | 31.1 ms | 54.3 ms | 17% |
-| Member profile | 60 ms | target | 2.1 ms | 1.3 ms | 6.2 ms | 4% |
-
-A **target** is a number the page is expected to meet, set with headroom over
-what was measured. A **limit** is a number that was measured, is not considered
-good, and is recorded anyway so it cannot get worse quietly — a debt with a
-number on it, not a pass mark. One entry is a limit:
-
-- **Search, near-universal term** — Relevance search for a term matching 96% of the board.
+| Thread, page 1 | 50 ms | target | 3.2 ms | 2.5 ms | 4.8 ms | 6% |
+| Thread, deep page | 60 ms | target | 18.8 ms | 9.0 ms | 21.7 ms | 31% |
+| Forum, page 1 | 50 ms | target | 8.6 ms | 7.5 ms | 9.8 ms | 17% |
+| Forum, deep page | 60 ms | target | 7.0 ms | 3.9 ms | 8.3 ms | 12% |
+| Board index | 80 ms | target | 1.9 ms | 1.2 ms | 3.4 ms | 2% |
+| Permission filter | 40 ms | target | 5.5 ms | 3.6 ms | 6.1 ms | 14% |
+| Latest threads | 80 ms | target | 50.7 ms | 35.4 ms | 56.1 ms | 63% |
+| Search, near-universal term | 300 ms | target | 100.5 ms | 91.6 ms | 145.6 ms | 33% |
+| Search, rare term | 200 ms | target | 35.9 ms | 19.7 ms | 96.9 ms | 18% |
+| Member profile | 60 ms | target | 1.9 ms | 1.2 ms | 2.6 ms | 3% |
 
 ## What each scenario is and why it is measured
 
@@ -97,13 +90,13 @@ Ordered across the whole board rather than within one forum — the widest scan.
 
 `search-common` — Relevance search for a term matching 96% of the board.
 
-A **measured limit, not a target** — see open question 6. Relevance ordering is not indexable: `order by ts_rank_cd(...)` has to score every matching row before it can name the top twenty, so a term matching 2.26M of 2.34M posts costs six seconds and no index changes that. The GIN index is present and used; the work is the ranking. `search-rare` is the same code path over 1,171 matches at 46ms, which localises the cost to the size of the match set rather than to the query. The fix is to bound the candidate set — ranking the most recent N matches instead of all of them measured 140ms — but that changes which results a member sees, which is a decision for a human rather than for this pass.
+The worst query a member can trigger, and it was the one budget F89 failed. Relevance ordering is not indexable: `ts_rank_cd` has to score every matching row before it can name the top twenty, so a term matching 2.26M of 2.34M posts cost a p95 of 5.5 seconds with the GIN index present and used. The fix was to bound the ranked set to the most recent 20,000 matches, which measured 98ms — and changes nothing for any term selective enough that the window holds the whole match set, which is every real query. Recorded in mybb-parity.md.
 
 ### Search, rare term
 
 `search-rare` — Full-text search for a term with ~1,000 matches.
 
-Separated because a fast rare-term search can hide a slow common-term one — and here it does exactly that, by a factor of 130. Together the two scenarios say the cost is the match count, not the code.
+Separated because a fast rare-term search hides a slow common-term one, and here it did: before the window bound these two differed by a factor of 130, and only the pair made it visible that the cost was the match count rather than the code. They still differ, by about 5×, which is the residual and expected shape.
 
 ### Member profile
 

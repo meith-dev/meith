@@ -6920,3 +6920,110 @@ exactly that.
 The absolute numbers belong to the machine that produced them. What travels is
 the shape — which scenarios sit near their budget, and whether depth costs
 anything — which is why the generated document says so at the top of the table.
+
+---
+
+### D95 — Both open questions, answered (F85, F89)
+
+Two decisions had been escalated to a human under the roadmap's working rules —
+one about a runtime dependency, one about a user-visible change. Both came back,
+and this is what they cost.
+
+#### `mysql2`, and how small the reader turned out to be
+
+Open question 5, resolved: `@forum/import` may depend on a MySQL client. The
+full reasoning is in [ADR 0004](./adr/0004-mysql2-import-reader.md); the thing
+worth recording here is that **the port paid off exactly as intended**. The
+reader is about a hundred and fifty lines, four near-identical `SELECT`s and a
+cursor, and nothing on the near side of the port changed to accommodate it. That
+was the bet when F85 shipped without one, and it is now settled rather than
+asserted.
+
+Three properties of the file are tested, and none of them is "does it read
+rows" — that needs a MyBB server. They are the ones a fake connection can prove
+and that would be *damaging* if wrong:
+
+1. **Every statement is a `SELECT`.** This code points at somebody's live forum
+   while members are posting to it. "We were careful" is not a guarantee that
+   survives the next edit; a test over the statement text is.
+2. **Paging is keyset, never `OFFSET`.** An `OFFSET` walk over a table being
+   written to skips rows, in the middle, without saying so.
+3. **The prefix is validated.** It becomes part of a table name and a table name
+   cannot be a bound parameter, so it is the one caller-supplied value reaching
+   the SQL text.
+
+The driver is loaded by `await import` inside `connect()`, and a test asserts
+that on the **source text** — unusual in a test file, and right here, because the
+property is "no static import exists" and no runtime check can observe the
+absence of one. A bundler can, which is the entire point: the app imports
+`@forum/import` for F86's URL table, and a static import would put a MySQL
+driver in every board's serverless bundle.
+
+#### The sink refuses rather than guesses
+
+The other half of F85's gap. Everything hard about it comes from one fact:
+**the import is resumable, so every write happens more than once.** Idempotency
+is therefore a unique index and `on conflict … do update`, not a check followed
+by an insert with nothing but optimism in between — and a resumed import is
+precisely when the row appears in the gap.
+
+The refusals are the design. A post whose thread was never imported is skipped
+with the reason printed, not attached to a placeholder; a child forum arriving
+before its parent waits for the next pass rather than being reparented to the
+root; a username already taken is skipped rather than renamed, because `wren_2`
+is a person who did not agree to be called that. Each of these has an obvious
+"helpful" alternative, and each alternative puts content on the board in a place
+its author did not choose. An operator reading `skipped post 4102: thread 9912
+not imported` can go and find out why. An operator reading nothing cannot.
+
+Two subtleties worth naming:
+
+- **A missing author is not a missing parent.** MyBB zeroes `uid` for a deleted
+  member and keeps the username on the row, which is exactly what a nullable
+  `author_user_id` beside a non-null `author_username` is for. Skipping those
+  would discard a large fraction of an old board.
+- **`is_first_post` is decided by date, not by lowest `pid`.** A thread whose
+  opening post was deleted has a lowest id that is not its first post, and the
+  board shows the first post's body wherever it shows an excerpt — so getting
+  this wrong puts the wrong text under the thread title everywhere at once.
+
+#### Writing those tests found a bug that had shipped
+
+`import-repo.ts` cast `db.execute` results straight to arrays instead of going
+through `resultRows`. That is correct under postgres-js and returns nothing under
+PGlite, so **every legacy-id lookup silently returned empty in any PGlite-backed
+test** — and no test covered them, which is the only reason it survived. F86's
+redirects read those functions.
+
+The bug is unremarkable. What it says is not: the functions had no integration
+test, and a repository function with no integration test in a package where
+every other file has one is not "less covered", it is *uncovered in a way the
+suite's overall greenness disguises*. The first caller with a test found it
+immediately.
+
+#### Bounding search relevance
+
+Open question 6, resolved. Relevance now ranks the 20,000 most recent matches
+rather than all of them. Re-measured on the same 2,343,847-post board:
+**5,486 ms → 98 ms**, and `search-common` moved from a `limit` to a 300 ms target
+sitting at 33% of budget.
+
+Only relevance is bounded. `order by p.id` is indexed, so the planner walks it
+and stops after twenty rows however many match — bounding newest and oldest too
+would have been symmetry at the cost of truthfulness, since an "oldest" that
+cannot reach the oldest post is broken.
+
+The user-visible effect is nil for any term matching fewer than 20,000 posts,
+because the window then holds the whole match set and the results are the same
+rows in the same order. It is recorded in `mybb-parity.md` anyway: a difference
+nobody wrote down is a difference somebody rediscovers as a bug.
+
+#### The `limit` mechanism is now unused, and stays
+
+`search-common` was the reason `budgets.ts` distinguishes a target from a limit,
+and it stopped being a limit within one pass. The field is kept because the two
+alternatives it displaced remain bad and remain tempting — delete the scenario
+and the slowness goes undocumented, or leave the budget unmet and CI is
+permanently red — and the next scenario in that position should have somewhere
+honest to sit. A test caps limits at two, so the escape hatch cannot quietly
+become a second budget tier.

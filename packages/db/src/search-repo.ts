@@ -38,6 +38,19 @@ import { visibleIn } from './visibility'
 const SEARCH_CONFIG = 'english'
 
 /**
+ * How many matches a relevance search ranks (F89, open question 6).
+ *
+ * The most recent N, ordered by id. Chosen from measurement rather than taste:
+ * on a 2.3M-post board, ranking every match of a near-universal term took 5.5
+ * seconds and ranking 20,000 took 140ms. Larger windows buy accuracy nobody can
+ * perceive — a term matching two million posts has no meaningful "best" result —
+ * and cost linearly.
+ *
+ * Only relevance is bounded. See the comment at the query.
+ */
+const RELEVANCE_WINDOW = 20_000
+
+/**
  * Build the indexed document for one post.
  *
  * Exported so the writer and the backfill cannot drift: a post inserted today
@@ -143,19 +156,61 @@ export class PostgresSearchRepository {
      * would highlight the wrong thing for any stemmed match ("running" matching
      * "run") and would have to re-implement the stemmer to avoid it.
      */
+    /*
+     * Relevance ranks within a bounded window of the most recent matches; the
+     * date orders read the whole set.
+     *
+     * ## Why relevance needs a bound and the others do not
+     *
+     * `order by ts_rank_cd(...)` cannot use an index — a rank depends on the
+     * query, so there is nothing to have indexed. Postgres must score **every
+     * matching row** before it can name the top twenty. F89 measured that on a
+     * 2.3M-post board: a term matching 96% of posts took a p95 of 5.5 seconds,
+     * against 35ms for a term matching 1,171. The GIN index was present and used
+     * throughout — the cost was the ranking, and no index removes it.
+     *
+     * `order by p.id` has none of this problem. The id is indexed, so the
+     * planner walks it and stops after twenty rows however many match, which is
+     * why `newest` and `oldest` read the whole corpus and only `relevance` is
+     * bounded. Bounding all three would have been symmetry at the cost of
+     * truthfulness: "oldest" that could not reach the oldest post is broken.
+     *
+     * ## What the bound changes, and for whom
+     *
+     * For any term matching fewer than `RELEVANCE_WINDOW` posts — which is
+     * essentially every real query — the window contains the entire match set
+     * and results are **identical**. For a near-universal term it becomes "the
+     * most relevant of the most recent 20,000 matches", which is both what a
+     * member wants from a word that appears everywhere and the only answer
+     * obtainable in under a second.
+     *
+     * Recorded as a parity decision in `docs/mybb-parity.md`, because it is a
+     * user-visible difference and one somebody will otherwise rediscover as a
+     * bug. Measured at 140ms against the 5.5s it replaces.
+     */
+    const ranked = sql`
+      select p.id as post_id, p.thread_id, p.forum_id,
+             t.title as thread_title, t.slug as thread_slug,
+             p.author_user_id, p.author_username, p.created_at, p.message,
+             ${rank} as rank
+        from posts p
+        join threads t on t.id = p.thread_id
+       where ${sql.join(conditions, sql` and `)}`
+
+    const windowed =
+      query.sort === 'relevance'
+        ? sql`(${ranked} order by p.id desc limit ${RELEVANCE_WINDOW}) as candidates`
+        : sql`(${ranked} order by ${order} limit ${query.limit}) as candidates`
+
     const rows = resultRows(
       await this.db.execute(sql`
-        select p.id as post_id, p.thread_id, p.forum_id,
-               t.title as thread_title, t.slug as thread_slug,
-               p.author_user_id, p.author_username, p.created_at,
-               ts_headline(${SEARCH_CONFIG}, p.message,
+        select post_id, thread_id, forum_id, thread_title, thread_slug,
+               author_user_id, author_username, created_at, rank,
+               ts_headline(${SEARCH_CONFIG}, message,
                            websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms}),
-                           'MaxFragments=1, MaxWords=40, MinWords=15') as excerpt,
-               ${rank} as rank
-          from posts p
-          join threads t on t.id = p.thread_id
-         where ${sql.join(conditions, sql` and `)}
-         order by ${order}
+                           'MaxFragments=1, MaxWords=40, MinWords=15') as excerpt
+          from ${windowed}
+         order by ${query.sort === 'relevance' ? sql`rank desc, post_id desc` : sql`post_id ${query.sort === 'oldest' ? sql`asc` : sql`desc`}`}
          limit ${query.limit}
       `),
     ) as Array<Record<string, unknown>>
