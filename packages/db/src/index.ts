@@ -146,6 +146,21 @@ export {
   type ReindexResult,
 } from './search-repo'
 export {
+  ONLINE_WINDOW_MINUTES,
+  PostgresPresenceRepository,
+  type OnlineMember,
+  type OnlineRecord,
+  type OnlineScope,
+  type OnlineSnapshot,
+} from './presence-repo'
+export {
+  PostgresStatsRepository,
+  type BoardTotals,
+  type StatsScope,
+  type TopPoster,
+  type TopThread,
+} from './stats-repo'
+export {
   PostgresDiscoveryRepository,
   type DiscoveryPage,
   type DiscoveryQuery,

@@ -116,3 +116,84 @@ describe('the outbox relay and queue drain', () => {
     expect(await workers.flushThreadViews!(500)).toBe(4)
   })
 })
+
+/**
+ * F75. Two subjects on one tick, and the wiring is the whole claim: the record
+ * is sampled from the *current* count, and both writes share one clock.
+ */
+describe('the statistics rollup', () => {
+  function statsWorkers(online: number, tick: () => void = () => {}) {
+    const calls: Array<{ count: number; at: Date }> = []
+    const rolledAt: Date[] = []
+
+    const workers = taskWorkers({
+      ...unusedDeps,
+      queue: new MemoryQueue(),
+      outbox: new FakeOutbox([]),
+      events: buildEventRegistry({
+        counters: { rollUpAncestors, applyVisibilityChange: async () => false },
+      }),
+      statistics: {
+        stats: {
+          async rollUp(now: Date) {
+            rolledAt.push(now)
+            tick()
+            return { memberCount: 42 }
+          },
+        },
+        presence: {
+          concurrentCount: async () => online,
+          async recordIfHigher(count: number, at: Date) {
+            calls.push({ count, at })
+            return count > 10
+          },
+        },
+      },
+    })
+
+    return { workers, calls, rolledAt }
+  }
+
+  it('offers the current count to the record rather than a stored one', async () => {
+    /*
+     * Kills the mutant that passes the member count, or a zero, to
+     * `recordIfHigher`. Both are numbers, both write successfully, and the
+     * board would end up with a "most ever online" that is really its
+     * membership — a wrong number nobody can tell is wrong.
+     */
+    const { workers, calls } = statsWorkers(17)
+
+    const result = await workers.rollUpStatistics!()
+    expect(calls.map((call) => call.count)).toEqual([17])
+    expect(result).toEqual({ memberCount: 42, online: 17, record: true })
+  })
+
+  it('reports a record that did not move', async () => {
+    const { workers } = statsWorkers(3)
+    expect((await workers.rollUpStatistics!()).record).toBe(false)
+  })
+
+  it('stamps the rollup and the record with the same instant', async () => {
+    /*
+     * One `now` for both, so the record's timestamp and the totals'
+     * `computed_at` cannot disagree about when this tick happened — which
+     * matters when somebody is reading the run log to explain a number, the
+     * only time anybody reads it.
+     *
+     * The clock is **advanced inside the rollup**, deliberately. A second
+     * `new Date()` taken microseconds later is usually the same millisecond, so
+     * without this the mutant that re-reads the clock passes by luck; moving
+     * the fake timer between the two writes is what makes the difference
+     * observable at all.
+     */
+    vi.useFakeTimers()
+    try {
+      const { workers, calls, rolledAt } = statsWorkers(17, () => vi.advanceTimersByTime(5))
+
+      await workers.rollUpStatistics!()
+      expect(calls[0]?.at.getTime()).toBe(rolledAt[0]?.getTime())
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

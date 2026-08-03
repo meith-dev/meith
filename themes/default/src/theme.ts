@@ -17,7 +17,9 @@
 import { defineTheme } from '@forum/theme-kit'
 
 import { BoardIndex } from './slots/board-index'
+import { BoardStats } from './slots/board-stats'
 import { CategoryBlock } from './slots/category-block'
+import { WhoIsOnline } from './slots/who-is-online'
 import { Footer } from './slots/footer'
 import { ForumRow } from './slots/forum-row'
 import { ForumDisplay } from './slots/forum-display'
@@ -51,6 +53,8 @@ export const defaultTheme = defineTheme({
     BoardIndex,
     CategoryBlock,
     ForumRow,
+    BoardStats,
+    WhoIsOnline,
 
     ForumDisplay,
     ThreadRow,

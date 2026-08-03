@@ -51,6 +51,8 @@ describe('reading', () => {
     expect(settings).toEqual({
       userId: IVAN,
       email: 'ivan@example.test',
+      /* F75. Visible is the default a member who never opens the panel gets. */
+      invisible: false,
       /* The column default, which is what every row starts at. */
       timezone: 'UTC',
       postsPerPage: null,
@@ -100,13 +102,13 @@ describe('saving', () => {
       userId: IVAN,
       timezone: 'Europe/London',
       postsPerPage: 50,
-      threadsPerPage: null,
+      threadsPerPage: null, invisible: false,
     })
 
     expect(await repo.read(IVAN)).toMatchObject({
       timezone: 'Europe/London',
       postsPerPage: 50,
-      threadsPerPage: null,
+      threadsPerPage: null, invisible: false,
     })
   })
 
@@ -115,7 +117,7 @@ describe('saving', () => {
       userId: IVAN,
       timezone: 'Europe/London',
       postsPerPage: 50,
-      threadsPerPage: 50,
+      threadsPerPage: 50, invisible: false,
     })
 
     expect(await repo.read(MOD)).toMatchObject({ timezone: 'UTC', postsPerPage: null })

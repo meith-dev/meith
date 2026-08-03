@@ -269,11 +269,27 @@ export class IdentityService {
    * still good?" is a security rule that must not be re-implemented per caller.
    */
   async resolveSession(sessionToken: string): Promise<{ userId: number } | null> {
+    const located = await this.locateSession(sessionToken)
+    if (located === null) return null
+    return { userId: located.userId }
+  }
+
+  /**
+   * The live session row behind a cookie — its **id** as well as its owner.
+   *
+   * F75 needs the id to record where somebody is (`sessions.location_*`), and
+   * it needs guests too, who have a session row and no user. `resolveSession`
+   * delegates here rather than repeating the validity rule, which is the part
+   * that must never have two implementations.
+   */
+  async locateSession(
+    sessionToken: string,
+  ): Promise<{ sessionId: number; userId: number } | null> {
     const session = await this.store.sessions.findByTokenHash(await hashToken(sessionToken))
     if (!session) return null
     if (session.revokedAt !== null) return null
     if (session.expiresAt.getTime() <= this.now().getTime()) return null
-    return { userId: session.userId }
+    return { sessionId: session.id, userId: session.userId }
   }
 
   /**

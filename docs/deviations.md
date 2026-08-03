@@ -5336,3 +5336,153 @@ dropped from the `exists`, the `exists` replaced by a join, `>=` narrowed to
 flipped, the view guard made prefix-matching, `mine` and `participated`
 swapped, `today` collapsed into `new`, a guest given an empty list instead of a
 refusal, and the navigation made identical for guests and members.
+
+### D81 — Presence is a session, invisibility is subtraction-proof, and statistics are a rollup (F75)
+
+Who is online, what the board is worth in numbers, and the ability to browse
+without appearing in either.
+
+#### The columns F17 built and nothing read
+
+`sessions.location_path`, `location_forum_id` and `location_thread_id` have been
+in the schema since `0000`, and `touchLocation` — a conditional UPDATE whose
+throttle *is* its `where` clause — since F17. Neither had a caller until now.
+The writer goes in the page shell beside `touchActivity` for the same reason:
+the shell is the one place every reading page passes through, so no page can
+forget.
+
+The path arrives from the proxy as a header rather than being threaded through
+every page. A Server Component cannot ask for its own URL, and a page that
+forgot to pass one would silently record the wrong location. The **path only** —
+the query string is dropped, and dropped again in `parseLocation` rather than
+trusted: a stored search's token (F73), a moderation filter and a page number
+all live there, and none of them belong in a table that an online list reads.
+
+#### Sessions, not `users.last_active_at`
+
+Both exist and they answer different questions. `last_active_at` is *when this
+account was last seen*, which is what a profile shows. A session row is *a
+visitor who is here now* — and it is the only one of the two that can count
+guests at all, or say what anybody is looking at. Guests are most of a real
+board's traffic, and a list that counted only members would report a fraction of
+it.
+
+One row per visitor, not per session: somebody on a phone and a laptop is one
+person, and `distinct on` keeps their most recent session, which is also the one
+whose location is current.
+
+#### The location is resolved against the reader, in the repository
+
+This is the privacy claim and it is easy to build backwards. The session records
+where its owner is; what a reader is *told* is decided against that reader's
+permissions — in SQL, with the forum ids and titles replaced by null when they
+are out of scope. The view builder receives nulls and renders "Viewing a forum";
+it has no title to leak because it was never given one.
+
+Putting that decision in the view instead would mean every theme that rendered
+the panel, and F76's feeds, and any future API, would each have to make the same
+choice again. One of them would get it wrong.
+
+The thread needs **both** checks: its forum must be nameable *and* the thread
+itself must be in the reader's content scope. A moderator reading a soft-deleted
+thread in a public forum must not put its title on the front page.
+
+#### Invisible means absent from the count, not just the list
+
+Hiding somebody from the list while still counting them leaves invisibility as a
+puzzle solved by subtraction — "eleven online, ten listed" names them as surely
+as printing their name. So the drop happens *before* the count is taken. Staff
+see them, marked with text rather than a colour, because moderating requires
+knowing who is present.
+
+The **record** counts everybody, invisible included. "Most ever online" is a
+fact about the board's traffic, not about who anybody may see; deriving it from
+a filtered list would make the record depend on how many members had a
+preference set. It is a separate, cheaper query for that reason.
+
+#### The record is written by its own `where`
+
+`recordIfHigher` compares in the `where` clause, so two peaks arriving together
+keep the higher — the only case where this differs from reading the record and
+writing it back, which is to say the only case worth writing code for. Equal is
+not higher: a record that moved on equality would rewrite its timestamp every
+quiet afternoon, and "most ever online: 5, an hour ago" would stop meaning
+anything.
+
+#### The totals are a rollup, and the page says when it ran
+
+`member_count` is a count of `users`, and the board index is the most-requested
+page there is. Computing it per view is a sequential scan on the front page of a
+board with two hundred thousand accounts. So a task recomputes it every five
+minutes — the same interval as `views.flush`, because the two numbers most
+visible to a member are a thread's view count and the board's post count, and
+having them drift by different amounts is worse than both being five minutes
+old.
+
+The interval is also the **resolution of the record**, which is why it is not
+slower: an hourly task would miss any peak that did not last an hour, which is
+every peak worth recording.
+
+Thread and post totals are summed from the **root forums**, where F38's ancestor
+rollup has already accumulated the whole tree. Counting `threads` and `posts`
+directly would be a second opinion that drifts from the number every forum row
+already shows — and the drift appears after a deletion, which is when somebody
+looks. Summing *every* forum instead of the roots double-counts the tree: eight
+threads reported as twelve.
+
+`computed_at` is null until the first run, and the panel says "not counted yet"
+rather than showing three convincing zeroes. Zeroes on a board with content are
+the worst of the three possible outputs, because nobody doubts them.
+
+#### `board_stats` is one row, and the database enforces it
+
+`id` is a smallint that is always 1, with a check constraint. "There is exactly
+one row of board statistics" becomes something the database holds rather than
+something every reader hopes for, and a second row inserted by a well-meaning
+script cannot silently become the one a query reads first. A key/value table was
+the alternative: it makes reading six numbers six rows and makes updating all
+six atomically impossible — which matters, because a page showing last hour's
+thread count beside this minute's post count is worse than one that is uniformly
+ten minutes old.
+
+#### Top posters is not permission-filtered, and that is deliberate
+
+A post count is on every profile and beside every post already. Filtering the
+leaderboard by which forums a reader can see would mean recomputing every
+member's count per reader — an aggregate over `posts` per page view — to hide a
+number that is public everywhere else. The two *thread* leaderboards are
+filtered, because a "most viewed threads" table that included the staff forum
+would be a leak with a ranking on it.
+
+#### `HeaderModel.navigation` and two theme slots stop being empty
+
+`BoardStats` and `WhoIsOnline` were declared in `slots.ts` at F25 with the note
+"named now; F75 supplies the data", and the board index passed `null` for both
+regions with a comment saying a "0 members online" panel is a lie with a number
+in it. Both are filled here, and both still render nothing when there is no
+store — the distinction between "no panel" and "zero" is kept, not collapsed.
+
+#### Two duplicates removed rather than kept
+
+Mutation verification found two places where the same fact was stored twice.
+`locationOf` checked `forumId !== null && forumTitle !== null` when the
+repository gates both on one predicate and the title column is NOT NULL, so no
+mutation of the first half could fail a test. And the view model carried the
+repository's `total` when it is exactly `members.length + guestCount` by
+construction. Both were reduced to one source. This is the same finding as F71's
+`lastIndex` reset and F73's `floodSeconds` guard, in a new shape: not a guard
+that reads as careful, but a *number carried twice* — and a second copy that no
+test can distinguish is a second copy that will diverge silently.
+
+Twenty-two mutants killed across the four modules: invisible members counted
+after being filtered, the forum title returned regardless of scope, the thread
+named on the forum check alone, an empty forum list read as "no filter", one row
+per session instead of per member, a record that moves on equality, revoked
+sessions counted as present, the record derived from the visible list, the tree
+double-counted, inactive accounts counted as members, a pending registration
+announced as the newest member, the thread leaderboards' permission filter
+dropped, the two orderings collapsed, `computed_at` never stamped, the location
+falling back to a path, the thread branch removed, the invisible marker dropped,
+the query string kept, the route pattern loosened at both ends, the record given
+the member count instead of the online count, and the two writes given separate
+clocks.

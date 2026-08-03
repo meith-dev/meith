@@ -1160,3 +1160,70 @@ the board.
 **Cost:** the row says *when* the last post was and *who* wrote it, but not how
 many of the replies are new to this reader — that is the same read-state
 dependency the window above names.
+
+## Invisible browsing hides you from the count as well as the list
+
+**MyBB:** `users.invisible` removes a member from the online list. The board's
+"N users online" figure is computed from the same session table and the
+administrator-visible list shows invisible members marked.
+
+**Here:** the same setting, and it removes the member from the **count** too,
+for everybody who cannot see them. Staff — anybody with `modcp.access` — see
+them listed and marked.
+
+**Why:** a member removed from the list but left in the total can be found by
+subtraction. "Eleven online, ten listed" names an invisible member as surely as
+printing their name would, and it does it on a page that refreshes. Hiding
+somebody halfway is worse than not offering the setting, because the member
+believes they are hidden.
+
+**Cost:** the visible total is a different number for staff and for everybody
+else, which looks like a bug until you know why. The "most ever online" record
+counts everybody, invisible included, because it is a fact about the board's
+traffic rather than about who anybody may see — so the record can exceed any
+total a member has ever been shown.
+
+## An online list says where somebody is only when the reader may know
+
+**MyBB:** the online list shows each user's location as a description derived
+from the script they are on ("Viewing Thread X"), and the thread and forum
+titles are resolved without reference to the reader. Private forums leak by
+title through this screen on stock MyBB, which is why several plugins exist to
+suppress it.
+
+**Here:** the location is resolved **in the query, against the reader's own
+permissions**. A forum they cannot see arrives at the page as null and renders
+"Somewhere on the board" — there is no title in the data for a theme, a feed or
+a debug dump to print. A thread needs its forum to be nameable *and* the thread
+itself to be in the reader's content scope, so a moderator reading a
+soft-deleted thread does not put its title on the front page.
+
+**Why:** the alternative is to fetch titles and let the page decide, which puts
+the decision in every theme anybody writes, and one of them will get it wrong.
+
+**Cost:** the online list cannot be cached across readers — it is one query per
+reader, which is why it is one query. The location is stored without a query
+string, so "reading page 4" is not distinguishable from "reading page 1", and a
+member browsing the admin panel shows as somewhere on the board rather than in
+the panel.
+
+## Board totals are a rollup with a timestamp, not a live count
+
+**MyBB:** `datacache` holds the board statistics and they are updated on the
+write path — every new post, thread and member updates the cached figures.
+
+**Here:** a scheduled task recomputes them every five minutes and the panel says
+when it last ran. `computed_at` is null before the first run and the panel says
+"not counted yet" rather than showing zeroes.
+
+**Why:** the member count is a count of `users`, and the board index is the
+most-requested page there is. Updating on the write path is the other way to
+avoid that scan, and it makes every post pay for a number nobody reads on the
+posting screen — plus a cache that drifts from the truth with no way to notice.
+The thread and post totals are summed from the root forums, where F38's counters
+have already accumulated the tree, so those two are nearly free; the member
+count is what sets the shape.
+
+**Cost:** the numbers on the index can be five minutes old. They say so. And a
+brand-new board shows "not counted yet" until the first tick, which is a truer
+statement than three zeroes.

@@ -126,6 +126,9 @@ export function buildBoardNavigation(viewer: ViewerModel): readonly LinkModel[] 
     /* F73. In the header rather than only on its own page, because search is
        something a member reaches for from wherever they happen to be. */
     { label: 'Search', href: '/search' },
+    /* F75. Both are linked from the index panels too; they are here because a
+       member two forums deep should not have to go home to reach them. */
+    { label: "Who's online", href: '/online' },
   ]
 }
 

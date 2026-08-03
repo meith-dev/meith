@@ -205,6 +205,7 @@ describe('buildBoardNavigation (F74)', () => {
       '/discover/unanswered',
       '/discover/participated',
       '/search',
+      '/online',
     ])
   })
 

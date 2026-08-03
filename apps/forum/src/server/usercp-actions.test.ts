@@ -66,6 +66,7 @@ class FakeSettings implements MemberSettingsRepository {
     timezone: 'UTC',
     postsPerPage: null,
     threadsPerPage: null,
+    invisible: false,
     location: null,
     website: null,
     bio: null,

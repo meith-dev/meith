@@ -17,6 +17,7 @@ interface RawSettings {
   timezone: string
   posts_per_page: number | null
   threads_per_page: number | null
+  invisible: boolean
   location: string | null
   website: string | null
   bio: string | null
@@ -36,7 +37,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
     const rows = resultRows(
       await this.db.execute(sql`
         select id, email, timezone, posts_per_page, threads_per_page,
-               location, website, bio
+               invisible, location, website, bio
           from users
          where id = ${userId} and state <> 'deleted'
       `),
@@ -51,6 +52,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
       timezone: row.timezone,
       postsPerPage: row.posts_per_page === null ? null : Number(row.posts_per_page),
       threadsPerPage: row.threads_per_page === null ? null : Number(row.threads_per_page),
+      invisible: row.invisible === true,
       location: row.location,
       website: row.website,
       bio: row.bio,
@@ -78,12 +80,14 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
     readonly timezone: string
     readonly postsPerPage: number | null
     readonly threadsPerPage: number | null
+    readonly invisible: boolean
   }): Promise<void> {
     await this.db.execute(sql`
       update users
          set timezone = ${input.timezone},
              posts_per_page = ${input.postsPerPage},
              threads_per_page = ${input.threadsPerPage},
+             invisible = ${input.invisible},
              updated_at = now()
        where id = ${input.userId}
     `)

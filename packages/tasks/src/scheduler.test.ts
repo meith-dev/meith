@@ -229,6 +229,7 @@ describe('bans.expire is registered (F23)', () => {
       relayOutbox: zero,
       sweepAttachments: async () => ({ deleted: 0, failed: 0 }),
       sweepAvatars: zero,
+      rollUpStatistics: async () => ({ memberCount: 0, online: 0, record: false }),
       drainQueue: zero,
       pruneSessions: zero,
       pruneExpiredTokens: zero,
@@ -299,6 +300,7 @@ function fullWorkerSet(): TaskWorkers {
     relayOutbox: async () => 0,
     sweepAttachments: async () => ({ deleted: 0, failed: 0 }),
     sweepAvatars: async () => 0,
+    rollUpStatistics: async () => ({ memberCount: 0, online: 0, record: false }),
     drainQueue: async () => 0,
     pruneSessions: async () => 0,
     pruneExpiredTokens: async () => 0,
@@ -338,7 +340,7 @@ describe('builtinTasks registers only what can run', () => {
 
   it('registers everything when the full set is supplied', () => {
     const all = builtinTasks(fullWorkerSet())
-    expect(all).toHaveLength(14)
+    expect(all).toHaveLength(15)
   })
 
   it('gives every task a worker mapping, so none can be silently unregisterable', () => {
