@@ -33,6 +33,7 @@
     "@forum/settings": "workspace:*",
     "@forum/shared": "workspace:*",
     "@forum/tasks": "workspace:*",
+    "@forum/plugin-kit": "workspace:*",
     "@forum/theme-default": "workspace:*",
     "@forum/theme-midnight": "workspace:*",
     "@forum/theme-kit": "workspace:*",

@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D63. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D85. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -17,10 +17,13 @@ this file.
 
 ## Gate state (all green)
 
-`pnpm verify` → exit 0: textual invariants (nine guards, F47's included)
-+ **guard probes**, the **slot server/client boundary** check + its probe,
-dependency-cruiser (386 modules, 0 violations), typecheck (root **and** app),
-**2457 tests** (a large share against real Postgres via PGlite). `pnpm build` →
+`pnpm verify` → exit 0: workspace integrity, textual invariants (nine guards,
+F47's included) + **guard probes**, the **slot server/client boundary** check +
+its probe, the **two generated-reference staleness gates** (F77's
+`docs/theme-slots.md` and F79's `docs/plugin-hooks.md` — a contract change that
+does not update its published reference fails CI), dependency-cruiser (526
+modules, 0 violations), typecheck (root **and** app), **3453 tests** (a large
+share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
 `/notifications/preferences`, `/subscriptions`, `/unsubscribe` and the five
@@ -741,6 +744,80 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
+### Phase 8 is 3 of 5. F80 is next, and it is the one that proves the rest.
+
+**F77, F78 and F79 are done** (D83, D84, D85). Read this before starting F80,
+because two of the three found something that changes how the next one should be
+approached.
+
+**The theme contract is frozen as v1.0**, with the freeze expressed as machinery
+rather than as a paragraph: `SLOT_STABILITY` is an exhaustive record so a new
+slot cannot arrive quietly as "stable"; `DEPRECATIONS` is empty and its policy
+engine is tested against fixtures, with the load-bearing rule being that a
+removal which has fallen due *fails the build*; and `docs/theme-slots.md` is
+generated and gated, so the contract cannot change without its documentation
+appearing in the same diff.
+
+**Two things were found by writing the tests, not by reading the code**, and
+both are the same shape — something that existed, was typed, and was rendered by
+nothing:
+
+- `SearchForm` had been a registry slot since F25 while F73's page rendered its
+  own form inline. Wiring it up is what showed the model was wrong (a filter is
+  a `<select>`; an option is a value and a label, not an href).
+- The default theme's `MemberProfile` ignored `fields`, `signatureHtml` and
+  `actions` — all three with producers since F58/F59. A board could define a
+  custom field, watch members fill it in, and show it only in the postbit.
+
+Neither failed anything. A component that ignores a prop looks exactly like one
+that never received it, which is why the rendering-contract suite asks every
+theme to render what a reader is owed rather than trusting that it does.
+
+**`midnight` is the second theme** and needed no change to any package — but it
+did need one in the app, and that was a hole: `globals.css` compiles *one*
+theme's token values, so switching `defaultTheme` to anything else rendered its
+markup in the default's palette, silently. The active theme's values are now
+emitted as the difference from that compiled baseline.
+
+**plugin-kit is the registry, the manifest and the host — and nothing fires a
+hook yet.** That is stated in `plugin-api.md` rather than left to be discovered,
+and it is precisely what F80 is for: a reference plugin that exercises every
+documented extension point will fail immediately, because the extension points
+are not wired into the features that own them. Expect F80 to be mostly *call-site
+work in Phases 2–7 code*, with the plugin itself the small part.
+
+Suggested order for that wiring, by what it would catch:
+
+1. **`view.*` filters in the page builders.** One call each, all in `apps/forum`,
+   and they cover a third of the registry. Watch the budget on `view.post-bit`
+   and `view.forum-row`: they run once per row.
+2. **The posting and moderation events** (`post.created`, `report.created`,
+   `warning.issued`). These are the hooks an integration actually wants, and
+   they are one line at the end of a command that already exists.
+3. **`bbcode.render.html` and `post.body.html`**, which need care: the filter
+   runs *after* the sanitizer and its output is trusted, so the docs say so and
+   the call site should too.
+
+**Then F69's five blocked deliverables become buildable** — its row has named
+F79 as the real dependency since Phase 6. The descriptors exist and are
+validated and namespaced; what is missing is a migration runner, a settings
+surface reading `plugin.<key>.<name>`, task registration into F06's registry, and
+a catch-all route for admin pages.
+
+Two things in F79 worth carrying forward whatever gets built next:
+
+**Auto-disable is per instance and in memory**, and the ACP is where a durable
+disable belongs. Do not be tempted to make the host write — a host that opens a
+connection from inside a render to decide whether to call a hook is a worse
+problem than the one it solves.
+
+**The registry's omissions are the security model.** No hook filters
+`authorization.can()`, none sits inside F47's visibility filter, and payloads
+carry `{ userId, isGuest }` rather than an `Actor`. A test scans every hook name
+to assert that absence. When wiring call sites, the same rule applies: pass the
+plugin what a viewer may already see, never the inputs to the decision.
+
+
 **Phase 6 is one of nine, and the rest are unblocked** — F64, F65, F66, F67,
 F68, F69 and F70 all depend only on F63 (plus F08/F21/F26/F38, all done). F71
 additionally needs F42.
@@ -1100,7 +1177,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D82). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D85). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

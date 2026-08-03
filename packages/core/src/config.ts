@@ -71,20 +71,34 @@ export interface InstalledTheme<TTheme = unknown> {
 }
 
 /**
- * A registered plugin. An opaque placeholder until F79 defines the lifecycle —
- * present now so the config's shape does not change when plugins arrive.
+ * A registered plugin (F79).
+ *
+ * `plugin` carries the definition, as a **type parameter** for exactly the
+ * reason `InstalledTheme.theme` is one: `PluginDefinition` lives in
+ * `@forum/plugin-kit`, which imports React, and `core-depends-on-nothing` keeps
+ * this package importable by the CLI and the worker. Inferred from the config,
+ * so no call site ever spells it out.
+ *
+ * It is optional because the *registry entry* and the *definition* answer
+ * different questions: `key` and `enabled` are what an operator configured, and
+ * a board can legitimately list a plugin it has switched off without the bundler
+ * needing to pull in its code path. Everything else about a plugin — its hooks,
+ * settings, migrations, tasks — is inside the definition where the plugin
+ * declared it, never restated here.
  */
-export interface InstalledPlugin {
+export interface InstalledPlugin<TPlugin = unknown> {
   readonly key: string
+  /** Absent means enabled: a plugin somebody added to the config is one they want. */
   readonly enabled?: boolean | undefined
+  readonly plugin?: TPlugin | undefined
 }
 
-export interface ForumConfig<TTheme = unknown> {
+export interface ForumConfig<TTheme = unknown, TPlugin = unknown> {
   /** Every installed theme, keyed by its `key`. */
   readonly themes: Readonly<Record<string, InstalledTheme<TTheme>>>
   /** Which theme a board uses when it has no preference stored. */
   readonly defaultTheme: string
-  readonly plugins?: readonly InstalledPlugin[] | undefined
+  readonly plugins?: readonly InstalledPlugin<TPlugin>[] | undefined
 }
 
 /**
@@ -96,7 +110,9 @@ export interface ForumConfig<TTheme = unknown> {
  * `themes[key].key !== key` and breaks every lookup that round-trips through
  * one or the other.
  */
-export function defineForumConfig<TTheme>(config: ForumConfig<TTheme>): ForumConfig<TTheme> {
+export function defineForumConfig<TTheme, TPlugin>(
+  config: ForumConfig<TTheme, TPlugin>,
+): ForumConfig<TTheme, TPlugin> {
   const keys = Object.keys(config.themes)
 
   if (keys.length === 0) {
@@ -123,6 +139,24 @@ export function defineForumConfig<TTheme>(config: ForumConfig<TTheme>): ForumCon
   const duplicate = pluginKeys.find((k, i) => pluginKeys.indexOf(k) !== i)
   if (duplicate !== undefined) {
     throw new Error(`forum.config: plugin "${duplicate}" is registered twice.`)
+  }
+
+  /*
+   * F79. The registry entry's key and the plugin's own must agree, for the same
+   * reason a theme's must: every lookup round-trips through one or the other —
+   * settings are stored under `plugin.<key>.…`, tasks and admin routes are
+   * namespaced by it — and a mismatch makes a plugin configurable under one name
+   * and running under another.
+   */
+  for (const entry of config.plugins ?? []) {
+    const declared = (entry.plugin as { key?: unknown } | undefined)?.key
+    if (typeof declared === 'string' && declared !== entry.key) {
+      throw new Error(
+        `forum.config: plugin registered as "${entry.key}" declares key "${declared}". ` +
+          'They must match, or its settings and routes are namespaced under a different ' +
+          'name than the one you configured.',
+      )
+    }
   }
 
   return config

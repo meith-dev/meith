@@ -139,6 +139,9 @@ importers:
       '@forum/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
+      '@forum/plugin-kit':
+        specifier: workspace:*
+        version: link:../../packages/plugin-kit
       '@forum/posts':
         specifier: workspace:*
         version: link:../../packages/posts
@@ -452,6 +455,19 @@ importers:
       '@forum/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/plugin-kit:
+    dependencies:
+      '@forum/theme-kit':
+        specifier: workspace:*
+        version: link:../theme-kit
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.14
 
   packages/posts:
     dependencies:

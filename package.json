@@ -16,14 +16,16 @@
     "test:e2e": "playwright test",
     "forum": "pnpm --filter @forum/cli start",
     "format": "prettier --write .",
-    "verify": "pnpm workspace:check && pnpm guards && pnpm guards:probe && pnpm slots:check && pnpm slots:probe && pnpm theme:docs:check && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm test",
+    "verify": "pnpm workspace:check && pnpm guards && pnpm guards:probe && pnpm slots:check && pnpm slots:probe && pnpm theme:docs:check && pnpm plugin:docs:check && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm test",
     "workspace:check": "node scripts/workspace-check.mjs",
     "guards": "node scripts/guards.mjs",
     "guards:probe": "node scripts/guards-probe.mjs",
     "slots:check": "node scripts/slot-kinds.mjs",
     "slots:probe": "node scripts/slot-kinds.mjs --probe",
     "theme:docs": "node scripts/theme-api-docs.mjs",
-    "theme:docs:check": "node scripts/theme-api-docs.mjs --check"
+    "theme:docs:check": "node scripts/theme-api-docs.mjs --check",
+    "plugin:docs": "node scripts/plugin-hook-docs.mjs",
+    "plugin:docs:check": "node scripts/plugin-hook-docs.mjs --check"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",

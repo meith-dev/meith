@@ -67,6 +67,13 @@ jobs:
       - name: Theme API reference is current
         run: pnpm theme:docs:check
 
+      # F79: same arrangement for the hook registry. A hook renamed without its
+      # reference updated is a plugin author writing against a hook that no
+      # longer fires — and nothing at runtime says so, because an unknown hook
+      # name is just a handler nobody calls.
+      - name: Plugin hook reference is current
+        run: pnpm plugin:docs:check
+
       - name: Lint
         run: pnpm lint
 

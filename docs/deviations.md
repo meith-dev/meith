@@ -5853,3 +5853,142 @@ result the feature was for: the contract was sufficient to build a materially
 different theme against, and the suite was measuring contract rather than
 appearance — if it had been asserting the default theme's markup, a theme built
 to be different would have failed every case.
+
+### D85 — Filters and events are two kinds because one of them can corrupt what it watches (F79)
+
+plugin-kit v1: 91 typed hooks, six UI regions, a declarative manifest, and a
+host that is the only thing which ever calls a plugin. Six decisions worth
+recording, and one API-quality bug the tests found.
+
+#### Two kinds, and the split is the safety model
+
+A **filter** is handed a value and returns a replacement; its result is used. An
+**event** is told what happened and its return value is discarded.
+
+The temptation is one kind — "a hook is a function you register" — and it is
+wrong in a specific way. A plugin that only wants to *know* about a new post (a
+webhook, a counter, an audit trail) registered against a filter is a plugin that
+can silently replace the post. Not maliciously: by returning the wrong thing,
+which is the commonest bug in any handler. Making the kind part of the registry
+means an integration that merely observes **cannot** corrupt what it observes,
+however wrong it is.
+
+The kind is declared rather than inferred because the same handler signature
+fits both, so nothing at the plugin's call site distinguishes them.
+
+#### Determinism is the harder half of "typed deterministic hooks"
+
+Two plugins filtering one value must compose the same way on the dev server, in
+a serverless bundle and in the worker — otherwise a board's rendered output
+depends on module evaluation order, and a bug reproduces on one instance and not
+the next.
+
+Ordering is **(priority, plugin key)**: both total, both declared, neither
+derived from registration order or from how `forum.config.ts` lists its plugins.
+The test for it registers the plugins in an order the assertion would fail
+under, which is the only way to prove the sort is doing anything.
+
+`localeCompare` is deliberately not used for the tie-break. It is
+locale-dependent, and "deterministic" has to mean across machines too.
+
+The sort runs once at construction. `view.post-bit` fires once per post; sorting
+a list on every post to obtain the same answer is a cost that only appears on a
+real board.
+
+#### Declared, not imperative
+
+A plugin exports an object; it does not call `registerHook` at import time.
+Registration by side effect makes the installed set a function of module
+evaluation order, which is the direct cause of the "works locally, missing in
+production" bug every PHP board has. The lifecycle callbacks are the one
+exception, because they *are* behaviour rather than a description of it.
+
+#### Three limits stated rather than papered over
+
+**Auto-disable is per instance and in memory.** Five failures switch a plugin
+off for the rest of the process, and it never re-enables itself — a plugin that
+recovers silently means the operator never learns their board spent a day
+without the feature they installed. But the counter resets when the platform
+recycles the instance. Making it durable means a write, a write means the
+database, and a host that opened a connection from inside a render to decide
+whether to call a hook would be a worse problem than the one it solved. Durable
+disabling is an operator action, which is where F69 puts it.
+
+**Timing is measured, never enforced.** There is no timeout, because JavaScript
+cannot abort a handler: a `Promise.race` that "times out" hands back control
+while the handler keeps running, keeps its connection, and resolves later. That
+is not a timeout, it is a lie that also leaks. A failing call is timed too — a
+plugin that throws after four seconds is a performance problem as well as a
+broken one, and only timing the successes would hide exactly that case.
+
+**UI contributions are isolated when built, not while rendered.** The host calls
+the contribution inside a try/catch, so a throw there drops it and the region
+renders without it. A node that throws during React's own render cannot be
+caught from the server: that needs an error boundary, error boundaries are
+client components, and putting one around every contribution would ship
+JavaScript to every page to guard against a bug.
+
+#### Regions are not theme slots
+
+If a plugin could fill a slot, an installed plugin would decide what a post
+looks like, and two plugins filling one slot would need a resolution rule that
+does not exist. A region is the other arrangement: an explicit "plugins may add
+something here" point that a *theme* renders. The theme keeps control of where
+plugin output appears; the plugin keeps control of what it is; several plugins
+compose by concatenation in the usual order. Six of them, because every region
+is a commitment every theme has to render or silently drop.
+
+#### What the registry deliberately does not contain
+
+No hook filters `authorization.can()`, and none sits inside F47's visibility
+filter. Those are not omissions to be added later: a plugin that can change an
+authorization answer can grant itself anything, and one that can rewrite a
+`where` clause can publish a private forum. Payloads carry `{ userId, isGuest }`
+rather than an `Actor` for the same reason — an `Actor` carries resolved group
+membership, and handing one over invites the plugin to make its own permission
+decision from group ids, which is what R4 forbids of core code and doubly of
+code an operator installed from a directory.
+
+The absence is asserted by a test that scans every hook name, rather than
+trusted to the review that left them out.
+
+#### The naming test found a real inconsistency
+
+The `view.*` hooks were written as `view.postBit`, `view.userPanel` — mirroring
+the PascalCase slot names — beside `post.created` and `bbcode.render.html`. Two
+conventions in one public API, and the one a plugin author guesses is the one
+that silently never fires, because an unknown hook name is just a handler
+nobody calls.
+
+Renamed to kebab-case throughout. The fix produced something better than
+consistency: the mapping from slot to hook is now mechanical (`PostBit` →
+`view.post-bit`), so the test could stop checking a naming pattern and start
+checking the *correspondence* — every stable slot has a view hook and every view
+hook names a stable slot. That in turn showed eight stable slots with no hook at
+all, which were added. A test written to check spelling ended up completing the
+API surface.
+
+#### `InstalledPlugin` finally has a shape
+
+It has been `{ key, enabled? }` and explicitly opaque since F01, with a comment
+saying F79 would fill it in. It now carries the definition as a **type
+parameter**, exactly as `InstalledTheme.theme` does and for the same reason:
+`PluginDefinition` lives in a package that imports React, and
+`core-depends-on-nothing` keeps `@forum/core` importable by the CLI and the
+worker.
+
+The definition stays optional, because the registry entry and the definition
+answer different questions — a board can list a plugin it has switched off
+without the bundler pulling in its code path — and the ACP has to tell those
+apart or "enabled" means two things in one column.
+
+#### Honest about what does not run yet
+
+Nothing in core fires these hooks. The registry, the type map, the manifest
+validation and the host are here and tested; wiring each call site belongs to
+the feature that owns it, and F80's reference plugin is what will prove the
+wiring exists rather than merely the registry. Migrations, settings and tasks
+are validated and namespaced but not yet executed — that is F69's completion,
+whose row has named F79 as its blocker since Phase 6. Saying so in
+`plugin-api.md` is the alternative to a document describing a system that does
+not run.

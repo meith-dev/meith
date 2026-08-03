@@ -68,6 +68,8 @@
       "@forum/posts/*": ["packages/posts/src/*"],
       "@forum/bbcode": ["packages/bbcode/src/index.ts"],
       "@forum/bbcode/*": ["packages/bbcode/src/*"],
+      "@forum/plugin-kit": ["packages/plugin-kit/src/index.ts"],
+      "@forum/plugin-kit/*": ["packages/plugin-kit/src/*"],
       "@forum/theme-kit": ["packages/theme-kit/src/index.ts"],
       "@forum/theme-kit/*": ["packages/theme-kit/src/*"],
       "@forum/ui": ["packages/ui/src/index.ts"],
