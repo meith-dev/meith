@@ -30,6 +30,7 @@ const DOMAIN = [
   'events',
   'tasks',
   'api',
+  'install',
 ].join('|')
 
 module.exports = {

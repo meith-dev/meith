@@ -6310,3 +6310,120 @@ gets a chance, because a project called `..` scaffolds into the parent directory
 `no-console` exemption. It is a console program in the same sense as those: it
 prints to a terminal and exits, and it runs *before a board exists* and therefore
 before there is any validated `env` to log through.
+
+### D89 — An installer's real job is explaining why a board is not working (F83)
+
+`/install`: a preflight, five steps, and an irreversible seal. The decisions
+worth recording are about the preflight and about what "one-time" has to mean.
+
+#### The preflight is a pure function over probes
+
+Nearly every failure a new operator hits is visible *before* anything is
+written — no database URL, the wrong connection string, a missing secret, a board
+that is already installed. So the checks are a function from a plain record of
+what the environment looks like to a list of findings, and nothing in
+`@forum/install` opens a connection, reads `process.env` or touches Next.
+
+That is what makes "what does the installer say when the connection string is the
+direct one" a unit test rather than an experiment against a real Supabase
+project. Forty-five of them, against a database that does not exist.
+
+#### Blockers and warnings are different, and the warning is the dangerous one
+
+A blocker means installing cannot succeed. A **warning means it will succeed and
+something will be wrong later**, which is worse precisely because nothing
+complains at the time.
+
+The pooler check is the archetype and the reason the distinction exists: a board
+on the direct connection string installs perfectly, works in testing, and starts
+refusing connections under the first real traffic — with an error that names the
+database rather than the cause. It warns rather than blocks because a self-hosted
+board on 5432 is entirely correct, and telling that operator they are wrong
+trains them to ignore the installer.
+
+`looksLikePooler` is explicitly a heuristic (port 6543, a host that says so, or
+`pgbouncer=true`), which is defensible for a warning and would not be for a
+blocker.
+
+#### Two independent gates, because either alone leaves a hole
+
+The `install_state` marker is one row with a check constraint saying so. The
+other gate is "does this board have any accounts", which needs no schema.
+
+Neither is sufficient. The marker alone misses the run that created the
+administrator and then failed before reaching the last step — a second attempt
+would add a **second administrator to a board that already has members**, which
+is the one outcome an installer must make impossible. The account count alone
+would let a board that was installed and then pruned to zero accounts be
+reinstalled.
+
+**The marker is written last**, and that ordering is the argument. Written first,
+a failure halfway through leaves a board that is "installed", has no
+administrator, and cannot be installed again — unrecoverable without SQL. Written
+last, a partial failure is fixable by trying again, and the case that must not
+repeat is covered by the other gate.
+
+#### `null` means "not determined", consistently
+
+A connection that was never attempted and one that failed are different
+situations, and an installer that conflated them would report a database problem
+to somebody who has not configured a database. So `canConnect: null` produces no
+check at all, and `userCount: null` does not gate — while `countUsers` returning
+`null` for a *missing table* is right, because reading a connection failure as
+zero would let an install proceed against a board it could not see.
+
+The pending-migration count is `null` deliberately: measuring it needs the
+applied-migrations table, which does not exist on the database this page usually
+runs against. The installer says nothing rather than guessing.
+
+#### It renders its own markup, and answers 404 once sealed
+
+No theme. `activeTheme` resolves at module load and a theme's slots are the
+*board's* look — but this page runs before there is a board, and has to render
+when the database is unreachable. Same rule `ErrorNotice` follows.
+
+Once sealed the route is a **404, not an "already installed" page**. An
+informative page would confirm to anybody who asks that this is a
+forum-software board, that it has been installed, and — more usefully to
+them — that the route was reachable. A 404 is the answer the board gives for
+every path it does not serve, and it is the only one that says nothing.
+
+#### The action re-runs the preflight rather than trusting the page
+
+A form submission is a separate request. The board may have been installed by
+somebody else in between, which on a public URL somebody found by guessing is not
+hypothetical. Same rule as every other Server Action here: re-authorise in the
+action, never trust the render.
+
+When it finds the board sealed mid-submit it **redirects to the board** rather
+than reporting an error — the board exists now, and "already installed" on a form
+asking for an administrator reads as a bug.
+
+#### It builds its own services, and reuses the registration command
+
+`getContainer()` resolves repositories against a schema that, at the moment the
+installer runs, does not exist — several read settings or the group ladder while
+constructing. So the installer wires the three services it needs directly, after
+its own migrations.
+
+But the administrator goes through `IdentityService.register`, the same command a
+member uses, and is then promoted. A second account-creation path would be a
+second home for the password policy and the uniqueness rules, and the copy that
+drifts is always the one used once. `activationMethod: 'none'`, for the reason
+the CLI uses it: an e-mail round trip cannot be a prerequisite for the account
+that would have to activate it.
+
+Groups are looked up **by key**, not by seeded id. The keys are what the
+migration promises; an id that shifted would put the administrator in the wrong
+group, which is the least recoverable mistake this function could make.
+
+#### Twelve characters, and only for this account
+
+The board's own policy applies to members. The installer asks more of the
+administrator's password because it is the one credential that can reconfigure
+the board, it is chosen before any lockout or rate limit exists to protect it,
+and its owner is in a hurry — which is exactly when `password1` gets typed.
+
+The password is also the one field never echoed back on a failed submit. A
+password re-rendered into HTML is a password in a proxy log and in the browser's
+back-forward cache.

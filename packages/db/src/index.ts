@@ -209,3 +209,6 @@ export {
   PostgresWebhookRepository,
   type WebhookDeliveryRow,
 } from './api-repo'
+
+/* F83 — the installer's probes and its one write. */
+export { canConnect, countUsers, isInstalled, markInstalled } from './install-repo'

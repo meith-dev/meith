@@ -34,6 +34,7 @@
     "@forum/shared": "workspace:*",
     "@forum/tasks": "workspace:*",
     "@forum/api": "workspace:*",
+    "@forum/install": "workspace:*",
     "@forum/plugin-kit": "workspace:*",
     "@forum/theme-default": "workspace:*",
     "@forum/theme-midnight": "workspace:*",

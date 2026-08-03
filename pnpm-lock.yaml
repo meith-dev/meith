@@ -133,6 +133,9 @@ importers:
       '@forum/groups':
         specifier: workspace:*
         version: link:../../packages/groups
+      '@forum/install':
+        specifier: workspace:*
+        version: link:../../packages/install
       '@forum/messages':
         specifier: workspace:*
         version: link:../../packages/messages
@@ -445,6 +448,15 @@ importers:
         version: link:../core
 
   packages/groups: {}
+
+  packages/install:
+    dependencies:
+      '@forum/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/messages:
     dependencies:
