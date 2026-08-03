@@ -906,10 +906,48 @@ with `/g` resets it already. The line was deleted and the comment rewritten to
 say what is true. A line that cannot be proven by a test will be believed for
 the wrong reason.
 
-**Phase 7 is next** — the roadmap's F72 onward. Before starting it, two
-corrections belong in `docs/roadmap.md`: F69's dependency (F79, not F63), and
-the fact that F71's smilie/BBCode half also depends on a renderer-extension
-decision that no feature currently owns.
+**Phase 7 is complete** — F72 through F76, all five `DONE` with the gaps named
+in their rows. Two corrections still belong in `docs/roadmap.md`: F69's
+dependency (F79, not F63), and the fact that F71's smilie/BBCode half also
+depends on a renderer-extension decision that no feature currently owns.
+
+**What Phase 7 was actually about, in one line: the scope plumbing got built
+four times and it came out the same shape each time.** Search (F72), discovery
+(F74), the online list (F75) and the feeds (F76) all resolve "which forums may
+this reader see" from `Authorizer.forumIdsWhere` and turn it into SQL through
+`visibleIn`, with an empty list meaning *nothing* rather than *no filter*. That
+last one is the first assertion in three of the four suites, because it is the
+mutation that turns a permission filter into a board-wide leak and it reads as
+a harmless optimisation in a diff.
+
+**Three things from this phase are worth carrying forward.**
+
+**F47's guard was right about where it could not see.** Its row named search and
+feeds as the two read paths it had nothing to fire on, in Phase 4. It caught
+F72's first version on the first run — a hand-written visibility predicate and
+an invented own-post rule — and F76's leak suite was written as its counterpart
+rather than as an afterthought. A guard that documents its own blind spots is
+what made both of those ordinary work instead of discoveries.
+
+**A check that fires is more often right than the code is.** Four times now the
+answer has been to fix the check's *reach* rather than the code under it: F67's
+merge map caught three later features' own tables, and F76 found that
+dependency-cruiser could not resolve `@/…` at all, so any module imported only
+by a page looked like dead code and every path rule was inert on those edges.
+Exempting the two files would have taken one line and left the hole.
+
+**Mutation verification keeps finding things reviews would not.** F76's JSON-LD
+test failed on its first run because `JSON.stringify` does not escape the
+forward slash — a thread titled `</script>` broke out of the script block. The
+code had a comment claiming it was safe. The test is why that is a paragraph in
+`deviations.md` rather than a vulnerability.
+
+**Phase 8 is next** — F77 (freeze and document the slot/view-model APIs), then
+F78's second theme and F79's plugin lifecycle. F77 is the gate for the rest, and
+two things this phase did to the theme contract are now its problem: F75 changed
+`WhoIsOnlineModel` and `BoardStatsModel` from placeholders to real shapes, and
+F74 gave `HeaderModel.navigation` its first non-empty value since F27. Both were
+free to change because no theme implemented them; after F77 neither is.
 
 The one remaining gap named in F67's row: **no password reset from the panel.**
 An administrator setting somebody's password is an account takeover with a paper
@@ -1062,7 +1100,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D77). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D82). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

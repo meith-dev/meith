@@ -146,6 +146,14 @@ export {
   type ReindexResult,
 } from './search-repo'
 export {
+  PostgresFeedRepository,
+  type FeedPost,
+  type FeedScope,
+  type FeedThread,
+  type SitemapForum,
+  type SitemapThread,
+} from './feed-repo'
+export {
   ONLINE_WINDOW_MINUTES,
   PostgresPresenceRepository,
   type OnlineMember,

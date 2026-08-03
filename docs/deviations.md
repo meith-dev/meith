@@ -5486,3 +5486,162 @@ falling back to a path, the thread branch removed, the invisible marker dropped,
 the query string kept, the route pattern loosened at both ends, the record given
 the member count instead of the online count, and the two writes given separate
 clocks.
+
+### D82 — Everything syndicated is rendered as a guest, and the canonical points at the page you are on (F76)
+
+Feeds, a sitemap, `robots.txt`, canonical URLs and social metadata. Five
+surfaces, one rule, and one bug this feature's own tests found.
+
+#### The rule: a syndicated surface is rendered as a guest, always
+
+Not "as whoever asked". Every URL in this feature is fetched by something that
+**caches one response and hands it to everybody**: aggregators, crawlers, link
+unfurlers, corporate proxies, the CDN in front of the board. A feed built for a
+signed-in member and cached under a shared URL is a private forum served to
+whoever asks next — and the leak happens in somebody else's cache, where nothing
+about the request that caused it is visible.
+
+So `publicScope()` builds its scope from `actorSource.buildGuest()`, explicitly,
+even when a member's cookie is on the request. The cost is real and small: a
+feed shows what a signed-out visitor would see. The alternative is a response
+that must never be cached, which is not a feed.
+
+That decision is also what makes the caching headers safe to write down. A
+response marked `public, max-age=300` and a body containing nothing
+viewer-specific are the same claim stated twice; getting them consistent is the
+whole safety argument.
+
+#### F47's guard finally has a feed to fire on
+
+The F47 row has said since Phase 4 that feeds and search were the two read paths
+its guard had nothing to check. Search arrived with F72 — and the guard caught
+it on the first run. Feeds arrive here, and the leak suite is written as the
+guard's counterpart: seed a private forum *and* a hidden thread in a public
+forum, then assert the private title, slug and body appear nowhere in the
+output. Not "the ids are absent" — a leak through a feed is a leak of text.
+
+The second half of that pair is the one a forum-id filter alone misses, and it
+is why the suite has two fixtures rather than one: a thread awaiting moderation
+sits in a forum a guest may read, and every content check has to be asked
+separately from the forum check.
+
+#### A thread feed checks the thread, not just its posts
+
+`recentPosts` filters on the thread's visibility *and* the post's. A feed URL is
+a bare id, so answering it because the posts are visible would publish a thread
+that is not — at an address anybody can guess. The mutant that drops the thread
+check survived the first version of the leak suite, which had only a private
+*forum* to test against; closing it needed a hidden thread with a visible post
+in it.
+
+#### A private forum's feed is a 404, and so is a nonexistent one
+
+The same answer, deliberately. Distinguishing them turns the route into an
+oracle for which forum ids are private, answered without a cookie, cheaply, in a
+loop. An empty feed was the other option and is worse: a reader subscribed to a
+feed that quietly starts returning zero entries shows nothing for as long as the
+condition lasts, while a 404 appears in the reader's own error list.
+
+#### The canonical points at the page you are on
+
+Not at page 1. A thread's page 4 is a distinct document with distinct content,
+and a canonical naming page 1 asks a crawler to drop three quarters of the
+thread — the single most common way a forum ends up with only its first pages
+searchable. What the canonical *does* collapse is the surplus: `?post=812`,
+`?after=…` and `?reveal=…` are three URLs for one document, and only the page
+number survives.
+
+Page 1 is the bare path rather than `?page=1`. Both work; one of them is what
+every link on the board already points at, and a canonical that disagrees with
+the site's own links is one the crawler has to arbitrate.
+
+#### `JSON.stringify` is not enough for JSON-LD, and a test found it
+
+The first version of the thread page's structured data used
+`JSON.stringify(record)` inside a `<script type="application/ld+json">`, with a
+comment saying that was safe because `stringify` escapes what needs escaping.
+**It does not escape the forward slash.** A thread titled
+`</script><script>alert(1)</script>` serialises to exactly that text, the HTML
+parser ends the block at the first `</script`, and the rest of the title becomes
+markup in the document. The JSON is well formed the whole time; the injection is
+in the layer underneath it.
+
+The test asserting "no `</script>` in the output" failed on the first run, which
+is the only reason this is a paragraph in a decisions file rather than a
+vulnerability. The fix is `jsonLdScript`, which escapes `<`, `>` and `&` as JSON
+`\uXXXX` escapes — valid JSON with the same value — plus U+2028 and U+2029,
+which are legal inside a JSON string and are literal line terminators to a
+JavaScript parser. It is a function rather than a note in a comment because a
+note is something the next page to add JSON-LD has to remember.
+
+#### The sitemap is an index from the first thread
+
+Even on a small board. At the target volume a single document is hundreds of
+thousands of URLs, and switching shapes later means every crawler that cached
+the old one has to rediscover the new. Chunks are keyset-paged **on the id,
+ascending** — not by activity, because a crawler works through them over hours
+and a boundary that moved whenever somebody posted would make the crawl skip
+threads and revisit others.
+
+`sitemapBoundaryId` is the one OFFSET in this codebase, and it earns it: the
+index names the chunks by number before any chunk exists, so a chunk has to find
+its own start from that number alone. It returns a single id, and it answers
+**null rather than zero** past the end — zero means "start at the beginning", so
+collapsing the two would serve the first chunk's threads at
+`/sitemap/threads-99.xml`: the same content under a second URL, published to
+crawlers by the document whose whole job is telling them what to crawl.
+
+#### `robots.txt` is not a security boundary and is not treated as one
+
+It disallows the *computed* views — search, discovery, the online list, the
+statistics page — because each is a per-request computation over content that is
+already indexed at its own URL, and `/discover/new` is a different page every
+hour, which is the definition of something a crawler never settles on.
+
+No content path is listed. A `Disallow: /forum/9-secret` would be a map of the
+board's private forums served to the whole internet. Every private route named
+in that file is one anybody can already find from the header, and every one is
+refused server-side regardless.
+
+An offline board (F08's `board.offline`) refuses everything, and the sitemap
+404s with it. A crawler does not know a maintenance page from a board — it will
+index it, and the board's search results become its downtime notice for as long
+as the recrawl takes.
+
+#### The dependency guard was half-blind, and this feature is what showed it
+
+`no-orphans` fired on the two new view modules. They are not orphans: they are
+imported by route handlers under `app/`. The cause is that dependency-cruiser
+reads path aliases from `tsconfig.base.json`, which holds the `@forum/<name>`
+workspace aliases and deliberately **not** `@/*` — that one belongs to the app
+alone, and putting it in the base config would let any package resolve `@/…`
+into the app.
+
+The consequence was never a loud failure. Every `@/…` edge from `app/` was
+invisible, so any module under `src/` imported *only* by a page or a route
+handler looked like dead code, and every rule matching a path silently never
+fired on those edges. That is the same failure mode the config's own `tsConfig`
+note describes from the other direction: a guard reporting a clean run because
+it cannot see the graph. F76's two modules are the first in this repo imported
+from `app/` and nowhere else, which is why it took this long to surface.
+
+Fixed by giving the tool the alias through a `webpackConfig` — its schema does
+not accept `enhancedResolveOptions.alias` — and the file repeats the extension
+list, because supplying a webpack config *replaces* the resolver defaults rather
+than adding to them; without that the module count drops by a fifth. Verified
+with a probe: a domain package importing `@forum/db` still errors.
+
+Adding the two files to the orphan exemption list would have made the warning go
+away and left the blindness in place. That is the fourth time this session a
+check has been the thing to fix rather than the thing to satisfy.
+
+Seventeen mutants killed: the forum feed's scope replaced by the requested id,
+the thread scope dropped from the board feed, the thread scope dropped from a
+thread's post feed, the opening-post join made inner, the join keyed on the
+thread so one conversation fills the feed, the sitemap boundary's scope dropped,
+the sitemap chunk ordered by activity, the boundary's null collapsed to zero,
+XML escaping reordered so output is double-escaped, control-character stripping
+removed, Atom given RSS's date format, the summary always broken on the last
+space, `lastmod` defaulted to now, the sitemap index rendered as a sitemap, the
+canonical pinned to page 1, `prev` pinned to page 1, and the JSON-LD escape
+removed.

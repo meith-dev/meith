@@ -1227,3 +1227,63 @@ count is what sets the shape.
 **Cost:** the numbers on the index can be five minutes old. They say so. And a
 brand-new board shows "not counted yet" until the first tick, which is a truer
 statement than three zeroes.
+
+## A feed shows what a signed-out visitor sees, whoever fetches it
+
+**MyBB:** `syndication.php` resolves the requesting user from their cookie and
+filters the feed against that member's forum permissions, so a signed-in
+member's feed carries their private forums.
+
+**Here:** every feed is built from the **guest** scope, regardless of who asks.
+
+**Why:** a feed URL is handed to software, not read in the browser that holds
+the cookie. Aggregators, corporate proxies and CDNs cache one response per URL
+and serve it to everybody who asks for that URL next — so a personalised feed
+under a shared address is a private forum served to a stranger, in somebody
+else's cache, with nothing about the request that caused it visible from here.
+MyBB's version is only safe because most readers never send the cookie at all,
+which means the personalisation mostly does not happen.
+
+**Cost:** a member cannot follow a private forum by RSS. That is a real
+capability lost, and the honest replacement is F56's subscriptions, which
+deliver to a member rather than to a URL. A per-member feed token would restore
+it — a capability URL, cached safely because it is unguessable — and it is a
+feature with its own decisions to make, not a flag on this one.
+
+## Every page of a thread is its own canonical URL
+
+**MyBB:** emits no canonical link. Duplicate URLs for one page — `showthread.php`
+with and without a `pid`, with and without `page=1` — are left for the crawler
+to work out.
+
+**Here:** every thread and forum page carries `rel="canonical"` naming **the
+page being read**, with the permalink, cursor and reveal parameters dropped.
+
+**Why:** the tempting version points every page at page 1, and it is worse than
+having none: it asks a crawler to drop every page but the first from its index,
+which is why so many forums are searchable only for their opening posts. What a
+canonical is actually for here is collapsing `?post=812`, `?after=…` and
+`?reveal=…` — three ways to reach one document.
+
+**Cost:** a permalink to post 812 is canonicalised to the page containing it, so
+a search result lands on the page rather than the post. The anchor still works
+for anybody who follows the original link.
+
+## The sitemap is an index of chunks, ordered by id
+
+**MyBB:** ships no sitemap. Plugins that add one generally emit a single
+document.
+
+**Here:** `/sitemap.xml` is always an index. Chunks are 5,000 URLs, keyset-paged
+on the thread id ascending.
+
+**Why:** one document does not survive the target data volume, and switching
+shapes later means every crawler that cached the old one has to rediscover the
+new — so it is an index from the first thread. The ordering is by id rather than
+by activity because a crawler works through the chunks over hours or days, and a
+boundary that moved whenever somebody posted would make the crawl skip threads
+and revisit others.
+
+**Cost:** a chunk request costs one skip into the primary-key index to find its
+own starting id — the only OFFSET in this codebase — because the index names the
+chunks by number before any of them exists. It is paid by crawlers, not readers.

@@ -223,6 +223,13 @@ module.exports = {
      * worst possible failure mode for a guard. Verified with a probe module.
      */
     tsConfig: { fileName: 'tsconfig.base.json' },
+    /*
+     * The app's `@/*` alias, which lives in `apps/forum/tsconfig.json` and so
+     * not in the `tsconfig.base.json` above. Without it every `@/…` edge from
+     * `app/` is invisible to this tool — see the file's own header for what
+     * that costs.
+     */
+    webpackConfig: { fileName: '.dependency-cruiser.webpack.cjs' },
     enhancedResolveOptions: {
       exportsFields: ['exports'],
       conditionNames: ['import', 'require', 'node', 'default', 'types'],
