@@ -51,6 +51,7 @@
       "@forum/bbcode": ["../../packages/bbcode/src/index.ts"],
       "@forum/bbcode/*": ["../../packages/bbcode/src/*"],
       "@forum/plugin-reference": ["../../plugins/reference/src/index.ts"],
+      "@forum/import": ["../../packages/import/src/index.ts"],
       "@forum/upgrade": ["../../packages/upgrade/src/index.ts"],
       "@forum/install": ["../../packages/install/src/index.ts"],
       "@forum/api": ["../../packages/api/src/index.ts"],

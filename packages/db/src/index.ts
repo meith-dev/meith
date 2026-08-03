@@ -221,3 +221,16 @@ export {
   readVersions,
   recordVersion,
 } from './upgrade-repo'
+
+/* F85 — the legacy-id map and the import run's state. */
+export {
+  currentImportRun,
+  finishImportRun,
+  mapLegacyId,
+  resolveLegacyId,
+  resolveLegacyIds,
+  saveImportProgress,
+  startImportRun,
+  type ImportRunRow,
+  type LegacyKind,
+} from './import-repo'

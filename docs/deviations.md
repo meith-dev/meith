@@ -6531,3 +6531,105 @@ operator CLI installed as a dependency has no path to it. The command says so,
 board's own entry point can call it.
 
 Finding that out during an upgrade would be the wrong moment.
+
+### D91 — The importer ships everything except the part that needs a dependency (F85)
+
+A source port, the mapping, a chunked resumable runner, the legacy-id map and a
+fixture round trip. Not a MySQL reader.
+
+#### The dependency this feature stopped for
+
+Reading a live MyBB board means talking to MySQL, and every client is a runtime
+dependency — which the roadmap's working rules say to stop for a human on. So the
+port ships and the reader is an open question, recorded in `plan-status.md` with
+three options rather than left as a gap somebody discovers.
+
+That is not a workaround, and the acceptance criterion agrees: it asks for a
+**fixture round trip**, because a reader is
+`SELECT * FROM mybb_posts WHERE pid > ? LIMIT ?` and everything genuinely hard is
+on this side of the port.
+
+#### Three constraints wearing adjectives
+
+**Chunked.** A page at a time, bounded by a row budget. A board with two million
+posts cannot be imported in one request on any platform this targets.
+
+**Resumable.** The cursor is a *legacy id*, so it means the same thing in the
+next process after a crash. An OFFSET would not: the source board is usually
+still being posted to during a migration, and an OFFSET walk over a growing table
+**skips rows** — silently, and in proportion to how busy the board is, which is
+to say worst on exactly the boards people care about migrating.
+
+**Idempotent.** Every write is keyed on `(kind, legacyId)`. A chunked import
+*will* be interrupted, and the recovery instruction has to be "run it again".
+
+The fixture source pages exactly as a database one must — ascending, `> afterId`,
+bounded. An importer tested against a source that hands over everything at once
+has never had its cursor tested, and the chunking test asserts on the **call
+log** rather than the totals for the same reason: an importer that quietly
+fetched everything would pass every count assertion.
+
+#### The mapping is where importers lose data quietly
+
+Each of these is a line with a test, because each is a real bug in somebody's
+migration:
+
+- **Timestamps are Unix seconds.** Getting it wrong gives dates in 1970, which is
+  obvious — until somebody "fixes" it the other way and gets sub-second offsets
+  from the epoch that sort correctly relative to each other. The second version
+  ships.
+- **`closed` is the string `'1'`**, not an integer. A truthiness check locks every
+  thread on the board.
+- **`edittime` is 0 on an unedited post**, so a naive map puts "last edited 1
+  January 1970" under a third of an old board's posts.
+- **An unknown `visible` value reads as unapproved**, not visible. It came from a
+  plugin, and the safe reading of "I do not know whether this should be public" is
+  that it should not be.
+- **An unknown forum type becomes a forum**, because that is the reading that does
+  not orphan its threads.
+- **E-mails are lower-cased**, because this board's uniqueness is
+  case-insensitive and MyBB's is not — so two MyBB accounts differing only in
+  case collide here, and the sink reports that rather than silently keeping one.
+
+#### Password hashes are carried, not discarded
+
+`mybb$<salt>$<hash>`, for F86 to verify against and re-hash with Argon2id on the
+member's next successful sign-in — the only way to migrate a hash at all, since
+the plaintext is not in the export. A board that dropped them would force every
+member through a password reset, which is the largest single source of attrition
+in a forum migration.
+
+#### MyBB's counters are imported and not trusted
+
+They drift: incremented on post, not always decremented on delete. Importing them
+as truth bakes somebody else's bug into a fresh board; discarding them loses the
+chance to say how far off they were.
+
+So they are imported, `compareCounters` reports the differences, and F38's
+recount produces the real ones. A mismatch is explicitly **not** an import
+failure — reporting it is what turns "the counts look wrong" a week after a
+migration from a mystery into a line somebody read on the day.
+
+Only visible content counts, which is the rule the board's own counters follow
+(F38/F47). Counting deleted posts would make every imported board disagree with
+itself the moment a moderator looked at it.
+
+#### `legacy_ids` is what stops the import being a one-way door
+
+Every MyBB URL contains an id, so F86's redirects are a lookup in this table. An
+import that did not record the mapping would break every inbound link a board has
+accumulated — which for a forum is most of its traffic, and is not recoverable
+afterwards.
+
+`resolveLegacyIds` takes a list, because the runner needs a page's parents at
+once and one query per row makes a 200-row page 200 round trips: on a pooled
+serverless connection, the difference between an import that finishes and one
+that times out every run.
+
+#### A test caught a write that did nothing
+
+`nextCursor` is null only on a *short* page, so a run whose last page was exactly
+full reads once more and gets nothing. The runner was handing that empty array to
+the sink — a no-op write per kind per run, and against Postgres a transaction per
+kind for the privilege. Caught by the chunking test's call log, which is the
+assertion that exists to see calls rather than results.

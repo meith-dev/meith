@@ -176,6 +176,13 @@
       "when": 1785740220972,
       "tag": "0024_component_versions",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1785740220973,
+      "tag": "0025_import",
+      "breakpoints": true
     }
   ]
 }

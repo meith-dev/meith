@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D88. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D91. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -21,8 +21,8 @@ this file.
 F47's included) + **guard probes**, the **slot server/client boundary** check +
 its probe, the **three generated-reference staleness gates** (F77's
 `docs/theme-slots.md`, F79's `docs/plugin-hooks.md` and F81's `docs/rest-api.md` — a contract change that
-does not update its published reference fails CI), dependency-cruiser (541
-modules, 0 violations), typecheck (root **and** app), **3566 tests** (a large
+does not update its published reference fails CI), dependency-cruiser (560
+modules, 0 violations), typecheck (root **and** app), **3680 tests** (a large
 share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
@@ -744,52 +744,43 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### Phase 8 is done. Phase 9 has started, and F83 is next.
+### Phase 9 is 3 of 8 with one PARTIAL. F86 is next, and F85 needs a decision.
 
-**F77–F81 are complete** (D83–D87), and **F82** (D88). Phase 8 has no open rows
-except F81's named remainder; Phase 9 is 1 of 8.
+**F83, F84 and F85** are done or partial (D89–D91). Phase 8 is closed.
 
-What matters when picking up F83 (`/install`):
+**Read this before F85's remainder: there is an open question with your name on
+it.** Reading a live MyBB board needs a MySQL client, which is a runtime
+dependency, and the working rules say a human decides. Question 5 in
+`plan-status.md` lays out three options — `mysql2` behind the existing port, a
+`mysqldump` reader, or a separate tool that writes through F81's REST API — with
+a recommendation. Everything else about the import is built and tested: the
+mapping, the ordering, the chunking, the resumability, the idempotency and the
+counter comparison.
 
-**The scaffold already commits the cron and names the secrets** (F82). `/install`
-is what the Deploy button lands on, and the scaffold's README already promises
-it — so the honest order is F83 next, not F84.
+**F86 is next and does not need that decision.** It has two halves:
 
-**F81 left two things deliberately unfinished, and both are small:**
+- **Legacy password hashes.** F85 already carries them as `mybb$<salt>$<hash>`.
+  Verify-and-upgrade means: on a successful sign-in against the MyBB hash,
+  re-hash with Argon2id and replace. The interesting part is that the check must
+  be constant-time and must not leak *which* scheme a given account is on.
+- **The URL table.** `legacy_ids` is populated by the import and indexed both
+  ways, so `/showthread.php?tid=91` is one lookup. Every MyBB URL form wants a
+  row in a table-driven test — `showthread.php`, `forumdisplay.php`,
+  `member.php`, the `-Thread-Title` SEO forms, and the `&pid=` anchor variants.
+  Toggleable, per the acceptance criterion, because a board that was never a MyBB
+  board should not carry the routes.
 
-- five of seven REST endpoints answer a documented 501, and the gap is a list in
-  `api-routes.test.ts` rather than a surprise. Adding one is a `case` in the
-  dispatch switch plus a repository call that filters in-query.
-- the webhook delivery *worker* is not wired into the tick. The store, the claim
-  query (`for update skip locked`), the signing and the verdict logic are here
-  and tested; what is missing is the loop that fetches. It belongs beside the
-  other tick tasks in F06's registry.
+Two things from this phase worth carrying:
 
-**F69's five blocked deliverables are now genuinely buildable** — F79 gave them
-descriptors and F80 proved the host runs. Missing: a plugin migration runner, a
-settings surface reading `plugin.<key>.<name>`, task registration, and a
-catch-all route for admin pages.
+**The two-gate pattern.** F83's installer cannot run twice because two
+*independent* checks say so — the marker and the account count — and either alone
+leaves a hole. When something must happen exactly once, one gate is usually a
+gate with a gap behind it.
 
-**Seventy of the ninety-one hooks are still unwired**, which the generated
-reference now *reports* rather than hides. The ratchet makes wiring one two
-edits: the call site, and a handler in `plugins/reference`. Do it in the feature
-that owns each call site rather than as a sweep.
-
-Three things from this phase worth carrying forward:
-
-**A registry with a generated, gated reference is now the house pattern** —
-theme slots, plugin hooks, REST routes. Three scripts, three `--check` gates, and
-in every case the point is identical: the contract cannot change without its
-documentation appearing in the same diff.
-
-**The wired-set scanner is the strongest of the three**, because it derives a
-fact about the code rather than restating one. If a fourth registry appears, ask
-it the same question — what would make an entry a lie, and can that be computed?
-
-**Two features running, a test caught a bug review would not have.** F81's token
-parser split on `_` while base64url secrets contain `_`; F82's documented
-`node -e` command was being evaluated in a scope where it could never run. Both
-were found by tests that ran the thing rather than reading it.
+**"Last, and irreversible" keeps recurring.** The installer's seal and the
+upgrade's version record are both written last, for the same reason: a marker
+written first means a failure halfway leaves a board claiming to be something it
+is not, and the next run does nothing.
 
 ### Fixed since: the Postgres path had never run anywhere
 
@@ -887,7 +878,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D88). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D91). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

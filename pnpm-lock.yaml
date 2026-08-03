@@ -449,6 +449,8 @@ importers:
 
   packages/groups: {}
 
+  packages/import: {}
+
   packages/install:
     dependencies:
       '@forum/core':

@@ -32,6 +32,7 @@ const DOMAIN = [
   'api',
   'install',
   'upgrade',
+  'import',
 ].join('|')
 
 module.exports = {
