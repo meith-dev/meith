@@ -77,7 +77,9 @@
       "@forum/testkit": ["packages/testkit/src/index.ts"],
       "@forum/testkit/*": ["packages/testkit/src/*"],
       "@forum/theme-default": ["themes/default/src/index.ts"],
-      "@forum/theme-default/*": ["themes/default/src/*"]
+      "@forum/theme-default/*": ["themes/default/src/*"],
+      "@forum/theme-midnight": ["themes/midnight/src/index.ts"],
+      "@forum/theme-midnight/*": ["themes/midnight/src/*"]
     }
   },
   "exclude": ["node_modules", "**/dist", "**/.next"]

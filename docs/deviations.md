@@ -5760,3 +5760,96 @@ its own contract test.
 a constant in the test. Registering a theme is therefore also enrolling it in
 the suite — the only version of "CI covers the second theme" that cannot be
 forgotten when the second theme arrives.
+
+### D84 — The second theme rendered in the first theme's colours, and nothing said so (F78)
+
+`midnight`: nineteen slots overridden, four inherited, a palette that shares no
+value with the default's. The acceptance criterion is "materially different,
+with **no core or theme-kit changes**", and the second half held — nothing in
+`packages/` changed. What did change is one thing in `apps/forum`, and it was a
+hole rather than an accommodation.
+
+#### The compiled stylesheet only ever carried one theme
+
+`globals.css` declares every token in `:root` and `.dark`, and
+`apps/forum/src/styles/tokens.test.ts` holds those values to the *default*
+theme's. `renderThemeStyle` emitted the board's database **overrides** and
+nothing else. So a board that switched `defaultTheme` to `midnight` got
+midnight's markup painted in the default theme's palette: every colour wrong,
+the build green, no error anywhere, and no test that could have noticed because
+there had never been a second theme.
+
+That is the F26 cascade with a missing layer. "Theme defaults → DB overrides →
+custom CSS" was true only while "theme defaults" and "the compiled stylesheet"
+were the same thing, which stopped being true the moment a second theme existed.
+
+The fix emits the active theme's values as the **difference** from the compiled
+baseline. As a diff rather than the whole palette for two reasons, and the
+second is the one that matters:
+
+- a board on the default theme emits nothing at all, so the common case pays
+  zero bytes on every page;
+- a token this theme did not change is left to the stylesheet, where a later
+  edit to the compiled default still reaches it. Restating all thirty-eight
+  would freeze midnight against a baseline it never meant to override.
+
+The `baseline` parameter defaults to the theme's own tokens — "the stylesheet is
+this theme's" — so the admin preview path, which is about overrides rather than
+about rendering a page, is unchanged. Ordering is the correctness argument and
+has its own test: theme defaults, then the board's overrides, then custom CSS. A
+board's explicit choice must beat the theme's value, and emitting them the other
+way round inverts F26's rule while looking identical in review.
+
+#### It extends the default theme, and that is not laziness
+
+A copy stops receiving fixes the moment it is made, and — more to the point
+under a freeze — it stops receiving *slots*. theme-kit v1 promises that a minor
+release may add one. An inheriting theme renders the parent's implementation of
+a new slot and keeps working; a copy has a hole in it and nothing says so.
+
+Four slots are inherited on purpose: `PostForm`, `SearchForm`, `RedirectNotice`
+and `ErrorNotice` — forms and interstitials whose default markup is already
+plain and token-only. The diff is the part that differs, which is what a partial
+override is for.
+
+#### The coupling that lives inside a theme
+
+Midnight renders listings as tables, so `ForumRow` and `ThreadRow` return `<tr>`.
+That works only because `CategoryBlock` and `ForumDisplay` — the slots handed the
+rendered rows as a region — put a `<table>` around them. **Those pairs must be
+overridden together**, and a test pins each pair.
+
+This is worth recording because it looks like an argument against flat
+composition and is the opposite. The page composes the two and sees neither
+element; the coupling is between two slots of one theme and lives in that
+theme's manifest, where a theme author can see it. If a slot rendered another
+slot, the same coupling would be spread across the parent theme, the child, and
+whatever the page decided to pass — and overriding one half would be a runtime
+failure in somebody else's package.
+
+Inheriting a container and overriding its row produces `<tr>` inside `<ul>`,
+which browsers silently unwrap: the rows do not error, they simply stop being a
+table. That is the failure mode the pairing test exists for.
+
+#### "Materially different" is asserted, not claimed
+
+A second theme whose palette is the first one's with a hue rotation is a colour
+scheme. So the test measures the overlap: no colour token may share a value with
+the default theme's, in **either** scheme — matching on one of them is how a
+dark-only reskin would sneak through — and geometry (`radius`, `density-unit`)
+must differ too. It caught two dark tokens that had been copied across without
+being thought about.
+
+The names, meanwhile, must match exactly, in both directions. `globals.css` maps
+each token to a Tailwind utility, so a theme missing one has utilities pointing
+at nothing and renders unstyled in that one respect with the build green; an
+extra one is a value no stylesheet will ever read, and is usually a typo of a
+real token.
+
+#### What the rendering-contract suite proved by not failing
+
+Midnight passed all of F77's rendering assertions on its first run. That is the
+result the feature was for: the contract was sufficient to build a materially
+different theme against, and the suite was measuring contract rather than
+appearance — if it had been asserting the default theme's markup, a theme built
+to be different would have failed every case.

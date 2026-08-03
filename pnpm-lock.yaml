@@ -172,6 +172,9 @@ importers:
       '@forum/theme-kit':
         specifier: workspace:*
         version: link:../../packages/theme-kit
+      '@forum/theme-midnight':
+        specifier: workspace:*
+        version: link:../../themes/midnight
       '@forum/threads':
         specifier: workspace:*
         version: link:../../packages/threads
@@ -625,6 +628,22 @@ importers:
 
   themes/default:
     dependencies:
+      '@forum/theme-kit':
+        specifier: workspace:*
+        version: link:../../packages/theme-kit
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.14
+
+  themes/midnight:
+    dependencies:
+      '@forum/theme-default':
+        specifier: workspace:*
+        version: link:../default
       '@forum/theme-kit':
         specifier: workspace:*
         version: link:../../packages/theme-kit

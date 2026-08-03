@@ -153,11 +153,39 @@ Four rules the tooling enforces, so that they are worth knowing before they fire
   instances — the same models cross to client slots and out through F81's REST
   API. `Serialisable<T>` proves it at compile time.
 
+## Tokens
+
+A theme ships `LIGHT_TOKENS` and `DARK_TOKENS` — the same **names** the default
+theme declares, since `globals.css` maps each one to a Tailwind utility and a
+renamed token is a utility pointing at nothing. The values are the theme's own.
+
+Only the default theme's values are compiled into the stylesheet. Any other
+theme's palette is emitted into `<head>` as the *difference* from that baseline,
+which is why a board on the default theme pays nothing for the mechanism and a
+board on any other one gets its colours without a redeploy of the CSS. The
+cascade is: compiled defaults → the active theme's differences → the board's
+`themes.token_overrides` → custom CSS.
+
+`BROWSER_THEME_COLOR` is the one place a literal colour belongs in a theme:
+`<meta name="theme-color">` is ignored by Safari and older Chrome when given
+`oklch()`. Keep it equal to the two `background` tokens converted — there is a
+test for that, because a hand-written pair goes stale silently.
+
 ## Testing a theme
 
-`tests/theme-contract.test.ts` renders **every registered theme** through every
-stable slot with the same fixture models and asserts the contract properties
-that are true of any theme — that required slots are filled, that each renders
-without throwing, that server slots emit no client-component marker, and that
-what a model says is a link comes out as one. A new theme is added to the list
-there and inherits the whole suite.
+`apps/forum/src/theme/contract.test.ts` renders **every theme registered in
+`forum.config.ts`** through every stable slot with the same fixture models
+(`contract.fixture.ts`) and asserts the properties that are true of any theme:
+that required slots are filled, that each renders, that the values a reader is
+owed appear in the output, that nothing renders `[object Object]`, `undefined`
+or an empty `href`, and that no server slot emits a script.
+
+Registering a theme enrols it. There is no list to add yourself to and none to
+forget.
+
+What it deliberately does **not** assert is appearance. A theme is free to be a
+table, a card grid or a wall of text; a suite that required matching the default
+theme's markup would make the second theme's job "look like the first", which is
+the opposite of the point. `themes/midnight` is the worked example — nineteen
+slots overridden, four inherited, tables where the default has lists, and no
+change to any package to make it possible.

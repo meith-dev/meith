@@ -58,6 +58,8 @@
       "@forum/shared/*": ["../../packages/shared/src/*"],
       "@forum/theme-default": ["../../themes/default/src/index.ts"],
       "@forum/theme-default/*": ["../../themes/default/src/*"],
+      "@forum/theme-midnight": ["../../themes/midnight/src/index.ts"],
+      "@forum/theme-midnight/*": ["../../themes/midnight/src/*"],
       /*
        * Needed even though the app never imports it: this config compiles
        * `../../packages/**`, which includes package *tests*, and those import

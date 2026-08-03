@@ -11,6 +11,7 @@ import { CacheTags, env } from '@forum/core'
  * `container.ts` for the full account.
  */
 import { PostgresThemeRepository, getDb } from '@forum/db'
+import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@forum/theme-default'
 import { unstable_cache } from 'next/cache'
 
 import forumConfig from '../../forum.config'
@@ -19,6 +20,17 @@ import { renderThemeStyle, type ThemeRuntimeStyle } from './theme-style'
 
 const installedTheme = forumConfig.themes[forumConfig.defaultTheme]!
 
+/**
+ * What `globals.css` has compiled into it (F78).
+ *
+ * The stylesheet can only carry one theme's values, and `tokens.test.ts` holds
+ * them to the default theme's — so *that* is the baseline every other theme's
+ * palette is emitted as a difference from. Importing the default theme here is
+ * not a coupling to the board's choice of theme: it is a reference to the
+ * contents of a stylesheet, which is what this constant is named for.
+ */
+const COMPILED_TOKENS = { light: DEFAULT_LIGHT, dark: DEFAULT_DARK }
+
 const loadPostgresThemeStyle = unstable_cache(
   async (): Promise<ThemeRuntimeStyle> => {
     const runtime = await new PostgresThemeRepository(getDb()).findRuntimeByKey(installedTheme.key)
@@ -26,6 +38,7 @@ const loadPostgresThemeStyle = unstable_cache(
       installedTheme.tokens,
       runtime?.tokenOverrides,
       runtime?.customCss ?? null,
+      COMPILED_TOKENS,
     )
   },
   ['theme-runtime-style', installedTheme.key],
@@ -35,7 +48,7 @@ const loadPostgresThemeStyle = unstable_cache(
 /** The one style block appended after the compiled theme defaults (F26). */
 export async function getThemeRuntimeStyle(): Promise<ThemeRuntimeStyle> {
   if (env.DATA_SOURCE === 'fixture') {
-    return renderThemeStyle(installedTheme.tokens, undefined, null)
+    return renderThemeStyle(installedTheme.tokens, undefined, null, COMPILED_TOKENS)
   }
   return loadPostgresThemeStyle()
 }
