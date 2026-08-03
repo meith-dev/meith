@@ -163,6 +163,18 @@ export interface PluginDefinition {
   /** The theme-kit/plugin-kit API major this plugin was written against. */
   readonly apiVersion?: string | undefined
 
+  /**
+   * Plugin keys this one needs installed and upgraded first (F84).
+   *
+   * Declared rather than inferred, because the dependency that matters is
+   * usually a *schema* one — a plugin whose table references another's — and
+   * nothing in an import graph reveals that. The upgrade planner topologically
+   * sorts on this and refuses a cycle; a missing dependency is named rather than
+   * silently ignored, since a plugin quietly running against a table that does
+   * not exist is the failure this exists to prevent.
+   */
+  readonly dependsOn?: readonly string[] | undefined
+
   readonly hooks?: PluginHooks | undefined
   readonly settings?: readonly PluginSetting[] | undefined
   readonly migrations?: readonly PluginMigration[] | undefined
@@ -221,6 +233,15 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
   if (plugin.name.trim() === '') throw new Error(`${where}: name must not be empty.`)
   if (!/^\d+\.\d+\.\d+$/.test(plugin.version)) {
     throw new Error(`${where}: version must be semver (major.minor.patch), got "${plugin.version}".`)
+  }
+
+  for (const dependency of plugin.dependsOn ?? []) {
+    if (!KEY_PATTERN.test(dependency)) {
+      throw new Error(`${where}: "${dependency}" is not a valid plugin key to depend on.`)
+    }
+    if (dependency === plugin.key) {
+      throw new Error(`${where}: a plugin cannot depend on itself.`)
+    }
   }
 
   for (const [name, registration] of Object.entries(plugin.hooks ?? {})) {

@@ -169,6 +169,13 @@
       "when": 1785740220971,
       "tag": "0023_install_state",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1785740220972,
+      "tag": "0024_component_versions",
+      "breakpoints": true
     }
   ]
 }

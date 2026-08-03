@@ -6427,3 +6427,107 @@ and its owner is in a hurry — which is exactly when `password1` gets typed.
 The password is also the one field never echoed back on a failed submit. A
 password re-rendered into HTML is a password in a proxy log and in the browser's
 back-forward cache.
+
+### D90 — An upgrade is four things, and three of them are what go wrong (F84)
+
+`forum upgrade`, migration `0024`, and an admin notice. "Run the migrations" is
+the part everybody remembers; the other three are where boards break.
+
+#### Plugins have migrations, and plugins depend on each other
+
+A plugin's table nearly always references one of core's, and often one of another
+plugin's — so "after core" is not an order, it is a partial order. Applying
+plugins in configuration order works until the day somebody lists them
+differently.
+
+`dependsOn` is **declared** rather than inferred, because the dependency that
+matters is a schema one and nothing in an import graph reveals it. The planner
+sorts topologically and **breaks ties on the plugin key**, which is the
+difference between an order that is correct and one that is *reproducible*: a
+partial order has many valid linearisations, and picking the same one every time
+is the only thing that makes rehearsing an upgrade on staging worth anything.
+
+The sort re-derives its ready set after each removal rather than taking whole
+batches. Batching is faster and makes the sequence depend on how the batches
+happened to fall.
+
+A cycle names the tangled keys rather than reporting that a cycle exists — with
+twenty plugins installed, *which three* is the entire diagnostic. A missing
+dependency is named too, because the alternative is a plugin quietly running
+against a table that does not exist.
+
+#### The board has to know it is out of date
+
+An operator deploys new code and forgets the command. The board then runs new
+application logic against an old schema and fails in whichever request happens to
+touch the missing column — with an error naming a column rather than naming the
+upgrade.
+
+The admin notice names both versions and the migration count. It returns `null`
+on a current board, deliberately: a panel that permanently displays "everything
+is fine" is one people stop reading, and this notice's whole value is being
+unusual.
+
+It is on the admin index only. One indexed lookup, and the panel is not a hot
+page — but putting it in the board's shell would be a query on every page view
+for a message only an administrator can act on.
+
+#### A plugin migration is applied and recorded in one transaction
+
+The only arrangement that survives a crash between the two.
+Applied-and-unrecorded means the next run applies it again — a `create table`
+that fails, or worse, an `insert` that does not. Recorded-and-unapplied means a
+column that never exists and a plugin that fails on every request.
+
+The insert is also the **claim**: `on conflict do nothing … returning`, and the
+statements are skipped when it returns nothing. So an interrupted upgrade re-run
+is a no-op rather than a second application, which is what makes "try it again"
+a safe instruction rather than a hopeful one.
+
+#### Two majors, and the limit is honesty rather than caution
+
+Supporting an arbitrary jump means every migration must remain correct against
+every schema that ever existed — a promise nobody can test, and therefore one
+that should not be made. Two majors is what the migration set is exercised
+against, so it is what `SUPPORTED_MAJOR_SPAN` claims, and a board further behind
+upgrades in documented stages rather than hitting an error.
+
+Downgrades are refused outright. Migrations are forward-only, so "downgrading" is
+old code against a schema already migrated past it, which usually appears to work
+and corrupts something later.
+
+#### The version is recorded last, and recorded even with no migrations
+
+Last, for the same reason the installer's seal is: a version written before the
+work leaves a failed upgrade claiming to be something it is not, and the next run
+finds nothing to do.
+
+Recorded even when nothing was pending, because a release can change behaviour
+without changing the schema — a board whose recorded version never moved would
+show the pending notice forever.
+
+#### Two tables, not one
+
+`component_versions` says what version core and each plugin are at;
+`plugin_migrations` says which migrations have run. Separate, because a plugin
+can ship a release with no migrations at all, and a migration list alone could
+not tell that board it was out of date.
+
+#### An absent version reads as "current"
+
+A board installed before F84 has no `component_versions` row. Reading that as a
+low version would tell every existing board it is out of date on the day it
+upgrades; reading it as the code's own version means the first `forum upgrade`
+records the truth and says nothing alarming. The notice is also
+failure-tolerant — a board whose table does not exist yet must show the panel,
+not a 500.
+
+#### One limitation, written down rather than discovered
+
+`forum upgrade` installed from npm applies **core** migrations only. Plugin
+migrations need `forum.config.ts`, which lives in the board's project — an
+operator CLI installed as a dependency has no path to it. The command says so,
+`docs/upgrading.md` says so, and the plugin-migration runner is exported so the
+board's own entry point can call it.
+
+Finding that out during an upgrade would be the wrong moment.

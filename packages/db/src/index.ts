@@ -212,3 +212,12 @@ export {
 
 /* F83 — the installer's probes and its one write. */
 export { canConnect, countUsers, isInstalled, markInstalled } from './install-repo'
+
+/* F84 — component versions and the plugin migration runner. */
+export {
+  appliedPluginMigrations,
+  applyPluginMigration,
+  readVersion,
+  readVersions,
+  recordVersion,
+} from './upgrade-repo'

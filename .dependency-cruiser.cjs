@@ -31,6 +31,7 @@ const DOMAIN = [
   'tasks',
   'api',
   'install',
+  'upgrade',
 ].join('|')
 
 module.exports = {
