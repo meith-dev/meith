@@ -186,6 +186,30 @@ in a typed registry, and the host catches its failures: a plugin that throws
 leaves the page intact and is counted, logged and — after repeated failures —
 switched off for the rest of the process.
 
+**`/admin/plugins` is where you administer one after that.** It lists what is
+installed, what each plugin attaches to, its settings, and — the part you cannot
+find out anywhere else — whether its migrations have actually been applied to
+*this* database.
+
+Three things on that screen are worth knowing before you need them:
+
+- **"Enabled" has three answers and the screen tells you which one you have.**
+  Not in the build means editing `forum.config.ts` and redeploying. Switched off
+  means somebody pressed the button here. Failing means the server stopped
+  calling it after repeated errors, and the error is on the plugin's page.
+- **The disable button is durable and takes effect everywhere**, not just on the
+  server that handled the click, and it survives a redeploy. It is the thing to
+  reach for when a plugin is misbehaving; you do not need to deploy to stop one.
+- **The panel never runs migrations.** It tells you which are outstanding;
+  `forum upgrade` applies them. A plugin with unapplied migrations is running
+  against a schema that does not have what it expects, so treat that line as
+  urgent rather than informational.
+
+There is no uninstall button. Removing a plugin is `npm uninstall`, a line out of
+`forum.config.ts`, and a redeploy — the same three steps in reverse. Its stored
+settings stay behind, which is deliberate: reinstalling it should not lose your
+configuration.
+
 Writing one: [`plugin-api.md`](./plugin-api.md). Every hook:
 [`plugin-hooks.md`](./plugin-hooks.md).
 

@@ -17,6 +17,7 @@
     "@meith/groups": "workspace:*",
     "@meith/moderation": "workspace:*",
     "@meith/notifications": "workspace:*",
+    "@meith/plugin-kit": "workspace:*",
     "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*"
   }

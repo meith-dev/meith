@@ -7184,3 +7184,144 @@ the form actually submits: the option's value.
 
 Neither was a product bug, and both are the same mistake — testing the rendering
 of a native control rather than its behaviour.
+
+### D98 — "Enabled" is three different facts, and a plugin manager that says one of them is lying (F69)
+
+F69's completion, and the design is almost entirely about a single question that
+looks like it has a boolean answer.
+
+#### Three sources, three remedies
+
+A plugin can be off because it is not in `forum.config.ts`, because an
+administrator switched it off, or because the host stopped calling it after it
+threw five times. Those are not degrees of the same thing:
+
+| Why it is off | Where that lives | What fixes it |
+|---|---|---|
+| not in the build | `forum.config.ts` | edit the file, redeploy |
+| switched off | a row in `settings` | press the button |
+| failing | the host's counters, in memory | read the error |
+
+A row rendering one "Enabled" column would be wrong about two of them, and the
+operator would take the wrong action — waiting for a redeploy to fix a plugin
+that is throwing, or reading a log for a plugin that is simply not installed. So
+each row names which of the three is false, and the button appears only for the
+middle one: it is the only state this screen can change.
+
+#### The durable switch, and the objection it had to get past
+
+D85 refused durable disabling with a specific argument, not a vague one: a write
+needs the database, and *a host that opened a connection from inside a render to
+decide whether to call a hook* is a worse problem than the one it solved. That
+argument is still correct, and the switch does not violate it — it sidesteps it.
+
+The state lives in the `settings` table, which **every request already fetches
+and caches** (F08 through F10's `cachedGlobal`). Reading it costs no query. What
+made this possible was noticing that `SettingsSnapshot` resolves *declared* keys
+only, so the raw override map — which the cache was holding anyway — had no
+reader. Exporting it is the whole mechanism.
+
+Two consequences worth stating rather than discovering:
+
+- **The reconcile is per request, not per process.** A module-level "already
+  done" flag would be cheaper and wrong: an instance that was warm when the
+  administrator pressed the button would go on calling the plugin until the
+  platform recycled it, which is precisely the failure durable disabling exists
+  to prevent.
+- **Region rendering is synchronous and therefore one step behind.** `filterView`
+  and `emitEvent` await the reconcile; `pluginRegion` is React render and
+  cannot. In practice the shell's own filters run before any theme renders a
+  region, so a page load reconciles before it contributes — but a request that
+  rendered a region without passing through a filter first would use the
+  previous value. That is the honest bound.
+
+#### Two flags, because one would make "enable" a reset button
+
+The operator's switch is deliberately *not* the field auto-disable writes. With
+one field, an administrator who disabled a plugin, changed their mind and
+re-enabled it would also clear the fact that it had already been switched off
+for failing forty times — so the broken plugin comes back, and the counter that
+would have stopped it again is the one the toggle just reset. A plugin runs only
+when both agree; re-enabling clears only the operator's.
+
+#### The reserved key is a validated impossibility, not a convention
+
+Settings are stored at `plugin.<key>.<name>` and the switch at
+`plugin.<key>._enabled`. Those cannot collide, because `definePlugin` requires a
+setting key to match `^[a-z]…` — a leading underscore is not a key a plugin can
+declare. There is a test that fails if that pattern is ever loosened, which is
+the difference between an invariant and a comment: without it, a plugin could
+declare `_enabled` and switch itself off by saving a setting.
+
+#### An unchecked box is `false`, which is the opposite of F64's problem
+
+F64 reads the *submitted* keys from a hidden field, because its screen shows one
+group at a time and iterating the registry would turn off every boolean the
+operator could not see. F69 does the reverse — it walks the plugin's declared
+settings and ignores the form's field list — because its screen always shows
+every setting the plugin has, so the risk is the other one: iterating the form
+would silently skip every box that was *cleared*, and a settings screen whose
+off-switches do nothing is a bug that takes a long time to notice.
+
+Both are the same rule applied to different screens: read from whichever list
+describes what the operator was actually looking at.
+
+#### One route for the detail screen and the contributed pages
+
+`/admin/plugins/[key]/[[...path]]` serves both. The obvious alternative — a fixed
+segment such as `/admin/plugins/hooks` for a panel view — has a collision built
+in: `hooks` is a legal plugin key, so the day somebody installs a plugin called
+`hooks`, its pages vanish behind a screen. A route a plugin key can shadow is a
+route that will be. Hook health went onto the index page instead, which is also
+where it belongs: the question it answers is cross-plugin — *two plugins filter
+the post body, which one wins* — and the answer is the order they are listed in.
+
+#### Migrations are reported, never run from the panel
+
+The runner is F84's and it is already correct — dependency-ordered, one
+transaction per migration, the record written inside it. What F69 adds is the
+*report*: which of a plugin's declared migrations have been applied to this
+database. A "run migrations" button would let a panel put a board's schema ahead
+of the code that expects it, and there is a working command for the intended
+order.
+
+The one thing carried rather than swallowed is **"we could not find out"**.
+Fixture mode has no such table, and neither does a board installed before F84. A
+failed read that reported every migration as pending would send an operator to
+run an upgrade they did not need, so the screen says the state is unknown and
+does not say a number.
+
+#### A plugin task is not isolated the way a hook is
+
+The host swallows a hook's failure because the alternative is a plugin taking
+down a page render. A task has no page to take down, and the scheduler already
+knows what to do with one that throws: record it, notify administrators (F55),
+try again next tick. Catching in the adapter would turn every plugin task
+failure into a **successful run of nothing**, which is the exact condition F70's
+system-health screen exists to make visible.
+
+Settings are read inside `run` rather than captured at registration, because the
+bundle is built once per process and a task can run for weeks after that.
+Capturing them would mean the panel's save takes effect on the next deploy.
+
+#### What is deliberately still absent
+
+- **No uninstall.** A plugin's code is in the bundle. Removing it is `pnpm
+  remove`, a line out of `forum.config.ts`, and a redeploy. A button that dropped
+  the rows and left the code running produces a state neither installing nor
+  removing does.
+- **No enable for a plugin the config disabled.** The code is not in the build,
+  so the switch would store a row that changes nothing — which is the "control
+  over machinery that is not there" this screen used to consist of.
+- **No re-authentication on disable.** It is the recovery action, and a password
+  prompt in front of the fix is how somebody stares at a board they cannot
+  repair. Same reasoning as F68's theme reset.
+
+#### A function with only a test is the same smell as a column with only a writer
+
+`configuredPlugins()` lost its last production reader when the inventory screen
+was rewritten, and briefly existed to satisfy its own test. The fix was not to
+delete it — it is where "absent means enabled" lives, with the mutation test that
+proves it — but to make the new read model build on it, so the rule has one
+statement rather than a second copy inside `pluginInventory`. The same tidy-up
+removed a third copy from `upgrade-notice.ts`.

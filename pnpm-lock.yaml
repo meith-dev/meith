@@ -584,6 +584,9 @@ importers:
       '@meith/notifications':
         specifier: workspace:*
         version: link:../notifications
+      '@meith/plugin-kit':
+        specifier: workspace:*
+        version: link:../plugin-kit
       '@meith/settings':
         specifier: workspace:*
         version: link:../settings

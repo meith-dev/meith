@@ -14,10 +14,9 @@ import 'server-only'
  */
 import { env, logger } from '@meith/core'
 import { appliedPluginMigrations, getDb, readVersion } from '@meith/db'
-import type { PluginDefinition } from '@meith/plugin-kit'
 import { planUpgrade, upgradeNotice, type UpgradeState } from '@meith/upgrade'
 
-import forumConfig from '../../forum.config'
+import { activeDefinitions } from './plugin-host'
 
 /** The version this deployment is. One constant, read by the notice and the CLI. */
 export const CODE_VERSION = '0.1.0'
@@ -35,9 +34,8 @@ export async function pendingUpgradeNotice(): Promise<string | null> {
 
   try {
     const db = getDb()
-    const plugins = (forumConfig.plugins ?? [])
-      .filter((entry) => entry.enabled !== false && entry.plugin !== undefined)
-      .map((entry) => entry.plugin as PluginDefinition)
+    /* One definition of "which plugins are live" (F69), rather than a third copy. */
+    const plugins = activeDefinitions()
 
     const applied: Record<string, readonly string[]> = {}
     for (const plugin of plugins) {

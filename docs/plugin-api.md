@@ -201,8 +201,31 @@ That is the ratchet: wiring a new call site into the board fails the reference
 plugin's test until a handler is added there, so a hook cannot join the running
 product without something proving it fires.
 
-Still descriptors rather than execution: migrations are validated and namespaced
-but no runner applies them, settings are declared but no ACP surface reads
-`plugin.<key>.<name>`, tasks are declared but not registered into F06's
-registry, and admin pages have no route mounting them. All four are F69's
-completion, whose row has named F79 as its blocker since Phase 6.
+**The four descriptors now execute** (F69). Migrations are applied by
+`forum upgrade`, in dependency order and one transaction each; settings are
+stored at `plugin.<key>.<name>` and edited in the control panel; tasks are
+registered in F06's registry as `plugin.<key>.<id>` and run by the same tick as
+everything else; admin pages are mounted at `/admin/plugins/<key>/<path>`.
+
+What that leaves, stated plainly:
+
+- **A page cannot reach anything a task cannot.** Both are handed a
+  `PluginRuntimeContext` — resolved settings and a logger — and neither gets the
+  `Actor`, the request or a database handle. A page renders under an
+  already-authenticated panel route; there is no per-page permission to declare,
+  because a plugin does not get to make that decision (R4).
+- **A task's failure is not swallowed.** Hooks are isolated because the
+  alternative is a plugin taking down a page render; a task has no page to take
+  down, and the scheduler already records failures and notifies administrators.
+  Catching there would turn every failure into a successful run of nothing.
+- **There is still no plugin-run button for migrations**, and there will not be.
+  A schema change belongs to the deploy that shipped the code expecting it. The
+  panel reports which migrations have and have not been applied, which is the
+  part an operator cannot otherwise find out.
+- **Disabling is durable and immediate; uninstalling is not offered.** The
+  panel's switch writes a row every instance reconciles against on its next
+  request, so it survives a redeploy — the plugin somebody switched off at 2am
+  is exactly the one that must stay off. Removing a plugin is still
+  `pnpm remove`, a line out of `forum.config.ts`, and a redeploy: a button that
+  dropped the rows and left the code running would produce a state neither
+  installing nor removing does.

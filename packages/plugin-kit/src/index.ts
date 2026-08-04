@@ -62,6 +62,15 @@ export {
 } from './plugin'
 
 export {
+  operatorDisabledPlugins,
+  parsePluginSetting,
+  pluginEnabledKey,
+  resolvePluginSettings,
+  serialisePluginSetting,
+  type PluginSettingValue,
+} from './settings'
+
+export {
   PLUGIN_REGIONS,
   REGION_NAMES,
   isPluginRegion,
