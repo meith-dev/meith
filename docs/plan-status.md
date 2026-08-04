@@ -40,22 +40,22 @@ since F39 is closed. What is still absent is a spec for the inline-moderation
 checkboxes, whose claim is that the HTML `form` attribute submits them with
 scripting off; that is now ordinary work rather than a blocked capability.
 
-Counts below are features, not effort. Several `TODO` rows are days of work; a
-couple of `PARTIAL` rows are an afternoon.
+Counts below are features, not effort. Several `TODO` rows are days of work;
+some `PARTIAL` rows are an afternoon.
 
 | Phase | Features | DONE | PARTIAL | TODO |
 |---|---|---|---|---|
-| 0 — Skeleton | 14 | 14 | 0 | 0 |
+| 0 — Skeleton | 14 | 13 | 1 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
-| 2 — Themes and reading | 11 | 10 | 1 | 0 |
-| 3 — Posting | 11 | 7 | 0 | 4 |
+| 2 — Themes and reading | 11 | 11 | 0 | 0 |
+| 3 — Posting | 11 | 7 | 0 | 5 |
 | 4 — Moderation | 8 | 8 | 0 | 0 |
 | 5 — Members and social | 8 | 8 | 0 | 0 |
 | 6 — Admin CP | 9 | 7 | 2 | 0 |
-| 7 — Search and discovery | 5 | 2 | 0 | 3 |
+| 7 — Search and discovery | 5 | 5 | 0 | 0 |
 | 8 — Public APIs | 5 | 4 | 1 | 0 |
 | 9 — Ship it | 8 | 8 | 0 | 0 |
-| **Total** | **89** | **74** | **3** | **12** |
+| **Total** | **89** | **80** | **4** | **5** |
 
 ---
 
