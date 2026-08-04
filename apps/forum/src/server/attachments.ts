@@ -34,6 +34,7 @@ import {
 import { imageProcessor } from '@meith/drivers/images'
 import { drivers } from '@meith/drivers'
 
+import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
 
 /** A forum scope as `content-actions.ts` builds it. */
@@ -134,6 +135,18 @@ export async function stageAttachments(
   if (actor.userId === null) {
     throw new ForbiddenError('You must be logged in to attach a file.')
   }
+
+  /*
+   * F46, charged **per file** rather than per submission. An upload limit that
+   * counted forms would let one post carry ten files for the price of one,
+   * which is the shape of the abuse it exists to bound — the cost to the board
+   * is bytes and re-encodes, and both scale with files.
+   *
+   * Spent after the permission checks, and before anything is written or
+   * re-encoded.
+   */
+  const limited = await spendLimit({ scope: 'upload', actor, cost: files.length })
+  if (limited !== null && !limited.allowed) throw new ValidationError(limitMessage(limited))
 
   return service.stage(acceptFiles(files, attachmentLimits(scope), existing))
 }

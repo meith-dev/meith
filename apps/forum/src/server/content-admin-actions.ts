@@ -11,11 +11,17 @@
  */
 import { compileSmilies, createTagRegistry } from '@meith/bbcode'
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
-import type { AnnouncementInput, PostgresAnnouncementRepository, SmileyRow } from '@meith/db'
+import type {
+  AnnouncementInput,
+  PostgresAnnouncementRepository,
+  PostgresCaptchaQuestionRepository,
+  SmileyRow,
+} from '@meith/db'
 import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { announcementRepository } from './announcements'
+import { captchaQuestionRepository } from './antispam'
 import { requireAttachmentAdmin, requireContentAdmin } from './content-admin'
 import type { FormState } from './auth-form-state'
 
@@ -539,6 +545,100 @@ export async function deleteAnnouncementAction(
     await requireAnnouncements().delete(announcementId)
 
     await recordAdminAction({ action: 'content.announcement_removed', detail: { announcementId } })
+
+    return { notice: 'deleted' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * F46 — captcha questions
+ * ------------------------------------------------------------------ */
+
+function requireCaptcha(): PostgresCaptchaQuestionRepository {
+  const repository = captchaQuestionRepository()
+  if (repository === null) {
+    throw new ValidationError(
+      'This board is running on in-memory sample data, so it stores no questions.',
+    )
+  }
+  return repository
+}
+
+/**
+ * The answers box, kept untrimmed line by line.
+ *
+ * Read straight off the form rather than through `text()`, because the whole
+ * value is meaningful: one answer per line, and trimming the block would still
+ * leave the individual lines to the repository, which is where they are split.
+ */
+function answersField(form: FormData): string {
+  const value = form.get('answers')
+  return typeof value === 'string' ? value : ''
+}
+
+export async function createCaptchaQuestionAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+
+    const questionId = await requireCaptcha().create({
+      question: text(form, 'question'),
+      answers: answersField(form),
+    })
+
+    await recordAdminAction({ action: 'content.captcha_added', detail: { questionId } })
+
+    return { notice: 'saved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+export async function updateCaptchaQuestionAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+
+    const questionId = id(form)
+    await requireCaptcha().update(questionId, {
+      question: text(form, 'question'),
+      answers: answersField(form),
+      enabled: form.get('enabled') !== null,
+    })
+
+    await recordAdminAction({ action: 'content.captcha_changed', detail: { questionId } })
+
+    return { notice: 'saved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Delete a question.
+ *
+ * Safe, and the reason is the fail-open rule in `QuestionCaptcha`: deleting the
+ * last question does not lock registration, it turns the challenge off. A
+ * visitor holding a token for the deleted question is let through rather than
+ * refused, because they loaded the page before the operator changed it.
+ */
+export async function deleteCaptchaQuestionAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+
+    const questionId = id(form)
+    await requireCaptcha().delete(questionId)
+
+    await recordAdminAction({ action: 'content.captcha_removed', detail: { questionId } })
 
     return { notice: 'deleted' }
   } catch (err) {

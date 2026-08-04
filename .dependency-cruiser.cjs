@@ -11,6 +11,7 @@
 /** Domain packages: pure business logic. */
 const DOMAIN = [
   'accounts',
+  'antispam',
   'groups',
   'authorization',
   'forums',

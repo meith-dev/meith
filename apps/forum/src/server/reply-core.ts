@@ -29,6 +29,7 @@ import type { Actor } from '@meith/authorization'
 import { ReplyComposer, type AuthorRestriction, type ReplyTarget } from '@meith/threads'
 import { restrictsPosting } from '@meith/moderation'
 
+import { holdsNewMember, limitMessage, spendLimit } from './antispam'
 import { emitEvent, viewerRef } from './plugin-view'
 import { getContainer } from './container'
 import { getSettings } from './settings'
@@ -109,6 +110,10 @@ export async function submitReply(
   const settings = await getSettings()
   const { scope, target, forumId } = resolved
 
+  /* F46's hourly limit, beside F39's interval. See `content-actions.ts`. */
+  const limited = await spendLimit({ scope: 'post', actor, settings })
+  if (limited !== null && !limited.allowed) throw new ValidationError(limitMessage(limited))
+
   const composer = new ReplyComposer({
     posts: threadWrites,
     config: {
@@ -127,6 +132,15 @@ export async function submitReply(
       seenLastPostId: input.seenLastPostId ?? null,
       bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', scope),
       bypassesFlood: authorizer.can(actor, 'flood.bypass'),
+      /*
+       * F46. The profile above is already loaded for the username, so the post
+       * count is free — which is why it is passed in rather than read again.
+       */
+      heldAsNewMember: await holdsNewMember({
+        actor,
+        postCount: profile.postCount,
+        settings,
+      }),
       /*
        * Replying to a locked thread is a moderator act, and `content.viewDeleted`
        * would be the wrong test — seeing removed content says nothing about

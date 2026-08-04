@@ -5,17 +5,20 @@ import { useActionState } from "react"
 
 import {
   createAnnouncementAction,
+  createCaptchaQuestionAction,
   createCustomTagAction,
   createPrefixAction,
   createSmileyAction,
   createWordFilterAction,
   deleteAnnouncementAction,
   deleteAttachmentAction,
+  deleteCaptchaQuestionAction,
   deleteCustomTagAction,
   deletePrefixAction,
   deleteSmileyAction,
   deleteWordFilterAction,
   updateAnnouncementAction,
+  updateCaptchaQuestionAction,
   updateCustomTagAction,
   updateSmileyAction,
   updateWordFilterAction,
@@ -609,6 +612,108 @@ export function NewAnnouncementForm({ forums }: { forums: readonly ForumChoice[]
           <SubmitButton>Add</SubmitButton>
         </span>
       </div>
+    </form>
+  )
+}
+
+/* ------------------------------------------------------------------ *
+ * F46 — captcha questions
+ * ------------------------------------------------------------------ */
+
+export interface CaptchaQuestionValues {
+  readonly id: number
+  readonly question: string
+  readonly answers: readonly string[]
+  readonly enabled: boolean
+}
+
+const ANSWERS_HINT =
+  'One per line. Any of them is accepted, ignoring case and extra spaces.'
+
+export function CaptchaQuestionRowForm({ question }: { question: CaptchaQuestionValues }) {
+  const [state, action] = useActionState(updateCaptchaQuestionAction, EMPTY_STATE)
+  const [removeState, removeAction] = useActionState(deleteCaptchaQuestionAction, EMPTY_STATE)
+
+  return (
+    <div className="flex flex-col gap-2 py-3">
+      <FormError message={state.error ?? removeState.error} />
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+
+      <form action={action} className="flex flex-col gap-3" noValidate>
+        <input type="hidden" name="id" value={question.id} />
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Question</span>
+          <input name="question" defaultValue={question.question} className={INPUT} required />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Accepted answers</span>
+          <textarea
+            name="answers"
+            rows={3}
+            defaultValue={question.answers.join('\n')}
+            className={INPUT}
+            required
+          />
+          <span className="text-xs text-muted-foreground">{ANSWERS_HINT}</span>
+        </label>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="enabled"
+              value="1"
+              defaultChecked={question.enabled}
+              className="size-4"
+            />
+            <span>Enabled</span>
+          </label>
+
+          <span className="min-w-24">
+            <SubmitButton>Save</SubmitButton>
+          </span>
+        </div>
+      </form>
+
+      <form action={removeAction}>
+        <input type="hidden" name="id" value={question.id} />
+        <button type="submit" className="text-xs text-destructive hover:underline">
+          Remove
+        </button>
+      </form>
+    </div>
+  )
+}
+
+export function NewCaptchaQuestionForm() {
+  const [state, action] = useActionState(createCaptchaQuestionAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-col gap-3" noValidate>
+      <FormError message={state.error} />
+      <Saved when={state.notice === 'saved'}>Added.</Saved>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Question</span>
+        <input
+          name="question"
+          className={INPUT}
+          placeholder="What is the name of this forum?"
+          required
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Accepted answers</span>
+        <textarea name="answers" rows={3} className={INPUT} required />
+        <span className="text-xs text-muted-foreground">{ANSWERS_HINT}</span>
+      </label>
+
+      <span className="min-w-28">
+        <SubmitButton>Add</SubmitButton>
+      </span>
     </form>
   )
 }

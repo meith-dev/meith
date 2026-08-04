@@ -38,6 +38,12 @@ export interface TaskWorkerDeps {
     pruneSessions(now: Date, limit?: number): Promise<number>
     pruneExpiredTokens(now: Date, limit?: number): Promise<number>
   }
+  /**
+   * F46's counter table. Optional as a pair with nothing else: a deployment
+   * without it registers no prune, which is the D32 shape — absent rather than
+   * a healthy run of nothing.
+   */
+  readonly rateLimits?: { prune(before: Date, limit?: number): Promise<number> }
   /** The outbox's read side, and the handlers its events fan out to (F07). */
   readonly outbox: OutboxReader
   readonly events: EventRegistry
@@ -206,6 +212,22 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
     async pruneExpiredTokens() {
       return deps.maintenance.pruneExpiredTokens(new Date())
     },
+
+    ...(deps.rateLimits === undefined
+      ? {}
+      : {
+          async pruneRateLimits() {
+            /*
+             * Two hours back, not one. The window is an hour, so a boundary of
+             * exactly one hour would race the window a request is currently
+             * incrementing — deleting a live counter resets somebody's
+             * allowance mid-window, which is the one way this task could help
+             * a spammer rather than the board.
+             */
+            const before = new Date(Date.now() - 2 * 3600 * 1000)
+            return deps.rateLimits!.prune(before)
+          },
+        }),
 
     async applyPromotions(batchSize) {
       const result = await promotions.apply(batchSize)

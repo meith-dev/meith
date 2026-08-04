@@ -66,6 +66,17 @@ export interface ComposeThreadInput {
    * through, everyone else waits when the forum moderates new threads.
    */
   readonly bypassesModeration: boolean
+  /**
+   * F46. True when the board holds a new account's opening posts and this
+   * author has not yet reached the threshold.
+   *
+   * Resolved by the caller, like `bypassesModeration` and the warning
+   * restriction beside it, and for the same reason: it is a fact about the
+   * *account* (its post count against a board setting) rather than about this
+   * forum or this message, and the composer is not the thing that reads
+   * settings.
+   */
+  readonly heldAsNewMember: boolean
   /** Whether the flood interval applies. Staff are exempt (F46 generalises this). */
   readonly bypassesFlood: boolean
   /** F53's warning-level restriction. Absent means none. */
@@ -253,14 +264,25 @@ export class ThreadComposer {
      * already filters on (R3.3).
      */
     /*
-     * Two independent reasons to hold a post, and the warning one is **not**
-     * subject to `bypassesModeration`. That flag says "this forum's queue does
-     * not apply to you"; a warning level says "your posts are reviewed", and a
-     * moderator under a warning whose own bypass cancelled it would be the one
-     * person on the board the restriction could not reach.
+     * **Three** independent reasons to hold a post, and they do not all obey
+     * the same bypass — which is the whole subtlety of this expression.
+     *
+     * The warning one is deliberately *not* subject to `bypassesModeration`.
+     * That flag says "this forum's queue does not apply to you"; a warning level
+     * says "your posts are reviewed", and a moderator under a warning whose own
+     * bypass cancelled it would be the one person on the board the restriction
+     * could not reach.
+     *
+     * F46's new-member hold *is* subject to it, and follows the forum queue's
+     * rule rather than the warning's. It is a statement about how much the
+     * board trusts an account, and an account explicitly granted a moderation
+     * bypass is one it has already decided to trust — the caller resolves that
+     * (see `holdsForReview`), so by the time it arrives here the flag has
+     * already accounted for it.
      */
     const visibility =
       (forum.moderateNewThreads && !input.bypassesModeration) ||
+      input.heldAsNewMember ||
       restriction.moderated
         ? 'unapproved'
         : 'visible'

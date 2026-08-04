@@ -147,7 +147,7 @@ JavaScript. Theme database changes take effect on refresh.
 | F43 | F39 | No-JS polls and database-enforced single vote; configurable rating with one-per-user running aggregate/sort. |
 | F44 | F40 | Explicit no-JS draft save; autosave only as an enhancement and later UserCP list. |
 | F45 | F40/F42 | Toolbar/preview/quick reply/edit/multiquote/drag-drop islands, each proven removable without losing the server path. |
-| F46 | F18/F39 | Swappable captcha, honeypots/questions, first-post moderation, and multi-instance PostgreSQL limits for post/search/PM/report/upload. |
+| F46 | F18/F39 | Swappable captcha, honeypots/questions, first-post moderation, and multi-instance PostgreSQL limits for post/search/PM/report/upload. *The seam ships with `none` and admin-defined questions; a hosted provider is a runtime dependency and a decision about a board's members, so it is not bundled. See D100.* |
 
 **Checkpoint 3:** a registered user can post, quote, edit, attach, poll, and
 rate with or without JS; recount converges deliberately corrupted counters.

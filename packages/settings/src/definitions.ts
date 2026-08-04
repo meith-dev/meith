@@ -24,6 +24,14 @@ export type SettingGroup =
       would not find it under posting. */
   | 'reputation'
   | 'security'
+  /**
+   * F46. Its own group rather than an extension of 'security', on F62's
+   * reasoning: 'security' is about signing in — attempts, lockout, session
+   * length — and anti-spam is about strangers arriving. An operator whose board
+   * is being flooded looks for "spam", and nine settings buried under a heading
+   * about passwords are nine settings they do not find.
+   */
+  | 'antispam'
 
 interface SettingDefinitionBase<T> {
   readonly key: string
@@ -404,6 +412,132 @@ export const SETTING_DEFINITIONS = [
     schema: z.number().int().min(1).max(10_080),
     default: 15,
     ui: { min: 1, max: 10_080, advanced: true },
+  }),
+
+  /* ------------------------------ antispam ------------------------------ */
+  /*
+   * F46. Every default here is chosen to be **inert on a fresh board**: the
+   * captcha is off, the limits are off, and first-post moderation is off. An
+   * anti-spam feature that arrives switched on is one that greets the operator
+   * by breaking their registration form, and the board they are testing has no
+   * spam on it yet. The honeypot is the exception — see its own note.
+   */
+  define({
+    key: 'antispam.captcha_mode',
+    group: 'antispam',
+    label: 'Registration challenge',
+    description:
+      'Off, or a question you set. Swapping in a hosted captcha is a small ' +
+      'amount of code against the provider seam, not a setting — see the ' +
+      'plugin and anti-spam documentation.',
+    schema: z.enum(['off', 'question']),
+    default: 'off',
+    ui: {
+      options: [
+        { value: 'off', label: 'No challenge' },
+        { value: 'question', label: 'Ask a question' },
+      ],
+    },
+  }),
+  /*
+   * On by default, and the only one that is. A honeypot costs a legitimate
+   * visitor nothing — it is an invisible field they never see and never fill —
+   * so there is no operator decision to defer, and a board that ships with it
+   * off is a board where the cheapest control is the one nobody remembers.
+   */
+  define({
+    key: 'antispam.honeypot',
+    group: 'antispam',
+    label: 'Hidden-field trap',
+    description:
+      'Adds a field a person never sees and a bot fills in. Costs a real ' +
+      'visitor nothing, and catches the least sophisticated half of them.',
+    schema: z.boolean(),
+    default: true,
+  }),
+  define({
+    key: 'antispam.min_form_seconds',
+    group: 'antispam',
+    label: 'Minimum seconds to fill the registration form',
+    description:
+      'A form submitted faster than this is treated as automated. 0 disables ' +
+      'the check. Keep it low — a password manager filling a form in two ' +
+      'seconds is a real person.',
+    schema: z.number().int().min(0).max(120),
+    default: 3,
+    ui: { min: 0, max: 120 },
+  }),
+  define({
+    key: 'antispam.moderate_first_posts',
+    group: 'antispam',
+    label: 'Hold a new member’s first posts',
+    description:
+      'Posts are held for approval until the account has this many. 0 ' +
+      'disables it. The cheapest control a forum has: spam accounts post ' +
+      'once and never return.',
+    schema: z.number().int().min(0).max(50),
+    default: 0,
+    ui: { min: 0, max: 50 },
+  }),
+
+  /*
+   * The five limits F46 names. All per hour, all counted in the database so
+   * every instance shares one allowance, and all 0 by default.
+   *
+   * They are *limits*, not intervals: `posting.flood_seconds` already sets a
+   * minimum gap between two posts, which stops a double-submit and does nothing
+   * about a script posting every 31 seconds all night. The two compose.
+   */
+  define({
+    key: 'antispam.post_per_hour',
+    group: 'antispam',
+    label: 'Posts per hour',
+    description:
+      'Threads and replies together. 0 disables the limit. Members with ' +
+      '“bypass flood check” are exempt, as they are from the flood interval.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 0,
+    ui: { min: 0, max: 10_000 },
+  }),
+  define({
+    key: 'antispam.search_per_hour',
+    group: 'antispam',
+    label: 'Searches per hour',
+    description: 'Searching is the most expensive thing a guest can do. 0 disables.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 0,
+    ui: { min: 0, max: 10_000 },
+  }),
+  define({
+    key: 'antispam.message_per_hour',
+    group: 'antispam',
+    label: 'Private messages per hour',
+    description:
+      'Counted per sender, not per recipient — one message to ten people is ' +
+      'one send and ten deliveries.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 0,
+    ui: { min: 0, max: 10_000 },
+  }),
+  define({
+    key: 'antispam.report_per_hour',
+    group: 'antispam',
+    label: 'Reports per hour',
+    description:
+      'A limit on reporting is a limit on asking for help, so set it high ' +
+      'enough that a member having a bad day is not silenced. 0 disables.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 0,
+    ui: { min: 0, max: 10_000 },
+  }),
+  define({
+    key: 'antispam.upload_per_hour',
+    group: 'antispam',
+    label: 'Uploads per hour',
+    description: 'Attachments and avatars. 0 disables the limit.',
+    schema: z.number().int().min(0).max(10_000),
+    default: 0,
+    ui: { min: 0, max: 10_000 },
   }),
 ] as const
 

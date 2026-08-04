@@ -199,6 +199,12 @@ export {
   type ThreadPrefixRow,
   type WordFilterRow,
 } from './content-admin-repo'
+/* F46 — anti-spam: the rate-limit counter and the captcha questions. */
+export {
+  PostgresCaptchaQuestionRepository,
+  PostgresRateLimitBucketStore,
+  type CaptchaQuestionRow,
+} from './antispam-repo'
 /* F71 — announcements. */
 export {
   PostgresAnnouncementRepository,

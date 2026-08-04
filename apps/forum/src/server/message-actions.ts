@@ -18,6 +18,7 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
 import { parseFolder } from '@meith/messages'
 
+import { limitMessage, spendLimit } from './antispam'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { messageService } from './messages'
@@ -82,6 +83,16 @@ export async function sendMessageAction(_prev: FormState, form: FormData): Promi
 
   try {
     const { service, userId, username } = await requireMessaging()
+
+    /*
+     * F46. Counted per *sender*, not per recipient: one message to ten people
+     * is one send and ten deliveries, and charging it ten times would make the
+     * limit mean something different depending on how sociable somebody is.
+     */
+    const limited = await spendLimit({ scope: 'message', actor: await getActor() })
+    if (limited !== null && !limited.allowed) {
+      return { error: limitMessage(limited), values }
+    }
 
     const replyTo = Number(text(form, 'replyTo'))
     await service.send({

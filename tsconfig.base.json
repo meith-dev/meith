@@ -44,6 +44,8 @@
       "@meith/tasks/*": ["packages/tasks/src/*"],
       "@meith/accounts": ["packages/accounts/src/index.ts"],
       "@meith/accounts/*": ["packages/accounts/src/*"],
+      "@meith/antispam": ["packages/antispam/src/index.ts"],
+      "@meith/antispam/*": ["packages/antispam/src/*"],
       "@meith/groups": ["packages/groups/src/index.ts"],
       "@meith/groups/*": ["packages/groups/src/*"],
       "@meith/attachments": ["packages/attachments/src/index.ts"],
