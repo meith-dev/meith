@@ -121,6 +121,7 @@ class FakeRepository implements MessageRepository {
     message: string
     messageHtml: string
     renderVersion: number
+    vocabVersion: number
     replyToId: number | null
     receiptRequested: boolean
     recipients: readonly { userId: number; bcc: boolean }[]
@@ -135,6 +136,7 @@ class FakeRepository implements MessageRepository {
       message: input.message,
       messageHtml: input.messageHtml,
       renderVersion: input.renderVersion,
+      vocabVersion: input.vocabVersion,
       replyToId: input.replyToId,
       receiptRequested: input.receiptRequested,
       sentAt: input.at,

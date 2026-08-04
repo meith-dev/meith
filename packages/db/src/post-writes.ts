@@ -8,7 +8,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { renderBBCode } from '@meith/bbcode'
+import { renderBBCode, vocabularyOptions } from '@meith/bbcode'
 import type {
   PostEditRecord,
   PostEditTarget,
@@ -19,6 +19,7 @@ import type {
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { searchVectorSql } from './search-repo'
+import { readBoardVocabulary } from './vocabulary-repo'
 import { applyVisibilityChangeCounters } from './visibility-counters'
 
 /**
@@ -95,6 +96,9 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
   }
 
   async applyEdit(record: PostEditRecord): Promise<void> {
+    /* F71. Read outside the transaction; see `thread-writes.ts` for why. */
+    const vocabulary = await readBoardVocabulary(this.db)
+
     await this.db.transaction(async (tx) => {
       /*
        * The revision stores the body being *replaced*, so the current text
@@ -118,7 +122,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
        * not be relied on here: between the edit and the sweep every reader sees
        * the *old* body, because a current-version render is trusted.
        */
-      const body = renderBBCode(record.message)
+      const body = renderBBCode(record.message, vocabularyOptions(vocabulary))
       await tx.execute(sql`
         update posts
            set message = ${record.message},
@@ -131,6 +135,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
                 */
                search_vector = ${searchVectorSql(sql`subject`, sql`${record.message}`)},
                render_version = ${body.version},
+               vocab_version = ${vocabulary.revision},
                visibility = ${record.toVisibility},
                edited_at = ${record.editedAt},
                edited_by_user_id = ${record.editedByUserId},

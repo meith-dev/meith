@@ -12,6 +12,8 @@ import { sql } from 'drizzle-orm'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresContentAdminRepository } from './content-admin-repo'
+import { readBoardVocabulary } from './vocabulary-repo'
+import { customTagNames } from '@meith/bbcode'
 
 let harness: TestDb
 let db: Database
@@ -188,5 +190,139 @@ describe('thread prefixes', () => {
     expect(list[0]?.prefix_id ?? null).toBeNull()
 
     await db.execute(sql`delete from threads where id = 900`)
+  })
+})
+
+/**
+ * The board's vocabulary, and the fact that makes it different from a word
+ * filter: it is baked into a stored render, so every write has to invalidate
+ * them all.
+ */
+describe('the BBCode vocabulary', () => {
+  beforeEach(async () => {
+    await db.execute(sql`delete from smilies`)
+    await db.execute(sql`delete from custom_bbcode`)
+    await db.execute(sql`delete from cache_versions where key = 'bbcode_vocabulary'`)
+  })
+
+  it('starts at revision zero, which is what every row is already stamped with', async () => {
+    expect(await repo.vocabularyRevision()).toBe(0)
+  })
+
+  /*
+   * Each write bumps, rather than one wrapper bumping around them. A write that
+   * forgot would not fail — it would leave the board rendering the old
+   * vocabulary from cache, a bug that reproduces only on a board nobody has
+   * edited since.
+   */
+  it('bumps the revision on every write, including a delete', async () => {
+    const smileyId = await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
+    expect(await repo.vocabularyRevision()).toBe(1)
+
+    await repo.updateSmiley(smileyId, {
+      code: ':)',
+      src: '/smile.png',
+      alt: 'smile',
+      enabled: true,
+    })
+    expect(await repo.vocabularyRevision()).toBe(2)
+
+    await repo.deleteSmiley(smileyId)
+    expect(await repo.vocabularyRevision()).toBe(3)
+
+    const tagId = await repo.createCustomTag({ name: 'spoiler', block: true, description: null })
+    expect(await repo.vocabularyRevision()).toBe(4)
+
+    await repo.updateCustomTag(tagId, {
+      name: 'spoiler',
+      block: false,
+      description: null,
+      enabled: true,
+    })
+    expect(await repo.vocabularyRevision()).toBe(5)
+
+    await repo.deleteCustomTag(tagId)
+    expect(await repo.vocabularyRevision()).toBe(6)
+  })
+
+  it('refuses a duplicate smiley code at the source', async () => {
+    await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
+    await expect(
+      repo.createSmiley({ code: ':)', src: '/other.png', alt: null }),
+    ).rejects.toThrow()
+  })
+
+  it('refuses a duplicate tag name at the source', async () => {
+    await repo.createCustomTag({ name: 'spoiler', block: false, description: null })
+    await expect(
+      repo.createCustomTag({ name: 'spoiler', block: true, description: null }),
+    ).rejects.toThrow()
+  })
+
+  it('reports an update to a row that is not there', async () => {
+    await expect(
+      repo.updateSmiley(9999, { code: ':)', src: '/x.png', alt: null, enabled: true }),
+    ).rejects.toThrow(/No such smiley/)
+    await expect(
+      repo.updateCustomTag(9999, { name: 'x', block: false, description: null, enabled: true }),
+    ).rejects.toThrow(/No such BBCode tag/)
+  })
+
+  it('lists everything for the editor, disabled rows included', async () => {
+    await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
+    const off = await repo.createSmiley({ code: ':(', src: '/frown.png', alt: null })
+    await repo.updateSmiley(off, { code: ':(', src: '/frown.png', alt: null, enabled: false })
+
+    const listed = await repo.listSmilies()
+    expect(listed.map((row) => row.code).sort()).toEqual([':(', ':)'])
+    expect(listed.find((row) => row.code === ':(')?.enabled).toBe(false)
+  })
+})
+
+describe('the compiled vocabulary the renderer reads', () => {
+  beforeEach(async () => {
+    await db.execute(sql`delete from smilies`)
+    await db.execute(sql`delete from custom_bbcode`)
+    await db.execute(sql`delete from cache_versions where key = 'bbcode_vocabulary'`)
+  })
+
+  /*
+   * The common case, and the one that must cost nothing: a board that has never
+   * configured anything answers without reading either table, because revision
+   * 0 is what every row is already stamped with.
+   */
+  it('is empty, and asks neither table, on a board with no vocabulary', async () => {
+    harness.queries.reset()
+    const vocabulary = await readBoardVocabulary(db)
+
+    expect(vocabulary.revision).toBe(0)
+    expect(vocabulary.smilies).toBeUndefined()
+    expect(harness.queries.statements.some((sql) => sql.includes('from smilies'))).toBe(false)
+  })
+
+  it('compiles what is enabled, and leaves out what is not', async () => {
+    await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
+    const off = await repo.createSmiley({ code: ':(', src: '/frown.png', alt: null })
+    await repo.updateSmiley(off, { code: ':(', src: '/frown.png', alt: null, enabled: false })
+    await repo.createCustomTag({ name: 'spoiler', block: true, description: null })
+
+    const vocabulary = await readBoardVocabulary(db)
+
+    expect(vocabulary.revision).toBeGreaterThan(0)
+    expect(vocabulary.smilies?.entries.map((entry) => entry.code)).toEqual([':)'])
+    expect(customTagNames(vocabulary)).toEqual(['spoiler'])
+  })
+
+  /*
+   * A row that got in some other way — a hand-edited database, an import —
+   * must not take the render path down with it.
+   */
+  it('drops a row that will not compile rather than throwing on the render path', async () => {
+    await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
+    await db.execute(sql`insert into smilies (code, src) values (':evil:', 'javascript:alert(1)')`)
+
+    const vocabulary = await readBoardVocabulary(db)
+    expect(vocabulary.smilies?.entries.map((entry) => entry.code)).toEqual([':)'])
+    expect(vocabulary.rejected).toHaveLength(1)
   })
 })

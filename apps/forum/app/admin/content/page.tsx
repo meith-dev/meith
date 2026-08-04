@@ -1,9 +1,13 @@
 import type { Metadata } from 'next'
 
 import {
+  CustomTagRowForm,
   DeletePrefixForm,
+  NewCustomTagForm,
   NewPrefixForm,
+  NewSmileyForm,
   NewWordFilterForm,
+  SmileyRowForm,
   WordFilterRowForm,
 } from '@/components/admin/content-forms'
 import { requireAdmin } from '@/server/admin'
@@ -40,9 +44,11 @@ export default async function AdminContentPage() {
     )
   }
 
-  const [filters, prefixes] = await Promise.all([
+  const [filters, prefixes, smilies, customTags] = await Promise.all([
     repository.listWordFilters(),
     repository.listPrefixes(),
+    repository.listSmilies(),
+    repository.listCustomTags(),
   ])
 
   return (
@@ -50,8 +56,8 @@ export default async function AdminContentPage() {
       <div className="flex flex-col gap-1">
         <h1 className="font-serif text-2xl font-semibold">Content</h1>
         <p className="text-sm text-muted-foreground">
-          The board-wide vocabularies: what gets filtered out of posts, and what
-          members can label a thread with.
+          The board-wide vocabularies: what a post may contain, what gets
+          filtered out of it, and what members can label a thread with.
         </p>
       </div>
 
@@ -121,32 +127,76 @@ export default async function AdminContentPage() {
         </div>
       </section>
 
-      {/*
-        Named rather than half-built, on the same rule the rest of this panel
-        follows. Each of these needs a subsystem that does not exist yet, and a
-        screen over nothing would be worse than an honest note.
-      */}
-      <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">Not here yet</h2>
-        <ul className="flex list-disc flex-col gap-1 pl-5 text-muted-foreground">
-          <li>
-            <strong>Smilies and custom BBCode.</strong> Both are additions to the
-            renderer&rsquo;s vocabulary rather than rows an operator edits — the
-            renderer has a fixed, sanitised tag set on purpose, and letting the
-            panel extend it is a change to what a post can contain.
-          </li>
-          <li>
-            <strong>Attachment administration.</strong> Attachments have a
-            lifecycle, an orphan ledger and a sweep already; what is missing is a
-            listing an operator can act on, which needs decisions about what
-            deleting somebody else&rsquo;s upload does to the post that shows it.
-          </li>
-          <li>
-            <strong>Announcements.</strong> There is no announcement model on
-            this board at all. A screen for editing something that does not
-            exist would be the emptiest kind of stub.
-          </li>
-        </ul>
+      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <h2 className="font-serif text-lg font-semibold">Smilies</h2>
+        <p className="text-sm text-muted-foreground">
+          A literal code and an image. The code is matched as text, never as a
+          pattern, and the longest one wins where two overlap — so{' '}
+          <code className="text-xs">:-)</code> beats{' '}
+          <code className="text-xs">:)</code> at the same position. Smilies are
+          never expanded inside a <code className="text-xs">[code]</code> block.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Unlike a word filter, this changes what a post <em>renders to</em>, so
+          editing it marks every stored render on the board out of date. They are
+          rewritten in the background and read correctly in the meantime —
+          nothing breaks, and a busy board simply does more rendering for a
+          while. Removing a smiley puts the code back as the characters its
+          author typed.
+        </p>
+
+        {smilies.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            None configured, so codes like <code className="text-xs">:)</code> show as typed.
+          </p>
+        ) : (
+          <div className="flex flex-col divide-y divide-border">
+            {smilies.map((smiley) => (
+              <SmileyRowForm key={smiley.id} smiley={smiley} />
+            ))}
+          </div>
+        )}
+
+        <div className="border-t border-border pt-3">
+          <NewSmileyForm />
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <h2 className="font-serif text-lg font-semibold">Custom BBCode</h2>
+        <p className="text-sm text-muted-foreground">
+          A tag chooses a <strong>name</strong> and whether it is inline or block.
+          That is the whole form, and the omissions are the point: there is no
+          replacement template, no pattern and no HTML field, because a box that
+          chose output markup would be a second markup language administered
+          through a web form — which is how boards with &ldquo;custom
+          MyCode&rdquo; acquire a permanent security hole.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Your tag renders as a{' '}
+          <code className="text-xs">span</code> (or{' '}
+          <code className="text-xs">div</code> for a block one) carrying a class
+          your theme can style. A name that already exists is refused: changing
+          what <code className="text-xs">[url]</code> does has to be a code
+          change, not a setting. Removing a tag makes posts using it show the
+          markup as written, which is what an unknown tag has always done.
+        </p>
+
+        {customTags.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            None configured. Posts use the renderer&rsquo;s built-in tags only.
+          </p>
+        ) : (
+          <div className="flex flex-col divide-y divide-border">
+            {customTags.map((tag) => (
+              <CustomTagRowForm key={tag.id} tag={tag} />
+            ))}
+          </div>
+        )}
+
+        <div className="border-t border-border pt-3">
+          <NewCustomTagForm />
+        </div>
       </section>
     </div>
   )

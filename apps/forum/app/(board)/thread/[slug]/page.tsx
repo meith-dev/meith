@@ -33,7 +33,7 @@ import {
 import { attachmentsByPost } from '@/view/attachments'
 import { attachmentsForPosts } from '@/server/attachments'
 import { avatarsFor } from '@/server/avatars'
-import { activeWordFilter } from '@/server/content-admin'
+import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
 import { getSettings } from '@/server/settings'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
 import {
@@ -454,6 +454,8 @@ export default async function ThreadPage({
      * a board with no filters — which is most of them, and they pay nothing.
      */
     wordFilter: await activeWordFilter(),
+    /* F71. Into the render, unlike the filter — see `thread-view.ts`. */
+    vocabulary: await activeVocabulary(),
     capabilities,
     replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
     forum,

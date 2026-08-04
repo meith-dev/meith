@@ -186,9 +186,13 @@ export {
 } from './search-store'
 export {
   PostgresContentAdminRepository,
+  type CustomTagRow,
+  type SmileyRow,
   type ThreadPrefixRow,
   type WordFilterRow,
 } from './content-admin-repo'
+/* F71 — the compiled vocabulary, for the render and write paths. */
+export { readBoardVocabulary } from './vocabulary-repo'
 export {
   PostgresAdminRepository,
   type GroupSummary,

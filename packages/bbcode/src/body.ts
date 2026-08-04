@@ -19,6 +19,7 @@
 import { parse, type ParseOptions } from './parse'
 import { renderDocument } from './render'
 import type { CompiledSmilies } from './extensions'
+import type { BoardVocabulary } from './vocabulary'
 
 /** Current version of the renderer's output. Bump to invalidate every render. */
 export const RENDER_VERSION = 1
@@ -51,6 +52,16 @@ export interface RenderablePost {
   readonly message: string
   readonly messageHtml: string | null
   readonly renderVersion: number
+  /**
+   * The board vocabulary the stored render was made with (F71).
+   *
+   * Optional, and absent reads as `0` — which is both the column default and
+   * the revision of a board that has configured nothing, so a board without
+   * smilies or custom tags is unaffected. A caller that *forgets* it on a board
+   * that has one gets a live render rather than a wrong one, which is the
+   * direction this defaults in on purpose.
+   */
+  readonly vocabVersion?: number
 }
 
 /**
@@ -58,10 +69,35 @@ export interface RenderablePost {
  *
  * Trusted output in both branches — it is this package's own construction, and
  * the stored column is only ever written from `renderBBCode` above.
+ *
+ * "Current" is now two questions, because the board's vocabulary is as much a
+ * part of the renderer as its code is (F71). Either being stale means the same
+ * thing it has always meant: render live, and let the backfill catch up.
  */
-export function postBodyHtml(post: RenderablePost): string {
-  if (post.messageHtml !== null && post.renderVersion === RENDER_VERSION) {
+export function postBodyHtml(post: RenderablePost, vocabulary?: BoardVocabulary): string {
+  const revision = vocabulary?.revision ?? 0
+
+  if (
+    post.messageHtml !== null &&
+    post.renderVersion === RENDER_VERSION &&
+    (post.vocabVersion ?? 0) === revision
+  ) {
     return post.messageHtml
   }
-  return renderBBCode(post.message).html
+
+  return renderBBCode(post.message, vocabularyOptions(vocabulary)).html
+}
+
+/**
+ * The render options a vocabulary implies.
+ *
+ * One place, so a call site cannot pass the tags and forget the smilies — which
+ * would render a board's custom tags and silently drop its smilies, on a page
+ * that looked like it worked.
+ */
+export function vocabularyOptions(vocabulary: BoardVocabulary | undefined): BBCodeRenderOptions {
+  if (vocabulary === undefined) return {}
+  return vocabulary.smilies === undefined
+    ? { tags: vocabulary.tags }
+    : { tags: vocabulary.tags, smilies: vocabulary.smilies }
 }

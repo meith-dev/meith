@@ -19,6 +19,22 @@ export interface WordFilterRow extends WordFilterRule {
   readonly enabled: boolean
 }
 
+export interface SmileyRow {
+  readonly id: number
+  readonly code: string
+  readonly src: string
+  readonly alt: string | null
+  readonly enabled: boolean
+}
+
+export interface CustomTagRow {
+  readonly id: number
+  readonly name: string
+  readonly block: boolean
+  readonly description: string | null
+  readonly enabled: boolean
+}
+
 export interface ThreadPrefixRow {
   readonly id: number
   readonly label: string
@@ -168,6 +184,183 @@ export class PostgresContentAdminRepository {
    */
   async deletePrefix(id: number): Promise<void> {
     await this.db.execute(sql`delete from thread_prefixes where id = ${id}`)
+  }
+
+  /* ---------------------------------------------------------------- *
+   * The board's BBCode vocabulary (F71)
+   * ---------------------------------------------------------------- */
+
+  /**
+   * The revision every stored render is stamped with.
+   *
+   * Absent means zero, which is the column default and the state of a board
+   * that has never configured a smiley — so installing this feature does not
+   * make every post on the board stale.
+   */
+  async vocabularyRevision(): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select version from cache_versions where key = 'bbcode_vocabulary'
+      `),
+    ) as Array<{ version: number }>
+
+    return Number(rows[0]?.version ?? 0)
+  }
+
+  /**
+   * Bump the revision, invalidating every stored render on the board.
+   *
+   * Called by each of the six vocabulary writes rather than by one wrapper
+   * around them, because a write that forgot it would not fail — it would leave
+   * the board rendering the *old* vocabulary from cache until something else
+   * happened to bump it, which is a bug that reproduces only on a board nobody
+   * has edited since.
+   *
+   * The bump is deliberately not conditional on anything having changed. A save
+   * that stored identical values costs one wasted backfill sweep; a save that
+   * changed something and skipped the bump costs a board that is wrong.
+   */
+  async bumpVocabulary(): Promise<void> {
+    await this.db.execute(sql`
+      insert into cache_versions (key, version) values ('bbcode_vocabulary', 1)
+      on conflict (key) do update
+         set version = cache_versions.version + 1, bumped_at = now()
+    `)
+  }
+
+  async listSmilies(): Promise<readonly SmileyRow[]> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select id, code, src, alt, enabled from smilies order by code
+      `),
+    ) as Array<Record<string, unknown>>
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      code: String(row.code),
+      src: String(row.src),
+      alt: row.alt === null ? null : String(row.alt),
+      enabled: row.enabled === true,
+    }))
+  }
+
+  async createSmiley(input: {
+    readonly code: string
+    readonly src: string
+    readonly alt: string | null
+  }): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        insert into smilies (code, src, alt)
+        values (${input.code}, ${input.src}, ${input.alt})
+        returning id
+      `),
+    ) as Array<{ id: number }>
+
+    await this.bumpVocabulary()
+    return Number(rows[0]?.id)
+  }
+
+  async updateSmiley(
+    id: number,
+    input: { readonly code: string; readonly src: string; readonly alt: string | null; readonly enabled: boolean },
+  ): Promise<void> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        update smilies
+           set code = ${input.code}, src = ${input.src}, alt = ${input.alt},
+               enabled = ${input.enabled}
+         where id = ${id}
+        returning id
+      `),
+    ) as Array<{ id: number }>
+
+    if (rows[0] === undefined) throw new ValidationError('No such smiley.')
+    await this.bumpVocabulary()
+  }
+
+  /**
+   * Delete a smiley.
+   *
+   * Safe, and for a reason worth stating: the code an author typed is still in
+   * `posts.message`. Deleting the row means the next render shows `:)` as the
+   * two characters it always was, everywhere, at once — nothing a member wrote
+   * is lost, which is why there is no "in use" check to refuse this.
+   */
+  async deleteSmiley(id: number): Promise<void> {
+    await this.db.execute(sql`delete from smilies where id = ${id}`)
+    await this.bumpVocabulary()
+  }
+
+  async listCustomTags(): Promise<readonly CustomTagRow[]> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select id, name, block, description, enabled from custom_bbcode order by name
+      `),
+    ) as Array<Record<string, unknown>>
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      name: String(row.name),
+      block: row.block === true,
+      description: row.description === null ? null : String(row.description),
+      enabled: row.enabled === true,
+    }))
+  }
+
+  async createCustomTag(input: {
+    readonly name: string
+    readonly block: boolean
+    readonly description: string | null
+  }): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        insert into custom_bbcode (name, block, description)
+        values (${input.name}, ${input.block}, ${input.description})
+        returning id
+      `),
+    ) as Array<{ id: number }>
+
+    await this.bumpVocabulary()
+    return Number(rows[0]?.id)
+  }
+
+  async updateCustomTag(
+    id: number,
+    input: {
+      readonly name: string
+      readonly block: boolean
+      readonly description: string | null
+      readonly enabled: boolean
+    },
+  ): Promise<void> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        update custom_bbcode
+           set name = ${input.name}, block = ${input.block},
+               description = ${input.description}, enabled = ${input.enabled}
+         where id = ${id}
+        returning id
+      `),
+    ) as Array<{ id: number }>
+
+    if (rows[0] === undefined) throw new ValidationError('No such BBCode tag.')
+    await this.bumpVocabulary()
+  }
+
+  /**
+   * Delete a custom tag.
+   *
+   * Same argument as a smiley, with one more consequence to be honest about:
+   * `[spoiler]x[/spoiler]` in a post whose tag has been removed renders as that
+   * literal text, because the parser demotes an unknown tag rather than
+   * dropping it (F36). Nothing is lost and nothing breaks — the post shows the
+   * markup its author typed, which is the least surprising of the available
+   * failures.
+   */
+  async deleteCustomTag(id: number): Promise<void> {
+    await this.db.execute(sql`delete from custom_bbcode where id = ${id}`)
+    await this.bumpVocabulary()
   }
 }
 

@@ -15,6 +15,9 @@ import 'server-only'
  */
 import { MessageService, type MessageNotifierPort, type MessagePolicy } from '@meith/messages'
 
+import { EMPTY_VOCABULARY } from '@meith/bbcode'
+
+import { activeVocabulary } from './content-admin'
 import { getContainer } from './container'
 import { relationService } from './relations'
 import { notificationService } from './notifications'
@@ -34,6 +37,13 @@ export function messageService(): MessageService | null {
     messages,
     policy: messagePolicy(),
     notifier: messageNotifier(),
+    /*
+     * F71. A callback, because the service is a domain object and the
+     * vocabulary is a database read — and because a value captured here would
+     * be the vocabulary as it was when this service was constructed, which on
+     * a warm instance is an operator's edit that never takes effect.
+     */
+    vocabulary: async () => (await activeVocabulary()) ?? EMPTY_VOCABULARY,
   })
 }
 

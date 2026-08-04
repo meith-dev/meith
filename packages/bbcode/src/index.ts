@@ -13,6 +13,7 @@ export {
   RENDER_VERSION,
   postBodyHtml,
   renderBBCode,
+  vocabularyOptions,
   type RenderablePost,
   type RenderedBody,
   type BBCodeRenderOptions,
@@ -40,3 +41,10 @@ export {
   type SmileyDefinition,
 } from './extensions'
 export { DEFAULT_LIMITS, type BBCodeLimits } from './limits'
+export {
+  EMPTY_VOCABULARY,
+  compileVocabulary,
+  customTagNames,
+  type BoardVocabulary,
+  type VocabularySource,
+} from './vocabulary'

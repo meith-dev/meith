@@ -9,7 +9,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { renderBBCode } from '@meith/bbcode'
+import { renderBBCode, vocabularyOptions } from '@meith/bbcode'
 import type { NewPoll } from '@meith/polls'
 
 import type {
@@ -26,6 +26,7 @@ import type { Database } from './client'
 import { applyCreatedContentCounters } from './content-counters'
 import { resultRows } from './result-rows'
 import { searchVectorSql } from './search-repo'
+import { readBoardVocabulary } from './vocabulary-repo'
 
 export class PostgresThreadWriteRepository
   implements ThreadWriteRepository, ReplyWriteRepository
@@ -71,6 +72,15 @@ export class PostgresThreadWriteRepository
   }
 
   async create(record: NewThreadRecord): Promise<CreatedThread> {
+    /*
+     * Read before the transaction, not inside it (F71). The two halves of the
+     * vocabulary are already consistent with each other — that read has its own
+     * transaction — and holding this one open across an extra round trip would
+     * lengthen the window on the busiest write on the board. A vocabulary edit
+     * landing in between costs one stale stamp, which the backfill repairs.
+     */
+    const vocabulary = await readBoardVocabulary(this.db)
+
     return this.db.transaction(async (tx) => {
       const threadRows = resultRows(
         await tx.execute(sql`
@@ -86,17 +96,18 @@ export class PostgresThreadWriteRepository
       ) as Array<{ id: number }>
       const threadId = Number(threadRows[0]!.id)
 
-      const body = renderBBCode(record.message)
+      const body = renderBBCode(record.message, vocabularyOptions(vocabulary))
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
-             message_html, render_version, visibility, is_first_post, created_at,
-             search_vector)
+             message_html, render_version, vocab_version, visibility, is_first_post,
+             created_at, search_vector)
           values
             (${threadId}, ${record.forumId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
-             ${body.version}, ${record.visibility}, true, ${record.createdAt},
+             ${body.version}, ${vocabulary.revision}, ${record.visibility}, true,
+             ${record.createdAt},
              ${searchVectorSql(sql`${null}`, sql`${record.message}`)})
           returning id
         `),
@@ -223,18 +234,21 @@ export class PostgresThreadWriteRepository
 
   /** The reply write. Same transaction shape as `create`, one row shorter. */
   async createReply(record: NewReplyRecord): Promise<{ postId: number }> {
+    const vocabulary = await readBoardVocabulary(this.db)
+
     return this.db.transaction(async (tx) => {
-      const body = renderBBCode(record.message)
+      const body = renderBBCode(record.message, vocabularyOptions(vocabulary))
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
-             message_html, render_version, visibility, is_first_post, created_at,
-             search_vector)
+             message_html, render_version, vocab_version, visibility, is_first_post,
+             created_at, search_vector)
           values
             (${record.threadId}, ${record.forumId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
-             ${body.version}, ${record.visibility}, false, ${record.createdAt},
+             ${body.version}, ${vocabulary.revision}, ${record.visibility}, false,
+             ${record.createdAt},
              ${searchVectorSql(sql`${null}`, sql`${record.message}`)})
           returning id
         `),

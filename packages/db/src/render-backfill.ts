@@ -24,10 +24,11 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { RENDER_VERSION, renderBBCode } from '@meith/bbcode'
+import { RENDER_VERSION, renderBBCode, vocabularyOptions } from '@meith/bbcode'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { readBoardVocabulary } from './vocabulary-repo'
 
 export interface RenderBackfillRun {
   /** Posts rewritten in this run. Fewer than the batch means caught up. */
@@ -39,11 +40,13 @@ export class PostgresRenderBackfill {
 
   /** How many posts are still on an older renderer. For System Health (F70). */
   async pending(): Promise<number> {
+    const vocabulary = await readBoardVocabulary(this.db)
     const rows = resultRows(
       await this.db.execute(sql`
         select count(*)::int as pending
           from posts
          where render_version <> ${RENDER_VERSION}
+            or vocab_version <> ${vocabulary.revision}
       `),
     ) as Array<{ pending: number }>
     return Number(rows[0]?.pending ?? 0)
@@ -52,11 +55,20 @@ export class PostgresRenderBackfill {
   async run(batchSize: number): Promise<RenderBackfillRun> {
     if (batchSize <= 0) return { rendered: 0 }
 
+    /*
+     * F71. "Stale" is now two questions — the renderer's code and the board's
+     * vocabulary — because both decide what `message_html` contains. Read once
+     * per run rather than per row: the whole point of a batch is that it renders
+     * many posts with one compiled vocabulary.
+     */
+    const vocabulary = await readBoardVocabulary(this.db)
+
     const stale = resultRows(
       await this.db.execute(sql`
         select id, message
           from posts
          where render_version <> ${RENDER_VERSION}
+            or vocab_version <> ${vocabulary.revision}
          order by id
          limit ${batchSize}
       `),
@@ -66,7 +78,7 @@ export class PostgresRenderBackfill {
 
     const rendered = stale.map((row) => ({
       id: Number(row.id),
-      html: renderBBCode(row.message).html,
+      html: renderBBCode(row.message, vocabularyOptions(vocabulary)).html,
     }))
 
     /*
@@ -81,7 +93,9 @@ export class PostgresRenderBackfill {
     )
     await this.db.execute(sql`
       update posts as p
-         set message_html = v.html, render_version = ${RENDER_VERSION}
+         set message_html = v.html,
+             render_version = ${RENDER_VERSION},
+             vocab_version = ${vocabulary.revision}
         from (values ${values}) as v(id, html)
        where p.id = v.id
     `)

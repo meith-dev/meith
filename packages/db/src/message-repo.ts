@@ -53,6 +53,7 @@ interface RawMessage {
   message: string
   message_html: string | null
   render_version: number
+  vocab_version: number
   reply_to_id: number | null
   receipt_requested: boolean
   sent_at: string | Date
@@ -67,6 +68,7 @@ function toMessage(row: RawMessage): PrivateMessage {
     message: row.message,
     messageHtml: row.message_html,
     renderVersion: Number(row.render_version),
+    vocabVersion: Number(row.vocab_version),
     replyToId: row.reply_to_id === null ? null : Number(row.reply_to_id),
     receiptRequested: row.receipt_requested === true,
     sentAt: toDate(row.sent_at),
@@ -75,7 +77,8 @@ function toMessage(row: RawMessage): PrivateMessage {
 
 const MESSAGE_COLUMNS = sql`
   m.id, m.author_user_id, m.author_username, m.subject, m.message,
-  m.message_html, m.render_version, m.reply_to_id, m.receipt_requested, m.sent_at
+  m.message_html, m.render_version, m.vocab_version, m.reply_to_id,
+  m.receipt_requested, m.sent_at
 `
 
 export class PostgresMessageRepository implements MessageRepository {
@@ -298,6 +301,7 @@ export class PostgresMessageRepository implements MessageRepository {
     readonly message: string
     readonly messageHtml: string
     readonly renderVersion: number
+    readonly vocabVersion: number
     readonly replyToId: number | null
     readonly receiptRequested: boolean
     readonly recipients: readonly { userId: number; bcc: boolean }[]
@@ -308,10 +312,11 @@ export class PostgresMessageRepository implements MessageRepository {
         await tx.execute(sql`
           insert into private_messages
                  (author_user_id, author_username, subject, message, message_html,
-                  render_version, reply_to_id, receipt_requested, sent_at)
+                  render_version, vocab_version, reply_to_id, receipt_requested, sent_at)
           values (${input.authorUserId}, ${input.authorUsername}, ${input.subject},
                   ${input.message}, ${input.messageHtml}, ${input.renderVersion},
-                  ${input.replyToId}, ${input.receiptRequested}, ${input.at})
+                  ${input.vocabVersion}, ${input.replyToId}, ${input.receiptRequested},
+                  ${input.at})
           returning id
         `),
       ) as Array<{ id: number }>

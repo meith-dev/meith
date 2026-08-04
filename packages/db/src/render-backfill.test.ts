@@ -14,6 +14,7 @@ import { expectQueryBudget } from '@meith/testkit'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { PostgresContentAdminRepository } from './content-admin-repo'
 import { PostgresRenderBackfill } from './render-backfill'
 import { resultRows } from './result-rows'
 import { PostgresThreadWriteRepository } from './thread-writes'
@@ -224,5 +225,99 @@ describe('PostgresRenderBackfill', () => {
     for (let id = 60; id < 70; id += 1) await insertStale(id, 'x')
 
     await expectQueryBudget(harness, 2, () => backfill.run(10))
+  })
+})
+
+/**
+ * F71 — the board's vocabulary is the second half of "which renderer made
+ * this", so all three of these are new behaviour rather than restatements.
+ */
+describe('the board vocabulary', () => {
+  beforeEach(async () => {
+    await db.execute(sql`delete from smilies`)
+    await db.execute(sql`delete from custom_bbcode`)
+    await db.execute(sql`delete from cache_versions where key = 'bbcode_vocabulary'`)
+  })
+
+  async function addSmiley(): Promise<number> {
+    await new PostgresContentAdminRepository(db).createSmiley({
+      code: ':)',
+      src: '/smilies/smile.png',
+      alt: null,
+    })
+    return new PostgresContentAdminRepository(db).vocabularyRevision()
+  }
+
+  async function readStamps(id: number): Promise<{ html: string | null; vocab: number }> {
+    const rows = resultRows(
+      await db.execute(sql`select message_html, vocab_version from posts where id = ${id}`),
+    ) as Array<{ message_html: string | null; vocab_version: number }>
+    const row = rows[0]!
+    return { html: row.message_html, vocab: Number(row.vocab_version) }
+  }
+
+  /*
+   * The write path renders with the vocabulary rather than leaving it to the
+   * backfill. Otherwise the newest posts — the ones people are reading — would
+   * be exactly the ones rendering live on every request.
+   */
+  it('is applied by the write path, and stamped with the render', async () => {
+    const revision = await addSmiley()
+
+    const created = await new PostgresThreadWriteRepository(db).create({
+      forumId: FORUM,
+      title: 'Hello there',
+      slug: 'hello-there',
+      message: 'hi :)',
+      prefixId: null,
+      authorUserId: 1,
+      authorUsername: 'ada',
+      visibility: 'visible',
+      subscribe: false,
+      createdAt: AT,
+    })
+
+    const post = await readStamps(created.postId)
+    expect(post.html).toContain('/smilies/smile.png')
+    expect(post.vocab).toBe(revision)
+  })
+
+  /*
+   * The point of the column. A post written before the smiley existed has HTML
+   * that does not contain it, and serving that would make the new smiley appear
+   * only on posts written since — which looks exactly like a broken feature.
+   */
+  it('makes an existing render stale, and the backfill rewrites it', async () => {
+    await insertStale(50, 'hi :)')
+    await backfill.run(10)
+    expect((await readStamps(50)).html).not.toContain('/smilies/smile.png')
+
+    const revision = await addSmiley()
+    expect(await backfill.pending()).toBe(1)
+
+    await backfill.run(10)
+
+    const post = await readStamps(50)
+    expect(post.html).toContain('/smilies/smile.png')
+    expect(post.vocab).toBe(revision)
+    expect(await backfill.pending()).toBe(0)
+  })
+
+  it('rewrites again when the vocabulary is removed, restoring the literal code', async () => {
+    const smileyId = await new PostgresContentAdminRepository(db).createSmiley({
+      code: ':)',
+      src: '/smilies/smile.png',
+      alt: null,
+    })
+    await insertStale(51, 'hi :)')
+    await backfill.run(10)
+    expect((await readStamps(51)).html).toContain('/smilies/smile.png')
+
+    await new PostgresContentAdminRepository(db).deleteSmiley(smileyId)
+    await backfill.run(10)
+
+    const post = await readStamps(51)
+    expect(post.html).not.toContain('/smilies/smile.png')
+    expect(post.html).toContain(':)')
   })
 })

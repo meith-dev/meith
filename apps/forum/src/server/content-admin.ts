@@ -10,8 +10,12 @@ import 'server-only'
  * broken one.
  */
 import { CacheTags, ForbiddenError } from '@meith/core'
-import { compileWordFilter, type CompiledWordFilter } from '@meith/bbcode'
-import { PostgresContentAdminRepository, getDb } from '@meith/db'
+import {
+  compileWordFilter,
+  type BoardVocabulary,
+  type CompiledWordFilter,
+} from '@meith/bbcode'
+import { PostgresContentAdminRepository, getDb, readBoardVocabulary } from '@meith/db'
 import { unstable_cache } from 'next/cache'
 
 import { getContainer } from './container'
@@ -50,4 +54,32 @@ export async function activeWordFilter(): Promise<CompiledWordFilter | undefined
 
   const rules = await loadFilters()
   return rules.length === 0 ? undefined : compileWordFilter(rules)
+}
+
+/**
+ * The board's BBCode vocabulary, for the render path (F71).
+ *
+ * Cached under its own tag, like the filters, and for a stronger reason: this
+ * one is read by *every* page that renders a body, and a board's smilies change
+ * about as often as its name. Every write in `PostgresContentAdminRepository`'s
+ * vocabulary section bumps `cache_versions['bbcode_vocabulary']`, so the ACP's
+ * invalidation and the stored renders' staleness are the same fact rather than
+ * two that can disagree.
+ *
+ * `undefined` on a board that has configured nothing — the common case, and the
+ * one where the render path should pay nothing at all. Note that `undefined`
+ * and `EMPTY_VOCABULARY` mean the same thing to `postBodyHtml`, both being
+ * revision 0, so a caller cannot get this wrong in the expensive direction.
+ */
+const loadVocabulary = unstable_cache(
+  async () => readBoardVocabulary(getDb()),
+  ['bbcode-vocabulary'],
+  { tags: [CacheTags.bbcodeVocabulary()] },
+)
+
+export async function activeVocabulary(): Promise<BoardVocabulary | undefined> {
+  if (getContainer().dataSource !== 'postgres') return undefined
+
+  const vocabulary = await loadVocabulary()
+  return vocabulary.revision === 0 ? undefined : vocabulary
 }
