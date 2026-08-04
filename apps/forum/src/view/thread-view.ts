@@ -1,5 +1,10 @@
 /** F31's pure thread-view model, with F41's edit and delete affordances. */
-import { applyWordFilter, postBodyHtml, type CompiledWordFilter } from '@meith/bbcode'
+import {
+  applyWordFilter,
+  postBodyHtml,
+  type BoardVocabulary,
+  type CompiledWordFilter,
+} from '@meith/bbcode'
 import { suppress } from '@meith/relations'
 import type { ForumRow } from '@meith/forums'
 import type {
@@ -97,6 +102,8 @@ interface PostContext {
    * which is the common case and costs nothing.
    */
   readonly wordFilter: CompiledWordFilter | undefined
+  /** The board's smilies and custom tags (F71). */
+  readonly vocabulary: BoardVocabulary | undefined
   /**
    * F42, resolved for the whole page in one query and grouped by post.
    *
@@ -194,11 +201,18 @@ function post(
      * correspondence between two members is a different decision from filtering
      * what the board publishes. See D75.
      */
+    /*
+     * F71's vocabulary goes *into* `postBodyHtml` and the word filter is
+     * applied *after* it, and the order is the difference between the two
+     * features. Smilies and custom tags decide what the stored render contains,
+     * so they are part of the question "is this render current"; the filter is
+     * a view of finished markup, which is what makes it reversible.
+     */
     bodyHtml: hidden
       ? ''
       : context.wordFilter === undefined
-        ? postBodyHtml(post)
-        : applyWordFilter(postBodyHtml(post), context.wordFilter),
+        ? postBodyHtml(post, context.vocabulary)
+        : applyWordFilter(postBodyHtml(post, context.vocabulary), context.wordFilter),
     postedAt: formatTime(post.createdAt, now, timeZone),
     /*
      * Shown to everyone who can see the post, reason included. An edit notice
@@ -305,6 +319,7 @@ export interface ThreadViewInput {
    * which is the common case and costs nothing.
    */
   readonly wordFilter?: CompiledWordFilter | undefined
+  readonly vocabulary?: BoardVocabulary | undefined
   /**
    * The page's own URL, so a reveal link can point back at it.
    *
@@ -376,6 +391,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         revealedPostIds: input.revealedPostIds ?? EMPTY_IDS,
         revealHref: (postId) => revealHref(input.currentHref ?? '', postId),
         wordFilter: input.wordFilter,
+        vocabulary: input.vocabulary,
       }),
     ),
     pagination: {

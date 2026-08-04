@@ -35,7 +35,7 @@ describe('the midnight theme', () => {
    */
   it('fills the surfaces that carry the look and inherits the rest', () => {
     const own = Object.keys(midnightTheme.slots)
-    expect(own).toHaveLength(19)
+    expect(own).toHaveLength(20)
     expect(own).toContain('PostBit')
     expect(own).not.toContain('ErrorNotice')
 

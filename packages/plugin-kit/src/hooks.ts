@@ -128,6 +128,14 @@ export const HOOKS = {
       'The jump box model. A plugin adding a destination must give it a real ' +
       'forum id — the route re-authorises whatever is submitted.',
   },
+  'view.announcement': {
+    kind: 'filter',
+    feature: 'F71',
+    purpose:
+      'One announcement, on its way to the theme. Its body is already rendered ' +
+      'HTML from the board\u2019s own renderer, so a plugin replacing it is ' +
+      'replacing trusted markup — the one hook where that is true of a body.',
+  },
   'view.board-index': {
     kind: 'filter',
     feature: 'F29',

@@ -60,6 +60,7 @@ export {
 } from './theme'
 
 export type {
+  AnnouncementModel,
   BoardIndexModel,
   BoardStatsModel,
   OnlineMemberModel,

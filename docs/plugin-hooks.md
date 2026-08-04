@@ -9,7 +9,7 @@
   disagree.
 -->
 
-**92 hooks** — 47 filters, 45 events — and 6 UI regions. **22 are wired**: something in the board fires
+**93 hooks** — 48 filters, 45 events — and 6 UI regions. **23 are wired**: something in the board fires
 them today, and the rest are declared but not yet reached by a call site.
 
 The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
@@ -62,6 +62,7 @@ the limits.
 | `view.navigation` | filter | — | `NavigationModel` | `ViewerRef & RequestRef` | F27 |
 | `view.footer` | filter | yes | `FooterModel` | `ViewerRef & RequestRef` | F27 |
 | `view.forum-jump` | filter | yes | `ForumJumpModel` | `ViewerRef & RequestRef` | F27 |
+| `view.announcement` | filter | yes | `AnnouncementModel` | `ViewerRef` | F71 |
 | `view.board-index` | filter | yes | `BoardIndexModel` | `ViewerRef` | F29 |
 | `view.forum-row` | filter | yes | `ForumRowSlotModel` | `ViewerRef` | F29 |
 | `view.thread-row` | filter | yes | `ThreadRowSlotModel` | `ViewerRef & ForumRef` | F30 |
@@ -87,6 +88,7 @@ the limits.
 - **`view.navigation`** — The breadcrumb trail.
 - **`view.footer`** — The footer model, including its link list.
 - **`view.forum-jump`** — The jump box model. A plugin adding a destination must give it a real forum id — the route re-authorises whatever is submitted.
+- **`view.announcement`** — One announcement, on its way to the theme. Its body is already rendered HTML from the boardu2019s own renderer, so a plugin replacing it is replacing trusted markup — the one hook where that is true of a body.
 - **`view.board-index`** — The index page model.
 - **`view.forum-row`** — One forum row in a listing. Runs once per row — keep it cheap.
 - **`view.thread-row`** — One thread row in a listing. Runs once per row.

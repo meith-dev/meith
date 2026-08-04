@@ -60,6 +60,14 @@ export { PostgresNotificationRepository } from './notification-repo'
 export { PostgresProfileFieldRepository } from './profile-field-repo'
 export { PostgresMessageRepository } from './message-repo'
 export { PostgresAttachmentRepository } from './attachment-repo'
+/* F71 — the ACP's attachment listing. */
+export {
+  PostgresAttachmentAdminRepository,
+  type AttachmentAdminFilter,
+  type AttachmentAdminPage,
+  type AttachmentAdminRow,
+  type AttachmentTotals,
+} from './attachment-admin-repo'
 export { PostgresAvatarRepository } from './avatar-repo'
 export {
   PostgresGroupAdminRepository,
@@ -186,9 +194,19 @@ export {
 } from './search-store'
 export {
   PostgresContentAdminRepository,
+  type CustomTagRow,
+  type SmileyRow,
   type ThreadPrefixRow,
   type WordFilterRow,
 } from './content-admin-repo'
+/* F71 — announcements. */
+export {
+  PostgresAnnouncementRepository,
+  type AnnouncementInput,
+  type AnnouncementRow,
+} from './announcement-repo'
+/* F71 — the compiled vocabulary, for the render and write paths. */
+export { readBoardVocabulary } from './vocabulary-repo'
 export {
   PostgresAdminRepository,
   type GroupSummary,

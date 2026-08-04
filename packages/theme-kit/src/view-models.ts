@@ -440,6 +440,29 @@ export interface NoticeModel {
   readonly dismissHref: string | null
 }
 
+/**
+ * One announcement (F71).
+ *
+ * **Not a `NoticeModel`, and the two are worth telling apart.** A notice is a
+ * flash — the result of what the viewer just did, gone on the next page. An
+ * announcement is a dated, authored, board-wide statement that is there for
+ * everybody until it expires. They look similar and behave nothing alike, so
+ * styling them identically is a choice a theme should make on purpose rather
+ * than one the contract makes for it.
+ */
+export interface AnnouncementModel {
+  readonly title: string
+  /**
+   * Trusted HTML, from `@meith/bbcode`'s own renderer — the same contract as a
+   * post body, and the reason a theme inserts it rather than escaping it.
+   */
+  readonly bodyHtml: string
+  readonly postedBy: UserRefModel | null
+  readonly postedAt: TimeModel
+  /** The forum it belongs to, or `null` when it is board-wide. */
+  readonly forum: LinkModel | null
+}
+
 export interface BoardIndexModel {
   /** F32's "mark all read" — a form target, not a client handler. */
   readonly markAllReadAction: string | null
@@ -457,6 +480,15 @@ export interface BoardIndexModel {
      * render plugin output. Every region field below follows the same rule.
      */
     readonly plugins?: ReactNode
+    /**
+     * F71's live announcements, already rendered — one `Announcement` per row,
+     * or absent when there are none.
+     *
+     * Optional for the same reason the plugin region is, and under the same
+     * policy: a theme written against an earlier minor compiles and simply does
+     * not show them.
+     */
+    readonly announcements?: ReactNode
   }
 }
 
@@ -517,6 +549,12 @@ export interface ForumDisplayModel {
     /** One `ThreadRow` per thread. Empty-state markup is the theme's. */
     readonly threads: ReactNode
     readonly pagination: ReactNode
+    /**
+     * F71. This forum's announcements *and* the board's — an announcement being
+     * board-wide would mean little if it appeared only on the index, which is
+     * the page fewest people arrive on.
+     */
+    readonly announcements?: ReactNode
   }
 }
 
@@ -795,6 +833,8 @@ export interface SlotModels {
   Navigation: NavigationModel
   Footer: FooterModel
   Notice: NoticeModel
+
+  Announcement: AnnouncementModel
 
   BoardIndex: BoardIndexModel
   CategoryBlock: CategoryBlockModel

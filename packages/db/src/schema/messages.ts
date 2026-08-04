@@ -49,6 +49,18 @@ export const privateMessages = pgTable(
     message: text('message').notNull(),
     messageHtml: text('message_html'),
     renderVersion: smallint('render_version').notNull().default(0),
+    /**
+     * The board vocabulary that produced `message_html` (F71). See
+     * `posts.vocabVersion`.
+     *
+     * Private messages get the board's smilies and custom tags, and the *word
+     * filter* deliberately does not reach them. That is not an inconsistency:
+     * the vocabulary is the markup language this board speaks, and a smiley
+     * that works in a post and not in a message would be arbitrary. Filtering
+     * private correspondence is a different decision, and the answer to it is
+     * no.
+     */
+    vocabVersion: smallint('vocab_version').notNull().default(0),
     /*
      * Self-reference, so the column cannot point at a message that never
      * existed. `AnyPgColumn` is drizzle's required annotation for one: the
@@ -61,7 +73,10 @@ export const privateMessages = pgTable(
     receiptRequested: boolean('receipt_requested').notNull().default(false),
     sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('private_messages_render_version_idx').on(t.renderVersion, t.id)],
+  (t) => [
+    index('private_messages_render_version_idx').on(t.renderVersion, t.id),
+    index('private_messages_vocab_version_idx').on(t.vocabVersion, t.id),
+  ],
 )
 
 export const privateMessageCopies = pgTable(

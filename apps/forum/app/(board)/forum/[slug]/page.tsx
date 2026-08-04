@@ -6,6 +6,7 @@ import { requireSlot } from '@meith/theme-kit'
 
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
+import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -249,6 +250,22 @@ export default async function ForumPage({
     now: new Date(),
   }).modes
 
+  /*
+   * F71. This forum's announcements *and* the board-wide ones — an announcement
+   * that appeared only on the index would be invisible to everybody who arrives
+   * from a search engine, which is most people.
+   *
+   * `visible` is the same set the page has already used to decide the viewer may
+   * be here at all, so the scoped read costs no extra permission work.
+   */
+  const announcements = await liveAnnouncements({
+    visibleForumIds: visible,
+    scope: id,
+    now: new Date(),
+    timeZone: preferences.timezone,
+  })
+
+  const Announcement = requireSlot(activeTheme, 'Announcement')
   const ForumDisplay = requireSlot(activeTheme, 'ForumDisplay')
   const Notice = requireSlot(activeTheme, 'Notice')
   const ThreadRow = requireSlot(activeTheme, 'ThreadRow')
@@ -262,6 +279,13 @@ export default async function ForumPage({
 
   /* F80. `view.thread-row` runs once per row; see the index page for the cost. */
   const pluginContext = { ...viewerRef(actor), forumId: id }
+
+  /* F80's wiring for F71's slot; see the board index for the shape. */
+  const filteredAnnouncements = await Promise.all(
+    announcements.map((announcement) =>
+      filterView('view.announcement', announcement, viewerRef(actor)),
+    ),
+  )
 
   const threadRows = await Promise.all(
     view.threads.map((thread) =>
@@ -302,6 +326,13 @@ export default async function ForumPage({
           <ThreadRow key={row.thread.id} {...row} />
         )),
         pagination: <Pagination {...pagination} />,
+        ...(announcements.length === 0
+          ? {}
+          : {
+              announcements: filteredAnnouncements.map((announcement, position) => (
+                <Announcement key={position} {...announcement} />
+              )),
+            }),
       },
     },
     pluginContext,

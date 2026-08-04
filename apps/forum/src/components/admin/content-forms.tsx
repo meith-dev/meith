@@ -1,13 +1,23 @@
 "use client"
 
-/** F71's forms: word filters and thread prefixes. */
+/** F71's forms: word filters, thread prefixes, smilies and custom BBCode. */
 import { useActionState } from "react"
 
 import {
+  createAnnouncementAction,
+  createCustomTagAction,
   createPrefixAction,
+  createSmileyAction,
   createWordFilterAction,
+  deleteAnnouncementAction,
+  deleteAttachmentAction,
+  deleteCustomTagAction,
   deletePrefixAction,
+  deleteSmileyAction,
   deleteWordFilterAction,
+  updateAnnouncementAction,
+  updateCustomTagAction,
+  updateSmileyAction,
   updateWordFilterAction,
 } from "@/server/content-admin-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
@@ -185,6 +195,419 @@ export function NewPrefixForm() {
 
       <div>
         <SubmitButton>Add prefix</SubmitButton>
+      </div>
+    </form>
+  )
+}
+
+/* ------------------------------------------------------------------ *
+ * The board's BBCode vocabulary
+ * ------------------------------------------------------------------ */
+
+export interface SmileyValues {
+  readonly id: number
+  readonly code: string
+  readonly src: string
+  readonly alt: string | null
+  readonly enabled: boolean
+}
+
+export function SmileyRowForm({ smiley }: { smiley: SmileyValues }) {
+  const [state, action] = useActionState(updateSmileyAction, EMPTY_STATE)
+  const [removeState, removeAction] = useActionState(deleteSmileyAction, EMPTY_STATE)
+
+  return (
+    <div className="flex flex-col gap-2 py-3">
+      <FormError message={state.error ?? removeState.error} />
+      <Saved when={state.notice === "saved"}>Saved.</Saved>
+
+      <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
+        <input type="hidden" name="id" value={smiley.id} />
+
+        {/*
+          The image itself, at the size a post will show it. An operator
+          checking a URL they pasted should not have to open a thread to find
+          out whether it points at anything.
+        */}
+        <img
+          src={smiley.src}
+          alt={smiley.alt ?? smiley.code}
+          className="size-6 shrink-0 self-center"
+        />
+
+        <label className="flex w-28 flex-col gap-1 text-sm">
+          <span className="font-medium">Code</span>
+          <input name="code" defaultValue={smiley.code} className={INPUT} required />
+        </label>
+
+        <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
+          <span className="font-medium">Image</span>
+          <input name="src" defaultValue={smiley.src} className={INPUT} required />
+        </label>
+
+        <label className="flex w-32 flex-col gap-1 text-sm">
+          <span className="font-medium">Alt text</span>
+          <input name="alt" defaultValue={smiley.alt ?? ""} className={INPUT} />
+        </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="enabled"
+            value="1"
+            defaultChecked={smiley.enabled}
+            className="size-4"
+          />
+          <span>Enabled</span>
+        </label>
+
+        <span className="min-w-24">
+          <SubmitButton>Save</SubmitButton>
+        </span>
+      </form>
+
+      <form action={removeAction}>
+        <input type="hidden" name="id" value={smiley.id} />
+        <button type="submit" className="text-xs text-destructive hover:underline">
+          Remove
+        </button>
+      </form>
+    </div>
+  )
+}
+
+export function NewSmileyForm() {
+  const [state, action] = useActionState(createSmileyAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
+      <FormError message={state.error} />
+      <Saved when={state.notice === "saved"}>Added.</Saved>
+
+      <label className="flex w-28 flex-col gap-1 text-sm">
+        <span className="font-medium">Code</span>
+        <input name="code" className={INPUT} placeholder=":)" required />
+      </label>
+
+      <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
+        <span className="font-medium">Image</span>
+        <input name="src" className={INPUT} placeholder="/smilies/smile.png" required />
+      </label>
+
+      <label className="flex w-32 flex-col gap-1 text-sm">
+        <span className="font-medium">Alt text</span>
+        <input name="alt" className={INPUT} />
+        <span className="text-xs text-muted-foreground">Defaults to the code.</span>
+      </label>
+
+      <span className="min-w-28">
+        <SubmitButton>Add</SubmitButton>
+      </span>
+    </form>
+  )
+}
+
+export interface CustomTagValues {
+  readonly id: number
+  readonly name: string
+  readonly block: boolean
+  readonly description: string | null
+  readonly enabled: boolean
+}
+
+export function CustomTagRowForm({ tag }: { tag: CustomTagValues }) {
+  const [state, action] = useActionState(updateCustomTagAction, EMPTY_STATE)
+  const [removeState, removeAction] = useActionState(deleteCustomTagAction, EMPTY_STATE)
+
+  return (
+    <div className="flex flex-col gap-2 py-3">
+      <FormError message={state.error ?? removeState.error} />
+      <Saved when={state.notice === "saved"}>Saved.</Saved>
+
+      <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
+        <input type="hidden" name="id" value={tag.id} />
+
+        <label className="flex w-36 flex-col gap-1 text-sm">
+          <span className="font-medium">Tag</span>
+          <input name="name" defaultValue={tag.name} className={INPUT} required />
+        </label>
+
+        <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
+          <span className="font-medium">Note</span>
+          <input name="description" defaultValue={tag.description ?? ""} className={INPUT} />
+        </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="block"
+            value="1"
+            defaultChecked={tag.block}
+            className="size-4"
+          />
+          <span>Block</span>
+        </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="enabled"
+            value="1"
+            defaultChecked={tag.enabled}
+            className="size-4"
+          />
+          <span>Enabled</span>
+        </label>
+
+        <span className="min-w-24">
+          <SubmitButton>Save</SubmitButton>
+        </span>
+      </form>
+
+      <form action={removeAction}>
+        <input type="hidden" name="id" value={tag.id} />
+        <button type="submit" className="text-xs text-destructive hover:underline">
+          Remove
+        </button>
+      </form>
+    </div>
+  )
+}
+
+export function NewCustomTagForm() {
+  const [state, action] = useActionState(createCustomTagAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
+      <FormError message={state.error} />
+      <Saved when={state.notice === "saved"}>Added.</Saved>
+
+      <label className="flex w-36 flex-col gap-1 text-sm">
+        <span className="font-medium">Tag</span>
+        <input name="name" className={INPUT} placeholder="spoiler" required />
+        <span className="text-xs text-muted-foreground">1–16 letters or digits.</span>
+      </label>
+
+      <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
+        <span className="font-medium">Note</span>
+        <input name="description" className={INPUT} />
+        <span className="text-xs text-muted-foreground">For you. Never shown to members.</span>
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="block" value="1" className="size-4" />
+        <span>Block</span>
+      </label>
+
+      <span className="min-w-28">
+        <SubmitButton>Add</SubmitButton>
+      </span>
+    </form>
+  )
+}
+
+/* ------------------------------------------------------------------ *
+ * Attachments
+ * ------------------------------------------------------------------ */
+
+/**
+ * Remove one attachment.
+ *
+ * A bare button rather than a confirm dialog: a dialog is JavaScript, this
+ * panel works without it, and the honest reassurance is the sentence beside the
+ * list saying the post is unaffected — which is true, and is more use than a
+ * prompt asking whether somebody is sure.
+ */
+export function DeleteAttachmentForm({ attachmentId }: { attachmentId: number }) {
+  const [state, action] = useActionState(deleteAttachmentAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="shrink-0">
+      <FormError message={state.error} />
+      <input type="hidden" name="id" value={attachmentId} />
+      <button type="submit" className="text-xs text-destructive hover:underline">
+        Delete
+      </button>
+    </form>
+  )
+}
+
+/* ------------------------------------------------------------------ *
+ * Announcements
+ * ------------------------------------------------------------------ */
+
+export interface AnnouncementValues {
+  readonly id: number
+  readonly forumId: number | null
+  readonly title: string
+  readonly message: string
+  /** Pre-formatted for `datetime-local`, in UTC. See the action for why. */
+  readonly startsAtInput: string
+  readonly endsAtInput: string
+  readonly enabled: boolean
+}
+
+export interface ForumChoice {
+  readonly id: number
+  readonly label: string
+}
+
+/**
+ * The fields both announcement forms share.
+ *
+ * One component rather than two copies, because the pair that has to stay in
+ * step is the *field names* — the action reads them by name, so a rename in one
+ * form and not the other is a save that silently drops half the values.
+ */
+function AnnouncementFields({
+  forums,
+  values,
+}: {
+  forums: readonly ForumChoice[]
+  values?: AnnouncementValues
+}) {
+  return (
+    <>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Title</span>
+        <input name="title" defaultValue={values?.title ?? ''} className={INPUT} required />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Message</span>
+        <textarea
+          name="message"
+          rows={5}
+          defaultValue={values?.message ?? ''}
+          className={INPUT}
+          required
+        />
+        <span className="text-xs text-muted-foreground">
+          BBCode, rendered the same way a post is — including this board&rsquo;s
+          smilies and custom tags.
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Where</span>
+        <select
+          name="forumId"
+          defaultValue={values?.forumId === null || values === undefined ? '' : String(values.forumId)}
+          className={INPUT}
+        >
+          <option value="">The whole board</option>
+          {forums.map((forum) => (
+            <option key={forum.id} value={forum.id}>
+              {forum.label}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">
+          A forum&rsquo;s announcement is shown to whoever can see that forum. A
+          board-wide one is shown on the index and on every forum.
+        </span>
+      </label>
+
+      <div className="flex flex-wrap gap-3">
+        <label className="flex flex-1 flex-col gap-1 text-sm">
+          <span className="font-medium">From</span>
+          <input
+            type="datetime-local"
+            name="startsAt"
+            defaultValue={values?.startsAtInput ?? ''}
+            className={INPUT}
+          />
+        </label>
+
+        <label className="flex flex-1 flex-col gap-1 text-sm">
+          <span className="font-medium">Until</span>
+          <input
+            type="datetime-local"
+            name="endsAt"
+            defaultValue={values?.endsAtInput ?? ''}
+            className={INPUT}
+          />
+          <span className="text-xs text-muted-foreground">Blank never expires.</span>
+        </label>
+      </div>
+
+      {/*
+        Stated rather than converted. The control submits wall-clock text with
+        no zone, so the alternative to reading it as UTC is reading it as
+        whatever `TZ` the container happens to have — which gives a different
+        answer on a laptop and in production, silently.
+      */}
+      <p className="text-xs text-muted-foreground">Times are UTC.</p>
+    </>
+  )
+}
+
+export function AnnouncementRowForm({
+  announcement,
+  forums,
+}: {
+  announcement: AnnouncementValues
+  forums: readonly ForumChoice[]
+}) {
+  const [state, action] = useActionState(updateAnnouncementAction, EMPTY_STATE)
+  const [removeState, removeAction] = useActionState(deleteAnnouncementAction, EMPTY_STATE)
+
+  return (
+    <div className="flex flex-col gap-3 py-4">
+      <FormError message={state.error ?? removeState.error} />
+      <Saved when={state.notice === 'saved'}>Saved.</Saved>
+
+      <form action={action} className="flex flex-col gap-3" noValidate>
+        <input type="hidden" name="id" value={announcement.id} />
+        <AnnouncementFields forums={forums} values={announcement} />
+
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="enabled"
+              value="1"
+              defaultChecked={announcement.enabled}
+              className="size-4"
+            />
+            <span>Enabled</span>
+          </label>
+
+          <span className="min-w-28">
+            <SubmitButton>Save</SubmitButton>
+          </span>
+        </div>
+      </form>
+
+      <form action={removeAction}>
+        <input type="hidden" name="id" value={announcement.id} />
+        <button type="submit" className="text-xs text-destructive hover:underline">
+          Remove
+        </button>
+      </form>
+    </div>
+  )
+}
+
+export function NewAnnouncementForm({ forums }: { forums: readonly ForumChoice[] }) {
+  const [state, action] = useActionState(createAnnouncementAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-col gap-3" noValidate>
+      <FormError message={state.error} />
+      <Saved when={state.notice === 'saved'}>Added.</Saved>
+
+      <AnnouncementFields forums={forums} />
+
+      <div className="flex flex-wrap items-center gap-4">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="enabled" value="1" defaultChecked className="size-4" />
+          <span>Enabled</span>
+        </label>
+
+        <span className="min-w-28">
+          <SubmitButton>Add</SubmitButton>
+        </span>
       </div>
     </form>
   )

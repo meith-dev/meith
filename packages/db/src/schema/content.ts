@@ -203,6 +203,21 @@ export const posts = pgTable(
      */
     messageHtml: text('message_html'),
     renderVersion: smallint('render_version').notNull().default(0),
+    /**
+     * Which board vocabulary produced `message_html` (F71).
+     *
+     * The second half of "which renderer made this". `render_version` covers
+     * the *code*; this covers the smilies and custom tags an operator has
+     * configured, which are equally part of what the renderer does — a smiley
+     * is expanded from a text node and a custom tag changes how the source
+     * parses, so both are baked in here rather than applied on the way out.
+     *
+     * Compared against `cache_versions['bbcode_vocabulary']`. A mismatch means
+     * the same thing a stale `render_version` does: render live, and let the
+     * backfill rewrite it behind the read path. Never an error, and never a
+     * reason to hide a post.
+     */
+    vocabVersion: smallint('vocab_version').notNull().default(0),
 
     visibility: text('visibility').notNull().default('visible'),
 
@@ -253,6 +268,12 @@ export const posts = pgTable(
      * finds nothing rather than a scan of every post to discover the same.
      */
     index('posts_render_version_idx').on(t.renderVersion, t.id),
+    /*
+     * Its twin, for the other half of the same question (F71). The backfill's
+     * predicate is an OR across the two, so each side needs its own index or
+     * the planner falls back to a sequential scan of the largest table here.
+     */
+    index('posts_vocab_version_idx').on(t.vocabVersion, t.id),
     // Moderation queue: unapproved content for a set of forums.
     index('posts_forum_visibility_idx')
       .on(t.forumId, t.createdAt.desc())
@@ -677,3 +698,119 @@ export const wordFilters = pgTable('word_filters', {
     .notNull()
     .defaultNow(),
 })
+
+/**
+ * The board's smilies (F71), over F37's already-safe primitive.
+ *
+ * A row is a **literal code and a source URL**, never a pattern: the code is
+ * matched by `String#startsWith` at each position in a text node, so an
+ * operator cannot type something that runs as a regular expression on every
+ * post the board renders.
+ *
+ * Unlike a word filter, this is baked into the stored render — a smiley is
+ * expanded from a text node while the document is being rendered — so editing
+ * this table bumps `cache_versions['bbcode_vocabulary']` and every stored
+ * render on the board goes stale. See `posts.vocabVersion`.
+ */
+export const smilies = pgTable(
+  'smilies',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    /** Literal source text such as `:)`. Longest match wins at render time. */
+    code: text('code').notNull(),
+    /** Put through the same image-URL policy as `[img]` before it is rendered. */
+    src: text('src').notNull(),
+    /** Shown when the image cannot be. Defaults to the code itself. */
+    alt: text('alt'),
+    enabled: boolean('enabled').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  /*
+   * A duplicate code makes `compileSmilies` throw, which on the render path is
+   * every thread page on the board. Refused at the source rather than caught.
+   */
+  (t) => [uniqueIndex('smilies_code_key').on(t.code)],
+)
+
+/**
+ * Custom BBCode tags (F71), over F37's `createTagRegistry`.
+ *
+ * **The columns are the safety argument.** A tag chooses a name and whether it
+ * is inline or block; there is no template, no replacement pattern, no renderer
+ * and no HTML, because a field that chose output markup would be a second
+ * markup language administered through a web form — which is how every board
+ * with "custom MyCode" acquired a permanent XSS surface.
+ *
+ * A name that already exists in the core tag set is refused: changing what
+ * `[url]` does must be a code review, not a setting.
+ */
+export const customBbcode = pgTable(
+  'custom_bbcode',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    /** 1–16 letters or digits, starting with a letter. Stored lower-cased. */
+    name: text('name').notNull(),
+    /** `div` when true, `span` when false. The only shape choice there is. */
+    block: boolean('block').notNull().default(false),
+    /** An operator's note. Never rendered anywhere a member can see. */
+    description: text('description'),
+    enabled: boolean('enabled').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex('custom_bbcode_name_key').on(t.name)],
+)
+
+/**
+ * Announcements (F71).
+ *
+ * **Chrome, not content.** A sticky thread is a conversation: members reply to
+ * it, it belongs to its author, and taking it down deletes what they said. An
+ * announcement appears above the forums, cannot be replied to, expires on its
+ * own date, and removing it removes nothing anybody wrote. Boards that build
+ * announcements out of pinned threads keep a three-year-old rules post at the
+ * top of every forum because deleting it would delete the discussion under it.
+ *
+ * There is no `message_html` and that is deliberate: the stored-render machinery
+ * exists because a thread page renders fifty bodies out of a table with two
+ * million rows. A board has a handful of announcements, so a cache here would
+ * buy microseconds and cost a third staleness predicate and a third backfill —
+ * including one for F71's own vocabulary.
+ */
+export const announcements = pgTable(
+  'announcements',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    /**
+     * `null` is board-wide.
+     *
+     * One column rather than a `scope` beside it, because two can disagree — a
+     * row claiming to be forum-scoped with no forum is a state the reader would
+     * have to invent a rule for.
+     */
+    forumId: integer('forum_id').references(() => forums.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    /** BBCode source. Rendered on read, with whatever vocabulary is current. */
+    message: text('message').notNull(),
+    authorUserId: integer('author_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Captured, so a deleted account's announcement still says who wrote it. */
+    authorUsername: text('author_username').notNull().default(''),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
+    /** `null` never expires — "until further notice" is a real thing to want. */
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    /** Apart from the window, so redrafting one does not lose its schedule. */
+    enabled: boolean('enabled').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index('announcements_live_idx').on(t.startsAt.desc()).where(sql`${t.enabled}`),
+    index('announcements_forum_idx').on(t.forumId),
+  ],
+)

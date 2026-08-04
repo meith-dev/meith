@@ -69,6 +69,7 @@ async function send(
     message: overrides.message ?? 'A message.',
     messageHtml: '<p>A message.</p>',
     renderVersion: 1,
+    vocabVersion: 0,
     replyToId: null,
     receiptRequested: overrides.receiptRequested ?? false,
     recipients,

@@ -196,7 +196,7 @@ notifications, reputation, and social controls without JavaScript.
 | F68 | F63/F26 | Theme selection and approachable token/layout/custom-CSS editor with live preview, reset, exact JSON export/import. |
 | F69 | F63 **+ F79** | Configured plugin enable/disable/migrations/settings/ACP pages, hook health, and honest install/redeploy instructions. *Corrected during Phase 6: only the inventory and the install instructions were buildable before F79 defined the plugin lifecycle — the other five deliverables had nothing to operate on (D75). Completed after F79/F80 landed; see D98.* |
 | F70 | F63/F38 | Cache/tasks/logs/prune, resumable Recount & Rebuild, and System Health including loud stale-tick warning. |
-| F71 | F63/F37/F42 | Attachment/smilie/custom BBCode/word-filter/prefix/announcement administration; reversible render-time word filter. |
+| F71 | F63/F37/F42 | Attachment/smilie/custom BBCode/word-filter/prefix/announcement administration; reversible render-time word filter. *The word filter is render-time and therefore reversible; the vocabulary cannot be, because it decides what a stored render contains — see D99.* |
 
 **Checkpoint 6:** an admin can configure, re-skin, moderate, repair, and
 observe the board without shell access or redeploy.

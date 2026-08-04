@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { postBodyHtml } from '@meith/bbcode'
 
+import { activeVocabulary } from '@/server/content-admin'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
@@ -52,7 +53,9 @@ export default async function MessagePage({
   const preferences = await getViewerPreferences()
   const view = buildMessageView({
     detail,
-    bodyHtml: postBodyHtml(detail.message),
+    /* F71's vocabulary reaches private messages; the word filter deliberately
+       does not. See `private_messages.vocabVersion`. */
+    bodyHtml: postBodyHtml(detail.message, await activeVocabulary()),
     viewerUserId: actor.userId,
     now: new Date(),
     timeZone: preferences.timezone,

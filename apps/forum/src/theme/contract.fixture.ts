@@ -261,6 +261,23 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     requires: ['Scheduled maintenance at 22:00.'],
   },
 
+  /*
+   * F71. `bodyHtml` is trusted markup, so the fixture asserts the theme inserts
+   * it rather than escaping it: a theme that rendered the body as text would
+   * show every announcement's tags to every member, and the failure is
+   * invisible until somebody uses one.
+   */
+  Announcement: {
+    model: {
+      title: 'The board is moving',
+      bodyHtml: '<p>New address on <strong>Friday</strong>.</p>',
+      postedBy: AUTHOR,
+      postedAt: TIME,
+      forum: { label: 'General discussion', href: '/f/3-general' },
+    },
+    requires: ['The board is moving', '<strong>Friday</strong>', 'Marlow'],
+  },
+
   BoardIndex: {
     model: {
       markAllReadAction: '/mark-read',
@@ -269,6 +286,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         stats: region('stats'),
         online: region('online'),
         plugins: pluginRegion('index.footer'),
+        announcements: region('announcements'),
       },
     },
     requires: [
@@ -276,6 +294,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       region('stats'),
       region('online'),
       pluginRegion('index.footer'),
+      region('announcements'),
     ],
   },
 
@@ -337,9 +356,21 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         subforums: region('subforums'),
         threads: region('threads'),
         pagination: region('pagination'),
+        announcements: region('announcements'),
       },
     },
-    requires: ['General discussion', region('threads'), region('pagination'), '/f/3-general/new'],
+    requires: [
+      'General discussion',
+      region('threads'),
+      region('pagination'),
+      '/f/3-general/new',
+      /*
+       * F71. A board-wide announcement that showed only on the index would be
+       * seen by almost nobody, so a theme dropping this region here is a real
+       * failure rather than a styling choice.
+       */
+      region('announcements'),
+    ],
   },
 
   ThreadRow: {

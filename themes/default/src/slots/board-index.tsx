@@ -27,6 +27,14 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
         </form>
       )}
 
+      {/*
+        F71. Above the forums, because that is where somebody looks first and
+        the whole point of an announcement is being read before the board is.
+      */}
+      {regions.announcements !== undefined && (
+        <div className="flex flex-col gap-3">{regions.announcements}</div>
+      )}
+
       <div className="flex flex-col gap-6">{regions.categories}</div>
 
       {(regions.stats !== null || regions.online !== null) && (

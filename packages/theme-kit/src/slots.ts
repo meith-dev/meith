@@ -101,6 +101,15 @@ export const SLOTS = {
       'notice is present in the first response, not after hydration.',
   },
 
+  Announcement: {
+    kind: 'server',
+    feature: 'F71',
+    purpose:
+      'One announcement: a dated, authored notice shown above the forums. ' +
+      'Distinct from Notice, which is a flash message about what the viewer ' +
+      'just did — these are for everybody and last until they expire.',
+  },
+
   /* ---- Board index (F29) ---- */
   BoardIndex: {
     kind: 'server',

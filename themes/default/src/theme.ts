@@ -27,6 +27,7 @@ import { ForumDisplay } from './slots/forum-display'
 import { Header } from './slots/header'
 import { Navigation } from './slots/navigation'
 import { Notice } from './slots/notice'
+import { Announcement } from './slots/announcement'
 import { Shell } from './slots/shell'
 import { UserPanel } from './slots/user-panel'
 import { Pagination } from './slots/pagination'
@@ -52,6 +53,7 @@ export const defaultTheme = defineTheme({
     Navigation,
     Footer,
     Notice,
+    Announcement,
 
     BoardIndex,
     CategoryBlock,

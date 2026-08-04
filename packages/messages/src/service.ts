@@ -28,7 +28,12 @@
  * that lands in a full inbox is one the recipient cannot be told about.
  */
 import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
-import { renderBBCode } from '@meith/bbcode'
+import {
+  EMPTY_VOCABULARY,
+  renderBBCode,
+  vocabularyOptions,
+  type BoardVocabulary,
+} from '@meith/bbcode'
 
 import {
   BODY_MAX,
@@ -72,17 +77,34 @@ export class MessageService {
   private readonly policy: MessagePolicy
   private readonly notifier: MessageNotifierPort | null
   private readonly now: () => Date
+  private readonly vocabulary: () => Promise<BoardVocabulary>
 
   constructor(deps: {
     messages: MessageRepository
     policy: MessagePolicy
     notifier?: MessageNotifierPort | null
     now?: () => Date
+    /**
+     * The board's smilies and custom tags (F71).
+     *
+     * A callback rather than a value, because it is read from the database and
+     * this is a domain package — and a value would be captured when the service
+     * is constructed, which on a long-lived process is an operator's edit that
+     * never takes effect.
+     *
+     * Private messages get the board's vocabulary and deliberately do **not**
+     * get the word filter. That is not an inconsistency: the vocabulary is the
+     * markup language this board speaks, so a smiley that worked in a post and
+     * not in a message would be arbitrary — whereas filtering somebody's private
+     * correspondence is a different decision, and the answer to it is no.
+     */
+    vocabulary?: () => Promise<BoardVocabulary>
   }) {
     this.repository = deps.messages
     this.policy = deps.policy
     this.notifier = deps.notifier ?? null
     this.now = deps.now ?? (() => new Date())
+    this.vocabulary = deps.vocabulary ?? (async () => EMPTY_VOCABULARY)
   }
 
   async list(input: {
@@ -195,7 +217,8 @@ export class MessageService {
     const recipients = await this.resolveRecipients(input)
     await this.assertRoomFor(input.authorUserId, recipients)
 
-    const rendered = renderBBCode(message)
+    const vocabulary = await this.vocabulary()
+    const rendered = renderBBCode(message, vocabularyOptions(vocabulary))
     const at = this.now()
 
     const messageId = await this.repository.send({
@@ -205,6 +228,7 @@ export class MessageService {
       message,
       messageHtml: rendered.html,
       renderVersion: rendered.version,
+      vocabVersion: vocabulary.revision,
       replyToId: input.replyToId ?? null,
       receiptRequested: input.receiptRequested === true,
       recipients: recipients.map((r) => ({ userId: r.userId as number, bcc: r.bcc })),

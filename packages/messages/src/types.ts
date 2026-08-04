@@ -47,6 +47,8 @@ export interface PrivateMessage {
   readonly message: string
   readonly messageHtml: string | null
   readonly renderVersion: number
+  /** The board vocabulary that cache was made with (F71). */
+  readonly vocabVersion: number
   readonly replyToId: number | null
   readonly receiptRequested: boolean
   readonly sentAt: Date
@@ -184,6 +186,7 @@ export interface MessageRepository {
     readonly message: string
     readonly messageHtml: string
     readonly renderVersion: number
+    readonly vocabVersion: number
     readonly replyToId: number | null
     readonly receiptRequested: boolean
     readonly recipients: readonly { userId: number; bcc: boolean }[]

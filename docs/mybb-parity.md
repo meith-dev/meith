@@ -80,8 +80,19 @@ the audit log meaningful, because a bypass entry now implies a specific field.
 hr video` plus smilies, admin-defined custom tags, and automatic linkification
 of bare URLs in post text.
 
-**We** ship, at F36: `b i u s color size url email img quote code list *`.
-Absent for now: `font`, `align`, `hr`, `video`, `php`, and auto-linking.
+**We** ship, at F36: `b i u s color size url email img quote code list *`, plus
+**smilies and admin-defined custom tags at F71**. Absent for now: `font`,
+`align`, `hr`, `video`, `php`, and auto-linking.
+
+**A custom tag is not MyBB's custom MyCode.** MyBB's takes a *replacement
+pattern* — a regular expression and the HTML to put in its place — so an
+administrator can produce any markup they like from a form. Ours chooses a
+**name** and whether it is inline or block, and the element is constructed by
+`@meith/bbcode`. That is a real capability difference and a deliberate one: a
+field that chooses output markup is a second markup language administered
+through a web form, which is how boards with custom MyCode acquire a permanent
+XSS surface. A tag that needs bespoke markup is a plugin (F79), where the code
+is reviewed and installed rather than typed into a text box.
 
 **Why.** Each absentee is either owned by a later feature or is a decision:
 
@@ -107,6 +118,32 @@ Absent for now: `font`, `align`, `hr`, `video`, `php`, and auto-linking.
 **Cost.** An imported board's posts render slightly plainer: bare URLs are not
 clickable, and `[font]`/`[align]`/`[video]` show as literal text until F37.
 F87's corpus pass is where every remaining difference becomes an entry here.
+
+---
+
+## Announcements are not sticky threads
+
+**MyBB** has announcements as a first-class thing, and boards frequently use a
+pinned thread for the same job.
+
+**We** have announcements, and they are deliberately *not* threads: nobody can
+reply to one, it has a start and an end date, and it lives above the forums
+rather than in the listing.
+
+**Why.** A sticky thread is a conversation — it belongs to its author, members
+reply to it, and taking it down deletes what they said. That is what leaves a
+three-year-old rules post at the top of a forum on every board that pins one:
+removing it costs the discussion attached to it. An announcement expires on its
+own and removing it removes nothing anybody wrote, which is the whole point of
+having both.
+
+Two smaller differences follow. There is no per-group visibility on an
+announcement: a forum's is shown to whoever can see that forum, resolved through
+the same filter as everything else, and a board-wide one to everybody. And the
+dates are entered in **UTC** rather than in the operator's timezone, because the
+control submits wall-clock text with no zone and the alternative is an
+announcement that appears at a different hour depending on what `TZ` the
+container happened to have.
 
 ---
 

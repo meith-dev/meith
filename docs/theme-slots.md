@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v1.1.** 26 slots: 24 stable, 2 provisional, 0 deprecated.
+**theme-kit v1.2.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -26,6 +26,7 @@ works and has a removal scheduled below.
 | [`Navigation`](#navigation) | `server` | stable | F27 | `NavigationModel` |
 | [`Footer`](#footer) | `server` | stable | F27 | `FooterModel` |
 | [`Notice`](#notice) | `server` | stable | F27 | `NoticeModel` |
+| [`Announcement`](#announcement) | `server` | stable | F71 | `AnnouncementModel` |
 | [`BoardIndex`](#boardindex) | `server` | stable | F29 | `BoardIndexModel` |
 | [`CategoryBlock`](#categoryblock) | `server` | stable | F29 | `CategoryBlockModel` |
 | [`ForumRow`](#forumrow) | `server` | stable | F29 | `ForumRowSlotModel` |
@@ -135,6 +136,22 @@ Props: `NoticeModel`
 | `message` | `string` |  |
 | `dismissHref` | `string \| null` |  |
 
+### Announcement
+
+`server` · stable · introduced by F71
+
+One announcement: a dated, authored notice shown above the forums. Distinct from Notice, which is a flash message about what the viewer just did — these are for everybody and last until they expire.
+
+Props: `AnnouncementModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `title` | `string` |  |
+| `bodyHtml` | `string` | Trusted HTML, from `@meith/bbcode`'s own renderer — the same contract as a post body, and the reason a theme inserts it rather than escaping it. |
+| `postedBy` | `UserRefModel \| null` |  |
+| `postedAt` | `TimeModel` |  |
+| `forum` | `LinkModel \| null` | The forum it belongs to, or `null` when it is board-wide. |
+
 ### BoardIndex
 
 `server` · stable · introduced by F29
@@ -146,7 +163,7 @@ Props: `BoardIndexModel`
 | Field | Type | Notes |
 |---|---|---|
 | `markAllReadAction` | `string \| null` | F32's "mark all read" — a form target, not a client handler. |
-| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * F80's `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the v1 * policy — a theme written against 1.0 keeps compiling and simply does not * render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode }` |  |
+| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * F80's `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the v1 * policy — a theme written against 1.0 keeps compiling and simply does not * render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode /** * F71's live announcements, already rendered — one `Announcement` per row, * or absent when there are none. * * Optional for the same reason the plugin region is, and under the same * policy: a theme written against an earlier minor compiles and simply does * not show them. */ readonly announcements?: ReactNode }` |  |
 
 ### CategoryBlock
 
@@ -219,7 +236,7 @@ Props: `ForumDisplayModel`
 | `forum` | `ForumRowModel` |  |
 | `newThreadHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` |  |
-| `regions` | `{ readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode }` |  |
+| `regions` | `{ readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * F71. This forum's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode }` |  |
 
 ### ThreadRow
 
@@ -647,5 +664,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v1.1. Nothing can be: this is the first
+Nothing is deprecated in v1.2. Nothing can be: this is the first
 frozen version, so there is no earlier promise to withdraw.

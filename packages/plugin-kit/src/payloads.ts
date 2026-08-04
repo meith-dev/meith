@@ -39,6 +39,7 @@
  */
 
 import type {
+  AnnouncementModel,
   BoardIndexModel,
   BoardStatsModel,
   CategoryBlockModel,
@@ -150,6 +151,7 @@ export interface HookSignatures {
   'view.navigation': { value: NavigationModel; context: ViewerRef & RequestRef }
   'view.footer': { value: FooterModel; context: ViewerRef & RequestRef }
   'view.forum-jump': { value: ForumJumpModel; context: ViewerRef & RequestRef }
+  'view.announcement': { value: AnnouncementModel; context: ViewerRef }
   'view.board-index': { value: BoardIndexModel; context: ViewerRef }
   'view.forum-row': { value: ForumRowSlotModel; context: ViewerRef }
   'view.thread-row': { value: ThreadRowSlotModel; context: ViewerRef & ForumRef }

@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D98. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D99. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -22,7 +22,7 @@ F47's included) + **guard probes**, the **slot server/client boundary** check +
 its probe, the **three generated-reference staleness gates** (F77's
 `docs/theme-slots.md`, F79's `docs/plugin-hooks.md` and F81's `docs/rest-api.md` — a contract change that
 does not update its published reference fails CI), dependency-cruiser (560
-modules, 0 violations), typecheck (root **and** app), **3957 tests** (a large
+modules, 0 violations), typecheck (root **and** app), **4023 tests** (a large
 share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
@@ -744,7 +744,7 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### 86 done, 2 partial, 1 todo. Both open questions are answered.
+### 87 done, 1 partial, 1 todo. Both open questions are answered.
 
 **Phase 9 is closed** and the two escalated decisions came back (D95): `mysql2`
 behind F85's port (ADR 0004), and a bounded relevance window for F89's search
@@ -768,11 +768,16 @@ budget — 5,486 ms to 98 ms.
   registry, plugin migrations are reported against `plugin_migrations`, and a
   plugin's admin pages are mounted under `/admin/plugins/<key>`.
 
-**Two `PARTIAL` rows remain**, both of them real work rather than stale status:
+- **F71** — content administration. Smilies, custom BBCode, attachment
+  administration and announcements, which were its four missing halves (D99).
+  The vocabulary is baked into a stored render, so it gets `RENDER_VERSION`'s
+  own invalidation — a `vocab_version` column and F36's existing backfill.
+  Announcements were the last thing on this board with no model at all; they
+  brought theme-kit to 1.2 and tripped four existing ratchets, all correctly.
 
-1. **F71** — content administration. The word filter and thread prefixes exist;
-   attachment, smilie and custom-BBCode administration do not.
-2. **F81** — public REST API and webhooks. The route registry and signing are
+**One `PARTIAL` row remains**:
+
+1. **F81** — public REST API and webhooks. The route registry and signing are
    done; five endpoint handlers, token management, and webhook delivery remain.
 
 **Outstanding release task:** nothing is published to npm, so a scaffolded
@@ -923,7 +928,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D98). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D99). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

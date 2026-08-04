@@ -182,6 +182,12 @@ export const referencePlugin = definePlugin({
       return value
     },
 
+    /* ---- Announcements (F71) ---- */
+    'view.announcement': (value) => {
+      record('view.announcement', value)
+      return value
+    },
+
     /* ---- Index (F29/F75) ---- */
     'view.board-index': (value) => {
       record('view.board-index', value)
