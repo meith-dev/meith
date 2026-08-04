@@ -27,9 +27,16 @@ export const installCommand = "npx create-meith my-board"
 
 export const hero = {
   headline: { before: "Many hands, ", emphasis: "one field." },
+  /*
+   * Kept in full. This paragraph is the one piece of copy on the site that does
+   * the actual arguing, and shortening it in the name of concision took the
+   * argument out — "open-source forum software" is a description, and the
+   * neighbourhood is the reason anybody would want one.
+   */
   lede:
-    "Open-source forum software for communities that have work to do together. " +
-    "Self-hosted or serverless, on a database you own.",
+    "The internet used to feel like a neighbourhood. Today it more often feels like a " +
+    "fragmented crowd. Meith is forum software for putting the neighbourhood back — " +
+    "open source, self-hostable, and built for communities that have work to do together.",
 } as const
 
 export const story = {

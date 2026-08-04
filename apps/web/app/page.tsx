@@ -33,7 +33,7 @@ export default function LandingPage() {
             <em className="text-gorse italic">{hero.headline.emphasis}</em>
           </h1>
 
-          <p className="max-w-[32rem] text-mid leading-[1.45] text-ink-soft text-pretty">
+          <p className="max-w-[34rem] text-mid leading-[1.45] text-ink-soft text-pretty">
             {hero.lede}
           </p>
 
