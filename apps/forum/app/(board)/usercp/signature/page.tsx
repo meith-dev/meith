@@ -44,7 +44,7 @@ export default async function SignaturePage({
   const preview = signatureHtml(stored)
 
   return (
-    <div className="flex flex-col gap-6">
+    <main id="board-content" tabIndex={-1} className="flex flex-1 flex-col gap-6">
       {notice !== null && (
         <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/signature" />
       )}
@@ -77,6 +77,6 @@ export default async function SignaturePage({
           />
         </section>
       )}
-    </div>
+    </main>
   )
 }

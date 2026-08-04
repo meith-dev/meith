@@ -86,7 +86,7 @@ export default async function SearchPage({
     if (outcome.kind === 'ok') redirect(`/search/${outcome.token}`)
 
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
+      <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 flex-1">
         <h1 className="font-serif text-2xl font-semibold">Search</h1>
         <SearchForm
           {...(await filteredForm({
@@ -105,12 +105,12 @@ export default async function SearchPage({
                       : 'Type something to search for.',
           }))}
         />
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
+    <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 flex-1">
       <h1 className="font-serif text-2xl font-semibold">Search</h1>
       <SearchForm
         {...(await filteredForm({
@@ -119,7 +119,7 @@ export default async function SearchPage({
           errorMessage: null,
         }))}
       />
-    </div>
+    </main>
   )
 }
 

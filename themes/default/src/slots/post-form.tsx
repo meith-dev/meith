@@ -1,12 +1,28 @@
-import type { PostFormModel } from "@meith/theme-kit";
+import { Alert, AlertDescription, AlertTitle, Card } from '@meith/ui'
+import type { PostFormModel } from '@meith/theme-kit'
+
+import { MUTED_LINK, PAGE } from '../shared'
 
 /**
  * The composer page frame (F39).
  *
  * The theme owns the page; the app owns the `<form>` in `regions.form`, because
- * that element carries a Server Action reference and those never cross the
- * theme contract (D38/D42). Everything visible here — heading, cancel, where
- * the toolbar island sits — is still the theme's to change.
+ * that element carries a Server Action reference and those never cross the theme
+ * contract (D38/D42). Everything visible here — heading, cancel, where the
+ * toolbar island sits — is still the theme's to change.
+ *
+ * ## Narrower than the rest of the board, on purpose
+ *
+ * Every other page here is `max-w-6xl`, because a listing is a table and tables
+ * want width. A composer is a single column of text that somebody is going to
+ * *write* in, and a textarea eleven hundred pixels wide produces lines nobody
+ * can track back to the start of — the same reason `.prose-bb` caps a rendered
+ * post at 72ch. The two measures agree, which means what an author types is
+ * shaped roughly like what a reader will get.
+ *
+ * The cancel control is a link and stays a link: it navigates, it does not
+ * submit, and making it look like a button beside the form's own submit is how
+ * somebody loses a paragraph they meant to keep.
  */
 export function PostForm({
   heading,
@@ -16,31 +32,36 @@ export function PostForm({
   regions,
 }: PostFormModel) {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-6 py-8">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="font-serif text-2xl font-semibold">{heading}</h1>
-        <a href={cancelHref} className="text-sm text-muted-foreground hover:text-foreground">
+    <div className={`${PAGE} flex w-full max-w-3xl flex-col gap-5 py-6 sm:py-8`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <h1 className="font-serif text-2xl font-semibold tracking-tight text-balance">{heading}</h1>
+        <a href={cancelHref} className={`text-sm ${MUTED_LINK}`}>
           {cancelLabel}
         </a>
       </div>
 
       {/*
         The route's own error — "this forum is closed", say. Errors raised by a
-        submit come back through the form itself, which is why both exist.
+        submit come back through the form itself, which is why both exist and
+        why this one is above the card rather than inside it: it is a statement
+        about whether the form should be used at all.
       */}
       {errorMessage !== null && (
-        <p
-          role="alert"
-          className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-        >
-          {errorMessage}
-        </p>
+        <Alert tone="error">
+          <AlertDescription>
+            <AlertTitle>Cannot post.</AlertTitle> {errorMessage}
+          </AlertDescription>
+        </Alert>
       )}
 
-      <div className="rounded-lg border border-border bg-card p-5">
+      <Card>
+        {/*
+          The toolbar island, when there is one. `null` here must leave a
+          working plain-textarea form: the island enhances, it never enables.
+        */}
         {regions.toolbar}
-        {regions.form}
-      </div>
+        <div className="p-4 sm:p-5">{regions.form}</div>
+      </Card>
     </div>
-  );
+  )
 }

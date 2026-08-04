@@ -134,7 +134,7 @@ export default async function AdminContentPage() {
           pinned thread: nobody can reply to it, it expires on its own date, and
           removing it removes nothing anybody wrote.
         </p>
-        <a href="/admin/content/announcements" className="text-primary hover:underline">
+        <a href="/admin/content/announcements" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Announcements →
         </a>
       </section>
@@ -146,7 +146,7 @@ export default async function AdminContentPage() {
           failed to process. Its own screen, because it is a listing that pages
           rather than a vocabulary that fits on one.
         </p>
-        <a href="/admin/content/attachments" className="text-primary hover:underline">
+        <a href="/admin/content/attachments" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Attachments →
         </a>
       </section>

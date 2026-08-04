@@ -107,7 +107,7 @@ export default async function IpLookupPage({
         <section className="flex flex-col gap-3">
           <h2 className="font-serif text-lg font-semibold">
             Accounts sharing a range with{' '}
-            <a href={memberHref(subject.id)} className="text-primary hover:underline">
+            <a href={memberHref(subject.id)} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               {subject.username}
             </a>
           </h2>
@@ -130,7 +130,7 @@ export default async function IpLookupPage({
                 >
                   <a
                     href={memberHref(match.userId)}
-                    className="font-medium hover:text-primary"
+                    className="font-medium text-foreground hover:underline underline-offset-2"
                   >
                     {match.username}
                   </a>

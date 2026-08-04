@@ -82,7 +82,7 @@ export default async function ModLogPage({
       {page.nextCursor !== undefined && (
         <a
           href={`/modcp/log?after=${encodeURIComponent(page.nextCursor)}`}
-          className="text-sm text-primary hover:underline"
+          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
         >
           Older entries
         </a>

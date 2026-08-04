@@ -1,27 +1,39 @@
 import type { FooterModel } from '@meith/theme-kit'
 
+import { MUTED_LINK, PAGE } from '../shared'
+
 /**
  * The board footer (F25/F27).
  *
  * The timezone note is not decoration: every timestamp on the board is formatted
  * server-side in one zone (see `TimeModel`), so the footer is where a reader
- * learns which one. Without it, "Today, 09:14" is ambiguous.
+ * learns which one. Without it, "Today, 09:14" is ambiguous — and a member whose
+ * own zone is set (F57) is reading a *different* board's worth of times from
+ * their neighbour, with nothing on the page saying so.
+ *
+ * It reads as a sentence rather than as a bare label for that reason. "Europe/
+ * London" in a corner is a string; "Times are shown in Europe/London" is an
+ * answer to the question somebody actually has.
  */
 export function Footer({ boardTitle, links, timezoneLabel }: FooterModel) {
   return (
     <footer className="mt-auto border-t border-border bg-card">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-4 text-xs text-muted-foreground">
-        <span>{boardTitle}</span>
+      <div
+        className={`${PAGE} flex flex-col gap-2 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-6`}
+      >
+        <span className="font-medium text-foreground">{boardTitle}</span>
 
-        <div className="flex flex-wrap gap-4">
-          {links.map((link) => (
-            <a key={link.href} href={link.href} className="hover:text-foreground">
-              {link.label}
-            </a>
-          ))}
-        </div>
+        {links.length > 0 && (
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-4 gap-y-1">
+            {links.map((link) => (
+              <a key={link.href} href={link.href} className={MUTED_LINK}>
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        )}
 
-        <span>Times shown in {timezoneLabel}</span>
+        <span className="sm:text-right">Times are shown in {timezoneLabel}</span>
       </div>
     </footer>
   )

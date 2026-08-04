@@ -13,6 +13,33 @@
  * `assertThemeContract` in `apps/forum/src/server/theme.ts` fails the boot if a
  * required slot ever goes missing; `resolveTheme` still reports the provisional
  * pair as missing, which is accurate.
+ *
+ * ## What this theme is trying to be
+ *
+ * A board somebody else's community can wear without asking who wrote it.
+ *
+ * The palette is fully neutral — every grey at chroma zero, `primary` is ink
+ * rather than a house colour — so an operator who sets two tokens in the control
+ * panel has a branded board and nothing else in the design arguing with the
+ * result. `src/tokens.ts` has the long version of that argument. The semantic
+ * colours keep their hues, because `thread-locked` is information rather than
+ * decoration, and every state a hue marks is also a word in the markup.
+ *
+ * The components come from `@meith/ui` — shadcn/ui's vocabulary on Base UI's
+ * primitives. Almost all of it renders on the server: a card, a badge and a
+ * field are markup and class names, and a thread page of fifty postbits cannot
+ * afford a client boundary behind any of them. Base UI is reached for exactly
+ * where behaviour is genuinely needed, and on this board that turns out to be a
+ * submit button that reports its own pending state. That is not Base UI being
+ * unused; it is a board that is honest about how little of it needs JavaScript.
+ *
+ * ## Slots, and the one coupling inside this theme
+ *
+ * `CategoryBlock` and `ForumDisplay` supply the `<ul>` that `ForumRow` and
+ * `ThreadRow` return `<li>`s into. Those pairs move together. A theme that
+ * inherits one and overrides the other gets markup browsers silently unwrap —
+ * nothing throws, the rows simply vanish from the layout. `themes/midnight`
+ * overrides all four to render tables, and pins the pairing in its own test.
  */
 
 import { defineTheme } from '@meith/theme-kit'

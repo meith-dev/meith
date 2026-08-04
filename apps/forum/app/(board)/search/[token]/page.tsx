@@ -78,7 +78,7 @@ export default async function SearchResultsPage({
       : `/search/${token}?rank=${results.nextCursor.rank}&after=${results.nextCursor.postId}`
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
+    <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 flex-1">
       <div className="flex flex-col gap-1">
         <h1 className="font-serif text-2xl font-semibold">
           Results for &ldquo;{search.terms}&rdquo;
@@ -104,7 +104,7 @@ export default async function SearchResultsPage({
             <li key={hit.postId} className="flex flex-col gap-1 px-4 py-3">
               <a
                 href={`/thread/${hit.threadId}-${hit.threadSlug}?post=${hit.postId}#post-${hit.postId}`}
-                className="text-sm font-medium text-primary hover:underline"
+                className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 {hit.threadTitle}
               </a>
@@ -130,7 +130,7 @@ export default async function SearchResultsPage({
       )}
 
       {nextHref !== null && (
-        <a href={nextHref} className="text-sm text-primary hover:underline">
+        <a href={nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Next {SEARCH_PAGE} results →
         </a>
       )}
@@ -158,9 +158,9 @@ export default async function SearchResultsPage({
         </div>
       </form>
 
-      <a href="/search" className="text-sm text-primary hover:underline">
+      <a href="/search" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
         Start a new search
       </a>
-    </div>
+    </main>
   )
 }

@@ -1,4 +1,17 @@
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+} from '@meith/ui'
 import type { WhoIsOnlineModel } from '@meith/theme-kit'
+
+import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
 
 /**
  * Who is on the board (F75).
@@ -12,6 +25,20 @@ import type { WhoIsOnlineModel } from '@meith/theme-kit'
  * The invisible marker only ever appears for staff — for everybody else those
  * members are absent from the list *and* from the total, which is what makes
  * invisibility real rather than a subtraction puzzle.
+ *
+ * ## Where each member is, which this slot used to throw away
+ *
+ * `OnlineMemberModel.location` has been in the contract since F75 with a
+ * resolved label and href in it, and the previous version of this panel rendered
+ * usernames and dropped the rest. That is the failure the rendering-contract
+ * suite exists to find and cannot: nothing was broken, a feature was simply
+ * invisible, and the repository was doing per-member permission resolution whose
+ * result never reached a page.
+ *
+ * So each member is a line — name, then where they are — instead of a bag of
+ * names. It is the same information a board's "who's online" has shown since the
+ * nineties, and it is the reason anybody opens the panel: not *how many*, but
+ * *what is happening*.
  */
 export function WhoIsOnline({
   guestCount,
@@ -22,53 +49,72 @@ export function WhoIsOnline({
   fullListHref,
 }: WhoIsOnlineModel) {
   return (
-    <section
-      aria-labelledby="who-is-online-heading"
-      className="rounded-lg border border-border p-4"
-    >
-      <h2 id="who-is-online-heading" className="font-serif text-lg font-semibold">
-        Who&rsquo;s online
-      </h2>
-
-      <p className="mt-2 text-sm text-muted-foreground">
-        {total.toLocaleString()} online — {members.length.toLocaleString()}{' '}
-        {members.length === 1 ? 'member' : 'members'} and {guestCount.toLocaleString()}{' '}
-        {guestCount === 1 ? 'guest' : 'guests'}.
-      </p>
-
-      {members.length > 0 && (
-        <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-          {members.map((member) => (
-            <li key={member.userId ?? member.username}>
-              {member.profileHref === null ? (
-                <span>{member.username}</span>
-              ) : (
-                <a href={member.profileHref} className="text-primary hover:underline">
-                  {member.username}
-                </a>
-              )}
-              {member.isInvisible && (
-                /* Text, not a colour: "hidden" is information, and information
-                   that exists only as a hue is absent for many readers. */
-                <span className="ml-1 text-xs text-muted-foreground">(invisible)</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {recordAt !== null && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          Most ever online: {recordCount.toLocaleString()} on{' '}
-          <time dateTime={recordAt.iso}>{recordAt.label}</time>.
+    <Card aria-labelledby="who-is-online-heading">
+      <CardHeader>
+        <CardTitle id="who-is-online-heading">Who&rsquo;s online</CardTitle>
+        <p className={`text-xs text-muted-foreground ${NUMERIC}`}>
+          {total.toLocaleString('en')} online — {members.length.toLocaleString('en')}{' '}
+          {members.length === 1 ? 'member' : 'members'}, {guestCount.toLocaleString('en')}{' '}
+          {guestCount === 1 ? 'guest' : 'guests'}
         </p>
+      </CardHeader>
+
+      {members.length === 0 ? (
+        <Empty className="py-8">
+          <EmptyTitle>No members online</EmptyTitle>
+          <EmptyDescription>
+            {guestCount === 0
+              ? 'Nobody is reading the board right now.'
+              : 'Only guests are reading the board right now.'}
+          </EmptyDescription>
+        </Empty>
+      ) : (
+        <CardContent className="px-0 py-0">
+          <ul className="divide-y divide-border">
+            {members.map((member) => (
+              <li
+                key={member.userId ?? member.username}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 px-4 py-2 text-sm"
+              >
+                <span className="flex items-baseline gap-2">
+                  <UserRef user={member} />
+                  {member.isInvisible && (
+                    /*
+                     * Text in a badge, not a colour: "hidden" is information,
+                     * and information that exists only as a hue is absent for
+                     * many readers — including the staff this marker is for.
+                     */
+                    <Badge tone="neutral">Invisible</Badge>
+                  )}
+                </span>
+
+                <span className="text-xs text-muted-foreground">
+                  {member.location.href === null ? (
+                    member.location.label
+                  ) : (
+                    <a href={member.location.href} className={MUTED_LINK}>
+                      {member.location.label}
+                    </a>
+                  )}
+                  {' · '}
+                  <Stamp at={member.lastSeen} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
       )}
 
-      <p className="mt-2 text-sm">
-        <a href={fullListHref} className="text-primary hover:underline">
-          See who is online and where
+      <CardFooter className="justify-between">
+        <a href={fullListHref} className={`font-medium text-foreground ${LINK}`}>
+          See everyone online
         </a>
-      </p>
-    </section>
+        {recordAt !== null && (
+          <span className={NUMERIC}>
+            Record: {recordCount.toLocaleString('en')} on <Stamp at={recordAt} />
+          </span>
+        )}
+      </CardFooter>
+    </Card>
   )
 }

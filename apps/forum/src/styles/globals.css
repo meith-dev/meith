@@ -29,19 +29,39 @@
  * `hsl(` literals in component files precisely so this file stays the only
  * place colour is decided.
  *
- * Palette: the Meith identity, from the meitheal's own landscape. Hedgerow green
- * for primary and read-state, gorse yellow as the single loud accent (pinned,
- * highlighted, unapproved), and bog rust for destructive and locked. Heather and
- * wet slate carry the staff badges.
+ * ## The palette is neutral, and that is the design decision
  *
- * **The two schemes treat their neutrals differently, on purpose.** Light is
- * limewash: a ground with a green bias, because a neutral that was chosen reads
- * differently from one inherited. Dark is grey — the same bias at 20% lightness
- * stops reading as evening and starts reading as olive, which is a much more
- * particular taste than a dark UI should impose.
+ * Every greyscale token here has **zero chroma**. Not "nearly grey" — zero. The
+ * previous palette was the Meith identity (hedgerow green ground, gorse accent),
+ * and it was a good palette for Meith and a bad default for everybody else: a
+ * board with a blue mark, or a red one, had a green wall behind it and no way to
+ * fix that short of overriding a dozen tokens by hand. A default theme is worn
+ * by boards that have never heard of us, so it holds no opinion about hue.
  *
- * Gorse is used sparingly. It is the one colour here that shouts, so it has to
- * mean something every time it appears.
+ * `primary` is therefore **ink, not a colour**: near-black in light, near-white
+ * in dark. A board's one loud control — post, reply, search — is the strongest
+ * thing on the page by contrast rather than by hue, which is legible everywhere
+ * and is one token away from being a brand. An operator who sets
+ * `--primary` and `--primary-foreground` in the control panel has branded the
+ * board, and nothing else in the palette fights the result.
+ *
+ * ## The semantic tokens still carry hue, because they carry meaning
+ *
+ * `thread-locked` is not decoration; it is the difference between a thread you
+ * can answer and one you cannot. Those keep conventional hues — amber for "needs
+ * an eye", rust for "stopped", green for "approved", blue and violet for the
+ * staff badges — held to chroma 0.11–0.17 so they read as information beside a
+ * brand rather than competing with it. Colour is never the only carrier: every
+ * state that a hue marks is also a word in the markup.
+ *
+ * ## Contrast is measured, not eyeballed
+ *
+ * Every foreground/surface pair below meets WCAG AA (4.5:1) for body text, and
+ * every semantic colour meets it against `card` — including the ambers, which is
+ * why they sit near L 0.55 in light rather than at the brighter value that looks
+ * nicer in isolation and fails on white. `input` is deliberately darker than
+ * `border`: a field's boundary is essential information (1.4.11, 3:1) and a
+ * rule between two rows is not.
  */
 
 @custom-variant dark (&:is(.dark *));
@@ -110,162 +130,183 @@
 :root {
   color-scheme: light;
 
-  /* Limewash ground, peat ink. The neutral carries a green bias rather than
-     being a true grey — it is the wall of the building, not a UI surface. */
-  --background: oklch(0.951 0.011 118);
-  --foreground: oklch(0.228 0.012 145.2);
-  --card: oklch(0.974 0.008 114.2);
-  --card-foreground: oklch(0.228 0.012 145.2);
+  /*
+   * Paper on a desk. The page is a light grey so that `card` — plain white — is
+   * a surface that sits *on* it: a board is a stack of panels, and a panel that
+   * is the same colour as its page needs a border to exist at all.
+   */
+  --background: oklch(0.968 0 0);
+  --foreground: oklch(0.205 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.205 0 0);
 
-  --primary: oklch(0.424 0.06 139);
-  --primary-foreground: oklch(0.967 0.009 119.6);
-  --secondary: oklch(0.922 0.017 121.8);
-  --secondary-foreground: oklch(0.344 0.022 140);
-  --muted: oklch(0.935 0.014 120.3);
-  --muted-foreground: oklch(0.508 0.036 129.3);
-  --accent: oklch(0.69 0.137 79.4);
-  --accent-foreground: oklch(0.225 0.038 84);
-  --destructive: oklch(0.501 0.139 36.6);
-  --destructive-foreground: oklch(0.966 0.008 73.7);
+  /* Ink. See this file's header for why the default board has no house colour. */
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.94 0 0);
+  --secondary-foreground: oklch(0.269 0 0);
+  --muted: oklch(0.958 0 0);
+  --muted-foreground: oklch(0.494 0 0);
+  /*
+   * A hover surface, which is what `accent` means in this vocabulary — the
+   * previous palette used it as the one loud colour, and a token that is a
+   * highlight in one theme and a wash in another is a token nobody can style
+   * against. Anything that needs to shout uses a semantic token, which has a
+   * meaning to justify the volume.
+   */
+  --accent: oklch(0.951 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.514 0.183 28.5);
+  --destructive-foreground: oklch(0.985 0 0);
 
-  --border: oklch(0.851 0.024 122.8);
-  --input: oklch(0.851 0.024 122.8);
-  --ring: oklch(0.424 0.06 139);
+  --border: oklch(0.905 0 0);
+  /* Darker than `border` on purpose: a field's edge is information. */
+  --input: oklch(0.64 0 0);
+  --ring: oklch(0.556 0 0);
 
   /*
-   * 2px, not 6px. A board is a dense grid of rows and cells, and rounding every
-   * one of them is the single change that makes a forum read as a stack of
-   * cards rather than a worked surface. The wall between two fields is a line.
+   * 6px. The previous 2px was chosen to keep a dense board from reading as a
+   * stack of cards, and it worked by making everything look like a spreadsheet
+   * instead. The rounding that matters is on the *outer* panels; rows inside
+   * them are ruled, not boxed, so density survives without the hard edges.
    */
-  --radius: 0.125rem;
+  --radius: 0.375rem;
   --density-unit: 0.25rem;
   --font-mono-stack: ui-monospace, "SFMono-Regular", "Menlo", monospace;
 
-  /* Read state: unread is emphatic, read recedes. */
-  --forum-unread: oklch(0.424 0.06 139);
-  --forum-read: oklch(0.603 0.028 132.3);
-  --forum-locked: oklch(0.501 0.139 36.6);
+  /*
+   * Read state: unread is emphatic, read recedes. Both are neutral, so a board
+   * that brands `--primary` does not accidentally turn every unread marker into
+   * its logo colour — and an operator who *wants* that overrides one token.
+   */
+  --forum-unread: oklch(0.205 0 0);
+  --forum-read: oklch(0.556 0 0);
+  --forum-locked: oklch(0.554 0.135 32);
 
-  --thread-pinned: oklch(0.59 0.119 80);
-  --thread-locked: oklch(0.501 0.139 36.6);
-  --thread-moved: oklch(0.603 0.028 132.3);
-  --thread-unapproved: oklch(0.57 0.108 81.9);
-  --thread-deleted: oklch(0.457 0.135 35);
+  --thread-pinned: oklch(0.55 0.12 68);
+  --thread-locked: oklch(0.554 0.135 32);
+  --thread-moved: oklch(0.556 0 0);
+  --thread-unapproved: oklch(0.545 0.11 88);
+  --thread-deleted: oklch(0.487 0.164 26);
 
-  --post-highlight: oklch(0.935 0.05 91);
-  --post-own: oklch(0.944 0.018 127.1);
-  --post-unapproved: oklch(0.94 0.033 91.7);
+  /* Row washes. Held near the card so text on them keeps its full contrast. */
+  --post-highlight: oklch(0.964 0.036 92);
+  --post-own: oklch(0.972 0 0);
+  --post-unapproved: oklch(0.956 0.035 84);
 
-  --moderation-pending: oklch(0.614 0.121 82.2);
-  --moderation-approved: oklch(0.483 0.09 141.8);
-  --moderation-rejected: oklch(0.501 0.139 36.6);
+  --moderation-pending: oklch(0.55 0.12 68);
+  --moderation-approved: oklch(0.518 0.113 150);
+  --moderation-rejected: oklch(0.554 0.135 32);
 
-  --group-admin: oklch(0.501 0.139 36.6);
-  --group-supermod: oklch(0.479 0.086 333.1);
-  --group-mod: oklch(0.457 0.043 230.6);
-  --group-banned: oklch(0.603 0.028 132.3);
+  --group-admin: oklch(0.505 0.169 27);
+  --group-supermod: oklch(0.496 0.153 305);
+  --group-mod: oklch(0.489 0.127 250);
+  --group-banned: oklch(0.556 0 0);
 }
 
 .dark {
   color-scheme: dark;
 
   /*
-   * Grey, not green. The light ground is limewash and carries the identity;
-   * repeating that bias at 20% lightness reads as olive rather than as evening,
-   * so the dark neutrals are near-chromaless (0.002–0.009) with only a whisper
-   * of warmth. Gorse and the semantic colours are unchanged — the hue belongs on
-   * the things that mean something, not on the walls.
+   * The same neutral, inverted, and not to pure black: `background` at L 0.15
+   * rather than 0 leaves room for `card` to sit *above* it, which is the same
+   * page-and-panel relationship the light scheme has. Pure black would flatten
+   * the two and force every panel to be found by its border.
+   *
+   * `foreground` stops at 0.967 rather than 1 for the opposite reason —
+   * full-white body text on a near-black ground haloes, and a board is read for
+   * an hour at a time.
    */
-  --background: oklch(0.217 0.004 106.7);
-  --foreground: oklch(0.933 0.005 106.5);
-  --card: oklch(0.247 0.002 106.5);
-  --card-foreground: oklch(0.933 0.005 106.5);
+  --background: oklch(0.15 0 0);
+  --foreground: oklch(0.967 0 0);
+  --card: oklch(0.196 0 0);
+  --card-foreground: oklch(0.967 0 0);
 
-  --primary: oklch(0.751 0.03 135.6);
-  --primary-foreground: oklch(0.206 0.007 135);
-  --secondary: oklch(0.284 0.004 106.6);
-  --secondary-foreground: oklch(0.893 0.007 106.5);
-  --muted: oklch(0.256 0.002 106.5);
-  --muted-foreground: oklch(0.684 0.009 106.6);
-  --accent: oklch(0.832 0.146 88.5);
-  --accent-foreground: oklch(0.194 0.029 89);
-  --destructive: oklch(0.686 0.137 40.8);
-  --destructive-foreground: oklch(0.183 0.014 61.6);
+  --primary: oklch(0.967 0 0);
+  --primary-foreground: oklch(0.196 0 0);
+  --secondary: oklch(0.256 0 0);
+  --secondary-foreground: oklch(0.94 0 0);
+  --muted: oklch(0.228 0 0);
+  --muted-foreground: oklch(0.702 0 0);
+  --accent: oklch(0.276 0 0);
+  --accent-foreground: oklch(0.967 0 0);
+  --destructive: oklch(0.674 0.174 26);
+  --destructive-foreground: oklch(0.18 0 0);
 
-  --border: oklch(0.332 0.003 106.6);
-  --input: oklch(0.359 0.005 106.7);
-  --ring: oklch(0.751 0.03 135.6);
+  --border: oklch(0.31 0 0);
+  --input: oklch(0.52 0 0);
+  --ring: oklch(0.61 0 0);
 
-  --forum-unread: oklch(0.751 0.03 135.6);
-  --forum-read: oklch(0.583 0.009 121.8);
-  --forum-locked: oklch(0.715 0.119 45.3);
+  --forum-unread: oklch(0.967 0 0);
+  --forum-read: oklch(0.6 0 0);
+  --forum-locked: oklch(0.708 0.13 34);
 
-  --thread-pinned: oklch(0.832 0.146 88.5);
-  --thread-locked: oklch(0.715 0.119 45.3);
-  --thread-moved: oklch(0.583 0.009 121.8);
-  --thread-unapproved: oklch(0.782 0.121 87.3);
-  --thread-deleted: oklch(0.701 0.125 39.5);
+  --thread-pinned: oklch(0.769 0.13 74);
+  --thread-locked: oklch(0.708 0.13 34);
+  --thread-moved: oklch(0.6 0 0);
+  --thread-unapproved: oklch(0.777 0.12 85);
+  --thread-deleted: oklch(0.664 0.157 27);
 
-  --post-highlight: oklch(0.306 0.05 100.7);
-  --post-own: oklch(0.267 0.007 106.9);
-  --post-unapproved: oklch(0.283 0.039 100);
+  --post-highlight: oklch(0.276 0.043 92);
+  --post-own: oklch(0.221 0 0);
+  --post-unapproved: oklch(0.263 0.04 85);
 
-  --moderation-pending: oklch(0.782 0.121 87.3);
-  --moderation-approved: oklch(0.732 0.1 140.4);
-  --moderation-rejected: oklch(0.715 0.119 45.3);
+  --moderation-pending: oklch(0.769 0.13 74);
+  --moderation-approved: oklch(0.716 0.126 151);
+  --moderation-rejected: oklch(0.708 0.13 34);
 
-  --group-admin: oklch(0.732 0.109 39.4);
-  --group-supermod: oklch(0.719 0.076 331.6);
-  --group-mod: oklch(0.744 0.046 230.5);
-  --group-banned: oklch(0.583 0.009 121.8);
+  --group-admin: oklch(0.687 0.166 27);
+  --group-supermod: oklch(0.703 0.144 305);
+  --group-mod: oklch(0.694 0.122 250);
+  --group-banned: oklch(0.6 0 0);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: dark;
 
-    --background: oklch(0.217 0.004 106.7);
-    --foreground: oklch(0.933 0.005 106.5);
-    --card: oklch(0.247 0.002 106.5);
-    --card-foreground: oklch(0.933 0.005 106.5);
+    --background: oklch(0.15 0 0);
+    --foreground: oklch(0.967 0 0);
+    --card: oklch(0.196 0 0);
+    --card-foreground: oklch(0.967 0 0);
 
-    --primary: oklch(0.751 0.03 135.6);
-    --primary-foreground: oklch(0.206 0.007 135);
-    --secondary: oklch(0.284 0.004 106.6);
-    --secondary-foreground: oklch(0.893 0.007 106.5);
-    --muted: oklch(0.256 0.002 106.5);
-    --muted-foreground: oklch(0.684 0.009 106.6);
-    --accent: oklch(0.832 0.146 88.5);
-    --accent-foreground: oklch(0.194 0.029 89);
-    --destructive: oklch(0.686 0.137 40.8);
-    --destructive-foreground: oklch(0.183 0.014 61.6);
+    --primary: oklch(0.967 0 0);
+    --primary-foreground: oklch(0.196 0 0);
+    --secondary: oklch(0.256 0 0);
+    --secondary-foreground: oklch(0.94 0 0);
+    --muted: oklch(0.228 0 0);
+    --muted-foreground: oklch(0.702 0 0);
+    --accent: oklch(0.276 0 0);
+    --accent-foreground: oklch(0.967 0 0);
+    --destructive: oklch(0.674 0.174 26);
+    --destructive-foreground: oklch(0.18 0 0);
 
-    --border: oklch(0.332 0.003 106.6);
-    --input: oklch(0.359 0.005 106.7);
-    --ring: oklch(0.751 0.03 135.6);
+    --border: oklch(0.31 0 0);
+    --input: oklch(0.52 0 0);
+    --ring: oklch(0.61 0 0);
 
-    --forum-unread: oklch(0.751 0.03 135.6);
-    --forum-read: oklch(0.583 0.009 121.8);
-    --forum-locked: oklch(0.715 0.119 45.3);
+    --forum-unread: oklch(0.967 0 0);
+    --forum-read: oklch(0.6 0 0);
+    --forum-locked: oklch(0.708 0.13 34);
 
-    --thread-pinned: oklch(0.832 0.146 88.5);
-    --thread-locked: oklch(0.715 0.119 45.3);
-    --thread-moved: oklch(0.583 0.009 121.8);
-    --thread-unapproved: oklch(0.782 0.121 87.3);
-    --thread-deleted: oklch(0.701 0.125 39.5);
+    --thread-pinned: oklch(0.769 0.13 74);
+    --thread-locked: oklch(0.708 0.13 34);
+    --thread-moved: oklch(0.6 0 0);
+    --thread-unapproved: oklch(0.777 0.12 85);
+    --thread-deleted: oklch(0.664 0.157 27);
 
-    --post-highlight: oklch(0.306 0.05 100.7);
-    --post-own: oklch(0.267 0.007 106.9);
-    --post-unapproved: oklch(0.283 0.039 100);
+    --post-highlight: oklch(0.276 0.043 92);
+    --post-own: oklch(0.221 0 0);
+    --post-unapproved: oklch(0.263 0.04 85);
 
-    --moderation-pending: oklch(0.782 0.121 87.3);
-    --moderation-approved: oklch(0.732 0.1 140.4);
-    --moderation-rejected: oklch(0.715 0.119 45.3);
+    --moderation-pending: oklch(0.769 0.13 74);
+    --moderation-approved: oklch(0.716 0.126 151);
+    --moderation-rejected: oklch(0.708 0.13 34);
 
-    --group-admin: oklch(0.732 0.109 39.4);
-    --group-supermod: oklch(0.719 0.076 331.6);
-    --group-mod: oklch(0.744 0.046 230.5);
-    --group-banned: oklch(0.583 0.009 121.8);
+    --group-admin: oklch(0.687 0.166 27);
+    --group-supermod: oklch(0.703 0.144 305);
+    --group-mod: oklch(0.694 0.122 250);
+    --group-banned: oklch(0.6 0 0);
   }
 }
 
@@ -302,10 +343,48 @@
     text-wrap: balance;
   }
 
+  /*
+   * The paragraph counterpart. `balance` is quadratic and browsers cap it at a
+   * handful of lines, so it is wrong for a post body; `pretty` only fixes the
+   * last line, which is the orphan that makes a paragraph look broken.
+   */
+  p {
+    text-wrap: pretty;
+  }
+
   /* Keyboard focus must always be visible — R5 pages are used without a mouse. */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+  }
+
+  /*
+   * A permalink to `#post-4102` otherwise lands the post flush against the top
+   * of the viewport, with its own header cropped and the previous post's footer
+   * nowhere — the reader cannot tell they arrived at the right one.
+   */
+  :target {
+    scroll-margin-block-start: 1.5rem;
+  }
+
+  ::selection {
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
+  }
+
+  /*
+   * Transitions on this board are hover and focus feedback of 100–150ms, and
+   * every one of them is an affordance rather than an animation. Honour the
+   * preference anyway: the setting is often on for reasons that have nothing to
+   * do with how large the movement is.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -328,6 +407,81 @@
 }
 
 /*
+ * `.prose-bb` — the typography of a rendered post body.
+ *
+ * **This block is a bug fix as much as a design.** Both shipped themes have
+ * carried `className="prose-bb"` (and `prose-forum`) on the elements that
+ * receive `bodyHtml` since the slots were written, and neither class was
+ * defined anywhere in the workspace. Tailwind's preflight zeroes the margin on
+ * `p`, `ul` and `ol` and removes the underline and colour from `a`, so a
+ * four-paragraph post rendered as one unbroken block of text with invisible
+ * links in it. Nothing failed — there is no such thing as a stylesheet error —
+ * and the contract suite could not see it, because the markup was correct and
+ * only its appearance was not.
+ *
+ * It lives here rather than in a theme for the same reason the `.bb-*` rules
+ * below do: the class names are emitted by `@meith/bbcode`, which is the app's
+ * renderer, and a theme that had to restate all of this to show a paragraph
+ * break would be inheriting a bug rather than a baseline. Everything is in
+ * tokens and `em`, so a theme changes it by changing its tokens and its base
+ * size — and a board's operator reaches it through F26 like any other surface.
+ */
+.prose-bb {
+  /* Long enough to read, short enough to track back to the next line. */
+  max-width: 72ch;
+  line-height: 1.65;
+  overflow-wrap: break-word;
+}
+
+.prose-bb > :first-child {
+  margin-top: 0;
+}
+
+.prose-bb > :last-child {
+  margin-bottom: 0;
+}
+
+.prose-bb p {
+  margin-block: 0.75em;
+}
+
+.prose-bb a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-color: var(--border);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color 120ms ease;
+}
+
+.prose-bb a:hover {
+  text-decoration-color: currentColor;
+}
+
+.prose-bb strong,
+.prose-bb b {
+  font-weight: 600;
+}
+
+/*
+ * A URL a member pasted is one unbroken token, and a long one widens the post,
+ * then the thread, then the page. Breaking it is uglier than the alternative
+ * only until you meet the alternative.
+ */
+.prose-bb a,
+.prose-bb code {
+  overflow-wrap: anywhere;
+}
+
+/* Inline images and smilies sit on the text baseline, not below it. */
+.bb-smiley {
+  display: inline-block;
+  height: 1.25em;
+  width: auto;
+  vertical-align: text-bottom;
+}
+
+/*
  * F36 — the BBCode renderer's output.
  *
  * `@meith/bbcode` emits a fixed, closed set of class names and nothing else:
@@ -337,36 +491,58 @@
  * (F26) reaches it like any other surface.
  */
 .bb-quote {
-  margin: 0.75rem 0;
-  padding: 0.5rem 0.75rem;
-  border-left: 3px solid var(--border);
-  background-color: var(--secondary);
-  border-radius: var(--radius);
+  /* `em`, so a quote inside a `[size=2]` block scales with the text it is in. */
+  margin-block: 0.85em;
+  padding: 0.55em 0.85em;
+  border-inline-start: 3px solid var(--border);
+  background-color: var(--muted);
+  border-start-end-radius: var(--radius);
+  border-end-end-radius: var(--radius);
+}
+
+/*
+ * A quote of a quote of a quote is how a forum argument is shaped, and three
+ * nested backgrounds of the same colour are indistinguishable. The inner ones
+ * drop the fill and keep the rule, so depth reads as a stack of margins.
+ */
+.bb-quote .bb-quote {
+  background-color: transparent;
 }
 
 .bb-quote-author {
   display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.875em;
+  margin-bottom: 0.3em;
+  font-size: 0.85em;
   font-style: normal;
+  font-weight: 500;
   color: var(--muted-foreground);
 }
 
 .bb-code {
-  margin: 0.75rem 0;
-  padding: 0.75rem;
+  margin-block: 0.85em;
+  padding: 0.75em 0.85em;
   overflow-x: auto;
-  background-color: var(--secondary);
+  background-color: var(--muted);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-size: 0.875em;
+  line-height: 1.6;
   /* `pre` already preserves newlines; wrapping long lines would hide overflow. */
   white-space: pre;
+  /*
+   * Tabs in pasted code default to eight columns, which throws away a third of
+   * the width of a post before the code has said anything.
+   */
+  tab-size: 2;
 }
 
 .bb-list {
-  margin: 0.5rem 0 0.5rem 1.5rem;
+  margin: 0.5em 0 0.5em 1.5em;
   list-style-position: outside;
+}
+
+.bb-list li {
+  margin-block: 0.2em;
 }
 
 ul.bb-list {

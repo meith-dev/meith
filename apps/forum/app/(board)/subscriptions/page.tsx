@@ -73,7 +73,7 @@ export default async function SubscriptionsPage({
           <h1 className="font-serif text-2xl font-semibold">Subscriptions</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             What you follow, and how often you hear about it.{' '}
-            <a href="/notifications/preferences" className="text-primary hover:underline">
+            <a href="/notifications/preferences" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Whether any of it also arrives by e-mail
             </a>{' '}
             is a separate setting.
@@ -128,7 +128,7 @@ function Section({
           {rows.map((row) => (
             <li key={row.key} className="rounded-lg border border-border bg-card p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <a href={row.href} className="text-sm font-medium text-primary hover:underline">
+                <a href={row.href} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                   {row.title}
                 </a>
                 <span className="text-xs text-muted-foreground">

@@ -1,51 +1,84 @@
 "use client"
 
 /**
- * Presentational building blocks shared by every auth form.
+ * Presentational building blocks shared by every form on the board.
+ *
+ * The name says `auth` and the imports say otherwise: twenty-odd modules across
+ * the admin panel, the moderation tools and the account screens pull `Field`,
+ * `FormError`, `FormNotice` and `SubmitButton` from here. That makes this file
+ * the app's form vocabulary, so it is built out of `@meith/ui` rather than out
+ * of hand-written class strings — which is what it was, and why an input here
+ * and an input in a theme slot had subtly different heights, borders and focus
+ * treatments.
  *
  * `SubmitButton` uses `useFormStatus`, so it must live in a client component —
- * but it degrades cleanly: with JS off there is no pending state, the button
- * simply submits. Nothing here is required for the form to function without
- * scripting; it only adds the pending affordance and inline messaging.
+ * but it degrades cleanly: with JS off there is no pending state and the button
+ * simply submits. Nothing here is required for a form to function without
+ * scripting; it only adds the pending affordance and the inline messaging. That
+ * is also the one place on the board that earns Base UI's `Button` rather than
+ * `buttonVariants` on a plain `<button>` — see `packages/ui/src/variants.ts`.
  */
+import { Alert, AlertDescription, AlertTitle, Field as UiField, Input } from "@meith/ui"
+import { Button } from "@meith/ui/button"
 import { useFormStatus } from "react-dom"
 
-export function SubmitButton({ children }: { children: React.ReactNode }) {
+/**
+ * The submit control.
+ *
+ * `disabled` while pending stops the double submit that produces two threads
+ * from one impatient double-click, and the label changes because a button that
+ * greys out with no explanation reads as broken. The width is the caller's:
+ * an auth form wants a full-width button and an admin form beside a cancel link
+ * does not.
+ */
+export function SubmitButton({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
   const { pending } = useFormStatus()
+
   return (
-    <button
+    <Button
       type="submit"
+      variant="primary"
+      size="lg"
       disabled={pending}
-      className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60"
+      className={className ?? "w-full"}
     >
       {pending ? "Working…" : children}
-    </button>
+    </Button>
   )
 }
 
-/** A top-of-form error alert. `role="alert"` so it is announced on submit. */
+/**
+ * A top-of-form error.
+ *
+ * `Alert` resolves `role="alert"` from the `error` tone, so this is announced on
+ * submit without every call site having to remember the attribute — which is
+ * the sort of thing that is right in nineteen files and missing in the
+ * twentieth.
+ */
 export function FormError({ message }: { message?: string | undefined }) {
   if (!message) return null
   return (
-    <p
-      role="alert"
-      className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-    >
-      {message}
-    </p>
+    <Alert tone="error">
+      <AlertDescription>
+        <AlertTitle>Not saved.</AlertTitle> {message}
+      </AlertDescription>
+    </Alert>
   )
 }
 
-/** A non-error confirmation (e.g. "check your email"). */
+/** A non-error confirmation (e.g. "check your email"). Announced politely. */
 export function FormNotice({ message }: { message?: string | undefined }) {
   if (!message) return null
   return (
-    <p
-      role="status"
-      className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
-    >
-      {message}
-    </p>
+    <Alert tone="success">
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   )
 }
 
@@ -63,8 +96,21 @@ interface FieldProps {
   /** Mirrors a server-side limit; never the only enforcement of one. */
   maxLength?: number | undefined
   hint?: string | undefined
+  /** A per-field validation message from the server. Marks the input invalid. */
+  error?: string | undefined
+  /** Disambiguates two forms on one page that share a field name. */
+  id?: string | undefined
 }
 
+/**
+ * A labelled text input.
+ *
+ * The label is associated by `for`/`id` rather than by wrapping the control,
+ * which is what this used to do. Wrapping works for a bare input and stops
+ * working the moment a field grows a hint, an error or a second control — the
+ * association silently widens to whatever else ended up inside the `<label>`,
+ * and clicking the hint focuses the box.
+ */
 export function Field({
   label,
   name,
@@ -75,27 +121,28 @@ export function Field({
   minLength,
   maxLength,
   hint,
+  error,
+  id,
 }: FieldProps) {
-  const hintId = hint ? `${name}-hint` : undefined
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-foreground">{label}</span>
-      <input
-        name={name}
-        type={type}
-        autoComplete={autoComplete}
-        required={required}
-        defaultValue={defaultValue}
-        minLength={minLength}
-        maxLength={maxLength}
-        aria-describedby={hintId}
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-      />
-      {hint ? (
-        <span id={hintId} className="text-xs text-muted-foreground">
-          {hint}
-        </span>
-      ) : null}
-    </label>
+    <UiField
+      name={name}
+      label={label}
+      error={error ?? null}
+      {...(id === undefined ? {} : { id })}
+      {...(hint === undefined ? {} : { description: hint })}
+    >
+      {(control) => (
+        <Input
+          {...control}
+          type={type}
+          required={required}
+          {...(autoComplete === undefined ? {} : { autoComplete })}
+          {...(defaultValue === undefined ? {} : { defaultValue })}
+          {...(minLength === undefined ? {} : { minLength })}
+          {...(maxLength === undefined ? {} : { maxLength })}
+        />
+      )}
+    </UiField>
   )
 }

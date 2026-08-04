@@ -162,7 +162,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-baseline gap-3 px-6 pt-2 text-sm">
           <span className="text-muted-foreground">Reputation:</span>
           <span className="font-medium">{reputationLabel(repSummary)}</span>
-          <a href={`/member/${id}/reputation`} className="text-primary hover:underline">
+          <a href={`/member/${id}/reputation`} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             See all ratings
           </a>
         </div>

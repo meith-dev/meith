@@ -79,7 +79,7 @@ export default async function NotificationsPage({
               {view.unread === 0
                 ? 'Nothing unread.'
                 : `${view.unread} unread.`}{' '}
-              <a href={view.preferencesHref} className="text-primary hover:underline">
+              <a href={view.preferencesHref} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                 Choose which of these you receive by e-mail
               </a>
               .
@@ -109,7 +109,7 @@ export default async function NotificationsPage({
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="text-sm font-medium">
                     {row.isRead ? null : (
-                      <span className="mr-2 text-xs font-semibold uppercase text-primary">
+                      <span className="mr-2 text-xs font-semibold uppercase text-forum-unread">
                         New
                       </span>
                     )}
@@ -135,7 +135,7 @@ export default async function NotificationsPage({
 
                 <div className="mt-3 flex items-center gap-4">
                   {row.href !== null && (
-                    <a href={row.href} className="text-sm text-primary hover:underline">
+                    <a href={row.href} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                       View
                     </a>
                   )}
@@ -147,7 +147,7 @@ export default async function NotificationsPage({
         )}
 
         {view.nextHref !== null && (
-          <a href={view.nextHref} className="text-sm text-primary hover:underline">
+          <a href={view.nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             Older notifications
           </a>
         )}

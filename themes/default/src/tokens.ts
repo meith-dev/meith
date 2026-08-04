@@ -12,6 +12,29 @@
  *     ignored
  *   - the token documentation page in the admin area
  *
+ * ## The palette is neutral, and that is the point
+ *
+ * Every greyscale token here is at **chroma zero**. The values that preceded
+ * them were the Meith identity — a limewash green ground, a gorse-yellow accent,
+ * bog rust for the destructive states — and they were a good palette for one
+ * board and a poor default for every other. A default theme is worn by
+ * communities that have never heard of us, and a board whose mark is blue should
+ * not have to override eleven tokens to stop the walls being green.
+ *
+ * So the neutrals hold no hue at all, and `primary` is **ink**: near-black in
+ * light, near-white in dark. The single loud control on a page — post, reply,
+ * search — is the strongest thing on it by contrast rather than by colour, which
+ * works on any board. An operator who wants a house colour sets `--primary` and
+ * `--primary-foreground` from the control panel, and nothing else in the palette
+ * argues with the result. That is what "neutral" is for here: not the absence of
+ * a decision, but a decision that leaves the next one open.
+ *
+ * The semantic tokens keep their hues, because they are not decoration —
+ * `thread-locked` is the difference between a thread you can answer and one you
+ * cannot. They are held to chroma 0.11–0.17 so they read as information beside
+ * somebody's brand rather than competing with it, and every state a hue marks is
+ * also a word in the markup: colour is never the only carrier.
+ *
  * ## The sync test is not optional
  *
  * The previous version of this file promised "keeping both in sync is checked by
@@ -26,8 +49,8 @@
  * token does not exist, while an override of `forum-pinned` would have been
  * accepted and then applied to a variable no stylesheet reads.
  *
- * Values here are now copied verbatim from `globals.css`, and the test asserts
- * the name sets and the values match exactly. Change a colour in the CSS and the
+ * Values here are copied verbatim from `globals.css`, and the test asserts the
+ * name sets and the values match exactly. Change a colour in the CSS and the
  * test names the token you forgot.
  */
 
@@ -92,88 +115,98 @@ export type TokenName = (typeof TOKEN_NAMES)[number]
  */
 export const SCHEME_INDEPENDENT_TOKENS = ['radius', 'density-unit', 'font-mono-stack'] as const
 
-/** Light-mode defaults. Verbatim from `:root` in globals.css. */
+/**
+ * Light-mode defaults. Verbatim from `:root` in globals.css.
+ *
+ * Several tokens deliberately share a value, and the repetition is the
+ * statement rather than a copy-paste: `forum-locked`, `thread-locked` and
+ * `moderation-rejected` are one signal — *this is closed* — wearing three
+ * names, and `forum-read`, `thread-moved` and `group-banned` are one signal
+ * too: *this has receded*. They stay separate names because a board that wants
+ * to tell a locked thread from a rejected report should be able to, by
+ * overriding one of them and not the other.
+ */
 export const LIGHT_TOKENS: Record<TokenName, string> = {
-  background: 'oklch(0.951 0.011 118)',
-  foreground: 'oklch(0.228 0.012 145.2)',
-  card: 'oklch(0.974 0.008 114.2)',
-  'card-foreground': 'oklch(0.228 0.012 145.2)',
-  primary: 'oklch(0.424 0.06 139)',
-  'primary-foreground': 'oklch(0.967 0.009 119.6)',
-  secondary: 'oklch(0.922 0.017 121.8)',
-  'secondary-foreground': 'oklch(0.344 0.022 140)',
-  muted: 'oklch(0.935 0.014 120.3)',
-  'muted-foreground': 'oklch(0.508 0.036 129.3)',
-  accent: 'oklch(0.69 0.137 79.4)',
-  'accent-foreground': 'oklch(0.225 0.038 84)',
-  destructive: 'oklch(0.501 0.139 36.6)',
-  'destructive-foreground': 'oklch(0.966 0.008 73.7)',
-  border: 'oklch(0.851 0.024 122.8)',
-  input: 'oklch(0.851 0.024 122.8)',
-  ring: 'oklch(0.424 0.06 139)',
-  radius: '0.125rem',
+  background: 'oklch(0.968 0 0)',
+  foreground: 'oklch(0.205 0 0)',
+  card: 'oklch(1 0 0)',
+  'card-foreground': 'oklch(0.205 0 0)',
+  primary: 'oklch(0.205 0 0)',
+  'primary-foreground': 'oklch(0.985 0 0)',
+  secondary: 'oklch(0.94 0 0)',
+  'secondary-foreground': 'oklch(0.269 0 0)',
+  muted: 'oklch(0.958 0 0)',
+  'muted-foreground': 'oklch(0.494 0 0)',
+  accent: 'oklch(0.951 0 0)',
+  'accent-foreground': 'oklch(0.205 0 0)',
+  destructive: 'oklch(0.514 0.183 28.5)',
+  'destructive-foreground': 'oklch(0.985 0 0)',
+  border: 'oklch(0.905 0 0)',
+  input: 'oklch(0.64 0 0)',
+  ring: 'oklch(0.556 0 0)',
+  radius: '0.375rem',
   'density-unit': '0.25rem',
   'font-mono-stack': 'ui-monospace, "SFMono-Regular", "Menlo", monospace',
-  'forum-unread': 'oklch(0.424 0.06 139)',
-  'forum-read': 'oklch(0.603 0.028 132.3)',
-  'forum-locked': 'oklch(0.501 0.139 36.6)',
-  'thread-pinned': 'oklch(0.59 0.119 80)',
-  'thread-locked': 'oklch(0.501 0.139 36.6)',
-  'thread-moved': 'oklch(0.603 0.028 132.3)',
-  'thread-unapproved': 'oklch(0.57 0.108 81.9)',
-  'thread-deleted': 'oklch(0.457 0.135 35)',
-  'post-highlight': 'oklch(0.935 0.05 91)',
-  'post-own': 'oklch(0.944 0.018 127.1)',
-  'post-unapproved': 'oklch(0.94 0.033 91.7)',
-  'moderation-pending': 'oklch(0.614 0.121 82.2)',
-  'moderation-approved': 'oklch(0.483 0.09 141.8)',
-  'moderation-rejected': 'oklch(0.501 0.139 36.6)',
-  'group-admin': 'oklch(0.501 0.139 36.6)',
-  'group-supermod': 'oklch(0.479 0.086 333.1)',
-  'group-mod': 'oklch(0.457 0.043 230.6)',
-  'group-banned': 'oklch(0.603 0.028 132.3)',
+  'forum-unread': 'oklch(0.205 0 0)',
+  'forum-read': 'oklch(0.556 0 0)',
+  'forum-locked': 'oklch(0.554 0.135 32)',
+  'thread-pinned': 'oklch(0.55 0.12 68)',
+  'thread-locked': 'oklch(0.554 0.135 32)',
+  'thread-moved': 'oklch(0.556 0 0)',
+  'thread-unapproved': 'oklch(0.545 0.11 88)',
+  'thread-deleted': 'oklch(0.487 0.164 26)',
+  'post-highlight': 'oklch(0.964 0.036 92)',
+  'post-own': 'oklch(0.972 0 0)',
+  'post-unapproved': 'oklch(0.956 0.035 84)',
+  'moderation-pending': 'oklch(0.55 0.12 68)',
+  'moderation-approved': 'oklch(0.518 0.113 150)',
+  'moderation-rejected': 'oklch(0.554 0.135 32)',
+  'group-admin': 'oklch(0.505 0.169 27)',
+  'group-supermod': 'oklch(0.496 0.153 305)',
+  'group-mod': 'oklch(0.489 0.127 250)',
+  'group-banned': 'oklch(0.556 0 0)',
 }
 
 /** Dark-mode defaults. Verbatim from `.dark` in globals.css. */
 export const DARK_TOKENS: Record<TokenName, string> = {
-  background: 'oklch(0.217 0.004 106.7)',
-  foreground: 'oklch(0.933 0.005 106.5)',
-  card: 'oklch(0.247 0.002 106.5)',
-  'card-foreground': 'oklch(0.933 0.005 106.5)',
-  primary: 'oklch(0.751 0.03 135.6)',
-  'primary-foreground': 'oklch(0.206 0.007 135)',
-  secondary: 'oklch(0.284 0.004 106.6)',
-  'secondary-foreground': 'oklch(0.893 0.007 106.5)',
-  muted: 'oklch(0.256 0.002 106.5)',
-  'muted-foreground': 'oklch(0.684 0.009 106.6)',
-  accent: 'oklch(0.832 0.146 88.5)',
-  'accent-foreground': 'oklch(0.194 0.029 89)',
-  destructive: 'oklch(0.686 0.137 40.8)',
-  'destructive-foreground': 'oklch(0.183 0.014 61.6)',
-  border: 'oklch(0.332 0.003 106.6)',
-  input: 'oklch(0.359 0.005 106.7)',
-  ring: 'oklch(0.751 0.03 135.6)',
-  radius: '0.125rem',
+  background: 'oklch(0.15 0 0)',
+  foreground: 'oklch(0.967 0 0)',
+  card: 'oklch(0.196 0 0)',
+  'card-foreground': 'oklch(0.967 0 0)',
+  primary: 'oklch(0.967 0 0)',
+  'primary-foreground': 'oklch(0.196 0 0)',
+  secondary: 'oklch(0.256 0 0)',
+  'secondary-foreground': 'oklch(0.94 0 0)',
+  muted: 'oklch(0.228 0 0)',
+  'muted-foreground': 'oklch(0.702 0 0)',
+  accent: 'oklch(0.276 0 0)',
+  'accent-foreground': 'oklch(0.967 0 0)',
+  destructive: 'oklch(0.674 0.174 26)',
+  'destructive-foreground': 'oklch(0.18 0 0)',
+  border: 'oklch(0.31 0 0)',
+  input: 'oklch(0.52 0 0)',
+  ring: 'oklch(0.61 0 0)',
+  radius: '0.375rem',
   'density-unit': '0.25rem',
   'font-mono-stack': 'ui-monospace, "SFMono-Regular", "Menlo", monospace',
-  'forum-unread': 'oklch(0.751 0.03 135.6)',
-  'forum-read': 'oklch(0.583 0.009 121.8)',
-  'forum-locked': 'oklch(0.715 0.119 45.3)',
-  'thread-pinned': 'oklch(0.832 0.146 88.5)',
-  'thread-locked': 'oklch(0.715 0.119 45.3)',
-  'thread-moved': 'oklch(0.583 0.009 121.8)',
-  'thread-unapproved': 'oklch(0.782 0.121 87.3)',
-  'thread-deleted': 'oklch(0.701 0.125 39.5)',
-  'post-highlight': 'oklch(0.306 0.05 100.7)',
-  'post-own': 'oklch(0.267 0.007 106.9)',
-  'post-unapproved': 'oklch(0.283 0.039 100)',
-  'moderation-pending': 'oklch(0.782 0.121 87.3)',
-  'moderation-approved': 'oklch(0.732 0.1 140.4)',
-  'moderation-rejected': 'oklch(0.715 0.119 45.3)',
-  'group-admin': 'oklch(0.732 0.109 39.4)',
-  'group-supermod': 'oklch(0.719 0.076 331.6)',
-  'group-mod': 'oklch(0.744 0.046 230.5)',
-  'group-banned': 'oklch(0.583 0.009 121.8)',
+  'forum-unread': 'oklch(0.967 0 0)',
+  'forum-read': 'oklch(0.6 0 0)',
+  'forum-locked': 'oklch(0.708 0.13 34)',
+  'thread-pinned': 'oklch(0.769 0.13 74)',
+  'thread-locked': 'oklch(0.708 0.13 34)',
+  'thread-moved': 'oklch(0.6 0 0)',
+  'thread-unapproved': 'oklch(0.777 0.12 85)',
+  'thread-deleted': 'oklch(0.664 0.157 27)',
+  'post-highlight': 'oklch(0.276 0.043 92)',
+  'post-own': 'oklch(0.221 0 0)',
+  'post-unapproved': 'oklch(0.263 0.04 85)',
+  'moderation-pending': 'oklch(0.769 0.13 74)',
+  'moderation-approved': 'oklch(0.716 0.126 151)',
+  'moderation-rejected': 'oklch(0.708 0.13 34)',
+  'group-admin': 'oklch(0.687 0.166 27)',
+  'group-supermod': 'oklch(0.703 0.144 305)',
+  'group-mod': 'oklch(0.694 0.122 250)',
+  'group-banned': 'oklch(0.6 0 0)',
 }
 
 /**
@@ -187,11 +220,10 @@ export const DARK_TOKENS: Record<TokenName, string> = {
  * sRGB → gamma-encoded. F26's runtime conversion is also used by the exact-match
  * test, so changing `background` cannot leave this browser-chrome pair stale.
  *
- * Limewash and peat: the Meith palette was authored in sRGB and converted *to*
- * OKLCH for the stylesheet, so the round trip lands back on the two hexes it
- * started from rather than drifting a digit.
+ * Both are pure greys, which is what makes them safe here: an sRGB round trip
+ * cannot drift the hue of a colour that has none.
  */
 export const BROWSER_THEME_COLOR = {
-  light: '#eef0e8',
-  dark: '#1a1a18',
+  light: '#f4f4f4',
+  dark: '#0b0b0b',
 } as const

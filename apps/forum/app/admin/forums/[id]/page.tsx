@@ -47,7 +47,7 @@ export default async function AdminForumPage({
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-8">
       <div className="flex flex-col gap-1">
-        <a href="/admin/forums" className="text-sm text-primary hover:underline">
+        <a href="/admin/forums" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           ← All forums
         </a>
         <h1 className="font-serif text-2xl font-semibold">{forum.title}</h1>

@@ -45,7 +45,7 @@ export default async function AdminGroupsPage() {
           A group is a set of permissions and the members who hold it. What a
           group allows here is the <em>default</em> for every forum — a forum
           may override it, and{' '}
-          <a href="/admin/forums" className="text-primary hover:underline">
+          <a href="/admin/forums" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             forum permissions
           </a>{' '}
           is where that happens.
@@ -77,7 +77,7 @@ export default async function AdminGroupsPage() {
             </span>
             <a
               href={`/admin/groups/${group.id}`}
-              className="shrink-0 text-sm text-primary hover:underline"
+              className="shrink-0 text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
             >
               Edit
             </a>
@@ -86,10 +86,10 @@ export default async function AdminGroupsPage() {
       </ul>
 
       <nav className="flex flex-wrap gap-4 text-sm">
-        <a href="/admin/groups/promotions" className="text-primary hover:underline">
+        <a href="/admin/groups/promotions" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Promotions
         </a>
-        <a href="/admin/groups/memberships" className="text-primary hover:underline">
+        <a href="/admin/groups/memberships" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Mass membership change
         </a>
       </nav>

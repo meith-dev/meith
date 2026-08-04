@@ -70,7 +70,7 @@ export default async function NotificationPreferencesPage({
         <div>
           <h1 className="font-serif text-2xl font-semibold">Notification preferences</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            <a href={view.backHref} className="text-primary hover:underline">
+            <a href={view.backHref} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Back to your notifications
             </a>
           </p>

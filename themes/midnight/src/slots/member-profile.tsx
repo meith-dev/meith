@@ -72,7 +72,7 @@ export function MemberProfile({
       {signatureHtml !== null && (
         <section aria-label="Signature" className="border border-border p-3 text-sm">
           {/* Pre-rendered by the sanitising renderer (F36), like a post body. */}
-          <div className="prose-forum" dangerouslySetInnerHTML={{ __html: signatureHtml }} />
+          <div className="prose-bb" dangerouslySetInnerHTML={{ __html: signatureHtml }} />
         </section>
       )}
 

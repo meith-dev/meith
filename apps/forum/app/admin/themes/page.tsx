@@ -64,7 +64,7 @@ export default async function AdminThemesPage() {
               </span>
               <a
                 href={`/admin/themes/${theme.key}`}
-                className="shrink-0 text-sm text-primary hover:underline"
+                className="shrink-0 text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 Edit
               </a>

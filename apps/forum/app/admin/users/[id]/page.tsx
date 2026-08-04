@@ -49,7 +49,7 @@ export default async function AdminMemberPage({
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
       <div className="flex flex-col gap-1">
-        <a href="/admin/users" className="text-sm text-primary hover:underline">
+        <a href="/admin/users" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           ← All members
         </a>
         <h1 className="font-serif text-2xl font-semibold">{member.username}</h1>
@@ -167,7 +167,7 @@ export default async function AdminMemberPage({
         <p>
           <a
             href={`/admin/users/${member.id}/merge`}
-            className="text-sm text-primary hover:underline"
+            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
             Merge {member.username} into another account →
           </a>
@@ -198,7 +198,7 @@ export default async function AdminMemberPage({
                 <li key={row.id}>
                   <a
                     href={`/admin/users/${row.id}`}
-                    className="text-primary hover:underline"
+                    className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                   >
                     {row.username}
                   </a>{' '}

@@ -69,7 +69,7 @@ export function AssignReportForm({
       <input type="hidden" name="take" value={mine ? "0" : "1"} />
       <button
         type="submit"
-        className="text-xs text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {mine ? "Put back" : "Take this"}
       </button>

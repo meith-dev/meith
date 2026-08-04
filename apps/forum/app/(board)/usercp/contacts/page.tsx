@@ -114,7 +114,7 @@ export default async function ContactsPage({
           )}
         </section>
 
-        <a href="/usercp" className="text-sm text-primary hover:underline">
+        <a href="/usercp" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           &larr; Back to your control panel
         </a>
       </div>
@@ -125,14 +125,14 @@ export default async function ContactsPage({
 function ContactLine({ row }: { row: ContactRowView }) {
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
-      <a href={row.profileHref} className="text-sm font-medium hover:text-primary">
+      <a href={row.profileHref} className="text-sm font-medium text-foreground hover:underline underline-offset-2">
         {row.username}
       </a>
 
       {row.isOnline ? (
         /* A word as well as a dot: a colour difference alone is not a
            distinction everybody can see. */
-        <span className="text-xs font-medium text-primary">Online</span>
+        <span className="text-xs font-medium text-moderation-approved">Online</span>
       ) : (
         row.lastSeenLabel !== null && (
           <span className="text-xs text-muted-foreground">{row.lastSeenLabel}</span>
@@ -141,7 +141,7 @@ function ContactLine({ row }: { row: ContactRowView }) {
 
       <span className="ml-auto flex items-center gap-4">
         {row.messageHref !== null && (
-          <a href={row.messageHref} className="text-sm text-primary hover:underline">
+          <a href={row.messageHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             Message
           </a>
         )}

@@ -109,7 +109,7 @@ export default async function WarnPage({
         <div>
           <h1 className="font-serif text-2xl font-semibold">
             Warnings for{' '}
-            <a href={view.member.href} className="text-primary hover:underline">
+            <a href={view.member.href} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               {view.member.username}
             </a>
           </h1>
@@ -171,7 +171,7 @@ export default async function WarnPage({
             </ul>
           )}
           {view.nextHref !== null && (
-            <a href={view.nextHref} className="text-sm text-primary hover:underline">
+            <a href={view.nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Older warnings
             </a>
           )}

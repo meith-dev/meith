@@ -101,7 +101,7 @@ export default async function MessagesPage({
 
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h1 className="font-serif text-2xl font-semibold">Private messages</h1>
-          <a href={view.composeHref} className="text-sm text-primary hover:underline">
+          <a href={view.composeHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             Write a message
           </a>
         </div>
@@ -174,14 +174,14 @@ export default async function MessagesPage({
                       href={row.href}
                       className={
                         row.isUnread
-                          ? 'truncate text-sm font-semibold text-foreground hover:text-primary'
-                          : 'truncate text-sm text-foreground hover:text-primary'
+                          ? 'truncate text-sm font-semibold text-foreground hover:underline underline-offset-2'
+                          : 'truncate text-sm text-foreground hover:underline underline-offset-2'
                       }
                     >
                       {/* Unread is a word as well as a weight: a difference in
                           font weight alone is not one everybody can see. */}
                       {row.isUnread && (
-                        <span className="mr-2 text-xs font-semibold uppercase text-primary">New</span>
+                        <span className="mr-2 text-xs font-semibold uppercase text-forum-unread">New</span>
                       )}
                       {row.subject}
                     </a>
@@ -200,7 +200,7 @@ export default async function MessagesPage({
         )}
 
         {view.nextHref !== null && (
-          <a href={view.nextHref} className="text-sm text-primary hover:underline">
+          <a href={view.nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             Older messages
           </a>
         )}

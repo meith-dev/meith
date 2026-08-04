@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { DARK_TOKENS, LIGHT_TOKENS } from '@meith/theme-default'
+import { BROWSER_THEME_COLOR, DARK_TOKENS, LIGHT_TOKENS } from '@meith/theme-default'
 
 import {
   colorToHex,
@@ -79,8 +79,18 @@ describe('theme runtime style', () => {
       light: '#102030',
       dark: '#102030',
     })
-    expect(colorToHex(LIGHT_TOKENS.background)).toBe('#eef0e8')
-    expect(colorToHex(DARK_TOKENS.background)).toBe('#1a1a18')
+    /*
+     * Against `BROWSER_THEME_COLOR`, not against two literals.
+     *
+     * This assertion used to name the palette's hexes, and a redesign of the
+     * default theme therefore failed it — which is a test reporting a change it
+     * has no opinion about. The property worth holding is that
+     * `<meta name="theme-color">` is the `background` token converted, so that
+     * the pair cannot go stale by hand; which two greys the theme happens to
+     * ship is `tokens.test.ts`'s business, where the CSS is compared with it.
+     */
+    expect(colorToHex(LIGHT_TOKENS.background)).toBe(BROWSER_THEME_COLOR.light)
+    expect(colorToHex(DARK_TOKENS.background)).toBe(BROWSER_THEME_COLOR.dark)
   })
 
   it('rejects stylesheet escapes and external fetches in custom CSS', () => {

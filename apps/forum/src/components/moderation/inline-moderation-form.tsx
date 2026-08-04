@@ -29,6 +29,7 @@ import { useActionState } from "react"
 import { inlineModerateAction } from "@/server/inline-moderation-actions"
 import { splitSelectedAction } from "@/server/surgery-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
+import { BOARD_MEASURE } from "@/components/shell/measure"
 
 import { FormError } from "../auth/form-controls"
 
@@ -84,117 +85,125 @@ export function InlineModerationForm({
   const [splitState, splitAction] = useActionState(splitSelectedAction, EMPTY_STATE)
 
   return (
-    <form
-      id={formId}
-      action={action}
-      aria-label={`Moderate selected ${scope}`}
-      className="mx-6 mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-3"
-    >
-      <FormError message={state.error} />
-      <FormError message={splitState.error} />
-      <input type="hidden" name="returnTo" value={returnTo} />
+    /*
+     * The measure is on a wrapper and the panel styling stays on the form: this
+     * bar has to line up with the listing whose checkboxes feed it (see
+     * `BOARD_MEASURE`), and a single element cannot be both a centring container
+     * and a padded panel without two `px-*` utilities fighting for one property.
+     */
+    <div className={`${BOARD_MEASURE} mb-6`}>
+      <form
+        id={formId}
+        action={action}
+        aria-label={`Moderate selected ${scope}`}
+        className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-3"
+      >
+        <FormError message={state.error} />
+        <FormError message={splitState.error} />
+        <input type="hidden" name="returnTo" value={returnTo} />
 
-      <span className="text-xs font-medium text-muted-foreground">
-        With selected {scope}:
-      </span>
-
-      {rights.approve && (
-        <button type="submit" name="tool" value="approve" className={BUTTON}>
-          Approve
-        </button>
-      )}
-      {rights.lock && scope === "threads" && (
-        <>
-          <button type="submit" name="tool" value="lock" className={BUTTON}>
-            Lock
-          </button>
-          <button type="submit" name="tool" value="unlock" className={BUTTON}>
-            Unlock
-          </button>
-        </>
-      )}
-      {rights.stick && scope === "threads" && (
-        <>
-          <button type="submit" name="tool" value="stick" className={BUTTON}>
-            Pin
-          </button>
-          <button type="submit" name="tool" value="unstick" className={BUTTON}>
-            Unpin
-          </button>
-        </>
-      )}
-      {rights.delete && (
-        <button type="submit" name="tool" value="restore" className={BUTTON}>
-          Restore
-        </button>
-      )}
-
-      {rights.move && scope === "threads" && moveTargets.length > 0 && (
-        <span className="flex items-center gap-2">
-          <label className="flex items-center gap-2 text-xs">
-            <span className="sr-only">Move to</span>
-            <select
-              name="toForumId"
-              className="h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              {moveTargets.map((forum) => (
-                <option key={forum.id} value={forum.id}>
-                  {forum.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" name="tool" value="move" className={BUTTON}>
-            Move
-          </button>
+        <span className="text-xs font-medium text-muted-foreground">
+          With selected {scope}:
         </span>
-      )}
 
-      {/*
-        Split, reached from the same checkboxes by `formAction`.
-
-        Native HTML: a control has exactly one form owner, so the ticks cannot
-        belong to two forms — but a submit button may redirect *its* submission
-        elsewhere, which is what `formaction` is for. That is what lets one
-        selection drive both the bulk tools and a split without the second
-        selection mechanism F51 refused to build. React accepts a Server Action
-        here for the same reason it accepts one on `<form action>`.
-      */}
-      {splitFrom != null && scope === "posts" && (
-        <span className="flex items-center gap-2">
-          <input type="hidden" name="threadId" value={splitFrom} />
-          <label className="flex items-center gap-2 text-xs">
-            <span className="sr-only">Title for the new thread</span>
-            <input
-              type="text"
-              name="title"
-              maxLength={150}
-              placeholder="New thread title"
-              className="h-8 w-48 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            />
-          </label>
-          <button type="submit" formAction={splitAction} className={BUTTON}>
-            Split out
+        {rights.approve && (
+          <button type="submit" name="tool" value="approve" className={BUTTON}>
+            Approve
           </button>
-        </span>
-      )}
+        )}
+        {rights.lock && scope === "threads" && (
+          <>
+            <button type="submit" name="tool" value="lock" className={BUTTON}>
+              Lock
+            </button>
+            <button type="submit" name="tool" value="unlock" className={BUTTON}>
+              Unlock
+            </button>
+          </>
+        )}
+        {rights.stick && scope === "threads" && (
+          <>
+            <button type="submit" name="tool" value="stick" className={BUTTON}>
+              Pin
+            </button>
+            <button type="submit" name="tool" value="unstick" className={BUTTON}>
+              Unpin
+            </button>
+          </>
+        )}
+        {rights.delete && (
+          <button type="submit" name="tool" value="restore" className={BUTTON}>
+            Restore
+          </button>
+        )}
 
-      {/*
-        Last on purpose. It is the only irreversible-looking button here (it is
-        a soft delete, and Restore is right there, but it is the one a
-        mis-aimed Enter should not reach), so it is never the form's default
-        submit button.
-      */}
-      {rights.delete && (
-        <button
-          type="submit"
-          name="tool"
-          value="delete"
-          className={`${BUTTON} border-destructive/40 text-destructive`}
-        >
-          Delete
-        </button>
-      )}
-    </form>
+        {rights.move && scope === "threads" && moveTargets.length > 0 && (
+          <span className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs">
+              <span className="sr-only">Move to</span>
+              <select
+                name="toForumId"
+                className="h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {moveTargets.map((forum) => (
+                  <option key={forum.id} value={forum.id}>
+                    {forum.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" name="tool" value="move" className={BUTTON}>
+              Move
+            </button>
+          </span>
+        )}
+
+        {/*
+          Split, reached from the same checkboxes by `formAction`.
+
+          Native HTML: a control has exactly one form owner, so the ticks cannot
+          belong to two forms — but a submit button may redirect *its* submission
+          elsewhere, which is what `formaction` is for. That is what lets one
+          selection drive both the bulk tools and a split without the second
+          selection mechanism F51 refused to build. React accepts a Server Action
+          here for the same reason it accepts one on `<form action>`.
+        */}
+        {splitFrom != null && scope === "posts" && (
+          <span className="flex items-center gap-2">
+            <input type="hidden" name="threadId" value={splitFrom} />
+            <label className="flex items-center gap-2 text-xs">
+              <span className="sr-only">Title for the new thread</span>
+              <input
+                type="text"
+                name="title"
+                maxLength={150}
+                placeholder="New thread title"
+                className="h-8 w-48 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              />
+            </label>
+            <button type="submit" formAction={splitAction} className={BUTTON}>
+              Split out
+            </button>
+          </span>
+        )}
+
+        {/*
+          Last on purpose. It is the only irreversible-looking button here (it is
+          a soft delete, and Restore is right there, but it is the one a
+          mis-aimed Enter should not reach), so it is never the form's default
+          submit button.
+        */}
+        {rights.delete && (
+          <button
+            type="submit"
+            name="tool"
+            value="delete"
+            className={`${BUTTON} border-destructive/40 text-destructive`}
+          >
+            Delete
+          </button>
+        )}
+      </form>
+    </div>
   )
 }

@@ -101,7 +101,7 @@ export default async function ReportsPage({
                   {href === null ? (
                     <span className="font-medium">{report.targetLabel}</span>
                   ) : (
-                    <a href={href} className="text-primary hover:underline">
+                    <a href={href} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                       {report.targetLabel}
                     </a>
                   )}
@@ -158,7 +158,7 @@ export default async function ReportsPage({
         {page.nextCursor !== undefined && (
           <a
             href={`/moderation/reports?after=${encodeURIComponent(page.nextCursor)}`}
-            className="text-sm text-primary hover:underline"
+            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
             Older reports
           </a>

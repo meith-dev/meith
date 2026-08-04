@@ -61,11 +61,11 @@ export default async function ProfileSettingsPage({
           <h1 className="font-serif text-2xl font-semibold">Your profile</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Shown on{' '}
-            <a href={`/member/${settings.userId}`} className="text-primary hover:underline">
+            <a href={`/member/${settings.userId}`} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               your public profile
             </a>
             .{' '}
-            <a href="/usercp" className="text-primary hover:underline">
+            <a href="/usercp" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Back to your control panel
             </a>
           </p>

@@ -95,7 +95,7 @@ export default async function AdminSettingsPage({
               query: model.query,
               advanced: false,
             })}
-            className="text-primary hover:underline"
+            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
             Hide advanced settings
           </a>
@@ -113,7 +113,7 @@ export default async function AdminSettingsPage({
                 query: model.query,
                 advanced: true,
               })}
-              className="text-primary hover:underline"
+              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
             >
               Show advanced settings
             </a>

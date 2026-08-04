@@ -27,19 +27,19 @@ export default async function StatsPage() {
 
   if (view === null) {
     return (
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-6 py-8">
+      <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-6 py-8 flex-1">
         <h1 className="font-serif text-2xl font-semibold">Board statistics</h1>
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
           This board keeps no statistics.
         </p>
-      </div>
+      </main>
     )
   }
 
   const { totals, topPosters, mostViewed, mostReplied } = view
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
+    <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8 flex-1">
       <div className="flex flex-col gap-1">
         <h1 className="font-serif text-2xl font-semibold">Board statistics</h1>
         <p className="text-sm text-muted-foreground">
@@ -75,7 +75,7 @@ export default async function StatsPage() {
               ) : (
                 <a
                   href={`/member/${totals.newestUserId}`}
-                  className="text-primary hover:underline"
+                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                 >
                   {totals.newestUsername}
                 </a>
@@ -97,7 +97,7 @@ export default async function StatsPage() {
               <li key={poster.userId} className="flex justify-between gap-4">
                 <span>
                   <span className="text-muted-foreground">{index + 1}.</span>{' '}
-                  <a href={`/member/${poster.userId}`} className="text-primary hover:underline">
+                  <a href={`/member/${poster.userId}`} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                     {poster.username}
                   </a>
                 </span>
@@ -123,7 +123,7 @@ export default async function StatsPage() {
         rows={mostReplied}
         figure={(row) => `${row.replyCount.toLocaleString()} replies`}
       />
-    </div>
+    </main>
   )
 }
 
@@ -170,7 +170,7 @@ function ThreadTable({
                 <span className="text-muted-foreground">{index + 1}.</span>{' '}
                 <a
                   href={`/thread/${row.threadId}-${row.slug}`}
-                  className="text-primary hover:underline"
+                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                 >
                   {row.title}
                 </a>{' '}
