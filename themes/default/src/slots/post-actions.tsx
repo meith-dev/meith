@@ -23,6 +23,13 @@ import type { PostActionsSlotModel } from '@meith/theme-kit'
  * when both sides exist. The separator is decorative: a screen reader gets the
  * grouping from the nav's label and the reading order, not from an announcement
  * of the word "separator" in the middle of a list of links.
+ *
+ * ## `children` is the multi-quote button, and it belongs here
+ *
+ * It used to be handed to `PostBit` as part of the plugin footer, because that
+ * was the only region a page could reach — so a post that offered one control
+ * grew a whole second bordered row to hold it. It is a post action, it sits
+ * with the post actions, and the row it used to need is gone.
  */
 
 interface Action {
@@ -30,7 +37,7 @@ interface Action {
   readonly label: string
 }
 
-export function PostActions({ actions }: PostActionsSlotModel) {
+export function PostActions({ actions, children }: PostActionsSlotModel) {
   const reader: Action[] = [
     actions.quoteHref === null ? null : { href: actions.quoteHref, label: 'Quote' },
     actions.editHref === null ? null : { href: actions.editHref, label: 'Edit' },
@@ -44,7 +51,7 @@ export function PostActions({ actions }: PostActionsSlotModel) {
     actions.moderateHref === null ? null : { href: actions.moderateHref, label: 'Moderate' },
   ].filter((action): action is Action => action !== null)
 
-  if (reader.length === 0 && staff.length === 0) return null
+  if (reader.length === 0 && staff.length === 0 && children === undefined) return null
 
   return (
     <nav aria-label="Post actions" className="flex flex-wrap items-center gap-x-1 gap-y-1">
@@ -71,6 +78,10 @@ export function PostActions({ actions }: PostActionsSlotModel) {
           {action.label}
         </a>
       ))}
+
+      {/* `ms-auto`, so an island sits at the far end rather than in the run of
+          links a reader scans. Nothing when the page passed none. */}
+      {children !== undefined && <span className="ms-auto empty:hidden">{children}</span>}
     </nav>
   )
 }

@@ -31,6 +31,9 @@
 import { Badge, cn } from '@meith/ui'
 import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
 
+/** The width of a listing page. Named so `pageAt` cannot be handed it. */
+const PAGE_WIDTH = 'max-w-6xl'
+
 /**
  * The page's measure.
  *
@@ -41,10 +44,26 @@ import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
  * post body at 72ch); a table of rows is not prose and does not want a
  * paragraph's measure.
  */
-export const PAGE = 'mx-auto w-full max-w-6xl px-4 sm:px-6'
+export const PAGE = `mx-auto w-full ${PAGE_WIDTH} px-4 sm:px-6`
 
 /** A page body: the measure, plus the vertical rhythm every route shares. */
 export const PAGE_BODY = `${PAGE} flex w-full flex-col gap-5 py-6 sm:py-8`
+
+/**
+ * A page centred at a **narrower** measure than the board's.
+ *
+ * `PAGE` for a listing; this for a page that is one column of text somebody
+ * reads or writes — a composer, a profile. Two `max-w-*` classes on one element
+ * do not compose, they collide: Tailwind emits both, they have equal
+ * specificity, and whichever it happens to write later wins. `${PAGE} max-w-3xl`
+ * therefore rendered the composer at the full board width for as long as it was
+ * written that way, with a doc comment above it explaining why it was narrow.
+ *
+ * Taking the width as an argument is what makes that impossible to write.
+ */
+export function pageAt(width: 'max-w-3xl' | 'max-w-4xl'): string {
+  return `mx-auto w-full ${width} px-4 sm:px-6`
+}
 
 /**
  * A link in running text or a listing.
@@ -103,6 +122,24 @@ export function UnreadDot() {
 /** Keeps the dot's space when a row is read, so titles stay in one column. */
 export function ReadSpacer() {
   return <span aria-hidden="true" className="mt-1.5 size-2 shrink-0" />
+}
+
+/**
+ * Did a region render nothing?
+ *
+ * A region arrives as a `ReactNode`, and a node that will render nothing is
+ * indistinguishable from one that will render something — until it does.
+ * `:empty` in CSS can *hide* a box that turned out to have no children, and
+ * that is what the postbit's footer uses; it cannot put a sentence in one.
+ *
+ * A forum with no threads needs the sentence. The page hands the listing an
+ * array of rendered rows, so an empty array is the honest signal available
+ * here, and the model's own note says the empty state is the theme's to
+ * supply.
+ */
+export function isEmptyRegion(node: React.ReactNode): boolean {
+  if (node === null || node === undefined || node === false) return true
+  return Array.isArray(node) && node.length === 0
 }
 
 /**

@@ -27,6 +27,11 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
         <p className="text-sm text-muted-foreground">{forum.description}</p>
       )}
 
+      {/* Theme API 1.3: the thread ordering, and following this forum. */}
+      {regions.tools !== undefined && (
+        <div className="flex flex-col gap-2 empty:hidden">{regions.tools}</div>
+      )}
+
       {/* F71. This forum's announcements and the board's, above its content. */}
       {regions.announcements !== undefined && (
         <div className="flex flex-col gap-3">{regions.announcements}</div>
@@ -47,6 +52,11 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
       </table>
 
       {regions.pagination}
+
+      {/* Theme API 1.4 — following this forum, after the threads. */}
+      {regions.afterContent !== undefined && (
+        <div className="flex flex-col gap-2 empty:hidden">{regions.afterContent}</div>
+      )}
 
       {markReadAction !== null && (
         <form action={markReadAction} method="post">

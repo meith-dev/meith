@@ -64,8 +64,22 @@ import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
  * construction — no theme is required to have implemented one that did not
  * exist — and the region fields follow 1.1's rule. The second exercise of the
  * policy, and the first time it covered a new *slot* rather than a new field.
+ *
+ * **1.3** added the optional `regions.tools` on `ThreadViewModel` and
+ * `ForumDisplayModel`. Same rule as 1.1's, and it is worth saying what it
+ * bought: the thread-scoped controls a route renders — follow, rate, vote,
+ * moderate — had nowhere in the contract to go, so they were stacked *above*
+ * the slot, which put four widgets ahead of the `<h1>` naming the thread they
+ * acted on. A region is what lets a theme place them where they belong.
+ *
+ * **1.4** added `regions.afterContent` beside it on both, because "where they
+ * belong" turned out to be two places rather than one. A poll and a
+ * moderator's bar precede the posts; rating a thread and following a forum
+ * follow them. Asking somebody to rate a discussion above its first post, or
+ * to subscribe to a forum above its thread list, is asking for a verdict on
+ * something they have not read.
  */
-export const THEME_API_VERSION = '1.2'
+export const THEME_API_VERSION = '1.4'
 
 /**
  * How much of a promise a slot carries.

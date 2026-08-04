@@ -13,7 +13,6 @@ import { useActionState } from "react"
 
 import { threadToolAction } from "@/server/thread-tool-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
-import { BOARD_MEASURE } from "@/components/shell/measure"
 
 import { FormError } from "../auth/form-controls"
 
@@ -83,72 +82,73 @@ export function ThreadToolsForm({
   const [moveState, moveAction] = useActionState(threadToolAction, EMPTY_STATE)
 
   return (
-    /* Wrapper carries the measure, panel carries the padding — the same shape,
-       and the same reason, as `inline-moderation-form.tsx`. */
-    <div className={`${BOARD_MEASURE} mb-6`}>
-      <section
-        aria-label="Moderator tools"
-        className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-3"
-      >
-        <span className="text-xs font-medium text-muted-foreground">Moderator tools</span>
+    /*
+     * No measure of its own any more: theme API 1.3 renders this inside the
+     * thread's `tools` region, which is already inside the theme's page width.
+     * It carried one while it was a sibling stacked above `<ThreadView>`.
+     */
+    <section
+      aria-label="Moderator tools"
+      className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-3"
+    >
+      <span className="text-xs font-medium text-muted-foreground">Moderator tools</span>
 
-        {rights.lock && (
-          <ToolButton
-            threadId={threadId}
-            tool={isLocked ? "unlock" : "lock"}
-            label={isLocked ? "Unlock" : "Lock"}
-          />
-        )}
-        {rights.stick && (
-          <ToolButton
-            threadId={threadId}
-            tool={isSticky ? "unstick" : "stick"}
-            label={isSticky ? "Unpin" : "Pin"}
-          />
-        )}
-        {rights.delete && (
-          <ToolButton threadId={threadId} tool="delete" label="Delete thread" destructive />
-        )}
+      {rights.lock && (
+        <ToolButton
+          threadId={threadId}
+          tool={isLocked ? "unlock" : "lock"}
+          label={isLocked ? "Unlock" : "Lock"}
+        />
+      )}
+      {rights.stick && (
+        <ToolButton
+          threadId={threadId}
+          tool={isSticky ? "unstick" : "stick"}
+          label={isSticky ? "Unpin" : "Pin"}
+        />
+      )}
+      {rights.delete && (
+        <ToolButton threadId={threadId} tool="delete" label="Delete thread" destructive />
+      )}
 
-        {rights.move && moveTargets.length > 0 && (
-          <form action={moveAction} className="flex items-center gap-2">
-            <FormError message={moveState.error} />
-            <input type="hidden" name="threadId" value={threadId} />
-            {/*
-              The default when no button carries one — pressing Enter in the
-              select moves rather than copies, which is the reversible of the two.
-            */}
-            <input type="hidden" name="tool" value="move" />
-            <label className="flex items-center gap-2 text-xs">
-              <span className="sr-only">Move to</span>
-              <select
-                name="toForumId"
-                className="h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                {moveTargets.map((forum) => (
-                  <option key={forum.id} value={forum.id}>
-                    {forum.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className={BUTTON}>
-              Move
-            </button>
-            {/*
-              Copy shares the move box: both name a destination forum, and the
-              rights are the same at both ends (D49), so a second `<select>` would
-              be the same list twice. `name`/`value` on the button carries which
-              verb was pressed — the no-JS way to express one form, two actions.
-            */}
-            <button type="submit" name="tool" value="copy" className={BUTTON}>
-              Copy
-            </button>
-          </form>
-        )}
+      {rights.move && moveTargets.length > 0 && (
+        <form action={moveAction} className="flex items-center gap-2">
+          <FormError message={moveState.error} />
+          <input type="hidden" name="threadId" value={threadId} />
+          {/*
+            The default when no button carries one — pressing Enter in the
+            select moves rather than copies, which is the reversible of the two.
+          */}
+          <input type="hidden" name="tool" value="move" />
+          <label className="flex items-center gap-2 text-xs">
+            <span className="sr-only">Move to</span>
+            <select
+              name="toForumId"
+              className="h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              {moveTargets.map((forum) => (
+                <option key={forum.id} value={forum.id}>
+                  {forum.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className={BUTTON}>
+            Move
+          </button>
+          {/*
+            Copy shares the move box: both name a destination forum, and the
+            rights are the same at both ends (D49), so a second `<select>` would
+            be the same list twice. `name`/`value` on the button carries which
+            verb was pressed — the no-JS way to express one form, two actions.
+          */}
+          <button type="submit" name="tool" value="copy" className={BUTTON}>
+            Copy
+          </button>
+        </form>
+      )}
 
-        {children}
-      </section>
-    </div>
+      {children}
+    </section>
   )
 }

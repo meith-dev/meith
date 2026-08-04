@@ -1,6 +1,15 @@
+import type { Metadata } from 'next'
+
 import { requireAdmin } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { buildAdminLogView } from '@/view/admin-log'
+
+/*
+ * Every other screen in the panel names itself; this one inherited the
+ * layout's "Control panel", which is what the back button and a row of tabs
+ * end up showing.
+ */
+export const metadata: Metadata = { title: 'Admin log' }
 
 /**
  * F63 — the admin log.

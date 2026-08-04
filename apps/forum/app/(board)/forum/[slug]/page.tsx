@@ -14,6 +14,8 @@ import { getViewerPreferences } from '@/server/viewer-preferences'
 import { activeTheme } from '@/server/theme'
 import { decodeForumCursor, encodeForumCursor } from '@/view/forum-cursor'
 import { FollowForm } from '@/components/account/subscription-forms'
+import { ViewTabs } from '@/components/shell/view-tabs'
+import { buildBreadcrumb } from '@/view/breadcrumb'
 import { buildForumDisplayView } from '@/view/forum-display'
 import { canonicalPath } from '@/view/metadata'
 import { buildSubscriptionsView } from '@/view/subscriptions'
@@ -268,6 +270,7 @@ export default async function ForumPage({
 
   const Announcement = requireSlot(activeTheme, 'Announcement')
   const ForumDisplay = requireSlot(activeTheme, 'ForumDisplay')
+  const Navigation = requireSlot(activeTheme, 'Navigation')
   const Notice = requireSlot(activeTheme, 'Notice')
   const ThreadRow = requireSlot(activeTheme, 'ThreadRow')
   const SubforumList = requireSlot(activeTheme, 'SubforumList')
@@ -317,11 +320,66 @@ export default async function ForumPage({
     viewerRef(actor),
   )
 
+  /*
+   * The two orderings, as a control somebody can see.
+   *
+   * These were bare `<a>`s separated by a middot, and Tailwind's preflight
+   * renders those as plain body text — a navigation nobody could tell was a
+   * navigation, whose current item was marked only by an `aria-current` that
+   * no sighted reader receives. They are anchors and stay anchors (an ordering
+   * is a URL, and paging has to work with scripting off), and they are the
+   * same `ViewTabs` the inbox and the discovery views draw, so "the one you
+   * are looking at" means one thing across the board.
+   *
+   * They are also *under the forum's name* now, through theme API 1.3's
+   * `tools` region. Rendered above `<ForumDisplay>`, as they were, the first
+   * thing on a forum page was a sort control with nothing above it saying what
+   * was being sorted.
+   */
+  const orderTabs = (
+    <ViewTabs
+      label="Thread order"
+      tabs={[
+        {
+          href: `/forum/${id}-${forum.slug}`,
+          label: 'Latest',
+          isCurrent: sort === 'activity',
+        },
+        {
+          href: `/forum/${id}-${forum.slug}?sort=rating`,
+          label: 'Top rated',
+          isCurrent: sort === 'rating',
+        },
+      ]}
+    />
+  )
+
   const forumDisplayModel = await filterView(
     'view.forum-display',
     {
       ...view.display,
       regions: {
+        tools: orderTabs,
+        /*
+         * Following the forum, under the threads (theme API 1.4). It was above
+         * them, which put a subscription panel between a reader and the list
+         * they had come for — and asked whether they wanted to hear about a
+         * forum before showing them what was in it.
+         */
+        ...(followOffered
+          ? {
+              afterContent: (
+                <FollowForm
+                  target="forum"
+                  targetId={forum.id}
+                  mode={followMode}
+                  modes={followModes}
+                  back={`/forum/${id}-${forum.slug}`}
+                  label="Follow this forum"
+                />
+              ),
+            }
+          : {}),
         subforums: subforums === null ? null : <SubforumList {...subforums} />,
         threads: threadRows.map((row) => (
           <ThreadRow key={row.thread.id} {...row} />
@@ -339,8 +397,21 @@ export default async function ForumPage({
     pluginContext,
   )
 
+  /*
+   * The trail, from the rows and the visibility set this page already holds —
+   * so it is string work, not a query. Outside `<main>` on purpose: it is
+   * navigation, and "skip to content" should skip it.
+   */
+  const trail = buildBreadcrumb({
+    forums: rows,
+    forumId: id,
+    visibleForumIds: new Set(visible),
+  })
+
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
+    <>
+      <Navigation items={trail} />
+      <main id="board-content" tabIndex={-1} className="flex-1">
       {/*
         Where a held thread lands, and where F52 reports what a bulk action did.
         The author cannot be sent to a thread nobody can see, so the forum tells
@@ -356,58 +427,6 @@ export default async function ForumPage({
           />
         </div>
       )}
-      {followOffered && (
-        <div className={`${BOARD_MEASURE} pt-4`}>
-          <FollowForm
-            target="forum"
-            targetId={forum.id}
-            mode={followMode}
-            modes={followModes}
-            back={`/forum/${id}-${forum.slug}`}
-            label="Follow this forum"
-          />
-        </div>
-      )}
-      {/*
-        The two orderings, as a control somebody can see.
-
-        These were bare `<a>`s separated by a middot, and Tailwind's preflight
-        renders those as plain body text — a navigation nobody could tell was a
-        navigation, whose current item was marked only by an `aria-current` that
-        no sighted reader receives. They are anchors and stay anchors (an
-        ordering is a URL, and paging has to work with scripting off), but the
-        current one now carries weight and a rule as well as the attribute.
-      */}
-      <nav className={`${BOARD_MEASURE} pt-4`} aria-label="Thread order">
-        <ul className="flex items-center gap-4 text-sm">
-          {[
-            {
-              label: 'Latest',
-              href: `/forum/${id}-${forum.slug}`,
-              isCurrent: sort === 'activity',
-            },
-            {
-              label: 'Top rated',
-              href: `/forum/${id}-${forum.slug}?sort=rating`,
-              isCurrent: sort === 'rating',
-            },
-          ].map((tab) => (
-            <li key={tab.href}>
-              <a
-                href={tab.href}
-                aria-current={tab.isCurrent ? 'page' : undefined}
-                className={
-                  tab.isCurrent
-                    ? 'inline-flex border-b-2 border-foreground pb-1 font-semibold text-foreground'
-                    : 'inline-flex border-b-2 border-transparent pb-1 text-muted-foreground hover:border-border hover:text-foreground'
-                }
-              >
-                {tab.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
       <ForumDisplay {...forumDisplayModel} />
       {/*
         Below the listing, not around it: the checkboxes reach this form by id
@@ -423,6 +442,7 @@ export default async function ForumPage({
           returnTo={`/forum/${id}-${forum.slug}`}
         />
       )}
-    </main>
+      </main>
+    </>
   )
 }

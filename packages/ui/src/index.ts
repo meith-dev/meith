@@ -54,6 +54,9 @@ export {
 } from './card'
 export type { CardProps } from './card'
 
+export { Disclosure } from './disclosure'
+export type { DisclosureProps } from './disclosure'
+
 export { Empty, EmptyAction, EmptyDescription, EmptyTitle } from './empty'
 
 export { Field, Input, Label, NativeSelect, Textarea } from './field'

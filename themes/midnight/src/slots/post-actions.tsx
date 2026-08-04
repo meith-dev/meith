@@ -8,7 +8,7 @@ import type { PostActionsSlotModel } from '@meith/theme-kit'
  * model gives `null` for anything this viewer may not do, so there is no
  * permission decision to make here — and a theme must not try to make one.
  */
-export function PostActions({ actions }: PostActionsSlotModel) {
+export function PostActions({ actions, children }: PostActionsSlotModel) {
   const items = [
     { href: actions.quoteHref, label: 'quote' },
     { href: actions.editHref, label: 'edit' },
@@ -19,7 +19,7 @@ export function PostActions({ actions }: PostActionsSlotModel) {
     { href: actions.moderateHref, label: 'moderate' },
   ].filter((item): item is { href: string; label: string } => item.href !== null)
 
-  if (items.length === 0) return null
+  if (items.length === 0 && children === undefined) return null
 
   return (
     <nav aria-label="Post actions" className="flex flex-wrap gap-3 font-mono text-xs">
@@ -28,6 +28,8 @@ export function PostActions({ actions }: PostActionsSlotModel) {
           {item.label}
         </a>
       ))}
+      {/* Theme API 1.3 — the multi-quote island, with the other post actions. */}
+      {children}
     </nav>
   )
 }

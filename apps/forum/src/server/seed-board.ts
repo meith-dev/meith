@@ -342,8 +342,18 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
     authorUsername: 'departed',
     replyCount: 1,
     viewCount: 241,
-    ratingTotal: 0,
-    ratingCount: 0,
+    /*
+     * The one rated thread on the sample board — 17 points over four raters, so
+     * the average is 4.25 rather than a whole number.
+     *
+     * Every seeded thread carried 0/0, which meant the rating strip on the
+     * thread page rendered "none yet" on a board that exists to show what a
+     * board looks like, and `?sort=rating` ordered a list where every row tied.
+     * A fraction rather than a round 4 is deliberate: it is what catches a
+     * renderer that prints `average` raw, or rounds it to five full stars.
+     */
+    ratingTotal: 17,
+    ratingCount: 4,
     visibility: 'visible',
     isSticky: true,
     isLocked: false,

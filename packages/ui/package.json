@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./button": "./src/button.tsx",
+    "./menu": "./src/menu.tsx",
     "./utils": "./src/utils.ts",
     "./variants": "./src/variants.ts"
   },

@@ -32,7 +32,17 @@ export function AttachmentField({ limits }: { limits: UploadLimits }) {
   const maxBytes = maxBytesFor(limits)
 
   return (
-    <label
+    /*
+     * `htmlFor` and a `<div>`, not a `<label>` wrapped around everything.
+     *
+     * The input happened to be the first labelable descendant, so the
+     * association was right — but a label's accessible name is *all* of its
+     * text, so this control announced itself as "Attachments Drop files here to
+     * attach them. Up to 10 files, 16 MB each. PNG, JPEG…". The rules belong in
+     * a description, which is what `aria-describedby` is for; the name is
+     * "Attachments".
+     */
+    <div
       className="flex flex-col gap-1 text-sm"
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
@@ -43,26 +53,29 @@ export function AttachmentField({ limits }: { limits: UploadLimits }) {
         input.current.files = files.files
       }}
     >
-      <span className="font-medium">Attachments</span>
+      <label htmlFor={ATTACHMENT_FIELD} className="font-medium">
+        Attachments
+      </label>
       <input
         ref={input}
+        id={ATTACHMENT_FIELD}
         type="file"
         name={ATTACHMENT_FIELD}
         multiple
+        aria-describedby={`${ATTACHMENT_FIELD}-limits`}
         /*
          * A hint to the file picker, not a check. Every rule that matters is
          * applied to the *bytes* on the server — `accept` filters by extension,
          * which is the one thing the board deliberately does not trust.
          */
         accept={ACCEPTED_EXTENSIONS.map((extension) => `.${extension}`).join(',')}
-        className="rounded-md border border-border bg-background px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm"
+        className="rounded-md border border-input bg-card px-3 py-1.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm"
       />
-      <span className="text-xs text-muted-foreground">Drop files here to attach them.</span>
-      <span className="text-xs text-muted-foreground">
-        Up to {perPost} file{perPost === 1 ? '' : 's'}, {formatBytes(maxBytes)} each.
-        PNG, JPEG, PDF or ZIP. Images are re-encoded, which removes any metadata
-        they carry.
-      </span>
-    </label>
+      <p id={`${ATTACHMENT_FIELD}-limits`} className="text-xs text-muted-foreground">
+        Drop files here, or choose up to {perPost} file{perPost === 1 ? '' : 's'} of{' '}
+        {formatBytes(maxBytes)} each — PNG, JPEG, PDF or ZIP. Images are re-encoded,
+        which removes any metadata they carry.
+      </p>
+    </div>
   )
 }

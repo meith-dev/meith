@@ -5,6 +5,7 @@ import { requireSlot } from '@meith/theme-kit'
 
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
 
+import { BOARD_MEASURE } from '@/components/shell/measure'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -147,59 +148,90 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
     <main id="board-content" tabIndex={-1} className="flex-1">
       <MemberProfile {...profileModel} />
 
-      {signatureState !== null && (
-        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3 px-6 pt-4 text-sm">
-          <span className="text-muted-foreground">
-            Signature: {signatureState.locked ? 'locked' : 'allowed'}
-          </span>
-          <SignatureLockForm userId={id} locked={signatureState.locked} />
-          {/* F58's other half. Offered on the same terms and in the same place. */}
-          <AvatarLockForm userId={id} locked={(await avatarFor(id)).locked} />
-        </div>
-      )}
+      {/*
+       * Everything the *route* renders about this member, in one panel under
+       * the profile.
+       *
+       * It was three loose strips, each centred in its own `max-w-3xl` while
+       * the profile above them sat in the theme's much wider measure — so on a
+       * desktop the reputation line began two hundred pixels to the right of
+       * the card it belonged to, aligned with nothing on the page. They are
+       * one card on the board's measure now, which is what `BOARD_MEASURE`
+       * exists to say (see its header).
+       *
+       * Still three separate rows inside it, because they are three unrelated
+       * things: what staff may lock, what the member is rated, and what you
+       * want to do about them.
+       */}
+      {(signatureState !== null || repSummary !== null || currentRelation !== null) && (
+        <div className={`${BOARD_MEASURE} pt-4 pb-8`}>
+          <section
+            aria-label={`About ${profile.username}`}
+            className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card text-sm"
+          >
+            {repSummary !== null && (
+              <div className="flex flex-wrap items-baseline gap-3 px-4 py-3">
+                <span className="text-muted-foreground">Reputation</span>
+                <span className="font-medium">{reputationLabel(repSummary)}</span>
+                <a
+                  href={`/member/${id}/reputation`}
+                  className="ms-auto font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                >
+                  See all ratings
+                </a>
+              </div>
+            )}
 
-      {repSummary !== null && (
-        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-baseline gap-3 px-6 pt-2 text-sm">
-          <span className="text-muted-foreground">Reputation:</span>
-          <span className="font-medium">{reputationLabel(repSummary)}</span>
-          <a href={`/member/${id}/reputation`} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-            See all ratings
-          </a>
-        </div>
-      )}
+            {currentRelation !== null && (
+              <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+                {currentRelation === 'none' ? (
+                  <>
+                    <SetRelationForm
+                      userId={id}
+                      username={profile.username}
+                      kind="buddy"
+                      returnTo={`/member/${id}`}
+                      label="Add to buddy list"
+                    />
+                    <SetRelationForm
+                      userId={id}
+                      username={profile.username}
+                      kind="ignore"
+                      returnTo={`/member/${id}`}
+                      label="Ignore this member"
+                    />
+                  </>
+                ) : (
+                  <RemoveRelationForm
+                    userId={id}
+                    username={profile.username}
+                    returnTo={`/member/${id}`}
+                    label={
+                      currentRelation === 'buddy' ? 'Remove from buddy list' : 'Stop ignoring'
+                    }
+                  />
+                )}
+                <a
+                  href="/usercp/contacts"
+                  className="ms-auto text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Your lists
+                </a>
+              </div>
+            )}
 
-      {currentRelation !== null && (
-        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-4 px-6 pb-8">
-          {currentRelation === 'none' ? (
-            <>
-              <SetRelationForm
-                userId={id}
-                username={profile.username}
-                kind="buddy"
-                returnTo={`/member/${id}`}
-                label="Add to buddy list"
-              />
-              <SetRelationForm
-                userId={id}
-                username={profile.username}
-                kind="ignore"
-                returnTo={`/member/${id}`}
-                label="Ignore this member"
-              />
-            </>
-          ) : (
-            <RemoveRelationForm
-              userId={id}
-              username={profile.username}
-              returnTo={`/member/${id}`}
-              label={
-                currentRelation === 'buddy' ? 'Remove from buddy list' : 'Stop ignoring'
-              }
-            />
-          )}
-          <a href="/usercp/contacts" className="text-sm text-muted-foreground hover:text-foreground">
-            Your lists
-          </a>
+            {/* Staff only, and last: it is about this member, not for them. */}
+            {signatureState !== null && (
+              <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <span className="text-muted-foreground">
+                  Signature: {signatureState.locked ? 'locked' : 'allowed'}
+                </span>
+                <SignatureLockForm userId={id} locked={signatureState.locked} />
+                {/* F58's other half. Offered on the same terms and in the same place. */}
+                <AvatarLockForm userId={id} locked={(await avatarFor(id)).locked} />
+              </div>
+            )}
+          </section>
         </div>
       )}
     </main>

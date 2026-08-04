@@ -6,9 +6,11 @@ import { Counts, LINK, Prefix, ReadSpacer, Stamp, UnreadDot, UserRef } from '../
 /**
  * One thread in a listing (F30).
  *
- * The same three-column shape as `ForumRow`, on purpose: a member moves from the
- * index into a forum and the columns do not move under them. Subject on the
- * left, counters, then the last reply.
+ * The same column shape as `ForumRow`, on purpose: a member moves from the
+ * index into a forum and the columns do not move under them. Markers, subject,
+ * counters, then the last reply — and the markers are a column of their own at
+ * every width, so a row that stacks on a phone keeps its three lines on one
+ * left edge. See `ForumRow` for what that was fixing.
  *
  * ## The states a thread can be in are all rendered, and all in words
  *
@@ -36,9 +38,9 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
   return (
     <li
       data-unread={thread.isUnread ? '' : undefined}
-      className="grid grid-cols-1 gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/60 md:grid-cols-[minmax(0,1fr)_auto_14rem] md:items-center"
+      className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/60 md:grid-cols-[auto_minmax(0,1fr)_9rem_14rem] md:items-center md:gap-x-4"
     >
-      <div className="flex min-w-0 gap-2.5">
+      <span className="flex items-start gap-2">
         {/*
           F52's checkbox. `form` points at the moderation bar the page renders
           below the listing, so this control belongs to that form without this
@@ -59,35 +61,34 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
         )}
 
         {thread.isUnread ? <UnreadDot /> : <ReadSpacer />}
+      </span>
 
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
-            {thread.isSticky && <Badge tone="pinned">Pinned</Badge>}
-            {thread.isLocked && <Badge tone="locked">Locked</Badge>}
-            {thread.isMoved && <Badge tone="moved">Moved</Badge>}
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
+          {thread.isSticky && <Badge tone="pinned">Pinned</Badge>}
+          {thread.isLocked && <Badge tone="locked">Locked</Badge>}
+          {thread.isMoved && <Badge tone="moved">Moved</Badge>}
 
-            <a
-              href={thread.href}
-              className={
-                (thread.isUnread
-                  ? 'font-semibold text-foreground'
-                  : 'font-medium text-foreground') + ` ${LINK}`
-              }
-            >
-              {thread.title}
-            </a>
-            {thread.isUnread && <span className="sr-only"> (new posts)</span>}
-          </div>
-
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Started by <UserRef user={thread.author} className="font-normal" />
-          </p>
+          <a
+            href={thread.href}
+            className={
+              (thread.isUnread ? 'font-semibold text-foreground' : 'font-medium text-foreground') +
+              ` ${LINK}`
+            }
+          >
+            {thread.title}
+          </a>
+          {thread.isUnread && <span className="sr-only"> (new posts)</span>}
         </div>
+
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Started by <UserRef user={thread.author} className="font-normal" />
+        </p>
       </div>
 
       <Counts
-        className="md:w-32 md:justify-end"
+        className="col-start-2 md:col-start-3 md:justify-end"
         items={[
           {
             label: 'Replies',
@@ -104,7 +105,7 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
         ]}
       />
 
-      <div className="min-w-0 text-xs text-muted-foreground">
+      <div className="col-start-2 min-w-0 text-xs text-muted-foreground md:col-start-4">
         {thread.lastPost === null ? (
           <span className="text-thread-moved">No replies yet</span>
         ) : (

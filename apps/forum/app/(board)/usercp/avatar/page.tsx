@@ -34,8 +34,18 @@ export default async function AvatarPage({
   const Notice = requireSlot(activeTheme, 'Notice')
   const notice = userCpNotice(query)
 
+  /*
+   * A measure, like every other screen under `/usercp`. This `<main>` had none
+   * at all, so its heading and its form ran the full width of the viewport
+   * while the panel's index and its siblings were centred — one link away from
+   * each other and half a screen apart.
+   */
   return (
-    <main id="board-content" tabIndex={-1} className="flex flex-1 flex-col gap-6">
+    <main
+      id="board-content"
+      tabIndex={-1}
+      className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-8"
+    >
       {notice !== null && (
         <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/avatar" />
       )}
