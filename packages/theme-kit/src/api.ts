@@ -122,6 +122,7 @@ export const SLOT_STABILITY: Readonly<Record<SlotName, Stability>> = {
   MemberProfile: 'stable',
 
   SearchForm: 'stable',
+  ForumJump: 'stable',
 
   RedirectNotice: 'stable',
   ErrorNotice: 'stable',

@@ -167,6 +167,20 @@ export const referencePlugin = definePlugin({
       record('view.footer', value)
       return { ...value, links: [...value.links, { label: MARK, href: '/reference' }] }
     },
+    /*
+     * Observed and returned unchanged, deliberately.
+     *
+     * Every other shell filter here appends a link, and the temptation is to
+     * append an option. A jump-box option is a *forum id* the route
+     * re-authorises — a plugin adding one either names a real forum, which the
+     * board already lists, or names a fake one and the member gets a 404 for
+     * their trouble. Demonstrating the hook does not require demonstrating a
+     * bad idea.
+     */
+    'view.forum-jump': (value) => {
+      record('view.forum-jump', value)
+      return value
+    },
 
     /* ---- Index (F29/F75) ---- */
     'view.board-index': (value) => {

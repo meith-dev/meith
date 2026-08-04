@@ -7109,3 +7109,78 @@ written down.
 The generated document now says the run is a single run on shared hardware, and
 the p99 column sits beside the p95 so an occasionally-slow scenario is
 distinguishable from a uniformly slow one.
+
+---
+
+### D97 — A jump box, and why the obvious implementation is wrong twice (F06, F27)
+
+#### F06 was a `PARTIAL` whose gap paragraph described no gap
+
+Re-audited against the acceptance rather than against its own row, and closed.
+Every clause is in the tree and each was checked: secret authentication, with the
+route refusing when `TICK_SECRET` is unset; concurrency safety by **database
+claim** rather than a JavaScript lock, because serverless instances share no
+memory and an in-process lock protects nothing; time-boxing via an
+`AbortController` per task with a stale-claim reaper behind it; both entry points
+— the scaffold commits a `vercel.json` cron, and `apps/worker` calls `tick()`
+in-process for a self-hosted board; and failures both logged and notified as
+`system.task_failed`, coalesced per task so a task failing every minute is one
+unread row with a count rather than 1,440 a day.
+
+The row had said as much since F55. Nobody changed the status, which is its own
+small lesson: a tracking file is only as good as the audit, and "the gap
+paragraph no longer names a gap" is a condition worth looking for deliberately.
+
+#### The jump box fails the same way for keyboard users and for no-JS
+
+F27's acceptance names both, and they turn out to be one requirement seen twice.
+The implementation everybody writes first is a `<select>` with an `onChange` that
+sets `location.href`. It is wrong for the same root reason in both cases:
+**choosing an option is not the same act as committing to it.**
+
+A keyboard user opens the select and arrow-keys down the list. Every keystroke
+fires `change`. An auto-navigating jump box therefore teleports them to the first
+forum before they reach the one they wanted, and the way back is a page that does
+it again. The same code does nothing at all without JavaScript.
+
+So it is a real `method="get"` form with a real submit button, and the theme
+contract asserts `type="submit"` is present. The button is not a fallback for the
+no-JS case; it is the interaction, and it happens to work everywhere. Six browser
+tests cover it in a real Chromium — selection and submission with JavaScript
+disabled, tab order from select to button, the 404, and the empty submission.
+
+#### The leak is the hard part, and the filter now lives in one place
+
+A control that lists every forum and appears on every page is the worst possible
+home for a visibility bug. `buildTree` promotes an orphan to a root, so filtering
+row-by-row and then building the tree surfaces a hidden category's children at
+the top level — announcing that they exist, what they are called, and making the
+board's shape depend on who is looking.
+
+The board index already had that rule, inlined. It moved to
+`@forum/forums.keepVisibleSubtrees` when the jump box became its second caller,
+because a security-relevant filter implemented twice is one that gets fixed once
+and stays broken in the other place. Mutation-verified: substituting a row filter
+fails two tests, both named for the leak rather than for the output.
+
+#### The route re-authorises, and the reason is worth stating
+
+The box lists only what the viewer may see, which makes the submitted id look
+trustworthy. It is not: it arrives in a query string anybody can type. A route
+that redirected on it would answer *"does forum 42 exist, and what is it called"*
+for every id on the board — a jump box turned into an enumeration oracle.
+
+So the route runs the same `forumIdsWhere` check the model was built from, and an
+id outside it gets a **404 rather than a 403**. The identical answer for "hidden"
+and "absent" is the part that matters; a 403 would confirm existence.
+
+#### Two test bugs of my own, both in the assertion rather than the code
+
+`toBeVisible()` on an `<option>` fails on correct markup — an option inside a
+closed `<select>` is never visible to Playwright. And `selectOption` does not
+accept a regex label, which mattered because the labels carry figure-space
+indentation so the tree is legible inside the control. Both now assert on what
+the form actually submits: the option's value.
+
+Neither was a product bug, and both are the same mistake — testing the rendering
+of a native control rather than its behaviour.

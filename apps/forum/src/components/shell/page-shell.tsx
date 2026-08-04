@@ -13,6 +13,7 @@ import { getSettings } from '@/server/settings'
 import { avatarsFor } from '@/server/avatars'
 import { activeTheme } from '@/server/theme'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
+import { buildForumJumpModel } from '@/view/forum-jump'
 import {
   buildBoardNavigation,
   buildFooterModel,
@@ -20,6 +21,17 @@ import {
   buildUserPanelModel,
   buildViewerModel,
 } from '@/view/shell'
+
+/** The jump box's data, kept out of the component body for legibility. */
+async function buildJumpModel(actor: Actor) {
+  const { authorizer, forums } = getContainer()
+  const [rows, visible] = await Promise.all([
+    forums.listAll(),
+    authorizer.forumIdsWhere(actor, 'forum.view'),
+  ])
+
+  return buildForumJumpModel({ rows, visibleForumIds: new Set(visible) })
+}
 
 /**
  * The chrome every page renders inside (F27).
@@ -48,6 +60,7 @@ export async function PageShell({
   const Header = requireSlot(activeTheme, 'Header')
   const UserPanel = requireSlot(activeTheme, 'UserPanel')
   const Footer = requireSlot(activeTheme, 'Footer')
+  const ForumJump = requireSlot(activeTheme, 'ForumJump')
 
   /*
    * The board's name, from `board.name` (F08). Cached globally and tagged, so
@@ -161,6 +174,24 @@ export async function PageShell({
     pluginContext,
   )
 
+  /*
+   * F27's jump box, on every page because that is what a jump box is for.
+   *
+   * Two reads, and both are already paid for on most pages: the tree comes from
+   * `CachedForumRepository` (one query, tag-invalidated, shared per request) and
+   * the visibility set is the same `forumIdsWhere` call every list page makes,
+   * memoised by the authorizer. On a board with no forums the model has no
+   * options and the theme renders nothing.
+   *
+   * Failure is swallowed to an empty box rather than propagated. The shell also
+   * renders the error pages, and a jump box that could take the whole page down
+   * would mean a forum-tree problem showed as a blank screen instead of as the
+   * error it is.
+   */
+  const built = await buildJumpModel(actor).catch(() => null)
+  const jump =
+    built === null ? null : await filterView('view.forum-jump', built, pluginContext)
+
   return (
     <Shell boardTitle={shellModel.boardTitle} viewer={shellModel.viewer}>
       <Header {...headerModel}>
@@ -183,6 +214,8 @@ export async function PageShell({
       {boardRegion('header.notice', actor)}
 
       {children}
+
+      {jump !== null && jump.forums.length > 0 && <ForumJump {...jump} />}
 
       <Footer {...footerModel} />
     </Shell>

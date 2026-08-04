@@ -89,6 +89,8 @@ export type {
   QuickReplyModel,
   RedirectNoticeModel,
   SearchFormModel,
+  ForumJumpModel,
+  ForumJumpOption,
   SelectionModel,
   Serialisable,
   ShellModel,

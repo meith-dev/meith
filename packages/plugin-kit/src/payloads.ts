@@ -44,6 +44,7 @@ import type {
   CategoryBlockModel,
   ErrorNoticeModel,
   FooterModel,
+  ForumJumpModel,
   ForumDisplayModel,
   ForumRowSlotModel,
   HeaderModel,
@@ -148,6 +149,7 @@ export interface HookSignatures {
   'view.user-panel': { value: UserPanelModel; context: ViewerRef & RequestRef }
   'view.navigation': { value: NavigationModel; context: ViewerRef & RequestRef }
   'view.footer': { value: FooterModel; context: ViewerRef & RequestRef }
+  'view.forum-jump': { value: ForumJumpModel; context: ViewerRef & RequestRef }
   'view.board-index': { value: BoardIndexModel; context: ViewerRef }
   'view.forum-row': { value: ForumRowSlotModel; context: ViewerRef }
   'view.thread-row': { value: ThreadRowSlotModel; context: ViewerRef & ForumRef }

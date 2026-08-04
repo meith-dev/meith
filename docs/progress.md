@@ -744,71 +744,86 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### Phase 9 is closed. Every plan feature has been attempted; two need a human.
+### 74 done, 3 partial, 12 todo. Both open questions are answered.
 
-**F89 is done** (D94), and with it the last `TODO` in the roadmap. The board it
-was measured against was real: 2,343,847 posts, 100,030 threads, 20,000 users,
-longest thread 14,741 posts, on Postgres 16. Nine of ten scenarios land between
-2% and 76% of budget, and both keyset claims hold at scale.
+**Phase 9 is closed** and the two escalated decisions came back (D95): `mysql2`
+behind F85's port (ADR 0004), and a bounded relevance window for F89's search
+budget — 5,486 ms to 98 ms.
 
-**Two open questions are the only things left, and both are yours.** Neither can
-be resolved unilaterally under the working rules, and each blocks a `PARTIAL`:
+**Closed since, working the `PARTIAL` rows:**
 
-1. **Question 5 — a MySQL client, for F85's importer.** A runtime dependency.
-   Everything else about the import is built and tested: the mapping, the
-   ordering, the chunking, the resumability, the idempotency and the counter
-   comparison. Recommendation: `mysql2` behind the existing port.
-2. **Question 6 — bounding search relevance, for F89's one budget violation.**
-   A relevance search for a term matching 96% of posts costs 5.5 s; the same
-   path over 1,171 matches costs 35 ms. Not an index — `ts_rank_cd` has to score
-   every match before it can name the top twenty. Bounding the candidate set
-   measured 140 ms but changes what a member sees. Recorded as a `limit` so it
-   cannot get worse quietly.
+- **F28** — the 2M-post seed is real and `pnpm perf explain` is the `EXPLAIN`
+  evidence, as a *check* rather than a paragraph (D96).
+- **F06** — re-audited and closed. Its gap paragraph had described no gap since
+  F55; nobody had changed the status.
+- **F27** — the forum jump box, the last shell gap (D97).
 
-**The other `PARTIAL` rows** (F81's webhooks, and the phase 0–8 entries) are
-listed with their gaps in `plan-status.md` and need no decision — they are work.
+**Three `PARTIAL` rows remain**, all of them real work rather than stale status:
 
-**Also outstanding from F82:** nothing in this monorepo is published to npm, so a
-scaffolded project cannot yet `npm install`. A release task, not a feature.
+1. **F11** — boundary lint and testkit. `keepVisibleSubtrees`, the seeder and the
+   query-budget helper are done; **factories beyond the seeder are not built**,
+   and the harness is PGlite rather than Testcontainers. The `FULL_SCALE` half of
+   this row is now discharged by F89's runner.
+2. **F69** — plugin manager. Five of six deliverables were blocked on F79, which
+   has since landed, so this is now unblocked and mostly unwritten: enable and
+   disable, plugin migrations, plugin settings, ACP pages, hook health.
+3. **F71** — content administration. The word filter and thread prefixes exist;
+   attachment, smilie and custom-BBCode administration do not.
 
-### How to re-run the performance pass
+**F81** is also worth a look — its row is `PARTIAL` for webhook delivery, and the
+route registry and signing are done.
+
+**Outstanding release task:** nothing is published to npm, so a scaffolded
+project cannot yet `npm install`.
+
+### Running the perf harness
 
 ```sh
 docker compose -f docker-compose.dev.yml up -d
 pnpm forum migrate
-pnpm perf seed                 # ~20 min; --phase posts|counters|search|analyze to resume
+pnpm perf seed                 # ~20 min; --phase posts|counters|search|analyze
 pnpm perf measure --record     # writes docs/perf-results.json
+pnpm perf explain              # asserts the partial visible indexes are used
 pnpm perf:docs                 # regenerates docs/performance.md
 ```
 
 `--scale tenth` exercises the harness in a couple of minutes. Only `full` may be
-recorded — `docs/performance.md` says which board a number came from, and a
-number from a tenth-scale board under that heading would be a lie with a
-provenance table attached.
+recorded — the document says which board a number came from, and a tenth-scale
+number under that heading would be a lie with a provenance table attached.
 
-Four things from this phase worth carrying:
+### Running the browser suite in a sandbox
+
+`pnpm test:e2e` needs a Chromium the pinned Playwright can find. Where the
+preinstalled one has a different build number, point at it explicitly:
+
+```sh
+PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium_headless_shell-<n>/chrome-linux/headless_shell pnpm test:e2e
+```
+
+Five things from this stretch worth carrying:
 
 **The two-gate pattern.** F83's installer cannot run twice because two
-*independent* checks say so — the marker and the account count — and either alone
-leaves a hole. When something must happen exactly once, one gate is usually a
-gate with a gap behind it.
+*independent* checks say so. When something must happen exactly once, one gate is
+usually a gate with a gap behind it.
 
 **"Last, and irreversible" keeps recurring.** The installer's seal and the
-upgrade's version record are both written last, for the same reason: a marker
-written first means a failure halfway leaves a board claiming to be something it
-is not, and the next run does nothing.
-
-**Documentation rots in a direction a script can check.** The prose cannot be
-generated, but "every document is linked and every link resolves" can, and
-`pnpm docs:index:check` now gates it. Writing F88 also produced two invented CLI
-commands and one wrong claim about installer recovery, all three caught by
-reading the source rather than by remembering it.
+upgrade's version record are both written last: a marker written first means a
+failure halfway leaves a board claiming to be something it is not.
 
 **A measurement harness fails towards looking good.** Every mistake available
-while building F89's — a wrong id, an empty scope, an unindexed corpus, a board
-with no long threads — produces a *fast* number, and a fast number reads as
+while building F89's produced a *fast* number, and a fast number reads as
 success. The `minRows` guard that refuses to time a scenario producing nothing
-caught two of them on the first run. Build the refusal before the measurement.
+has now caught four separate corpus bugs — including two "every Nth row" rules
+whose periods shared a factor, which made them perfectly correlated (D96).
+
+**Check the corpus before believing the measurement.** Three of F28's four
+findings were the board not containing the thing under test: no hidden content,
+so a partial index and its twin covered identical rows; no long threads, so deep
+paging was free; no rare term, so selective search did not exist.
+
+**A `PARTIAL` whose gap paragraph names no gap is a status nobody updated.** F06
+sat that way for thirty features. Audit against the acceptance criterion, not
+against the row.
 
 ### Fixed since: the Postgres path had never run anywhere
 
