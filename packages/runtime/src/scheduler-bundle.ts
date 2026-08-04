@@ -21,6 +21,7 @@ import {
   PostgresMaintenanceRepository,
   PostgresOutboxReader,
   PostgresPromotionRepository,
+  PostgresRateLimitBucketStore,
   PostgresRenderBackfill,
   PostgresAttachmentRepository,
   PostgresAvatarRepository,
@@ -155,6 +156,8 @@ export function buildSchedulerBundle(deps: {
         promotions: new PostgresPromotionRepository(db),
         guards: defaultPromotionGuards(),
         maintenance: new PostgresMaintenanceRepository(db),
+        /* F46's counter table; the prune keeps it from growing with traffic. */
+        rateLimits: new PostgresRateLimitBucketStore(db),
         outbox: new PostgresOutboxReader(db),
         ...(attachmentService === undefined ? {} : { attachments: attachmentService }),
         ...(avatarService === undefined ? {} : { avatars: avatarService }),

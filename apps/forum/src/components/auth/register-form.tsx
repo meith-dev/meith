@@ -12,14 +12,26 @@ import { Field, FormError, SubmitButton } from "./form-controls"
 const CONTROL =
   "h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
 
+export interface ChallengeInput {
+  /** The question to ask, or `null` when the board asks none. */
+  readonly prompt: string | null
+  /** Echoed back so the server knows which question was asked. */
+  readonly token: string
+  readonly honeypot: boolean
+  readonly issuedAt: number
+}
+
 export function RegisterForm({
   customFields = [],
+  challenge,
 }: {
   /**
    * F59's fields the operator marked required at registration, already
    * resolved to the ones the default member group may edit.
    */
   customFields?: readonly CustomFieldInput[]
+  /** F46. Absent on a board with nothing switched on. */
+  challenge?: ChallengeInput
 }) {
   const [state, action] = useActionState(registerAction, EMPTY_STATE)
   return (
@@ -56,6 +68,49 @@ export function RegisterForm({
       {customFields.map((field) => (
         <CustomField key={field.key} field={field} className={CONTROL} />
       ))}
+
+      {/*
+        F46. Everything here is plain markup in a native form — no script runs,
+        so the checks work with JavaScript disabled, which matters because a
+        board that only stops scripted registration when the *visitor* runs
+        scripts has stopped nothing.
+      */}
+      {challenge !== undefined && (
+        <>
+          <input type="hidden" name="_issued" value={challenge.issuedAt} />
+          <input type="hidden" name="_challenge" value={challenge.token} />
+
+          {challenge.honeypot && (
+            /*
+              The trap. Hidden from sight *and* from assistive technology, and
+              taken out of the tab order: a screen-reader user who filled this
+              in would be refused for using the page correctly, which is the way
+              this control usually gets accessibility wrong.
+            */
+            <div aria-hidden="true" className="hidden">
+              <label htmlFor="contact_url">Leave this field empty</label>
+              <input
+                id="contact_url"
+                name="contact_url"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                defaultValue=""
+              />
+            </div>
+          )}
+
+          {challenge.prompt !== null && (
+            <Field
+              label={challenge.prompt}
+              name="challenge_answer"
+              autoComplete="off"
+              hint="A question set by this board, to show you are not a script."
+            />
+          )}
+        </>
+      )}
+
       <SubmitButton>Create account</SubmitButton>
     </form>
   )

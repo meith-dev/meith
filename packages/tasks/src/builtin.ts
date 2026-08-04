@@ -32,6 +32,14 @@ export interface TaskWorkers {
   pruneSessions(): Promise<number>
   /** Clears expired activation/reset tokens. Returns rows removed. */
   pruneExpiredTokens(): Promise<number>
+  /**
+   * F46 — drops rate-limit windows nobody will read again. Returns rows removed.
+   *
+   * This table grows with *traffic* rather than with content, so on a busy
+   * board it is the fastest-growing thing in the schema — and it is pure
+   * bookkeeping, so none of it is worth keeping once its window has passed.
+   */
+  pruneRateLimits(): Promise<number>
   /** Recomputes drifted forum/thread counters. Returns rows corrected. */
   reconcileCounters(batchSize: number): Promise<number>
   /** Folds buffered thread views into `threads.view_count`. Returns threads updated. */
@@ -147,6 +155,21 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       maxDurationSeconds: 30,
       async run() {
         const removed = await workers.pruneExpiredTokens()
+        return { detail: { removed } }
+      },
+    },
+
+    {
+      id: 'ratelimits.prune',
+      title: 'Prune rate-limit counters',
+      description:
+        'Drops anti-spam counters whose window has passed. They are bookkeeping ' +
+        'and grow with traffic rather than with content, so nothing is lost and ' +
+        'a busy board would otherwise keep a row per member per hour forever.',
+      intervalSeconds: 3600,
+      maxDurationSeconds: 30,
+      async run() {
+        const removed = await workers.pruneRateLimits()
         return { detail: { removed } }
       },
     },
@@ -402,6 +425,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'queue.drain': 'drainQueue',
   'sessions.prune': 'pruneSessions',
   'tokens.prune': 'pruneExpiredTokens',
+  'ratelimits.prune': 'pruneRateLimits',
   'counters.reconcile': 'reconcileCounters',
   'views.flush': 'flushThreadViews',
   'posts.render_backfill': 'backfillPostRenders',

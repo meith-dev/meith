@@ -68,6 +68,7 @@ const GROUP_LABELS: Record<SettingGroup, string> = {
   mail: 'Mail',
   reputation: 'Reputation',
   security: 'Security',
+  antispam: 'Anti-spam',
 }
 
 /** The order the tabs appear in: the order an operator sets a board up. */
@@ -80,6 +81,12 @@ const GROUP_ORDER: readonly SettingGroup[] = [
   'reputation',
   'mail',
   'security',
+  /*
+   * Last, because it is the tab an operator reaches for when something is
+   * already wrong rather than while setting a board up — and because every
+   * default in it is inert, so there is nothing here to do on day one.
+   */
+  'antispam',
 ]
 
 function matches(definition: SettingDefinition, query: string): boolean {

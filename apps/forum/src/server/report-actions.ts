@@ -14,6 +14,7 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
 import { ReportService, parseTargetKind } from '@meith/moderation'
 
+import { limitMessage, spendLimit } from './antispam'
 import { getActor } from './context'
 import { getContainer } from './container'
 import { reportNotifier } from './notifications'
@@ -88,6 +89,22 @@ export async function fileReportAction(
      * only returns one this member holds a copy of (F60), which is a stronger
      * statement than any permission could make about it.
      */
+
+    /*
+     * F46, spent after the permission checks rather than before them. Two
+     * reasons: somebody probing for content they cannot see should not be able
+     * to exhaust a real member's reporting allowance, and a limit that fires
+     * before authorisation would answer "too many" where the honest answer is
+     * "that does not exist".
+     *
+     * The allowance should be set generously. A limit on reporting is a limit
+     * on asking for help, and the failure mode is a member in trouble being
+     * told to come back later.
+     */
+    const limited = await spendLimit({ scope: 'report', actor })
+    if (limited !== null && !limited.allowed) {
+      return { error: limitMessage(limited), values }
+    }
 
     const outcome = await new ReportService({ reports }).file({
       kind,

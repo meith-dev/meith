@@ -60,6 +60,8 @@ const INPUT = {
   seenLastPostId: 31,
   bypassesModeration: false,
   bypassesFlood: false,
+  /* F46. Off in the shared fixture; the tests that care set it. */
+  heldAsNewMember: false,
   bypassesLock: false,
 }
 

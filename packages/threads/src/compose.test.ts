@@ -75,6 +75,8 @@ const INPUT = {
   subscribe: false,
   bypassesModeration: false,
   bypassesFlood: false,
+  /* F46. Off in the shared fixture; the tests that care set it. */
+  heldAsNewMember: false,
 }
 
 function composer(
@@ -382,5 +384,60 @@ describe('warning restrictions (F53)', () => {
       'visible',
       'visible',
     ])
+  })
+})
+
+/**
+ * F46's new-member hold, and the thing that makes it worth its own block: it is
+ * the *third* reason to hold a post, and the three do not obey the same bypass.
+ */
+describe('holding a new member’s first posts', () => {
+  it('holds a post in a forum that does not moderate', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create(
+      { ...INPUT, heldAsNewMember: true },
+      AUTHOR,
+      { ...FORUM, moderateNewThreads: false },
+    )
+
+    expect(writes.written[0]?.visibility).toBe('unapproved')
+  })
+
+  it('does nothing when the board has not switched it on', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create({ ...INPUT, heldAsNewMember: false }, AUTHOR, {
+      ...FORUM,
+      moderateNewThreads: false,
+    })
+
+    expect(writes.written[0]?.visibility).toBe('visible')
+  })
+
+  /*
+   * The caller resolves the bypass (see `holdsForReview`), so this asserts the
+   * composer does not *re-apply* it — a second bypass check here would be a
+   * second opinion that could drift from the first.
+   */
+  it('is already resolved by the caller, so the composer just obeys the flag', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create(
+      { ...INPUT, heldAsNewMember: true, bypassesModeration: true },
+      AUTHOR,
+      { ...FORUM, moderateNewThreads: true },
+    )
+
+    expect(writes.written[0]?.visibility).toBe('unapproved')
+  })
+
+  /* The three reasons are independent: any one of them holds the post. */
+  it('still holds when the warning restriction is the reason', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create(
+      { ...INPUT, heldAsNewMember: false, restriction: { suspended: false, moderated: true } },
+      AUTHOR,
+      { ...FORUM, moderateNewThreads: false },
+    )
+
+    expect(writes.written[0]?.visibility).toBe('unapproved')
   })
 })

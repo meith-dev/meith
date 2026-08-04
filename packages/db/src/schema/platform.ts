@@ -16,6 +16,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -474,3 +475,57 @@ export const boardStats = pgTable(
   },
   (t) => [check('board_stats_singleton', sql`${t.id} = 1`)],
 )
+
+/**
+ * Rate-limit counters (F46).
+ *
+ * One row per (scope, subject, window), incremented by an insert-on-conflict
+ * that returns the new total. **That statement is the feature**: a
+ * read-then-write would let ten concurrent requests each see nine and each
+ * decide it was fine, and under an attack that interleaving is the expected one
+ * rather than a rare race.
+ *
+ * It is also what makes the limit multi-instance — the counter is a row rather
+ * than process state, so ten serverless instances share one allowance.
+ *
+ * `subject` is text because a guest has no id: `u:<id>` for a member, and
+ * `ip:<prefix>` for a guest, using F09's already-truncated address. No foreign
+ * key to `users` — a counter is not a fact about a member worth keeping, and a
+ * cascade would be write amplification on a table that is otherwise
+ * append-and-prune.
+ */
+export const rateLimits = pgTable(
+  'rate_limits',
+  {
+    /** One of the five F46 names. */
+    scope: text('scope').notNull(),
+    subject: text('subject').notNull(),
+    windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
+    used: integer('used').notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.scope, t.subject, t.windowStart] }),
+    /* The prune asks "older than X" across every scope; the key leads with scope. */
+    index('rate_limits_window_idx').on(t.windowStart),
+  ],
+)
+
+/**
+ * Admin-defined captcha questions (F46).
+ *
+ * Answers are stored as plain text and are **not** hashed: they are not secrets.
+ * The question is shown to everybody, an attacker learns the answer by
+ * registering once, and the control is aimed at scripts rather than at people.
+ * Hashing would cost the ACP the ability to show an operator what they
+ * configured, to protect a value that is public by construction.
+ */
+export const captchaQuestions = pgTable('captcha_questions', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  question: text('question').notNull(),
+  /** One per line, as typed. Any one satisfies the challenge. */
+  answers: text('answers').notNull(),
+  enabled: boolean('enabled').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})

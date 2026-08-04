@@ -33,6 +33,7 @@ import { emitEvent, viewerRef } from './plugin-view'
 
 import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import { getActor } from './context'
+import { holdsNewMember, limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
 import { resolveReplyTarget, submitReply } from './reply-core'
 import { resolvePostScope } from './post-scope'
@@ -137,6 +138,17 @@ export async function createThreadAction(
       return { notice: 'saved', values }
     }
 
+    /*
+     * F46's hourly limit, spent *after* the draft branch above and before
+     * anything is written. Saving a draft is not posting and must not count
+     * against the allowance — a member rate-limited out of saving their own
+     * work would lose it.
+     */
+    const limited = await spendLimit({ scope: 'post', actor, settings })
+    if (limited !== null && !limited.allowed) {
+      return { error: limitMessage(limited), values }
+    }
+
     const composer = new ThreadComposer({
       threads: threadWrites,
       config: {
@@ -155,12 +167,20 @@ export async function createThreadAction(
      */
     staged = await stageAttachments(actor, target, await submittedFiles(form))
 
+    const author = await authorProfile(actor.userId)
+
     created = await composer.create(
       {
         title,
         message,
         prefixId,
         subscribe,
+        /* F46. The post count came with the username; see `authorProfile`. */
+        heldAsNewMember: await holdsNewMember({
+          actor,
+          postCount: author.postCount,
+          settings,
+        }),
         poll:
           pollQuestion === '' &&
           pollOptions.every((option) => option.trim() === '')
@@ -192,7 +212,7 @@ export async function createThreadAction(
          */
         restriction: await authorRestriction(actor.userId),
       },
-      { userId: actor.userId, username: await authorName(actor.userId) },
+      { userId: actor.userId, username: author.username },
       forum,
     )
 
@@ -333,17 +353,24 @@ function replyAnchor(created: {
 }
 
 /**
- * The author's display name.
+ * The author's display name and post count.
  *
- * Denormalised onto the thread and post so a deleted account keeps its
- * attribution (R3.3), which means it has to be read at write time. The actor
- * carries permissions, not profile data — the same gap `ViewerModel.username`
- * has — so this is one lookup rather than a guess.
+ * The name is denormalised onto the thread and post so a deleted account keeps
+ * its attribution (R3.3), which means it has to be read at write time. The
+ * actor carries permissions, not profile data — the same gap
+ * `ViewerModel.username` has — so this is one lookup rather than a guess.
+ *
+ * F46 takes the post count from the same row rather than reading it again: it
+ * decides whether this author's post is held for review, and a second query on
+ * the hottest write on the board for a feature most boards leave off would be a
+ * poor trade.
  */
-async function authorName(userId: number): Promise<string> {
+async function authorProfile(
+  userId: number,
+): Promise<{ readonly username: string; readonly postCount: number }> {
   const profile = await getContainer().memberProfiles.findPublicById(userId)
   if (!profile) throw new ForbiddenError('Your account can no longer post.')
-  return profile.username
+  return { username: profile.username, postCount: profile.postCount }
 }
 
 /* ------------------------------------------------------------------ *

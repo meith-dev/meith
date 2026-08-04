@@ -95,11 +95,14 @@ export default async function SearchPage({
             errorMessage:
               outcome.kind === 'flooded'
                 ? `You are searching very quickly. Try again in ${outcome.seconds} seconds.`
-                : outcome.reason === 'too-short'
-                  ? 'That search is too short — try a whole word.'
-                  : outcome.reason === 'too-long'
-                    ? 'That search is too long to run.'
-                    : 'Type something to search for.',
+                : /* F46's hourly limit, which says "later" where the interval says "wait". */
+                  outcome.kind === 'limited'
+                  ? outcome.message
+                  : outcome.reason === 'too-short'
+                    ? 'That search is too short — try a whole word.'
+                    : outcome.reason === 'too-long'
+                      ? 'That search is too long to run.'
+                      : 'Type something to search for.',
           }))}
         />
       </div>

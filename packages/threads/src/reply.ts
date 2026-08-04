@@ -45,6 +45,17 @@ export interface ComposeReplyInput {
    */
   readonly seenLastPostId: number | null
   readonly bypassesModeration: boolean
+  /**
+   * F46. True when the board holds a new account's opening posts and this
+   * author has not yet reached the threshold.
+   *
+   * Resolved by the caller, like `bypassesModeration` and the warning
+   * restriction beside it, and for the same reason: it is a fact about the
+   * *account* (its post count against a board setting) rather than about this
+   * forum or this message, and the composer is not the thing that reads
+   * settings.
+   */
+  readonly heldAsNewMember: boolean
   readonly bypassesFlood: boolean
   /** Moderators may reply to a locked thread; nobody else may. */
   readonly bypassesLock: boolean
@@ -148,9 +159,14 @@ export class ReplyComposer {
 
     await this.enforceFlood(input, author)
 
-    /* F53; see the composer for why a warning outranks `bypassesModeration`. */
+    /*
+     * Three reasons, and see the composer for why the warning outranks
+     * `bypassesModeration` while F46's new-member hold does not.
+     */
     const visibility =
-      (target.forum.moderateNewPosts && !input.bypassesModeration) || restriction.moderated
+      (target.forum.moderateNewPosts && !input.bypassesModeration) ||
+      input.heldAsNewMember ||
+      restriction.moderated
         ? 'unapproved'
         : 'visible'
 

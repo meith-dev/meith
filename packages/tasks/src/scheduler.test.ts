@@ -227,6 +227,7 @@ describe('bans.expire is registered (F23)', () => {
     const zero = async () => 0
     return {
       relayOutbox: zero,
+      pruneRateLimits: zero,
       deliverWebhooks: async () => ({ attempted: 0, delivered: 0, retried: 0, dead: 0 }),
       sweepAttachments: async () => ({ deleted: 0, failed: 0 }),
       sweepAvatars: zero,
@@ -299,6 +300,7 @@ describe('bans.expire is registered (F23)', () => {
 function fullWorkerSet(): TaskWorkers {
   return {
     relayOutbox: async () => 0,
+    pruneRateLimits: async () => 0,
     deliverWebhooks: async () => ({ attempted: 0, delivered: 0, retried: 0, dead: 0 }),
     sweepAttachments: async () => ({ deleted: 0, failed: 0 }),
     sweepAvatars: async () => 0,
@@ -340,9 +342,20 @@ describe('builtinTasks registers only what can run', () => {
     expect(after).toContain('counters.reconcile')
   })
 
+  /*
+   * Derived from the worker set rather than counted by hand. Each task requires
+   * exactly one worker and no two share one — which the next test asserts — so
+   * "everything" is "one task per worker supplied". The literal this replaces
+   * went stale the moment a task was added, and the fix for that kind of
+   * failure is always to edit the number, which is how the assertion stops
+   * meaning anything.
+   */
   it('registers everything when the full set is supplied', () => {
-    const all = builtinTasks(fullWorkerSet())
-    expect(all).toHaveLength(16)
+    const workers = fullWorkerSet()
+    const all = builtinTasks(workers)
+
+    expect(all).toHaveLength(Object.keys(workers).length)
+    expect(new Set(all.map((task) => task.id)).size).toBe(all.length)
   })
 
   it('gives every task a worker mapping, so none can be silently unregisterable', () => {

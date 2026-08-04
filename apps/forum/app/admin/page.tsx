@@ -125,7 +125,16 @@ export default async function AdminHomePage() {
               Content
             </a>{' '}
             <span className="text-muted-foreground">
-              — word filters, applied when a post is shown, and thread prefixes.
+              — word filters, smilies, custom BBCode, thread prefixes,
+              attachments and announcements.
+            </span>
+          </li>
+          <li>
+            <a href="/admin/antispam" className="text-primary hover:underline">
+              Anti-spam
+            </a>{' '}
+            <span className="text-muted-foreground">
+              — registration questions, and what each control actually stops.
             </span>
           </li>
           <li>

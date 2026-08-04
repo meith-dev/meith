@@ -27,6 +27,7 @@ import {
 
 import { foldIdentifier } from '@meith/accounts'
 
+import { verifyChallenge } from './antispam'
 import { getContainer } from './container'
 import {
   profileFieldService,
@@ -88,6 +89,16 @@ export async function registerAction(
 
   const { identity } = getContainer()
   try {
+    /*
+     * F46, checked **before** anything else — before the profile fields, before
+     * the account. A challenge that ran after validation would tell a script
+     * which usernames are taken and which emails are registered, one refused
+     * submission at a time, which is a enumeration oracle behind a form whose
+     * whole purpose is to stop automation.
+     */
+    const challenge = await verifyChallenge(form)
+    if (!challenge.ok) return { error: challenge.reason, values }
+
     /*
      * F59's required fields are validated *before* the account exists, and
      * written after. Doing it the other way round would leave a member the

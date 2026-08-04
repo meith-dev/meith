@@ -21,6 +21,7 @@ import type { Actor } from '@meith/authorization'
 import { isRunnable, parseSearchInput, type SearchQuery, type SearchResults } from '@meith/search'
 import { PostgresSearchStore, getDb, ownsSearch, type StoredSearch } from '@meith/db'
 
+import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
 import { requireSearch, searchScopeFor } from './search'
 import { getSettings } from './settings'
@@ -65,6 +66,8 @@ export type RunSearchOutcome =
   | { readonly kind: 'ok'; readonly token: string }
   | { readonly kind: 'refused'; readonly reason: 'empty' | 'too-short' | 'too-long' }
   | { readonly kind: 'flooded'; readonly seconds: number }
+  /* F46. Distinct from `flooded`: an interval says "wait", a limit says "later". */
+  | { readonly kind: 'limited'; readonly message: string }
 
 /**
  * Run a search and store it.
@@ -95,6 +98,18 @@ export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome
   const floodSeconds = authorizer.can(input.actor, 'flood.bypass')
     ? 0
     : Number(settings.get('search.flood_seconds') ?? 0)
+
+  /*
+   * F46's hourly limit, beside F73's interval. The two answer different
+   * questions and both are kept: the interval stops a double-submit, the limit
+   * stops somebody running a thousand searches overnight at one every 31
+   * seconds. Searching is the most expensive thing a guest can do, which is why
+   * it is on the list at all.
+   */
+  const limited = await spendLimit({ scope: 'search', actor: input.actor, settings })
+  if (limited !== null && !limited.allowed) {
+    return { kind: 'limited', message: limitMessage(limited) }
+  }
 
   const stored = await store.create({
     token: newToken(),

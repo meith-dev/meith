@@ -43,8 +43,18 @@ describe('browsing', () => {
     expect(model({ group: 'nonsense' }).activeGroup).toBe('board')
   })
 
+  /*
+   * Derived from the registry rather than counted by hand. The literal `8` this
+   * replaces went stale the first time a group was added (F46's), which is a
+   * test failing for a reason that is not a defect — and the fix for that kind
+   * of failure is always to edit the number, which is how the assertion stops
+   * meaning anything.
+   */
   it('offers every group as a tab whatever is being shown', () => {
-    expect(model({ group: 'security' }).tabs).toHaveLength(8)
+    const groups = new Set(SETTING_DEFINITIONS.map((definition) => definition.group))
+    expect(model({ group: 'security' }).tabs.map((tab) => tab.group).sort()).toEqual(
+      [...groups].sort(),
+    )
   })
 })
 
