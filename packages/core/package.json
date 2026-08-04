@@ -10,6 +10,7 @@
     "./cache": "./src/cache.ts",
     "./errors": "./src/errors.ts",
     "./env": "./src/env.ts",
+    "./env-files": "./src/env-files.ts",
     "./logger": "./src/logger.ts"
   },
   "scripts": {

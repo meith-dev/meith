@@ -12,7 +12,8 @@
 #   echo "<password>" | pnpm forum user:create --username you --email you@example.test
 #   pnpm forum user:promote --user you --group administrators
 #
-# and in apps/forum/.env:
+# and in `.env` at the workspace root — one file for the app, the CLI and the
+# worker alike:
 #
 #   DATA_SOURCE=postgres
 #   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/forum_test

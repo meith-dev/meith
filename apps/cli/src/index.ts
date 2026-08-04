@@ -12,6 +12,8 @@
 
 import process from 'node:process'
 
+import { loadEnvFiles, type LoadedEnvFiles } from '@forum/core/env-files'
+
 import { importCommand } from './import'
 import { taskList, taskRun } from './tasks'
 import {
@@ -97,6 +99,13 @@ const commands: Command[] = [
       for (const [k, v] of rows) console.log(`${k.padEnd(width)}  ${v}`)
 
       console.log('\nEnvironment is valid.')
+      console.log(
+        envFiles.loaded.length > 0
+          ? `Loaded ${envFiles.loaded.join(', ')} from ${envFiles.root}.`
+          : envFiles.root === undefined
+            ? 'No workspace root found — configuration came from the environment.'
+            : `No .env files at ${envFiles.root} — configuration came from the environment.`,
+      )
       if (env.DATA_SOURCE === 'fixture') {
         console.log(
           'DATA_SOURCE=fixture — in-memory sample data. Set DATABASE_URL for Postgres.',
@@ -299,7 +308,24 @@ const commands: Command[] = [
  * `forum --help` would advertise a capability the binary does not have.
  */
 
+/**
+ * What `loadEnvFiles()` found, so `env:check` can report it.
+ *
+ * Assigned by `main()` before any command runs. `env:check` exists to answer
+ * "what configuration am I actually running with", and the file that supplied it
+ * is half that answer — an operator staring at `DATA_SOURCE fixture` needs to
+ * know whether the CLI read their `.env` and it said fixture, or never found it.
+ */
+let envFiles: LoadedEnvFiles = { root: undefined, loaded: [] }
+
 async function main(): Promise<number> {
+  /*
+   * First, before a command can import anything that reads `env`. The CLI is a
+   * plain Node process: unlike `next dev`, nothing has populated `process.env`
+   * from the workspace's `.env` by the time it starts.
+   */
+  envFiles = loadEnvFiles()
+
   const [name, ...rest] = process.argv.slice(2)
 
   if (!name || name === '--help' || name === '-h') {

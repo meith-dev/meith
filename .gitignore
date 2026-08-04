@@ -19,11 +19,33 @@ __v0_jsx-dev-runtime.ts
 *.tsbuildinfo
 next-env.d.ts
 
+# Build output.
+#
+# `.next*/` rather than the two names that happen to exist today. The Next build
+# directory is chosen at *runtime* by FORUM_DIST_DIR — `.next` for `pnpm dev`,
+# `.next-e2e` for the Playwright server, and whatever a developer passes to run a
+# second server beside their own. Listing them individually means the next value
+# anybody uses is untracked-but-not-ignored, which is how a hundred megabytes of
+# compiled chunks arrive in a `git add -A`.
+#
+# `dist/` at any depth, not just `apps/worker/dist/`: the CLI declares a
+# `dist/index.js` bin and every package can be built the same way.
+.next*/
+dist/
+.turbo/
+coverage/
+
+# Test artefacts. `test-results/` is Playwright's per-run output (traces,
+# screenshots, videos of failures) and can be large.
+playwright-report/
+blob-report/
+test-results/
+
+# A local board's uploads — UPLOADS_DIR, `.uploads` by default, with
+# FILESTORE_DRIVER=local. Member content rather than source, and the one thing
+# here that would be a disclosure rather than merely noise.
+.uploads/
+
 # Common ignores
 node_modules
-.next/
-.next-e2e/
 .DS_Store
-playwright-report/
-test-results/
-apps/worker/dist/

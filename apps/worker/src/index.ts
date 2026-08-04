@@ -28,6 +28,7 @@
  * one, and it does not — nothing here is imported by the app.
  */
 import { assertEnv, logger } from '@forum/core'
+import { loadEnvFiles } from '@forum/core/env-files'
 import { drivers } from '@forum/drivers'
 import { imageProcessor } from '@forum/drivers/images'
 import { buildSchedulerBundle } from '@forum/runtime'
@@ -59,6 +60,16 @@ const TICK_TIMEOUT_MS = 300_000
 let stopping = false
 
 async function main(): Promise<number> {
+  /*
+   * Before `assertEnv()`, which memoises. In the image this finds nothing —
+   * there is no workspace and `.dockerignore` keeps `.env` out on purpose, so
+   * the container's own environment is the whole configuration. It is here for
+   * `pnpm --filter @forum/worker start` against a developer's board, which
+   * otherwise refuses to start with the fixture-mode message below while the
+   * workspace `.env` sitting next to it says postgres.
+   */
+  loadEnvFiles()
+
   const env = assertEnv()
   if (env.DATA_SOURCE !== 'postgres') {
     /*

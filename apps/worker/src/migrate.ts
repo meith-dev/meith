@@ -18,6 +18,7 @@
  * a board migrated by an operator have been through identical code.
  */
 import { logger } from '@forum/core'
+import { loadEnvFiles } from '@forum/core/env-files'
 import { runMigrations } from '@forum/db'
 
 /**
@@ -29,6 +30,18 @@ import { runMigrations } from '@forum/db'
  * nothing else, but the rule is the rule, and it costs a function call.
  */
 const log = () => logger({ module: 'migrate' })
+
+/*
+ * Ahead of the first `process.env` read below, not merely ahead of the
+ * migration: a variable consumed at module scope is one a `.env` could never
+ * supply if this ran later.
+ *
+ * A no-op in the image, where the container supplies the environment and there
+ * is no workspace to find. It costs one `existsSync` per parent directory and
+ * it means this bundle and `forum migrate` are configured the same way when run
+ * from a checkout — which is the point of them sharing `runMigrations()`.
+ */
+loadEnvFiles()
 
 /**
  * Where the image puts the generated SQL.
