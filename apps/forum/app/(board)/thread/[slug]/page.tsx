@@ -638,6 +638,12 @@ export default async function ThreadPage({
       canSubscribe={authorizer.can(actor, 'forum.subscribe', replyTarget)}
       attachmentLimits={canAttach(actor, replyTarget) ? attachmentLimits(replyTarget) : null}
       draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, forum.id, thread.id)}
+      /*
+       * Folded and shrunk, because inline this is the quick reply rather than
+       * the page — see `ReplyForm`. `/thread/…/reply` passes nothing and gets
+       * the full-size, always-open form.
+       */
+      collapsible
     />
   )
 
