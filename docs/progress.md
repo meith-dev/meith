@@ -744,7 +744,7 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### 80 done, 4 partial, 5 todo. Both open questions are answered.
+### 81 done, 3 partial, 5 todo. Both open questions are answered.
 
 **Phase 9 is closed** and the two escalated decisions came back (D95): `mysql2`
 behind F85's port (ADR 0004), and a bounded relevance window for F89's search
@@ -758,18 +758,14 @@ budget — 5,486 ms to 98 ms.
   F55; nobody had changed the status.
 - **F27** — the forum jump box, the last shell gap (D97).
 
-**Four `PARTIAL` rows remain**, all of them real work rather than stale status:
+**Three `PARTIAL` rows remain**, all of them real work rather than stale status:
 
-1. **F11** — boundary lint and testkit. `keepVisibleSubtrees`, the seeder and the
-   query-budget helper are done; **factories beyond the seeder are not built**,
-   and the harness is PGlite rather than Testcontainers. The `FULL_SCALE` half of
-   this row is now discharged by F89's runner.
-2. **F69** — plugin manager. Five of six deliverables were blocked on F79, which
+1. **F69** — plugin manager. Five of six deliverables were blocked on F79, which
    has since landed, so this is now unblocked and mostly unwritten: enable and
    disable, plugin migrations, plugin settings, ACP pages, hook health.
-3. **F71** — content administration. The word filter and thread prefixes exist;
+2. **F71** — content administration. The word filter and thread prefixes exist;
    attachment, smilie and custom-BBCode administration do not.
-4. **F81** — public REST API and webhooks. The route registry and signing are
+3. **F81** — public REST API and webhooks. The route registry and signing are
    done; five endpoint handlers, token management, and webhook delivery remain.
 
 **Outstanding release task:** nothing is published to npm, so a scaffolded

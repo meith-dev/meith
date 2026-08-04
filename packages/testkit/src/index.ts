@@ -35,3 +35,15 @@ export {
   type SeedScale,
   type SeededBoard,
 } from './seed'
+
+export {
+  createFactories,
+  type FactoryForum,
+  type FactoryPost,
+  type FactoryThread,
+  type FactoryUser,
+  type ForumFactoryOptions,
+  type PostFactoryOptions,
+  type ThreadFactoryOptions,
+  type UserFactoryOptions,
+} from './factories'
