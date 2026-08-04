@@ -744,7 +744,7 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### 83 done, 3 partial, 3 todo. Both open questions are answered.
+### 84 done, 3 partial, 2 todo. Both open questions are answered.
 
 **Phase 9 is closed** and the two escalated decisions came back (D95): `mysql2`
 behind F85's port (ADR 0004), and a bounded relevance window for F89's search
@@ -754,6 +754,8 @@ budget — 5,486 ms to 98 ms.
 
 - **F43** — polls and one-per-member thread ratings now use database-enforced
   boundaries, native forms, and the forum's keyset-paged Top rated order.
+- **F44** — native thread and reply draft saves persist durable values without
+  creating content; autosave and the UserCP list remain deferred.
 - **F28** — the 2M-post seed is real and `pnpm perf explain` is the `EXPLAIN`
   evidence, as a *check* rather than a paragraph (D96).
 - **F06** — re-audited and closed. Its gap paragraph had described no gap since

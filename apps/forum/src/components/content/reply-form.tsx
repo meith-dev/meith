@@ -15,6 +15,7 @@ import { createReplyAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import type { UploadLimits } from "@meith/attachments/limits"
+import type { Draft } from '@meith/drafts'
 
 import { AttachmentField } from "./attachment-field"
 import { FormError, SubmitButton } from "../auth/form-controls"
@@ -25,6 +26,7 @@ export function ReplyForm({
   prefill,
   canSubscribe,
   attachmentLimits,
+  draft,
 }: {
   threadId: number
   seenLastPostId: number | null
@@ -32,6 +34,7 @@ export function ReplyForm({
   canSubscribe: boolean
   /** F42. Null when this member may not attach here, or the board cannot. */
   attachmentLimits: UploadLimits | null
+  draft: Draft | null
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)
 
@@ -45,6 +48,7 @@ export function ReplyForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
+      {state.notice === 'saved' && <p role="status">Draft saved.</p>}
       {state.notice === "preview" && (
         <section
           aria-label="Preview"
@@ -85,7 +89,7 @@ export function ReplyForm({
           name="message"
           rows={12}
           required
-          defaultValue={state.values?.message ?? prefill}
+          defaultValue={state.values?.message ?? draft?.message ?? prefill}
           className="rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
       </label>
@@ -101,6 +105,7 @@ export function ReplyForm({
 
       <div className="flex flex-wrap gap-3">
         <SubmitButton>Post reply</SubmitButton>
+        <button type="submit" name="intent" value="save_draft">Save draft</button>
         <button
           type="submit"
           name="intent"

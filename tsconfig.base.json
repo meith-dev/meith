@@ -27,6 +27,7 @@
       "@meith/core": ["packages/core/src/index.ts"],
       "@meith/core/*": ["packages/core/src/*"],
       "@meith/db": ["packages/db/src/index.ts"],
+      "@meith/drafts": ["packages/drafts/src/index.ts"],
       "@meith/db/*": ["packages/db/src/*"],
       "@meith/drivers": ["packages/drivers/src/index.ts"],
       "@meith/drivers/images": ["packages/drivers/src/images/index.ts"],

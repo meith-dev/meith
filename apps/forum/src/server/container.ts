@@ -54,6 +54,7 @@ import type { RelationRepository } from '@meith/relations'
 import type { AdminLogRepository, AdminSessionRepository } from '@meith/admin'
 import type { ReputationRepository } from '@meith/reputation'
 import type { PollRepository, ThreadRatingRepository } from '@meith/polls'
+import type { DraftRepository } from '@meith/drafts'
 import type { ProfileFieldRepository } from '@meith/profile-fields'
 import type { SubscriptionRepository } from '@meith/subscriptions'
 import type {
@@ -88,6 +89,7 @@ import {
   PostgresRelationRepository,
   PostgresReputationRepository,
   PostgresPollRepository,
+  PostgresDraftRepository,
   PostgresSignatureRepository,
   PostgresAdminLogRepository,
   PostgresAdminSessionRepository,
@@ -234,6 +236,8 @@ export interface Container {
   readonly reputation: ReputationRepository | null
   /** Polls and per-thread ratings (F43). Durable only, so absent in fixture mode. */
   readonly polls: (PollRepository & ThreadRatingRepository) | null
+  /** F44. Null in fixture mode: drafts must not pretend to survive a restart. */
+  readonly drafts: DraftRepository | null
   /**
    * Signatures (F58). `null` in fixture mode (D38), where the UserCP is absent
    * anyway — and a signature that resets on restart is a moderator's lock
@@ -375,6 +379,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     relations: null,
     reputation: null,
     polls: null,
+    drafts: null,
     signatures: null,
     adminSessions: null,
     adminLog: null,
@@ -485,6 +490,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     relations: new PostgresRelationRepository(db),
     reputation: new PostgresReputationRepository(db),
     polls: new PostgresPollRepository(db),
+    drafts: new PostgresDraftRepository(db),
     signatures: new PostgresSignatureRepository(db),
     adminSessions: new PostgresAdminSessionRepository(db),
     adminLog: new PostgresAdminLogRepository(db),
@@ -572,6 +578,7 @@ export function getContainer(): Container {
     cached.relations === undefined ||
     cached.reputation === undefined ||
     cached.polls === undefined ||
+    cached.drafts === undefined ||
     cached.signatures === undefined ||
     cached.adminSessions === undefined ||
     cached.adminLog === undefined ||

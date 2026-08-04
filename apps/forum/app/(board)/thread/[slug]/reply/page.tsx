@@ -38,7 +38,7 @@ export default async function ReplyPage({
   if (id === null) notFound()
 
   const actor = await getActor()
-  const { authorizer, posts, threadWrites } = getContainer()
+  const { authorizer, posts, threadWrites, drafts } = getContainer()
   if (threadWrites === null) notFound()
 
   const target = await threadWrites.replyTarget(id)
@@ -96,6 +96,7 @@ export default async function ReplyPage({
               attachmentLimits={
                 canAttach(actor, scope) ? attachmentLimits(scope) : null
               }
+              draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, target.forum.id, target.threadId)}
             />
           ),
           toolbar: null,

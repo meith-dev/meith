@@ -108,6 +108,7 @@ export function installTestContainer(
     relations: null,
     reputation: null,
     polls: null,
+    drafts: null,
     signatures: null,
     adminSessions: null,
     adminLog: null,

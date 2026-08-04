@@ -95,7 +95,7 @@ export async function createThreadAction(
   }
 
   const actor = await getActor()
-  const { authorizer, threadWrites } = getContainer()
+  const { authorizer, threadWrites, drafts } = getContainer()
 
   if (threadWrites === null) {
     return {
@@ -132,6 +132,12 @@ export async function createThreadAction(
       // still checked: the record needs a real author id and a null one here
       // would be a foreign-key error at the very end of a long form.
       throw new ForbiddenError('You must be logged in to post.')
+    }
+
+    if (field(form, 'intent') === 'save_draft') {
+      if (drafts === null) throw new ValidationError('Drafts are unavailable on this board.')
+      await drafts.save(actor.userId, { forumId, threadId: null, title, message, prefixId })
+      return { notice: 'saved', values }
     }
 
     const composer = new ThreadComposer({
@@ -198,6 +204,7 @@ export async function createThreadAction(
       forumId,
       userId: actor.userId,
     })
+    await drafts?.remove(actor.userId, forumId, null)
   } catch (err) {
     return toFormState(err, values)
   }
@@ -258,7 +265,7 @@ export async function createReplyAction(
   }
 
   const actor = await getActor()
-  const { authorizer, threadWrites } = getContainer()
+  const { authorizer, threadWrites, drafts } = getContainer()
 
   if (threadWrites === null) {
     return {
@@ -289,6 +296,18 @@ export async function createReplyAction(
 
     if (actor.userId === null) {
       throw new ForbiddenError('You must be logged in to post.')
+    }
+
+    if (field(form, 'intent') === 'save_draft') {
+      if (drafts === null) throw new ValidationError('Drafts are unavailable on this board.')
+      await drafts.save(actor.userId, {
+        forumId,
+        threadId,
+        title: '',
+        message,
+        prefixId: null,
+      })
+      return { notice: 'saved', values }
     }
 
     const composer = new ReplyComposer({
@@ -331,6 +350,7 @@ export async function createReplyAction(
       forumId,
       userId: actor.userId,
     })
+    await drafts?.remove(actor.userId, forumId, threadId)
   } catch (err) {
     return toFormState(err, values)
   }

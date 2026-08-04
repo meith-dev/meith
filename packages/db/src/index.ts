@@ -109,6 +109,7 @@ export {
 export { PostgresRelationRepository } from './relation-repo'
 export { PostgresReputationRepository } from './reputation-repo'
 export { PostgresPollRepository } from './poll-repo'
+export { PostgresDraftRepository } from './draft-repo'
 export { PostgresSignatureRepository } from './signature-repo'
 export {
   PostgresAdminLogRepository,

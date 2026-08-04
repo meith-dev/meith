@@ -29,7 +29,7 @@ export default async function NewThreadPage({
   if (id === null) notFound()
 
   const actor = await getActor()
-  const { authorizer, forums, threadWrites } = getContainer()
+  const { authorizer, forums, threadWrites, drafts } = getContainer()
 
   /*
    * Fixture mode has no writer, so the composer does not exist there rather
@@ -86,6 +86,7 @@ export default async function NewThreadPage({
                 attachmentLimits={
                   canAttach(actor, target) ? attachmentLimits(target) : null
                 }
+                draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, id, null)}
               />
             ) : null,
           // F45's island. Absent by design: the plain textarea above is the

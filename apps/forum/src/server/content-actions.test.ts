@@ -132,6 +132,13 @@ class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
 
 let writes: FakeWrites
 
+class FakeDrafts {
+  readonly saved: Array<{ userId: number; draft: unknown }> = []
+  async save(userId: number, draft: unknown): Promise<void> { this.saved.push({ userId, draft }) }
+  async remove(): Promise<void> {}
+  async find(): Promise<null> { return null }
+}
+
 /**
  * Install a container for this test.
  *
@@ -205,6 +212,16 @@ afterEach(() => {
 })
 
 describe('createThreadAction', () => {
+  it('saves an explicit native draft without creating a thread', async () => {
+    const drafts = new FakeDrafts()
+    installContainer({ drafts })
+
+    await expect(createThreadAction(EMPTY_STATE, form({ ...VALID, intent: 'save_draft' })))
+      .resolves.toMatchObject({ notice: 'saved' })
+    expect(writes.written).toEqual([])
+    expect(drafts.saved[0]).toMatchObject({ userId: 1, draft: { title: VALID.title, message: VALID.message } })
+  })
+
   it('creates the thread and redirects to it', async () => {
     const to = await redirectOf(createThreadAction(EMPTY_STATE, form(VALID)))
 
@@ -338,6 +355,16 @@ describe('createThreadAction', () => {
 })
 
 describe('createReplyAction', () => {
+  it('saves an explicit reply draft without creating a post', async () => {
+    const drafts = new FakeDrafts()
+    installContainer({ drafts })
+
+    await expect(createReplyAction(EMPTY_STATE, form({ ...REPLY, intent: 'save_draft' })))
+      .resolves.toMatchObject({ notice: 'saved' })
+    expect(writes.replies).toEqual([])
+    expect(drafts.saved[0]).toMatchObject({ userId: 1, draft: { threadId: Number(REPLY.threadId), message: REPLY.message } })
+  })
+
   const REPLY = { threadId: '20', message: 'Quite so.', seenLastPostId: '31' }
 
   it('posts the reply and returns to the thread, anchored to it', async () => {

@@ -11,6 +11,7 @@
     "@meith/bbcode": "workspace:*",
     "@meith/search": "workspace:*",
     "@meith/core": "workspace:*",
+    "@meith/drafts": "workspace:*",
     "@meith/events": "workspace:*",
     "@meith/forums": "workspace:*",
     "@meith/groups": "workspace:*",
