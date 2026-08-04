@@ -15,6 +15,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
       </div>
       <div className="flex flex-col gap-4">{regions.posts}</div>
       {regions.pagination}
+      {regions.quickReply}
     </div>
   )
 }

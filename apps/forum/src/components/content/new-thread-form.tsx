@@ -22,6 +22,7 @@ import type { UploadLimits } from "@meith/attachments/limits"
 import type { Draft } from '@meith/drafts'
 
 import { AttachmentField } from "./attachment-field"
+import { EditorToolbar } from './editor-toolbar'
 import { Field, FormError, SubmitButton } from "../auth/form-controls"
 
 export interface PrefixOption {
@@ -113,6 +114,7 @@ export function NewThreadForm({
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Message</span>
+        <EditorToolbar />
         <textarea
           id="post-message"
           name="message"

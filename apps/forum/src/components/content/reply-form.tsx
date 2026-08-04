@@ -18,6 +18,7 @@ import type { UploadLimits } from "@meith/attachments/limits"
 import type { Draft } from '@meith/drafts'
 
 import { AttachmentField } from "./attachment-field"
+import { EditorToolbar } from './editor-toolbar'
 import { FormError, SubmitButton } from "../auth/form-controls"
 
 export function ReplyForm({
@@ -84,6 +85,7 @@ export function ReplyForm({
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Message</span>
+        <EditorToolbar />
         <textarea
           id="post-message"
           name="message"

@@ -24,6 +24,7 @@ import {
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
+import { EditorToolbar } from './editor-toolbar'
 
 export function EditPostForm({
   threadId,
@@ -61,6 +62,7 @@ export function EditPostForm({
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Message</span>
+        <EditorToolbar />
         <textarea
           id="post-message"
           name="message"

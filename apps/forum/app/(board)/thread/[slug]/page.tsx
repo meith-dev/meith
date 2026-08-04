@@ -11,6 +11,8 @@ import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
 import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 import { PollForm } from '@/components/content/poll'
 import { ThreadRatingForm } from '@/components/content/thread-rating'
+import { ReplyForm } from '@/components/content/reply-form'
+import { attachmentLimits, canAttach } from '@/server/attachments'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -200,6 +202,7 @@ export default async function ThreadPage({
     threadSurgery,
     inlineModeration,
     polls,
+    drafts,
   } = getContainer()
   /*
    * Locate, authorise, then read — in that order, and the order is the whole
@@ -622,6 +625,17 @@ export default async function ThreadPage({
     polls !== null &&
     actor.userId !== null &&
     authorizer.can(actor, 'thread.rate', { forumId: forum.id, forum: matrix })
+  const replyTarget = { forumId: forum.id, forum: matrix }
+  const quickReply = !canReply ? null : (
+    <ReplyForm
+      threadId={thread.id}
+      seenLastPostId={thread.lastPost?.postId ?? null}
+      prefill=""
+      canSubscribe={authorizer.can(actor, 'forum.subscribe', replyTarget)}
+      attachmentLimits={canAttach(actor, replyTarget) ? attachmentLimits(replyTarget) : null}
+      draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, forum.id, thread.id)}
+    />
+  )
 
   const threadViewModel = await filterView(
     'view.thread-view',
@@ -632,7 +646,7 @@ export default async function ThreadPage({
           <PostBit key={model.post.id} {...model} />
         )),
         pagination: <Pagination {...pagination} />,
-        quickReply: null,
+        quickReply,
       },
     },
     pluginContext,
