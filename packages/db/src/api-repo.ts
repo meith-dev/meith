@@ -27,6 +27,20 @@ function parseScopes(raw: unknown, known: (value: string) => value is Scope): re
   return raw.filter((value): value is Scope => typeof value === 'string' && known(value))
 }
 
+/** A token as the operator screen lists it. Never carries the secret hash. */
+export interface ApiTokenSummary {
+  readonly id: number
+  readonly userId: number
+  readonly username: string
+  readonly name: string
+  readonly lookup: string
+  readonly scopes: readonly Scope[]
+  readonly createdAt: Date
+  readonly expiresAt: Date | null
+  readonly revokedAt: Date | null
+  readonly lastUsedAt: Date | null
+}
+
 export class PostgresApiTokenRepository {
   constructor(
     private readonly db: Database,
@@ -60,6 +74,94 @@ export class PostgresApiTokenRepository {
       expiresAt: row.expires_at,
       revokedAt: row.revoked_at,
     }
+  }
+
+  /**
+   * Every token on the board, for the operator screen (F81).
+   *
+   * **The secret hash is not selected.** It has no use on a listing and the
+   * screen renders whatever it is given; leaving it out of the query means a
+   * future template change cannot put it on a page. The lookup half *is*
+   * shown — it is the clear prefix a member can match against their own copy,
+   * which is how somebody identifies which token to revoke.
+   */
+  async listAll(limit = 200): Promise<readonly ApiTokenSummary[]> {
+    const rows = (await this.db.execute(sql`
+      select t.id, t.user_id, u.username, t.name, t.lookup, t.scopes,
+             t.created_at, t.expires_at, t.revoked_at, t.last_used_at
+      from api_tokens t
+      join users u on u.id = t.user_id
+      order by t.revoked_at nulls first, t.created_at desc
+      limit ${limit}
+    `)) as unknown as Array<{
+      id: number
+      user_id: number
+      username: string
+      name: string
+      lookup: string
+      scopes: unknown
+      created_at: Date
+      expires_at: Date | null
+      revoked_at: Date | null
+      last_used_at: Date | null
+    }>
+
+    return rows.map((row) => ({
+      id: row.id,
+      userId: row.user_id,
+      username: row.username,
+      name: row.name,
+      lookup: row.lookup,
+      scopes: parseScopes(row.scopes, this.isScope),
+      createdAt: row.created_at,
+      expiresAt: row.expires_at,
+      revokedAt: row.revoked_at,
+      lastUsedAt: row.last_used_at,
+    }))
+  }
+
+  /**
+   * Store an issued token.
+   *
+   * Takes the *hash*, never the secret: the caller does the hashing so this
+   * class has no opportunity to log, return or accidentally persist the clear
+   * value. The clear token exists exactly once, in the response that mints it.
+   */
+  async create(input: {
+    readonly userId: number
+    readonly name: string
+    readonly lookup: string
+    readonly secretHash: string
+    readonly scopes: readonly Scope[]
+    readonly expiresAt: Date | null
+  }): Promise<number> {
+    const rows = (await this.db.execute(sql`
+      insert into api_tokens (user_id, name, lookup, secret_hash, scopes, expires_at)
+      values (${input.userId}, ${input.name}, ${input.lookup}, ${input.secretHash},
+              ${JSON.stringify(input.scopes)}, ${input.expiresAt})
+      returning id
+    `)) as unknown as Array<{ id: number }>
+
+    return rows[0]!.id
+  }
+
+  /**
+   * Revoke, idempotently and without deleting.
+   *
+   * The row stays so `last_used_at` and the name survive an incident review —
+   * "which token was that, and when was it last used" is the first question
+   * asked after one leaks, and a DELETE answers none of it. Revoking twice is
+   * not an error: the operator clicking again during an incident should not see
+   * a failure.
+   */
+  async revoke(id: number, at: Date): Promise<boolean> {
+    const rows = (await this.db.execute(sql`
+      update api_tokens set revoked_at = ${at}
+      where id = ${id} and revoked_at is null
+      returning id
+    `)) as unknown as Array<{ id: number }>
+
+    return rows.length > 0
   }
 
   /**

@@ -27,6 +27,7 @@ import type { AttachmentService } from '@meith/attachments'
 import type { AvatarService } from '@meith/avatars'
 
 import { SEED_GROUP } from './groups'
+import { deliverWebhooks, type WebhookDeliveryStore } from './webhook-delivery'
 
 export interface TaskWorkerDeps {
   readonly queue: QueueDriver
@@ -46,6 +47,12 @@ export interface TaskWorkerDeps {
   readonly threadViews: { flush(limit: number): Promise<number> }
   /** F36's stale-render sweep. */
   readonly renderBackfill: { run(batchSize: number): Promise<{ rendered: number }> }
+  /**
+   * F81's webhook queue. Optional, and absent on a board with no database —
+   * `builtinTasks` then registers no delivery task at all rather than one that
+   * reports a healthy run of nothing (D32).
+   */
+  readonly webhooks?: WebhookDeliveryStore | undefined
   /** F53's warning store. */
   readonly warnings: WarningRepository
   /**
@@ -178,6 +185,19 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       const { rendered } = await deps.renderBackfill.run(batchSize)
       return rendered
     },
+
+    /*
+     * Present only when a store is. The spread below drops the key entirely
+     * otherwise, which is what `builtinTasks` inspects — an implementation that
+     * returned zeroes would register a task that looks like it ran.
+     */
+    ...(deps.webhooks === undefined
+      ? {}
+      : {
+          async deliverWebhooks(batchSize: number) {
+            return deliverWebhooks(deps.webhooks!, batchSize)
+          },
+        }),
 
     async pruneSessions() {
       return deps.maintenance.pruneSessions(new Date())

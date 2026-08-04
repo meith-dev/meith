@@ -35,15 +35,15 @@ describe('the API surface', () => {
     expect(IMPLEMENTED_ROUTES.length).toBeGreaterThan(0)
   })
 
-  /* Named, so the gap is a number somebody can see shrinking. */
+  /*
+   * Named, so the gap is a number somebody can see shrinking — and it has
+   * shrunk to nothing: every declared route now has a handler. Kept as an
+   * assertion rather than deleted, because the next route added to `ROUTES`
+   * before it is written should fail here rather than answer 501 to somebody's
+   * client in production.
+   */
   it('reports the unimplemented remainder', () => {
     const pending = DECLARED_ROUTES.filter((route) => !IMPLEMENTED_ROUTES.includes(route))
-    expect(pending).toEqual([
-      'GET /forums/:forumId/threads',
-      'GET /threads/:threadId',
-      'GET /threads/:threadId/posts',
-      'POST /threads/:threadId/posts',
-      'GET /search',
-    ])
+    expect(pending).toEqual([])
   })
 })

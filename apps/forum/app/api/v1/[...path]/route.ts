@@ -3,15 +3,21 @@ import {
   bearerFrom,
   consumeRateLimit,
   hasScope,
+  idParam,
   matchRoute,
   rateLimitHeaders,
   type RouteSpec,
 } from '@meith/api'
+import { isAppError, statusForError, toPublicError } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
+import { isRunnable, parseSearchInput, type SearchCursor } from '@meith/search'
+import type { ThreadCursor } from '@meith/threads'
 import type { NextRequest } from 'next/server'
 
 import { apiActor, apiToken } from '@/server/api-auth'
 import { getContainer } from '@/server/container'
+import { resolveReplyTarget, submitReply } from '@/server/reply-core'
+import { requireSearch, searchScopeFor } from '@/server/search'
 
 /**
  * F81 — the public REST API, in one route handler.
@@ -126,8 +132,120 @@ async function handle(request: NextRequest, method: 'GET' | 'POST'): Promise<Res
     return fail(403, 'owner_unavailable', 'The account this token belongs to cannot act.')
   }
 
-  const result = await dispatch(matched.route, actor)
-  return json(result.body, result.status, headers)
+  try {
+    const result = await dispatch(matched.route, matched.params, actor, request)
+    return json(result.body, result.status, headers)
+  } catch (err) {
+    /*
+     * The domain's own errors, in the API's error shape. `toPublicError` is
+     * what the web pages already use to decide what a stranger may be told, so
+     * a validation message reaches the caller and an internal failure does not
+     * — reimplementing that judgement here would be a second place for a stack
+     * trace to escape into a response body.
+     */
+    if (isAppError(err)) {
+      const { error } = toPublicError(err)
+      return fail(statusForError(err), error.code, error.message, headers)
+    }
+    throw err
+  }
+}
+
+/** `?limit=`, clamped. A caller asking for 5,000 posts gets the maximum. */
+const DEFAULT_PAGE = 25
+const MAX_PAGE = 100
+
+function pageLimit(url: URL): number {
+  const raw = url.searchParams.get('limit')
+  if (raw === null) return DEFAULT_PAGE
+  const parsed = Number(raw)
+  if (!Number.isSafeInteger(parsed) || parsed < 1) return DEFAULT_PAGE
+  return Math.min(parsed, MAX_PAGE)
+}
+
+/**
+ * Keyset cursors, opaque on the wire.
+ *
+ * A thread cursor is six fields and a search cursor is two, and neither is
+ * something a client should be assembling. Base64url JSON keeps the wire format
+ * stable while the internal shape stays free to change — and a cursor cannot
+ * widen what the caller may see whatever it contains, because the scope is
+ * rebuilt server-side on every request.
+ */
+function encodeCursor(cursor: unknown): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url')
+}
+
+function decodeCursor<T>(raw: string | null): T | null {
+  if (raw === null) return null
+  try {
+    return JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as T
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Locate a thread, authorise it, and return the scope it may be read in.
+ *
+ * The same order the thread page uses, for the same reason: the scope cannot be
+ * built before the forum is known, and the forum cannot be known before the
+ * thread is located. `null` means "does not exist" *and* "you may not see it",
+ * deliberately indistinguishable.
+ */
+async function threadScope(
+  actor: Awaited<ReturnType<typeof apiActor>> & object,
+  threadId: number,
+): Promise<{
+  readonly scope: ReturnType<ReturnType<typeof getContainer>['authorizer']['contentScope']>
+  readonly forumId: number
+} | null> {
+  const { authorizer, forums, threads } = getContainer()
+
+  const forumId = await threads.locateForum(threadId)
+  if (forumId === null) return null
+
+  const forum = await forums.findById(forumId)
+  if (!forum || forum.type !== 'forum') return null
+
+  const matrix = await authorizer.forumMatrix(actor, forum.id)
+  if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) return null
+
+  return {
+    scope: authorizer.contentScope(actor, { forumId: forum.id, forum: matrix }),
+    forumId: forum.id,
+  }
+}
+
+/** One thread, as the API describes it. Ids and text, no rendered HTML. */
+function threadBody(row: {
+  readonly id: number
+  readonly forumId: number
+  readonly title: string
+  readonly slug: string
+  readonly authorUserId: number | null
+  readonly authorUsername: string
+  readonly replyCount: number
+  readonly viewCount: number
+  readonly isSticky: boolean
+  readonly isLocked: boolean
+  readonly visibility: string
+  readonly lastPostAt: Date
+}): Record<string, unknown> {
+  return {
+    id: row.id,
+    forumId: row.forumId,
+    title: row.title,
+    slug: row.slug,
+    authorUserId: row.authorUserId,
+    authorUsername: row.authorUsername,
+    replyCount: row.replyCount,
+    viewCount: row.viewCount,
+    isSticky: row.isSticky,
+    isLocked: row.isLocked,
+    visibility: row.visibility,
+    lastPostAt: row.lastPostAt.toISOString(),
+  }
 }
 
 /**
@@ -139,9 +257,19 @@ async function handle(request: NextRequest, method: 'GET' | 'POST'): Promise<Res
  */
 async function dispatch(
   route: RouteSpec,
+  params: Readonly<Record<string, string>>,
   actor: Awaited<ReturnType<typeof apiActor>> & object,
+  request: NextRequest,
 ): Promise<Ok> {
-  const { authorizer, forums } = getContainer()
+  const { authorizer, forums, threads, posts } = getContainer()
+  const url = new URL(request.url)
+
+  /* A bad id is a 404, not a 400: `/threads/abc` names no thread, and telling
+     the caller which of the two it was distinguishes nothing useful. */
+  const notFound: Ok = {
+    status: 404,
+    body: { error: { code: 'not_found', message: 'No such resource.' } },
+  }
 
   switch (`${route.method} ${route.path}`) {
     case 'GET /me':
@@ -169,6 +297,176 @@ async function dispatch(
               parentId: forum.parentId ?? null,
               depth: forum.depth,
             })),
+        },
+      }
+    }
+
+    case 'GET /forums/:forumId/threads': {
+      const forumId = idParam(params.forumId)
+      if (forumId === null) return notFound
+
+      const forum = await forums.findById(forumId)
+      if (!forum || forum.type !== 'forum') return notFound
+
+      const matrix = await authorizer.forumMatrix(actor, forum.id)
+      if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) {
+        return notFound
+      }
+
+      const cursor = decodeCursor<ThreadCursor>(url.searchParams.get('after'))
+      const page = await threads.listForum(forum.id, {
+        limit: pageLimit(url),
+        scope: authorizer.contentScope(actor, { forumId: forum.id, forum: matrix }),
+        /*
+         * A stored cursor carries the sort it was produced under, so paging
+         * cannot silently change ordering halfway through a run. Reviving one
+         * is `...(x ?? {})` rather than a default, because `listForum` treats
+         * an absent cursor and a null one differently.
+         */
+        ...(cursor === null
+          ? {}
+          : { after: { ...cursor, lastPostAt: new Date(cursor.lastPostAt) } }),
+      })
+
+      return {
+        status: 200,
+        body: {
+          data: page.rows.map(threadBody),
+          nextCursor: page.nextCursor === null ? null : encodeCursor(page.nextCursor),
+        },
+      }
+    }
+
+    case 'GET /threads/:threadId': {
+      const threadId = idParam(params.threadId)
+      if (threadId === null) return notFound
+
+      const resolved = await threadScope(actor, threadId)
+      if (resolved === null) return notFound
+
+      const thread = await threads.findById(threadId, resolved.scope)
+      if (!thread) return notFound
+
+      return { status: 200, body: { data: threadBody(thread) } }
+    }
+
+    case 'GET /threads/:threadId/posts': {
+      const threadId = idParam(params.threadId)
+      if (threadId === null) return notFound
+
+      const resolved = await threadScope(actor, threadId)
+      if (resolved === null) return notFound
+
+      const after = url.searchParams.get('after')
+      const afterId = after === null ? null : idParam(after)
+      const page = await posts.listThread(threadId, {
+        ...(afterId === null ? {} : { afterId }),
+        limit: pageLimit(url),
+        scope: resolved.scope,
+      })
+
+      return {
+        status: 200,
+        body: {
+          data: page.rows.map((post) => ({
+            id: post.id,
+            threadId,
+            number: post.number,
+            authorUserId: post.authorUserId,
+            authorUsername: post.authorUsername,
+            /*
+             * The stored BBCode, not `bodyHtml`. A caller wants the source it
+             * could post back; the rendered form is a *theme's* output and
+             * shipping it would make the renderer's markup an API contract.
+             */
+            message: post.message,
+            visibility: post.visibility,
+            postedAt: post.createdAt.toISOString(),
+          })),
+          nextAfterId: page.nextAfterId,
+        },
+      }
+    }
+
+    case 'POST /threads/:threadId/posts': {
+      const threadId = idParam(params.threadId)
+      if (threadId === null) return notFound
+
+      const body = await readJsonBody(request)
+      const message = typeof body?.message === 'string' ? body.message : ''
+
+      /*
+       * Every rule — flood interval, length cap, lock, warning restriction,
+       * moderation queue — comes from `reply-core`, which the web form also
+       * calls. The one thing this route decides is the status code.
+       */
+      const resolved = await resolveReplyTarget(actor, threadId)
+      const created = await submitReply(actor, resolved, {
+        message,
+        subscribe: body?.subscribe === true,
+      })
+
+      return {
+        status: 201,
+        body: {
+          data: {
+            id: created.postId,
+            threadId: created.threadId,
+            /* `unapproved` is a success: the reply was accepted and is waiting
+               for a moderator. A caller that treated it as failure would post
+               again, which is how a queue fills with duplicates. */
+            visibility: created.visibility,
+          },
+        },
+      }
+    }
+
+    case 'GET /search': {
+      const parsed = parseSearchInput(url.searchParams.get('q') ?? '')
+      if (!isRunnable(parsed)) {
+        return {
+          status: 400,
+          body: {
+            error: {
+              code: 'bad_query',
+              message:
+                parsed.refusal === 'too-short'
+                  ? 'That search term is too short.'
+                  : parsed.refusal === 'too-long'
+                    ? 'That search term is too long.'
+                    : 'Provide a search term in ?q=.',
+            },
+          },
+        }
+      }
+
+      const results = await requireSearch().search(
+        {
+          terms: parsed.terms,
+          grouping: 'posts',
+          sort: 'relevance',
+          limit: pageLimit(url),
+          after: decodeCursor<SearchCursor>(url.searchParams.get('after')),
+        },
+        /* The same scope the search page builds: `thread.view` forum ids and
+           the viewer's content visibility, never a widened API-only variant. */
+        await searchScopeFor(actor),
+      )
+
+      return {
+        status: 200,
+        body: {
+          data: results.hits.map((hit) => ({
+            postId: hit.postId,
+            threadId: hit.threadId,
+            forumId: hit.forumId,
+            threadTitle: hit.threadTitle,
+            authorUserId: hit.authorUserId,
+            authorUsername: hit.authorUsername,
+            postedAt: hit.postedAt.toISOString(),
+            excerpt: hit.excerpt,
+          })),
+          nextCursor: results.nextCursor === null ? null : encodeCursor(results.nextCursor),
         },
       }
     }
@@ -203,8 +501,34 @@ export async function POST(request: NextRequest): Promise<Response> {
   return handle(request, 'POST')
 }
 
+/**
+ * A JSON body, or null.
+ *
+ * Never throws: a malformed body is a caller's mistake and reaches them as the
+ * validation error for the field that ends up missing, rather than as a 500
+ * from `JSON.parse` with a stack in the log.
+ */
+async function readJsonBody(request: NextRequest): Promise<Record<string, unknown> | null> {
+  try {
+    const parsed: unknown = await request.json()
+    return typeof parsed === 'object' && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : null
+  } catch {
+    return null
+  }
+}
+
 /** Exported for the test that holds the registry against the implementation. */
-export const IMPLEMENTED_ROUTES: readonly string[] = ['GET /me', 'GET /forums']
+export const IMPLEMENTED_ROUTES: readonly string[] = [
+  'GET /me',
+  'GET /forums',
+  'GET /forums/:forumId/threads',
+  'GET /threads/:threadId',
+  'GET /threads/:threadId/posts',
+  'POST /threads/:threadId/posts',
+  'GET /search',
+]
 
 export const DECLARED_ROUTES: readonly string[] = ROUTES.map(
   (route) => `${route.method} ${route.path}`,

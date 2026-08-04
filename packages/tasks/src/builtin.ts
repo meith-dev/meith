@@ -13,6 +13,19 @@ import type { TaskDefinition } from './types'
 export interface TaskWorkers {
   /** Moves committed outbox rows onto the queue. Returns rows relayed. */
   relayOutbox(batchSize: number): Promise<number>
+  /**
+   * F81 — sends claimed webhook deliveries to their subscribers.
+   *
+   * The only worker that makes an outbound request to somebody else's server,
+   * which is why its task carries a longer `maxDurationSeconds` than the work
+   * suggests: the bound is a slow receiver, not the database.
+   */
+  deliverWebhooks(batchSize: number): Promise<{
+    readonly attempted: number
+    readonly delivered: number
+    readonly retried: number
+    readonly dead: number
+  }>
   /** Runs due queue jobs. Returns jobs processed. */
   drainQueue(batchSize: number): Promise<number>
   /** Deletes sessions idle past the configured timeout. Returns rows removed. */
@@ -69,6 +82,32 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       async run() {
         const relayed = await workers.relayOutbox(200)
         return { detail: { relayed } }
+      },
+    },
+
+    {
+      id: 'webhooks.deliver',
+      title: 'Deliver queued webhooks',
+      description:
+        'Sends pending webhook deliveries to their subscribers, then records ' +
+        'each verdict: delivered, retried with backoff, or dead-lettered.',
+      /*
+       * A minute, matching the queue drain. A webhook is somebody else's
+       * integration reacting to a post, and a slower cadence would make the
+       * board feel broken to the subscriber rather than merely delayed.
+       */
+      intervalSeconds: 60,
+      /*
+       * Longer than the work implies, because the bound here is a *subscriber*
+       * and not the database: twenty deliveries to endpoints that each take the
+       * full ten-second request timeout is over three minutes of wall clock,
+       * and a run killed mid-batch leaves rows claimed with their attempt
+       * already counted.
+       */
+      maxDurationSeconds: 240,
+      async run() {
+        const result = await workers.deliverWebhooks(20)
+        return { detail: { ...result } }
       },
     },
 
@@ -359,6 +398,7 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
  */
 const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'outbox.relay': 'relayOutbox',
+  'webhooks.deliver': 'deliverWebhooks',
   'queue.drain': 'drainQueue',
   'sessions.prune': 'pruneSessions',
   'tokens.prune': 'pruneExpiredTokens',

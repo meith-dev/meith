@@ -22,11 +22,7 @@ import {
   logger,
 } from '@meith/core'
 import { PostEditor, type PostWriteRepository } from '@meith/posts'
-import {
-  ReplyComposer,
-  ThreadComposer,
-  type AuthorRestriction,
-} from '@meith/threads'
+import { ThreadComposer, type AuthorRestriction } from '@meith/threads'
 import { restrictsPosting } from '@meith/moderation'
 
 // Relative, not `@/`: this module is exercised directly by vitest, which
@@ -38,6 +34,7 @@ import { emitEvent, viewerRef } from './plugin-view'
 import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import { getActor } from './context'
 import { getContainer } from './container'
+import { resolveReplyTarget, submitReply } from './reply-core'
 import { resolvePostScope } from './post-scope'
 import { getSettings } from './settings'
 import type { FormState } from './auth-form-state'
@@ -265,106 +262,43 @@ export async function createReplyAction(
   }
 
   const actor = await getActor()
-  const { authorizer, threadWrites, drafts } = getContainer()
+  const { drafts } = getContainer()
 
-  if (threadWrites === null) {
-    return {
-      error:
-        'This board is running on in-memory sample data, so it cannot accept posts.',
-      values,
-    }
-  }
-
-  const settings = await getSettings()
   let created
-  let replyForumId: number
-  let staged: Awaited<ReturnType<typeof stageAttachments>>
   try {
-    const target = await threadWrites.replyTarget(threadId)
-    if (!target) throw new ValidationError('That thread does not exist.')
+    /*
+     * Authorisation, the composer, the flood interval and the moderation
+     * verdict all live in `reply-core`, which `POST /api/v1/threads/:id/posts`
+     * also calls. What stays here is the part that is genuinely a *form*:
+     * previews, drafts, attachments and where to send the author afterwards.
+     */
+    const resolved = await resolveReplyTarget(actor, threadId)
+    const { forumId, scope } = resolved
 
-    const forumId = target.forum.id
-    replyForumId = forumId
-    const scope = {
-      forumId,
-      forum: await authorizer.forumMatrix(actor, forumId),
-    }
-    if (!authorizer.can(actor, 'thread.view', scope)) {
-      throw new ValidationError('That thread does not exist.')
-    }
-    authorizer.require(actor, 'reply.post', scope)
-
-    if (actor.userId === null) {
-      throw new ForbiddenError('You must be logged in to post.')
-    }
+    /* Narrowed by `resolveReplyTarget`, which refuses an anonymous author. */
+    const userId = actor.userId!
 
     if (field(form, 'intent') === 'save_draft') {
       if (drafts === null) throw new ValidationError('Drafts are unavailable on this board.')
-      await drafts.save(actor.userId, {
-        forumId,
-        threadId,
-        title: '',
-        message,
-        prefixId: null,
-      })
+      await drafts.save(userId, { forumId, threadId, title: '', message, prefixId: null })
       return { notice: 'saved', values }
     }
 
-    const composer = new ReplyComposer({
-      posts: threadWrites,
-      config: {
-        floodSeconds: settings.get('posting.flood_seconds'),
-        maxLength: settings.get('posting.max_length'),
-      },
-    })
+    /*
+     * Staged before the post exists and attached after it, which is why
+     * `reply-core` hands back the scope instead of doing the whole write: an
+     * upload has to be validated against the forum's limits before anything is
+     * committed, and cannot carry a post id that has not been issued.
+     */
+    const staged = await stageAttachments(actor, scope, await submittedFiles(form))
 
-    staged = await stageAttachments(actor, scope, await submittedFiles(form))
+    created = await submitReply(actor, resolved, { message, subscribe, seenLastPostId })
 
-    created = await composer.create(
-      {
-        message,
-        subscribe,
-        seenLastPostId,
-        bypassesModeration: authorizer.can(
-          actor,
-          'content.viewUnapproved',
-          scope,
-        ),
-        bypassesFlood: authorizer.can(actor, 'flood.bypass'),
-        /*
-         * Replying to a locked thread is a moderator act. `content.viewDeleted`
-         * would be the wrong test — seeing removed content says nothing about
-         * writing — so this uses the same "handles the queue" permission the
-         * moderation bypass does.
-         */
-        bypassesLock: authorizer.can(actor, 'content.viewUnapproved', scope),
-        /* F53; see `createThreadAction` for why this is not a `can()` call. */
-        restriction: await authorRestriction(actor.userId),
-      },
-      { userId: actor.userId, username: await authorName(actor.userId) },
-      target,
-    )
-
-    await attachStaged(staged, {
-      postId: created.postId,
-      forumId,
-      userId: actor.userId,
-    })
-    await drafts?.remove(actor.userId, forumId, threadId)
+    await attachStaged(staged, { postId: created.postId, forumId, userId })
+    await drafts?.remove(userId, forumId, threadId)
   } catch (err) {
     return toFormState(err, values)
   }
-
-  await emitEvent(
-    'post.created',
-    {
-      postId: created.postId,
-      threadId: created.threadId,
-      forumId: replyForumId,
-      authorId: actor.userId,
-    },
-    viewerRef(actor),
-  )
 
   const thread = `/thread/${created.threadId}-${created.slug}`
   if (created.visibility === 'unapproved') {

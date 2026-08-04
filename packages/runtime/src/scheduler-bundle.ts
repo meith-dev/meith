@@ -29,6 +29,7 @@ import {
   PostgresTaskRepository,
   PostgresThreadViewBuffer,
   PostgresWarningRepository,
+  PostgresWebhookRepository,
   PostgresSubscriptionRepository,
   PostgresAuthorizationSource,
   ActorBuilder,
@@ -182,6 +183,9 @@ export function buildSchedulerBundle(deps: {
         }),
         recount: new PostgresCounterRecount(db),
         renderBackfill: new PostgresRenderBackfill(db),
+        /* F81. The delivery loop lives in `webhook-delivery.ts`; this is only
+           the store it claims from. */
+        webhooks: new PostgresWebhookRepository(db),
         /*
          * F75. Not optional the way the file store and the mailer are: both
          * tables are in the schema every deployment migrates, so there is no

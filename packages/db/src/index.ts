@@ -208,6 +208,7 @@ export * from './schema'
 /* F81 — the public API's stores. */
 export {
   PostgresApiTokenRepository,
+  type ApiTokenSummary,
   PostgresRateLimitStore,
   PostgresWebhookRepository,
   type WebhookDeliveryRow,

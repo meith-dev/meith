@@ -105,6 +105,14 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
+            <a href="/admin/api-tokens" className="text-primary hover:underline">
+              API tokens
+            </a>{' '}
+            <span className="text-muted-foreground">
+              — bearer tokens for the REST API, and which of them are still live.
+            </span>
+          </li>
+          <li>
             <a href="/admin/system" className="text-primary hover:underline">
               System health
             </a>{' '}

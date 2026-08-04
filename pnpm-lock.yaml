@@ -554,6 +554,9 @@ importers:
       '@meith/accounts':
         specifier: workspace:*
         version: link:../accounts
+      '@meith/api':
+        specifier: workspace:*
+        version: link:../api
       '@meith/attachments':
         specifier: workspace:*
         version: link:../attachments
