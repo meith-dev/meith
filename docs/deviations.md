@@ -7492,3 +7492,171 @@ were right:
 
 None of these needed to be remembered. That is the whole return on the
 machinery.
+
+### D100 — Four weak controls, and the one that is not a captcha (F46)
+
+Anti-spam, and the reason there are four mechanisms rather than one good one:
+each is weak alone and they fail to different attacks. What follows is mostly a
+record of what each one *does not* stop, because that is the part every forum
+gets wrong.
+
+#### A limit is not an interval, and the board needs both
+
+F39 already had a flood interval — a minimum gap between two posts, read from
+`users.last_post_at`. It is genuinely multi-instance (the answer is a column)
+and it is the wrong shape for spam: a script posting every 31 seconds satisfies
+a 30-second interval forever, and by morning the board has 2,800 posts on it,
+each one individually within the rules.
+
+A limit is the other question: **how many in a window.** The interval stops a
+double-submit; the limit stops a night's work. Neither replaces the other, so
+both are kept and both are exempted by the same `flood.bypass` — an operator who
+has decided a group is not flooding should not have to say it twice in two
+vocabularies.
+
+#### The counter is the write, and that single statement is the feature
+
+`insert … on conflict do update … returning used`. Postgres serialises
+conflicting upserts on the same key, so ten concurrent requests get ten distinct
+totals and exactly one of them is the eleventh.
+
+A `select` followed by an `update` would hand all ten the same number and let
+all ten through — and under an attack that is **not an unlikely interleaving, it
+is the expected one**, because flooding is precisely the traffic that arrives in
+parallel. It is also what a single-threaded test cannot catch, which is why the
+assertion that pins it runs ten `consume` calls through `Promise.all` against
+real Postgres and requires the totals to be `1..10`.
+
+There is deliberately **no "check" method**. Reading a counter without spending
+against it is exactly what a caller does just before forgetting to spend, so the
+only operation is the one that does both — and a refused attempt still counts,
+which is the difference between a limit and a speed bump. Without that, an
+attacker who ignores the refusal gets a fresh decision every time and the window
+never fills.
+
+Fixed windows rather than a sliding log. A sliding window needs a row per action
+and a scan; this needs one row per subject per window and answers by primary key.
+The cost is the boundary — a full allowance at 10:59 and another at 11:00 — and
+for spam control that is acceptable, because the attacker's reward is one extra
+window rather than an unbounded one. Closing it would make the anti-spam feature
+the board's largest table.
+
+The prune looks **two** hours back, not one. A boundary of exactly one window
+would race the counter a request is currently incrementing, and deleting a live
+row resets somebody's allowance mid-window — the one way this task could help a
+spammer rather than the board.
+
+#### Guests share one bucket when they cannot be identified
+
+A member is counted by id, a guest by F09's already-truncated address — the same
+value the audit log stores and the ban filter matches, so an operator looking at
+a limit and at a ban is looking at the same identifier.
+
+A guest with no address at all goes in a single shared bucket. That is
+deliberately harsh, and it is the safe direction: a bucket per unknown is no
+limit at all and is reached by omitting a header.
+
+#### The captcha seam ships with no third party in it
+
+The roadmap asks for a swappable captcha. It does not ask for a dependency on
+somebody else's service, and adding one would be a runtime-dependency decision
+this project escalates rather than makes. It is also a decision about members
+rather than a setting: a hosted captcha means every visitor's browser contacting
+a third party before they can join.
+
+So the port is here, two providers implement it (`none` and admin-defined
+questions), and a board that wants hCaptcha writes a small module against
+`CaptchaProvider` with no call site changing.
+
+`noCaptcha` is a real provider rather than a `null` the call sites check, so
+"off" and "on" take the same path. The alternative is a branch at every form,
+and the one somebody forgets is a form with no captcha on a board that believes
+it has one.
+
+**The question challenge fails open**, and this is the sharpest trade in the
+feature. An operator who switches the mode on before writing a question would
+otherwise lock registration on their own board, behind a form that refuses every
+answer including the right one — and the screen that would explain why is the one
+they cannot reach. So an empty list lets everybody through and the ACP says so
+loudly. A token naming a question that has since been deleted is accepted too:
+that is a visitor who loaded the page before the operator edited the list, and
+the attacker's gain is one stale id that stops working the moment the row goes.
+
+The answer is checked against **what is stored now**, never against anything the
+form carried. A form that could carry its own correct answer — hashed, signed,
+however — is a form whose answer an attacker holds a copy of.
+
+Answers are **not hashed** in the database. They are not secrets: the question is
+shown to everybody and an attacker learns the answer by registering once.
+Hashing would cost the ACP the ability to show an operator what they configured,
+to protect a value that is public by construction.
+
+#### The honeypot is the only control switched on by default
+
+It costs a legitimate visitor nothing — an invisible field they never see — so
+there is no operator decision to defer, and a board that ships with it off is a
+board where the cheapest control is the one nobody remembers.
+
+It is hidden from assistive technology and taken out of the tab order, because
+the usual way this control gets accessibility wrong is refusing a screen-reader
+user for filling in a field their software told them about.
+
+The fill-time floor treats a **missing or unparseable stamp as a pass**, and a
+stamp from the future the same way. The stamp is a form field, so it is
+attacker-controlled and proves nothing on its own; refusing a form that lacks it
+breaks every visitor whose browser did something unexpected in exchange for
+stopping an attacker who need only delete a field.
+
+Everything else is inert by default. An anti-spam feature that arrives switched
+on greets the operator by breaking their registration form, on a board that has
+no spam on it yet.
+
+#### First-post moderation is a third reason to hold a post, with its own bypass rule
+
+The composer had two — the forum's queue and a warning restriction — and F53
+documented the asymmetry: `bypassesModeration` cancels the forum's queue and
+deliberately does *not* cancel a warning, because a moderator under a warning
+whose bypass cancelled it would be the one person the restriction could not
+reach.
+
+The new-member hold follows the **forum queue's** rule instead. It is a statement
+about how much the board trusts an account, and an account explicitly granted
+`moderation.bypass` is one it has already decided to trust — the alternative
+holds the first post of every moderator the board ever appoints, which is a queue
+full of noise on the day somebody is promoted.
+
+It reads a **post count**, not an account age. An age threshold is satisfied by
+waiting, which a script does for free, and it punishes the enthusiastic new
+member who registers and posts immediately by holding everything for a week. A
+post count is spent by participating, which is the thing the board wants.
+
+The count comes from the profile row both posting paths already load for the
+author's username — a second read of the same row on the hottest write on the
+board, for a feature most boards leave off, would be a poor trade.
+
+#### Everything fails open
+
+A limiter that cannot reach the database refuses nothing; a challenge that throws
+is treated as passed. That is the opposite of the usual security default and it
+is right here: this is a nuisance control, not an authorisation boundary, and a
+database blip that closed it would stop every member on the board from posting
+in order to stop a spammer who is not currently trying. Authorisation is `can()`,
+it is elsewhere, and it fails closed.
+
+#### The challenge is checked before anything else on the form
+
+Before the profile fields, before the account. A challenge that ran after
+validation would tell a script which usernames are taken and which emails are
+registered, one refused submission at a time — an enumeration oracle behind a
+form whose whole purpose is to stop automation.
+
+#### Two stale counts, and why they are now derived
+
+Adding a settings group and a task broke two assertions that counted things by
+hand (`toHaveLength(8)` on the settings tabs, `toHaveLength(16)` on the built-in
+tasks). Neither was a defect and both are now derived from the registry they
+describe — the number of distinct groups, and one task per worker supplied.
+
+The reason for the change rather than an edit: the fix for that kind of failure
+is *always* to update the number, so the assertion stops being a claim and
+becomes a record of the last time somebody ran it.

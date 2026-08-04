@@ -121,6 +121,43 @@ F87's corpus pass is where every remaining difference becomes an entry here.
 
 ---
 
+## Anti-spam: no hosted captcha, and limits are not intervals
+
+**MyBB** ships a built-in image captcha, supports reCAPTCHA and hCaptcha, and
+models flood control as a per-usergroup interval.
+
+**We** ship a honeypot, a fill-time floor, admin-defined question challenges and
+first-post moderation, plus hourly limits on posting, searching, private
+messages, reports and uploads. There is no image captcha and no hosted provider.
+
+**Why.** Three separate reasons, and they are worth keeping apart.
+
+*No image captcha.* Generating one means rendering text to an image, which is a
+dependency, and the accessible fallback is an audio challenge, which is another.
+Both are defeated by commercial solvers for less than it costs to run them. A
+question a regular can answer and a script cannot is weaker against a determined
+human and stronger per unit of effort.
+
+*No hosted provider by default.* hCaptcha and reCAPTCHA work, and they mean every
+visitor's browser contacting a third party before they can register. That is a
+decision about a board's members rather than a setting, so the `CaptchaProvider`
+seam is shipped and the service is not. A board that wants one writes a small
+module against it; no form or call site changes.
+
+*Limits beside the interval, not instead of it.* MyBB's flood control is an
+interval, and this board keeps one (`posting.flood_seconds`, see
+[flood-intervals](#flood-intervals) for why it is a setting rather than a
+permission field). An interval does nothing about a script that posts every 31
+seconds all night, so F46 adds a *limit* — how many in an hour — counted in the
+database so every instance shares one allowance. The two answer different
+questions and both are configured.
+
+**Cost.** An imported board's captcha configuration does not carry over; the
+challenge has to be set up again, and the questions written. Its flood settings
+map onto the interval as before, with the hourly limits starting at zero.
+
+---
+
 ## Announcements are not sticky threads
 
 **MyBB** has announcements as a first-class thing, and boards frequently use a

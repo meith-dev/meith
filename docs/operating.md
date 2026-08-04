@@ -10,6 +10,7 @@ and is not going to.
 - [Themes](#themes)
 - [Plugins](#plugins)
 - [Content and announcements](#content-and-announcements)
+- [Spam](#spam)
 - [Migrations](#migrations)
 - [Backup and restore](#backup-and-restore)
 - [Connection pooling](#connection-pooling)
@@ -241,6 +242,51 @@ deleted immediately.
 **An announcement is not a pinned thread.** Nobody can reply to one, it expires
 on its own date, and removing it removes nothing anybody wrote — which is why it
 is safe to delete and a sticky thread is not. Dates are entered in UTC.
+
+## Spam
+
+`/admin/antispam` holds the registration questions; the numbers are in
+`/admin/settings` under **Anti-spam**. Everything except the hidden-field trap
+ships switched off, deliberately — a fresh board has no spam on it, and a
+feature that arrives switched on introduces itself by breaking your registration
+form.
+
+**What each control is actually worth**, because they are not equivalent and
+they are all oversold:
+
+| Control | Stops | Costs a real visitor |
+|---|---|---|
+| Hidden-field trap | Bots that fill every field | Nothing. Leave it on. |
+| Minimum fill time | Instant submissions | Occasionally somebody with a password manager. Keep it at a few seconds. |
+| A question | Scripted registration | A moment, every time. Switch it on when you have a problem. |
+| Hold first posts | Nearly all forum spam | One wait for each genuine new member. |
+| Hourly limits | A night's work by one script | Nothing, if set sensibly. |
+
+**Holding a new member's first posts is the effective one.** Spam accounts post
+once or twice and never come back, so a threshold of two or three catches most
+of it. Held posts go to the moderation queue like anything else.
+
+**Limits and the flood interval are different controls.** The interval
+(`posting.flood_seconds`) sets a minimum gap between two actions and stops a
+double-click. A limit bounds how many in an hour and stops a script posting
+steadily all night — which satisfies any interval you would be willing to set.
+Use both. Members with **bypass flood check** are exempt from both.
+
+The limits are counted in the database, so every instance of your board shares
+one allowance rather than one each. The counters are pruned hourly by the tick;
+if the tick is stopped, they accumulate — which `/admin/system` will tell you
+about before this does.
+
+**If registration stops working**, check `/admin/antispam` first. A question
+challenge switched on with no question configured does *nothing* rather than
+refusing everybody — that is deliberate, and the screen says so in red — but a
+minimum fill time set to a minute will quietly turn away most real applicants.
+
+**No hosted captcha is offered.** Not because it is hard: it means every
+visitor's browser contacting a third party before they can join your board,
+which is a decision about your members rather than a setting. The provider seam
+is there if you want one — see `packages/antispam` — and it is a small module,
+not a fork.
 
 ## Migrations
 

@@ -9,7 +9,7 @@ Running log of what is complete and what the next action is, per the roadmap.
 | [`roadmap.md`](./roadmap.md) | "What does F29 promise?" | Canonical scope, dependencies, and acceptance criteria. |
 | [`plan-status.md`](./plan-status.md) | "Is F29 done?" | One row per roadmap feature. The tracking table. |
 | `progress.md` (this file) | "What do I do next?" | Prose. Narrative and the next action. |
-| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D99. |
+| [`deviations.md`](./deviations.md) | "Why is it like that?" | Numbered decisions, D1–D100. |
 
 Update `plan-status.md` in the same PR as the feature. If the two disagree,
 `plan-status.md` is the one that gets audited against the tree — trust it and fix
@@ -22,7 +22,7 @@ F47's included) + **guard probes**, the **slot server/client boundary** check +
 its probe, the **three generated-reference staleness gates** (F77's
 `docs/theme-slots.md`, F79's `docs/plugin-hooks.md` and F81's `docs/rest-api.md` — a contract change that
 does not update its published reference fails CI), dependency-cruiser (560
-modules, 0 violations), typecheck (root **and** app), **4023 tests** (a large
+modules, 0 violations), typecheck (root **and** app), **4084 tests** (a large
 share against real Postgres via PGlite). `pnpm build` →
 exit 0 from a zero-secret production environment, with `/modcp`, `/modcp/log`,
 `/modcp/forums`, `/modcp/ip`, `/moderation/warn`, `/notifications`,
@@ -744,7 +744,7 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### 88 done, 0 partial, 1 todo. Both open questions are answered.
+### 89 done, 0 partial, 0 todo. Every plan feature is closed.
 
 **Phase 9 is closed** and the two escalated decisions came back (D95): `mysql2`
 behind F85's port (ADR 0004), and a bounded relevance window for F89's search
@@ -775,10 +775,15 @@ budget — 5,486 ms to 98 ms.
   Announcements were the last thing on this board with no model at all; they
   brought theme-kit to 1.2 and tripped four existing ratchets, all correctly.
 
-**No `PARTIAL` rows remain.** One feature is outstanding:
+- **F46** — anti-spam and flood control (D100). Multi-instance rate limits whose
+  counter is a single insert-on-conflict, a captcha seam with no third party in
+  it, a honeypot and fill-time floor, and first-post moderation as a third
+  reason to hold a post.
 
-1. **F46** — anti-spam and flood control. Never started. Everything else on the
-   plan is `DONE` or a green `GATE`.
+**Nothing on the plan is outstanding.** 86 `DONE`, 3 green `GATE`, no `PARTIAL`
+and no `TODO`. That is the roadmap finished, not the project: what remains is
+the release task below, the standing gaps under *Still outstanding and worth
+knowing*, and whatever the first real board turns up.
 
 **This file was wrong about F81 and said so for a while.** Its paragraph here
 described the route registry and signing as done with the handlers, token
@@ -936,7 +941,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D99). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D100). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a
