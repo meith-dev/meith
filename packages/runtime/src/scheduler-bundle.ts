@@ -37,11 +37,13 @@ import {
 } from '@meith/db'
 import { Authorizer } from '@meith/authorization'
 import { deliverNotificationEmail, NotificationService } from '@meith/notifications'
+import type { PluginDefinition } from '@meith/plugin-kit'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
 import { resolveMailBrand } from './mail-brand'
+import { pluginTasks } from './plugin-tasks'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 import { visibleForumSource } from './visible-forums'
 
@@ -92,6 +94,17 @@ export function buildSchedulerBundle(deps: {
    */
   readonly files?: FileStore
   readonly images?: ImageProcessor
+  /**
+   * F69. The board's enabled plugins, so their declared tasks are registered.
+   *
+   * An argument rather than an import, for the reason `pluginUpgrades` gives:
+   * `forum.config.ts` belongs to the *board's* project and this package is
+   * installed from npm. The web app passes its own; the CLI and the worker pass
+   * what they can see, which is nothing — and a plugin task that is therefore
+   * absent from a `forum task:run` is better than one that appears in the
+   * registry and cannot be executed.
+   */
+  readonly plugins?: readonly PluginDefinition[]
 }): SchedulerBundle {
   const db = deps.db ?? getDb()
   const threadViews = new PostgresThreadViewBuffer(db)
@@ -123,10 +136,19 @@ export function buildSchedulerBundle(deps: {
           images: deps.images,
         })
 
+  /*
+   * Appended rather than merged. `builtinTasks` owns the core set and a plugin
+   * cannot reach it: task ids are namespaced `plugin.<key>.<id>`, and no core
+   * task id begins with `plugin.`, so a plugin cannot displace `relay-outbox`
+   * by naming itself after it.
+   */
+  const contributed = pluginTasks({ db, plugins: deps.plugins ?? [] })
+
   return {
     repository: new PostgresTaskRepository(db),
     onTaskFailure: taskFailureNotifier(notifications),
-    tasks: builtinTasks(
+    tasks: [
+      ...builtinTasks(
       taskWorkers({
         queue: deps.queue,
         bans: new PostgresBanRepository(db),
@@ -220,7 +242,9 @@ export function buildSchedulerBundle(deps: {
           unsubscribeSecret: env.AUTH_SECRET ?? null,
         },
       }),
-    ),
+      ),
+      ...contributed,
+    ],
   }
 }
 

@@ -43,6 +43,20 @@
  * worse problem than the one it solved. Making it durable is an operator action
  * in the ACP, which is where F69 puts it.
  *
+ * ## 4. The operator's switch is a *second* flag, not the same one (F69)
+ *
+ * `setOperatorDisabled` carries the ACP's durable decision into this instance.
+ * It is deliberately **not** the same field auto-disable writes, and the reason
+ * is the interaction rather than tidiness: an operator who disables a plugin,
+ * changes their mind and re-enables it must not thereby clear the fact that the
+ * plugin had already been switched off for failing forty times. One field would
+ * make "enable" a way to silently reset the failure state, so a broken plugin
+ * would come back the moment somebody toggled the wrong row — and the counter
+ * that would have stopped it again is the one the toggle just reset.
+ *
+ * So a plugin runs only when *both* say so, `health()` reports which is which,
+ * and re-enabling clears only the operator's flag.
+ *
  * ## Timing is measured, never enforced
  *
  * Each call is timed and the slow ones are surfaced. There is deliberately no
@@ -78,7 +92,16 @@ export interface PluginHostOptions {
 
 export interface PluginHealth {
   readonly key: string
+  /** Both flags agree. What the four dispatch paths actually check. */
   readonly enabled: boolean
+  /**
+   * The operator switched this off in the ACP (F69).
+   *
+   * Separate from `disabledReason` so a screen can say "you turned this off"
+   * rather than "it failed", which are different things to be told about a
+   * plugin that is not running.
+   */
+  readonly operatorDisabled: boolean
   readonly disabledReason: string | null
   readonly calls: number
   readonly failures: number
@@ -108,7 +131,10 @@ interface Entry {
 }
 
 interface Stats {
+  /** Cleared by the failure counter and by `disable()`. Never set back to true. */
   enabled: boolean
+  /** Cleared and set by the operator, independently of the line above. */
+  operatorDisabled: boolean
   disabledReason: string | null
   calls: number
   failures: number
@@ -137,6 +163,7 @@ export class PluginHost {
     for (const plugin of options.plugins) {
       this.#stats.set(plugin.key, {
         enabled: true,
+        operatorDisabled: false,
         disabledReason: null,
         calls: 0,
         failures: 0,
@@ -273,7 +300,8 @@ export class PluginHost {
     return [...this.#stats.entries()]
       .map(([key, stats]) => ({
         key,
-        enabled: stats.enabled,
+        enabled: stats.enabled && !stats.operatorDisabled,
+        operatorDisabled: stats.operatorDisabled,
         disabledReason: stats.disabledReason,
         calls: stats.calls,
         failures: stats.failures,
@@ -298,6 +326,27 @@ export class PluginHost {
     this.#logger.error('plugin disabled', { plugin: pluginKey, reason })
   }
 
+  /**
+   * Apply the operator's durable choice to this instance (F69).
+   *
+   * Takes the whole set rather than one key, because the caller's input is the
+   * stored state and not an event: reconciling against a list makes a plugin
+   * re-enabled in the ACP come back here without a second call, and makes the
+   * method idempotent, which matters when every instance calls it independently
+   * after its own cold start.
+   *
+   * A key that names no installed plugin is ignored. That is the ordinary case
+   * rather than an error: an operator who disables a plugin and then removes it
+   * from `forum.config.ts` leaves exactly that row behind, and refusing to boot
+   * over it would turn a tidy-up into an outage.
+   */
+  setOperatorDisabled(keys: readonly string[]): void {
+    const disabled = new Set(keys)
+    for (const [key, stats] of this.#stats) {
+      stats.operatorDisabled = disabled.has(key)
+    }
+  }
+
   /** Which hooks anything is listening on. Used by the ACP's hook-health view. */
   listeners(): Readonly<Record<string, readonly string[]>> {
     const out: Record<string, string[]> = {}
@@ -308,7 +357,8 @@ export class PluginHost {
   }
 
   #isEnabled(pluginKey: string): boolean {
-    return this.#stats.get(pluginKey)?.enabled === true
+    const stats = this.#stats.get(pluginKey)
+    return stats !== undefined && stats.enabled && !stats.operatorDisabled
   }
 
   async #call(

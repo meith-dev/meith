@@ -112,6 +112,7 @@ import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
+import { activeDefinitions } from './plugin-host'
 import { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_GROUP } from './seed-board'
 
 /** The services the app resolves from the container. */
@@ -538,6 +539,14 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
        */
       files: drivers().files,
       images: imageProcessor,
+      /*
+       * F69. Same argument as `themeKey` above, one line up: the plugin
+       * registry is app knowledge, so the tasks plugins declare are registered
+       * by the tier that can see them. Disabled entries are excluded here
+       * rather than inside the bundle — a plugin the board has switched off
+       * must not appear on the tasks screen as a task that never runs.
+       */
+      plugins: activeDefinitions(),
     }),
     dataSource: 'postgres',
   }

@@ -1,29 +1,38 @@
 import type { Metadata } from 'next'
 
+import { PluginEnableForm } from '@/components/admin/plugin-forms'
 import { requireAdmin } from '@/server/admin'
-import { configuredPlugins } from '@/server/plugin-host'
+import { hookListeners, pluginInventory } from '@/server/plugin-admin'
 
 export const metadata: Metadata = { title: 'Plugins' }
 
 /**
- * F69 — the plugin inventory.
+ * F69 — the plugin manager.
  *
- * This screen is mostly an honest account of what is not built yet, and that is
- * the deliverable rather than a shortfall. F69's line asks for enable/disable,
- * migrations, settings, ACP pages and hook health; every one of those describes
- * the plugin **lifecycle**, which is F79's, and none of it exists — there is no
- * hook registry, no plugin migration runner, no plugin settings namespace, and
- * no way for a plugin to contribute a page.
+ * The screen's shape follows the one thing that is genuinely hard about
+ * administering plugins: **"is it on" has three answers and they are not
+ * interchangeable.**
  *
- * Rendering five controls over machinery that is not there would be the stub
- * D32 refuses. So: the inventory, the install story, and a precise statement of
- * what each missing piece is waiting on.
+ *  - *in the build* — `forum.config.ts`. Changing it is a redeploy.
+ *  - *switched on* — this screen's button. Durable, immediate, reversible.
+ *  - *running* — the host has not auto-disabled it for throwing.
+ *
+ * A row that showed one boolean would be wrong about the other two, and the
+ * three have completely different things to do about them: redeploy, press the
+ * button, read the error. So each row says which of the three is false, and the
+ * disable button is only offered for the middle one — the only one this screen
+ * can actually change.
+ *
+ * The hook table is at the bottom rather than per row because the question it
+ * answers is a *cross-plugin* one — "two plugins filter the post body; which
+ * one wins" — and the answer is the order they are listed in.
  */
 export default async function AdminPluginsPage() {
   /* Re-run, because a layout is not a security boundary (see the ACP layout). */
   await requireAdmin()
 
-  const plugins = configuredPlugins()
+  const { plugins, migrationsKnown } = await pluginInventory()
+  const listeners = hookListeners()
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
@@ -43,17 +52,109 @@ export default async function AdminPluginsPage() {
         </p>
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-          {plugins.map((plugin) => (
-            <li key={plugin.key} className="flex items-center justify-between gap-3 px-4 py-3">
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium">{plugin.key}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {plugin.enabled ? 'enabled in the configuration' : 'disabled in the configuration'}
+          {plugins.map((plugin) => {
+            const pending = plugin.migrations.filter((migration) => !migration.applied).length
+
+            return (
+              <li key={plugin.key} className="flex items-start justify-between gap-3 px-4 py-3">
+                <span className="flex min-w-0 flex-col gap-1">
+                  <span className="truncate text-sm font-medium">
+                    {plugin.name ?? plugin.key}
+                    {plugin.version !== null && (
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        {plugin.version}
+                      </span>
+                    )}
+                  </span>
+                  <span className="truncate font-mono text-xs text-muted-foreground">
+                    {plugin.key}
+                  </span>
+
+                  {/*
+                    One line, and only when something is off. A row that always
+                    printed "running normally" would train an operator to skip
+                    the column that matters on the day it says otherwise.
+                  */}
+                  {!plugin.hasDefinition ? (
+                    <span className="text-xs text-muted-foreground">
+                      Registered without a definition — a key, and no code.
+                    </span>
+                  ) : !plugin.configuredEnabled ? (
+                    <span className="text-xs text-muted-foreground">
+                      Disabled in <code className="text-xs">forum.config.ts</code>. Turning it
+                      back on is a change to that file and a redeploy.
+                    </span>
+                  ) : !plugin.operatorEnabled ? (
+                    <span className="text-xs text-muted-foreground">
+                      Switched off here. Its hooks are not called on any instance.
+                    </span>
+                  ) : plugin.health?.disabledReason != null ? (
+                    <span className="text-xs text-destructive">
+                      Stopped by this server after repeated failures:{' '}
+                      {plugin.health.disabledReason}
+                    </span>
+                  ) : null}
+
+                  {pending > 0 && migrationsKnown && (
+                    <span className="text-xs text-destructive">
+                      {pending} migration{pending === 1 ? '' : 's'} not applied — run{' '}
+                      <code className="text-xs">forum upgrade</code>.
+                    </span>
+                  )}
                 </span>
-              </span>
-            </li>
-          ))}
+
+                <span className="flex shrink-0 items-center gap-3">
+                  <a
+                    href={`/admin/plugins/${plugin.key}`}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Details
+                  </a>
+                  {/*
+                    Offered only when the config allows the plugin at all.
+                    Switching on something the build does not contain would
+                    store a row that changes nothing, which is the "control over
+                    machinery that is not there" this screen used to be made of.
+                  */}
+                  {plugin.configuredEnabled && plugin.hasDefinition && (
+                    <PluginEnableForm pluginKey={plugin.key} enabled={plugin.operatorEnabled} />
+                  )}
+                </span>
+              </li>
+            )
+          })}
         </ul>
+      )}
+
+      {!migrationsKnown && (
+        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+          This board could not be asked which plugin migrations have run, so the
+          rows above do not say. On a board running on sample data there is no
+          such table; on a real one, that is worth looking into.
+        </p>
+      )}
+
+      {listeners.length > 0 && (
+        <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
+          <h2 className="font-serif text-lg font-semibold">Hooks in use</h2>
+          <p className="text-muted-foreground">
+            Only hooks something is listening on. The full list of every
+            extension point is in the generated reference, and reproducing all
+            ninety-one here would bury these. Plugins are listed in the order
+            they run — priority first, then key — so where two of them change the
+            same value, the last one named has the final say.
+          </p>
+          <ul className="flex flex-col divide-y divide-border">
+            {listeners.map((row) => (
+              <li key={row.hook} className="flex flex-wrap items-baseline gap-2 py-2">
+                <code className="text-xs">{row.hook}</code>
+                <span className="text-xs text-muted-foreground">
+                  {row.plugins.join(' → ')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
@@ -70,42 +171,12 @@ export default async function AdminPluginsPage() {
           A duplicate key is refused when the configuration loads rather than at
           first use, so a board that boots has a registry that makes sense.
         </p>
-      </section>
-
-      {/*
-        The honest half. Naming what is absent, and what it is waiting on, is
-        more use than five controls over machinery that does not exist.
-      */}
-      <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">What this screen cannot do yet</h2>
         <p className="text-muted-foreground">
-          A plugin is currently a key and nothing else. The lifecycle that gives
-          it behaviour — hooks, migrations, settings, its own panel pages — is a
-          later feature, and until it exists these would be controls over
-          nothing:
-        </p>
-        <ul className="flex list-disc flex-col gap-1 pl-5 text-muted-foreground">
-          <li>
-            <strong>Enabling and disabling at runtime.</strong> Nothing reads a
-            plugin&rsquo;s enabled state today, so a switch here would change a
-            stored value and no behaviour.
-          </li>
-          <li>
-            <strong>Migrations.</strong> Plugins own no tables, so there is
-            nothing to run or to report.
-          </li>
-          <li>
-            <strong>Settings and panel pages.</strong> Both need a plugin to be
-            able to declare them, which is what the lifecycle adds.
-          </li>
-          <li>
-            <strong>Hook health.</strong> There is no hook registry, so there is
-            no timing to measure and nothing to auto-disable.
-          </li>
-        </ul>
-        <p className="text-muted-foreground">
-          Each arrives with the plugin lifecycle. What is here now is the
-          inventory and the install story, both of which are true today.
+          There is no uninstall button, and that is deliberate: removing a plugin
+          is <code className="text-xs">pnpm remove</code>, a line out of that
+          file, and a redeploy. A button that dropped a plugin&rsquo;s rows and
+          left its code running would leave the board in a state neither
+          installing nor removing produces.
         </p>
       </section>
     </div>

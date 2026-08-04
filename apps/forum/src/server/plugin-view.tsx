@@ -22,7 +22,7 @@ import {
 } from '@meith/plugin-kit'
 import { Fragment } from 'react'
 
-import { pluginHost } from './plugin-host'
+import { pluginHost, syncOperatorDisables } from './plugin-host'
 
 /**
  * The viewer, as much of one as a plugin is ever told.
@@ -48,6 +48,7 @@ export async function filterView<K extends HookName>(
   value: HookValue<K>,
   context: HookContext<K>,
 ): Promise<HookValue<K>> {
+  await syncOperatorDisables()
   return pluginHost.applyFilter(name, value, context)
 }
 
@@ -57,6 +58,7 @@ export async function emitEvent<K extends HookName>(
   value: HookValue<K>,
   context: HookContext<K>,
 ): Promise<void> {
+  await syncOperatorDisables()
   await pluginHost.emit(name, value, context)
 }
 

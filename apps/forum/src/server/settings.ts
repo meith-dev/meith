@@ -29,14 +29,24 @@ import { SettingsSnapshot } from '@meith/settings'
  */
 const TTL_SECONDS = 60
 
-export async function getSettings(): Promise<SettingsSnapshot> {
+/**
+ * Every stored row, before the registry has had an opinion about it.
+ *
+ * Exported because the registry is not the only thing keyed into this table: a
+ * plugin's settings and its operator switch live at `plugin.<key>.…` (F69), and
+ * `SettingsSnapshot` deliberately resolves *declared* keys only, so a caller
+ * that went through it would find nothing. Sharing the cached read is the point
+ * — the plugin screens and the ACP's disable switch cost no query at all,
+ * because the settings table has already been fetched for this request.
+ */
+export async function getSettingOverrides(): Promise<ReadonlyMap<string, string>> {
   if (env.DATA_SOURCE !== 'postgres') {
     /*
      * Fixture mode has no `settings` table to read. Registry defaults are the
      * honest answer — every key still resolves, and nothing pretends an
      * override could have been stored.
      */
-    return SettingsSnapshot.fromOverrides(new Map())
+    return new Map()
   }
 
   const overrides = await cachedGlobal<Array<[string, string]>>(
@@ -49,5 +59,9 @@ export async function getSettings(): Promise<SettingsSnapshot> {
     },
   )
 
-  return SettingsSnapshot.fromOverrides(new Map(overrides))
+  return new Map(overrides)
+}
+
+export async function getSettings(): Promise<SettingsSnapshot> {
+  return SettingsSnapshot.fromOverrides(new Map(await getSettingOverrides()))
 }
