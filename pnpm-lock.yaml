@@ -121,6 +121,9 @@ importers:
       '@meith/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@meith/drafts':
+        specifier: workspace:*
+        version: link:../../packages/drafts
       '@meith/drivers':
         specifier: workspace:*
         version: link:../../packages/drivers
@@ -148,6 +151,9 @@ importers:
       '@meith/plugin-kit':
         specifier: workspace:*
         version: link:../../packages/plugin-kit
+      '@meith/polls':
+        specifier: workspace:*
+        version: link:../../packages/polls
       '@meith/posts':
         specifier: workspace:*
         version: link:../../packages/posts
@@ -343,6 +349,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/drafts':
+        specifier: workspace:*
+        version: link:../drafts
       '@meith/events':
         specifier: workspace:*
         version: link:../events
@@ -361,6 +370,9 @@ importers:
       '@meith/notifications':
         specifier: workspace:*
         version: link:../notifications
+      '@meith/polls':
+        specifier: workspace:*
+        version: link:../polls
       '@meith/profile-fields':
         specifier: workspace:*
         version: link:../profile-fields
@@ -401,6 +413,12 @@ importers:
       drizzle-kit:
         specifier: ^0.31.6
         version: 0.31.10
+
+  packages/drafts:
+    dependencies:
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/drivers:
     dependencies:
@@ -500,6 +518,12 @@ importers:
       '@types/react':
         specifier: ^19.2.3
         version: 19.2.14
+
+  packages/polls:
+    dependencies:
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/posts:
     dependencies:
@@ -645,6 +669,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/polls':
+        specifier: workspace:*
+        version: link:../polls
 
   packages/ui:
     dependencies:

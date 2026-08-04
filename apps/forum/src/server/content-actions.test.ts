@@ -105,6 +105,7 @@ class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
       isOpen: true,
       allowThreads: true,
       allowReplies: true,
+      allowPolls: true,
       requiresPrefix: false,
       moderateNewThreads: false,
       moderateNewPosts: false,

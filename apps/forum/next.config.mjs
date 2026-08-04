@@ -108,6 +108,8 @@ const nextConfig = {
     "@meith/events",
     "@meith/forums",
     "@meith/groups",
+    "@meith/polls",
+    "@meith/drafts",
     "@meith/posts",
     "@meith/settings",
     "@meith/shared",

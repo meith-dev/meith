@@ -96,6 +96,20 @@ export const MERGE_DEDUPE: readonly DedupeColumn[] = [
     where: 'read_at is null and dedupe_key is not null',
   },
   { table: 'notification_preferences', column: 'user_id', keys: ['kind'] },
+  /*
+   * F43's polls and ratings. Both are `PRIMARY KEY (thing, user_id)`, so both
+   * accounts may hold a row for the same poll or thread and a straight UPDATE
+   * would violate the key.
+   *
+   * Dedupe rather than discard, and the reason is that one member gets one
+   * vote. The winner keeps the vote they cast; the loser's vote on the *same*
+   * poll is dropped, because counting both would let a duplicate registration
+   * vote twice — which is the exact integrity rule the primary key encodes.
+   * Votes on polls the winner never touched move across, since those are
+   * opinions the merged person really did hold and nothing double-counts.
+   */
+  { table: 'poll_votes', column: 'user_id', keys: ['poll_id'] },
+  { table: 'thread_ratings', column: 'user_id', keys: ['thread_id'] },
   { table: 'private_message_copies', column: 'owner_user_id', keys: ['message_id'] },
   { table: 'profile_field_values', column: 'user_id', keys: ['field_id'] },
   {
@@ -120,6 +134,19 @@ export const MERGE_DISCARD: readonly DiscardColumn[] = [
    * somebody else created.
    */
   { table: 'searches', column: 'user_id' },
+  /*
+   * F45's drafts, discarded for the same reason as the searches above rather
+   * than as a credential: a draft is unsent, private, half-written text, and
+   * handing one account's unfinished words to another is a surprise nobody
+   * asked a merge for.
+   *
+   * It could not be deduped even if that were wanted. `post_drafts` carries
+   * *two* partial unique indexes — one per forum for a new thread, one per
+   * thread for a reply — and a `DedupeColumn` describes a single uniqueness
+   * rule. Expressing it would need the column in two lists, which the coverage
+   * test forbids on purpose.
+   */
+  { table: 'post_drafts', column: 'user_id' },
   /*
    * F81's API tokens. A credential in the plainest sense, and the one on this
    * list with the widest blast radius: a token is a long-lived string somebody

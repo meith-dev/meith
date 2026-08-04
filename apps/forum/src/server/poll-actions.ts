@@ -25,7 +25,9 @@ export async function votePollAction(form: FormData): Promise<void> {
     throw new ForbiddenError('You must be logged in to vote.')
   const forumId = await threads.locateForum(threadId)
   const forum = forumId === null ? null : await forums.findById(forumId)
-  if (forum === null || forum?.type !== 'forum')
+  /* See `thread-rating-actions.ts`: a null forum id must fail with the forum,
+     or the scope below resolves group defaults with no override applied. */
+  if (forumId === null || forum === null || forum.type !== 'forum')
     throw new ValidationError('That poll does not exist.')
   const target = {
     forumId,

@@ -20,8 +20,15 @@ export default tseslint.config(
     // Build output and vendored code are not ours to lint.
     ignores: [
       '**/node_modules/**',
-      '**/.next/**',
-      '**/.next-e2e/**',
+      /*
+       * `.next*`, not the two names that existed when this was written. The
+       * build directory is chosen at runtime by FORUM_DIST_DIR, so a second
+       * server started beside a developer's own produces a directory nobody
+       * listed — and linting Turbopack output yields ~1,800 errors about
+       * `__TURBOPACK__imported__module__`, which is how it was found.
+       * `.gitignore` carries the same widened pattern for the same reason.
+       */
+      '**/.next*/**',
       '**/dist/**',
       '**/drizzle/**',
       'user_read_only_context/**',

@@ -22,6 +22,8 @@
     "@meith/bbcode": "workspace:*",
     "@meith/moderation": "workspace:*",
     "@meith/notifications": "workspace:*",
+    "@meith/polls": "workspace:*",
+    "@meith/drafts": "workspace:*",
     "@meith/posts": "workspace:*",
     "@meith/messages": "workspace:*",
     "@meith/relations": "workspace:*",

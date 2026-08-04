@@ -18,7 +18,15 @@ export function validatePoll(input: NewPoll, now = new Date()): NewPoll {
   if (options.some((option) => option.length > POLL_OPTION_LENGTH_MAX)) {
     throw new ValidationError(`A poll option may be at most ${POLL_OPTION_LENGTH_MAX} characters.`)
   }
-  if (new Set(options.map((option) => option.toLocaleLowerCase())).size !== options.length) {
+  /*
+   * `toLowerCase`, not `toLocaleLowerCase` (guard F17). The locale-sensitive
+   * fold reads the *host's* locale, so under tr_TR "I" folds to "ı" and a poll
+   * offering "Iced" and "iced" would be accepted on one server and rejected on
+   * another. Poll options are labels rather than identifiers, so the plain
+   * locale-independent fold is the right one — `foldIdentifier` additionally
+   * trims, which would quietly treat " Yes" and "Yes" as the same option.
+   */
+  if (new Set(options.map((option) => option.toLowerCase())).size !== options.length) {
     throw new ValidationError('Poll options must be distinct.')
   }
   if (input.closesAt !== null && input.closesAt <= now) {

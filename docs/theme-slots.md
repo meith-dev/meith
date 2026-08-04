@@ -566,6 +566,7 @@ The author block beside a post.
 | `permalink` | `string` |  |
 | `author` | `PostAuthorModel` |  |
 | `bodyHtml` | `string` | Pre-rendered BBCode (F36). |
+| `quoteSource` | `string` | Source used only by F45's client multiquote button; themes never render it. |
 | `postedAt` | `TimeModel` |  |
 | `editedNote` | `string \| null` | "Last edited by X on Y", already assembled, or `null`. |
 | `isFirstPost` | `boolean` |  |

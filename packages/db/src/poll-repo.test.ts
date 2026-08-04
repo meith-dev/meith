@@ -3,6 +3,8 @@ import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import type { PollOption } from '@meith/polls'
+
 import { PostgresPollRepository } from './poll-repo'
 import { resultRows } from './result-rows'
 
@@ -67,7 +69,10 @@ describe('polls', () => {
       votedOptionId: poll!.options[1]!.id,
     })
     expect(
-      (await polls.find(900, null))?.options.map((option) => option.votes),
+      /* Annotated because `typecheck:app` reaches into package tests and infers
+         this parameter as `any` there, while the root project types it. Same
+         wart the app tsconfig's `@meith/testkit` alias exists for. */
+      (await polls.find(900, null))?.options.map((option: PollOption) => option.votes),
     ).toEqual([0, 1])
   })
 })
