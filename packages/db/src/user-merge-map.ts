@@ -72,6 +72,13 @@ export const MERGE_REASSIGN: readonly ReassignColumn[] = [
   { table: 'threads', column: 'author_user_id' },
   { table: 'mass_mails', column: 'created_by_user_id' },
   /*
+   * F71. An announcement outlives the account that wrote it — that is what the
+   * captured `author_username` beside it is for — so a merge moves it to the
+   * winner rather than orphaning it. It is board-wide text with a name on it,
+   * and the name has to be one that still resolves.
+   */
+  { table: 'announcements', column: 'author_user_id' },
+  /*
    * F75's rollup output. The next run recomputes it, so reassigning changes
    * nothing five minutes later — but the five minutes matter: it is the board's
    * front page, and it would spend them announcing an account that no longer
@@ -184,7 +191,7 @@ export const MERGE_BESPOKE: readonly ReassignColumn[] = [
 /**
  * Denormalised *names*, which are a second kind of pointer entirely.
  *
- * `posts.author_username` and its four siblings hold the name rather than the
+ * `posts.author_username` and its siblings hold the name rather than the
  * id, so reassigning `author_user_id` and stopping there leaves every post
  * still displaying the merged-away name — with no foreign key, no error, and
  * nothing to notice. They are NOT NULL, which is how the schema-driven coverage
@@ -208,6 +215,8 @@ export const MERGE_RENAME: readonly RenameColumn[] = [
   { table: 'private_messages', column: 'author_username', idColumn: 'author_user_id' },
   { table: 'threads', column: 'author_username', idColumn: 'author_user_id' },
   { table: 'threads', column: 'last_post_username', idColumn: 'last_post_user_id' },
+  /* F71, and the coverage test found it exactly as it found the five above. */
+  { table: 'announcements', column: 'author_username', idColumn: 'author_user_id' },
 ]
 
 /**

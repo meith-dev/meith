@@ -19,6 +19,15 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
         </div>
       )}
 
+      {/*
+        F71. Above the forums here too. Midnight puts stats first and the
+        announcements after them, which is the ordering choice a theme gets to
+        make — what it does not get to do is drop the region.
+      */}
+      {regions.announcements !== undefined && (
+        <div className="flex flex-col gap-3">{regions.announcements}</div>
+      )}
+
       <div className="flex flex-col gap-3">{regions.categories}</div>
 
       {/* F80's `index.footer` region. */}

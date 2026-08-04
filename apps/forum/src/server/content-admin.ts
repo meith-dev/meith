@@ -15,7 +15,12 @@ import {
   type BoardVocabulary,
   type CompiledWordFilter,
 } from '@meith/bbcode'
-import { PostgresContentAdminRepository, getDb, readBoardVocabulary } from '@meith/db'
+import {
+  PostgresAttachmentAdminRepository,
+  PostgresContentAdminRepository,
+  getDb,
+  readBoardVocabulary,
+} from '@meith/db'
 import { unstable_cache } from 'next/cache'
 
 import { getContainer } from './container'
@@ -82,4 +87,29 @@ export async function activeVocabulary(): Promise<BoardVocabulary | undefined> {
 
   const vocabulary = await loadVocabulary()
   return vocabulary.revision === 0 ? undefined : vocabulary
+}
+
+/**
+ * F71's attachment listing.
+ *
+ * Not cached, unlike the two vocabularies above, and the difference is what the
+ * data is for: those are read by every render and change twice a year, this is
+ * read by one operator on one screen and changes every time somebody uploads a
+ * file. A cached listing would show an administrator a board state that no
+ * longer exists, on the screen where they are about to delete things.
+ */
+export function attachmentAdminRepository(): PostgresAttachmentAdminRepository | null {
+  return getContainer().dataSource === 'postgres'
+    ? new PostgresAttachmentAdminRepository(getDb())
+    : null
+}
+
+export function requireAttachmentAdmin(): PostgresAttachmentAdminRepository {
+  const repository = attachmentAdminRepository()
+  if (repository === null) {
+    throw new ForbiddenError(
+      'This board is running on in-memory sample data, so it has no attachments.',
+    )
+  }
+  return repository
 }

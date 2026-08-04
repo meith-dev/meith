@@ -48,6 +48,7 @@ import { Header } from './slots/header'
 import { MemberProfile } from './slots/member-profile'
 import { Navigation } from './slots/navigation'
 import { Notice } from './slots/notice'
+import { Announcement } from './slots/announcement'
 import { Pagination } from './slots/pagination'
 import { PostActions } from './slots/post-actions'
 import { PostBit } from './slots/post-bit'
@@ -69,6 +70,7 @@ export const midnightTheme = defineTheme({
     Navigation,
     Footer,
     Notice,
+    Announcement,
 
     BoardIndex,
     CategoryBlock,

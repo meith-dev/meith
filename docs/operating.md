@@ -9,6 +9,7 @@ and is not going to.
 - [Permissions](#permissions)
 - [Themes](#themes)
 - [Plugins](#plugins)
+- [Content and announcements](#content-and-announcements)
 - [Migrations](#migrations)
 - [Backup and restore](#backup-and-restore)
 - [Connection pooling](#connection-pooling)
@@ -212,6 +213,34 @@ configuration.
 
 Writing one: [`plugin-api.md`](./plugin-api.md). Every hook:
 [`plugin-hooks.md`](./plugin-hooks.md).
+
+## Content and announcements
+
+`/admin/content` holds the board-wide vocabularies: the word filter, thread
+prefixes, smilies and custom BBCode, with attachments and announcements on their
+own screens beside them.
+
+**One difference matters operationally.** The word filter is applied when a post
+is *shown*, so adding or removing one takes effect everywhere on the next page
+load and costs nothing. Smilies and custom BBCode are not like that — they
+decide what a post *renders to*, so changing them marks every stored render on
+the board out of date. Nothing breaks: those posts render correctly on demand
+and are rewritten in the background by the same tick that runs everything else.
+On a large board expect a period of extra rendering after such a change, and
+expect `/admin/system` to report a backlog until it clears.
+
+A custom BBCode tag chooses a name and whether it is inline or block. There is
+deliberately no replacement-pattern field — if you need bespoke markup, that is
+a plugin, where the code is reviewed rather than typed into a form.
+
+**Deleting an attachment does not touch the post it was on.** Attachments are
+listed beside a post rather than written into it, so removing one takes an entry
+off a list and nothing else. The bytes go to the hourly sweep rather than being
+deleted immediately.
+
+**An announcement is not a pinned thread.** Nobody can reply to one, it expires
+on its own date, and removing it removes nothing anybody wrote — which is why it
+is safe to delete and a sticky thread is not. Dates are entered in UTC.
 
 ## Migrations
 

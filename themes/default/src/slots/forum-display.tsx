@@ -39,6 +39,11 @@ export function ForumDisplay({
           )}
         </div>
       </div>
+      {/* F71. This forum's announcements and the board's, above its content. */}
+      {regions.announcements !== undefined && (
+        <div className="flex flex-col gap-3">{regions.announcements}</div>
+      )}
+
       {regions.subforums}
       <ul className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
         {regions.threads}

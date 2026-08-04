@@ -11,11 +11,12 @@
  */
 import { compileSmilies, createTagRegistry } from '@meith/bbcode'
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
-import type { SmileyRow } from '@meith/db'
+import type { AnnouncementInput, PostgresAnnouncementRepository, SmileyRow } from '@meith/db'
 import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin } from './admin'
-import { requireContentAdmin } from './content-admin'
+import { announcementRepository } from './announcements'
+import { requireAttachmentAdmin, requireContentAdmin } from './content-admin'
 import type { FormState } from './auth-form-state'
 
 function text(form: FormData, name: string): string {
@@ -382,6 +383,162 @@ export async function deleteCustomTagAction(_prev: FormState, form: FormData): P
 
     await invalidateVocabulary()
     await recordAdminAction({ action: 'content.bbcode_removed', detail: { tagId } })
+
+    return { notice: 'deleted' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Attachments
+ * ------------------------------------------------------------------ */
+
+/**
+ * Delete one attachment.
+ *
+ * **Not re-authenticated, and this is the borderline case on this screen.** The
+ * argument for the prompt is that these are bytes a member uploaded and cannot
+ * put back; the argument against is that the reason an operator is here is
+ * usually that something is wrong — a file over quota, a malicious upload, a
+ * queue full of failures — and a password prompt in front of a clean-up done
+ * dozens of times in a row is a prompt people learn to type through.
+ *
+ * It stays unprompted because the blast radius is one row: there is no "delete
+ * all", no filter-wide action and no cascade. F65's copy-to-subforums and F67's
+ * merges are re-authenticated because one press changes many things at once,
+ * which is the distinction rather than "is it destructive".
+ *
+ * The post is untouched either way — see `attachment-admin-repo.ts`.
+ */
+export async function deleteAttachmentAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+
+    const attachmentId = id(form)
+    const removed = await requireAttachmentAdmin().delete(attachmentId)
+    if (!removed) return { notice: 'deleted' }
+
+    await recordAdminAction({ action: 'content.attachment_removed', detail: { attachmentId } })
+
+    return { notice: 'deleted' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Announcements
+ * ------------------------------------------------------------------ */
+
+function requireAnnouncements(): PostgresAnnouncementRepository {
+  const repository = announcementRepository()
+  if (repository === null) {
+    throw new ValidationError(
+      'This board is running on in-memory sample data, so it stores no announcements.',
+    )
+  }
+  return repository
+}
+
+/**
+ * Read a `datetime-local` field.
+ *
+ * The control submits wall-clock text with no zone (`2026-08-04T09:00`), so it
+ * is read as UTC rather than as the server's local time — which is the one
+ * choice that gives the same answer on a laptop and on a container whose `TZ`
+ * nobody set. The screen says so beside the field, because an announcement that
+ * appears at the wrong hour with no explanation is worse than one that asks for
+ * UTC.
+ */
+function moment(form: FormData, name: string): Date | null {
+  const value = text(form, name)
+  if (value === '') return null
+
+  const parsed = new Date(`${value}Z`)
+  if (Number.isNaN(parsed.getTime())) throw new ValidationError('That is not a valid date.')
+  return parsed
+}
+
+function announcementInput(form: FormData): AnnouncementInput {
+  const forumText = text(form, 'forumId')
+  return {
+    /* Empty is board-wide. One column says it; see the migration. */
+    forumId: forumText === '' ? null : id(form, 'forumId'),
+    title: text(form, 'title'),
+    /* Untrimmed body: leading whitespace can be deliberate in BBCode. */
+    message: typeof form.get('message') === 'string' ? (form.get('message') as string) : '',
+    startsAt: moment(form, 'startsAt') ?? new Date(),
+    endsAt: moment(form, 'endsAt'),
+    enabled: form.get('enabled') !== null,
+  }
+}
+
+export async function createAnnouncementAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    const context = await requireAdmin()
+
+    const announcementId = await requireAnnouncements().create({
+      ...announcementInput(form),
+      /*
+       * The name is captured by the insert, from `users` — see the repository.
+       * The action supplies the id it is certain of and nothing else.
+       */
+      authorUserId: context.userId,
+    })
+
+    await recordAdminAction({ action: 'content.announcement_added', detail: { announcementId } })
+
+    return { notice: 'saved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+export async function updateAnnouncementAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+
+    const announcementId = id(form)
+    /* The author is deliberately not rewritten; see the repository. */
+    await requireAnnouncements().update(announcementId, announcementInput(form))
+
+    await recordAdminAction({ action: 'content.announcement_changed', detail: { announcementId } })
+
+    return { notice: 'saved' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Delete an announcement.
+ *
+ * A real delete and not re-authenticated, which is only defensible because of
+ * what an announcement *is*: chrome rather than content. Nothing a member wrote
+ * hangs off it, so there is nothing to lose — which is exactly the argument
+ * that would fail for a sticky thread, and is why this board has both.
+ */
+export async function deleteAnnouncementAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+
+    const announcementId = id(form)
+    await requireAnnouncements().delete(announcementId)
+
+    await recordAdminAction({ action: 'content.announcement_removed', detail: { announcementId } })
 
     return { notice: 'deleted' }
   } catch (err) {

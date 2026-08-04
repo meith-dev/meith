@@ -763,3 +763,54 @@ export const customBbcode = pgTable(
   },
   (t) => [uniqueIndex('custom_bbcode_name_key').on(t.name)],
 )
+
+/**
+ * Announcements (F71).
+ *
+ * **Chrome, not content.** A sticky thread is a conversation: members reply to
+ * it, it belongs to its author, and taking it down deletes what they said. An
+ * announcement appears above the forums, cannot be replied to, expires on its
+ * own date, and removing it removes nothing anybody wrote. Boards that build
+ * announcements out of pinned threads keep a three-year-old rules post at the
+ * top of every forum because deleting it would delete the discussion under it.
+ *
+ * There is no `message_html` and that is deliberate: the stored-render machinery
+ * exists because a thread page renders fifty bodies out of a table with two
+ * million rows. A board has a handful of announcements, so a cache here would
+ * buy microseconds and cost a third staleness predicate and a third backfill —
+ * including one for F71's own vocabulary.
+ */
+export const announcements = pgTable(
+  'announcements',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    /**
+     * `null` is board-wide.
+     *
+     * One column rather than a `scope` beside it, because two can disagree — a
+     * row claiming to be forum-scoped with no forum is a state the reader would
+     * have to invent a rule for.
+     */
+    forumId: integer('forum_id').references(() => forums.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    /** BBCode source. Rendered on read, with whatever vocabulary is current. */
+    message: text('message').notNull(),
+    authorUserId: integer('author_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Captured, so a deleted account's announcement still says who wrote it. */
+    authorUsername: text('author_username').notNull().default(''),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
+    /** `null` never expires — "until further notice" is a real thing to want. */
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    /** Apart from the window, so redrafting one does not lose its schedule. */
+    enabled: boolean('enabled').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index('announcements_live_idx').on(t.startsAt.desc()).where(sql`${t.enabled}`),
+    index('announcements_forum_idx').on(t.forumId),
+  ],
+)

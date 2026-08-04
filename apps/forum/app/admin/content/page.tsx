@@ -127,6 +127,30 @@ export default async function AdminContentPage() {
         </div>
       </section>
 
+      <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
+        <h2 className="font-serif text-lg font-semibold">Announcements</h2>
+        <p className="text-muted-foreground">
+          A dated notice above the forums, board-wide or attached to one. Not a
+          pinned thread: nobody can reply to it, it expires on its own date, and
+          removing it removes nothing anybody wrote.
+        </p>
+        <a href="/admin/content/announcements" className="text-primary hover:underline">
+          Announcements →
+        </a>
+      </section>
+
+      <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
+        <h2 className="font-serif text-lg font-semibold">Attachments</h2>
+        <p className="text-muted-foreground">
+          What members have uploaded, what it is costing in storage, and what has
+          failed to process. Its own screen, because it is a listing that pages
+          rather than a vocabulary that fits on one.
+        </p>
+        <a href="/admin/content/attachments" className="text-primary hover:underline">
+          Attachments →
+        </a>
+      </section>
+
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Smilies</h2>
         <p className="text-sm text-muted-foreground">

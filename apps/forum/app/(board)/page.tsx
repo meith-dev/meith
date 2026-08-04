@@ -4,6 +4,7 @@ import { requireSlot } from "@meith/theme-kit"
 
 import { boardRegion, filterView, viewerRef } from "@/server/plugin-view"
 
+import { liveAnnouncements } from "@/server/announcements"
 import { getContainer } from "@/server/container"
 import { getActor } from "@/server/context"
 import { getViewerPreferences } from "@/server/viewer-preferences"
@@ -82,6 +83,18 @@ export default async function BoardIndexPage() {
     timeZone: preferences.timezone,
   })
 
+  /*
+   * F71. Permission-filtered in SQL against the same visible set the tree was
+   * built from, so a board-wide notice reaches everybody and a forum's reaches
+   * only the people who can see that forum.
+   */
+  const announcements = await liveAnnouncements({
+    visibleForumIds: visible,
+    now,
+    timeZone: preferences.timezone,
+  })
+
+  const Announcement = requireSlot(activeTheme, "Announcement")
   const BoardIndex = requireSlot(activeTheme, "BoardIndex")
   const CategoryBlock = requireSlot(activeTheme, "CategoryBlock")
   const ForumRow = requireSlot(activeTheme, "ForumRow")
@@ -98,6 +111,16 @@ export default async function BoardIndexPage() {
    * than fifty awaits interleaved with rendering.
    */
   const pluginContext = viewerRef(actor)
+
+  /*
+   * F80's wiring for F71's slot. Filtered before rendering rather than inside
+   * the JSX, so the awaits are one pass over data the page already has.
+   */
+  const filteredAnnouncements = await Promise.all(
+    announcements.map((announcement) =>
+      filterView('view.announcement', announcement, pluginContext),
+    ),
+  )
 
   const blocks = await Promise.all(
     view.blocks.map(async (entry) => ({
@@ -149,6 +172,18 @@ export default async function BoardIndexPage() {
         online: whoIsOnline === null ? null : <WhoIsOnline {...whoIsOnline} />,
         /* F80's `index.footer` region, rendered by the theme at the foot of the body. */
         plugins: boardRegion('index.footer', actor),
+        /*
+         * Absent rather than an empty fragment when there are none, so a theme
+         * writing `{regions.announcements}` does not leave a gap on the page
+         * every board without an announcement would see.
+         */
+        ...(announcements.length === 0
+          ? {}
+          : {
+              announcements: filteredAnnouncements.map((announcement, position) => (
+                <Announcement key={position} {...announcement} />
+              )),
+            }),
       },
     },
     pluginContext,

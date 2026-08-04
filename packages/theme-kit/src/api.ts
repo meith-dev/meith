@@ -58,8 +58,14 @@ import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
  * slot renamed and none removed — a theme written against 1.0 compiles and runs
  * unchanged, which is the promise a minor is. It is also the first exercise of
  * this policy on something real rather than on a fixture.
+ *
+ * **1.2** added F71's `Announcement` slot and the two optional
+ * `regions.announcements` fields that place it. A new slot is additive by
+ * construction — no theme is required to have implemented one that did not
+ * exist — and the region fields follow 1.1's rule. The second exercise of the
+ * policy, and the first time it covered a new *slot* rather than a new field.
  */
-export const THEME_API_VERSION = '1.1'
+export const THEME_API_VERSION = '1.2'
 
 /**
  * How much of a promise a slot carries.
@@ -97,6 +103,8 @@ export const SLOT_STABILITY: Readonly<Record<SlotName, Stability>> = {
   Navigation: 'stable',
   Footer: 'stable',
   Notice: 'stable',
+  /* F71. Rendered by both themes and by two real pages from the day it landed. */
+  Announcement: 'stable',
 
   BoardIndex: 'stable',
   CategoryBlock: 'stable',

@@ -7325,3 +7325,170 @@ delete it — it is where "absent means enabled" lives, with the mutation test t
 proves it — but to make the new read model build on it, so the rule has one
 statement rather than a second copy inside `pluginInventory`. The same tidy-up
 removed a third copy from `upgrade-notice.ts`.
+
+### D99 — A board's vocabulary is part of what its renderer *is* (F71)
+
+F71's four remaining halves: smilies, custom BBCode, attachment administration
+and announcements. Three of them were straightforward once a decision was made;
+the first two turned on one that was not.
+
+#### The word filter's trick does not work twice
+
+F71's existing half is reversible because it runs over *finished HTML*: the
+stored render is untouched, so removing a filter restores the word on the next
+page load. The obvious move was to do smilies the same way — a second pass over
+`posts.message_html`, substituting codes in the text between tags.
+
+It was rejected, and the reason is worth keeping. That pass would have to
+**re-derive two things F37 already knows**: whether it is inside a `[code]`
+body, and how the text was escaped. Both are free when you work on the tree —
+`renderSmilies` runs on text nodes, so it cannot touch markup and cannot reach a
+raw block — and both are guesswork when you work on the output. A second
+implementation of a feature, with weaker rules than the first, is not a saving.
+
+And custom tags cannot be done that way at all: a tag changes how the source
+*parses*.
+
+So both go through F37's seam as designed, and the consequence has to be
+accepted rather than dodged: **the vocabulary is baked into the stored render.**
+
+#### Which makes it the same kind of thing as `RENDER_VERSION`
+
+`posts.render_version` says which renderer produced the HTML beside it, and a
+mismatch means "render live, and let the backfill catch up". A board's smilies
+and custom tags decide the output just as much as the renderer's code does, so
+they get the same treatment: a `vocab_version` column, a revision in
+`cache_versions` bumped by every write, and F36's existing backfill — which
+needed one predicate and one compiled vocabulary per run, and nothing else.
+
+Three things fell out of that and each is a decision:
+
+- **A second column, not a wider one.** Folding both into `render_version` needs
+  arithmetic to keep the pair inside a `smallint`, and widening the column
+  rewrites `posts` — the largest table on the board. Adding a `NOT NULL` column
+  with a constant default is metadata-only on the versions this targets.
+- **Revision 0 is the identity.** It is the column default *and* the state of a
+  board that has configured nothing, so installing the feature does not mark two
+  million posts stale. A board that never uses smilies pays nothing, ever.
+- **The write path renders with the vocabulary; it does not defer to the
+  backfill.** The lazy version would have made the *newest* posts — the ones
+  people are actually reading — the ones rendering live on every request. The
+  cost is one indexed read per post write, on a path nobody measures in p95s.
+
+`readBoardVocabulary` reads the revision and the two tables in **one
+transaction**, and that is the only bug in this feature that would have been
+permanent rather than transient: read separately, an edit landing between them
+stamps the *new* revision onto HTML rendered from the *old* list, and the
+backfill never revisits it because the stamp claims it is current.
+
+#### Nothing in the compile path throws
+
+`compileSmilies` and `createTagRegistry` both throw, which is right at an admin
+form and wrong on a render path — one malformed row would take out every thread
+page on the board. `compileVocabulary` drops what will not compile and *reports*
+it, and adds custom tags **one at a time**: the alternative is an operator
+adding a tag with a bad name and silently losing the three that already worked.
+
+The ACP validates by calling those same functions, which is F68's rule — a
+second validator drifts, and the direction it drifts is a form accepting what
+the renderer refuses.
+
+#### Private messages get the vocabulary; the word filter still does not
+
+Not an inconsistency, though it looks like one. The vocabulary is the *markup
+language this board speaks*, so a smiley that worked in a post and not in a
+message would be arbitrary. Filtering somebody's private correspondence is a
+different question with a different answer.
+
+Signatures are excluded from both: F58 gave them a deliberately narrow tag
+registry because a signature repeats under every post its author ever made, and
+operator-defined tags would walk straight through that.
+
+`CacheTags.smilies` had been declared since F10 with no reader. It is
+`bbcodeVocabulary` now and real — one tag for both lists, because they are
+compiled and stamped as one, and two would be two chances to invalidate the
+wrong half.
+
+#### Attachments: the decision the listing was waiting for
+
+F71's row named it — *what does deleting somebody else's upload do to the post
+showing it?* The answer is **nothing**, and it is a property of F42's design
+rather than a choice made here: an attachment is listed *beside* a post, never
+embedded in it, so no stored render mentions one and no member-written text has
+to be patched. The version of this screen that had to rewrite somebody's post to
+remove a reference is the version that could not be built safely.
+
+The bytes are **orphaned, not deleted** — all three keys, and `thumbnail_key` is
+the one that would be missed. Deleting the object inline is wrong in both
+directions: a store call that fails after the row is gone leaks bytes nothing
+can find again, and one that succeeds before a rollback removes a file out from
+under a live row.
+
+Not re-authenticated, and this is the borderline case: the blast radius is one
+row, and F65's copy-to-subforums and F67's merges are prompted because one press
+changes many things at once. That is the distinction, rather than "is it
+destructive".
+
+#### Announcements are chrome, not content
+
+The last thing on this board with no model at all, and the whole design follows
+from one sentence: **a sticky thread is a conversation and an announcement is
+not.** Members reply to a sticky, it belongs to its author, and taking it down
+deletes what they said — which is why boards built on pinned threads keep a
+three-year-old rules post at the top of every forum. An announcement expires on
+its own date and removing it removes nothing anybody wrote. That is what makes
+the delete button here safe and the same button on a sticky thread not.
+
+- **`forum_id NULL` is board-wide**, rather than a `scope` column beside it. Two
+  columns can disagree, and a row claiming to be forum-scoped with no forum is a
+  state the reader has to invent a rule for.
+- **"Live" is three conditions and all three are in the query.** The one that
+  gets forgotten is `ends_at`: it is null on most rows, so a predicate missing it
+  passes every test written from the happy path, and the symptom is a notice that
+  never goes away.
+- **The permission filter is in SQL**, so an announcement on a private forum
+  never reaches the process rendering a guest's page. Board-wide ones are an `or`
+  in the same predicate rather than a special case.
+- **A forum page shows its own announcements and the board's.** One that appeared
+  only on the index would be seen by almost nobody — the index is the page
+  fewest people arrive on.
+- **No stored render.** `message_html` exists because a thread page renders fifty
+  bodies out of two million rows; a board has a handful of announcements, so a
+  cache would buy microseconds and cost a third staleness predicate and a third
+  backfill — including one for this feature's *own* vocabulary.
+- **Not cached at the app layer either**, which is unusual for something on the
+  index. The answer depends on the clock and on the viewer: an entry under a
+  global tag would linger after `ends_at` with nothing to invalidate it, because
+  nothing *happened* — no write, no tag, just a clock passing a value.
+
+The author's name is captured **in the insert**, from `users`, so no caller can
+put the wrong name on a board-wide notice; and an edit deliberately does not
+rewrite it, because an administrator fixing a typo in somebody else's notice
+should not become its author.
+
+#### theme-kit 1.1 → 1.2, and four ratchets that fired
+
+The `Announcement` slot is the first *new slot* the versioning policy has
+covered — 1.1 was optional fields. Additive by construction: no theme can have
+failed to implement a slot that did not exist.
+
+Four existing guards caught the change before any of it was wired, and all four
+were right:
+
+1. **F67's merge map** — `announcements.author_user_id` is a new column pointing
+   at a user, so the schema-driven test failed until somebody decided what a
+   merge does with it. It also caught `author_username`, the denormalised-name
+   trap that map already had five entries for.
+2. **F79's slot↔hook correspondence** — every stable slot needs a `view.*` hook,
+   so `view.announcement` had to exist.
+3. **F80's reference-plugin ratchet** — wiring that hook failed the reference
+   plugin's test until it grew a handler. A hook cannot join the running product
+   without something proving it fires.
+4. **F77's rendering contract** — both themes had to render the new slot *and*
+   the two new regions, with the fixture asserting `bodyHtml` is inserted rather
+   than escaped. A theme rendering the body as text would show every
+   announcement's tags to every member, and the failure is invisible until
+   somebody uses one.
+
+None of these needed to be remembered. That is the whole return on the
+machinery.

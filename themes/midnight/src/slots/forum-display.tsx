@@ -27,6 +27,11 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
         <p className="text-sm text-muted-foreground">{forum.description}</p>
       )}
 
+      {/* F71. This forum's announcements and the board's, above its content. */}
+      {regions.announcements !== undefined && (
+        <div className="flex flex-col gap-3">{regions.announcements}</div>
+      )}
+
       {regions.subforums}
 
       <table className="w-full border-collapse border border-border text-sm">
