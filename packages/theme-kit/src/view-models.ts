@@ -658,6 +658,52 @@ export interface SearchFormModel {
   readonly errorMessage: string | null
 }
 
+/**
+ * The forum jump box (F27) — MyBB's `<select>` at the foot of every page.
+ *
+ * ## Why a form and a button rather than a `<select>` that navigates
+ *
+ * The obvious implementation is an `onChange` handler that sets
+ * `location.href`. It is also inaccessible and does not work without
+ * JavaScript, and it fails in the same way for both reasons: **choosing an
+ * option is not the same act as committing to it.** A keyboard user moving
+ * through a `<select>` with the arrow keys changes the value on every
+ * keystroke, so an auto-navigating jump box teleports them to the first forum
+ * in the list before they reach the one they wanted.
+ *
+ * So the model carries an `action` and a submit label, and the theme renders a
+ * real `method="get"` form. A theme is free to *also* auto-submit for pointer
+ * users; the button is what must always be there.
+ *
+ * ## `depth` rather than a pre-indented label
+ *
+ * The app gives the tree's shape and the theme decides how to show it. Baking
+ * `— — Subforum` into the label would make the indentation impossible to
+ * restyle and would put non-breaking spaces into what a screen reader announces.
+ */
+export interface ForumJumpModel {
+  /** Where the form submits. GET, because a jump is a navigation. */
+  readonly action: string
+  /** The query-parameter name to give the select. The app owns it. */
+  readonly field: string
+  /** Visible forums, in tree order. */
+  readonly forums: readonly ForumJumpOption[]
+  /** The label for the submit control. Always rendered. */
+  readonly submitLabel: string
+  /** Accessible name for the control, e.g. "Jump to forum". */
+  readonly label: string
+}
+
+export interface ForumJumpOption {
+  readonly value: string
+  readonly label: string
+  /** 0 for a top-level category. The theme chooses how to show nesting. */
+  readonly depth: number
+  /** A category is a heading, not a destination — rendered disabled. */
+  readonly isCategory: boolean
+  readonly isSelected: boolean
+}
+
 export interface RedirectNoticeModel {
   readonly message: string
   readonly targetHref: string
@@ -770,6 +816,7 @@ export interface SlotModels {
   MemberProfile: MemberProfileModel
 
   SearchForm: SearchFormModel
+  ForumJump: ForumJumpModel
 
   RedirectNotice: RedirectNoticeModel
   ErrorNotice: ErrorNoticeModel

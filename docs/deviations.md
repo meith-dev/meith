@@ -6920,3 +6920,267 @@ exactly that.
 The absolute numbers belong to the machine that produced them. What travels is
 the shape — which scenarios sit near their budget, and whether depth costs
 anything — which is why the generated document says so at the top of the table.
+
+---
+
+### D95 — Both open questions, answered (F85, F89)
+
+Two decisions had been escalated to a human under the roadmap's working rules —
+one about a runtime dependency, one about a user-visible change. Both came back,
+and this is what they cost.
+
+#### `mysql2`, and how small the reader turned out to be
+
+Open question 5, resolved: `@forum/import` may depend on a MySQL client. The
+full reasoning is in [ADR 0004](./adr/0004-mysql2-import-reader.md); the thing
+worth recording here is that **the port paid off exactly as intended**. The
+reader is about a hundred and fifty lines, four near-identical `SELECT`s and a
+cursor, and nothing on the near side of the port changed to accommodate it. That
+was the bet when F85 shipped without one, and it is now settled rather than
+asserted.
+
+Three properties of the file are tested, and none of them is "does it read
+rows" — that needs a MyBB server. They are the ones a fake connection can prove
+and that would be *damaging* if wrong:
+
+1. **Every statement is a `SELECT`.** This code points at somebody's live forum
+   while members are posting to it. "We were careful" is not a guarantee that
+   survives the next edit; a test over the statement text is.
+2. **Paging is keyset, never `OFFSET`.** An `OFFSET` walk over a table being
+   written to skips rows, in the middle, without saying so.
+3. **The prefix is validated.** It becomes part of a table name and a table name
+   cannot be a bound parameter, so it is the one caller-supplied value reaching
+   the SQL text.
+
+The driver is loaded by `await import` inside `connect()`, and a test asserts
+that on the **source text** — unusual in a test file, and right here, because the
+property is "no static import exists" and no runtime check can observe the
+absence of one. A bundler can, which is the entire point: the app imports
+`@forum/import` for F86's URL table, and a static import would put a MySQL
+driver in every board's serverless bundle.
+
+#### The sink refuses rather than guesses
+
+The other half of F85's gap. Everything hard about it comes from one fact:
+**the import is resumable, so every write happens more than once.** Idempotency
+is therefore a unique index and `on conflict … do update`, not a check followed
+by an insert with nothing but optimism in between — and a resumed import is
+precisely when the row appears in the gap.
+
+The refusals are the design. A post whose thread was never imported is skipped
+with the reason printed, not attached to a placeholder; a child forum arriving
+before its parent waits for the next pass rather than being reparented to the
+root; a username already taken is skipped rather than renamed, because `wren_2`
+is a person who did not agree to be called that. Each of these has an obvious
+"helpful" alternative, and each alternative puts content on the board in a place
+its author did not choose. An operator reading `skipped post 4102: thread 9912
+not imported` can go and find out why. An operator reading nothing cannot.
+
+Two subtleties worth naming:
+
+- **A missing author is not a missing parent.** MyBB zeroes `uid` for a deleted
+  member and keeps the username on the row, which is exactly what a nullable
+  `author_user_id` beside a non-null `author_username` is for. Skipping those
+  would discard a large fraction of an old board.
+- **`is_first_post` is decided by date, not by lowest `pid`.** A thread whose
+  opening post was deleted has a lowest id that is not its first post, and the
+  board shows the first post's body wherever it shows an excerpt — so getting
+  this wrong puts the wrong text under the thread title everywhere at once.
+
+#### Writing those tests found a bug that had shipped
+
+`import-repo.ts` cast `db.execute` results straight to arrays instead of going
+through `resultRows`. That is correct under postgres-js and returns nothing under
+PGlite, so **every legacy-id lookup silently returned empty in any PGlite-backed
+test** — and no test covered them, which is the only reason it survived. F86's
+redirects read those functions.
+
+The bug is unremarkable. What it says is not: the functions had no integration
+test, and a repository function with no integration test in a package where
+every other file has one is not "less covered", it is *uncovered in a way the
+suite's overall greenness disguises*. The first caller with a test found it
+immediately.
+
+#### Bounding search relevance
+
+Open question 6, resolved. Relevance now ranks the 20,000 most recent matches
+rather than all of them. Re-measured on the same 2,343,847-post board:
+**5,486 ms → 98 ms**, and `search-common` moved from a `limit` to a 300 ms target
+sitting at 33% of budget.
+
+Only relevance is bounded. `order by p.id` is indexed, so the planner walks it
+and stops after twenty rows however many match — bounding newest and oldest too
+would have been symmetry at the cost of truthfulness, since an "oldest" that
+cannot reach the oldest post is broken.
+
+The user-visible effect is nil for any term matching fewer than 20,000 posts,
+because the window then holds the whole match set and the results are the same
+rows in the same order. It is recorded in `mybb-parity.md` anyway: a difference
+nobody wrote down is a difference somebody rediscovers as a bug.
+
+#### The `limit` mechanism is now unused, and stays
+
+`search-common` was the reason `budgets.ts` distinguishes a target from a limit,
+and it stopped being a limit within one pass. The field is kept because the two
+alternatives it displaced remain bad and remain tempting — delete the scenario
+and the slowness goes undocumented, or leave the budget unmet and CI is
+permanently red — and the next scenario in that position should have somewhere
+honest to sit. A test caps limits at two, so the escape hatch cannot quietly
+become a second budget tier.
+
+---
+
+### D96 — The corpus was wrong three times, and the guard caught all three (F28)
+
+R3.5 asks for "`EXPLAIN` evidence for partial visible indexes". Producing it took
+three attempts, and each failure was the same shape: **the board did not contain
+the thing being measured**, so the measurement succeeded and meant nothing.
+
+#### Evidence is a check, not a paragraph
+
+`pnpm perf explain` runs five hot queries and fails when the planner does not
+choose the declared index. Pasting a plan into a document would describe a
+database that existed once, and the failure worth guarding is not that somebody
+deletes an index — the schema still declares it — but that **a query drifts until
+the planner stops picking it**.
+
+Partial indexes are unusually easy to lose that way. `where visibility =
+'visible'` only matches a query whose predicate the planner can *prove* implies
+it, so a read path that starts passing a variable scope where it passed a
+literal, or an `in ('visible')` where there was an `=`, falls off the index and
+onto a sequential scan of the largest table on the board. Nothing errors. The
+page is simply slow, at a scale nobody develops against.
+
+The unfiltered twins are checked for the mirror reason: a moderator's predicate
+does not imply the partial index, so without the twin *their* forum view is that
+scan — and that failure is invisible to every test written from a member's point
+of view, which is most of them.
+
+#### Failure one: every row was visible
+
+The first run reported `forum-listing-visible` using
+`threads_forum_listing_all_idx` — the twin — rather than the partial index. The
+planner was not wrong. The seeder wrote `visible` for every row, so the partial
+index and the twin covered **exactly the same 2.3 million rows** and either was
+an equally good answer.
+
+Worse, and quieter: the moderation-queue check *passed*, in 0.0 ms, because its
+index matched no rows at all. An empty index scan is very fast and proves
+nothing — the same failure mode as F89's `minRows` guard, wearing a different
+hat.
+
+The seeder now writes ~2% unapproved and ~1% soft-deleted. All five queries then
+chose their index, and the moderation queue took 1.2 ms against real rows.
+
+#### Failure two: two "every Nth row" rules that were not independent
+
+Adding the visibility mix broke the rare-term search scenario outright — it
+started matching **nothing**. The rare word was injected every 2,000th post and
+hidden content applied to every 50th, and 2,000 is a multiple of both 50 and 100,
+so *every single* rare-term post became soft-deleted.
+
+Two independent-looking "every Nth row" rules are not independent when their
+periods share a factor. The interval is now 1,999, a prime, which avoids the
+whole family of collisions rather than the one that happened to be noticed.
+
+F89's `minRows` guard caught this on the first run, as it caught two of the four
+problems in F89 itself. It has now paid for itself four times.
+
+#### Failure three: the first `EXPLAIN` timing was a cold cache
+
+`forum-listing-visible` reported 119 ms, which reads as a problem and is not one
+— it was the first statement of the run paying for an unwarmed buffer cache. The
+same query warm is 2.7 ms. The runner now executes each statement twice and
+records the second.
+
+#### And a budget that was set tighter than its own rule
+
+Unrelated to the corpus, found by the same re-runs. `discovery-latest` was
+budgeted at 80 ms against a typical p95 near 50 — 1.6×, where the top of
+`budgets.ts` states 2–3× and gives the reason. It duly went red on a noisy run at
+110 ms with a 621 ms outlier.
+
+Raised to 150 ms, and the note says *why* in those terms: not "it was failing" but
+"the number broke the methodology the rest of the table follows". A budget raised
+because it went red is how a budget stops meaning anything; one raised because it
+was never set correctly is a correction. The distinction is only legible if it is
+written down.
+
+The generated document now says the run is a single run on shared hardware, and
+the p99 column sits beside the p95 so an occasionally-slow scenario is
+distinguishable from a uniformly slow one.
+
+---
+
+### D97 — A jump box, and why the obvious implementation is wrong twice (F06, F27)
+
+#### F06 was a `PARTIAL` whose gap paragraph described no gap
+
+Re-audited against the acceptance rather than against its own row, and closed.
+Every clause is in the tree and each was checked: secret authentication, with the
+route refusing when `TICK_SECRET` is unset; concurrency safety by **database
+claim** rather than a JavaScript lock, because serverless instances share no
+memory and an in-process lock protects nothing; time-boxing via an
+`AbortController` per task with a stale-claim reaper behind it; both entry points
+— the scaffold commits a `vercel.json` cron, and `apps/worker` calls `tick()`
+in-process for a self-hosted board; and failures both logged and notified as
+`system.task_failed`, coalesced per task so a task failing every minute is one
+unread row with a count rather than 1,440 a day.
+
+The row had said as much since F55. Nobody changed the status, which is its own
+small lesson: a tracking file is only as good as the audit, and "the gap
+paragraph no longer names a gap" is a condition worth looking for deliberately.
+
+#### The jump box fails the same way for keyboard users and for no-JS
+
+F27's acceptance names both, and they turn out to be one requirement seen twice.
+The implementation everybody writes first is a `<select>` with an `onChange` that
+sets `location.href`. It is wrong for the same root reason in both cases:
+**choosing an option is not the same act as committing to it.**
+
+A keyboard user opens the select and arrow-keys down the list. Every keystroke
+fires `change`. An auto-navigating jump box therefore teleports them to the first
+forum before they reach the one they wanted, and the way back is a page that does
+it again. The same code does nothing at all without JavaScript.
+
+So it is a real `method="get"` form with a real submit button, and the theme
+contract asserts `type="submit"` is present. The button is not a fallback for the
+no-JS case; it is the interaction, and it happens to work everywhere. Six browser
+tests cover it in a real Chromium — selection and submission with JavaScript
+disabled, tab order from select to button, the 404, and the empty submission.
+
+#### The leak is the hard part, and the filter now lives in one place
+
+A control that lists every forum and appears on every page is the worst possible
+home for a visibility bug. `buildTree` promotes an orphan to a root, so filtering
+row-by-row and then building the tree surfaces a hidden category's children at
+the top level — announcing that they exist, what they are called, and making the
+board's shape depend on who is looking.
+
+The board index already had that rule, inlined. It moved to
+`@forum/forums.keepVisibleSubtrees` when the jump box became its second caller,
+because a security-relevant filter implemented twice is one that gets fixed once
+and stays broken in the other place. Mutation-verified: substituting a row filter
+fails two tests, both named for the leak rather than for the output.
+
+#### The route re-authorises, and the reason is worth stating
+
+The box lists only what the viewer may see, which makes the submitted id look
+trustworthy. It is not: it arrives in a query string anybody can type. A route
+that redirected on it would answer *"does forum 42 exist, and what is it called"*
+for every id on the board — a jump box turned into an enumeration oracle.
+
+So the route runs the same `forumIdsWhere` check the model was built from, and an
+id outside it gets a **404 rather than a 403**. The identical answer for "hidden"
+and "absent" is the part that matters; a 403 would confirm existence.
+
+#### Two test bugs of my own, both in the assertion rather than the code
+
+`toBeVisible()` on an `<option>` fails on correct markup — an option inside a
+closed `<select>` is never visible to Playwright. And `selectOption` does not
+accept a regex label, which mattered because the labels carry figure-space
+indentation so the tree is legible inside the control. Both now assert on what
+the form actually submits: the option's value.
+
+Neither was a product bug, and both are the same mistake — testing the rendering
+of a native control rather than its behaviour.

@@ -22,6 +22,13 @@ export {
   type Page,
 } from './source'
 
+/* The MySQL reader. Open question 5, resolved: see docs/adr/0004. */
+export {
+  assertSafePrefix,
+  MysqlMybbSource,
+  type MysqlSourceOptions,
+} from './mysql-source'
+
 export {
   fromUnixSeconds,
   mapForum,

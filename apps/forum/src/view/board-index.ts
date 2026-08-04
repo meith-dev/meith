@@ -24,7 +24,12 @@
  * such a forum as misconfigured (F65) rather than the index papering over it.
  */
 
-import { buildTree, type ForumListingRow, type ForumNode } from '@forum/forums'
+import {
+  buildTree,
+  keepVisibleSubtrees,
+  type ForumListingRow,
+  type ForumNode,
+} from '@forum/forums'
 import type {
   BoardIndexModel,
   CategoryBlockModel,
@@ -149,30 +154,13 @@ export interface BoardIndexView {
  * keeps the index a fixed size on a board with a deep tree.
  */
 export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
-  const visible = input.rows.filter((row) => input.visibleForumIds.has(row.id))
-
   /*
-   * Drop anything whose parent did not survive the filter, *before* building the
-   * tree. `buildTree` promotes orphans to roots (D22), so without this a hidden
-   * parent would surface its visible children as top-level blocks — see this
-   * file's header for why that is a leak and not a convenience.
-   *
-   * Iterated to a fixed point: a grandchild whose parent was dropped for this
-   * reason (rather than by the filter) has to go too, and one pass would keep it.
+   * Whole subtrees, not rows. `buildTree` promotes orphans to roots (D22), so
+   * filtering row-by-row would surface a hidden parent's visible children as
+   * top-level blocks — see this file's header for why that is a leak. The rule
+   * moved to `@forum/forums` when the jump box (F27) became its second caller.
    */
-  const survived = new Set(visible.map((row) => row.id))
-  for (;;) {
-    const orphaned = visible.filter(
-      (row) =>
-        survived.has(row.id) &&
-        row.parentId !== null &&
-        !survived.has(row.parentId),
-    )
-    if (orphaned.length === 0) break
-    for (const row of orphaned) survived.delete(row.id)
-  }
-
-  const tree = buildTree(visible.filter((row) => survived.has(row.id)))
+  const tree = buildTree(keepVisibleSubtrees(input.rows, (row) => input.visibleForumIds.has(row.id)))
 
   return {
     index: {

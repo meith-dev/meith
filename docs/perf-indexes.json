@@ -1,0 +1,45 @@
+{
+  "checkedAt": "2026-08-04T05:43:37.031Z",
+  "results": [
+    {
+      "id": "forum-listing-visible",
+      "index": "threads_forum_listing_idx",
+      "used": true,
+      "chosen": "Bitmap Index Scan on threads_forum_listing_idx",
+      "ms": 2.734,
+      "rows": 2083
+    },
+    {
+      "id": "forum-listing-moderator",
+      "index": "threads_forum_listing_all_idx",
+      "used": true,
+      "chosen": "Bitmap Index Scan on threads_forum_listing_all_idx",
+      "ms": 2.924,
+      "rows": 2119
+    },
+    {
+      "id": "thread-page-visible",
+      "index": "posts_thread_visible_idx",
+      "used": true,
+      "chosen": "Index Only Scan using posts_thread_visible_idx",
+      "ms": 0.034,
+      "rows": 15461
+    },
+    {
+      "id": "thread-page-moderator",
+      "index": "posts_thread_all_idx",
+      "used": true,
+      "chosen": "Index Scan using posts_thread_all_idx",
+      "ms": 0.027,
+      "rows": 15805
+    },
+    {
+      "id": "moderation-queue",
+      "index": "posts_forum_visibility_idx",
+      "used": true,
+      "chosen": "Index Scan using posts_forum_visibility_idx",
+      "ms": 1.224,
+      "rows": 940
+    }
+  ]
+}

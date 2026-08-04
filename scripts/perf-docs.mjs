@@ -29,6 +29,8 @@ import { join } from 'node:path'
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 const BUDGETS_FILE = 'packages/testkit/src/load/budgets.ts'
 const RESULTS_FILE = 'docs/perf-results.json'
+const INDEX_FILE = 'docs/perf-indexes.json'
+const PLANS_FILE = 'packages/testkit/src/load/index-plans.ts'
 const OUTPUT_FILE = 'docs/performance.md'
 
 /**
@@ -154,15 +156,38 @@ function joinStringLiterals(fragment) {
   return out
 }
 
-async function readResults() {
-  const raw = await readFile(join(ROOT, RESULTS_FILE), 'utf8').catch(() => null)
-  if (raw === null) return null
-  return JSON.parse(raw)
+async function readJson(file) {
+  const raw = await readFile(join(ROOT, file), 'utf8').catch(() => null)
+  return raw === null ? null : JSON.parse(raw)
+}
+
+/** The plan registry, read the same way the budgets are. */
+async function readPlans() {
+  const source = await readFile(join(ROOT, PLANS_FILE), 'utf8')
+  const assign = source.indexOf('=', source.indexOf('export const INDEX_PLANS'))
+  const open = source.indexOf('[', assign)
+
+  let depth = 0
+  let end = -1
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === '[') depth++
+    else if (source[i] === ']' && --depth === 0) {
+      end = i
+      break
+    }
+  }
+
+  return splitObjects(source.slice(open + 1, end)).map((entry) => ({
+    id: field(entry, 'id'),
+    page: field(entry, 'page'),
+    index: field(entry, 'index'),
+    why: field(entry, 'why'),
+  }))
 }
 
 const ms = (value) => `${value.toFixed(1)} ms`
 
-function render({ budgets, results }) {
+function render({ budgets, results, indexes, plans }) {
   const out = []
   const byId = new Map((results?.results ?? []).map((r) => [r.id, r]))
 
@@ -196,6 +221,13 @@ function render({ budgets, results }) {
     out.push(`| Posts | ${results.postCount.toLocaleString()} |`)
     out.push(`| Threads | ${results.threadCount.toLocaleString()} |`)
     out.push(`| Longest thread | ${results.longestThreadPosts.toLocaleString()} posts |`)
+    if (Array.isArray(results.visibility)) {
+      out.push(
+        `| Visibility | ${results.visibility
+          .map((v) => `${v.posts.toLocaleString()} ${v.visibility}`)
+          .join(', ')} |`,
+      )
+    }
     out.push(`| Iterations | ${results.iterations} per scenario, ${results.warmup} discarded |`)
     out.push(`| Machine | ${env.cpus}× ${env.cpuModel}, ${env.memoryGb} GB |`)
     out.push(`| Runtime | Node ${env.node} on ${env.platform} |`)
@@ -237,6 +269,37 @@ function render({ budgets, results }) {
     out.push('')
   }
 
+  /* ---- The partial-visible indexes (F28) ---- */
+  out.push('## Partial visible indexes')
+  out.push('')
+  out.push('R3.5 asks for `EXPLAIN` evidence that the partial `visibility` indexes are')
+  out.push('used. This is that evidence, and it is also a **check**: `pnpm perf explain`')
+  out.push('fails when the planner stops choosing one.')
+  out.push('')
+  out.push('That failure is the one worth guarding. A partial index only matches a query')
+  out.push('whose predicate the planner can prove implies it, so a read path that starts')
+  out.push('passing a variable visibility scope where it passed a literal falls silently')
+  out.push('onto a sequential scan of the largest table on the board. Nothing errors.')
+  out.push('')
+
+  const seen = new Map((indexes?.results ?? []).map((r) => [r.id, r]))
+  out.push('| Page | Index | Used | Warm |')
+  out.push('|---|---|---|---:|')
+  for (const plan of plans) {
+    const result = seen.get(plan.id)
+    out.push(
+      `| ${plan.page} | \`${plan.index}\` | ${result ? (result.used ? 'yes' : '**no**') : '—'} | ` +
+        `${result ? `${result.ms.toFixed(1)} ms` : '—'} |`,
+    )
+  }
+  out.push('')
+  out.push('Each partial index has an unfiltered twin, and the twins are checked too. A')
+  out.push('moderator seeing unapproved and deleted content *cannot* use the partial')
+  out.push('index — their predicate does not imply it — so without the twin their forum')
+  out.push('view is a sequential scan. That failure is invisible to every test written')
+  out.push('from a member’s point of view, which is most of them.')
+  out.push('')
+
   /* ---- Why each one is on the list ---- */
   out.push('## What each scenario is and why it is measured')
   out.push('')
@@ -254,8 +317,10 @@ function render({ budgets, results }) {
 }
 
 const budgets = await readBudgets()
-const results = await readResults()
-const generated = render({ budgets, results })
+const results = await readJson(RESULTS_FILE)
+const indexes = await readJson(INDEX_FILE)
+const plans = await readPlans()
+const generated = render({ budgets, results, indexes, plans })
 const target = join(ROOT, OUTPUT_FILE)
 
 if (process.argv.includes('--check')) {

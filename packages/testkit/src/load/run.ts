@@ -39,6 +39,7 @@ import { cpus, totalmem } from 'node:os'
 
 import { FULL_SCALE, SMOKE_SCALE, seedBoard, type SeedScale } from '../seed'
 import { BUDGETS } from './budgets'
+import { INDEX_PLANS, readPlan, type PlanResult } from './index-plans'
 import {
   DEFAULT_MEASURE,
   measure,
@@ -457,6 +458,98 @@ function report(verdicts: readonly Verdict[]): boolean {
 }
 
 /* ------------------------------------------------------------------ *
+ * Index plans (F28)
+ * ------------------------------------------------------------------ */
+
+/**
+ * Run every declared plan and fail if the planner did not choose its index.
+ *
+ * `explain (analyze, buffers)` rather than a bare `explain`: an estimated plan
+ * is the planner's opinion, and the question here is what it *did*. The row
+ * counts come from the same run, which is what makes a scan obvious even when
+ * it happens to be fast — a query that touched two million rows to return
+ * twenty is a scan whatever the clock says.
+ */
+async function explainIndexes(db: Database, marks: Landmarks): Promise<number> {
+  const results: PlanResult[] = []
+
+  for (const plan of INDEX_PLANS) {
+    const statement = plan.sql
+      .replace(/\$1/g, String(marks.busiestForumId))
+      .replace(/\$2/g, String(marks.longestThreadId))
+
+    /*
+     * Once to warm, once to record. The first execution of a statement pays for
+     * a cold buffer cache and a plan that has not been made yet, and the timing
+     * printed beside "ok" would otherwise be dominated by whichever query
+     * happened to run first — 119ms for a query that costs 3ms warm, which reads
+     * as a problem and is not one.
+     */
+    await db.execute(sql.raw(`explain (analyze) ${statement}`))
+
+    const rows = resultRowsOf(
+      await db.execute(sql.raw(`explain (analyze, buffers) ${statement}`)),
+    )
+    const text = rows.map((row) => String(Object.values(row)[0] ?? '')).join('\n')
+
+    const { used, chosen } = readPlan(text, plan.index)
+    const ms = Number(/actual time=[\d.]+\.\.([\d.]+)/.exec(text)?.[1] ?? 0)
+    const touched = [...text.matchAll(/rows=(\d+)/g)].map((m) => Number(m[1]))
+
+    results.push({
+      id: plan.id,
+      index: plan.index,
+      used,
+      chosen,
+      ms,
+      rows: touched.length === 0 ? 0 : Math.max(...touched),
+    })
+  }
+
+  const width = Math.max(...INDEX_PLANS.map((p) => p.id.length))
+  process.stdout.write('\n')
+
+  for (const result of results) {
+    process.stdout.write(
+      `  ${result.used ? 'ok  ' : 'FAIL'}  ${result.id.padEnd(width)}  ` +
+        `${result.used ? result.index : `expected ${result.index}, planner chose ${result.chosen}`}` +
+        `  (${result.ms.toFixed(1)}ms)\n`,
+    )
+  }
+
+  const missed = results.filter((r) => !r.used)
+  process.stdout.write('\n')
+
+  if (missed.length > 0) {
+    process.stderr.write(
+      `${missed.length} of ${results.length} queries no longer use their index.\n\n` +
+        'A partial index only matches a query whose predicate the planner can prove\n' +
+        'implies it, so this is usually a read path that started passing a variable\n' +
+        'visibility scope where it used to pass a literal. Nothing errors when that\n' +
+        'happens — the page just becomes a sequential scan of the largest table.\n',
+    )
+    return 1
+  }
+
+  await writeFile(
+    INDEX_FILE,
+    `${JSON.stringify({ checkedAt: new Date().toISOString(), results }, null, 2)}\n`,
+    'utf8',
+  )
+  process.stdout.write(`All ${results.length} queries use their index. Recorded to ${INDEX_FILE}.\n`)
+  return 0
+}
+
+const INDEX_FILE = new URL('../../../../docs/perf-indexes.json', import.meta.url).pathname
+
+/** `db.execute` shapes differ by driver; every read here goes through this. */
+function resultRowsOf(result: unknown): Record<string, unknown>[] {
+  if (Array.isArray(result)) return result as Record<string, unknown>[]
+  const rows = (result as { rows?: unknown }).rows
+  return Array.isArray(rows) ? (rows as Record<string, unknown>[]) : []
+}
+
+/* ------------------------------------------------------------------ *
  * Entry
  * ------------------------------------------------------------------ */
 
@@ -487,8 +580,13 @@ async function main(): Promise<number> {
     return 0
   }
 
+  if (command === 'explain') {
+    const marks = await findLandmarks(db)
+    return explainIndexes(db, marks)
+  }
+
   if (command !== 'measure') {
-    process.stderr.write(`Unknown command "${command}". Use: seed | measure\n`)
+    process.stderr.write(`Unknown command "${command}". Use: seed | measure | explain\n`)
     return 2
   }
 
@@ -500,6 +598,18 @@ async function main(): Promise<number> {
 
   const postCount = counted?.posts ?? 0
   const threadCount = countedThreads?.threads ?? 0
+
+  /*
+   * The visibility mix is recorded because it is what makes the partial-index
+   * evidence mean anything. On an all-visible board a partial index and its
+   * unfiltered twin cover the same rows, so the planner may pick either and
+   * "the index was used" is luck rather than proof.
+   */
+  const hidden = resultRowsOf(
+    await db.execute(sql`
+      select visibility, count(*)::int as n from posts group by visibility order by visibility
+    `),
+  ).map((row) => ({ visibility: String(row.visibility), posts: Number(row.n) }))
 
   process.stdout.write(
     `Measuring against ${postCount.toLocaleString()} posts ` +
@@ -552,6 +662,7 @@ async function main(): Promise<number> {
           postCount,
           threadCount,
           longestThreadPosts: marks.longestThreadPosts,
+          visibility: hidden,
           iterations: DEFAULT_MEASURE.iterations,
           warmup: DEFAULT_MEASURE.warmup,
           environment: describeEnvironment(),

@@ -10,6 +10,18 @@
 import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
+/*
+ * `db.execute` returns a driver-shaped result, and the two drivers disagree:
+ * postgres-js hands back something array-like, PGlite a `{ rows }` object. Every
+ * read in this package goes through `resultRows` for that reason.
+ *
+ * This file did not, and cast the result to an array instead. That is correct
+ * under postgres-js and empty under PGlite — so every lookup here returned
+ * nothing in any PGlite-backed test, and no test covered them, which is the only
+ * reason it survived. F85's sink is the first caller with an integration test,
+ * and it failed on the first run.
+ */
+import { resultRows } from './result-rows'
 
 export type LegacyKind = 'user' | 'forum' | 'thread' | 'post'
 
@@ -39,9 +51,11 @@ export async function resolveLegacyId(
   kind: LegacyKind,
   legacyId: number,
 ): Promise<number | null> {
-  const rows = (await db.execute(sql`
-    select new_id from legacy_ids where kind = ${kind} and legacy_id = ${legacyId}
-  `)) as unknown as { new_id: number }[]
+  const rows = resultRows<{ new_id: number }>(
+    await db.execute(
+      sql`select new_id from legacy_ids where kind = ${kind} and legacy_id = ${legacyId}`,
+    ),
+  )
 
   return rows[0]?.new_id ?? null
 }
@@ -61,11 +75,13 @@ export async function resolveLegacyIds(
 ): Promise<ReadonlyMap<number, number>> {
   if (legacyIds.length === 0) return new Map()
 
-  const rows = (await db.execute(sql`
-    select legacy_id, new_id from legacy_ids
-    where kind = ${kind}
-      and legacy_id in (${sql.join(legacyIds.map((id) => sql`${id}`), sql`, `)})
-  `)) as unknown as { legacy_id: number; new_id: number }[]
+  const rows = resultRows<{ legacy_id: number; new_id: number }>(
+    await db.execute(sql`
+      select legacy_id, new_id from legacy_ids
+      where kind = ${kind}
+        and legacy_id in (${sql.join(legacyIds.map((id) => sql`${id}`), sql`, `)})
+    `),
+  )
 
   return new Map(rows.map((row) => [row.legacy_id, row.new_id]))
 }
@@ -86,11 +102,18 @@ export interface ImportRunRow {
  * prevent.
  */
 export async function currentImportRun(db: Database): Promise<ImportRunRow | null> {
-  const rows = (await db.execute(sql`
-    select id, cursors, status, rows_read from import_runs
-    where status = 'running' and source = 'mybb'
-    limit 1
-  `)) as unknown as { id: number; cursors: Record<string, number>; status: string; rows_read: number }[]
+  const rows = resultRows<{
+    id: number
+    cursors: Record<string, number>
+    status: string
+    rows_read: number
+  }>(
+    await db.execute(sql`
+      select id, cursors, status, rows_read from import_runs
+      where status = 'running' and source = 'mybb'
+      limit 1
+    `),
+  )
 
   const row = rows[0]
   return row === undefined
@@ -99,9 +122,9 @@ export async function currentImportRun(db: Database): Promise<ImportRunRow | nul
 }
 
 export async function startImportRun(db: Database): Promise<number> {
-  const rows = (await db.execute(sql`
-    insert into import_runs (source) values ('mybb') returning id
-  `)) as unknown as { id: number }[]
+  const rows = resultRows<{ id: number }>(
+    await db.execute(sql`insert into import_runs (source) values ('mybb') returning id`),
+  )
   return rows[0]!.id
 }
 

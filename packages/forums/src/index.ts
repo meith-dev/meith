@@ -18,7 +18,7 @@ export {
   subtreeOf,
 } from './path'
 
-export { buildTree, flattenTree } from './tree'
+export { buildTree, flattenTree, keepVisibleSubtrees } from './tree'
 
 export { planMove } from './move'
 export { planCreate, type CreatePlan } from './create'

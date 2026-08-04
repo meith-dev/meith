@@ -37,6 +37,7 @@ import { PostBit } from './slots/post-bit'
 import { PostForm } from './slots/post-form'
 import { PostActions } from './slots/post-actions'
 import { MemberProfile } from './slots/member-profile'
+import { ForumJump } from './slots/forum-jump'
 import { SearchForm } from './slots/search-form'
 import { RedirectNotice } from './slots/redirect-notice'
 import { ErrorNotice } from './slots/error-notice'
@@ -72,6 +73,7 @@ export const defaultTheme = defineTheme({
     MemberProfile,
 
     SearchForm,
+    ForumJump,
 
     RedirectNotice,
     ErrorNotice,

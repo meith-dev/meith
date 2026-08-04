@@ -72,6 +72,7 @@ that a future reader would otherwise reopen.
 | [`0001`](./adr/0001-hash-wasm-argon2id.md) | `hash-wasm` for Argon2id password hashing. |
 | [`0002`](./adr/0002-s3-filestore-dependency.md) | The S3 file store's dependency, and its amendment on implementation. |
 | [`0003`](./adr/0003-jsquash-image-codecs.md) | `@jsquash` for decoding and re-encoding uploaded images. |
+| [`0004`](./adr/0004-mysql2-import-reader.md) | `mysql2` for reading a MyBB board, loaded dynamically. |
 
 ## Keeping this index honest
 

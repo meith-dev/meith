@@ -453,6 +453,32 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     requires: ['name="q"', 'method="get"', 'That search is too short.', 'General discussion'],
   },
 
+  ForumJump: {
+    model: {
+      action: '/jump',
+      field: 'forum',
+      forums: [
+        { value: '1', label: 'General', depth: 0, isCategory: true, isSelected: false },
+        { value: '3', label: 'Chat', depth: 1, isCategory: false, isSelected: true },
+      ],
+      submitLabel: 'Go',
+      label: 'Jump to forum',
+    },
+    /*
+     * `method="get"` and a real submit control, both required.
+     *
+     * A theme that renders only the `<select>` and navigates on change breaks in
+     * two ways at once: it does nothing without JavaScript, and it teleports a
+     * keyboard user to the first option as they arrow through the list, because
+     * `change` fires on every keystroke. The button is the interaction, not the
+     * fallback — so the contract asserts it is in the markup.
+     *
+     * `name="forum"` comes from the model. A theme typing its own hardcodes the
+     * app's query-string contract into markup the app does not own.
+     */
+    requires: ['method="get"', 'name="forum"', 'type="submit"', 'Go', 'Jump to forum', 'Chat'],
+  },
+
   RedirectNotice: {
     model: {
       message: 'Your reply was posted.',

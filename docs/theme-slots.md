@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v1.1.** 25 slots: 23 stable, 2 provisional, 0 deprecated.
+**theme-kit v1.1.** 26 slots: 24 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -43,6 +43,7 @@ works and has a removal scheduled below.
 | [`EditorToolbar`](#editortoolbar) | `client` | provisional | F45 | `EditorToolbarModel` |
 | [`MemberProfile`](#memberprofile) | `server` | stable | F33 | `MemberProfileModel` |
 | [`SearchForm`](#searchform) | `server` | stable | F73 | `SearchFormModel` |
+| [`ForumJump`](#forumjump) | `server` | stable | F27 | `ForumJumpModel` |
 | [`RedirectNotice`](#redirectnotice) | `server` | stable | F34 | `RedirectNoticeModel` |
 | [`ErrorNotice`](#errornotice) | `server` | stable | F34 | `ErrorNoticeModel` |
 
@@ -391,6 +392,22 @@ Props: `SearchFormModel`
 | `hint` | `string \| null` | Guidance for an empty form: quoting, exclusion. `null` once submitted. |
 | `errorMessage` | `string \| null` |  |
 
+### ForumJump
+
+`server` · stable · introduced by F27
+
+The jump box at the foot of every page. A GET form with a submit control, never a select that navigates on change — choosing an option is not committing to it, and arrow-keying through one would teleport a keyboard user to the first forum in the list.
+
+Props: `ForumJumpModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `action` | `string` | Where the form submits. GET, because a jump is a navigation. |
+| `field` | `string` | The query-parameter name to give the select. The app owns it. |
+| `forums` | `readonly ForumJumpOption[]` | Visible forums, in tree order. |
+| `submitLabel` | `string` | The label for the submit control. Always rendered. |
+| `label` | `string` | Accessible name for the control, e.g. "Jump to forum". |
+
 ### RedirectNotice
 
 `server` · stable · introduced by F34
@@ -425,6 +442,16 @@ Props: `ErrorNoticeModel`
 
 Referenced by the models above. Same promise: a field of a shared model reached
 from a stable slot is stable.
+
+### ForumJumpOption
+
+| Field | Type | Notes |
+|---|---|---|
+| `value` | `string` |  |
+| `label` | `string` |  |
+| `depth` | `number` | 0 for a top-level category. The theme chooses how to show nesting. |
+| `isCategory` | `boolean` | A category is a heading, not a destination — rendered disabled. |
+| `isSelected` | `boolean` |  |
 
 ### ForumRowModel
 

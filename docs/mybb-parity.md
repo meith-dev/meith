@@ -1357,3 +1357,44 @@ text, which is legible; a tag that vanishes takes its content with it.
 The corpus pins the current behaviour, so implementing one is a deliberate change
 to that file rather than something that quietly starts working. `[table]` and
 `[align]` are the two most likely to matter on an imported board.
+
+## Search relevance is ranked within a window (F89)
+
+**MyBB:** ranks every matching post, however many there are.
+
+**This board:** ranks the **20,000 most recent matches** when sorting by
+relevance. Sorting by newest or oldest reads the whole corpus.
+
+### Why
+
+`order by ts_rank_cd(...)` cannot use an index. A relevance score depends on the
+query, so there is nothing to have indexed in advance, and Postgres has to score
+every matching row before it can name the top twenty.
+
+F89 measured what that costs on a board of 2,343,847 posts: a term matching 96%
+of them took a **p95 of 5.5 seconds**. The GIN index was present and used
+throughout — the cost was the ranking, not the lookup. A term matching 1,171
+posts, through exactly the same code, took 35 ms. Bounding the ranked set brought
+the first case to 98 ms.
+
+MyBB has the same problem and does not solve it; it is simply rarely provoked,
+because boards small enough to run MyBB comfortably do not have two million posts
+of anything.
+
+### Who notices
+
+**Almost nobody, and that is the argument.** For any term matching fewer than
+20,000 posts the window contains the entire match set and the results are
+*identical* — same rows, same order. The difference appears only for a term so
+common that "the single most relevant post" is not a meaningful thing to ask
+for, and there the answer becomes "the most relevant of the recent ones", which
+is what a member searching for a ubiquitous word actually wants.
+
+The alternative was a five-second page, which is not a page.
+
+### What was not done
+
+A search extension (RUM, or an external engine) would rank the whole corpus
+quickly and properly. It is a runtime dependency and, on most managed Postgres,
+an extension the operator cannot install — so it stays out until somebody has a
+board that needs it.

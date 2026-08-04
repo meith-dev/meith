@@ -214,6 +214,17 @@ export const SLOTS = {
       'that can be linked and cached.',
   },
 
+  /* ---- Navigation (F27) ---- */
+  ForumJump: {
+    kind: 'server',
+    feature: 'F27',
+    purpose:
+      'The jump box at the foot of every page. A GET form with a submit ' +
+      'control, never a select that navigates on change — choosing an option ' +
+      'is not committing to it, and arrow-keying through one would teleport a ' +
+      'keyboard user to the first forum in the list.',
+  },
+
   /* ---- Errors and redirects (F34) ---- */
   RedirectNotice: {
     kind: 'server',

@@ -9,7 +9,7 @@
   disagree.
 -->
 
-**91 hooks** — 46 filters, 45 events — and 6 UI regions. **21 are wired**: something in the board fires
+**92 hooks** — 47 filters, 45 events — and 6 UI regions. **22 are wired**: something in the board fires
 them today, and the rest are declared but not yet reached by a call site.
 
 The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
@@ -61,6 +61,7 @@ the limits.
 | `view.user-panel` | filter | yes | `UserPanelModel` | `ViewerRef & RequestRef` | F27 |
 | `view.navigation` | filter | — | `NavigationModel` | `ViewerRef & RequestRef` | F27 |
 | `view.footer` | filter | yes | `FooterModel` | `ViewerRef & RequestRef` | F27 |
+| `view.forum-jump` | filter | yes | `ForumJumpModel` | `ViewerRef & RequestRef` | F27 |
 | `view.board-index` | filter | yes | `BoardIndexModel` | `ViewerRef` | F29 |
 | `view.forum-row` | filter | yes | `ForumRowSlotModel` | `ViewerRef` | F29 |
 | `view.thread-row` | filter | yes | `ThreadRowSlotModel` | `ViewerRef & ForumRef` | F30 |
@@ -85,6 +86,7 @@ the limits.
 - **`view.user-panel`** — The user panel model: greeting, counts, account links.
 - **`view.navigation`** — The breadcrumb trail.
 - **`view.footer`** — The footer model, including its link list.
+- **`view.forum-jump`** — The jump box model. A plugin adding a destination must give it a real forum id — the route re-authorises whatever is submitted.
 - **`view.board-index`** — The index page model.
 - **`view.forum-row`** — One forum row in a listing. Runs once per row — keep it cheap.
 - **`view.thread-row`** — One thread row in a listing. Runs once per row.

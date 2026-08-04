@@ -121,6 +121,13 @@ export const HOOKS = {
     feature: 'F27',
     purpose: 'The footer model, including its link list.',
   },
+  'view.forum-jump': {
+    kind: 'filter',
+    feature: 'F27',
+    purpose:
+      'The jump box model. A plugin adding a destination must give it a real ' +
+      'forum id — the route re-authorises whatever is submitted.',
+  },
   'view.board-index': {
     kind: 'filter',
     feature: 'F29',

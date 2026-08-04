@@ -34,6 +34,42 @@ function bySiblingOrder(a: TreeShaped, b: TreeShaped): number {
  * recursed into; the database prevents cycles (see `planMove`), but this
  * function must not hang on corrupt data.
  */
+/**
+ * Drop whole subtrees whose parent the viewer cannot see.
+ *
+ * `buildTree` promotes an orphan to a root, which is correct for a genuinely
+ * orphaned row and **a visibility leak** for one whose parent was filtered out:
+ * a hidden category's children would surface as top-level blocks, announcing
+ * both that they exist and what they are called, and making the board's shape
+ * depend on who is looking (D38).
+ *
+ * So a subtree is dropped *whole*, and the drop is iterated to a fixed point —
+ * a grandchild whose parent went for this reason has to go too, and a single
+ * pass would keep it.
+ *
+ * This lives here, beside `buildTree`, because it is the correction to
+ * `buildTree`'s behaviour and because two callers need it. It was inlined in the
+ * board index first; the forum jump box (F27) is the second, and a
+ * security-relevant filter implemented twice is one that will be fixed once.
+ */
+export function keepVisibleSubtrees<T extends TreeShaped>(
+  rows: readonly T[],
+  isVisible: (row: T) => boolean,
+): T[] {
+  const visible = rows.filter(isVisible)
+  const survived = new Set(visible.map((row) => row.id))
+
+  for (;;) {
+    const orphaned = visible.filter(
+      (row) => survived.has(row.id) && row.parentId !== null && !survived.has(row.parentId),
+    )
+    if (orphaned.length === 0) break
+    for (const row of orphaned) survived.delete(row.id)
+  }
+
+  return visible.filter((row) => survived.has(row.id))
+}
+
 export function buildTree<T extends TreeShaped>(rows: readonly T[]): ForumNode<T>[] {
   const byId = new Map<number, T>(rows.map((row) => [row.id, row]))
   const childrenOf = new Map<number | null, T[]>()

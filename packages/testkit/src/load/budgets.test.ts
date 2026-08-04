@@ -52,6 +52,12 @@ describe('the budget registry', () => {
     }
   })
 
+  /*
+   * Zero today: `search-common` was the one, and it became a target once open
+   * question 6 was decided. The ceiling is here so the escape hatch stays an
+   * escape hatch rather than becoming a second budget tier that anything slow
+   * gets filed under.
+   */
   it('keeps limits rare — they are debts, not a second budget tier', () => {
     const limits = BUDGETS.filter((b) => b.kind === 'limit')
     expect(limits.length).toBeLessThanOrEqual(2)
