@@ -19,9 +19,16 @@
 #   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/forum_test
 #
 # To seed a board's worth of content, `@forum/testkit`'s `seedBoard()` is the
-# deterministic seeder the test suite uses — same seed, same board — followed by
-# `pnpm forum task:run counters.reconcile`, because the seeder writes rows and
-# not the denormalised counters the listings read.
+# deterministic seeder the test suite uses — same seed, same board. It writes
+# *rows*, and two things a board needs are not rows, so both have to be built
+# afterwards:
+#
+#   pnpm forum task:run counters.reconcile   # the counts the listings read
+#   pnpm forum search:reindex                # the tsvector search matches on
+#
+# Skipping the first gives a board index of zeroes, which looks wrong
+# immediately. Skipping the second gives a search that runs, succeeds and
+# returns nothing — which looks like a bug in search, and was reported as one.
 
 services:
   postgres:

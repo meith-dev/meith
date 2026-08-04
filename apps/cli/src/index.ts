@@ -15,6 +15,7 @@ import process from 'node:process'
 import { loadEnvFiles, type LoadedEnvFiles } from '@forum/core/env-files'
 
 import { importCommand } from './import'
+import { searchReindex } from './search'
 import { taskList, taskRun } from './tasks'
 import {
   profileFieldAdd,
@@ -288,6 +289,12 @@ const commands: Command[] = [
     summary: 'Run every task that is due now, or one named task if it is due.',
     usage: 'forum task:run [<task-id>]',
     run: taskRun,
+  },
+
+  {
+    name: 'search:reindex',
+    summary: 'Build the full-text index for posts that have none. Resumable.',
+    run: searchReindex,
   },
 ]
 
