@@ -13,13 +13,13 @@
  */
 import { and, asc, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm'
 
-import type { BanFilter, BanFilterType } from '@forum/accounts'
+import type { BanFilter, BanFilterType } from '@meith/accounts'
 import type {
   BanFilterRepository,
   BanRecord,
   BanRepository,
   CreateBanInput,
-} from '@forum/accounts'
+} from '@meith/accounts'
 
 import type { Database } from './client'
 import { banFilters, bans, sessions, users } from './schema'

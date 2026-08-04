@@ -15,7 +15,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('./container', () => ({ getContainer: () => ({ dataSource: 'postgres' }) }))
-vi.mock('@forum/db', () => ({ getDb: () => ({}), PostgresPresenceRepository: class {} }))
+vi.mock('@meith/db', () => ({ getDb: () => ({}), PostgresPresenceRepository: class {} }))
 
 const { parseLocation } = await import('./presence')
 

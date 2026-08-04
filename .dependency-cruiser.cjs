@@ -99,7 +99,7 @@ module.exports = {
       name: 'domain-no-raw-sql-client',
       severity: 'error',
       comment:
-        'R2: only @forum/db may speak to postgres. Domain packages take repository ' +
+        'R2: only @meith/db may speak to postgres. Domain packages take repository ' +
         'interfaces so they can be tested against the in-memory fixture.',
       from: { path: `^packages/(${DOMAIN})/` },
       to: { path: '(^|/)node_modules/(postgres|pg|drizzle-orm)(/|$)' },
@@ -108,23 +108,23 @@ module.exports = {
       /*
        * Both forms of the same target are matched deliberately.
        *
-       * With `tsConfig` pointing at tsconfig.base.json, `@forum/db` resolves via
+       * With `tsConfig` pointing at tsconfig.base.json, `@meith/db` resolves via
        * the path alias to the real file `packages/db/src/index.ts`. Without a
        * resolvable alias it stays an unresolved bare specifier, and under some
-       * pnpm layouts it appears as `node_modules/@forum/db`. A rule written for
+       * pnpm layouts it appears as `node_modules/@meith/db`. A rule written for
        * only one of those three shapes reports a clean run while enforcing
        * nothing — which is exactly what happened here: the original
-       * `^packages/drivers/`-only rule never covered @forum/db at all, and a
+       * `^packages/drivers/`-only rule never covered @meith/db at all, and a
        * probe importing getDb() into packages/forums passed silently.
        *
-       * Verify with: create packages/<domain>/src/__probe.ts importing @forum/db
+       * Verify with: create packages/<domain>/src/__probe.ts importing @meith/db
        * and confirm this rule fires before trusting a green run.
        */
       name: 'domain-no-infra-impl',
       severity: 'error',
       comment:
         'R2: domain packages depend on repository/port *interfaces* declared in ' +
-        '@forum/core, never on @forum/db or @forum/drivers implementations. This is ' +
+        '@meith/core, never on @meith/db or @meith/drivers implementations. This is ' +
         'what lets the same business logic run against Postgres, the in-memory ' +
         'fixture, and the test suite, and lets Redis replace Vercel KV without ' +
         'editing a single domain file.',
@@ -132,8 +132,8 @@ module.exports = {
       to: {
         path: [
           '^packages/(db|drivers)/',
-          '(^|/)node_modules/@forum/(db|drivers)(/|$)',
-          '^@forum/(db|drivers)$',
+          '(^|/)node_modules/@meith/(db|drivers)(/|$)',
+          '^@meith/(db|drivers)$',
         ],
       },
     },
@@ -143,13 +143,13 @@ module.exports = {
       name: 'core-depends-on-nothing',
       severity: 'error',
       comment:
-        '@forum/core is the bottom of the stack: types, env, errors, ports. If core ' +
+        '@meith/core is the bottom of the stack: types, env, errors, ports. If core ' +
         'imports a sibling the dependency graph has no floor.',
       from: { path: '^packages/core/' },
       to: {
         path: [
           '^packages/(?!core/)',
-          '(^|/)node_modules/@forum/(?!core(/|$))',
+          '(^|/)node_modules/@meith/(?!core(/|$))',
         ],
       },
     },
@@ -171,29 +171,29 @@ module.exports = {
       to: {
         path: [
           `^packages/(db|drivers|${DOMAIN})/`,
-          `(^|/)node_modules/@forum/(db|drivers|${DOMAIN})(/|$)`,
+          `(^|/)node_modules/@meith/(db|drivers|${DOMAIN})(/|$)`,
         ],
       },
     },
     {
       /*
        * F80. The strongest form of "a plugin cannot leak a private forum" is
-       * that it cannot reach the query layer at all. `@forum/plugin-kit` hands a
-       * plugin what a viewer may already see; a plugin importing `@forum/db` or a
+       * that it cannot reach the query layer at all. `@meith/plugin-kit` hands a
+       * plugin what a viewer may already see; a plugin importing `@meith/db` or a
        * domain package would be outside every guarantee the host makes, and no
        * amount of failure isolation would help.
        */
       name: 'plugins-use-the-kit-only',
       severity: 'error',
       comment:
-        'A plugin extends the board through @forum/plugin-kit. It must not import ' +
-        '@forum/db, a driver, or a domain package: the host isolates failures, not ' +
+        'A plugin extends the board through @meith/plugin-kit. It must not import ' +
+        '@meith/db, a driver, or a domain package: the host isolates failures, not ' +
         'privilege, and a plugin with its own database access can read anything.',
       from: { path: '^plugins/' },
       to: {
         path: [
           `^packages/(db|drivers|${DOMAIN})/`,
-          `(^|/)node_modules/@forum/(db|drivers|${DOMAIN})(/|$)`,
+          `(^|/)node_modules/@meith/(db|drivers|${DOMAIN})(/|$)`,
         ],
       },
     },
@@ -201,12 +201,12 @@ module.exports = {
       name: 'ui-is-presentation-only',
       severity: 'error',
       comment:
-        '@forum/ui is dumb components. Data fetching lives in the app layer.',
+        '@meith/ui is dumb components. Data fetching lives in the app layer.',
       from: { path: '^packages/ui/' },
       to: {
         path: [
           `^packages/(db|drivers|${DOMAIN})/`,
-          `(^|/)node_modules/@forum/(db|drivers|${DOMAIN})(/|$)`,
+          `(^|/)node_modules/@meith/(db|drivers|${DOMAIN})(/|$)`,
         ],
       },
     },
@@ -240,7 +240,7 @@ module.exports = {
     },
     tsPreCompilationDeps: true,
     /*
-     * Must be tsconfig.base.json, which is where the `@forum/<name>` path
+     * Must be tsconfig.base.json, which is where the `@meith/<name>` path
      * aliases live. Pointing at the root tsconfig.json (which only holds
      * `references`) leaves every workspace import unresolvable: dependency-cruiser
      * reports `couldNotResolve: true` with the bare specifier as the `resolved`

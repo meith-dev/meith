@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ForumListingRow } from '@forum/forums'
+import type { ForumListingRow } from '@meith/forums'
 
 import { buildForumDisplayView } from './forum-display'
 

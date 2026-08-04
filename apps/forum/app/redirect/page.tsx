@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { requireSlot } from '@forum/theme-kit'
+import { requireSlot } from '@meith/theme-kit'
 
 import { activeTheme } from '@/server/theme'
 import { buildRedirectNotice } from '@/view/redirect-notice'

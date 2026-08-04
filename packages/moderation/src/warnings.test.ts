@@ -1,6 +1,6 @@
 /** F53 — the warning rules, without a database. */
 import { describe, expect, it } from 'vitest'
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import {
   WarningService,

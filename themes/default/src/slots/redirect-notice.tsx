@@ -1,4 +1,4 @@
-import type { RedirectNoticeModel } from '@forum/theme-kit'
+import type { RedirectNoticeModel } from '@meith/theme-kit'
 
 export function RedirectNotice({ message, targetHref, delaySeconds }: RedirectNoticeModel) {
   return (

@@ -10,9 +10,9 @@
  * the same key rules, type checking and duplicate refusal the ACP screen will —
  * the F13 header's whole argument for keeping this layer thin.
  */
-import { ValidationError } from '@forum/core'
-import { PostgresProfileFieldRepository, getDb } from '@forum/db'
-import { FIELD_TYPES, ProfileFieldService } from '@forum/profile-fields'
+import { ValidationError } from '@meith/core'
+import { PostgresProfileFieldRepository, getDb } from '@meith/db'
+import { FIELD_TYPES, ProfileFieldService } from '@meith/profile-fields'
 
 import { optional, parseFlags, required, type Flags } from './args'
 import { requirePostgres } from './context'

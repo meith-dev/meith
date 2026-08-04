@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { hasAnyModeratorRight } from "@forum/authorization";
-import { requireSlot } from "@forum/theme-kit";
+import { hasAnyModeratorRight } from "@meith/authorization";
+import { requireSlot } from "@meith/theme-kit";
 
 import { filterView, viewerRef } from "@/server/plugin-view";
 import { InlineModerationForm } from "@/components/moderation/inline-moderation-form";

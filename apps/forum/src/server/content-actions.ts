@@ -14,11 +14,11 @@
  */
 import { redirect } from 'next/navigation'
 
-import { renderBBCode } from '@forum/bbcode'
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { PostEditor, type PostWriteRepository } from '@forum/posts'
-import { ReplyComposer, ThreadComposer, type AuthorRestriction } from '@forum/threads'
-import { restrictsPosting } from '@forum/moderation'
+import { renderBBCode } from '@meith/bbcode'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { PostEditor, type PostWriteRepository } from '@meith/posts'
+import { ReplyComposer, ThreadComposer, type AuthorRestriction } from '@meith/threads'
+import { restrictsPosting } from '@meith/moderation'
 
 // Relative, not `@/`: this module is exercised directly by vitest, which
 // resolves only the workspace aliases from tsconfig.base.json.
@@ -151,7 +151,7 @@ export async function createThreadAction(
          * A board setting plus one boolean permission, not a per-group
          * interval — the parity decision in
          * `docs/mybb-parity.md#flood-intervals`, asked through `can()` so no
-         * permission field escapes `@forum/authorization`.
+         * permission field escapes `@meith/authorization`.
          */
         bypassesFlood: authorizer.can(actor, 'flood.bypass'),
         /*

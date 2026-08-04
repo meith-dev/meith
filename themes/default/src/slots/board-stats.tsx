@@ -1,4 +1,4 @@
-import type { BoardStatsModel } from '@forum/theme-kit'
+import type { BoardStatsModel } from '@meith/theme-kit'
 
 /**
  * The board's totals (F75).

@@ -7,8 +7,8 @@
  * an actor's groups.
  */
 
-import type { Actor } from '@forum/authorization'
-import { emptyPermissionSet } from '@forum/core'
+import type { Actor } from '@meith/authorization'
+import { emptyPermissionSet } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
 import {

@@ -8,11 +8,11 @@ import 'server-only'
  * possible different answer.
  *
  * Every layout and page reads the theme *here*, never by importing
- * `@forum/theme-default` — invariant 6, and the practical reason is that
+ * `@meith/theme-default` — invariant 6, and the practical reason is that
  * installing a second theme must be a line in `forum.config.ts` and a redeploy,
  * not an edit to every file that renders a slot.
  */
-import { assertThemeContract, resolveTheme, type ResolvedTheme } from '@forum/theme-kit'
+import { assertThemeContract, resolveTheme, type ResolvedTheme } from '@meith/theme-kit'
 
 import forumConfig from '../../forum.config'
 

@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { SETTING_DEFINITIONS, SettingsSnapshot } from '@forum/settings'
+import { SETTING_DEFINITIONS, SettingsSnapshot } from '@meith/settings'
 
 import { buildAdminSettingsModel, settingsHref } from './admin-settings'
 

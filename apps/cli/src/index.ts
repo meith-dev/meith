@@ -12,7 +12,7 @@
 
 import process from 'node:process'
 
-import { loadEnvFiles, type LoadedEnvFiles } from '@forum/core/env-files'
+import { loadEnvFiles, type LoadedEnvFiles } from '@meith/core/env-files'
 
 import { importCommand } from './import'
 import { searchReindex } from './search'
@@ -65,7 +65,7 @@ const commands: Command[] = [
        * a top-level import would throw during module evaluation, before the
        * command dispatcher could attach any context.
        */
-      const { assertEnv } = await import('@forum/core')
+      const { assertEnv } = await import('@meith/core')
 
       let env
       try {
@@ -120,7 +120,7 @@ const commands: Command[] = [
     name: 'migrate',
     summary: 'Apply pending database migrations.',
     async run() {
-      const { assertEnv } = await import('@forum/core')
+      const { assertEnv } = await import('@meith/core')
       const env = assertEnv()
 
       if (env.DATA_SOURCE !== 'postgres') {
@@ -130,7 +130,7 @@ const commands: Command[] = [
         return 1
       }
 
-      const { runMigrations } = await import('@forum/db')
+      const { runMigrations } = await import('@meith/db')
       const applied = await runMigrations()
       console.log(
         applied === 0
@@ -149,7 +149,7 @@ const commands: Command[] = [
       '[--prefix mybb_] [--port 3306] [--charset utf8mb4] [--ssl] ' +
       '[--budget 20000] [--page-size 200]',
     async run(args: readonly string[]) {
-      const { assertEnv } = await import('@forum/core')
+      const { assertEnv } = await import('@meith/core')
       const env = assertEnv()
 
       if (env.DATA_SOURCE !== 'postgres') {
@@ -166,7 +166,7 @@ const commands: Command[] = [
     summary: 'Apply core and plugin migrations, then record the version.',
     usage: 'forum upgrade [--dry-run]',
     async run(args: readonly string[]) {
-      const { assertEnv } = await import('@forum/core')
+      const { assertEnv } = await import('@meith/core')
       const env = assertEnv()
 
       if (env.DATA_SOURCE !== 'postgres') {
@@ -200,7 +200,7 @@ const commands: Command[] = [
        * genuinely useful on its own: it is how an operator discovers what keys
        * exist and what they may be set to.
        */
-      const { SETTING_DEFINITIONS } = await import('@forum/settings')
+      const { SETTING_DEFINITIONS } = await import('@meith/settings')
 
       const width = Math.max(...SETTING_DEFINITIONS.map((d) => d.key.length))
       let group = ''
@@ -366,7 +366,7 @@ main()
      *
      * Anything unrecognised still prints in full, because that IS a defect.
      */
-    const { isAppError } = await import('@forum/core')
+    const { isAppError } = await import('@meith/core')
 
     if (isAppError(error)) {
       console.error(error.message)

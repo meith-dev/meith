@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { RENDER_VERSION } from '@forum/bbcode'
-import type { ForumRow } from '@forum/forums'
-import type { PostListingRow } from '@forum/posts'
-import type { ThreadListingRow } from '@forum/threads'
+import { RENDER_VERSION } from '@meith/bbcode'
+import type { ForumRow } from '@meith/forums'
+import type { PostListingRow } from '@meith/posts'
+import type { ThreadListingRow } from '@meith/threads'
 
 import { buildThreadView, revealedFrom } from './thread-view'
 

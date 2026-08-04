@@ -1,6 +1,6 @@
 /** F60's pure private-message view models. */
-import type { FolderCounts, MessageDetail, MessageFolder, MessageListRow } from '@forum/messages'
-import type { LinkModel, TimeModel } from '@forum/theme-kit'
+import type { FolderCounts, MessageDetail, MessageFolder, MessageListRow } from '@meith/messages'
+import type { LinkModel, TimeModel } from '@meith/theme-kit'
 
 import { formatTime } from './time'
 
@@ -173,7 +173,7 @@ export interface MessageView {
   readonly subject: string
   readonly author: string
   readonly at: TimeModel
-  /** Trusted HTML from `@forum/bbcode`, exactly as a post body is (F36). */
+  /** Trusted HTML from `@meith/bbcode`, exactly as a post body is (F36). */
   readonly bodyHtml: string
   readonly folder: MessageFolder
   readonly participants: readonly ParticipantView[]

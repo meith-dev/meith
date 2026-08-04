@@ -1,7 +1,7 @@
 /**
  * Postgres implementation of the `AuthorizationSource` port.
  *
- * The port is defined by `@forum/authorization` (the domain), and this is its
+ * The port is defined by `@meith/authorization` (the domain), and this is its
  * SQL adapter (the infrastructure) — the standard hexagonal arrangement where
  * persistence depends on the domain's interface, never the reverse. The
  * authorizer itself stays pure and database-free; this file is the only place
@@ -21,7 +21,7 @@ import type {
   AuthorizationSource,
   ForumOverride,
   GroupDefaults,
-} from '@forum/authorization'
+} from '@meith/authorization'
 
 import type { Database } from './client'
 import { forumRowToOverride, groupRowToPermissionSet } from './permissions-map'

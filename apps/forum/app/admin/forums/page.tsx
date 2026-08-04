@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { buildTree, type ForumNode, type ForumRow } from '@forum/forums'
+import { buildTree, type ForumNode, type ForumRow } from '@meith/forums'
 
 import { CreateForumForm } from '@/components/admin/forum-forms'
 import { requireAdmin } from '@/server/admin'

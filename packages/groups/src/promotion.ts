@@ -68,7 +68,7 @@ export interface PromotionOutcome {
  *
  * Passed in rather than hardcoded because group ids are board data — but the
  * caller is expected to supply the banned group and the staff ladder. F20's
- * rule that nothing outside `@forum/authorization` knows what a group id *means*
+ * rule that nothing outside `@meith/authorization` knows what a group id *means*
  * still holds: this compares ids for equality and draws no permission
  * conclusion from them.
  */

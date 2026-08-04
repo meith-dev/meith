@@ -10,7 +10,7 @@ import {
   ConflictError,
   ForbiddenError,
   ValidationError,
-} from '@forum/core'
+} from '@meith/core'
 
 import {
   hashPassword,

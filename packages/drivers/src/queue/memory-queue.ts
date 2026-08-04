@@ -8,7 +8,7 @@
 
 import { randomUUID } from 'node:crypto'
 
-import type { EnqueueOptions, Job, QueueDriver } from '@forum/core'
+import type { EnqueueOptions, Job, QueueDriver } from '@meith/core'
 
 interface Row {
   id: string

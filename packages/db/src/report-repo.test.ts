@@ -10,7 +10,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
-import { ReportService } from '@forum/moderation'
+import { ReportService } from '@meith/moderation'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'

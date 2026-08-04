@@ -2,7 +2,7 @@
  * A resolver alias for `pnpm depcruise`, and nothing else.
  *
  * dependency-cruiser reads path aliases from one tsconfig, and this repo's is
- * `tsconfig.base.json` — which holds the `@forum/<name>` workspace aliases and
+ * `tsconfig.base.json` — which holds the `@meith/<name>` workspace aliases and
  * deliberately does not hold `@/*`, because that one belongs to the app alone
  * (`apps/forum/tsconfig.json`). Putting `@/*` in the base config would let any
  * package resolve `@/…` into the app, which is a dependency direction this

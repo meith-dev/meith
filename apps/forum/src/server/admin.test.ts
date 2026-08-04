@@ -1,7 +1,7 @@
 /**
  * F63 at the app layer.
  *
- * The rules are unit-tested in `@forum/admin` and the SQL against real
+ * The rules are unit-tested in `@meith/admin` and the SQL against real
  * Postgres. What is proven here is the gate order and the seam:
  *
  *  - the address allowlist is consulted **before** anything else, so a request
@@ -14,10 +14,10 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
-import { REAUTH_MINUTES } from '@forum/admin'
-import type { AdminSessionRecord, AdminSessionRepository } from '@forum/admin'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
+import { REAUTH_MINUTES } from '@meith/admin'
+import type { AdminSessionRecord, AdminSessionRepository } from '@meith/admin'
 
 /**
  * The clocks here are **relative to the real one**, not pinned.
@@ -50,8 +50,8 @@ vi.mock('./session-cookies', () => ({
 
 /** `env` is a lazy proxy; the allowlist is read through it. */
 const allowlistRef: { current: string | undefined } = { current: undefined }
-vi.mock('@forum/core', async () => {
-  const actual = await vi.importActual<typeof import('@forum/core')>('@forum/core')
+vi.mock('@meith/core', async () => {
+  const actual = await vi.importActual<typeof import('@meith/core')>('@meith/core')
   return {
     ...actual,
     env: new Proxy(

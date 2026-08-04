@@ -3,7 +3,7 @@ import 'server-only'
 /**
  * F86 — serving MyBB's URLs.
  *
- * The parsing is in `@forum/import` and table-tested there. This is the part
+ * The parsing is in `@meith/import` and table-tested there. This is the part
  * that cannot be: the setting, the id lookup, and the 301.
  *
  * ## 301, and why permanent is right
@@ -23,9 +23,9 @@ import 'server-only'
  * front page — which is worse for the board than the honest answer and hides the
  * breakage from whoever could fix it.
  */
-import { env } from '@forum/core'
-import { getDb, resolveLegacyId } from '@forum/db'
-import { legacyRedirectPath, resolveLegacyUrl, type LegacyTarget } from '@forum/import'
+import { env } from '@meith/core'
+import { getDb, resolveLegacyId } from '@meith/db'
+import { legacyRedirectPath, resolveLegacyUrl, type LegacyTarget } from '@meith/import'
 import { notFound, permanentRedirect } from 'next/navigation'
 import type { NextRequest } from 'next/server'
 

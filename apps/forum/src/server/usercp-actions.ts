@@ -20,10 +20,10 @@
  */
 import { redirect } from 'next/navigation'
 
-import { MemberSettingsService } from '@forum/accounts'
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { drivers } from '@forum/drivers'
-import { prepareSignature } from '@forum/signatures'
+import { MemberSettingsService } from '@meith/accounts'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { drivers } from '@meith/drivers'
+import { prepareSignature } from '@meith/signatures'
 
 import { AUTH_CONFIG } from './auth-config'
 import { adminService } from './admin'
@@ -174,7 +174,7 @@ export async function changePasswordAction(
      * F63. The ACP session is separate from the board session, so revoking
      * every board session leaves it standing — which would mean a password
      * change did not close the one session that matters most. Revoked here
-     * rather than inside the service, because `@forum/accounts` has no idea
+     * rather than inside the service, because `@meith/accounts` has no idea
      * the control panel exists.
      */
     const admin = adminService()
@@ -301,7 +301,7 @@ export async function saveAvatarAction(_prev: FormState, form: FormData): Promis
       file: { filename: file.name, bytes: new Uint8Array(await file.arrayBuffer()) },
       /*
        * Asked here rather than inside the service: group and permission
-       * reasoning does not leave `@forum/authorization` (R4), so the service
+       * reasoning does not leave `@meith/authorization` (R4), so the service
        * takes the answer. The *lock* is the service's, because it is a sanction
        * on one member rather than a permission.
        */

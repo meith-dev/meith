@@ -2,13 +2,13 @@
 import { and, asc, eq, gt, sql, type SQL } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
-import { PUBLIC_CONTENT, type ContentScope } from '@forum/core'
+import { PUBLIC_CONTENT, type ContentScope } from '@meith/core'
 import type {
   PostListingRow,
   PostPage,
   PostRepository,
   QuotablePost,
-} from '@forum/posts'
+} from '@meith/posts'
 
 import type { Database } from './client'
 import { posts, users } from './schema'

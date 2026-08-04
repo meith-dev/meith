@@ -1,5 +1,5 @@
 /** F30's pure forum-display view model. */
-import type { ForumListingRow } from "@forum/forums";
+import type { ForumListingRow } from "@meith/forums";
 import type {
   ForumDisplayModel,
   ForumRowModel,
@@ -7,8 +7,8 @@ import type {
   PaginationModel,
   SubforumListModel,
   ThreadRowModel,
-} from "@forum/theme-kit";
-import type { ReadState, ThreadListingRow, ThreadPage } from "@forum/threads";
+} from "@meith/theme-kit";
+import type { ReadState, ThreadListingRow, ThreadPage } from "@meith/threads";
 
 import { forumHref } from "./board-index";
 import { memberHref } from "./member-profile";

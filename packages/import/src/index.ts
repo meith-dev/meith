@@ -1,5 +1,5 @@
 /**
- * `@forum/import` — the MyBB import (F85).
+ * `@meith/import` — the MyBB import (F85).
  *
  * A source **port**, the mapping, and a chunked resumable runner. Reading a live
  * MyBB board means a MySQL client, which is a runtime dependency the roadmap's

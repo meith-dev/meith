@@ -13,7 +13,7 @@ test('the fixture board, registration, and login work without JavaScript', async
   /*
    * F36 in the browser, and specifically through the *live* render path: the
    * fixture board stores no rendered HTML, so what is on screen here was
-   * produced by `@forum/bbcode` while the page was being rendered. Asserting
+   * produced by `@meith/bbcode` while the page was being rendered. Asserting
    * the tags rather than the words is the point — a renderer that emitted its
    * input verbatim would still show the sentence.
    */

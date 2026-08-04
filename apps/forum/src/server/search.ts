@@ -13,10 +13,10 @@ import 'server-only'
  * required argument instead of an optional filter: there is no call shape that
  * accidentally searches everything.
  */
-import type { Actor } from '@forum/authorization'
-import { ForbiddenError, contentScopeFrom } from '@forum/core'
-import type { SearchScope } from '@forum/search'
-import { PostgresSearchRepository, getDb } from '@forum/db'
+import type { Actor } from '@meith/authorization'
+import { ForbiddenError, contentScopeFrom } from '@meith/core'
+import type { SearchScope } from '@meith/search'
+import { PostgresSearchRepository, getDb } from '@meith/db'
 
 import { getContainer } from './container'
 

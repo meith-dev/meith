@@ -1,6 +1,6 @@
 /** F54 — the moderator panel's rules, without a database. */
 import { describe, expect, it } from 'vitest'
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import {
   MODCP_PAGE_SIZE,

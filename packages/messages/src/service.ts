@@ -27,8 +27,8 @@
  * sender and for every recipient before anything is written, because a message
  * that lands in a full inbox is one the recipient cannot be told about.
  */
-import { ForbiddenError, NotFoundError, ValidationError } from '@forum/core'
-import { renderBBCode } from '@forum/bbcode'
+import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
+import { renderBBCode } from '@meith/bbcode'
 
 import {
   BODY_MAX,

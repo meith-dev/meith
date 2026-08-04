@@ -2,7 +2,7 @@
  * The default in-memory board used when `DATA_SOURCE=fixture`.
  *
  * This is the app's *own* demo/dev data, intentionally separate from the F22
- * test fixture in `@forum/authorization`. The F22 board is tuned to exercise
+ * test fixture in `@meith/authorization`. The F22 board is tuned to exercise
  * every matrix cell; this one is tuned to be a believable little forum you can
  * click around in with no database attached. Coupling the two would mean a tweak
  * to a permission test could silently change what a demo visitor sees.
@@ -14,12 +14,12 @@ import {
   emptyPermissionSet,
   type ForumPermissions,
   type PermissionSet,
-} from '@forum/core'
-import type { GroupDefaults, MemoryBoard } from '@forum/authorization'
-import type { ForumListingRow } from '@forum/forums'
-import type { PostListingRow } from '@forum/posts'
-import type { ThreadListingRow } from '@forum/threads'
-import type { MemberProfileRecord } from '@forum/accounts'
+} from '@meith/core'
+import type { GroupDefaults, MemoryBoard } from '@meith/authorization'
+import type { ForumListingRow } from '@meith/forums'
+import type { PostListingRow } from '@meith/posts'
+import type { ThreadListingRow } from '@meith/threads'
+import type { MemberProfileRecord } from '@meith/accounts'
 
 /** Canonical seed groups (must match the seed migration). */
 /**

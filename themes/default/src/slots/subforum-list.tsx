@@ -1,4 +1,4 @@
-import type { SubforumListModel } from "@forum/theme-kit";
+import type { SubforumListModel } from "@meith/theme-kit";
 
 export function SubforumList({ forums }: SubforumListModel) {
   return (

@@ -18,7 +18,7 @@ import {
   hasAnyModeratorRight,
   type Actor,
   type ModeratorRights,
-} from '@forum/authorization'
+} from '@meith/authorization'
 
 import { getActor } from './context'
 import { getContainer } from './container'
@@ -102,7 +102,7 @@ const RIGHT_LABELS: Readonly<Record<keyof ModeratorRights, string>> = {
  * One `moderatorRightsIn` call per forum, which is the honest cost of a screen
  * whose subject *is* per-forum rights: the alternative is a batched read whose
  * combination rules would be a second implementation of the one in
- * `@forum/authorization` (R4). A moderator has a handful of forums, not a
+ * `@meith/authorization` (R4). A moderator has a handful of forums, not a
  * hundred — and the dashboard's *counts* are one query for all of them, which is
  * the part that would otherwise be an N+1.
  */

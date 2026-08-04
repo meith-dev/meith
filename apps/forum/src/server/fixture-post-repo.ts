@@ -1,12 +1,12 @@
 import 'server-only'
 
-import { PUBLIC_CONTENT, type ContentScope } from '@forum/core'
+import { PUBLIC_CONTENT, type ContentScope } from '@meith/core'
 import type {
   PostListingRow,
   PostPage,
   PostRepository,
   QuotablePost,
-} from '@forum/posts'
+} from '@meith/posts'
 
 import { SEED_POST_ROWS } from './seed-board'
 

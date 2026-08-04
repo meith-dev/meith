@@ -1,5 +1,5 @@
-import { ValidationError } from '@forum/core'
-import { RENDER_VERSION } from '@forum/bbcode'
+import { ValidationError } from '@meith/core'
+import { RENDER_VERSION } from '@meith/bbcode'
 import { describe, expect, it } from 'vitest'
 
 import {

@@ -61,7 +61,7 @@ export const usergroups = pgTable(
     /** Show members of this group on the staff / "who's online" legend. */
     isStaffGroup: boolean('is_staff_group').notNull().default(false),
 
-    /** All ~45 permission defaults, generated from the @forum/core registry. */
+    /** All ~45 permission defaults, generated from the @meith/core registry. */
     ...groupPermissionColumns(),
 
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -531,7 +531,7 @@ export const banFilters = pgTable(
  * Every criterion column is nullable and means "no constraint" when null, so a
  * rule can say "everyone in this group" without sentinel thresholds that would
  * need special-casing at each read. The safety rules — never lift a ban, never
- * demote, never re-apply — live in `@forum/groups`, not here: they are policy,
+ * demote, never re-apply — live in `@meith/groups`, not here: they are policy,
  * and the database cannot express "is this a demotion" without knowing the
  * group ladder's ranking.
  */
@@ -660,7 +660,7 @@ export const warnings = pgTable(
  * One thing a member has been told.
  *
  * `data` holds the facts captured when it was raised, and the wording is
- * applied on read by `@forum/notifications`. Storing a pointer instead — a post
+ * applied on read by `@meith/notifications`. Storing a pointer instead — a post
  * id read back at render time — breaks in the case notifications exist for: the
  * post is often the one a moderator has since deleted, so the record would
  * either vanish or quietly say something different.

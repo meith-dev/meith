@@ -67,7 +67,7 @@ took the same view on password hashing).
 ## Decision
 
 **Option A.** `@aws-sdk/client-s3` is added as a runtime dependency of
-`@forum/drivers`, confined to `src/files/s3-file-store.ts` and reached only when
+`@meith/drivers`, confined to `src/files/s3-file-store.ts` and reached only when
 `FILESTORE_DRIVER=s3`, via the same lazy-require shape `container.ts` uses for
 the Postgres branch. A board on local storage never loads it.
 
@@ -98,7 +98,7 @@ never achieved this either.
 **And `require()` inside an ESM package throws in plain Node**
 (`Cannot determine intended module format`). It happens to work inside Next,
 whose bundler polyfills it, which is why nothing had caught it — but
-`@forum/drivers` is also used by the CLI and the worker, so
+`@meith/drivers` is also used by the CLI and the worker, so
 `FILESTORE_DRIVER=s3` would have failed there at runtime.
 
 **What replaces it:** a static import in `resolve.ts`, plus

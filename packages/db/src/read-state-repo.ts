@@ -1,8 +1,8 @@
 /** Durable forum/thread read watermarks (F32). */
 import { and, eq, gt, isNull, or, sql } from 'drizzle-orm'
 
-import { PUBLIC_CONTENT } from '@forum/core'
-import type { ReadState, ReadStateRepository } from '@forum/threads'
+import { PUBLIC_CONTENT } from '@meith/core'
+import type { ReadState, ReadStateRepository } from '@meith/threads'
 
 import type { Database } from './client'
 import { forumsRead, threads, threadsRead } from './schema'

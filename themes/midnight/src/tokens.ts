@@ -22,18 +22,26 @@
  *
  * ## The look
  *
- * Where the default theme is a light, roomy, card-based board, midnight is a
- * dark, dense, ruled one: near-black backgrounds, a cyan accent that reads as a
- * terminal rather than as a product, square corners (`radius` is 2px, not 6px)
- * and a tighter `density-unit`. Its *light* scheme is not a bright theme — it is
- * a dimmed slate, because a board somebody chose midnight for should not turn
- * white when their laptop switches at sunrise.
+ * Where the default theme is a light, roomy, ruled board, midnight is a dark,
+ * dense one: near-black backgrounds, a cyan accent that reads as a terminal
+ * rather than as a product, no corner rounding at all and a tighter
+ * `density-unit`. Its *light* scheme is not a bright theme — it is a dimmed
+ * slate, because a board somebody chose midnight for should not turn white when
+ * their laptop switches at sunrise.
+ *
+ * **`radius` is `0rem`, and it moved.** It used to be 2px against the default's
+ * 6px, and that was the whole geometric distinction until the default adopted
+ * the Meith identity and came down to 2px itself — at which point midnight's
+ * stated difference silently stopped being one. `theme.test.ts` caught it,
+ * which is the coupling that file exists for. Fully square is also the more
+ * honest reading of "terminal, not product": the previous 2px was a compromise
+ * with a rounder default that no longer exists.
  */
 
 /**
  * Every token, in the default theme's declaration order.
  *
- * Not imported from `@forum/theme-default`, deliberately. A theme's palette is
+ * Not imported from `@meith/theme-default`, deliberately. A theme's palette is
  * its own statement, and taking the list from another theme would mean this file
  * silently gaining a token nobody chose a value for — the sync test is the right
  * place for that coupling, because it fails loudly instead.
@@ -58,7 +66,7 @@ export const LIGHT_TOKENS: Record<string, string> = {
   input: 'oklch(0.82 0.012 240)',
   ring: 'oklch(0.6 0.13 195)',
   /* Square, not rounded: the single geometric decision that carries the look. */
-  radius: '0.125rem',
+  radius: '0rem',
   'density-unit': '0.2rem',
   'font-mono-stack': '"IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace',
   'forum-unread': 'oklch(0.55 0.13 195)',
@@ -99,7 +107,7 @@ export const DARK_TOKENS: Record<string, string> = {
   border: 'oklch(0.27 0.016 250)',
   input: 'oklch(0.3 0.018 250)',
   ring: 'oklch(0.8 0.13 195)',
-  radius: '0.125rem',
+  radius: '0rem',
   'density-unit': '0.2rem',
   'font-mono-stack': '"IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace',
   'forum-unread': 'oklch(0.8 0.13 195)',

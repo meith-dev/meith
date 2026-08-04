@@ -5,9 +5,9 @@
  * across the whole product — and invariant 25 requires the filter to happen
  * inside the SQL rather than after it.
  */
-import { Authorizer } from '@forum/authorization'
-import { ActorBuilder, PostgresAuthorizationSource } from '@forum/db'
-import { createTestDb, type TestDb } from '@forum/db/pglite.fixture'
+import { Authorizer } from '@meith/authorization'
+import { ActorBuilder, PostgresAuthorizationSource } from '@meith/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { measureQueries } from './query-budget'

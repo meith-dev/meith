@@ -18,9 +18,9 @@
  * is running on in-memory sample data" refusal, which is a legible failure,
  * rather than a `null` dereference twelve frames deep.
  */
-import { IdentityService, SessionService, createMemoryStore } from '@forum/accounts'
-import type { MemoryAppointment, MemoryBoard } from '@forum/authorization'
-import { Authorizer, InMemoryAuthorizationSource } from '@forum/authorization'
+import { IdentityService, SessionService, createMemoryStore } from '@meith/accounts'
+import type { MemoryAppointment, MemoryBoard } from '@meith/authorization'
+import { Authorizer, InMemoryAuthorizationSource } from '@meith/authorization'
 
 import { FixtureActorSource } from './fixture-actor-source'
 
@@ -35,7 +35,7 @@ import { FIXTURE_DATA_VERSION, SEED_BOARD } from './seed-board'
  * and re-declaring the symbol in each file is how one of them ends up keyed on a
  * different string and silently tests nothing.
  */
-export const CONTAINER_KEY = Symbol.for('@forum/forum.container')
+export const CONTAINER_KEY = Symbol.for('@meith/forum.container')
 
 /**
  * The fields a test may override.

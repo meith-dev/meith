@@ -15,7 +15,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import type { RelationKind, RelationRepository, RelationRow } from '@forum/relations'
+import type { RelationKind, RelationRepository, RelationRow } from '@meith/relations'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

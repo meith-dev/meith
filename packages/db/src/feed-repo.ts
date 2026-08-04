@@ -16,7 +16,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import type { ContentScope } from '@forum/core'
+import type { ContentScope } from '@meith/core'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

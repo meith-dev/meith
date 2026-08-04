@@ -84,7 +84,7 @@ export const SETTING_DEFINITIONS = [
     label: 'Board name',
     description: 'Shown in the header, page titles, and outgoing e-mail.',
     schema: z.string().min(1).max(100),
-    default: 'Forum',
+    default: 'Meith',
     invalidates: ['settings', 'layout'],
   }),
   define({

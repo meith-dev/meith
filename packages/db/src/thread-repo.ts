@@ -1,13 +1,13 @@
 /** Postgres forum-display listing (F30), scoped by F47. */
 import { and, desc, eq, lt, or } from "drizzle-orm";
 
-import type { ContentScope } from "@forum/core";
+import type { ContentScope } from "@meith/core";
 import type {
   ThreadCursor,
   ThreadListingRow,
   ThreadPage,
   ThreadRepository,
-} from "@forum/threads";
+} from "@meith/threads";
 
 import type { Database } from "./client";
 import { threadPrefixes, threads } from "./schema";

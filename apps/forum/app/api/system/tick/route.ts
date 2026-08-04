@@ -8,8 +8,8 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
 
-import { env, logger, withRequestContext } from '@forum/core'
-import { tick } from '@forum/tasks'
+import { env, logger, withRequestContext } from '@meith/core'
+import { tick } from '@meith/tasks'
 
 import { getContainer } from '@/server/container'
 

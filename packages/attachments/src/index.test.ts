@@ -1,4 +1,4 @@
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import {

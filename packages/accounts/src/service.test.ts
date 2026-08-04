@@ -3,7 +3,7 @@
  * store with an injected clock, so lockout windows and token expiry are tested
  * deterministically without sleeping or a database.
  */
-import { ForbiddenError, ValidationError } from '@forum/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { argon2id } from 'hash-wasm'
 import { beforeEach, describe, expect, it } from 'vitest'
 

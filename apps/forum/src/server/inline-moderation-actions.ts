@@ -24,8 +24,8 @@
  */
 import { redirect } from 'next/navigation'
 
-import { hasAnyModeratorRight, type Action, type Actor } from '@forum/authorization'
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
+import { hasAnyModeratorRight, type Action, type Actor } from '@meith/authorization'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
 import {
   INLINE_TOOL_ACTIONS,
   InlineModeration,
@@ -34,7 +34,7 @@ import {
   type InlineOutcome,
   type InlineRights,
   type InlineTool,
-} from '@forum/moderation'
+} from '@meith/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'

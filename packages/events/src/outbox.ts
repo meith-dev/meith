@@ -11,7 +11,7 @@ import type { DomainEvent, DomainEventName, OutboxRecord } from './types'
  * The subset of a database handle the emitter needs.
  *
  * Deliberately structural rather than importing drizzle's transaction type:
- * `@forum/events` is a domain package and R2 forbids it depending on @forum/db.
+ * `@meith/events` is a domain package and R2 forbids it depending on @meith/db.
  * The app layer passes its real transaction in; the fixture passes an array-backed
  * stand-in. Both satisfy this.
  */

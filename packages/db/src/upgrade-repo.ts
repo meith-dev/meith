@@ -1,7 +1,7 @@
 /**
  * F84 — the upgrade's reads and its two writes.
  *
- * Everything that *decides* is in `@forum/upgrade` and tested without a
+ * Everything that *decides* is in `@meith/upgrade` and tested without a
  * database. This is the part that cannot be.
  */
 

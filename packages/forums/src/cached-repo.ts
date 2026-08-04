@@ -14,7 +14,7 @@
  * who is asking. The moment a caller wants a viewer-filtered tree, it must
  * filter the cached global result per request — never cache the filtered one.
  */
-import { CacheTags, cachedGlobal, type CacheDriver } from '@forum/core'
+import { CacheTags, cachedGlobal, type CacheDriver } from '@meith/core'
 
 import type { ForumRepository } from './ports'
 import type {

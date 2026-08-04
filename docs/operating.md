@@ -19,7 +19,7 @@ and is not going to.
 ### The short version
 
 ```sh
-npx create-forum my-board
+npx create-meith my-board
 cd my-board
 npm install
 cp .env.example .env.local     # fill in DATABASE_URL and AUTH_SECRET

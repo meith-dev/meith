@@ -1,12 +1,12 @@
 /**
  * F24 on real Postgres.
  *
- * `evaluatePromotions` is unit-tested in `@forum/groups`, which proves the
+ * `evaluatePromotions` is unit-tested in `@meith/groups`, which proves the
  * rules and the safety guards. What needs a database is the run: that a dry run
  * writes nothing, that a real run is idempotent, and that paging a set the run
  * is *mutating* does not skip anybody.
  */
-import { PromotionService, type PromotionGuards } from '@forum/groups'
+import { PromotionService, type PromotionGuards } from '@meith/groups'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 

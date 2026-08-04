@@ -1,4 +1,4 @@
-import type { PostActionsSlotModel } from '@forum/theme-kit'
+import type { PostActionsSlotModel } from '@meith/theme-kit'
 
 /**
  * Per-post controls, as a row of plain links.

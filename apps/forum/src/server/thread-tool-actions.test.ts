@@ -1,7 +1,7 @@
 /**
  * F50 at the app layer.
  *
- * The tool rules are unit-tested in `@forum/moderation` and the counters
+ * The tool rules are unit-tested in `@meith/moderation` and the counters
  * against real Postgres. What is proven here is the seam neither can see: that
  * this actor's rights are resolved *per forum, for this request* — including a
  * second resolution for a move's destination — and that a moderator of one
@@ -14,9 +14,9 @@ import {
   InMemoryAuthorizationSource,
   combinePermissionSets,
   type MemoryAppointment,
-} from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
-import type { MoveDestination, ThreadToolTarget, ThreadToolsRepository } from '@forum/moderation'
+} from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
+import type { MoveDestination, ThreadToolTarget, ThreadToolsRepository } from '@meith/moderation'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

@@ -22,7 +22,7 @@
  */
 import { sql, type SQL } from 'drizzle-orm'
 
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import type { Database } from './client'
 import { withPermissionVersionBump } from './permission-version'
@@ -102,7 +102,7 @@ export function likeFragment(value: string): string {
   return value.replace(/[\\%_]/g, (character) => `\\${character}`)
 }
 
-/** Case-folded the same way `@forum/accounts` folds identifiers. */
+/** Case-folded the same way `@meith/accounts` folds identifiers. */
 function fold(value: string): string {
   return value.trim().toLowerCase()
 }

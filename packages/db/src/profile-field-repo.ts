@@ -3,7 +3,7 @@
  *
  * Three tables, and the reads are deliberately unfiltered: `listFields` and
  * `listGroupRules` return everything, and the *resolution* happens in
- * `@forum/profile-fields` over rows the Authorizer has already narrowed to this
+ * `@meith/profile-fields` over rows the Authorizer has already narrowed to this
  * actor's groups.
  *
  * That split is not laziness about SQL. Filtering visibility in the query would
@@ -27,7 +27,7 @@ import {
   type ProfileFieldRepository,
   type ProfileFieldValue,
   type FieldType,
-} from '@forum/profile-fields'
+} from '@meith/profile-fields'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

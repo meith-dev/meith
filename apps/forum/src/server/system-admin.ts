@@ -10,12 +10,12 @@ import 'server-only'
  * happen, and the board looks entirely normal until somebody notices a ban that
  * should have expired weeks ago.
  *
- * The verdict comes from `@forum/tasks`, not from here: how late is too late is
+ * The verdict comes from `@meith/tasks`, not from here: how late is too late is
  * a domain judgement, and the screen, the CLI and any future alerting have to
  * agree.
  */
-import { ForbiddenError } from '@forum/core'
-import { assessScheduler, type SchedulerHealth } from '@forum/tasks'
+import { ForbiddenError } from '@meith/core'
+import { assessScheduler, type SchedulerHealth } from '@meith/tasks'
 import {
   PostgresCounterRecount,
   PostgresMaintenanceRepository,
@@ -25,7 +25,7 @@ import {
   type BoardVolumes,
   type RecountStateRow,
   type TaskRunRow,
-} from '@forum/db'
+} from '@meith/db'
 
 import { getContainer } from './container'
 

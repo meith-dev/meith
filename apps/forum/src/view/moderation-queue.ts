@@ -1,8 +1,8 @@
 /** F48's pure queue view model. No container, no request, no clock. */
-import type { QueueItem } from '@forum/moderation'
+import type { QueueItem } from '@meith/moderation'
 
 import { formatTime } from './time'
-import type { TimeModel } from '@forum/theme-kit'
+import type { TimeModel } from '@meith/theme-kit'
 
 export interface QueueRowModel {
   /** The checkbox value: `kind:id`, parsed back by `parseSelection`. */

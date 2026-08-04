@@ -103,7 +103,7 @@ export function globalCacheKey(parts: readonly (string | number)[]): string {
  * Read-through cache for **global** data (F10).
  *
  * The driver is passed in rather than resolved from a module-level singleton:
- * `@forum/core` must not reach for infrastructure, and an explicit parameter is
+ * `@meith/core` must not reach for infrastructure, and an explicit parameter is
  * what lets a test hand this a `MemoryCache` and assert the load function ran
  * exactly once.
  *

@@ -1,4 +1,4 @@
-import type { PostBitSlotModel } from '@forum/theme-kit'
+import type { PostBitSlotModel } from '@meith/theme-kit'
 
 /**
  * The state banner (F41).
@@ -148,7 +148,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
         </div>
       )}
       {/*
-        F58's signature. Trusted HTML from `@forum/bbcode`, rendered with the
+        F58's signature. Trusted HTML from `@meith/bbcode`, rendered with the
         narrower signature registry — the app resolves it, and a hidden post
         (F61) carries none.
       */}

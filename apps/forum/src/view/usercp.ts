@@ -1,7 +1,7 @@
 /** F57's pure UserCP view models. */
-import type { MemberSettings } from '@forum/accounts'
-import { maxLengthFor, type ResolvedProfileField } from '@forum/profile-fields'
-import type { LinkModel } from '@forum/theme-kit'
+import type { MemberSettings } from '@meith/accounts'
+import { maxLengthFor, type ResolvedProfileField } from '@meith/profile-fields'
+import type { LinkModel } from '@meith/theme-kit'
 
 /**
  * The zones the options screen offers.

@@ -9,7 +9,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import type { StoredSignature } from '@forum/signatures'
+import type { StoredSignature } from '@meith/signatures'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

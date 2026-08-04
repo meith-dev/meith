@@ -2,7 +2,7 @@
  * F59 — custom profile fields against real Postgres.
  *
  * Four things can only be proved here, and each is a claim about SQL rather
- * than about resolution (which `@forum/profile-fields` tests without a
+ * than about resolution (which `@meith/profile-fields` tests without a
  * database):
  *
  *  - an emptied field **deletes its row** rather than storing `''`, so no read

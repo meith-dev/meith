@@ -34,7 +34,7 @@
  */
 import { createHmac } from 'node:crypto'
 
-import { timingSafeEqualString } from '@forum/core'
+import { timingSafeEqualString } from '@meith/core'
 
 import type { SubscriptionTarget } from './modes'
 

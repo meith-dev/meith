@@ -1,4 +1,4 @@
-import type { CategoryBlockModel } from '@forum/theme-kit'
+import type { CategoryBlockModel } from '@meith/theme-kit'
 
 /**
  * One category and its forums (F29).

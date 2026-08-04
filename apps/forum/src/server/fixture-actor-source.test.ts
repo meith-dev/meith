@@ -6,7 +6,7 @@
  * their primary group with permissions combined through the shared
  * `combinePermissionSets`, and null for a user that does not exist.
  */
-import { IdentityService, createMemoryStore, type AccountStore } from '@forum/accounts'
+import { IdentityService, createMemoryStore, type AccountStore } from '@meith/accounts'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { AUTH_CONFIG } from './auth-config'

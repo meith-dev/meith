@@ -24,7 +24,7 @@ import type {
   MessageRepository,
   MessageRole,
   PrivateMessage,
-} from '@forum/messages'
+} from '@meith/messages'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

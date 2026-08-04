@@ -1,8 +1,8 @@
-import { requireSlot, type OptionModel, type SearchFormModel } from '@forum/theme-kit'
+import { requireSlot, type OptionModel, type SearchFormModel } from '@meith/theme-kit'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
-import { MAX_QUERY_LENGTH } from '@forum/search'
+import { MAX_QUERY_LENGTH } from '@meith/search'
 
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'

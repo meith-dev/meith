@@ -11,7 +11,7 @@
  * has that screen a denial-of-service at minimum, via a pattern that
  * backtracks catastrophically.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import { foldIdentifier } from './case-fold'
 

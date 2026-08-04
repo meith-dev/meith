@@ -7,7 +7,7 @@
  * round trip, and that a group deleted mid-ban does not take the whole restore
  * down with it.
  */
-import { BanService } from '@forum/accounts'
+import { BanService } from '@meith/accounts'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 

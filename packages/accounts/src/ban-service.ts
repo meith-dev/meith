@@ -8,7 +8,7 @@
  * job — so the group they held is captured at ban time and is the only thing
  * ever restored.
  */
-import { ForbiddenError, ValidationError } from '@forum/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 
 import type { BanRecord, BanRepository, Clock } from './ports'
 

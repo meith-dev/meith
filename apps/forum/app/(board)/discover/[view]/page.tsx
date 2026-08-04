@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { isAppError } from '@forum/core'
+import { isAppError } from '@meith/core'
 
 import { getActor } from '@/server/context'
 import {

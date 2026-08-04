@@ -15,7 +15,7 @@
  * pair as missing, which is accurate.
  */
 
-import { defineTheme } from '@forum/theme-kit'
+import { defineTheme } from '@meith/theme-kit'
 
 import { BoardIndex } from './slots/board-index'
 import { BoardStats } from './slots/board-stats'

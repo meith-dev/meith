@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { avatarUrl } from '@forum/avatars'
-import { requireSlot } from '@forum/theme-kit'
+import { avatarUrl } from '@meith/avatars'
+import { requireSlot } from '@meith/theme-kit'
 
 import { AvatarForm } from '@/components/account/avatar-form'
 import { avatarFor, canUploadAvatar } from '@/server/avatars'

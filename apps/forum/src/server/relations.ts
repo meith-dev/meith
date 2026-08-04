@@ -8,13 +8,13 @@ import 'server-only'
  * mid-render. Without the cache a fifteen-post page would ask fifteen times.
  *
  * The other thing here is where "is this person staff" is answered — through
- * the Authorizer, because `@forum/relations` has no idea what a group is (F20).
+ * the Authorizer, because `@meith/relations` has no idea what a group is (F20).
  * It is asked only when somebody is about to be *ignored*, so an ordinary page
  * render never pays for it.
  */
 import { cache } from 'react'
 
-import { RelationService } from '@forum/relations'
+import { RelationService } from '@meith/relations'
 
 import { getContainer } from './container'
 import { getActor } from './context'

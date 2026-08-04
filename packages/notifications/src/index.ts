@@ -1,5 +1,5 @@
 /**
- * `@forum/notifications` — F55.
+ * `@meith/notifications` — F55.
  *
  * The board's one answer to "somebody needs to be told something". Everything
  * that notifies goes through `NotificationService`: it writes the on-site
@@ -7,7 +7,7 @@
  * and — when it is — emits the outbox row that becomes a queued mail job.
  *
  * A domain package in the R2 sense: interfaces in, no SQL, no Next, no driver
- * implementations. The `MailDriver` it touches is the *port* from `@forum/core`.
+ * implementations. The `MailDriver` it touches is the *port* from `@meith/core`.
  */
 export {
   NOTIFICATION_KINDS,

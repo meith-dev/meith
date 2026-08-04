@@ -1,6 +1,6 @@
 /** F63's pure admin-log view models. */
-import type { AdminLogRow } from '@forum/admin'
-import type { TimeModel } from '@forum/theme-kit'
+import type { AdminLogRow } from '@meith/admin'
+import type { TimeModel } from '@meith/theme-kit'
 
 import { formatTime } from './time'
 

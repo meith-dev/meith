@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { DARK_TOKENS, LIGHT_TOKENS } from '@forum/theme-default'
+import { DARK_TOKENS, LIGHT_TOKENS } from '@meith/theme-default'
 
 import {
   colorToHex,
@@ -79,8 +79,8 @@ describe('theme runtime style', () => {
       light: '#102030',
       dark: '#102030',
     })
-    expect(colorToHex(LIGHT_TOKENS.background)).toBe('#f6f7f8')
-    expect(colorToHex(DARK_TOKENS.background)).toBe('#121417')
+    expect(colorToHex(LIGHT_TOKENS.background)).toBe('#eef0e8')
+    expect(colorToHex(DARK_TOKENS.background)).toBe('#1a1a18')
   })
 
   it('rejects stylesheet escapes and external fetches in custom CSS', () => {

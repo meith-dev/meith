@@ -1,10 +1,10 @@
 /**
  * The numbers, with **no imports at all**.
  *
- * Exactly `@forum/attachments/limits`'s reason: the avatar form is a client
+ * Exactly `@meith/attachments/limits`'s reason: the avatar form is a client
  * component and needs these to say "up to 2 MB, scaled to 200×200". Reaching
  * them through the package barrel pulls the service in, which pulls
- * `@forum/core` in, which pulls `node:async_hooks` into a browser bundle — a
+ * `@meith/core` in, which pulls `node:async_hooks` into a browser bundle — a
  * build error, and the right one. A leaf module lets both sides share the
  * numbers without sharing a dependency graph.
  */

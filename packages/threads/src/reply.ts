@@ -11,7 +11,7 @@
  * presentation, decided before the author typed anything, and nothing the
  * domain needs to know about.
  */
-import { RateLimitedError, ValidationError } from '@forum/core'
+import { RateLimitedError, ValidationError } from '@meith/core'
 
 import {
   MESSAGE_MIN,

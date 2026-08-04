@@ -1,4 +1,4 @@
-import type { ThreadRowSlotModel } from "@forum/theme-kit";
+import type { ThreadRowSlotModel } from "@meith/theme-kit";
 
 export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
   return (

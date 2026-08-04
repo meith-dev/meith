@@ -14,7 +14,7 @@ import 'server-only'
  * same reason. Same rule as the scheduler in fixture mode (D32): refuse rather
  * than fake.
  */
-import { ConfigurationError } from '@forum/core'
+import { ConfigurationError } from '@meith/core'
 import type {
   ForumListingRow,
   ForumRepository,
@@ -22,7 +22,7 @@ import type {
   MovePlan,
   MoveTarget,
   NewForum,
-} from '@forum/forums'
+} from '@meith/forums'
 
 import { SEED_FORUM_ROWS } from './seed-board'
 

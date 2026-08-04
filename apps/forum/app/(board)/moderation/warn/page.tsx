@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { WarningService } from '@forum/moderation'
-import { requireSlot } from '@forum/theme-kit'
+import { WarningService } from '@meith/moderation'
+import { requireSlot } from '@meith/theme-kit'
 
 import {
   IssueWarningForm,

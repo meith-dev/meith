@@ -6,8 +6,8 @@ import {
   matchRoute,
   rateLimitHeaders,
   type RouteSpec,
-} from '@forum/api'
-import { currentRequestId } from '@forum/core/logger'
+} from '@meith/api'
+import { currentRequestId } from '@meith/core/logger'
 import type { NextRequest } from 'next/server'
 
 import { apiActor, apiToken } from '@/server/api-auth'

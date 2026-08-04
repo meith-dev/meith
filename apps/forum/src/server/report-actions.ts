@@ -11,8 +11,8 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { ReportService, parseTargetKind } from '@forum/moderation'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ReportService, parseTargetKind } from '@meith/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'

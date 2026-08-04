@@ -51,7 +51,7 @@ describe('the hook registry', () => {
    * filter.
    */
   it('mirrors every stable theme slot with a view hook', async () => {
-    const { SLOT_NAMES, SLOT_STABILITY } = await import('@forum/theme-kit')
+    const { SLOT_NAMES, SLOT_STABILITY } = await import('@meith/theme-kit')
 
     const kebab = (slot: string): string =>
       `view.${slot.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`

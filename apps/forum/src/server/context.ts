@@ -19,8 +19,8 @@ import 'server-only'
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 
-import type { Actor } from '@forum/authorization'
-import { env } from '@forum/core'
+import type { Actor } from '@meith/authorization'
+import { env } from '@meith/core'
 
 import { getContainer } from './container'
 import { sessionCookieName } from './cookies'

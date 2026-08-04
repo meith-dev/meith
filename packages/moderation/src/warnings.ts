@@ -23,7 +23,7 @@
  * level.** That is what makes revocation actually lift a restriction, rather
  * than lowering a number while the suspension stays where it was.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 /** What a level does when a member reaches it. */
 export type WarningAction = 'suspend_posting' | 'moderate_posting' | 'ban'
@@ -271,7 +271,7 @@ export class WarningService {
    *
    * `mayWarn` is the caller's already-resolved answer, for the reason every
    * command in this package takes booleans: group and matrix reasoning does not
-   * leave `@forum/authorization` (R4).
+   * leave `@meith/authorization` (R4).
    */
   async issue(input: {
     readonly userId: number

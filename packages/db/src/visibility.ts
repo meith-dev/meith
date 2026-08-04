@@ -18,7 +18,7 @@
 import { sql, type SQL } from 'drizzle-orm'
 import type { PgColumn } from 'drizzle-orm/pg-core'
 
-import type { ContentScope } from '@forum/core'
+import type { ContentScope } from '@meith/core'
 
 /**
  * `column in (<the states this actor may see>)`.

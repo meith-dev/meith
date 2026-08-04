@@ -29,14 +29,14 @@ import {
   keepVisibleSubtrees,
   type ForumListingRow,
   type ForumNode,
-} from '@forum/forums'
+} from '@meith/forums'
 import type {
   BoardIndexModel,
   CategoryBlockModel,
   ForumRowModel,
   LastPostModel,
   LinkModel,
-} from '@forum/theme-kit'
+} from '@meith/theme-kit'
 
 import { formatTime } from './time'
 import { memberHref } from './member-profile'
@@ -158,7 +158,7 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
    * Whole subtrees, not rows. `buildTree` promotes orphans to roots (D22), so
    * filtering row-by-row would surface a hidden parent's visible children as
    * top-level blocks — see this file's header for why that is a leak. The rule
-   * moved to `@forum/forums` when the jump box (F27) became its second caller.
+   * moved to `@meith/forums` when the jump box (F27) became its second caller.
    */
   const tree = buildTree(keepVisibleSubtrees(input.rows, (row) => input.visibleForumIds.has(row.id)))
 

@@ -14,9 +14,9 @@
  */
 import { eq, inArray } from 'drizzle-orm'
 
-import { combinePermissionSets } from '@forum/authorization'
-import type { Actor, ActorSource, ActorState } from '@forum/authorization'
-import { emptyPermissionSet } from '@forum/core'
+import { combinePermissionSets } from '@meith/authorization'
+import type { Actor, ActorSource, ActorState } from '@meith/authorization'
+import { emptyPermissionSet } from '@meith/core'
 
 import type { Database } from './client'
 import { groupRowToPermissionSet } from './permissions-map'

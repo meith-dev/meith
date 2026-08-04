@@ -1,4 +1,4 @@
-import type { PostActionsSlotModel } from '@forum/theme-kit'
+import type { PostActionsSlotModel } from '@meith/theme-kit'
 
 export function PostActions({ actions }: PostActionsSlotModel) {
   if (Object.values(actions).every((href) => href === null)) return null

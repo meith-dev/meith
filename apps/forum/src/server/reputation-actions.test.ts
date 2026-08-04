@@ -1,7 +1,7 @@
 /**
  * F62 at the app layer.
  *
- * The rules are unit-tested in `@forum/reputation` and the SQL against real
+ * The rules are unit-tested in `@meith/reputation` and the SQL against real
  * Postgres. What is proven here is the seam neither can see:
  *
  *  - the rater is the *session's* member, never the form's;
@@ -13,13 +13,13 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
 import type {
   ReputationRepository,
   ReputationRow,
   ReputationSummary,
-} from '@forum/reputation'
+} from '@meith/reputation'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

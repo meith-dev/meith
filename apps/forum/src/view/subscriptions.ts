@@ -1,7 +1,7 @@
 /** F56's pure subscription view models. */
-import type { TimeModel } from '@forum/theme-kit'
-import type { SubscriptionMode, SubscriptionRow } from '@forum/subscriptions'
-import { MODE_LABELS, SUBSCRIPTION_MODES } from '@forum/subscriptions'
+import type { TimeModel } from '@meith/theme-kit'
+import type { SubscriptionMode, SubscriptionRow } from '@meith/subscriptions'
+import { MODE_LABELS, SUBSCRIPTION_MODES } from '@meith/subscriptions'
 
 import { formatTime } from './time'
 

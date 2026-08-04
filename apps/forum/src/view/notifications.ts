@@ -1,6 +1,6 @@
 /** F55's pure notification view models. */
-import type { TimeModel } from '@forum/theme-kit'
-import type { NotificationPreferenceView, NotificationView } from '@forum/notifications'
+import type { TimeModel } from '@meith/theme-kit'
+import type { NotificationPreferenceView, NotificationView } from '@meith/notifications'
 
 import { formatTime } from './time'
 

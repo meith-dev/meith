@@ -1,7 +1,7 @@
 /**
  * F39 at the app layer — the Server Action.
  *
- * The posting rules are unit-tested in `@forum/threads` and the SQL against
+ * The posting rules are unit-tested in `@meith/threads` and the SQL against
  * real Postgres. What is proven here is the adapter tier neither can see: that
  * the action re-authorises for itself, that it reads a native `FormData` submit
  * (which is exactly what a no-JS form sends), and that it redirects where it
@@ -16,14 +16,14 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import {
   InMemoryAuthorizationSource,
   combinePermissionSets,
-} from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
+} from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
 import type {
   PostEditRecord,
   PostEditTarget,
   PostVisibilityRecord,
   PostWriteRepository,
-} from '@forum/posts'
+} from '@meith/posts'
 import type {
   CreatedThread,
   ForumPostingTarget,
@@ -32,7 +32,7 @@ import type {
   ReplyTarget,
   ReplyWriteRepository,
   ThreadWriteRepository,
-} from '@forum/threads'
+} from '@meith/threads'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

@@ -1,5 +1,5 @@
 /**
- * `@forum/install` — the one-time installer's decisions (F83).
+ * `@meith/install` — the one-time installer's decisions (F83).
  *
  * Preflight, the step list, and the form schema. No Next, no SQL, and no direct
  * environment reads: the app gathers facts and performs writes, and this package

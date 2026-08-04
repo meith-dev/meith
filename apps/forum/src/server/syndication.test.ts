@@ -37,7 +37,7 @@ vi.mock('./container', () => ({
 }))
 vi.mock('./context', () => ({ getActor: async () => ({ userId: 42, tag: 'member' }) }))
 vi.mock('./settings', () => ({ getSettings: async () => ({ get: () => false }) }))
-vi.mock('@forum/db', () => ({ getDb: () => ({}), PostgresFeedRepository: class {} }))
+vi.mock('@meith/db', () => ({ getDb: () => ({}), PostgresFeedRepository: class {} }))
 
 const { absolute, origin, publicScope } = await import('./syndication')
 

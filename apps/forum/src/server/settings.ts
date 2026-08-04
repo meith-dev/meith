@@ -15,11 +15,11 @@ import 'server-only'
  * out of process, which is why the entry also carries a short TTL rather than
  * relying on invalidation alone.
  */
-import { CacheTags, cachedGlobal, env } from '@forum/core'
+import { CacheTags, cachedGlobal, env } from '@meith/core'
 /* Statically imported; see `theme-runtime.ts` and `container.ts` for why. */
-import { PostgresSettingsRepository, getDb } from '@forum/db'
-import { drivers } from '@forum/drivers'
-import { SettingsSnapshot } from '@forum/settings'
+import { PostgresSettingsRepository, getDb } from '@meith/db'
+import { drivers } from '@meith/drivers'
+import { SettingsSnapshot } from '@meith/settings'
 
 /**
  * A CLI `settings:set` runs in another process and cannot invalidate this

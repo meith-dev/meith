@@ -1,5 +1,5 @@
 /**
- * `@forum/relations` — F61.
+ * `@meith/relations` — F61.
  *
  * Buddy and ignore lists: one table, one ordered pair per row, and a `kind`
  * that makes the two mutually exclusive by construction.

@@ -3,13 +3,13 @@ import 'server-only'
 /**
  * The fixture-mode `ActorSource` (Checkpoint 1 parity, no database).
  *
- * `ActorBuilder` in `@forum/db` is the production implementation, but it reads
+ * `ActorBuilder` in `@meith/db` is the production implementation, but it reads
  * Drizzle. When `DATA_SOURCE=fixture` there is no database, yet register/login/
  * reset must still work end-to-end in the preview — the user explicitly wants
  * full fixture parity. So this builds the exact same `Actor` shape from two
  * in-memory sources the composition root already owns:
  *
- *  - the account row (state, primary group) from the `@forum/accounts`
+ *  - the account row (state, primary group) from the `@meith/accounts`
  *    in-memory store, and
  *  - the group permission defaults from `SEED_BOARD` (the same board the
  *    fixture authorization source uses), combined with the very same
@@ -25,9 +25,9 @@ import {
   type ActorSource,
   type ActorState,
   type GroupDefaults,
-} from '@forum/authorization'
-import type { AccountStore } from '@forum/accounts'
-import { emptyPermissionSet } from '@forum/core'
+} from '@meith/authorization'
+import type { AccountStore } from '@meith/accounts'
+import { emptyPermissionSet } from '@meith/core'
 
 import { SEED_BOARD, SEED_GROUP } from './seed-board'
 
@@ -64,7 +64,7 @@ export class FixtureActorSource implements ActorSource {
     // A fixture account has only its primary group (the in-memory store models
     // no secondary memberships), and it always has one because register() lands
     // every new member in defaultMemberGroupId.
-    // eslint-disable-next-line no-restricted-properties -- F20: reading the user's own primary group to assemble the actor's group ladder, exactly as ActorBuilder does in @forum/db
+    // eslint-disable-next-line no-restricted-properties -- F20: reading the user's own primary group to assemble the actor's group ladder, exactly as ActorBuilder does in @meith/db
     const primaryGroupId = account.primaryGroupId ?? SEED_GROUP.registered
     const groupIds = [primaryGroupId]
 

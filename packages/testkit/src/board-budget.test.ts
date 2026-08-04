@@ -1,15 +1,15 @@
 /**
  * The query budget applied to real repository code, on a seeded board.
  *
- * This lives in the testkit rather than in `@forum/db` to keep the dependency
+ * This lives in the testkit rather than in `@meith/db` to keep the dependency
  * pointing one way: the testkit imports the database package, never the
  * reverse. It is also the proof that the helper is worth having — an assertion
  * that has only ever been run against a hand-built three-row fixture proves
  * nothing about a board with a real tree in it.
  */
-import { PostgresForumRepository, schema } from '@forum/db'
-import { createTestDb, type TestDb } from '@forum/db/pglite.fixture'
-import { buildTree, flattenTree } from '@forum/forums'
+import { PostgresForumRepository, schema } from '@meith/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
+import { buildTree, flattenTree } from '@meith/forums'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { expectQueryBudget, measureQueries } from './query-budget'

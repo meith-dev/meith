@@ -8,7 +8,7 @@ import 'server-only'
  * along with the permissions around it. It belongs where the page and the three
  * actions can share it without it becoming a fourth route nobody meant to open.
  */
-import type { EditCapabilities, PostWriteRepository } from '@forum/posts'
+import type { EditCapabilities, PostWriteRepository } from '@meith/posts'
 
 import { getActor } from './context'
 import { getContainer } from './container'

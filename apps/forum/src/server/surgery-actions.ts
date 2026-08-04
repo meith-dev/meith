@@ -14,8 +14,8 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { ThreadSurgery, parseSelection, type SurgeryRights } from '@forum/moderation'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ThreadSurgery, parseSelection, type SurgeryRights } from '@meith/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'

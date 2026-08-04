@@ -24,7 +24,7 @@ import type {
   SurgeryOutcome,
   SurgeryThread,
   ThreadSurgeryRepository,
-} from '@forum/moderation'
+} from '@meith/moderation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -335,7 +335,7 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
 /**
  * The slug for a split-off thread.
  *
- * Deliberately the same shape `@forum/threads` produces for a new thread, but
+ * Deliberately the same shape `@meith/threads` produces for a new thread, but
  * *not* imported from it: this package writes SQL and that one owns posting
  * rules, and a dependency from here to there would put the two in a cycle the
  * next time a posting rule needs a repository.

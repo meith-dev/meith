@@ -50,7 +50,7 @@ VALUES (2, 'registered', 'Registered', 'Members with an activated account.', 10,
 
 -- Administrators bypass forum permissions entirely (R4.2), so the forum-scoped
 -- grants here are belt-and-braces: what actually matters is `is_administrator`.
--- The bypass is explicit and logged in @forum/authorization, never emergent.
+-- The bypass is explicit and logged in @meith/authorization, never emergent.
 INSERT INTO "usergroups" ("id", "key", "title", "description", "display_order", "is_system", "is_staff_group", "badge_token",
   "can_view", "can_view_threads", "can_view_others_threads", "can_search",
   "can_post_threads", "can_post_replies", "can_post_polls", "can_vote_polls", "can_rate_threads",

@@ -1,4 +1,4 @@
-import type { ForumDisplayModel } from "@forum/theme-kit";
+import type { ForumDisplayModel } from "@meith/theme-kit";
 
 /** Forum title plus regions composed by the route (F30). */
 export function ForumDisplay({

@@ -1,4 +1,4 @@
-import { HOOKS, PluginHost, REGION_NAMES, type HookName } from '@forum/plugin-kit'
+import { HOOKS, PluginHost, REGION_NAMES, type HookName } from '@meith/plugin-kit'
 import { describe, expect, it } from 'vitest'
 
 import { MARK, RECORDED, referencePlugin, resetRecorder } from './plugin'

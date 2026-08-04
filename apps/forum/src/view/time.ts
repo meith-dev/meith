@@ -35,7 +35,7 @@
  * midnight boundary something a test can actually sit on.
  */
 
-import type { TimeModel } from '@forum/theme-kit'
+import type { TimeModel } from '@meith/theme-kit'
 
 const MONTHS = [
   'Jan',

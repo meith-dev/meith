@@ -1,7 +1,7 @@
 /**
  * F66's writes, at the app layer.
  *
- * The SQL is proven against real Postgres in `@forum/db`; what is proven here
+ * The SQL is proven against real Postgres in `@meith/db`; what is proven here
  * is what only this adapter can get wrong.
  *
  * Three things, and the first is the reason the permission editor is checkboxes
@@ -18,7 +18,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { PERMISSION_FIELDS } from '@forum/core'
+import { PERMISSION_FIELDS } from '@meith/core'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ userId: 1 }))
@@ -32,7 +32,7 @@ vi.mock('./admin', () => ({
 }))
 
 const invalidated: string[][] = []
-vi.mock('@forum/drivers', () => ({
+vi.mock('@meith/drivers', () => ({
   drivers: () => ({
     cache: {
       async invalidateTags(tags: string[]) {

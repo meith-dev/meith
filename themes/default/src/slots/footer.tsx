@@ -1,4 +1,4 @@
-import type { FooterModel } from '@forum/theme-kit'
+import type { FooterModel } from '@meith/theme-kit'
 
 /**
  * The board footer (F25/F27).

@@ -12,14 +12,14 @@ import 'server-only'
  * takes four lines at each of thirty places gets skipped at the thirty-first,
  * and a hook nobody fires is indistinguishable from a hook that does not exist.
  */
-import type { Actor } from '@forum/authorization'
+import type { Actor } from '@meith/authorization'
 import {
   type HookContext,
   type HookName,
   type HookValue,
   type PluginRegion,
   type PluginRegionContext,
-} from '@forum/plugin-kit'
+} from '@meith/plugin-kit'
 import { Fragment } from 'react'
 
 import { pluginHost } from './plugin-host'

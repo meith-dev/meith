@@ -13,8 +13,8 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { ModerationQueue, parseSelection } from '@forum/moderation'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { ModerationQueue, parseSelection } from '@meith/moderation'
 
 import { avatarService } from './avatars'
 import { getActor } from './context'

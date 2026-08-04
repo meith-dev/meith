@@ -1,5 +1,5 @@
 /**
- * `@forum/admin` — F63.
+ * `@meith/admin` — F63.
  *
  * The control panel's own front door: a second session, an optional address
  * allowlist, a re-authentication clock, and the shape of an audit row.
@@ -12,10 +12,10 @@
  *
  * A domain package in the R2 sense: interfaces in, no SQL, no Next. It does not
  * know what a group is either — whether somebody may reach the ACP at all is
- * `admincp.access`, resolved by `@forum/authorization` and handed here as a
+ * `admincp.access`, resolved by `@meith/authorization` and handed here as a
  * boolean (F20).
  */
-import { ForbiddenError, ValidationError } from '@forum/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 
 /**
  * How long an ACP session survives without activity.

@@ -1,5 +1,5 @@
 /**
- * `@forum/api` — the public REST API's domain half (F81).
+ * `@meith/api` — the public REST API's domain half (F81).
  *
  * Tokens, scopes, the route registry, the rate-limit arithmetic, and webhook
  * signing and retry. No Next, no SQL, no `Response`: the app layer owns the

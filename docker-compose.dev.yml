@@ -18,7 +18,7 @@
 #   DATA_SOURCE=postgres
 #   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/forum_test
 #
-# To seed a board's worth of content, `@forum/testkit`'s `seedBoard()` is the
+# To seed a board's worth of content, `@meith/testkit`'s `seedBoard()` is the
 # deterministic seeder the test suite uses — same seed, same board. It writes
 # *rows*, and two things a board needs are not rows, so both have to be built
 # afterwards:

@@ -60,34 +60,34 @@ importers:
 
   apps/cli:
     dependencies:
-      '@forum/accounts':
+      '@meith/accounts':
         specifier: workspace:*
         version: link:../../packages/accounts
-      '@forum/authorization':
+      '@meith/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@forum/db':
+      '@meith/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@forum/drivers':
+      '@meith/drivers':
         specifier: workspace:*
         version: link:../../packages/drivers
-      '@forum/events':
+      '@meith/events':
         specifier: workspace:*
         version: link:../../packages/events
-      '@forum/forums':
+      '@meith/forums':
         specifier: workspace:*
         version: link:../../packages/forums
-      '@forum/profile-fields':
+      '@meith/profile-fields':
         specifier: workspace:*
         version: link:../../packages/profile-fields
-      '@forum/settings':
+      '@meith/settings':
         specifier: workspace:*
         version: link:../../packages/settings
-      '@forum/tasks':
+      '@meith/tasks':
         specifier: workspace:*
         version: link:../../packages/tasks
     devDependencies:
@@ -100,94 +100,94 @@ importers:
       '@base-ui/react':
         specifier: ^1.5.0
         version: 1.5.0(@date-fns/tz@1.4.1)(@types/react@19.2.14)(date-fns@4.1.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@forum/accounts':
+      '@meith/accounts':
         specifier: workspace:*
         version: link:../../packages/accounts
-      '@forum/admin':
+      '@meith/admin':
         specifier: workspace:*
         version: link:../../packages/admin
-      '@forum/api':
+      '@meith/api':
         specifier: workspace:*
         version: link:../../packages/api
-      '@forum/authorization':
+      '@meith/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
-      '@forum/bbcode':
+      '@meith/bbcode':
         specifier: workspace:*
         version: link:../../packages/bbcode
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@forum/db':
+      '@meith/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@forum/drivers':
+      '@meith/drivers':
         specifier: workspace:*
         version: link:../../packages/drivers
-      '@forum/events':
+      '@meith/events':
         specifier: workspace:*
         version: link:../../packages/events
-      '@forum/forums':
+      '@meith/forums':
         specifier: workspace:*
         version: link:../../packages/forums
-      '@forum/groups':
+      '@meith/groups':
         specifier: workspace:*
         version: link:../../packages/groups
-      '@forum/install':
+      '@meith/install':
         specifier: workspace:*
         version: link:../../packages/install
-      '@forum/messages':
+      '@meith/messages':
         specifier: workspace:*
         version: link:../../packages/messages
-      '@forum/moderation':
+      '@meith/moderation':
         specifier: workspace:*
         version: link:../../packages/moderation
-      '@forum/notifications':
+      '@meith/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
-      '@forum/plugin-kit':
+      '@meith/plugin-kit':
         specifier: workspace:*
         version: link:../../packages/plugin-kit
-      '@forum/posts':
+      '@meith/posts':
         specifier: workspace:*
         version: link:../../packages/posts
-      '@forum/profile-fields':
+      '@meith/profile-fields':
         specifier: workspace:*
         version: link:../../packages/profile-fields
-      '@forum/relations':
+      '@meith/relations':
         specifier: workspace:*
         version: link:../../packages/relations
-      '@forum/reputation':
+      '@meith/reputation':
         specifier: workspace:*
         version: link:../../packages/reputation
-      '@forum/runtime':
+      '@meith/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
-      '@forum/settings':
+      '@meith/settings':
         specifier: workspace:*
         version: link:../../packages/settings
-      '@forum/shared':
+      '@meith/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@forum/signatures':
+      '@meith/signatures':
         specifier: workspace:*
         version: link:../../packages/signatures
-      '@forum/tasks':
+      '@meith/tasks':
         specifier: workspace:*
         version: link:../../packages/tasks
-      '@forum/theme-default':
+      '@meith/theme-default':
         specifier: workspace:*
         version: link:../../themes/default
-      '@forum/theme-kit':
+      '@meith/theme-kit':
         specifier: workspace:*
         version: link:../../packages/theme-kit
-      '@forum/theme-midnight':
+      '@meith/theme-midnight':
         specifier: workspace:*
         version: link:../../themes/midnight
-      '@forum/threads':
+      '@meith/threads':
         specifier: workspace:*
         version: link:../../packages/threads
-      '@forum/ui':
+      '@meith/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@vercel/analytics':
@@ -242,19 +242,19 @@ importers:
 
   apps/worker:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@forum/db':
+      '@meith/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@forum/drivers':
+      '@meith/drivers':
         specifier: workspace:*
         version: link:../../packages/drivers
-      '@forum/runtime':
+      '@meith/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
-      '@forum/tasks':
+      '@meith/tasks':
         specifier: workspace:*
         version: link:../../packages/tasks
     devDependencies:
@@ -273,34 +273,34 @@ importers:
 
   packages/admin:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/api:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/attachments:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/authorization:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/avatars:
     dependencies:
-      '@forum/attachments':
+      '@meith/attachments':
         specifier: workspace:*
         version: link:../attachments
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
@@ -315,77 +315,77 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
-  packages/create-forum: {}
+  packages/create-meith: {}
 
   packages/db:
     dependencies:
-      '@forum/accounts':
+      '@meith/accounts':
         specifier: workspace:*
         version: link:../accounts
-      '@forum/admin':
+      '@meith/admin':
         specifier: workspace:*
         version: link:../admin
-      '@forum/api':
+      '@meith/api':
         specifier: workspace:*
         version: link:../api
-      '@forum/attachments':
+      '@meith/attachments':
         specifier: workspace:*
         version: link:../attachments
-      '@forum/authorization':
+      '@meith/authorization':
         specifier: workspace:*
         version: link:../authorization
-      '@forum/avatars':
+      '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
-      '@forum/bbcode':
+      '@meith/bbcode':
         specifier: workspace:*
         version: link:../bbcode
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
-      '@forum/events':
+      '@meith/events':
         specifier: workspace:*
         version: link:../events
-      '@forum/forums':
+      '@meith/forums':
         specifier: workspace:*
         version: link:../forums
-      '@forum/groups':
+      '@meith/groups':
         specifier: workspace:*
         version: link:../groups
-      '@forum/messages':
+      '@meith/messages':
         specifier: workspace:*
         version: link:../messages
-      '@forum/moderation':
+      '@meith/moderation':
         specifier: workspace:*
         version: link:../moderation
-      '@forum/notifications':
+      '@meith/notifications':
         specifier: workspace:*
         version: link:../notifications
-      '@forum/profile-fields':
+      '@meith/profile-fields':
         specifier: workspace:*
         version: link:../profile-fields
-      '@forum/relations':
+      '@meith/relations':
         specifier: workspace:*
         version: link:../relations
-      '@forum/reputation':
+      '@meith/reputation':
         specifier: workspace:*
         version: link:../reputation
-      '@forum/search':
+      '@meith/search':
         specifier: workspace:*
         version: link:../search
-      '@forum/settings':
+      '@meith/settings':
         specifier: workspace:*
         version: link:../settings
-      '@forum/signatures':
+      '@meith/signatures':
         specifier: workspace:*
         version: link:../signatures
-      '@forum/subscriptions':
+      '@meith/subscriptions':
         specifier: workspace:*
         version: link:../subscriptions
-      '@forum/tasks':
+      '@meith/tasks':
         specifier: workspace:*
         version: link:../tasks
-      '@forum/threads':
+      '@meith/threads':
         specifier: workspace:*
         version: link:../threads
       drizzle-orm:
@@ -410,15 +410,6 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 3.1098.0
         version: 3.1098.0
-      '@forum/attachments':
-        specifier: workspace:*
-        version: link:../attachments
-      '@forum/core':
-        specifier: workspace:*
-        version: link:../core
-      '@forum/db':
-        specifier: workspace:*
-        version: link:../db
       '@jsquash/jpeg':
         specifier: ^1.6.0
         version: 1.6.0
@@ -428,6 +419,15 @@ importers:
       '@jsquash/resize':
         specifier: ^2.1.1
         version: 2.1.1
+      '@meith/attachments':
+        specifier: workspace:*
+        version: link:../attachments
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
+      '@meith/db':
+        specifier: workspace:*
+        version: link:../db
       drizzle-orm:
         specifier: ^0.44.7
         version: 0.44.7(@electric-sql/pglite@0.5.4)(mysql2@3.23.2(@types/node@24.10.4))(postgres@3.4.9)
@@ -437,13 +437,13 @@ importers:
 
   packages/events:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/forums:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
@@ -457,7 +457,7 @@ importers:
 
   packages/install:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -466,31 +466,31 @@ importers:
 
   packages/messages:
     dependencies:
-      '@forum/bbcode':
+      '@meith/bbcode':
         specifier: workspace:*
         version: link:../bbcode
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/moderation:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/notifications:
     dependencies:
-      '@forum/bbcode':
+      '@meith/bbcode':
         specifier: workspace:*
         version: link:../bbcode
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/plugin-kit:
     dependencies:
-      '@forum/theme-kit':
+      '@meith/theme-kit':
         specifier: workspace:*
         version: link:../theme-kit
       react:
@@ -503,76 +503,76 @@ importers:
 
   packages/posts:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/profile-fields:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/relations:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/reputation:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/runtime:
     dependencies:
-      '@forum/accounts':
+      '@meith/accounts':
         specifier: workspace:*
         version: link:../accounts
-      '@forum/attachments':
+      '@meith/attachments':
         specifier: workspace:*
         version: link:../attachments
-      '@forum/avatars':
+      '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
-      '@forum/db':
+      '@meith/db':
         specifier: workspace:*
         version: link:../db
-      '@forum/drivers':
+      '@meith/drivers':
         specifier: workspace:*
         version: link:../drivers
-      '@forum/events':
+      '@meith/events':
         specifier: workspace:*
         version: link:../events
-      '@forum/groups':
+      '@meith/groups':
         specifier: workspace:*
         version: link:../groups
-      '@forum/moderation':
+      '@meith/moderation':
         specifier: workspace:*
         version: link:../moderation
-      '@forum/notifications':
+      '@meith/notifications':
         specifier: workspace:*
         version: link:../notifications
-      '@forum/settings':
+      '@meith/settings':
         specifier: workspace:*
         version: link:../settings
-      '@forum/tasks':
+      '@meith/tasks':
         specifier: workspace:*
         version: link:../tasks
 
   packages/search:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/settings:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -587,40 +587,40 @@ importers:
 
   packages/signatures:
     dependencies:
-      '@forum/bbcode':
+      '@meith/bbcode':
         specifier: workspace:*
         version: link:../bbcode
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/subscriptions:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/tasks:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
   packages/testkit:
     dependencies:
-      '@forum/authorization':
+      '@meith/authorization':
         specifier: workspace:*
         version: link:../authorization
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
-      '@forum/db':
+      '@meith/db':
         specifier: workspace:*
         version: link:../db
-      '@forum/drivers':
+      '@meith/drivers':
         specifier: workspace:*
         version: link:../drivers
-      '@forum/forums':
+      '@meith/forums':
         specifier: workspace:*
         version: link:../forums
       drizzle-orm:
@@ -629,7 +629,7 @@ importers:
 
   packages/theme-kit:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
       react:
@@ -642,7 +642,7 @@ importers:
 
   packages/threads:
     dependencies:
-      '@forum/core':
+      '@meith/core':
         specifier: workspace:*
         version: link:../core
 
@@ -678,7 +678,7 @@ importers:
 
   plugins/reference:
     dependencies:
-      '@forum/plugin-kit':
+      '@meith/plugin-kit':
         specifier: workspace:*
         version: link:../../packages/plugin-kit
       react:
@@ -691,7 +691,7 @@ importers:
 
   themes/default:
     dependencies:
-      '@forum/theme-kit':
+      '@meith/theme-kit':
         specifier: workspace:*
         version: link:../../packages/theme-kit
       react:
@@ -704,10 +704,10 @@ importers:
 
   themes/midnight:
     dependencies:
-      '@forum/theme-default':
+      '@meith/theme-default':
         specifier: workspace:*
         version: link:../default
-      '@forum/theme-kit':
+      '@meith/theme-kit':
         specifier: workspace:*
         version: link:../../packages/theme-kit
       react:

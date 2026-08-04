@@ -26,7 +26,7 @@
  * ## Why the theme's slot map arrives as a type parameter (F25)
  *
  * A registered theme now carries its `ThemeDefinition` — the slot map the app
- * resolves and renders. That type lives in `@forum/theme-kit`, and `@forum/core`
+ * resolves and renders. That type lives in `@meith/theme-kit`, and `@meith/core`
  * is the bottom of the stack: `core-depends-on-nothing` in the
  * dependency-cruiser config makes importing a sibling an error, and rightly, or
  * the graph has no floor.
@@ -43,7 +43,7 @@
 /**
  * What the registry knows about a theme.
  *
- * @typeParam TTheme - the theme's slot definition, `@forum/theme-kit`'s
+ * @typeParam TTheme - the theme's slot definition, `@meith/theme-kit`'s
  * `ThemeDefinition` in practice. Inferred; never written by hand.
  */
 export interface InstalledTheme<TTheme = unknown> {
@@ -75,7 +75,7 @@ export interface InstalledTheme<TTheme = unknown> {
  *
  * `plugin` carries the definition, as a **type parameter** for exactly the
  * reason `InstalledTheme.theme` is one: `PluginDefinition` lives in
- * `@forum/plugin-kit`, which imports React, and `core-depends-on-nothing` keeps
+ * `@meith/plugin-kit`, which imports React, and `core-depends-on-nothing` keeps
  * this package importable by the CLI and the worker. Inferred from the config,
  * so no call site ever spells it out.
  *

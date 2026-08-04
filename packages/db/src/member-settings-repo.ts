@@ -6,7 +6,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import type { MemberSettings, MemberSettingsRepository } from '@forum/accounts'
+import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

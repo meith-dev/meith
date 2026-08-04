@@ -19,10 +19,10 @@
  * set does. A task that is genuinely not due is one an operator should be told
  * about — which `task:list` is for.
  */
-import { drivers } from '@forum/drivers'
-import { imageProcessor } from '@forum/drivers/images'
-import { buildSchedulerBundle, type SchedulerBundle } from '@forum/runtime'
-import { tick } from '@forum/tasks'
+import { drivers } from '@meith/drivers'
+import { imageProcessor } from '@meith/drivers/images'
+import { buildSchedulerBundle, type SchedulerBundle } from '@meith/runtime'
+import { tick } from '@meith/tasks'
 
 import { requirePostgres } from './context'
 
@@ -31,7 +31,7 @@ import { requirePostgres } from './context'
  *
  * Built here rather than reached for through the CLI's own `CliContext`: the
  * scheduler needs the queue driver and none of the identity services, and
- * `@forum/runtime` is the one place that knows which implementation backs each
+ * `@meith/runtime` is the one place that knows which implementation backs each
  * task (see that package's header).
  */
 function scheduler(): SchedulerBundle {

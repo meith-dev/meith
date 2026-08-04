@@ -1,6 +1,6 @@
 /** F40 — the reply rules, and the quote prefill. */
 import { describe, expect, it } from 'vitest'
-import { RateLimitedError, ValidationError } from '@forum/core'
+import { RateLimitedError, ValidationError } from '@meith/core'
 
 import {
   ReplyComposer,

@@ -47,8 +47,8 @@ describe('what the scaffold writes', () => {
   it('names the project and pins the dependency versions', () => {
     const manifest = JSON.parse(files.get('package.json')!)
     expect(manifest.name).toBe('my-board')
-    expect(manifest.dependencies['@forum/web']).toBe('1.2.3')
-    expect(manifest.dependencies['@forum/theme-default']).toBe('1.2.3')
+    expect(manifest.dependencies['@meith/web']).toBe('1.2.3')
+    expect(manifest.dependencies['@meith/theme-default']).toBe('1.2.3')
   })
 
   it('gives the project the three scripts an operator needs', () => {
@@ -134,7 +134,7 @@ describe('what the scaffold writes', () => {
 
 describe('the CLI', () => {
   async function inTemp<T>(body: (dir: string) => Promise<T>): Promise<T> {
-    const dir = await mkdtemp(join(tmpdir(), 'create-forum-'))
+    const dir = await mkdtemp(join(tmpdir(), 'create-meith-'))
     const previous = process.cwd()
     process.chdir(dir)
     try {
@@ -147,7 +147,7 @@ describe('the CLI', () => {
   it('prints usage and succeeds for --help', async () => {
     const result = await run(['--help'], '1.0.0')
     expect(result.code).toBe(0)
-    expect(result.lines.join('\n')).toContain('npx create-forum')
+    expect(result.lines.join('\n')).toContain('npx create-meith')
   })
 
   it('fails with a message when the name is missing', async () => {

@@ -26,8 +26,8 @@ import 'server-only'
  * F47's guard has never had a feed to fire on until now, and this is the shape
  * that keeps it quiet for the right reason.
  */
-import { PUBLIC_CONTENT, env } from '@forum/core'
-import { PostgresFeedRepository, getDb, type FeedScope } from '@forum/db'
+import { PUBLIC_CONTENT, env } from '@meith/core'
+import { PostgresFeedRepository, getDb, type FeedScope } from '@meith/db'
 
 import { getContainer } from './container'
 import { getSettings } from './settings'

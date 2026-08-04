@@ -12,7 +12,7 @@
 import { redirect } from "next/navigation"
 import type { NextRequest } from "next/server"
 
-import { logger } from "@forum/core"
+import { logger } from "@meith/core"
 
 import { getContainer } from "@/server/container"
 import {

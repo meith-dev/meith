@@ -20,7 +20,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import type { AvatarRepository, AvatarStatus, StoredAvatar } from '@forum/avatars'
+import type { AvatarRepository, AvatarStatus, StoredAvatar } from '@meith/avatars'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

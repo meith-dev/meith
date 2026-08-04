@@ -1,5 +1,5 @@
 /**
- * @forum/db — the only package that speaks SQL.
+ * @meith/db — the only package that speaks SQL.
  *
  * Domain packages must NOT import this (enforced by .dependency-cruiser.cjs).
  * They declare repository interfaces and receive an implementation, so the same

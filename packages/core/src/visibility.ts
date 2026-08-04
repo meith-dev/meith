@@ -11,10 +11,10 @@
  * So a viewer-facing read never names a visibility state. It is handed a
  * **scope** — the set of states this actor may see here — produced in exactly
  * one place (`Authorizer.contentScope`) and consumed in exactly one place
- * (`@forum/db`'s predicate helper). `pnpm guards` fails the build on any other
+ * (`@meith/db`'s predicate helper). `pnpm guards` fails the build on any other
  * mention of the column in a read path.
  *
- * The type lives in `@forum/core` rather than in `@forum/authorization` because
+ * The type lives in `@meith/core` rather than in `@meith/authorization` because
  * it has to be *named* by both the package that decides it and the package that
  * turns it into SQL, and core is the floor both already stand on.
  */

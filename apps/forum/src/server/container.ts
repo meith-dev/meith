@@ -11,7 +11,7 @@ import 'server-only'
  *
  * It lives in `apps/forum/src/server` rather than a package because assembling
  * concrete infrastructure is precisely an application concern — a package doing
- * it would have to import `@forum/db`, which the R2 boundary rules forbid for
+ * it would have to import `@meith/db`, which the R2 boundary rules forbid for
  * everything except the app tier.
  *
  * `server-only` makes a mis-import from a client component a build error rather
@@ -25,18 +25,18 @@ import {
   type AccountStore,
   type MemberProfileRepository,
   type MemberSettingsRepository,
-} from '@forum/accounts'
+} from '@meith/accounts'
 import {
   Authorizer,
   InMemoryAuthorizationSource,
   type ActorSource,
   type AuthorizationSource,
   type BypassEvent,
-} from '@forum/authorization'
-import type { AttachmentRepository } from '@forum/attachments'
-import type { AvatarRepository } from '@forum/avatars'
-import { env, logger } from '@forum/core'
-import { CachedForumRepository, type ForumRepository } from '@forum/forums'
+} from '@meith/authorization'
+import type { AttachmentRepository } from '@meith/attachments'
+import type { AvatarRepository } from '@meith/avatars'
+import { env, logger } from '@meith/core'
+import { CachedForumRepository, type ForumRepository } from '@meith/forums'
 import type {
   InlineModerationRepository,
   ModerationQueueRepository,
@@ -46,24 +46,24 @@ import type {
   ThreadSurgeryRepository,
   WarningBanPort,
   WarningRepository,
-} from '@forum/moderation'
-import type { NotificationRepository } from '@forum/notifications'
-import type { PostRepository, PostWriteRepository } from '@forum/posts'
-import type { MessageRepository } from '@forum/messages'
-import type { RelationRepository } from '@forum/relations'
-import type { AdminLogRepository, AdminSessionRepository } from '@forum/admin'
-import type { ReputationRepository } from '@forum/reputation'
-import type { ProfileFieldRepository } from '@forum/profile-fields'
-import type { SubscriptionRepository } from '@forum/subscriptions'
+} from '@meith/moderation'
+import type { NotificationRepository } from '@meith/notifications'
+import type { PostRepository, PostWriteRepository } from '@meith/posts'
+import type { MessageRepository } from '@meith/messages'
+import type { RelationRepository } from '@meith/relations'
+import type { AdminLogRepository, AdminSessionRepository } from '@meith/admin'
+import type { ReputationRepository } from '@meith/reputation'
+import type { ProfileFieldRepository } from '@meith/profile-fields'
+import type { SubscriptionRepository } from '@meith/subscriptions'
 import type {
   ReadStateRepository,
   ReplyWriteRepository,
   ThreadRepository,
   ThreadWriteRepository,
-} from '@forum/threads'
-import type { TaskDefinition, TaskRepository } from '@forum/tasks'
-import { imageProcessor } from '@forum/drivers/images'
-import { buildSchedulerBundle } from '@forum/runtime'
+} from '@meith/threads'
+import type { TaskDefinition, TaskRepository } from '@meith/tasks'
+import { imageProcessor } from '@meith/drivers/images'
+import { buildSchedulerBundle } from '@meith/runtime'
 import {
   getDb,
   PostgresAuthorizationSource,
@@ -97,8 +97,8 @@ import {
   PostgresReadStateRepository,
   PostgresMemberProfileRepository,
   PostgresThreadViewBuffer,
-} from '@forum/db'
-import { drivers } from '@forum/drivers'
+} from '@meith/db'
+import { drivers } from '@meith/drivers'
 
 import forumConfig from '../../forum.config'
 
@@ -311,7 +311,7 @@ export interface SchedulerBundle {
  * — the same trick the pg client uses — to guarantee a single Authorizer (and
  * therefore a single audit-log sink) per runtime.
  */
-const GLOBAL_KEY = Symbol.for('@forum/forum.container')
+const GLOBAL_KEY = Symbol.for('@meith/forum.container')
 
 type GlobalWithContainer = typeof globalThis & {
   [GLOBAL_KEY]?: Container
@@ -424,7 +424,7 @@ function identityServices(store: AccountStore): {
 /**
  * The Postgres branch.
  *
- * `@forum/db` is imported **statically**, at the top of this file. It used to
+ * `@meith/db` is imported **statically**, at the top of this file. It used to
  * be a synchronous `require()` inside this function, on the reasoning that the
  * fixture path should never pull in postgres.js — and that turned out to be
  * both unnecessary and actively broken.
@@ -435,7 +435,7 @@ function identityServices(store: AccountStore): {
  * is a property of `getDb`, not of the import. The cost of the static import is
  * bundle size in a *server* bundle nobody downloads.
  *
- * *Broken*, because Turbopack resolves `@forum/db` as an **async module** — its
+ * *Broken*, because Turbopack resolves `@meith/db` as an **async module** — its
  * graph reaches postgres.js — and a synchronous `require()` of an async module
  * yields the pending namespace rather than the exports. Every destructured
  * binding came back `undefined`, so the first call, `getDb()`, failed with
@@ -501,8 +501,8 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     ...identityServices(store),
     /*
      * F13's `task:run` and F04's worker build the identical object, so the
-     * wiring lives in `@forum/runtime` rather than here — see that package's
-     * header for why it is allowed to import `@forum/db` when domain packages
+     * wiring lives in `@meith/runtime` rather than here — see that package's
+     * header for why it is allowed to import `@meith/db` when domain packages
      * are not. The client is handed in so a request does not open a second pool.
      */
     scheduler: buildSchedulerBundle({

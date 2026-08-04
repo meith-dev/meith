@@ -15,7 +15,7 @@ import 'server-only'
  * therefore its URL. Using the permalink as the id means every rename
  * re-notifies everybody who follows the board.
  */
-import type { FeedPost, FeedThread } from '@forum/db'
+import type { FeedPost, FeedThread } from '@meith/db'
 
 import { summarise, type FeedChannel, type FeedEntry } from '@/view/feed'
 

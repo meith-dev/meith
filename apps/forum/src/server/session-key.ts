@@ -16,7 +16,7 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 
 import { cookies } from 'next/headers'
-import { env } from '@forum/core'
+import { env } from '@meith/core'
 
 import { sessionCookieName } from './cookies'
 

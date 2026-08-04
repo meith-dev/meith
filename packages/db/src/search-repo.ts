@@ -28,7 +28,7 @@
  */
 import { sql, type SQL } from 'drizzle-orm'
 
-import type { SearchCursor, SearchHit, SearchQuery, SearchResults, SearchScope } from '@forum/search'
+import type { SearchCursor, SearchHit, SearchQuery, SearchResults, SearchScope } from '@meith/search'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

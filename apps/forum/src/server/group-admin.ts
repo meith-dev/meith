@@ -18,16 +18,16 @@ import 'server-only'
  * outcomes are written, which is the property that stops a preview from ever
  * disagreeing with the run it is previewing.
  */
-import { ForbiddenError, PERMISSION_FIELDS } from '@forum/core'
-import type { PermissionField, PermissionSet } from '@forum/core'
-import { PromotionService, type PromotionRunResult } from '@forum/groups'
-import { defaultPromotionGuards } from '@forum/runtime'
+import { ForbiddenError, PERMISSION_FIELDS } from '@meith/core'
+import type { PermissionField, PermissionSet } from '@meith/core'
+import { PromotionService, type PromotionRunResult } from '@meith/groups'
+import { defaultPromotionGuards } from '@meith/runtime'
 import {
   PostgresGroupAdminRepository,
   PostgresPromotionRepository,
   getDb,
   type GroupSummaryRow,
-} from '@forum/db'
+} from '@meith/db'
 
 import { getContainer } from './container'
 

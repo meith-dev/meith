@@ -16,7 +16,7 @@
  * The one section that is not forum-scoped is the IP lookup, and it is the one
  * that needed the most care. See `IpLookup`.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 export const MODCP_PAGE_SIZE = 25
 
@@ -141,7 +141,7 @@ export class ModeratorPanel {
    * The dashboard: every forum this actor moderates, with its workload.
    *
    * `forums` and `rights` arrive already resolved because both are permission
-   * answers, and permission answers are made in `@forum/authorization` (R4).
+   * answers, and permission answers are made in `@meith/authorization` (R4).
    * What this adds is the counts and the ordering — busiest first, because a
    * moderator with fourteen forums opens the panel to find the one that needs
    * them.

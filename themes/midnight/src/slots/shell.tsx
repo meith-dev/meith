@@ -1,4 +1,4 @@
-import type { ShellModel } from '@forum/theme-kit'
+import type { ShellModel } from '@meith/theme-kit'
 
 /**
  * The page frame.

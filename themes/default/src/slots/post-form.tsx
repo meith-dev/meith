@@ -1,4 +1,4 @@
-import type { PostFormModel } from "@forum/theme-kit";
+import type { PostFormModel } from "@meith/theme-kit";
 
 /**
  * The composer page frame (F39).

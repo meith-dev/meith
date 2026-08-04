@@ -1,7 +1,7 @@
 /**
  * The app-tier implementations behind the scheduled tasks (F06).
  *
- * `@forum/tasks` owns *when* a task runs and `@forum/db` owns the SQL; this is
+ * `@meith/tasks` owns *when* a task runs and `@meith/db` owns the SQL; this is
  * the composition point where a task id becomes actual work. It lives in the
  * app rather than in a package because assembling concrete infrastructure is an
  * application concern — the same reason `container.ts` does.
@@ -11,20 +11,20 @@
  * an unregistered task rather than a stub reporting healthy runs of nothing.
  * See D32.
  */
-import type { TaskWorkers } from '@forum/tasks'
-import { BanService, type BanRepository } from '@forum/accounts'
-import { SubscriptionNotifier, type SubscriptionRepository, type VisibleForumSource } from '@forum/subscriptions'
-import type { NotificationService } from '@forum/notifications'
-import { WarningService, type WarningRepository } from '@forum/moderation'
-import { PromotionService, type PromotionGuards } from '@forum/groups'
+import type { TaskWorkers } from '@meith/tasks'
+import { BanService, type BanRepository } from '@meith/accounts'
+import { SubscriptionNotifier, type SubscriptionRepository, type VisibleForumSource } from '@meith/subscriptions'
+import type { NotificationService } from '@meith/notifications'
+import { WarningService, type WarningRepository } from '@meith/moderation'
+import { PromotionService, type PromotionGuards } from '@meith/groups'
 import {
   relayOutbox as runOutboxRelay,
   type EventRegistry,
   type OutboxReader,
-} from '@forum/events'
-import type { QueueDriver } from '@forum/core'
-import type { AttachmentService } from '@forum/attachments'
-import type { AvatarService } from '@forum/avatars'
+} from '@meith/events'
+import type { QueueDriver } from '@meith/core'
+import type { AttachmentService } from '@meith/attachments'
+import type { AvatarService } from '@meith/avatars'
 
 import { SEED_GROUP } from './groups'
 

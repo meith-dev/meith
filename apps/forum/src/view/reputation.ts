@@ -1,6 +1,6 @@
 /** F62's pure reputation view models. */
-import type { ReputationRow, ReputationSummary } from '@forum/reputation'
-import type { TimeModel } from '@forum/theme-kit'
+import type { ReputationRow, ReputationSummary } from '@meith/reputation'
+import type { TimeModel } from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
 import { formatTime } from './time'

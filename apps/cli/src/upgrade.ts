@@ -2,7 +2,7 @@
  * F84 — `forum upgrade`.
  *
  * Core migrations, then each plugin's in dependency order, then the recorded
- * version. The order and the refusals come from `@forum/upgrade`, which is
+ * version. The order and the refusals come from `@meith/upgrade`, which is
  * tested without a database; this file is the part that reads the board, prints
  * the plan, and performs it.
  *
@@ -21,9 +21,9 @@ import {
   readVersion,
   recordVersion,
   runMigrations,
-} from '@forum/db'
-import type { PluginDefinition } from '@forum/plugin-kit'
-import { planUpgrade, upgradeNotice, type PluginUpgrade } from '@forum/upgrade'
+} from '@meith/db'
+import type { PluginDefinition } from '@meith/plugin-kit'
+import { planUpgrade, upgradeNotice, type PluginUpgrade } from '@meith/upgrade'
 
 /** The version this code is. Bumped by the release, read by the board. */
 export const CODE_VERSION = '0.1.0'

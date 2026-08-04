@@ -24,8 +24,8 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { FORUM_PERMISSION_FIELDS, ValidationError } from '@forum/core'
-import type { ForumOverride } from '@forum/authorization'
+import { FORUM_PERMISSION_FIELDS, ValidationError } from '@meith/core'
+import type { ForumOverride } from '@meith/authorization'
 
 import type { Database } from './client'
 import { columnName } from './schema/permission-columns'

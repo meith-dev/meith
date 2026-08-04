@@ -186,7 +186,7 @@ jobs:
       #
       # This step is the regression test for a bug that shipped three times:
       # `container.ts`, `theme-runtime.ts` and `settings.ts` each loaded
-      # `@forum/db` with a synchronous `require()`, which Turbopack resolves to
+      # `@meith/db` with a synchronous `require()`, which Turbopack resolves to
       # the pending namespace of an async module — so `getDb` was `undefined`
       # and the first call threw. It never showed up here because CI only ever
       # built and ran `DATA_SOURCE=fixture`, which takes none of those paths.
@@ -304,7 +304,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Apply migrations
-        run: pnpm --filter @forum/db migrate
+        run: pnpm --filter @meith/db migrate
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
 
@@ -320,7 +320,7 @@ jobs:
       # snapshot repaired first (see migrations/meta/0006_snapshot.json).
       - name: Assert no uncommitted schema drift
         run: |
-          pnpm --filter @forum/db generate
+          pnpm --filter @meith/db generate
           if [ -n "$(git status --porcelain packages/db/migrations)" ]; then
             echo "::error::schema.ts changed without a generated migration."
             git --no-pager status --porcelain packages/db/migrations

@@ -9,7 +9,7 @@
  * without a database. The repository's only job is to apply the returned plan
  * atomically.
  */
-import { ConflictError, ValidationError } from '@forum/core'
+import { ConflictError, ValidationError } from '@meith/core'
 
 import { childPath, depthOf, isInSubtree, rehang } from './path'
 import type { ForumRow, MovePlan, MoveTarget, PathUpdate } from './types'

@@ -4,7 +4,7 @@
  * `apps/forum` has its own (`src/server/container.ts`) and this deliberately
  * does not import it: that one is `server-only` and pulls in `next/headers`,
  * which has no meaning in a plain Node process. What the two must share is
- * *policy*, not wiring — hence `DEFAULT_AUTH_POLICY` in `@forum/accounts`, so a
+ * *policy*, not wiring — hence `DEFAULT_AUTH_POLICY` in `@meith/accounts`, so a
  * user created here satisfies exactly the rules the registration form enforces.
  *
  * Postgres only. Every command below mutates a board an operator intends to
@@ -12,8 +12,8 @@
  * be running — `forum user:create` against it would report success and change
  * nothing, which is worse than refusing.
  */
-import { DEFAULT_AUTH_POLICY, IdentityService, type AuthConfig } from '@forum/accounts'
-import { ConfigurationError, env } from '@forum/core'
+import { DEFAULT_AUTH_POLICY, IdentityService, type AuthConfig } from '@meith/accounts'
+import { ConfigurationError, env } from '@meith/core'
 import {
   PostgresAdminRepository,
   PostgresForumRepository,
@@ -21,7 +21,7 @@ import {
   createPostgresAccountStore,
   getDb,
   type Database,
-} from '@forum/db'
+} from '@meith/db'
 
 export interface CliContext {
   readonly db: Database

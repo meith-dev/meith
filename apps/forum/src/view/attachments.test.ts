@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import type { AttachmentRecord } from '@forum/attachments'
+import type { AttachmentRecord } from '@meith/attachments'
 
 import { attachmentModel, attachmentsByPost, formatBytes } from './attachments'
 

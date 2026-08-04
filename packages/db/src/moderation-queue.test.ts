@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
-import { ModerationQueue } from '@forum/moderation'
+import { ModerationQueue } from '@meith/moderation'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'

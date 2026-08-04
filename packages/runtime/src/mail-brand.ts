@@ -19,10 +19,10 @@
  * strip `<style>` and do not implement custom properties, so a *token cascade*
  * cannot travel. One resolved colour can, and does.
  */
-import { env, logger } from '@forum/core'
-import { PostgresSettingsRepository, PostgresThemeRepository, type Database } from '@forum/db'
-import type { MailBrand } from '@forum/notifications'
-import { SettingsSnapshot } from '@forum/settings'
+import { env, logger } from '@meith/core'
+import { PostgresSettingsRepository, PostgresThemeRepository, type Database } from '@meith/db'
+import type { MailBrand } from '@meith/notifications'
+import { SettingsSnapshot } from '@meith/settings'
 
 /**
  * The theme whose tokens brand the mail.

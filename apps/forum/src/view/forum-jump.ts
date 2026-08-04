@@ -1,5 +1,5 @@
-import { buildTree, keepVisibleSubtrees, type ForumNode } from '@forum/forums'
-import type { ForumJumpModel, ForumJumpOption } from '@forum/theme-kit'
+import { buildTree, keepVisibleSubtrees, type ForumNode } from '@meith/forums'
+import type { ForumJumpModel, ForumJumpOption } from '@meith/theme-kit'
 
 /**
  * F27 — the jump box's view model.

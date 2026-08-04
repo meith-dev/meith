@@ -21,8 +21,8 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { PERMISSION_FIELDS, ValidationError } from '@forum/core'
-import type { PermissionSet } from '@forum/core'
+import { PERMISSION_FIELDS, ValidationError } from '@meith/core'
+import type { PermissionSet } from '@meith/core'
 
 import type { Database } from './client'
 import { columnName } from './schema/permission-columns'

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { parseFolder } from '@forum/messages'
-import { requireSlot } from '@forum/theme-kit'
+import { parseFolder } from '@meith/messages'
+import { requireSlot } from '@meith/theme-kit'
 
 import { MessageActionBar } from '@/components/messages/message-forms'
 import { getContainer } from '@/server/container'

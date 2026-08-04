@@ -1,5 +1,5 @@
-import { currentRequestId } from '@forum/core/logger'
-import { requireSlot } from '@forum/theme-kit'
+import { currentRequestId } from '@meith/core/logger'
+import { requireSlot } from '@meith/theme-kit'
 
 import { filterView } from '@/server/plugin-view'
 import { activeTheme } from '@/server/theme'

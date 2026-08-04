@@ -13,7 +13,7 @@ import postgres from 'postgres'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
-import { ConfigurationError, env, logger } from '@forum/core'
+import { ConfigurationError, env, logger } from '@meith/core'
 
 /** Absolute path to the generated SQL, resolved relative to this file. */
 function migrationsFolder(): string {

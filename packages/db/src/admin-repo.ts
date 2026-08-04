@@ -2,7 +2,7 @@
  * Operator-level reads and writes: look a user or group up the way a human
  * refers to it, move a user between groups, retire cached actors.
  *
- * Lives here rather than in the CLI because R2 keeps SQL inside `@forum/db` —
+ * Lives here rather than in the CLI because R2 keeps SQL inside `@meith/db` —
  * a CLI composing its own queries would be a second place that knows the
  * schema, and it would drift. The ACP's user and group screens (F66/F67) want
  * exactly these operations, so this is their seam too.

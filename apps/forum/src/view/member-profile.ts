@@ -1,6 +1,6 @@
 /** F33's public member-profile view and its one canonical route shape. */
-import type { MemberProfileRecord } from '@forum/accounts'
-import type { MemberProfileModel } from '@forum/theme-kit'
+import type { MemberProfileRecord } from '@meith/accounts'
+import type { MemberProfileModel } from '@meith/theme-kit'
 
 import { formatTime } from './time'
 
@@ -16,7 +16,7 @@ export function buildMemberProfileView(
      * Whether the viewer may warn this member (F53).
      *
      * A capability the page resolves, not a permission this function knows: the
-     * matrix stays in `@forum/authorization` (R4), and the action behind the
+     * matrix stays in `@meith/authorization` (R4), and the action behind the
      * link re-asks anyway.
      */
     readonly canWarn?: boolean

@@ -1,6 +1,6 @@
 # The theme API, v1
 
-`@forum/theme-kit` is the contract between the board and a theme. F77 freezes it
+`@meith/theme-kit` is the contract between the board and a theme. F77 freezes it
 as **v1.0**. This document is the policy: what the freeze covers, what it does
 not, and how something is removed from it. The reference — every slot, every
 field — is generated into [`theme-slots.md`](./theme-slots.md).
@@ -22,9 +22,9 @@ A theme may:
 
 A theme may not, and cannot:
 
-- read the database, the request, cookies or the session. `@forum/theme-kit`
+- read the database, the request, cookies or the session. `@meith/theme-kit`
   depends on nothing, and dependency-cruiser's `themes-are-presentation-only`
-  rule makes an import of `@forum/db`, `next/headers` or a domain package an
+  rule makes an import of `@meith/db`, `next/headers` or a domain package an
   error rather than a review comment;
 - decide anything about permissions. `ViewerModel.canAccessAdminCp` and its
   siblings are *rendering hints* the Authorizer has already resolved. CSS is not
@@ -118,8 +118,8 @@ If the check fails, run `pnpm theme:docs` and commit the result.
 
 ```ts
 // themes/acme/src/theme.ts
-import { defineTheme } from '@forum/theme-kit'
-import { defaultTheme } from '@forum/theme-default'
+import { defineTheme } from '@meith/theme-kit'
+import { defaultTheme } from '@meith/theme-default'
 
 import { PostBit } from './slots/post-bit'
 

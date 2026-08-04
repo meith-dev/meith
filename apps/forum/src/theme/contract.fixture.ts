@@ -27,7 +27,7 @@
  * substring match cannot pass by accident against boilerplate.
  */
 
-import type { SlotModels, SlotName } from '@forum/theme-kit'
+import type { SlotModels, SlotName } from '@meith/theme-kit'
 
 /* ------------------------------------------------------------------ *
  * Shared pieces

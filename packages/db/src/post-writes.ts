@@ -8,13 +8,13 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { renderBBCode } from '@forum/bbcode'
+import { renderBBCode } from '@meith/bbcode'
 import type {
   PostEditRecord,
   PostEditTarget,
   PostVisibilityRecord,
   PostWriteRepository,
-} from '@forum/posts'
+} from '@meith/posts'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

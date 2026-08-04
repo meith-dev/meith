@@ -15,7 +15,7 @@
  * trusting the render is the same rule every other Server Action here follows.
  */
 
-import { canProceed, parseInstallInput } from '@forum/install'
+import { canProceed, parseInstallInput } from '@meith/install'
 import { redirect } from 'next/navigation'
 
 import { gatherPreflight, installerIsSealed, runInstall } from './install'

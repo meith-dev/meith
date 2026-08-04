@@ -1,7 +1,7 @@
 /**
  * F60 at the app layer.
  *
- * The rules are unit-tested in `@forum/messages` and the SQL against real
+ * The rules are unit-tested in `@meith/messages` and the SQL against real
  * Postgres. What is proven here is the seam neither can see:
  *
  *  - the sender is the *session's* member, never the form's;
@@ -14,8 +14,8 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
 import type {
   FolderCounts,
   MessageDetail,
@@ -24,7 +24,7 @@ import type {
   MessageRepository,
   MessageRole,
   PrivateMessage,
-} from '@forum/messages'
+} from '@meith/messages'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
@@ -191,7 +191,7 @@ async function install(): Promise<void> {
     accounts: { create(input: Record<string, unknown>): Promise<{ id: number }> }
   }
 
-  const { hashPassword } = await import('@forum/accounts')
+  const { hashPassword } = await import('@meith/accounts')
   const hash = await hashPassword('correct horse battery staple')
   for (const name of ['ivan', 'bob']) {
     await store.accounts.create({

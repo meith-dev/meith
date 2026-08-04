@@ -1,7 +1,7 @@
 /**
  * F49 at the app layer.
  *
- * The report rules are unit-tested in `@forum/moderation` and the SQL against
+ * The report rules are unit-tested in `@meith/moderation` and the SQL against
  * real Postgres. What is proven here is the seam neither can see: that filing a
  * report re-authorises against the *target's* forum rather than trusting the
  * form, and that a member who cannot see something cannot learn it exists by
@@ -12,14 +12,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   InMemoryAuthorizationSource,
   combinePermissionSets,
-} from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
+} from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
 import type {
   NewReport,
   ReportRepository,
   ReportTarget,
   ReportTargetKind,
-} from '@forum/moderation'
+} from '@meith/moderation'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

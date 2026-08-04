@@ -6,7 +6,7 @@ import {
   resolveTheme,
   type SlotName,
   type ThemeDefinition,
-} from '@forum/theme-kit'
+} from '@meith/theme-kit'
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'

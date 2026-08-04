@@ -14,7 +14,7 @@ import {
   type FileStore,
   type MailDriver,
   type QueueDriver,
-} from '@forum/core'
+} from '@meith/core'
 
 import { MemoryCache } from './cache/memory-cache'
 import { NextCacheDriver } from './cache/next-cache'

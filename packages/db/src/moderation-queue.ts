@@ -27,7 +27,7 @@ import type {
   QueueItem,
   QueuePage,
   QueueSelection,
-} from '@forum/moderation'
+} from '@meith/moderation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

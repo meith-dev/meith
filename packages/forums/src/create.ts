@@ -5,7 +5,7 @@
  * whether a board's structure stays coherent should be testable without a
  * database. The repository derives `path` from the parent it just validated.
  */
-import { ConflictError, ValidationError } from '@forum/core'
+import { ConflictError, ValidationError } from '@meith/core'
 
 
 import type { ForumRow, NewForum } from './types'

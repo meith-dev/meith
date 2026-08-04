@@ -16,10 +16,10 @@ import 'server-only'
  */
 import { randomBytes } from 'node:crypto'
 
-import { ForbiddenError, NotFoundError } from '@forum/core'
-import type { Actor } from '@forum/authorization'
-import { isRunnable, parseSearchInput, type SearchQuery, type SearchResults } from '@forum/search'
-import { PostgresSearchStore, getDb, ownsSearch, type StoredSearch } from '@forum/db'
+import { ForbiddenError, NotFoundError } from '@meith/core'
+import type { Actor } from '@meith/authorization'
+import { isRunnable, parseSearchInput, type SearchQuery, type SearchResults } from '@meith/search'
+import { PostgresSearchStore, getDb, ownsSearch, type StoredSearch } from '@meith/db'
 
 import { getContainer } from './container'
 import { requireSearch, searchScopeFor } from './search'

@@ -7,8 +7,8 @@
  * ID comparison appears anywhere else, the model rots — there is a lint rule
  * (see eslint.config.mjs `no-restricted-syntax`) that fires on it.
  *
- * It imports only `@forum/core` (the permission registry and error types), never
- * `@forum/db`: the resolution logic is pure and is driven through the
+ * It imports only `@meith/core` (the permission registry and error types), never
+ * `@meith/db`: the resolution logic is pure and is driven through the
  * `AuthorizationSource` port below, so the F22 matrix suite can exercise every
  * actor/context/action combination against an in-memory fixture with no
  * database (R10, F22).
@@ -17,7 +17,7 @@ import type {
   ContentVisibility,
   ForumPermissions,
   PermissionSet,
-} from '@forum/core'
+} from '@meith/core'
 
 /**
  * The lifecycle state of the account behind a request.
@@ -169,7 +169,7 @@ export type NumericGlobalPermission = {
 /**
  * The visibility state of a piece of content.
  *
- * Re-exported from `@forum/core` rather than declared again: F47 made the
+ * Re-exported from `@meith/core` rather than declared again: F47 made the
  * states and the scope built from them a single shared vocabulary, and two
  * structurally-identical declarations are how they drift.
  */
@@ -221,7 +221,7 @@ export interface Target {
 }
 
 /* ------------------------------------------------------------------ *
- * The port. Implemented by @forum/db (Postgres) and by the F22 fixture.
+ * The port. Implemented by @meith/db (Postgres) and by the F22 fixture.
  * ------------------------------------------------------------------ */
 
 /** A single group's global defaults, as stored on `usergroups`. */
@@ -362,7 +362,7 @@ export const NO_MODERATOR_RIGHTS: ModeratorRights = {
  * questions (what does group N grant in forum F), whereas this one assembles the
  * *principal* (which groups is user U in, what is their state, combine it all).
  * The authorizer consumes the `Actor` this produces and never calls back into
- * it. Two implementations: `ActorBuilder` in `@forum/db` (Postgres, primary +
+ * it. Two implementations: `ActorBuilder` in `@meith/db` (Postgres, primary +
  * secondary groups, cache-version stamp) and a fixture builder in the app tier.
  */
 export interface ActorSource {

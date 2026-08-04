@@ -1,6 +1,6 @@
 /** F48 — the queue's rules, without a database. */
 import { describe, expect, it } from 'vitest'
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import {
   MAX_CHUNK,

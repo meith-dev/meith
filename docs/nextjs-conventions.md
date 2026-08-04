@@ -30,7 +30,7 @@ A file under `app/` should be short enough to read in one screen. If a page is
 long, the length is domain logic that belongs in a package, or view-model
 assembly that belongs in `src/view/`.
 
-**`app/` never imports `@forum/db`.** Enforced by dependency-cruiser. Pages get
+**`app/` never imports `@meith/db`.** Enforced by dependency-cruiser. Pages get
 their data from the container in `src/server/container.ts`.
 
 ---
@@ -148,7 +148,7 @@ inside the form region, not in the view model.
 
 ## Errors
 
-Use the taxonomy in `@forum/core`: `ValidationError`, `ForbiddenError`,
+Use the taxonomy in `@meith/core`: `ValidationError`, `ForbiddenError`,
 `NotFoundError`, `ConflictError`, `RateLimitedError`. Each maps to a status and
 a rendered page.
 
@@ -308,7 +308,7 @@ adding a field is minor, renaming or removing one needs a deprecation cycle.
 - **Boot once per suite, clear tables in `beforeEach`.** Creating a database per
   test applies every migration per test and starts tripping timeouts.
 - Any list page needs a **query-budget assertion** against the seeded board
-  (`expectQueryBudget` in `@forum/testkit`). An N+1 does not fail a test — it
+  (`expectQueryBudget` in `@meith/testkit`). An N+1 does not fail a test — it
   passes, slowly, and only on an empty board.
 - **Prove a new test can fail.** Break the code deliberately, watch it go red,
   put it back. A test that has never failed is not known to test anything; this

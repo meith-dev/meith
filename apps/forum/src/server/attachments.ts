@@ -18,9 +18,9 @@ import 'server-only'
  * post whose images silently never arrive, and there is nowhere to report that
  * to: the member has already been redirected to their own post.
  */
-import { ForbiddenError, ValidationError } from '@forum/core'
-import type { ForumPermissions } from '@forum/core'
-import type { Actor } from '@forum/authorization'
+import { ForbiddenError, ValidationError } from '@meith/core'
+import type { ForumPermissions } from '@meith/core'
+import type { Actor } from '@meith/authorization'
 import {
   ATTACHMENT_FIELD,
   AttachmentService,
@@ -30,9 +30,9 @@ import {
   type IncomingFile,
   type StagedUpload,
   type UploadLimits,
-} from '@forum/attachments'
-import { imageProcessor } from '@forum/drivers/images'
-import { drivers } from '@forum/drivers'
+} from '@meith/attachments'
+import { imageProcessor } from '@meith/drivers/images'
+import { drivers } from '@meith/drivers'
 
 import { getContainer } from './container'
 

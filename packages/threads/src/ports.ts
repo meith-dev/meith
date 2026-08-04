@@ -1,4 +1,4 @@
-import type { ContentScope } from '@forum/core'
+import type { ContentScope } from '@meith/core'
 
 import type { ThreadCursor, ThreadListingRow, ThreadPage } from './types'
 

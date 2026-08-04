@@ -18,7 +18,7 @@
  *    rendered as a link is an attacker-controlled `href` — the same argument
  *    F36 makes about `[url]` and F57 makes about the website field.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import { editableFields, maxLengthFor, visibleFields } from './resolve'
 import type {

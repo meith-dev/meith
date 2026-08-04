@@ -13,12 +13,12 @@
  * out of process and cannot. An operator renaming a forum in the panel and
  * seeing the old name would reasonably conclude the save failed.
  */
-import { CacheTags, ValidationError, isAppError, logger } from '@forum/core'
-import { FORUM_PERMISSION_FIELDS } from '@forum/core'
-import { readMatrixCell } from '@forum/authorization'
-import { drivers } from '@forum/drivers'
+import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { FORUM_PERMISSION_FIELDS } from '@meith/core'
+import { readMatrixCell } from '@meith/authorization'
+import { drivers } from '@meith/drivers'
 
-import { MODERATOR_RIGHTS } from '@forum/db'
+import { MODERATOR_RIGHTS } from '@meith/db'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { getContainer } from './container'

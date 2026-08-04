@@ -5,7 +5,7 @@ import {
   createPostgresAccountStore,
 } from './account-repos'
 import { credentialTokens, loginAttempts, rememberTokens, sessions, usergroups } from './schema'
-import type { AccountStore } from '@forum/accounts'
+import type { AccountStore } from '@meith/accounts'
 
 /**
  * These run against real Postgres (PGlite). The point is the SQL semantics the

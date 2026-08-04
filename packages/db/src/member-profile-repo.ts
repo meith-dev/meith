@@ -1,7 +1,7 @@
 /** Public member-profile read (F33). */
 import { and, eq, ne } from 'drizzle-orm'
 
-import type { MemberProfileRecord, MemberProfileRepository } from '@forum/accounts'
+import type { MemberProfileRecord, MemberProfileRepository } from '@meith/accounts'
 
 import type { Database } from './client'
 import { usergroups, users } from './schema'

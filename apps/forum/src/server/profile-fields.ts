@@ -19,7 +19,7 @@ import {
   ProfileFieldService,
   maxLengthFor,
   type ProfileFieldContext,
-} from '@forum/profile-fields'
+} from '@meith/profile-fields'
 
 import { AUTH_CONFIG } from './auth-config'
 import { getContainer } from './container'

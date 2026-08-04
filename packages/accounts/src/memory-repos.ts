@@ -56,7 +56,7 @@ class MemoryAccounts implements AccountRepository {
       state: input.state,
       // F20 sanctioned per-line disable (promised in D13). This copies a
       // persisted column verbatim into the record so the actor builder in
-      // @forum/authorization can read it — it is transport, not an authorization
+      // @meith/authorization can read it — it is transport, not an authorization
       // decision. Nothing in this package ever branches on the value.
       // eslint-disable-next-line no-restricted-properties -- F20: group-id transport, not a decision
       primaryGroupId: input.primaryGroupId,

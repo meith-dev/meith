@@ -4,7 +4,7 @@
  * Its own module, with **no imports at all**, for a reason that is not
  * aesthetic: the composer's file input is a client component and it needs these
  * to say "up to 4 files, 2 MB each". Reaching them through the package barrel
- * pulls `service.ts` in, which pulls `@forum/core` in, which pulls
+ * pulls `service.ts` in, which pulls `@meith/core` in, which pulls
  * `node:async_hooks` into a browser bundle — a build error, and the right one.
  * A leaf module is what lets both sides share the arithmetic without sharing a
  * dependency graph.

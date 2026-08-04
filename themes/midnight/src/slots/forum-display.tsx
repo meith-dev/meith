@@ -1,4 +1,4 @@
-import type { ForumDisplayModel } from '@forum/theme-kit'
+import type { ForumDisplayModel } from '@meith/theme-kit'
 
 /**
  * A forum page: subforums, then the thread table, then paging.

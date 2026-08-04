@@ -1,5 +1,5 @@
 /**
- * `@forum/messages` — F60.
+ * `@meith/messages` — F60.
  *
  * Private messages: multiple recipients, three system folders, read tracking
  * and receipts, a storage quota, reply and forward, mass actions, and a report
@@ -13,7 +13,7 @@
  * A domain package in the R2 sense: interfaces in, no SQL, no Next, no driver
  * implementations. It knows nothing about groups either: "may they use PMs" and
  * "how many may they keep" arrive through `MessagePolicy` as a boolean and a
- * number, resolved by `@forum/authorization` (F20).
+ * number, resolved by `@meith/authorization` (F20).
  */
 export {
   MESSAGE_FOLDERS,

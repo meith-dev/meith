@@ -1,5 +1,5 @@
 /**
- * `@forum/signatures` — F58's signature half.
+ * `@meith/signatures` — F58's signature half.
  *
  * A signature is member-written BBCode shown under every post they have ever
  * made. That last clause is the whole feature: it multiplies one member's text
@@ -24,8 +24,8 @@
  * is not a safe substitute — see `docs/deviations.md` D61. Omitted rather than
  * half-built, per D32.
  */
-import { RENDER_VERSION, TAGS, renderBBCode, type TagSpec } from '@forum/bbcode'
-import { ValidationError } from '@forum/core'
+import { RENDER_VERSION, TAGS, renderBBCode, type TagSpec } from '@meith/bbcode'
+import { ValidationError } from '@meith/core'
 
 /** The hard ceiling, whatever a group's `maxSignatureLength` says. */
 export const SIGNATURE_HARD_MAX = 1000

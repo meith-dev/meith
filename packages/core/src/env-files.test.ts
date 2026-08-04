@@ -70,7 +70,7 @@ describe('loadEnvFiles', () => {
     const deep = join(root, 'apps', 'cli')
     mkdirSync(deep, { recursive: true })
 
-    /* The case that motivated the module: `pnpm --filter @forum/cli start` runs
+    /* The case that motivated the module: `pnpm --filter @meith/cli start` runs
        with a cwd two levels below the file it needs. */
     expect(loadEnvFiles(deep)).toEqual({ root, loaded: ['.env'] })
     expect(process.env[name]).toBe('from-dot-env')

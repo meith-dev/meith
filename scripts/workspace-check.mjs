@@ -3,7 +3,7 @@
  * Workspace integrity.
  *
  * Every gate this project runs — typecheck, lint, dependency-cruiser, the test
- * suite, even `next build` — resolves `@forum/*` through the tsconfig path
+ * suite, even `next build` — resolves `@meith/*` through the tsconfig path
  * aliases, which point straight at `src/index.ts`. **None of them needs a
  * package.json.** So a package directory with no manifest passes the entire
  * verify pipeline and then fails on the next clean `pnpm install`, which is CI
@@ -91,7 +91,7 @@ for (const [name, { dir, manifest }] of byName) {
 /* Every tsconfig alias must point at a file inside a real workspace package. */
 const base = JSON.parse(await readFile(join(ROOT, 'tsconfig.base.json'), 'utf8'))
 for (const [alias, targets] of Object.entries(base.compilerOptions?.paths ?? {})) {
-  if (!alias.startsWith('@forum/') || alias.endsWith('/*')) continue
+  if (!alias.startsWith('@meith/') || alias.endsWith('/*')) continue
   const target = targets[0]
   if (typeof target !== 'string') continue
 

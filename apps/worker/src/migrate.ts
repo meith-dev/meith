@@ -17,9 +17,9 @@
  * rather than shelling out to drizzle-kit, so a board migrated by the image and
  * a board migrated by an operator have been through identical code.
  */
-import { logger } from '@forum/core'
-import { loadEnvFiles } from '@forum/core/env-files'
-import { runMigrations } from '@forum/db'
+import { logger } from '@meith/core'
+import { loadEnvFiles } from '@meith/core/env-files'
+import { runMigrations } from '@meith/db'
 
 /**
  * Bound where it is used, not at module scope (guard F02).
@@ -48,7 +48,7 @@ loadEnvFiles()
  *
  * Passed explicitly rather than resolved relative to this module: this file is
  * an esbuild CJS bundle, where `import.meta.url` is undefined, and the pruned
- * standalone `node_modules` does not contain `@forum/db`'s source tree anyway.
+ * standalone `node_modules` does not contain `@meith/db`'s source tree anyway.
  * The SQL is *data*, so Next never traced it and the Dockerfile copies it.
  */
 const MIGRATIONS_DIR = process.env.MIGRATIONS_DIR ?? '/app/migrations'

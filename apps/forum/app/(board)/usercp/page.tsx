@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@forum/theme-kit'
+import { requireSlot } from '@meith/theme-kit'
 
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'

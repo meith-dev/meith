@@ -2,8 +2,8 @@
  * F85 — `forum import`.
  *
  * The operator-facing half of the MyBB import. Everything it decides is already
- * decided elsewhere: `@forum/import` owns the mapping, the paging, the cursors
- * and the counter comparison; `@forum/db` owns the sink. This file connects the
+ * decided elsewhere: `@meith/import` owns the mapping, the paging, the cursors
+ * and the counter comparison; `@meith/db` owns the sink. This file connects the
  * two and prints what happened.
  *
  * ## Resumable means "run it again", and the command has to say so
@@ -29,14 +29,14 @@ import {
   PostgresImportSink,
   saveImportProgress,
   startImportRun,
-} from '@forum/db'
+} from '@meith/db'
 import {
   MysqlMybbSource,
   NO_PROGRESS,
   runImport,
   type Cursors,
   type ImportReport,
-} from '@forum/import'
+} from '@meith/import'
 
 import { integer, optional, parseFlags, required } from './args'
 

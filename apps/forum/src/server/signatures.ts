@@ -12,7 +12,7 @@ import 'server-only'
  * exactly one place (F20). Both have been in the registry since F22 with
  * nothing reading them; F58 is what they were declared for.
  */
-import { signatureHtml, type SignatureLimits } from '@forum/signatures'
+import { signatureHtml, type SignatureLimits } from '@meith/signatures'
 
 import { getContainer } from './container'
 import { getActor } from './context'

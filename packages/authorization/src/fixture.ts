@@ -12,7 +12,7 @@
 import {
   emptyPermissionSet,
   type PermissionSet,
-} from '@forum/core'
+} from '@meith/core'
 
 import { combinePermissionSets } from './combine'
 import type {

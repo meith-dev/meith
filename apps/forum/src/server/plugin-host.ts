@@ -18,8 +18,8 @@ import 'server-only'
  * repeated failures, which stops on the next call rather than on the next
  * deploy.
  */
-import { logger } from '@forum/core/logger'
-import { PluginHost, type PluginDefinition } from '@forum/plugin-kit'
+import { logger } from '@meith/core/logger'
+import { PluginHost, type PluginDefinition } from '@meith/plugin-kit'
 
 import forumConfig from '../../forum.config'
 

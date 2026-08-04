@@ -339,7 +339,7 @@ export function assertRuntimeEnv(): Env {
  * `assertEnv()`.
  *
  * Deliberately a Proxy rather than `export const env = load(process.env)`:
- * validating at *module* load means merely importing any `@forum/core` symbol
+ * validating at *module* load means merely importing any `@meith/core` symbol
  * — a type, an error class — detonates in contexts that have no app
  * environment at all. That broke `drizzle-kit generate`, which imports the
  * schema (and therefore core's permission registry) purely to diff DDL and has

@@ -1,4 +1,4 @@
-import type { NoticeModel } from '@forum/theme-kit'
+import type { NoticeModel } from '@meith/theme-kit'
 
 /**
  * An inline notice (F25/F27) — a flash message or a board announcement.

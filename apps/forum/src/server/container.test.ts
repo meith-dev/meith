@@ -9,7 +9,7 @@
  * DATA_SOURCE is 'fixture' in the test env (vitest.config.ts), so this never
  * touches Postgres.
  */
-import type { Actor } from '@forum/authorization'
+import type { Actor } from '@meith/authorization'
 import { describe, expect, it } from 'vitest'
 
 import { getContainer } from './container'
@@ -97,7 +97,7 @@ describe('getContainer (fixture mode)', () => {
 
   it('rebuilds an HMR-stale container that predates a newly-added repository or fixture rows', () => {
     const current = getContainer()
-    const key = Symbol.for('@forum/forum.container')
+    const key = Symbol.for('@meith/forum.container')
     ;(globalThis as Record<symbol, unknown>)[key] = {
       ...current,
       threads: current.threads,

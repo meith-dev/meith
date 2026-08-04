@@ -26,7 +26,7 @@ vi.mock('./admin', () => ({
 
 const invalidated: string[][] = []
 const retried: string[] = []
-vi.mock('@forum/drivers', () => ({
+vi.mock('@meith/drivers', () => ({
   drivers: () => ({
     cache: {
       async invalidateTags(tags: string[]) {

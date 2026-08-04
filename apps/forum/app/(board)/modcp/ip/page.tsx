@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { ModeratorPanel } from '@forum/moderation'
+import { ModeratorPanel } from '@meith/moderation'
 
 import { getContainer } from '@/server/container'
 import { resolveModCpAccess } from '@/server/modcp'

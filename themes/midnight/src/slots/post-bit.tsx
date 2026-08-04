@@ -1,4 +1,4 @@
-import type { PostBitSlotModel } from '@forum/theme-kit'
+import type { PostBitSlotModel } from '@meith/theme-kit'
 
 /**
  * One post, in the **classic two-column layout**: author on the left, body on

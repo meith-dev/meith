@@ -1,5 +1,5 @@
 /**
- * @forum/accounts — identity: credential hashing, opaque tokens, and (later)
+ * @meith/accounts — identity: credential hashing, opaque tokens, and (later)
  * the account/session repositories and register/login/reset services.
  *
  * The crypto primitives are pure and runtime-agnostic (Web Crypto + hash-wasm),

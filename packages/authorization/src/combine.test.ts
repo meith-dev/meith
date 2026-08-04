@@ -4,7 +4,7 @@
  * Every case here is one of the three rules at its interesting edge, because
  * the naive implementation of two of them is exactly wrong.
  */
-import { emptyPermissionSet } from '@forum/core'
+import { emptyPermissionSet } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
 import { combineGroupValue, combinePermissionSets } from './combine'

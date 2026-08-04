@@ -188,7 +188,7 @@ export const posts = pgTable(
     message: text('message').notNull(),
 
     /**
-     * `message` rendered by `@forum/bbcode`, and the renderer version that did
+     * `message` rendered by `@meith/bbcode`, and the renderer version that did
      * it (F36).
      *
      * Null, or a version other than the current one, means "render it live" —

@@ -1,15 +1,15 @@
 /** F31's pure thread-view model, with F41's edit and delete affordances. */
-import { applyWordFilter, postBodyHtml, type CompiledWordFilter } from '@forum/bbcode'
-import { suppress } from '@forum/relations'
-import type { ForumRow } from '@forum/forums'
+import { applyWordFilter, postBodyHtml, type CompiledWordFilter } from '@meith/bbcode'
+import { suppress } from '@meith/relations'
+import type { ForumRow } from '@meith/forums'
 import type {
   PaginationModel,
   PostAttachmentModel,
   PostBitModel,
   ThreadViewModel,
-} from '@forum/theme-kit'
-import { editedNote, type PostListingRow, type PostPage } from '@forum/posts'
-import type { ThreadListingRow } from '@forum/threads'
+} from '@meith/theme-kit'
+import { editedNote, type PostListingRow, type PostPage } from '@meith/posts'
+import type { ThreadListingRow } from '@meith/threads'
 
 import { forumHref } from './board-index'
 import { threadRowModel } from './forum-display'
@@ -20,7 +20,7 @@ import { formatTime } from './time'
  * What this viewer may do to a post, already resolved by the page.
  *
  * Capabilities, not permissions: the matrix stays inside
- * `@forum/authorization` (R4), and what reaches the view model is a set of
+ * `@meith/authorization` (R4), and what reaches the view model is a set of
  * answers. Every one of them is re-asked by the action that acts on it — a link
  * is not authorisation.
  */

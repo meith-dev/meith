@@ -11,10 +11,10 @@ import 'server-only'
  * F54 named the absence of this screen rather than half-building one for
  * exactly that reason.
  */
-import { BanService } from '@forum/accounts'
-import { ForbiddenError } from '@forum/core'
-import type { BanRecord } from '@forum/accounts'
-import { SEED_GROUP } from '@forum/runtime'
+import { BanService } from '@meith/accounts'
+import { ForbiddenError } from '@meith/core'
+import type { BanRecord } from '@meith/accounts'
+import { SEED_GROUP } from '@meith/runtime'
 import {
   PostgresBanRepository,
   PostgresUserAdminRepository,
@@ -26,7 +26,7 @@ import {
   type UserDetail,
   type UserSearchFilter,
   type UserSearchRow,
-} from '@forum/db'
+} from '@meith/db'
 
 import { getContainer } from './container'
 

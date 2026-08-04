@@ -25,7 +25,7 @@
  * roadmap's "queued mail" is exactly this arrangement rather than a promise
  * about latency.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import {
   configurableKindsFor,

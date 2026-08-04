@@ -8,7 +8,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { PUBLIC_CONTENT } from '@forum/core'
+import { PUBLIC_CONTENT } from '@meith/core'
 import type {
   NewReport,
   ReportEvent,
@@ -18,7 +18,7 @@ import type {
   ReportScope,
   ReportTarget,
   ReportTargetKind,
-} from '@forum/moderation'
+} from '@meith/moderation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

@@ -55,7 +55,7 @@ export default defineConfig({
       stdout: 'pipe',
     },
     {
-      command: 'pnpm --filter @forum/web run dev --hostname 127.0.0.1 --port 3001',
+      command: 'pnpm --filter @meith/web run dev --hostname 127.0.0.1 --port 3001',
       url: 'http://127.0.0.1:3001',
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,

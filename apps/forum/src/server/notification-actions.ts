@@ -19,8 +19,8 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, isAppError, logger } from '@forum/core'
-import type { NotificationService } from '@forum/notifications'
+import { ForbiddenError, isAppError, logger } from '@meith/core'
+import type { NotificationService } from '@meith/notifications'
 
 import { getActor } from './context'
 import { audiencesForActor } from './notification-audience'

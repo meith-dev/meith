@@ -13,8 +13,8 @@
  * cached region, and F10's guard would (correctly) reject it.
  */
 
-import type { Actor } from '@forum/authorization'
-import type { FooterModel, HeaderModel, LinkModel, UserPanelModel, ViewerModel } from '@forum/theme-kit'
+import type { Actor } from '@meith/authorization'
+import type { FooterModel, HeaderModel, LinkModel, UserPanelModel, ViewerModel } from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
 import { timezoneLabel } from './time'
@@ -27,7 +27,7 @@ import { timezoneLabel } from './time'
  * render, because both have to work when the database is unreachable and a
  * shell that throws while rendering an error page is the worst possible failure.
  */
-export const BOARD_TITLE = 'Forum'
+export const BOARD_TITLE = 'Meith'
 
 /**
  * Which timezone every `TimeModel.label` on the page was formatted in.

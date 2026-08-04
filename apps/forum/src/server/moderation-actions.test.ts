@@ -1,7 +1,7 @@
 /**
  * F48 at the app layer.
  *
- * The queue's rules are unit-tested in `@forum/moderation` and its SQL against
+ * The queue's rules are unit-tested in `@meith/moderation` and its SQL against
  * real Postgres. What is proven here is the adapter tier neither can see: that
  * the set of moderated forums is resolved *server-side* for this request rather
  * than read from the form, that a member who moderates nothing is refused
@@ -14,14 +14,14 @@ import {
   Authorizer,
   InMemoryAuthorizationSource,
   combinePermissionSets,
-} from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
+} from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
 import type {
   ModerationQueueRepository,
   PendingItem,
   QueuePage,
   QueueSelection,
-} from '@forum/moderation'
+} from '@meith/moderation'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

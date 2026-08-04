@@ -63,7 +63,7 @@ import type {
   ThreadViewModel,
   UserPanelModel,
   WhoIsOnlineModel,
-} from '@forum/theme-kit'
+} from '@meith/theme-kit'
 
 import type { HookName } from './hooks'
 

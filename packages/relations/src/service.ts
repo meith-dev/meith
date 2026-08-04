@@ -20,7 +20,7 @@
  * staff is the Authorizer's answer, handed here as a boolean — this package has
  * no idea what a group is (F20).
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import {
   MAX_RELATIONS,

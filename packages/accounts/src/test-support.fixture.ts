@@ -1,8 +1,8 @@
 /**
- * Test-only helpers for `@forum/accounts`.
+ * Test-only helpers for `@meith/accounts`.
  *
- * Lives in the package rather than `@forum/testkit` because that depends on
- * `@forum/db`, which depends on this — importing it here would be a cycle.
+ * Lives in the package rather than `@meith/testkit` because that depends on
+ * `@meith/db`, which depends on this — importing it here would be a cycle.
  *
  * Named `.fixture.ts` to match `pglite.fixture.ts`: dependency-cruiser excludes
  * `.test.ts` from the graph, so a helper only tests import would otherwise be

@@ -7,14 +7,14 @@ import 'server-only'
  * `Authorizer.forumIdsWhere` and a `ContentScope` — because "which forums may
  * this actor see" has exactly one right answer and search already asks it.
  */
-import type { Actor } from '@forum/authorization'
-import { ForbiddenError, contentScopeFrom } from '@forum/core'
+import type { Actor } from '@meith/authorization'
+import { ForbiddenError, contentScopeFrom } from '@meith/core'
 import {
   PostgresDiscoveryRepository,
   getDb,
   type DiscoveryPage,
   type DiscoveryScope,
-} from '@forum/db'
+} from '@meith/db'
 
 import { getContainer } from './container'
 

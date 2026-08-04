@@ -14,12 +14,12 @@ import type {
   BoardStatsModel,
   OnlineMemberModel,
   WhoIsOnlineModel,
-} from '@forum/theme-kit'
+} from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
 import { formatTime } from './time'
 
-/** What the repository returns, restated so this module needs no `@forum/db`. */
+/** What the repository returns, restated so this module needs no `@meith/db`. */
 export interface OnlineRow {
   readonly userId: number
   readonly username: string

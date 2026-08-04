@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { FolderCounts, MessageListRow } from '@forum/messages'
+import type { FolderCounts, MessageListRow } from '@meith/messages'
 
 import { buildMessageFolderView, messageNotice, quotaView } from './messages'
 

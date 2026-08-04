@@ -1,4 +1,4 @@
-import type { MemberProfileModel } from '@forum/theme-kit'
+import type { MemberProfileModel } from '@meith/theme-kit'
 
 /**
  * A profile, as a data sheet.

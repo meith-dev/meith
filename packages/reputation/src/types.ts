@@ -9,7 +9,7 @@
  *
  * A domain package in the R2 sense: interfaces in, no SQL, no Next. It has no
  * idea what a group is — "may this member rate at all" and "how many a day"
- * arrive as a boolean and a number, resolved by `@forum/authorization` (F20).
+ * arrive as a boolean and a number, resolved by `@meith/authorization` (F20).
  */
 
 export const COMMENT_MAX = 500

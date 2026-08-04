@@ -20,8 +20,8 @@ import 'server-only'
  * overrides and the custom CSS, both of which `theme-runtime.ts` pulls from the
  * `themes` row on every page. That is the editor.
  */
-import { ForbiddenError } from '@forum/core'
-import { PostgresThemeAdminRepository, getDb, type ThemeRecord } from '@forum/db'
+import { ForbiddenError } from '@meith/core'
+import { PostgresThemeAdminRepository, getDb, type ThemeRecord } from '@meith/db'
 
 import forumConfig from '../../forum.config'
 import { getContainer } from './container'

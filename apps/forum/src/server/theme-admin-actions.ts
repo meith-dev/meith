@@ -16,9 +16,9 @@
  * and the screen's job is to turn "token `primary` has an unsafe CSS value"
  * into something beside the field rather than into a 500.
  */
-import { CacheTags, ValidationError, isAppError, logger } from '@forum/core'
-import { drivers } from '@forum/drivers'
-import { parseThemeExport } from '@forum/db'
+import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { drivers } from '@meith/drivers'
+import { parseThemeExport } from '@meith/db'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { requireThemeAdmin, themeTitle, themeTokens } from './theme-admin'

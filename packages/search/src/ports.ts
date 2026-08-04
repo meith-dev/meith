@@ -14,7 +14,7 @@
  * stays behind it and is not part of the contract.
  */
 
-import type { ContentScope } from '@forum/core'
+import type { ContentScope } from '@meith/core'
 
 /** What a viewer is allowed to see, resolved before the query runs. */
 export interface SearchScope {

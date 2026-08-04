@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { SubscriptionService } from '@forum/subscriptions'
-import { requireSlot } from '@forum/theme-kit'
+import { SubscriptionService } from '@meith/subscriptions'
+import { requireSlot } from '@meith/theme-kit'
 
 import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { getContainer } from '@/server/container'

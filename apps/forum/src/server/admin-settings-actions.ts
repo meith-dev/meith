@@ -26,15 +26,15 @@
  *    recorded a token. The row says *who changed which settings, and when*,
  *    which is what an audit log is for.
  */
-import { CacheTags, ValidationError, isAppError, logger } from '@forum/core'
-import { drivers } from '@forum/drivers'
-import { PostgresSettingsRepository, getDb } from '@forum/db'
+import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { drivers } from '@meith/drivers'
+import { PostgresSettingsRepository, getDb } from '@meith/db'
 import {
   SETTING_DEFINITIONS,
   coerceFormValue,
   saveSettings,
   type SettingDefinition,
-} from '@forum/settings'
+} from '@meith/settings'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { getSettings } from './settings'

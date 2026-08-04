@@ -7,7 +7,7 @@
  * deliberately, and all four are how a real board differs from a demo.
  */
 
-import type { ForumListingRow } from '@forum/forums'
+import type { ForumListingRow } from '@meith/forums'
 import { describe, expect, it } from 'vitest'
 
 import { buildBoardIndexView } from './board-index'

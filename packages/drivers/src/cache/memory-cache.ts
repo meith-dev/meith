@@ -7,7 +7,7 @@
  * anything requiring board-wide consistency belongs in NextCacheDriver or Redis.
  */
 
-import type { CacheDriver, CacheSetOptions } from '@forum/core'
+import type { CacheDriver, CacheSetOptions } from '@meith/core'
 
 interface Entry {
   value: unknown

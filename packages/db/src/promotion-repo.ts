@@ -1,7 +1,7 @@
 /**
  * Postgres implementation of `PromotionRepository` (F24).
  *
- * The rules and the safety guards live in `@forum/groups`; this only reads
+ * The rules and the safety guards live in `@meith/groups`; this only reads
  * candidates and applies decisions that have already been made.
  */
 import { asc, gt, sql } from 'drizzle-orm'
@@ -11,7 +11,7 @@ import type {
   PromotionOutcome,
   PromotionRepository,
   PromotionRule,
-} from '@forum/groups'
+} from '@meith/groups'
 
 import type { Database } from './client'
 import { groupPromotions, users } from './schema'

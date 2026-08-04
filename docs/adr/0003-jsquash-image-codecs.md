@@ -77,7 +77,7 @@ direct use.
 ## Decision
 
 **Option B.** `@jsquash/png`, `@jsquash/jpeg` and `@jsquash/resize` become
-runtime dependencies of `@forum/drivers`.
+runtime dependencies of `@meith/drivers`.
 
 The performance argument for `sharp` is real and is answered by *where* this
 runs, not by making it faster: image work belongs off the request path
@@ -87,8 +87,8 @@ inline in a route handler still blocks the event loop of a serverless function.
 
 Confinement, as with ADR 0002:
 
-- The codecs live behind their **own entry point**, `@forum/drivers/images`, and
-  are deliberately *not* re-exported from the `@forum/drivers` barrel. Every
+- The codecs live behind their **own entry point**, `@meith/drivers/images`, and
+  are deliberately *not* re-exported from the `@meith/drivers` barrel. Every
   route on the board imports that barrel to get a `FileStore`; putting ~630 KB
   of WebAssembly in it would make "a board that never accepts an image never
   compiles a codec" a slogan rather than a fact.

@@ -29,7 +29,7 @@ CREATE TABLE "notifications" (
 
   "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE cascade,
 
-  -- A registry id from `@forum/notifications`. Text rather than an enum, for
+  -- A registry id from `@meith/notifications`. Text rather than an enum, for
   -- the reason `visibility` and `warning_levels.action` are: adding a kind must
   -- not need a type migration, and a kind removed in a later deploy has to
   -- still render as *something* rather than break the read.

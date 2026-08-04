@@ -17,9 +17,9 @@ import { useActionState } from "react"
 
 /*
  * The leaf module, not the package barrel. This file runs in the browser and
- * the barrel reaches `@forum/core` -> `node:async_hooks`. See `limits.ts`.
+ * the barrel reaches `@meith/core` -> `node:async_hooks`. See `limits.ts`.
  */
-import { AVATAR_BOX, AVATAR_MAX_BYTES } from "@forum/avatars/limits"
+import { AVATAR_BOX, AVATAR_MAX_BYTES } from "@meith/avatars/limits"
 
 import { removeAvatarAction, saveAvatarAction } from "@/server/usercp-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"

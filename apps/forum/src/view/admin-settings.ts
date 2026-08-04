@@ -27,7 +27,7 @@ import {
   type SettingField,
   type SettingGroup,
   type SettingsSnapshot,
-} from '@forum/settings'
+} from '@meith/settings'
 
 export interface SettingFieldModel {
   readonly key: string

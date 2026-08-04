@@ -24,7 +24,7 @@ const workspaceRoot = path.join(here, "../../")
  * file: correct, since the image is configured by the container and
  * `.dockerignore` keeps `.env` out of it.
  *
- * Duplicated rather than imported: this file is `.mjs`, and `@forum/core` ships
+ * Duplicated rather than imported: this file is `.mjs`, and `@meith/core` ships
  * TypeScript source that nothing has transpiled at the moment Next reads its
  * config. Four lines, and the list is stated in both places on purpose.
  */
@@ -100,22 +100,22 @@ const nextConfig = {
   },
   // Workspace packages ship TypeScript source, not built output.
   transpilePackages: [
-    "@forum/accounts",
-    "@forum/authorization",
-    "@forum/core",
-    "@forum/db",
-    "@forum/drivers",
-    "@forum/events",
-    "@forum/forums",
-    "@forum/groups",
-    "@forum/posts",
-    "@forum/settings",
-    "@forum/shared",
-    "@forum/tasks",
-    "@forum/theme-default",
-    "@forum/theme-kit",
-    "@forum/threads",
-    "@forum/ui",
+    "@meith/accounts",
+    "@meith/authorization",
+    "@meith/core",
+    "@meith/db",
+    "@meith/drivers",
+    "@meith/events",
+    "@meith/forums",
+    "@meith/groups",
+    "@meith/posts",
+    "@meith/settings",
+    "@meith/shared",
+    "@meith/tasks",
+    "@meith/theme-default",
+    "@meith/theme-kit",
+    "@meith/threads",
+    "@meith/ui",
   ],
   async headers() {
     return [

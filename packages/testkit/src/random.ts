@@ -9,7 +9,7 @@
  *
  * mulberry32 — small, fast, and good enough for spreading rows across forums
  * and dates. It is not cryptographic and must never be used for tokens; the
- * real thing lives in `@forum/accounts/crypto`.
+ * real thing lives in `@meith/accounts/crypto`.
  */
 export interface Random {
   /** Float in [0, 1). */

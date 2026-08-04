@@ -1,4 +1,4 @@
-import type { RedirectNoticeModel } from '@forum/theme-kit'
+import type { RedirectNoticeModel } from '@meith/theme-kit'
 
 export const REDIRECT_DELAY_SECONDS = 2
 

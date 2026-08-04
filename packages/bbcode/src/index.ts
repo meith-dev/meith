@@ -1,5 +1,5 @@
 /**
- * `@forum/bbcode` — F36.
+ * `@meith/bbcode` — F36.
  *
  * The one place raw member text becomes markup. Everything else on the board
  * either receives HTML from here or escapes text itself; nothing else builds a

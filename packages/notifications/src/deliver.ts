@@ -2,8 +2,8 @@
  * F55 — sending the e-mail for one notification.
  *
  * This runs inside a queued job (F07's relay puts it there; see
- * `@forum/runtime`'s `notifications.email` handler), never on a request path.
- * It takes the `MailDriver` *port* from `@forum/core`, so the domain still has
+ * `@meith/runtime`'s `notifications.email` handler), never on a request path.
+ * It takes the `MailDriver` *port* from `@meith/core`, so the domain still has
  * no idea whether the board sends through SMTP, an HTTP provider, or a log
  * line — that choice belongs to the composition root.
  *
@@ -24,7 +24,7 @@
  * will be identical every time is how a job reaches its dead-letter for no
  * reason.
  */
-import type { MailDriver } from '@forum/core'
+import type { MailDriver } from '@meith/core'
 
 import { renderNotificationMail, type MailBrand } from './mail'
 import { renderNotification } from './render'

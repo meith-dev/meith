@@ -1,7 +1,7 @@
 /**
  * F42 at the app layer.
  *
- * The domain rules are unit-tested in `@forum/attachments` and the SQL against
+ * The domain rules are unit-tested in `@meith/attachments` and the SQL against
  * real Postgres. What is proven here is the part only the app can get wrong:
  * **the permission questions, and the order they are asked in.**
  *
@@ -13,9 +13,9 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
-import type { AttachmentForDownload, AttachmentRecord } from '@forum/attachments'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
+import type { AttachmentForDownload, AttachmentRecord } from '@meith/attachments'
 
 const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
@@ -23,7 +23,7 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 /** The file store and queue the app module reaches for through `drivers()`. */
 const objects = new Map<string, Uint8Array>()
 const enqueued: Array<{ kind: string; payload: unknown }> = []
-vi.mock('@forum/drivers', () => ({
+vi.mock('@meith/drivers', () => ({
   drivers: () => ({
     files: {
       async put(key: string, body: Uint8Array) {
@@ -52,7 +52,7 @@ vi.mock('@forum/drivers', () => ({
 
 /* The codecs are never exercised here — this file is about permissions, and
    loading 630 KB of WebAssembly to prove a refusal would be absurd. */
-vi.mock('@forum/drivers/images', () => ({
+vi.mock('@meith/drivers/images', () => ({
   imageProcessor: {
     async process() {
       throw new Error('not used in this suite')
@@ -164,7 +164,7 @@ async function scope(actor: Actor, forumId = PUBLIC_FORUM) {
       symbol,
       { authorizer: { forumMatrix(a: Actor, id: number): Promise<unknown> } }
     >
-  )[Symbol.for('@forum/forum.container')]!
+  )[Symbol.for('@meith/forum.container')]!
 
   return {
     forumId,

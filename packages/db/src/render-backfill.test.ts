@@ -9,8 +9,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
-import { RENDER_VERSION, renderBBCode } from '@forum/bbcode'
-import { expectQueryBudget } from '@forum/testkit'
+import { RENDER_VERSION, renderBBCode } from '@meith/bbcode'
+import { expectQueryBudget } from '@meith/testkit'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'

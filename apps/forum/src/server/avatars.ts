@@ -8,17 +8,17 @@ import 'server-only'
  * seeing somebody's avatar is `profile.view` rather than anything forum-scoped.
  * An avatar appears in a member list and on a profile, not only under a post.
  */
-import { ForbiddenError } from '@forum/core'
-import type { Actor } from '@forum/authorization'
+import { ForbiddenError } from '@meith/core'
+import type { Actor } from '@meith/authorization'
 import {
   AvatarService,
   NO_AVATAR,
   avatarUrl,
   avatarVisible,
   type StoredAvatar,
-} from '@forum/avatars'
-import { imageProcessor } from '@forum/drivers/images'
-import { drivers } from '@forum/drivers'
+} from '@meith/avatars'
+import { imageProcessor } from '@meith/drivers/images'
+import { drivers } from '@meith/drivers'
 import { cache } from 'react'
 
 import { getContainer } from './container'

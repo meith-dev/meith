@@ -18,10 +18,10 @@
  * purged through `invalidateTags`, never `set()`.
  *
  * Per R2 this package may import `next`; domain packages may not, which is why
- * this file lives here and not in `@forum/forums`.
+ * this file lives here and not in `@meith/forums`.
  */
 
-import type { CacheDriver, CacheSetOptions } from '@forum/core'
+import type { CacheDriver, CacheSetOptions } from '@meith/core'
 import { revalidateTag } from 'next/cache'
 
 import { MemoryCache } from './memory-cache'

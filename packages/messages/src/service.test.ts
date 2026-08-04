@@ -1,4 +1,4 @@
-import { ForbiddenError, NotFoundError, ValidationError } from '@forum/core'
+import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { MessageService } from './service'

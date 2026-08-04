@@ -1,4 +1,4 @@
-import type { ThreadViewModel } from '@forum/theme-kit'
+import type { ThreadViewModel } from '@meith/theme-kit'
 
 export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {
   return (

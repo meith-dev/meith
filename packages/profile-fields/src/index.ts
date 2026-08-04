@@ -1,5 +1,5 @@
 /**
- * `@forum/profile-fields` — F59.
+ * `@meith/profile-fields` — F59.
  *
  * Custom profile fields: typed, ordered, per-group visible and editable, and
  * optionally asked at registration. F57 gave a member three fields the board
@@ -11,7 +11,7 @@
  * everywhere on this board.
  *
  * A domain package in the R2 sense: interfaces in, no SQL, no Next, no driver
- * implementations — and no group ids, which only `@forum/authorization` may
+ * implementations — and no group ids, which only `@meith/authorization` may
  * reason about (F20). The rules that apply to an actor are filtered *there* and
  * handed here as data.
  */

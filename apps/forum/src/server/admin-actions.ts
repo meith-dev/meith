@@ -15,10 +15,10 @@
  */
 import { redirect } from 'next/navigation'
 
-import { generateToken, hashToken, verifyPassword } from '@forum/accounts'
-import { ForbiddenError, ValidationError, isAppError, logger, truncateIp } from '@forum/core'
+import { generateToken, hashToken, verifyPassword } from '@meith/accounts'
+import { ForbiddenError, ValidationError, isAppError, logger, truncateIp } from '@meith/core'
 
-import { ipAllowed } from '@forum/admin'
+import { ipAllowed } from '@meith/admin'
 
 import {
   adminAllowlist,

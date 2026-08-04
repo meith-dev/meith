@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { MAX_RELATIONS } from '@forum/relations'
-import { requireSlot } from '@forum/theme-kit'
+import { MAX_RELATIONS } from '@meith/relations'
+import { requireSlot } from '@meith/theme-kit'
 
 import { RemoveRelationForm } from '@/components/account/relation-forms'
 import { getActor } from '@/server/context'

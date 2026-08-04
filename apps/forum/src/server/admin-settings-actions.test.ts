@@ -1,7 +1,7 @@
 /**
  * F64's save, at the app layer.
  *
- * The registry's validation is tested in `@forum/settings` and the store
+ * The registry's validation is tested in `@meith/settings` and the store
  * against real Postgres. What is proven here is the part only this adapter can
  * get wrong, and one of them is the whole reason the form carries a hidden
  * field:
@@ -13,7 +13,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { SettingsSnapshot } from '@forum/settings'
+import { SettingsSnapshot } from '@meith/settings'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ userId: 1 }))
@@ -28,7 +28,7 @@ const snapshotRef = { current: SettingsSnapshot.fromOverrides(new Map()) }
 vi.mock('./settings', () => ({ getSettings: async () => snapshotRef.current }))
 
 const invalidated: string[][] = []
-vi.mock('@forum/drivers', () => ({
+vi.mock('@meith/drivers', () => ({
   drivers: () => ({
     cache: {
       async invalidateTags(tags: string[]) {
@@ -40,7 +40,7 @@ vi.mock('@forum/drivers', () => ({
 
 const written: Array<Map<string, string>> = []
 const deleted: string[][] = []
-vi.mock('@forum/db', () => ({
+vi.mock('@meith/db', () => ({
   getDb: () => ({}),
   PostgresSettingsRepository: class {
     async save(values: Map<string, string>) {
@@ -188,7 +188,7 @@ describe('caches and the audit log', () => {
      */
     const state = await saveAdminSettingsAction(
       {},
-      form({ keys: 'board.name', 'board.name': 'Forum' }),
+      form({ keys: 'board.name', 'board.name': 'Meith' }),
     )
 
     expect(state.notice).toBe('unchanged')

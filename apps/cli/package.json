@@ -1,5 +1,5 @@
 {
-  "name": "@forum/cli",
+  "name": "@meith/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,16 +11,16 @@
     "forum": "./dist/index.js"
   },
   "dependencies": {
-    "@forum/accounts": "workspace:*",
-    "@forum/authorization": "workspace:*",
-    "@forum/core": "workspace:*",
-    "@forum/db": "workspace:*",
-    "@forum/drivers": "workspace:*",
-    "@forum/events": "workspace:*",
-    "@forum/forums": "workspace:*",
-    "@forum/profile-fields": "workspace:*",
-    "@forum/settings": "workspace:*",
-    "@forum/tasks": "workspace:*"
+    "@meith/accounts": "workspace:*",
+    "@meith/authorization": "workspace:*",
+    "@meith/core": "workspace:*",
+    "@meith/db": "workspace:*",
+    "@meith/drivers": "workspace:*",
+    "@meith/events": "workspace:*",
+    "@meith/forums": "workspace:*",
+    "@meith/profile-fields": "workspace:*",
+    "@meith/settings": "workspace:*",
+    "@meith/tasks": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.6"

@@ -1,6 +1,6 @@
 import 'server-only'
 
-import type { MemberProfileRecord, MemberProfileRepository } from '@forum/accounts'
+import type { MemberProfileRecord, MemberProfileRepository } from '@meith/accounts'
 
 import { SEED_MEMBER_PROFILES } from './seed-board'
 

@@ -13,7 +13,7 @@
  * It stays `private` because who may see a member is still a permission
  * question and a shared cache must not answer it for us.
  */
-import { drivers } from '@forum/drivers'
+import { drivers } from '@meith/drivers'
 
 import { resolveAvatar } from '@/server/avatars'
 import { getActor } from '@/server/context'

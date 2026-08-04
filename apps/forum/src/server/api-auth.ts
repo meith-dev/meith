@@ -11,10 +11,10 @@ import {
   isScope,
   type ApiTokenRecord,
   type RateLimitStore,
-} from '@forum/api'
-import type { Actor } from '@forum/authorization'
-import { env, logger } from '@forum/core'
-import { PostgresApiTokenRepository, PostgresRateLimitStore, getDb } from '@forum/db'
+} from '@meith/api'
+import type { Actor } from '@meith/authorization'
+import { env, logger } from '@meith/core'
+import { PostgresApiTokenRepository, PostgresRateLimitStore, getDb } from '@meith/db'
 
 import { getContainer } from './container'
 

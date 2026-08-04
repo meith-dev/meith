@@ -6,7 +6,7 @@
  * atomicity property of one UPDATE, and a mock can only ever confirm the
  * assumption it was written with.
  */
-import { tick, type TaskDefinition } from '@forum/tasks'
+import { tick, type TaskDefinition } from '@meith/tasks'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 

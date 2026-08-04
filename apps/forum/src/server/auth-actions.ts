@@ -23,9 +23,9 @@ import {
   env,
   isAppError,
   logger,
-} from '@forum/core'
+} from '@meith/core'
 
-import { foldIdentifier } from '@forum/accounts'
+import { foldIdentifier } from '@meith/accounts'
 
 import { getContainer } from './container'
 import {

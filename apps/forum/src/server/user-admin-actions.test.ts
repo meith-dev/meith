@@ -1,7 +1,7 @@
 /**
  * F67's writes, at the app layer.
  *
- * The SQL is proven against real Postgres in `@forum/db`. What is proven here
+ * The SQL is proven against real Postgres in `@meith/db`. What is proven here
  * is what only this adapter can get wrong, and the one that matters most is
  * about *which mechanism* a ban goes through:
  *
@@ -27,7 +27,7 @@ vi.mock('./admin', () => ({
 }))
 
 const invalidated: string[][] = []
-vi.mock('@forum/drivers', () => ({
+vi.mock('@meith/drivers', () => ({
   drivers: () => ({
     cache: {
       async invalidateTags(tags: string[]) {

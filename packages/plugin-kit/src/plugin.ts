@@ -97,7 +97,7 @@ export interface PluginSetting {
  * button on a live board.
  *
  * Statements are SQL text rather than a query builder because a plugin must not
- * import `@forum/db` — only the host runs them, inside one transaction per
+ * import `@meith/db` — only the host runs them, inside one transaction per
  * migration, and a plugin that could open its own connection would be outside
  * every guarantee this codebase makes about the database.
  */

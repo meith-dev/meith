@@ -15,7 +15,7 @@
  * `Authorizer.can` against the actor's appointment rights, and arrive here as
  * booleans (R4).
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 export type ThreadTool =
   | 'lock'

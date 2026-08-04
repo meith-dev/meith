@@ -1,6 +1,6 @@
 # The plugin API, v1
 
-`@forum/plugin-kit` is the contract between the board and a plugin. This document
+`@meith/plugin-kit` is the contract between the board and a plugin. This document
 is the policy: what a plugin is, what it may and may not do, how failures are
 handled, and what the guarantees actually cover. The reference — every hook,
 every payload — is generated into [`plugin-hooks.md`](./plugin-hooks.md).
@@ -46,7 +46,7 @@ These are not discouraged. There is no API for them.
   resolved group membership, which invites a plugin to make its own permission
   decision from group ids — exactly what R4 forbids of core code.
 - **Open a database connection.** Migrations are SQL text the host runs; a
-  plugin does not import `@forum/db`.
+  plugin does not import `@meith/db`.
 - **Patch core.** There is no monkey-patching seam and no way to replace a
   domain command. Everything a plugin can do is in the registry.
 - **Fill a theme slot.** A theme owns its slots. Plugins contribute to *regions*

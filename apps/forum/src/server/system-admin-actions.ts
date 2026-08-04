@@ -17,8 +17,8 @@
  * operations that do not need it — which is exactly what makes the prompt
  * meaningless on the operations that do.
  */
-import { CacheTags, ValidationError, isAppError, logger } from '@forum/core'
-import { drivers } from '@forum/drivers'
+import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { requireSearch } from './search'

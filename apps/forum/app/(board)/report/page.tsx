@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { parseTargetKind } from '@forum/moderation'
+import { parseTargetKind } from '@meith/moderation'
 
 import { ReportForm } from '@/components/moderation/report-forms'
 import { getContainer } from '@/server/container'

@@ -7,7 +7,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { MailDriver, OutgoingMail } from '@forum/core'
+import type { MailDriver, OutgoingMail } from '@meith/core'
 
 import { deliverNotificationEmail } from './deliver'
 import type { DeliverableNotification, NotificationRepository } from './types'

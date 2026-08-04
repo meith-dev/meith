@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { quotePrefill } from '@forum/threads'
-import { requireSlot } from '@forum/theme-kit'
+import { quotePrefill } from '@meith/threads'
+import { requireSlot } from '@meith/theme-kit'
 
 import { ReplyForm } from '@/components/content/reply-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'

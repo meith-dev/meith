@@ -17,7 +17,7 @@
  * ## Loaded lazily, and that is load-bearing
  *
  * `mysql2` is imported inside `connect()` rather than at module scope, so
- * importing `@forum/import` — which the app does, for F86's URL table — does not
+ * importing `@meith/import` — which the app does, for F86's URL table — does not
  * pull a MySQL driver into the bundle. On a serverless deployment that is the
  * difference between a dependency the importer has and a dependency every
  * request pays for.
@@ -98,7 +98,7 @@ export class MysqlMybbSource implements MybbSource {
     const prefix = options.tablePrefix ?? 'mybb_'
     assertSafePrefix(prefix)
 
-    /* Dynamic, so `@forum/import` stays importable without a MySQL driver. */
+    /* Dynamic, so `@meith/import` stays importable without a MySQL driver. */
     const mysql = await import('mysql2/promise')
 
     const connection = await mysql.createConnection({

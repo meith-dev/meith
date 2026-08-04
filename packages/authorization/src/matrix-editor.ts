@@ -40,7 +40,7 @@ import {
   FORUM_PERMISSION_FIELDS,
   type ForumPermissions,
   type PermissionField,
-} from '@forum/core'
+} from '@meith/core'
 
 import { resolveForumMatrix } from './resolve'
 import type { ForumOverride, GroupDefaults } from './types'

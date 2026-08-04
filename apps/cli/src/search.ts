@@ -19,7 +19,7 @@
  * board and wrong for a terminal — an operator who has to run a command eleven
  * times will stop after the first and believe it is done.
  */
-import { PostgresSearchRepository, getDb } from '@forum/db'
+import { PostgresSearchRepository, getDb } from '@meith/db'
 
 import { requirePostgres } from './context'
 

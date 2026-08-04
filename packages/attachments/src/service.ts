@@ -30,8 +30,8 @@
  * validator. `process()` is what removes it, by writing the stored object from
  * decoded pixels. See ADR 0003.
  */
-import { ValidationError } from '@forum/core'
-import type { FileStore } from '@forum/core'
+import { ValidationError } from '@meith/core'
+import type { FileStore } from '@meith/core'
 
 import { declaredDimensions } from './dimensions'
 import { maxBytesFor, maxPerPostFor, type UploadLimits } from './limits'
@@ -156,7 +156,7 @@ export interface ProcessedImage {
 /**
  * Decoding and re-encoding, as a port.
  *
- * The implementation is `@forum/drivers/images` and carries ~630 KB of
+ * The implementation is `@meith/drivers/images` and carries ~630 KB of
  * WebAssembly with it (ADR 0003). It is a port so this package can be tested
  * without any of that, and — more importantly — so nothing that merely reads
  * attachments has to load a codec.

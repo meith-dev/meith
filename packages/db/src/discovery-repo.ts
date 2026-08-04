@@ -15,13 +15,13 @@
  * unit of interest genuinely is the post — somebody is looking for a thing they
  * wrote.
  *
- * Every one is a single statement. The budget test in `@forum/testkit` holds
+ * Every one is a single statement. The budget test in `@meith/testkit` holds
  * that, because an N+1 here does not fail — it passes slowly, on an empty
  * board, and falls over on a real one.
  */
 import { sql, type SQL } from 'drizzle-orm'
 
-import type { ContentScope } from '@forum/core'
+import type { ContentScope } from '@meith/core'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

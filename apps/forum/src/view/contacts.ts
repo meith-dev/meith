@@ -1,6 +1,6 @@
 /** F61's pure buddy/ignore view models. */
-import { isOnline, type RelationKind, type RelationRow } from '@forum/relations'
-import type { TimeModel } from '@forum/theme-kit'
+import { isOnline, type RelationKind, type RelationRow } from '@meith/relations'
+import type { TimeModel } from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
 import { formatTime } from './time'

@@ -16,8 +16,8 @@
  * a ban written as a state change produces a member who cannot be un-banned
  * correctly — the column says banned and no ban row exists to expire.
  */
-import { CacheTags, ValidationError, isAppError, logger } from '@forum/core'
-import { drivers } from '@forum/drivers'
+import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { banService, requireUserAdmin, requireUserBulk, requireUserMerge } from './user-admin'

@@ -9,7 +9,7 @@
 
 import type { TaskDefinition } from './types'
 
-/** Work each task delegates to. Implemented in the app layer over @forum/db. */
+/** Work each task delegates to. Implemented in the app layer over @meith/db. */
 export interface TaskWorkers {
   /** Moves committed outbox rows onto the queue. Returns rows relayed. */
   relayOutbox(batchSize: number): Promise<number>

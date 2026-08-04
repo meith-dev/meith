@@ -13,7 +13,7 @@
  *    username intact. Both are database states a mock would simply agree with.
  */
 import { sql } from 'drizzle-orm'
-import { expectQueryBudget } from '@forum/testkit'
+import { expectQueryBudget } from '@meith/testkit'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'

@@ -19,9 +19,9 @@
  * sees nothing rather than everything. Failing closed is the only safe
  * direction when the question is "may they be told about this".
  */
-import type { ActorSource, Authorizer } from '@forum/authorization'
-import { logger } from '@forum/core'
-import type { VisibleForumSource } from '@forum/subscriptions'
+import type { ActorSource, Authorizer } from '@meith/authorization'
+import { logger } from '@meith/core'
+import type { VisibleForumSource } from '@meith/subscriptions'
 
 export function visibleForumSource(deps: {
   readonly authorizer: Authorizer

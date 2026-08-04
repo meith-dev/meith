@@ -17,7 +17,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('./container', () => ({ getContainer: () => ({ dataSource: 'postgres' }) }))
-vi.mock('@forum/db', () => ({
+vi.mock('@meith/db', () => ({
   getDb: () => ({}),
   PostgresUserAdminRepository: class {},
   PostgresBanRepository: class {},

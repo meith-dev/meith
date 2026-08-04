@@ -1,6 +1,6 @@
 /** F50 — the thread-tool rules, without a database. */
 import { describe, expect, it } from 'vitest'
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import {
   ThreadTools,

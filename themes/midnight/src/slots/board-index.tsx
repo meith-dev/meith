@@ -1,4 +1,4 @@
-import type { BoardIndexModel } from '@forum/theme-kit'
+import type { BoardIndexModel } from '@meith/theme-kit'
 
 /**
  * The index body.

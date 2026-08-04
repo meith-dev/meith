@@ -7,7 +7,7 @@
  */
 import { inArray, sql } from 'drizzle-orm'
 
-import type { DomainEventName, OutboxReader, OutboxRecord } from '@forum/events'
+import type { DomainEventName, OutboxReader, OutboxRecord } from '@meith/events'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

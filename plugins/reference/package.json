@@ -1,12 +1,12 @@
 {
-  "name": "@forum/plugin-reference",
+  "name": "@meith/plugin-reference",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@forum/plugin-kit": "workspace:*"
+    "@meith/plugin-kit": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.2.0"

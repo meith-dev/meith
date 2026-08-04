@@ -3,7 +3,7 @@
 ## The short version
 
 ```sh
-npm install @forum/web@latest @forum/cli@latest
+npm install @meith/web@latest @meith/cli@latest
 npm run forum -- upgrade --dry-run   # read what it will do
 npm run forum -- upgrade
 ```
@@ -84,9 +84,9 @@ is what the migration set is exercised against, so two majors is what is claimed
 A board further behind is not stuck. Upgrade in stages:
 
 ```sh
-npm install @forum/web@2 @forum/cli@2 && npm run forum -- upgrade
-npm install @forum/web@3 @forum/cli@3 && npm run forum -- upgrade
-npm install @forum/web@latest @forum/cli@latest && npm run forum -- upgrade
+npm install @meith/web@2 @meith/cli@2 && npm run forum -- upgrade
+npm install @meith/web@3 @meith/cli@3 && npm run forum -- upgrade
+npm install @meith/web@latest @meith/cli@latest && npm run forum -- upgrade
 ```
 
 Each stage is an ordinary upgrade with an ordinary backup in front of it.

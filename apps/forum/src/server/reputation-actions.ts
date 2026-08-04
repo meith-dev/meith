@@ -14,8 +14,8 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { parseRating } from '@forum/reputation'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { parseRating } from '@meith/reputation'
 
 import { getActor } from './context'
 import { reputationService, reputationSettings, viewerRaterLimits } from './reputation'
@@ -79,7 +79,7 @@ export async function rateMemberAction(_prev: FormState, form: FormData): Promis
 
     /*
      * The board's rules and the rater's limits are both resolved here and
-     * handed to the service as plain values — `@forum/reputation` knows nothing
+     * handed to the service as plain values — `@meith/reputation` knows nothing
      * about settings tables or groups (F08, F20).
      */
     const [settings, limits] = await Promise.all([reputationSettings(), viewerRaterLimits()])

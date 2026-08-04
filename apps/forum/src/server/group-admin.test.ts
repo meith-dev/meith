@@ -9,7 +9,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { PERMISSION_FIELDS, emptyPermissionSet } from '@forum/core'
+import { PERMISSION_FIELDS, emptyPermissionSet } from '@meith/core'
 
 const dataSource = { current: 'postgres' as 'postgres' | 'fixture' }
 vi.mock('./container', () => ({
@@ -33,7 +33,7 @@ const groups = {
 }
 const permissions = { current: { ...emptyPermissionSet(), canView: true } }
 
-vi.mock('@forum/db', () => ({
+vi.mock('@meith/db', () => ({
   getDb: () => ({}),
   PostgresGroupAdminRepository: class {
     async list() {

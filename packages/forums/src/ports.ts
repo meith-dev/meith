@@ -1,5 +1,5 @@
 /**
- * The repository seam (R2: domain packages declare interfaces, `@forum/db`
+ * The repository seam (R2: domain packages declare interfaces, `@meith/db`
  * implements them and is the only package that opens a connection).
  */
 import type { ForumListingRow, ForumRow, MovePlan, MoveTarget, NewForum } from './types'

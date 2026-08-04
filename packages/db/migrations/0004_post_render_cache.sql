@@ -1,7 +1,7 @@
 -- F36 — where a rendered post body lives.
 --
 -- `posts.message` is the raw BBCode the member typed and stays the source of
--- truth; these two columns are a cache of what `@forum/bbcode` makes of it.
+-- truth; these two columns are a cache of what `@meith/bbcode` makes of it.
 -- Both are needed, and the version is the important one: HTML with no record of
 -- which renderer produced it can only be invalidated by rewriting every row,
 -- which on a 2M-post board is a migration nobody can run during a security fix.

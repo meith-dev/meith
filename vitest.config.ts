@@ -1,7 +1,7 @@
 /**
  * F11 — unit and integration test runner.
  *
- * Resolves `@forum/*` through the same tsconfig path aliases the compiler and
+ * Resolves `@meith/*` through the same tsconfig path aliases the compiler and
  * dependency-cruiser use, so a test importing a package exercises exactly the
  * module the build would pick.
  */

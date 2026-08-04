@@ -16,7 +16,7 @@ export interface PostListingRow {
    *
    * Read together or not at all — `messageHtml` without `renderVersion` is HTML
    * of unknown provenance, which is the one thing a body must never be. The
-   * pair satisfies `RenderablePost` in `@forum/bbcode`; `postBodyHtml` is what
+   * pair satisfies `RenderablePost` in `@meith/bbcode`; `postBodyHtml` is what
    * decides between them.
    */
   readonly messageHtml: string | null

@@ -1,5 +1,5 @@
 /**
- * `@forum/reputation` — F62.
+ * `@meith/reputation` — F62.
  *
  * Members rating each other, with a comment, a per-group daily cap, board
  * settings, a history, and a total that is **derived rather than incremented**.
@@ -13,7 +13,7 @@
  *
  * A domain package in the R2 sense: interfaces in, no SQL, no Next. "May this
  * member rate" and "how many a day" arrive as a boolean and a number, resolved
- * by `@forum/authorization` (F20).
+ * by `@meith/authorization` (F20).
  */
 export {
   COMMENT_MAX,

@@ -8,8 +8,8 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { ValidationError } from '@forum/core'
-import type { WordFilterRule } from '@forum/bbcode'
+import { ValidationError } from '@meith/core'
+import type { WordFilterRule } from '@meith/bbcode'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

@@ -23,7 +23,7 @@ import {
   FORUM_PERMISSION_FIELDS,
   type ForumPermissions,
   type PermissionSet,
-} from '@forum/core'
+} from '@meith/core'
 
 import { combineGroupValue } from './combine'
 import type { ForumOverride, GroupDefaults } from './types'

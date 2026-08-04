@@ -1,6 +1,6 @@
 /**
  * Generates the permission columns for `usergroups` and `forum_permissions`
- * from the single registry in `@forum/core`.
+ * from the single registry in `@meith/core`.
  *
  * The two tables carry the same field list with different nullability:
  *
@@ -18,7 +18,7 @@ import {
   PERMISSION_FIELDS,
   type PermissionField,
   type PermissionScope,
-} from '@forum/core'
+} from '@meith/core'
 
 /** camelCase key -> snake_case column name. See docs/mybb-parity.md. */
 export function columnName(key: string): string {

@@ -1,7 +1,7 @@
 /**
  * F51 at the app layer.
  *
- * The rules are unit-tested in `@forum/moderation` and the arithmetic against
+ * The rules are unit-tested in `@meith/moderation` and the arithmetic against
  * real Postgres. What is proven here is the seam neither can see: that a merge
  * resolves rights in *both* threads' forums, that the target thread is located
  * through `thread.view` so the id box is not a thread-existence oracle, and
@@ -13,15 +13,15 @@ import {
   InMemoryAuthorizationSource,
   combinePermissionSets,
   type MemoryAppointment,
-} from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
+} from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
 import type {
   MergePlan,
   SplitPlan,
   SurgeryOutcome,
   SurgeryThread,
   ThreadSurgeryRepository,
-} from '@forum/moderation'
+} from '@meith/moderation'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

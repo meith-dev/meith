@@ -31,7 +31,7 @@
  *     splits the work into bounded transactions instead of refusing it. See
  *     `INLINE_CHUNK` for why that is safe to leave half-done.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import type { MoveDestination } from './thread-tools'
 import type { QueueSelection } from './queue'
@@ -67,7 +67,7 @@ export interface InlineTarget extends QueueSelection {
  * What the caller has already resolved for one forum.
  *
  * Booleans, not permissions: group ids and matrix fields do not leave
- * `@forum/authorization` (R4). The caller asks `can()` once per forum and hands
+ * `@meith/authorization` (R4). The caller asks `can()` once per forum and hands
  * over the answers, exactly as F50's thread tools do.
  */
 export interface InlineRights {

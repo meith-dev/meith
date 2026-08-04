@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
-import { PUBLIC_CONTENT } from '@forum/core'
-import { expectQueryBudget } from '@forum/testkit'
+import { PUBLIC_CONTENT } from '@meith/core'
+import { expectQueryBudget } from '@meith/testkit'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'

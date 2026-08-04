@@ -1,6 +1,6 @@
 /** F41 — the edit and delete rules, without a database in sight. */
 import { describe, expect, it } from 'vitest'
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import {
   PostEditor,

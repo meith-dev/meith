@@ -1,6 +1,6 @@
 /** F52 — the inline-moderation rules, without a database. */
 import { describe, expect, it } from 'vitest'
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import {
   INLINE_CHUNK,

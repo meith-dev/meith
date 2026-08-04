@@ -1,6 +1,6 @@
 /** F53's pure warning view models. */
-import type { TimeModel } from '@forum/theme-kit'
-import type { WarningRow, WarningStanding, WarningType } from '@forum/moderation'
+import type { TimeModel } from '@meith/theme-kit'
+import type { WarningRow, WarningStanding, WarningType } from '@meith/moderation'
 
 import { memberHref } from './member-profile'
 import { formatTime } from './time'

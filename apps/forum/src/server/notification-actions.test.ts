@@ -1,7 +1,7 @@
 /**
  * F55 at the app layer.
  *
- * The service's judgements are unit-tested in `@forum/notifications` and the SQL
+ * The service's judgements are unit-tested in `@meith/notifications` and the SQL
  * against real Postgres. What is proven here is the seam neither can see: that
  * every action is scoped to the signed-in member, and that the *audience* of a
  * preferences save comes from the actor rather than from the submitted form.
@@ -13,14 +13,14 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
 import type {
   DeliverableNotification,
   NotificationRepository,
   RaiseInput,
   RaiseResult,
-} from '@forum/notifications'
+} from '@meith/notifications'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

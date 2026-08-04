@@ -35,8 +35,8 @@
  * slots of one theme, and lives here.
  */
 
-import { defaultTheme } from '@forum/theme-default'
-import { defineTheme } from '@forum/theme-kit'
+import { defaultTheme } from '@meith/theme-default'
+import { defineTheme } from '@meith/theme-kit'
 
 import { BoardIndex } from './slots/board-index'
 import { BoardStats } from './slots/board-stats'

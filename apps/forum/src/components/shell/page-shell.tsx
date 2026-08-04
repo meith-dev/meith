@@ -1,6 +1,6 @@
-import { requireSlot } from '@forum/theme-kit'
-import type { Actor } from '@forum/authorization'
-import { currentRequestId } from '@forum/core/logger'
+import { requireSlot } from '@meith/theme-kit'
+import type { Actor } from '@meith/authorization'
+import { currentRequestId } from '@meith/core/logger'
 
 import { LogoutForm } from '@/components/account/logout-form'
 import { getContainer } from '@/server/container'

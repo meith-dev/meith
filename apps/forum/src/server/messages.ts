@@ -7,13 +7,13 @@ import 'server-only'
  * receive, and how many may they keep", and the **notifier** that turns F60's
  * two-verb port into F55 raises.
  *
- * The policy is the interesting one. `@forum/messages` deliberately knows
+ * The policy is the interesting one. `@meith/messages` deliberately knows
  * nothing about groups (F20), so the two questions it cannot answer are asked
  * here, through the Authorizer and nothing else — `pm.use` for the boolean and
  * `globalLimit` for the number. Neither is read off the actor directly, which
  * is the rule that keeps every permission answer inside one package.
  */
-import { MessageService, type MessageNotifierPort, type MessagePolicy } from '@forum/messages'
+import { MessageService, type MessageNotifierPort, type MessagePolicy } from '@meith/messages'
 
 import { getContainer } from './container'
 import { relationService } from './relations'
@@ -55,7 +55,7 @@ export function messagePolicy(): MessagePolicy {
 
   return {
     async lookup(username) {
-      const { foldIdentifier } = await import('@forum/accounts')
+      const { foldIdentifier } = await import('@meith/accounts')
       const account = await accountStore.accounts.findByUsernameLower(
         foldIdentifier(username),
       )

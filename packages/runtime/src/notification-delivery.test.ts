@@ -3,7 +3,7 @@
  *
  * Each piece is tested where it lives: the raise and its outbox row against
  * real Postgres, the rendering and the delivery decisions in
- * `@forum/notifications`. What no other test can see is whether they are
+ * `@meith/notifications`. What no other test can see is whether they are
  * *wired to each other* — that the relay turns a `notification.created` row
  * into a job whose `kind` is the handler id the drain looks up, and that the
  * handler reaches a mail driver. That is F38's argument for
@@ -14,13 +14,13 @@
  * fail.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MemoryMailDriver, MemoryQueue } from '@forum/drivers'
-import type { OutboxReader, OutboxRecord } from '@forum/events'
+import { MemoryMailDriver, MemoryQueue } from '@meith/drivers'
+import type { OutboxReader, OutboxRecord } from '@meith/events'
 import {
   deliverNotificationEmail,
   type DeliverableNotification,
   type NotificationRepository,
-} from '@forum/notifications'
+} from '@meith/notifications'
 
 import { buildEventRegistry } from './event-handlers'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'

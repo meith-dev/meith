@@ -17,7 +17,7 @@
  *     twelve items and acts on eleven must be told, or the queue quietly
  *     disagrees with itself about what happened.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 export type QueueItemKind = 'thread' | 'post'
 
@@ -141,7 +141,7 @@ export class ModerationQueue {
    * `moderatedForumIds` is the caller's already-resolved answer to "which
    * forums may this actor act in" — the same set the listing used. Passing it
    * rather than an actor keeps group and matrix reasoning inside
-   * `@forum/authorization` (R4), and means this command cannot accidentally
+   * `@meith/authorization` (R4), and means this command cannot accidentally
    * widen its own authority.
    */
   async decide(input: {

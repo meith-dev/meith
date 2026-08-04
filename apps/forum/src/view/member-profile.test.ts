@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { MemberProfileRecord } from '@forum/accounts'
+import type { MemberProfileRecord } from '@meith/accounts'
 
 import { buildMemberProfileView, memberHref } from './member-profile'
 

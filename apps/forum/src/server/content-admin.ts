@@ -9,9 +9,9 @@ import 'server-only'
  * cost of an operator ignoring that is a slower thread page rather than a
  * broken one.
  */
-import { CacheTags, ForbiddenError } from '@forum/core'
-import { compileWordFilter, type CompiledWordFilter } from '@forum/bbcode'
-import { PostgresContentAdminRepository, getDb } from '@forum/db'
+import { CacheTags, ForbiddenError } from '@meith/core'
+import { compileWordFilter, type CompiledWordFilter } from '@meith/bbcode'
+import { PostgresContentAdminRepository, getDb } from '@meith/db'
 import { unstable_cache } from 'next/cache'
 
 import { getContainer } from './container'

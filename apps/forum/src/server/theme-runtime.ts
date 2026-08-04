@@ -1,8 +1,8 @@
 import 'server-only'
 
-import { CacheTags, env } from '@forum/core'
+import { CacheTags, env } from '@meith/core'
 /*
- * Statically imported, not lazily required. Turbopack resolves `@forum/db` as
+ * Statically imported, not lazily required. Turbopack resolves `@meith/db` as
  * an async module, and a synchronous `require()` of one yields the pending
  * namespace rather than the exports — so `getDb` came back `undefined` and this
  * threw `TypeError: getDb is not a function` on every render. Importing opens
@@ -10,8 +10,8 @@ import { CacheTags, env } from '@forum/core'
  * which is the property the require was thought to be protecting. See
  * `container.ts` for the full account.
  */
-import { PostgresThemeRepository, getDb } from '@forum/db'
-import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@forum/theme-default'
+import { PostgresThemeRepository, getDb } from '@meith/db'
+import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@meith/theme-default'
 import { unstable_cache } from 'next/cache'
 
 import forumConfig from '../../forum.config'

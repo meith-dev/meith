@@ -33,7 +33,7 @@ import 'server-only'
  * oracle for what exists in forums the caller cannot see, and the id is a small
  * integer anybody can enumerate.
  */
-import { drivers } from '@forum/drivers'
+import { drivers } from '@meith/drivers'
 
 import { resolveDownload } from './attachments'
 import { getActor } from './context'

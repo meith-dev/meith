@@ -1,5 +1,5 @@
 /**
- * `@forum/moderation` — F48, and the home of Phase 4's commands.
+ * `@meith/moderation` — F48, and the home of Phase 4's commands.
  *
  * The queue is first because it is the only moderator surface whose mechanism
  * already existed: approving is F41's `unapproved → visible`. What lives here is

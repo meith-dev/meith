@@ -7,7 +7,7 @@
  * rather than trusted from a form, "already subscribed" is not an error, and
  * every verb is scoped to the member performing it.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import {
   parseSubscriptionMode,
@@ -35,7 +35,7 @@ export class SubscriptionService {
    * and because a separate `changeMode` would be a second place that has to
    * remember not to reset the watermark. `mayView` is the caller's
    * already-resolved answer: group reasoning does not leave
-   * `@forum/authorization` (R4), and the repository is handed a decision rather
+   * `@meith/authorization` (R4), and the repository is handed a decision rather
    * than making one.
    */
   async subscribe(input: {

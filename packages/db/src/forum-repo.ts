@@ -1,7 +1,7 @@
 /**
  * Postgres implementation of `ForumRepository` (F16).
  *
- * The domain owns the rules (`@forum/forums` plans a move and rejects cycles,
+ * The domain owns the rules (`@meith/forums` plans a move and rejects cycles,
  * link-parents and slug collisions); this file is only responsible for reading
  * the tree in one query and applying a plan atomically.
  *
@@ -28,8 +28,8 @@ import type {
   MovePlan,
   MoveTarget,
   NewForum,
-} from '@forum/forums'
-import { childPath, planCreate, planMove } from '@forum/forums'
+} from '@meith/forums'
+import { childPath, planCreate, planMove } from '@meith/forums'
 
 import type { Database } from './client'
 import { forums } from './schema'

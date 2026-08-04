@@ -1,4 +1,4 @@
-import type { ThreadViewModel } from '@forum/theme-kit'
+import type { ThreadViewModel } from '@meith/theme-kit'
 
 /** A thread page: heading, posts, paging, and the reply affordance at both ends. */
 export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {

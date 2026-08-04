@@ -13,7 +13,7 @@ import {
   contentScopeFrom,
   type ContentScope,
   type ForumPermissions,
-} from '@forum/core'
+} from '@meith/core'
 
 import { NO_MODERATOR_RIGHTS, type ModeratorRights } from './types'
 

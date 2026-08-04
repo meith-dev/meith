@@ -1,5 +1,5 @@
 /**
- * Repository seam for promotions (R2: the domain declares, `@forum/db`
+ * Repository seam for promotions (R2: the domain declares, `@meith/db`
  * implements).
  */
 import type { PromotionCandidate, PromotionOutcome, PromotionRule } from './promotion'

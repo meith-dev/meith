@@ -1,5 +1,5 @@
 /**
- * `@forum/subscriptions` — F56.
+ * `@meith/subscriptions` — F56.
  *
  * Following a thread or a forum, and being told about what arrives in it. The
  * two tables this reads have existed since migration `0000` and were written by

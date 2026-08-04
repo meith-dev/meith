@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { PUBLIC_CONTENT } from '@forum/core'
+import { PUBLIC_CONTENT } from '@meith/core'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'

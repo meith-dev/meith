@@ -19,7 +19,7 @@
  * to an address nobody controls, and it reuses F19's `email_change` credential
  * token, whose `payload` column has been waiting for exactly this.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import { hashPassword, needsRehash, verifyPassword } from './crypto/password'
 import { generateToken, hashToken } from './crypto/tokens'

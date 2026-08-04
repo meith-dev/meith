@@ -15,8 +15,8 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { parseFolder } from '@forum/messages'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { parseFolder } from '@meith/messages'
 
 import { getActor } from './context'
 import { getContainer } from './container'

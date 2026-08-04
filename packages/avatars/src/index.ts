@@ -1,5 +1,5 @@
 /**
- * `@forum/avatars` — F58's other half.
+ * `@meith/avatars` — F58's other half.
  *
  * An avatar is an upload, so the machinery is F42's: sniff the bytes, refuse
  * anything the board cannot attest to, store the original where nothing can
@@ -7,7 +7,7 @@
  * the encoder wrote. D65 is why, and none of it is restated here.
  *
  * What is different, and why this is its own package rather than a corner of
- * `@forum/attachments`:
+ * `@meith/attachments`:
  *
  * **There is one per member, and a new one replaces the old.** So the write is
  * an overwrite, and the object it replaces has to be handed to the sweep rather
@@ -31,15 +31,15 @@
  * with an SSRF problem bolted on the front. So it is absent rather than
  * half-built (D32).
  */
-import { ForbiddenError, ValidationError } from '@forum/core'
-import type { FileStore } from '@forum/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
+import type { FileStore } from '@meith/core'
 import {
   acceptFile,
   storageKeyFor,
   type AcceptedUpload,
   type ImageProcessor,
   type IncomingFile,
-} from '@forum/attachments'
+} from '@meith/attachments'
 
 import { AVATAR_BOX, AVATAR_MAX_BYTES } from './limits'
 
@@ -162,7 +162,7 @@ export class AvatarService {
    *
    * The permission is the caller's to check — this takes `mayUpload` as an
    * answer rather than a question, because group and permission reasoning does
-   * not leave `@forum/authorization` (R4). The **lock** is checked here,
+   * not leave `@meith/authorization` (R4). The **lock** is checked here,
    * though: it is not a permission, it is a sanction on one member, and a
    * caller that had to remember it would eventually not.
    */

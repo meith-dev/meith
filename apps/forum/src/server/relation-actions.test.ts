@@ -1,7 +1,7 @@
 /**
  * F61 at the app layer.
  *
- * The rules are unit-tested in `@forum/relations` and the SQL against real
+ * The rules are unit-tested in `@meith/relations` and the SQL against real
  * Postgres. What is proven here is the seam neither can see:
  *
  *  - the list being changed is the *session's*, never the form's;
@@ -13,9 +13,9 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
-import type { RelationKind, RelationRepository, RelationRow } from '@forum/relations'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
+import type { RelationKind, RelationRepository, RelationRow } from '@meith/relations'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
@@ -128,7 +128,7 @@ async function install(group: number = SEED_GROUP.registered): Promise<void> {
     accounts: { create(input: Record<string, unknown>): Promise<{ id: number }> }
   }
 
-  const { hashPassword } = await import('@forum/accounts')
+  const { hashPassword } = await import('@meith/accounts')
   const hash = await hashPassword('correct horse battery staple')
   for (const [name, primaryGroupId] of [
     ['ivan', SEED_GROUP.registered],

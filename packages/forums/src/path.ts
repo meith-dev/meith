@@ -18,7 +18,7 @@
  * it. Every subtree predicate in this codebase goes through `subtreeOf` or the
  * repository helper that mirrors it, never a hand-written LIKE.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 /** Separator between ids. Kept here so nothing hardcodes '.'. */
 export const PATH_SEPARATOR = '.'

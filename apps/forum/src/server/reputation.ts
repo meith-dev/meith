@@ -6,13 +6,13 @@ import 'server-only'
  * Three things live here: the service, the **board settings** it needs, and the
  * **per-group limits** for whoever is rating.
  *
- * The limits are where F20's rule shows up: `@forum/reputation` knows nothing
+ * The limits are where F20's rule shows up: `@meith/reputation` knows nothing
  * about groups, so "may this member rate" and "how many a day" are asked
  * through the Authorizer — `can(actor, 'reputation.give')` for the boolean and
  * `globalLimit` for the number — and handed over as plain values.
  */
-import type { RaterLimits, ReputationSettings } from '@forum/reputation'
-import { ReputationService } from '@forum/reputation'
+import type { RaterLimits, ReputationSettings } from '@meith/reputation'
+import { ReputationService } from '@meith/reputation'
 
 import { getContainer } from './container'
 import { getActor } from './context'

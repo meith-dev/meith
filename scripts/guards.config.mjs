@@ -73,14 +73,14 @@ export const GUARDS = [
      * booted standalone image rather than a dev server. See ADR 0003.
      */
     /*
-     * F82's `create-forum` joins the exemption for the plainest possible reason:
+     * F82's `create-meith` joins the exemption for the plainest possible reason:
      * it is a CLI that runs *before a board exists*, on a real filesystem, and
      * its `readdir` asks "is this directory empty" — the check that stops it
      * overwriting somebody's `.git`. Nothing about it makes an installed set
      * unknowable at build time, which is the harm the rule exists to prevent.
      */
     allow:
-      /^(scripts\/|apps\/cli\/|packages\/create-forum\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts|packages\/drivers\/src\/images\/locate-wasm\.ts)/,
+      /^(scripts\/|apps\/cli\/|packages\/create-meith\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts|packages\/drivers\/src\/images\/locate-wasm\.ts)/,
     probe: {
       violates: "const themes = await readdir('./themes')",
       clean: "import themes from './forum.config'",
@@ -98,7 +98,7 @@ export const GUARDS = [
      *
      * It is not configuration: Next replaces it with a string literal during
      * each per-runtime compilation, and reading it literally is what lets the
-     * Edge build drop a Node-only branch. Routed through `env` in @forum/core it
+     * Edge build drop a Node-only branch. Routed through `env` in @meith/core it
      * would become a runtime value, the branch would stay reachable, and
      * `apps/forum/instrumentation.ts` would go back to failing to compile for
      * Edge — silently, as a warning. Every real config read stays banned.
@@ -119,7 +119,7 @@ export const GUARDS = [
       /^(packages\/core\/src\/env\.ts|scripts\/|apps\/(cli|worker)\/|eslint\.config\.mjs|.*\.config\.(ts|mts|mjs|js|cjs)$|.*\.test\.ts|packages\/testkit\/)/,
     probe: {
       violates: "const url = process.env.DATABASE_URL",
-      clean: "import { env } from '@forum/core'\nconst url = env.DATABASE_URL",
+      clean: "import { env } from '@meith/core'\nconst url = env.DATABASE_URL",
     },
     /*
      * A second clean sample for the NEXT_RUNTIME carve-out. One `clean` cannot
@@ -231,7 +231,7 @@ export const GUARDS = [
   {
     id: 'R2 no-lazy-require-of-db',
     why:
-      "@forum/db must be imported statically, never with require(). Turbopack " +
+      "@meith/db must be imported statically, never with require(). Turbopack " +
       'resolves it as an async module — its graph reaches postgres.js — and a ' +
       'synchronous require() of an async module yields the pending namespace ' +
       'rather than the exports, so every destructured binding is undefined and ' +
@@ -243,10 +243,10 @@ export const GUARDS = [
       'Importing costs nothing that matters: getDb() creates its client lazily ' +
       'and refuses in fixture mode, so nothing opens a socket at import.',
     files: /^apps\/forum\/.*\.tsx?$/,
-    pattern: /require\(\s*['"]@forum\/db['"]\s*\)/,
+    pattern: /require\(\s*['"]@meith\/db['"]\s*\)/,
     probe: {
-      violates: "const { getDb } = require('@forum/db') as typeof import('@forum/db')",
-      clean: "import { getDb } from '@forum/db'",
+      violates: "const { getDb } = require('@meith/db') as typeof import('@meith/db')",
+      clean: "import { getDb } from '@meith/db'",
     },
   },
   {

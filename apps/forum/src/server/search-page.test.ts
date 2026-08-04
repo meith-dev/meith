@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('./container', () => ({ getContainer: () => ({ dataSource: 'postgres' }) }))
 vi.mock('./search', () => ({ requireSearch: () => ({}), searchScopeFor: async () => ({}) }))
 vi.mock('./settings', () => ({ getSettings: async () => ({ get: () => 0 }) }))
-vi.mock('@forum/db', () => ({
+vi.mock('@meith/db', () => ({
   getDb: () => ({}),
   PostgresSearchStore: class {},
   ownsSearch: () => true,

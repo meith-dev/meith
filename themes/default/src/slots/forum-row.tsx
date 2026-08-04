@@ -1,4 +1,4 @@
-import type { ForumRowSlotModel } from '@forum/theme-kit'
+import type { ForumRowSlotModel } from '@meith/theme-kit'
 
 /**
  * One forum in a listing (F29).

@@ -1,7 +1,7 @@
 /**
  * F59 at the app layer.
  *
- * The resolution rules are unit-tested in `@forum/profile-fields` and the SQL
+ * The resolution rules are unit-tested in `@meith/profile-fields` and the SQL
  * against real Postgres. What is proven here is the seam neither can see:
  *
  *  - the viewer's rules come from `Authorizer.applicableGroupRows`, so a field
@@ -16,16 +16,16 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
 import type {
   FieldType,
   ProfileFieldDefinition,
   ProfileFieldGroupRule,
   ProfileFieldRepository,
   ProfileFieldValue,
-} from '@forum/profile-fields'
-import type { MemberSettings, MemberSettingsRepository } from '@forum/accounts'
+} from '@meith/profile-fields'
+import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

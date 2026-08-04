@@ -10,7 +10,7 @@
  */
 import { useActionState } from "react"
 
-import type { MatrixCell, MatrixRow } from "@forum/authorization"
+import type { MatrixCell, MatrixRow } from "@meith/authorization"
 
 import {
   appointModeratorAction,

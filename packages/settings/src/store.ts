@@ -8,11 +8,11 @@
  * should not take the whole board down.
  */
 
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 import { SETTING_DEFINITION_BY_KEY, SETTING_DEFINITIONS } from './definitions'
 import type { SettingDefinition, SettingKey, SettingValue } from './definitions'
 
-/** Storage seam. `@forum/settings` is a domain package (R2), so no @forum/db. */
+/** Storage seam. `@meith/settings` is a domain package (R2), so no @meith/db. */
 export interface SettingsRepository {
   /** All persisted overrides. Defaults are *not* stored, only deviations. */
   loadAll(): Promise<ReadonlyMap<string, string>>

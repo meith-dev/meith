@@ -15,8 +15,8 @@ import 'server-only'
  * reporting a provider outage as "your e-mail change failed" would be a lie
  * about what happened.
  */
-import { env, logger } from '@forum/core'
-import { drivers } from '@forum/drivers'
+import { env, logger } from '@meith/core'
+import { drivers } from '@meith/drivers'
 
 import { getSettings } from './settings'
 

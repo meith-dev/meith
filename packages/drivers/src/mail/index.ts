@@ -7,7 +7,7 @@
  * deliberately contain no retry logic of their own.
  */
 
-import { ConfigurationError, logger, type MailDriver, type OutgoingMail } from '@forum/core'
+import { ConfigurationError, logger, type MailDriver, type OutgoingMail } from '@meith/core'
 
 /**
  * Writes mail to the log instead of sending it. The default in development and

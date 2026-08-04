@@ -59,9 +59,9 @@ ENV NODE_ENV=production
 # enforced unconditionally when the server boots, in the runtime stage.
 ENV DATA_SOURCE=fixture
 
-RUN pnpm --filter @forum/web build
+RUN pnpm --filter @meith/web build
 # Bundled separately from the Next output; see the COPY below for why.
-RUN pnpm --filter @forum/worker build
+RUN pnpm --filter @meith/worker build
 
 # ---------------------------------------------------------------------------
 # runtime: standalone output only.

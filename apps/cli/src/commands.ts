@@ -12,10 +12,10 @@ import {
   saveSettings,
   type SettingDefinition,
   type SettingKey,
-} from '@forum/settings'
-import { ValidationError } from '@forum/core'
-import { FORUM_TYPES, type ForumType } from '@forum/forums'
-import { foldIdentifier } from '@forum/accounts'
+} from '@meith/settings'
+import { ValidationError } from '@meith/core'
+import { FORUM_TYPES, type ForumType } from '@meith/forums'
+import { foldIdentifier } from '@meith/accounts'
 
 import { createContext, type CliContext } from './context'
 import { integer, optional, parseFlags, required, type Flags } from './args'

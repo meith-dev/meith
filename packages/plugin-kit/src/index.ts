@@ -1,5 +1,5 @@
 /**
- * `@forum/plugin-kit` — the contract between the board and a plugin (F79).
+ * `@meith/plugin-kit` — the contract between the board and a plugin (F79).
  *
  * Four things:
  *

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { ModerationQueue } from '@forum/moderation'
-import { requireSlot } from '@forum/theme-kit'
+import { ModerationQueue } from '@meith/moderation'
+import { requireSlot } from '@meith/theme-kit'
 
 import { QueueForm } from '@/components/moderation/queue-form'
 import { getContainer } from '@/server/container'

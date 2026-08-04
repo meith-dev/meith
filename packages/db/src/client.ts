@@ -22,7 +22,7 @@
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 
-import { env, ConfigurationError } from '@forum/core'
+import { env, ConfigurationError } from '@meith/core'
 
 import * as schema from './schema'
 

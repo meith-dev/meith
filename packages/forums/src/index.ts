@@ -1,9 +1,9 @@
 /**
- * @forum/forums — the forum tree (F16).
+ * @meith/forums — the forum tree (F16).
  *
  * Structure only: assembly, ordering, and the reparent/reorder planner. No SQL
- * (that is `@forum/db`), no React, no permission decisions (that is
- * `@forum/authorization`, which consumes `path` for its ancestor walk).
+ * (that is `@meith/db`), no React, no permission decisions (that is
+ * `@meith/authorization`, which consumes `path` for its ancestor walk).
  */
 
 export {

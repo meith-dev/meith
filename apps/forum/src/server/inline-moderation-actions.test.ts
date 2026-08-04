@@ -1,7 +1,7 @@
 /**
  * F52 at the app layer.
  *
- * The rules are unit-tested in `@forum/moderation` and the counters against
+ * The rules are unit-tested in `@meith/moderation` and the counters against
  * real Postgres. What is proven here is the seam neither can see: that the
  * *scope* the selection is re-read inside is resolved from the actor for this
  * request, per tool, and that an id in a forum the actor has no standing in is
@@ -13,15 +13,15 @@ import {
   InMemoryAuthorizationSource,
   combinePermissionSets,
   type MemoryAppointment,
-} from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
+} from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
 import type {
   InlineModerationRepository,
   InlineTarget,
   InlineTool,
   MoveDestination,
   QueueSelection,
-} from '@forum/moderation'
+} from '@meith/moderation'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {

@@ -1,4 +1,4 @@
-import { ForbiddenError, ValidationError } from '@forum/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { rejectionMessage } from './test-support.fixture'

@@ -52,20 +52,20 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   **Two of these are thinner than this line previously claimed:** F11's testkit
   is an empty package, and F10 has tag names but no cache implementation. Both
   are itemised under NEXT ACTION rather than left implied here.
-- **Phase 1 permission core (F20/F21/F22)** — `@forum/authorization`: pure
+- **Phase 1 permission core (F20/F21/F22)** — `@meith/authorization`: pure
   `Authorizer`, R4.2 combination, ancestor-chain resolution, logged bypasses,
   388-cell matrix gate + focused unit/mutation tests, F20 group-ID lint rule.
   See D12/D13.
 - **Composition root (D11 resolved)** — `apps/forum/src/server/container.ts`
   selects the `AuthorizationSource` from `env.DATA_SOURCE`; Postgres adapter in
-  `@forum/db` (acyclic), fixture adapter in-memory; wiring proven end-to-end. The
+  `@meith/db` (acyclic), fixture adapter in-memory; wiring proven end-to-end. The
   Postgres branch is lazily required so fixture mode opens no socket. See D14.
-- **Identity crypto (F17)** — `@forum/accounts/crypto`:
+- **Identity crypto (F17)** — `@meith/accounts/crypto`:
   - `password.ts` — Argon2id via hash-wasm (m=19456,t=2,p=1), self-describing
     PHC hashes, timing-safe verify, `needsRehash` upgrade seam.
   - `tokens.ts` — 256-bit opaque tokens, SHA-256 at rest (async), constant-time
     compare. ADR 0001 recorded. 21 tests; two mutation-verified.
-- **Identity service + ports (F18/F19 domain logic)** — `@forum/accounts`:
+- **Identity service + ports (F18/F19 domain logic)** — `@meith/accounts`:
   - `ports.ts` — the four repository interfaces + `Clock`/`AuthConfig`.
   - `memory-repos.ts` — in-memory fixture store implementing all four.
   - `service.ts` — `IdentityService`: register (validation, activation modes),
@@ -73,15 +73,15 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
     reset request/redeem (single-use TTL tokens, revoke-all-sessions).
   - 39 tests; lockout + reset-revocation mutation-verified. Two real bugs caught
     (reversed `verifyPassword` args, unawaited async `hashToken`). See D15.
-- **Actor construction + Postgres adapters** — `@forum/db`:
+- **Actor construction + Postgres adapters** — `@meith/db`:
   - `actor-builder.ts` — user id → resolved `Actor` (primary ∪ secondary groups
     deduped, `combinePermissionSets`, state map, `cache_versions[permissions]`).
     Guest path + `awaiting_approval`→`awaiting_activation` fix (D16).
-  - `account-repos.ts` — the four `@forum/accounts` ports over Postgres;
+  - `account-repos.ts` — the four `@meith/accounts` ports over Postgres;
     single-use `consume` as a conditional `UPDATE ... RETURNING`.
   - `pglite.fixture.ts` — real Postgres (WASM) with the actual migration applied.
   - 16 tests on real Postgres; single-use + expiry mutation-verified. See D16.
-- **Session & remember-me core (F17 logic)** — `@forum/accounts` + `@forum/db`:
+- **Session & remember-me core (F17 logic)** — `@meith/accounts` + `@meith/db`:
   - `session-service.ts` — `SessionService`: `startRemembered` and `resume`
     (rotate on use; on replay, burn the family + all sessions).
   - Ports grew `SessionRepository.supersede` (fixation), `.touchLocation`
@@ -101,7 +101,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   returned to the browser: account takeover) and **D21** (locale-dependent
   identifier folding). Both mutation-verified.
 
-- **Forum tree operations (F16)** — `@forum/forums`: path arithmetic,
+- **Forum tree operations (F16)** — `@meith/forums`: path arithmetic,
   `buildTree`, `planMove`/`planCreate`, `CachedForumRepository`, plus
   `PostgresForumRepository`. One-query tree read (now *measured*), four-level
   reparent, derived-path create, tag-invalidated caching. See **D22** — the
@@ -127,7 +127,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
 - **F23 bans and ban filters** — expiry restores the *captured* group, filters
   apply at both registration and login, and filter ordering avoids a
   user-enumeration oracle (**D29**).
-- **F24 group promotions** — `@forum/groups` (was empty): rule evaluation with
+- **F24 group promotions** — `@meith/groups` (was empty): rule evaluation with
   three safety guards (never lift a ban, never demote, never re-apply),
   preview/apply sharing one evaluation, keyset paging (**D30**).
 - **F06 the tick actually runs** — `PostgresTaskRepository` plus app-tier
@@ -215,7 +215,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   view-model props, and for the gap: fixture mode has no writer, so the no-JS
   proof is `FormData`-driven action tests rather than the browser suite.
 
-- **F36 BBCode** — post bodies are markup. `@forum/bbcode` is a scanner, not a
+- **F36 BBCode** — post bodies are markup. `@meith/bbcode` is a scanner, not a
   pile of regular expressions, and its safety argument is that it *constructs*
   its output rather than sanitising one: every character comes from a tag
   literal, a validated attribute, or `escapeHtml`. The suite asserts that
@@ -485,7 +485,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   board can collect something only staff read. A mutant that ANDs them dies.
 
   The interesting problem was the one F20 created. The resolver needs to know
-  which of a field's rows apply to the viewer, and only `@forum/authorization`
+  which of a field's rows apply to the viewer, and only `@meith/authorization`
   may reason about group IDs. Handing callers `actor.groupIds` would have ended
   that rule in practice — every caller then free to invent its own combination
   semantics, one of which eventually gets "any grant is a grant" backwards. So
@@ -827,7 +827,7 @@ against the row.
 
 ### Fixed since: the Postgres path had never run anywhere
 
-`TypeError: getDb is not a function`, from a synchronous `require('@forum/db')`
+`TypeError: getDb is not a function`, from a synchronous `require('@meith/db')`
 in three modules — `container.ts`, `theme-runtime.ts` and `settings.ts`.
 Turbopack resolves that package as an **async module**, and a sync `require()`
 of one yields the pending namespace, so every destructured binding was

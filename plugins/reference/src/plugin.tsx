@@ -40,7 +40,7 @@ import {
   REGION_NAMES,
   type PluginRegion,
   type PluginRegionContext,
-} from '@forum/plugin-kit'
+} from '@meith/plugin-kit'
 
 /**
  * What the plugin saw.

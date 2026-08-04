@@ -1,7 +1,7 @@
 /**
  * F17/F18/F19 at the app layer — the Server Actions themselves.
  *
- * The domain services are unit-tested in `@forum/accounts`; what is proven here
+ * The domain services are unit-tested in `@meith/accounts`; what is proven here
  * is the adapter tier those tests cannot see: that each action reads FormData,
  * sets the right cookies, redirects where it claims to, and — the part with
  * teeth — that it does not hand a credential to the browser.
@@ -13,7 +13,7 @@
  */
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 
-import { resetEnvForTests } from '@forum/core'
+import { resetEnvForTests } from '@meith/core'
 
 const { jar, RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
@@ -50,7 +50,7 @@ const { EMPTY_STATE } = await import('./auth-form-state')
 const { SESSION_COOKIE } = await import('./cookies')
 
 /** The container memoises onto globalThis; drop it for a clean board per test. */
-const CONTAINER_KEY = Symbol.for('@forum/forum.container')
+const CONTAINER_KEY = Symbol.for('@meith/forum.container')
 
 function form(entries: Record<string, string>): FormData {
   const f = new FormData()

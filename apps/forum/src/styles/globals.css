@@ -29,8 +29,19 @@
  * `hsl(` literals in component files precisely so this file stays the only
  * place colour is decided.
  *
- * Palette: 3 neutrals (background/card/border greys), 1 primary (indigo-slate),
- * 2 accents (amber for pinned/unread, red for destructive/locked).
+ * Palette: the Meith identity, from the meitheal's own landscape. Hedgerow green
+ * for primary and read-state, gorse yellow as the single loud accent (pinned,
+ * highlighted, unapproved), and bog rust for destructive and locked. Heather and
+ * wet slate carry the staff badges.
+ *
+ * **The two schemes treat their neutrals differently, on purpose.** Light is
+ * limewash: a ground with a green bias, because a neutral that was chosen reads
+ * differently from one inherited. Dark is grey — the same bias at 20% lightness
+ * stops reading as evening and starts reading as olive, which is a much more
+ * particular taste than a dark UI should impose.
+ *
+ * Gorse is used sparingly. It is the one colour here that shouts, so it has to
+ * mean something every time it appears.
  */
 
 @custom-variant dark (&:is(.dark *));
@@ -75,7 +86,13 @@
   --color-group-banned: var(--group-banned);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
+  /*
+   * The fallbacks are the faces the marketing site actually uses, in its order:
+   * a visitor who lands on meith.dev and then opens a board should not watch the
+   * voice change if the webfont is slow or blocked.
+   */
+  --font-serif: var(--font-newsreader), "Hoefler Text", Baskerville, "Iowan Old Style", ui-serif,
+    Georgia, serif;
   --font-mono: var(--font-mono-stack);
 
   --radius-sm: calc(var(--radius) * 0.5);
@@ -93,148 +110,162 @@
 :root {
   color-scheme: light;
 
-  --background: oklch(0.976 0.002 265);
-  --foreground: oklch(0.21 0.015 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.015 265);
+  /* Limewash ground, peat ink. The neutral carries a green bias rather than
+     being a true grey — it is the wall of the building, not a UI surface. */
+  --background: oklch(0.951 0.011 118);
+  --foreground: oklch(0.228 0.012 145.2);
+  --card: oklch(0.974 0.008 114.2);
+  --card-foreground: oklch(0.228 0.012 145.2);
 
-  --primary: oklch(0.45 0.11 264);
-  --primary-foreground: oklch(0.99 0.002 265);
-  --secondary: oklch(0.94 0.006 265);
-  --secondary-foreground: oklch(0.3 0.02 265);
-  --muted: oklch(0.955 0.004 265);
-  --muted-foreground: oklch(0.53 0.017 265);
-  --accent: oklch(0.72 0.15 68);
-  --accent-foreground: oklch(0.24 0.03 68);
-  --destructive: oklch(0.55 0.2 27);
-  --destructive-foreground: oklch(0.99 0.002 265);
+  --primary: oklch(0.424 0.06 139);
+  --primary-foreground: oklch(0.967 0.009 119.6);
+  --secondary: oklch(0.922 0.017 121.8);
+  --secondary-foreground: oklch(0.344 0.022 140);
+  --muted: oklch(0.935 0.014 120.3);
+  --muted-foreground: oklch(0.508 0.036 129.3);
+  --accent: oklch(0.69 0.137 79.4);
+  --accent-foreground: oklch(0.225 0.038 84);
+  --destructive: oklch(0.501 0.139 36.6);
+  --destructive-foreground: oklch(0.966 0.008 73.7);
 
-  --border: oklch(0.9 0.006 265);
-  --input: oklch(0.9 0.006 265);
-  --ring: oklch(0.45 0.11 264);
+  --border: oklch(0.851 0.024 122.8);
+  --input: oklch(0.851 0.024 122.8);
+  --ring: oklch(0.424 0.06 139);
 
-  --radius: 0.375rem;
+  /*
+   * 2px, not 6px. A board is a dense grid of rows and cells, and rounding every
+   * one of them is the single change that makes a forum read as a stack of
+   * cards rather than a worked surface. The wall between two fields is a line.
+   */
+  --radius: 0.125rem;
   --density-unit: 0.25rem;
   --font-mono-stack: ui-monospace, "SFMono-Regular", "Menlo", monospace;
 
   /* Read state: unread is emphatic, read recedes. */
-  --forum-unread: oklch(0.45 0.11 264);
-  --forum-read: oklch(0.62 0.012 265);
-  --forum-locked: oklch(0.55 0.09 27);
+  --forum-unread: oklch(0.424 0.06 139);
+  --forum-read: oklch(0.603 0.028 132.3);
+  --forum-locked: oklch(0.501 0.139 36.6);
 
-  --thread-pinned: oklch(0.62 0.14 68);
-  --thread-locked: oklch(0.55 0.09 27);
-  --thread-moved: oklch(0.55 0.02 265);
-  --thread-unapproved: oklch(0.62 0.13 85);
-  --thread-deleted: oklch(0.55 0.16 27);
+  --thread-pinned: oklch(0.59 0.119 80);
+  --thread-locked: oklch(0.501 0.139 36.6);
+  --thread-moved: oklch(0.603 0.028 132.3);
+  --thread-unapproved: oklch(0.57 0.108 81.9);
+  --thread-deleted: oklch(0.457 0.135 35);
 
-  --post-highlight: oklch(0.95 0.05 68);
-  --post-own: oklch(0.97 0.014 264);
-  --post-unapproved: oklch(0.96 0.04 85);
+  --post-highlight: oklch(0.935 0.05 91);
+  --post-own: oklch(0.944 0.018 127.1);
+  --post-unapproved: oklch(0.94 0.033 91.7);
 
-  --moderation-pending: oklch(0.65 0.14 85);
-  --moderation-approved: oklch(0.55 0.13 150);
-  --moderation-rejected: oklch(0.55 0.18 27);
+  --moderation-pending: oklch(0.614 0.121 82.2);
+  --moderation-approved: oklch(0.483 0.09 141.8);
+  --moderation-rejected: oklch(0.501 0.139 36.6);
 
-  --group-admin: oklch(0.5 0.18 27);
-  --group-supermod: oklch(0.5 0.14 300);
-  --group-mod: oklch(0.47 0.12 220);
-  --group-banned: oklch(0.55 0.02 265);
+  --group-admin: oklch(0.501 0.139 36.6);
+  --group-supermod: oklch(0.479 0.086 333.1);
+  --group-mod: oklch(0.457 0.043 230.6);
+  --group-banned: oklch(0.603 0.028 132.3);
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: oklch(0.19 0.008 265);
-  --foreground: oklch(0.94 0.004 265);
-  --card: oklch(0.235 0.01 265);
-  --card-foreground: oklch(0.94 0.004 265);
+  /*
+   * Grey, not green. The light ground is limewash and carries the identity;
+   * repeating that bias at 20% lightness reads as olive rather than as evening,
+   * so the dark neutrals are near-chromaless (0.002–0.009) with only a whisper
+   * of warmth. Gorse and the semantic colours are unchanged — the hue belongs on
+   * the things that mean something, not on the walls.
+   */
+  --background: oklch(0.217 0.004 106.7);
+  --foreground: oklch(0.933 0.005 106.5);
+  --card: oklch(0.247 0.002 106.5);
+  --card-foreground: oklch(0.933 0.005 106.5);
 
-  --primary: oklch(0.72 0.1 264);
-  --primary-foreground: oklch(0.18 0.015 265);
-  --secondary: oklch(0.29 0.012 265);
-  --secondary-foreground: oklch(0.92 0.004 265);
-  --muted: oklch(0.27 0.01 265);
-  --muted-foreground: oklch(0.69 0.012 265);
-  --accent: oklch(0.76 0.14 68);
-  --accent-foreground: oklch(0.2 0.02 68);
-  --destructive: oklch(0.65 0.18 27);
-  --destructive-foreground: oklch(0.16 0.01 265);
+  --primary: oklch(0.751 0.03 135.6);
+  --primary-foreground: oklch(0.206 0.007 135);
+  --secondary: oklch(0.284 0.004 106.6);
+  --secondary-foreground: oklch(0.893 0.007 106.5);
+  --muted: oklch(0.256 0.002 106.5);
+  --muted-foreground: oklch(0.684 0.009 106.6);
+  --accent: oklch(0.832 0.146 88.5);
+  --accent-foreground: oklch(0.194 0.029 89);
+  --destructive: oklch(0.686 0.137 40.8);
+  --destructive-foreground: oklch(0.183 0.014 61.6);
 
-  --border: oklch(0.32 0.012 265);
-  --input: oklch(0.34 0.014 265);
-  --ring: oklch(0.72 0.1 264);
+  --border: oklch(0.332 0.003 106.6);
+  --input: oklch(0.359 0.005 106.7);
+  --ring: oklch(0.751 0.03 135.6);
 
-  --forum-unread: oklch(0.75 0.11 264);
-  --forum-read: oklch(0.5 0.012 265);
-  --forum-locked: oklch(0.62 0.11 27);
+  --forum-unread: oklch(0.751 0.03 135.6);
+  --forum-read: oklch(0.583 0.009 121.8);
+  --forum-locked: oklch(0.715 0.119 45.3);
 
-  --thread-pinned: oklch(0.76 0.14 68);
-  --thread-locked: oklch(0.62 0.11 27);
-  --thread-moved: oklch(0.6 0.015 265);
-  --thread-unapproved: oklch(0.74 0.13 85);
-  --thread-deleted: oklch(0.64 0.16 27);
+  --thread-pinned: oklch(0.832 0.146 88.5);
+  --thread-locked: oklch(0.715 0.119 45.3);
+  --thread-moved: oklch(0.583 0.009 121.8);
+  --thread-unapproved: oklch(0.782 0.121 87.3);
+  --thread-deleted: oklch(0.701 0.125 39.5);
 
-  --post-highlight: oklch(0.3 0.05 68);
-  --post-own: oklch(0.25 0.02 264);
-  --post-unapproved: oklch(0.29 0.045 85);
+  --post-highlight: oklch(0.306 0.05 100.7);
+  --post-own: oklch(0.267 0.007 106.9);
+  --post-unapproved: oklch(0.283 0.039 100);
 
-  --moderation-pending: oklch(0.74 0.13 85);
-  --moderation-approved: oklch(0.68 0.13 150);
-  --moderation-rejected: oklch(0.65 0.17 27);
+  --moderation-pending: oklch(0.782 0.121 87.3);
+  --moderation-approved: oklch(0.732 0.1 140.4);
+  --moderation-rejected: oklch(0.715 0.119 45.3);
 
-  --group-admin: oklch(0.68 0.17 27);
-  --group-supermod: oklch(0.68 0.13 300);
-  --group-mod: oklch(0.68 0.11 220);
-  --group-banned: oklch(0.55 0.015 265);
+  --group-admin: oklch(0.732 0.109 39.4);
+  --group-supermod: oklch(0.719 0.076 331.6);
+  --group-mod: oklch(0.744 0.046 230.5);
+  --group-banned: oklch(0.583 0.009 121.8);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: dark;
 
-    --background: oklch(0.19 0.008 265);
-    --foreground: oklch(0.94 0.004 265);
-    --card: oklch(0.235 0.01 265);
-    --card-foreground: oklch(0.94 0.004 265);
+    --background: oklch(0.217 0.004 106.7);
+    --foreground: oklch(0.933 0.005 106.5);
+    --card: oklch(0.247 0.002 106.5);
+    --card-foreground: oklch(0.933 0.005 106.5);
 
-    --primary: oklch(0.72 0.1 264);
-    --primary-foreground: oklch(0.18 0.015 265);
-    --secondary: oklch(0.29 0.012 265);
-    --secondary-foreground: oklch(0.92 0.004 265);
-    --muted: oklch(0.27 0.01 265);
-    --muted-foreground: oklch(0.69 0.012 265);
-    --accent: oklch(0.76 0.14 68);
-    --accent-foreground: oklch(0.2 0.02 68);
-    --destructive: oklch(0.65 0.18 27);
-    --destructive-foreground: oklch(0.16 0.01 265);
+    --primary: oklch(0.751 0.03 135.6);
+    --primary-foreground: oklch(0.206 0.007 135);
+    --secondary: oklch(0.284 0.004 106.6);
+    --secondary-foreground: oklch(0.893 0.007 106.5);
+    --muted: oklch(0.256 0.002 106.5);
+    --muted-foreground: oklch(0.684 0.009 106.6);
+    --accent: oklch(0.832 0.146 88.5);
+    --accent-foreground: oklch(0.194 0.029 89);
+    --destructive: oklch(0.686 0.137 40.8);
+    --destructive-foreground: oklch(0.183 0.014 61.6);
 
-    --border: oklch(0.32 0.012 265);
-    --input: oklch(0.34 0.014 265);
-    --ring: oklch(0.72 0.1 264);
+    --border: oklch(0.332 0.003 106.6);
+    --input: oklch(0.359 0.005 106.7);
+    --ring: oklch(0.751 0.03 135.6);
 
-    --forum-unread: oklch(0.75 0.11 264);
-    --forum-read: oklch(0.5 0.012 265);
-    --forum-locked: oklch(0.62 0.11 27);
+    --forum-unread: oklch(0.751 0.03 135.6);
+    --forum-read: oklch(0.583 0.009 121.8);
+    --forum-locked: oklch(0.715 0.119 45.3);
 
-    --thread-pinned: oklch(0.76 0.14 68);
-    --thread-locked: oklch(0.62 0.11 27);
-    --thread-moved: oklch(0.6 0.015 265);
-    --thread-unapproved: oklch(0.74 0.13 85);
-    --thread-deleted: oklch(0.64 0.16 27);
+    --thread-pinned: oklch(0.832 0.146 88.5);
+    --thread-locked: oklch(0.715 0.119 45.3);
+    --thread-moved: oklch(0.583 0.009 121.8);
+    --thread-unapproved: oklch(0.782 0.121 87.3);
+    --thread-deleted: oklch(0.701 0.125 39.5);
 
-    --post-highlight: oklch(0.3 0.05 68);
-    --post-own: oklch(0.25 0.02 264);
-    --post-unapproved: oklch(0.29 0.045 85);
+    --post-highlight: oklch(0.306 0.05 100.7);
+    --post-own: oklch(0.267 0.007 106.9);
+    --post-unapproved: oklch(0.283 0.039 100);
 
-    --moderation-pending: oklch(0.74 0.13 85);
-    --moderation-approved: oklch(0.68 0.13 150);
-    --moderation-rejected: oklch(0.65 0.17 27);
+    --moderation-pending: oklch(0.782 0.121 87.3);
+    --moderation-approved: oklch(0.732 0.1 140.4);
+    --moderation-rejected: oklch(0.715 0.119 45.3);
 
-    --group-admin: oklch(0.68 0.17 27);
-    --group-supermod: oklch(0.68 0.13 300);
-    --group-mod: oklch(0.68 0.11 220);
-    --group-banned: oklch(0.55 0.015 265);
+    --group-admin: oklch(0.732 0.109 39.4);
+    --group-supermod: oklch(0.719 0.076 331.6);
+    --group-mod: oklch(0.744 0.046 230.5);
+    --group-banned: oklch(0.583 0.009 121.8);
   }
 }
 
@@ -246,6 +277,29 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
+  }
+
+  /*
+   * Balance only — deliberately **not** a font-family.
+   *
+   * An earlier version of this rule set every heading in the serif, as a
+   * backstop for markup that had not opted in. That was wrong, and rendering
+   * the midnight theme is what showed it: midnight is a terminal, its headings
+   * are IBM Plex Mono, and its slots only escaped the rule because every one of
+   * them happens to say `font-mono` explicitly. Any heading that did not — a
+   * plugin's, a future slot's — would have been silently overruled into the
+   * *default theme's* voice. Which face a heading wears is the theme's decision,
+   * and this file is the app.
+   *
+   * The default theme's slots and the app's own pages already carry
+   * `font-serif`, so nothing was gained by it either.
+   *
+   * Balance stays, because it is not a voice decision. Thread subjects are
+   * user-supplied and unbounded, and a two-line title with one orphaned word is
+   * the commonest way a dense listing looks broken — in any theme.
+   */
+  h1, h2, h3, h4 {
+    text-wrap: balance;
   }
 
   /* Keyboard focus must always be visible — R5 pages are used without a mouse. */
@@ -276,7 +330,7 @@
 /*
  * F36 — the BBCode renderer's output.
  *
- * `@forum/bbcode` emits a fixed, closed set of class names and nothing else:
+ * `@meith/bbcode` emits a fixed, closed set of class names and nothing else:
  * no inline styling beyond `[color]`, which is the author's own choice and has
  * no token to defer to. Everything below is therefore the *theme's* say in what
  * a quote or a code block looks like, expressed in tokens so a runtime override

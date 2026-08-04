@@ -5,8 +5,8 @@
  * the decision "should this row be selectable" is worth testing without a
  * database, a request, or a theme.
  */
-import type { InlineTool } from '@forum/moderation'
-import type { SelectionModel } from '@forum/theme-kit'
+import type { InlineTool } from '@meith/moderation'
+import type { SelectionModel } from '@meith/theme-kit'
 
 /**
  * The id the checkboxes point at.

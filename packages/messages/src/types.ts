@@ -9,7 +9,7 @@
  *
  * A domain package in the R2 sense: interfaces in, no SQL, no Next. It does not
  * know about groups either — the quota and the "may they use PMs at all"
- * question are answered by `@forum/authorization` and handed here as numbers
+ * question are answered by `@meith/authorization` and handed here as numbers
  * and booleans (F20).
  */
 

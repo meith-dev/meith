@@ -13,7 +13,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
-import { FORUM_PERMISSION_FIELDS } from '@forum/core'
+import { FORUM_PERMISSION_FIELDS } from '@meith/core'
 
 import { MODERATOR_RIGHTS } from './forum-admin-repo'
 

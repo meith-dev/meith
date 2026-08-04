@@ -10,10 +10,10 @@
  * whether an actor may edit their own post, or anyone's, is
  * `authorization.can(actor, 'post.editOwn' | 'post.editOthers', …)` and belongs
  * to the caller, because group and matrix reasoning never leaves
- * `@forum/authorization` (R4). What arrives here is a decision already made,
+ * `@meith/authorization` (R4). What arrives here is a decision already made,
  * expressed as capabilities.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 /** The shortest a post body may be. Matches the composer's rule (F39). */
 export const MESSAGE_MIN = 1

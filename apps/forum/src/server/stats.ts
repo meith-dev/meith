@@ -8,8 +8,8 @@ import 'server-only'
  * an ordering on it, and "which forums may this actor see" must have exactly
  * one answer on this board.
  */
-import type { Actor } from '@forum/authorization'
-import { contentScopeFrom } from '@forum/core'
+import type { Actor } from '@meith/authorization'
+import { contentScopeFrom } from '@meith/core'
 import {
   PostgresStatsRepository,
   getDb,
@@ -17,7 +17,7 @@ import {
   type StatsScope,
   type TopPoster,
   type TopThread,
-} from '@forum/db'
+} from '@meith/db'
 
 import { getContainer } from './container'
 

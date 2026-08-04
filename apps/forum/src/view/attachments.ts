@@ -15,8 +15,8 @@
  * rounding differently would make the same file two sizes.
  */
 /* The leaf module: `formatBytes` is used by a client component too. */
-import { attachmentType, type AttachmentRecord } from '@forum/attachments/types'
-import type { PostAttachmentModel } from '@forum/theme-kit'
+import { attachmentType, type AttachmentRecord } from '@meith/attachments/types'
+import type { PostAttachmentModel } from '@meith/theme-kit'
 
 /** "820 KB", "1.4 MB". Binary units, because that is what a file manager says. */
 export function formatBytes(bytes: number): string {

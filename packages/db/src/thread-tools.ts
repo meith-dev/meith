@@ -8,13 +8,13 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import type {
   MoveDestination,
   ThreadToolTarget,
   ThreadToolsRepository,
-} from '@forum/moderation'
+} from '@meith/moderation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

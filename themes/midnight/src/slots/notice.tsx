@@ -1,4 +1,4 @@
-import type { NoticeModel } from '@forum/theme-kit'
+import type { NoticeModel } from '@meith/theme-kit'
 
 /**
  * A ruled banner, keyed by kind.

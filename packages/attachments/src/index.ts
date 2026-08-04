@@ -1,9 +1,9 @@
 /**
- * `@forum/attachments` — F42.
+ * `@meith/attachments` — F42.
  *
  * The domain half of attachments: what the board accepts, what it does to it,
- * and in what order. No SQL, no HTTP, no codec — `@forum/db` provides the
- * repository, the app provides the route handlers, and `@forum/drivers/images`
+ * and in what order. No SQL, no HTTP, no codec — `@meith/db` provides the
+ * repository, the app provides the route handlers, and `@meith/drivers/images`
  * provides the `ImageProcessor`.
  *
  * The one idea worth carrying out of here: **an upload is not made safe by

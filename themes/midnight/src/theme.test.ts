@@ -2,8 +2,8 @@ import {
   DARK_TOKENS as DEFAULT_DARK,
   LIGHT_TOKENS as DEFAULT_LIGHT,
   defaultTheme,
-} from '@forum/theme-default'
-import { assertThemeContract, resolveTheme, SLOT_NAMES } from '@forum/theme-kit'
+} from '@meith/theme-default'
+import { assertThemeContract, resolveTheme, SLOT_NAMES } from '@meith/theme-kit'
 import { describe, expect, it } from 'vitest'
 
 import { midnightTheme } from './theme'

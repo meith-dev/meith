@@ -1,11 +1,11 @@
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
-import { Inter, Source_Serif_4 } from "next/font/google"
+import { Inter, Newsreader } from "next/font/google"
 
-import { env } from "@forum/core"
+import { env } from "@meith/core"
 /*
  * Read through the registry, not from the theme package directly (invariant 6).
- * Importing `@forum/theme-default` here would hardcode *which* theme the shell
+ * Importing `@meith/theme-default` here would hardcode *which* theme the shell
  * uses, so installing a second one would mean editing the layout — exactly the
  * retrofit `forum.config.ts` exists to avoid.
  */
@@ -20,16 +20,32 @@ const inter = Inter({
   variable: "--font-inter",
 })
 
-const sourceSerif = Source_Serif_4({
+/**
+ * The display face, and the one carrying the Meith identity.
+ *
+ * Source Serif 4 was here first and is a perfectly good text serif — which is
+ * the problem. It is low-contrast and even-coloured, built to disappear into a
+ * paragraph, so headings set in it read as "slightly different body text"
+ * rather than as a voice. The board's own identity is an old-style serif with
+ * real thick/thin contrast, and at 24px that difference is the whole effect.
+ *
+ * Newsreader over the obvious Libre Baskerville: Baskerville is the closer
+ * historical match, but Google's cut ships 400 and 700 only, and every heading
+ * in this app is `font-semibold` — so all of them would snap to 700 and a dense
+ * listing would go bold everywhere. Newsreader is variable across 200–800, so
+ * 600 is 600, and it carries an optical-size axis that keeps the contrast from
+ * collapsing at 14px in a thread row.
+ */
+const newsreader = Newsreader({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-source-serif",
+  variable: "--font-newsreader",
 })
 
 export const metadata: Metadata = {
   title: {
-    default: "Forum",
-    template: "%s · Forum",
+    default: "Meith",
+    template: "%s · Meith",
   },
   description: "A discussion board.",
   /*
@@ -75,7 +91,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${sourceSerif.variable} bg-background`}>
+    <html lang="en" className={`${inter.variable} ${newsreader.variable} bg-background`}>
       <head>
         <ThemeRuntimeStyle />
       </head>

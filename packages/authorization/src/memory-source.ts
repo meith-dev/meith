@@ -9,7 +9,7 @@
  * the F22 test data into runtime — a change to the matrix fixture must never
  * silently change how the running app behaves.
  *
- * Pure: imports only this package's own types (which import only `@forum/core`),
+ * Pure: imports only this package's own types (which import only `@meith/core`),
  * so it stays inside the authorization boundary and needs no database.
  */
 import type {

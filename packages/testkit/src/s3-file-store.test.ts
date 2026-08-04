@@ -9,7 +9,7 @@
  * correctly, which is what an integration job against MinIO would be for; it is
  * recorded as a gap rather than pretended away.
  */
-import { S3FileStore, type S3Like } from '@forum/drivers/files/s3-file-store'
+import { S3FileStore, type S3Like } from '@meith/drivers/files/s3-file-store'
 import { describe, expect, it } from 'vitest'
 
 import { fileStoreContract } from './driver-contracts'

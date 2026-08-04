@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
 
-import type { ApiTokenRecord, RateLimitStore, Scope } from '@forum/api'
+import type { ApiTokenRecord, RateLimitStore, Scope } from '@meith/api'
 
 interface TokenRow {
   id: number

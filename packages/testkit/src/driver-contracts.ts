@@ -13,7 +13,7 @@
  * file so each implementation's own suite calls them with its own setup and
  * teardown, and shows up under its own name when it fails.
  */
-import type { CacheDriver, FileStore, MailDriver, QueueDriver } from '@forum/core'
+import type { CacheDriver, FileStore, MailDriver, QueueDriver } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
 /** Fresh instance per test — a contract must not depend on test ordering. */

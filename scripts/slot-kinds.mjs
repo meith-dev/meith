@@ -405,7 +405,7 @@ async function probe(kinds) {
   const POST_BIT = 'themes/probe/src/slots/post-bit.tsx'
 
   const postBitManifest = `
-    import { defineTheme } from '@forum/theme-kit'
+    import { defineTheme } from '@meith/theme-kit'
     import { PostBit } from './slots/post-bit'
     export default defineTheme({ key: 'p', title: 'P', slots: { PostBit } })
   `
@@ -439,7 +439,7 @@ async function probe(kinds) {
   const inertIsland = await checkSample(
     MANIFEST,
     `
-      import { defineTheme } from '@forum/theme-kit'
+      import { defineTheme } from '@meith/theme-kit'
       import { QuickReply } from './slots/quick-reply'
       export default defineTheme({ key: 'p', title: 'P', slots: { QuickReply } })
     `,
@@ -454,7 +454,7 @@ async function probe(kinds) {
   const unresolvable = await checkSample(
     MANIFEST,
     `
-      import { defineTheme } from '@forum/theme-kit'
+      import { defineTheme } from '@meith/theme-kit'
       import * as parts from './slots'
       export default defineTheme({ key: 'p', title: 'P', slots: { PostBit: parts.PostBit } })
     `,
@@ -472,7 +472,7 @@ async function probe(kinds) {
   const typo = await checkSample(
     MANIFEST,
     `
-      import { defineTheme } from '@forum/theme-kit'
+      import { defineTheme } from '@meith/theme-kit'
       import { Postbit } from './slots/post-bit'
       export default defineTheme({ key: 'p', title: 'P', slots: { Postbit } })
     `,

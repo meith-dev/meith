@@ -6,7 +6,7 @@ import 'server-only'
  * Two things live here. The service itself, resolved from the container and
  * `null` in fixture mode; and the **adapters** that let F53's warnings and
  * F49's reports notify somebody without either of them importing
- * `@forum/notifications`.
+ * `@meith/notifications`.
  *
  * The adapters are the interesting part. Both domain packages declare a
  * one-verb port (`WarningNotifierPort`, `ReportNotifierPort`) and this is where
@@ -15,8 +15,8 @@ import 'server-only'
  * inside a moderation command — the same argument D52 makes for giving the
  * warning service one `ban` verb instead of the whole `BanService`.
  */
-import { NotificationService } from '@forum/notifications'
-import type { ReportNotifierPort, WarningNotifierPort } from '@forum/moderation'
+import { NotificationService } from '@meith/notifications'
+import type { ReportNotifierPort, WarningNotifierPort } from '@meith/moderation'
 
 import { getContainer } from './container'
 

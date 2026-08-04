@@ -1,4 +1,4 @@
-import type { FooterModel } from '@forum/theme-kit'
+import type { FooterModel } from '@meith/theme-kit'
 
 /** A one-line rule at the bottom. The timezone note is not optional: every timestamp on the board was formatted in it. */
 export function Footer({ boardTitle, links, timezoneLabel }: FooterModel) {

@@ -1,7 +1,7 @@
 /**
  * F83 at the app layer.
  *
- * The decisions are tested in `@forum/install`; what is left here is the part
+ * The decisions are tested in `@meith/install`; what is left here is the part
  * that reads the environment, and the one claim that matters most on this page:
  * **it must not throw.** The installer is the screen somebody loads when their
  * board is misconfigured, so a probe that propagated a connection failure would
@@ -12,7 +12,7 @@
  * the case a preflight has to handle: a board that has not been pointed at a
  * database at all.
  */
-import { blockers, canProceed } from '@forum/install'
+import { blockers, canProceed } from '@meith/install'
 import { describe, expect, it } from 'vitest'
 
 import { gatherPreflight, installerIsSealed } from './install'

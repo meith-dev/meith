@@ -8,7 +8,7 @@
  */
 import { inArray, sql } from 'drizzle-orm'
 
-import type { SettingsRepository } from '@forum/settings'
+import type { SettingsRepository } from '@meith/settings'
 
 import type { Database } from './client'
 import { settings } from './schema'

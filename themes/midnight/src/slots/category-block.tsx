@@ -1,4 +1,4 @@
-import type { CategoryBlockModel } from '@forum/theme-kit'
+import type { CategoryBlockModel } from '@meith/theme-kit'
 
 /**
  * A category as a **table**, which is the whole shape difference from the

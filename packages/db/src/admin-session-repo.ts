@@ -19,7 +19,7 @@ import type {
   AdminLogRow,
   AdminSessionRecord,
   AdminSessionRepository,
-} from '@forum/admin'
+} from '@meith/admin'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

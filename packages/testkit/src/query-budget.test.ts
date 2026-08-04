@@ -2,8 +2,8 @@
  * The budget helper has to be trusted before anything relies on it, so this
  * proves it counts real statements and actually fails when the budget is blown.
  */
-import { createTestDb, type TestDb } from '@forum/db/pglite.fixture'
-import { schema } from '@forum/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
+import { schema } from '@meith/db'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 

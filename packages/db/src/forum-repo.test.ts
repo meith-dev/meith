@@ -1,12 +1,12 @@
 /**
  * F16 against a real Postgres (PGlite).
  *
- * The planner is unit-tested in `@forum/forums`; what needs a database is the
+ * The planner is unit-tested in `@meith/forums`; what needs a database is the
  * part that only SQL can get wrong — that the `VALUES`-join rewrite touches
  * exactly the subtree, that the whole move commits or none of it does, and that
  * the unique indexes actually hold.
  */
-import { buildTree, planMove } from '@forum/forums'
+import { buildTree, planMove } from '@meith/forums'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 

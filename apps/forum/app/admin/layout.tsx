@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { ADMIN_IDLE_MINUTES } from '@forum/admin'
+import { ADMIN_IDLE_MINUTES } from '@meith/admin'
 
 import { AdminSignInForm, AdminSignOutForm } from '@/components/admin/admin-forms'
 import { resolveAdmin } from '@/server/admin'

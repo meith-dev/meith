@@ -14,8 +14,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
-import { PUBLIC_CONTENT, contentScopeFrom } from '@forum/core'
-import type { SearchQuery, SearchScope } from '@forum/search'
+import { PUBLIC_CONTENT, contentScopeFrom } from '@meith/core'
+import type { SearchQuery, SearchScope } from '@meith/search'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'

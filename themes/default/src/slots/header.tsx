@@ -1,4 +1,4 @@
-import type { HeaderModel } from '@forum/theme-kit'
+import type { HeaderModel } from '@meith/theme-kit'
 
 /**
  * The board header (F25/F27).

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot } from '@forum/theme-kit'
+import { requireSlot } from '@meith/theme-kit'
 
 import { NewThreadForm } from '@/components/content/new-thread-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'

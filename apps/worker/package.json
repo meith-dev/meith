@@ -1,5 +1,5 @@
 {
-  "name": "@forum/worker",
+  "name": "@meith/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,11 +8,11 @@
     "build": "esbuild --bundle --platform=node --format=cjs --target=node22 --external:@opentelemetry/api src/index.ts --outfile=dist/worker.cjs && esbuild --bundle --platform=node --format=cjs --target=node22 --external:@opentelemetry/api src/migrate.ts --outfile=dist/migrate.cjs"
   },
   "dependencies": {
-    "@forum/core": "workspace:*",
-    "@forum/drivers": "workspace:*",
-    "@forum/runtime": "workspace:*",
-    "@forum/tasks": "workspace:*",
-    "@forum/db": "workspace:*"
+    "@meith/core": "workspace:*",
+    "@meith/drivers": "workspace:*",
+    "@meith/runtime": "workspace:*",
+    "@meith/tasks": "workspace:*",
+    "@meith/db": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

@@ -27,12 +27,12 @@
  * task code"). What is *not* sanctioned is the serverless profile depending on
  * one, and it does not — nothing here is imported by the app.
  */
-import { assertEnv, logger } from '@forum/core'
-import { loadEnvFiles } from '@forum/core/env-files'
-import { drivers } from '@forum/drivers'
-import { imageProcessor } from '@forum/drivers/images'
-import { buildSchedulerBundle } from '@forum/runtime'
-import { tick } from '@forum/tasks'
+import { assertEnv, logger } from '@meith/core'
+import { loadEnvFiles } from '@meith/core/env-files'
+import { drivers } from '@meith/drivers'
+import { imageProcessor } from '@meith/drivers/images'
+import { buildSchedulerBundle } from '@meith/runtime'
+import { tick } from '@meith/tasks'
 
 /**
  * Bound where it is used, not at module scope (guard F02).
@@ -64,7 +64,7 @@ async function main(): Promise<number> {
    * Before `assertEnv()`, which memoises. In the image this finds nothing —
    * there is no workspace and `.dockerignore` keeps `.env` out on purpose, so
    * the container's own environment is the whole configuration. It is here for
-   * `pnpm --filter @forum/worker start` against a developer's board, which
+   * `pnpm --filter @meith/worker start` against a developer's board, which
    * otherwise refuses to start with the fixture-mode message below while the
    * workspace `.env` sitting next to it says postgres.
    */

@@ -9,9 +9,9 @@
  * What this deliberately does *not* decide: whether the actor may post at all.
  * That is `authorization.can(actor, 'thread.post', …)` and it belongs to the
  * caller, because group-ID and matrix reasoning never escapes
- * `@forum/authorization` (R4). What arrives here is a decision already made.
+ * `@meith/authorization` (R4). What arrives here is a decision already made.
  */
-import { RateLimitedError, ValidationError } from '@forum/core'
+import { RateLimitedError, ValidationError } from '@meith/core'
 
 /** The forum's own posting rules, read from the forum row. */
 export interface ForumPostingRules {
@@ -36,7 +36,7 @@ export interface ThreadAuthor {
  * Booleans resolved by the caller, like `bypassesModeration` beside it: the two
  * timestamps live on `users`, and whether "until" has passed is a clock
  * question the caller has already answered. Declared here rather than imported
- * from `@forum/moderation` because that would make the posting path depend on
+ * from `@meith/moderation` because that would make the posting path depend on
  * the moderation package to describe two booleans.
  */
 export interface AuthorRestriction {

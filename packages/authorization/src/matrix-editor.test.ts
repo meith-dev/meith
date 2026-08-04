@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { emptyPermissionSet, type PermissionSet } from '@forum/core'
+import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 
 import {
   buildPermissionMatrix,

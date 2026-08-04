@@ -2,7 +2,7 @@
  * Repository ports for identity (F17–F19).
  *
  * Declared here in the domain package; implemented twice — Postgres in
- * `@forum/db`, in-memory in `./memory` for fixture mode and tests. The service
+ * `@meith/db`, in-memory in `./memory` for fixture mode and tests. The service
  * in `./service` depends only on these interfaces, so the same register/login/
  * reset logic runs identically against a database and against a Map.
  */

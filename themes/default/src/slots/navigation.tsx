@@ -1,4 +1,4 @@
-import type { NavigationModel } from '@forum/theme-kit'
+import type { NavigationModel } from '@meith/theme-kit'
 
 /**
  * The breadcrumb trail (F27).

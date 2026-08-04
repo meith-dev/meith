@@ -19,7 +19,7 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-import { ConfigurationError, type FileStore, type PutFileOptions, type StoredFile } from '@forum/core'
+import { ConfigurationError, type FileStore, type PutFileOptions, type StoredFile } from '@meith/core'
 
 export interface S3FileStoreConfig {
   readonly bucket: string

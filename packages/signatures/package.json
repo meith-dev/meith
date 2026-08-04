@@ -1,12 +1,12 @@
 {
-  "name": "@forum/signatures",
+  "name": "@meith/signatures",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@forum/bbcode": "workspace:*",
-    "@forum/core": "workspace:*"
+    "@meith/bbcode": "workspace:*",
+    "@meith/core": "workspace:*"
   }
 }

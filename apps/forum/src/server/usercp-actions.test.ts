@@ -1,7 +1,7 @@
 /**
  * F57 at the app layer.
  *
- * The rules are unit-tested in `@forum/accounts` and the SQL against real
+ * The rules are unit-tested in `@meith/accounts` and the SQL against real
  * Postgres. What is proven here is the seam neither can see: that every verb
  * acts on the *session's* member, that a guest reaches none of them, and that
  * changing a password leaves the device that did it signed in — which is the
@@ -9,9 +9,9 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
-import type { MemberSettings, MemberSettingsRepository } from '@forum/accounts'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
+import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
 
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
@@ -131,7 +131,7 @@ async function install(): Promise<void> {
     }
   }
 
-  const { hashPassword } = await import('@forum/accounts')
+  const { hashPassword } = await import('@meith/accounts')
   await store.accounts.create({
     username: 'ivan',
     usernameLower: 'ivan',

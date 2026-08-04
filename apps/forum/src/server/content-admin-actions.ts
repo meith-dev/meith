@@ -9,8 +9,8 @@
  * cleared. An operator who adds a filter and sees the word still there would
  * reasonably conclude the feature does not work.
  */
-import { CacheTags, ValidationError, isAppError, logger } from '@forum/core'
-import { drivers } from '@forum/drivers'
+import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
+import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin } from './admin'
 import { requireContentAdmin } from './content-admin'

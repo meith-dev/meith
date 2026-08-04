@@ -4,7 +4,7 @@
  * The fixture is deliberately four levels deep, which is what the plan asks for
  * — three levels lets a naive "rewrite my children" implementation pass.
  */
-import { ConflictError, ValidationError } from '@forum/core'
+import { ConflictError, ValidationError } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
 import { planMove } from './move'

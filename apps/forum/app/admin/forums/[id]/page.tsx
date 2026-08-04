@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { MODERATOR_RIGHTS } from '@forum/db'
+import { MODERATOR_RIGHTS } from '@meith/db'
 
 import {
   ForumOptionsForm,

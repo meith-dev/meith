@@ -27,7 +27,7 @@ vi.mock('./container', () => ({
     authorizer: { forumIdsWhere: async () => [1] },
   }),
 }))
-vi.mock('@forum/db', () => ({
+vi.mock('@meith/db', () => ({
   getDb: () => ({}),
   PostgresDiscoveryRepository: class {
     async activeSince(since: Date) {
@@ -50,7 +50,7 @@ vi.mock('@forum/db', () => ({
 }))
 
 const { DISCOVERY_VIEWS, isDiscoveryView, runDiscovery, startOfDay } = await import('./discovery')
-const { emptyPermissionSet, isAppError } = await import('@forum/core')
+const { emptyPermissionSet, isAppError } = await import('@meith/core')
 
 const guest = {
   userId: null,

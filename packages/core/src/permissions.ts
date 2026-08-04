@@ -8,7 +8,7 @@
  * times (schema, schema again, combination logic) and would drift on the first
  * feature that adds a permission.
  *
- * So the list lives here, in `@forum/core`, as data:
+ * So the list lives here, in `@meith/core`, as data:
  *
  *   - `packages/db` generates both tables' columns from it
  *   - `packages/authorization` drives the combination rules from `kind`

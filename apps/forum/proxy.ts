@@ -3,7 +3,7 @@
  *
  * Deliberately does NO database work and makes NO authorization decision. The
  * Edge runtime has no access to the postgres.js client, and — more importantly —
- * the permission model lives entirely in `@forum/authorization`, which the proxy
+ * the permission model lives entirely in `@meith/authorization`, which the proxy
  * must never re-implement. All it does is a cheap, cookie-shaped triage:
  *
  *  - If neither a session nor a remember-me cookie is present, a request for a

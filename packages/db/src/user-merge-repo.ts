@@ -28,7 +28,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 import type { Database } from './client'
 import { withPermissionVersionBump, type Tx } from './permission-version'

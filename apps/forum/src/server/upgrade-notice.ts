@@ -12,10 +12,10 @@ import 'server-only'
  * hot page, but putting it in the board's shell would be a query on every page
  * view for a message only an administrator can act on.
  */
-import { env, logger } from '@forum/core'
-import { appliedPluginMigrations, getDb, readVersion } from '@forum/db'
-import type { PluginDefinition } from '@forum/plugin-kit'
-import { planUpgrade, upgradeNotice, type UpgradeState } from '@forum/upgrade'
+import { env, logger } from '@meith/core'
+import { appliedPluginMigrations, getDb, readVersion } from '@meith/db'
+import type { PluginDefinition } from '@meith/plugin-kit'
+import { planUpgrade, upgradeNotice, type UpgradeState } from '@meith/upgrade'
 
 import forumConfig from '../../forum.config'
 

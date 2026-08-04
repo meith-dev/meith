@@ -1,4 +1,4 @@
-import type { UserPanelModel } from '@forum/theme-kit'
+import type { UserPanelModel } from '@meith/theme-kit'
 
 /**
  * The welcome block, as a single dense line.

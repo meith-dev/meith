@@ -10,19 +10,19 @@
  * That is the honest install story the plugin manager (F69) explains on screen
  * rather than burying in docs.
  */
-import { defineForumConfig } from '@forum/core'
+import { defineForumConfig } from '@meith/core'
 import {
   BROWSER_THEME_COLOR,
   DARK_TOKENS,
   defaultTheme,
   LIGHT_TOKENS,
-} from '@forum/theme-default'
+} from '@meith/theme-default'
 import {
   BROWSER_THEME_COLOR as MIDNIGHT_BROWSER_THEME_COLOR,
   DARK_TOKENS as MIDNIGHT_DARK_TOKENS,
   LIGHT_TOKENS as MIDNIGHT_LIGHT_TOKENS,
   midnightTheme,
-} from '@forum/theme-midnight'
+} from '@meith/theme-midnight'
 
 export default defineForumConfig({
   themes: {

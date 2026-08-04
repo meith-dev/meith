@@ -1,12 +1,12 @@
 {
-  "name": "@forum/theme-default",
+  "name": "@meith/theme-default",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@forum/theme-kit": "workspace:*"
+    "@meith/theme-kit": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.2.0"

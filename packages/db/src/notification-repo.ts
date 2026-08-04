@@ -23,7 +23,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { notificationKind } from '@forum/notifications'
+import { notificationKind } from '@meith/notifications'
 import type {
   DeliverableNotification,
   NotificationData,
@@ -32,7 +32,7 @@ import type {
   NotificationRepository,
   RaiseInput,
   RaiseResult,
-} from '@forum/notifications'
+} from '@meith/notifications'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

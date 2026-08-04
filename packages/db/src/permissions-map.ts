@@ -1,7 +1,7 @@
 /**
  * Row <-> PermissionSet mapping for the authorization layer.
  *
- * The Drizzle tables in `schema/permission-columns.ts` use the `@forum/core`
+ * The Drizzle tables in `schema/permission-columns.ts` use the `@meith/core`
  * registry's camelCase keys as their JS property names, so a queried
  * `usergroups` row already carries `row.canView`, `row.maxAttachments`, and so
  * on. These mappers exist anyway, for three reasons that a raw `row as
@@ -22,7 +22,7 @@
  *     parent forum". `forumRowToOverride` keeps only the non-null keys, which is
  *     exactly what the resolver's ancestor walk consumes.
  *
- * Keeping this in `@forum/db` (not `@forum/authorization`) is deliberate: it is
+ * Keeping this in `@meith/db` (not `@meith/authorization`) is deliberate: it is
  * storage-shape knowledge. The authorizer receives already-clean domain objects.
  */
 import {
@@ -32,7 +32,7 @@ import {
   type ForumPermissions,
   type PermissionField,
   type PermissionSet,
-} from '@forum/core'
+} from '@meith/core'
 
 /** A row with permission columns, keyed by registry key (Drizzle's shape). */
 export type PermissionRow = Record<string, unknown>

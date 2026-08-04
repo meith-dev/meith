@@ -1,4 +1,4 @@
-import type { ErrorNoticeModel } from '@forum/theme-kit'
+import type { ErrorNoticeModel } from '@meith/theme-kit'
 
 export function ErrorNotice({ status, title, message, homeHref, requestId }: ErrorNoticeModel) {
   return (

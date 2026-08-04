@@ -11,7 +11,7 @@ import 'server-only'
  * `defaultMemberGroupId` and `reservedUsernames` mirror the seed board so a
  * fixture registration lands the new user in the same group a Postgres one would.
  */
-import { DEFAULT_AUTH_POLICY, type AuthConfig } from '@forum/accounts'
+import { DEFAULT_AUTH_POLICY, type AuthConfig } from '@meith/accounts'
 
 import { SEED_GROUP } from './seed-board'
 

@@ -1,5 +1,5 @@
 /**
- * `@forum/upgrade` — what an upgrade does, and the order it does it in (F84).
+ * `@meith/upgrade` — what an upgrade does, and the order it does it in (F84).
  *
  * The plan is computed and returned rather than performed: `forum upgrade
  * --dry-run` prints it, the admin notice counts it, and the runner executes it.

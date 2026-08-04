@@ -9,12 +9,12 @@
  * when it stops. They simply do not happen.
  *
  * The verdict itself is not here. "How late is too late" is a judgement about
- * the domain and lives in `@forum/tasks` as a pure function, so the screen, the
+ * the domain and lives in `@meith/tasks` as a pure function, so the screen, the
  * CLI and any future alerting reach the same answer from the same code.
  */
 import { sql } from 'drizzle-orm'
 
-import type { TaskHealthInput } from '@forum/tasks'
+import type { TaskHealthInput } from '@meith/tasks'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

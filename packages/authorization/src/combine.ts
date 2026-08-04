@@ -11,7 +11,7 @@ import {
   emptyPermissionSet,
   type PermissionField,
   type PermissionSet,
-} from '@forum/core'
+} from '@meith/core'
 
 /**
  * Combine one field's value across the groups a user belongs to.

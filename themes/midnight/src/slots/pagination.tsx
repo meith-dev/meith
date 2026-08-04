@@ -1,4 +1,4 @@
-import type { PaginationModel } from '@forum/theme-kit'
+import type { PaginationModel } from '@meith/theme-kit'
 
 /**
  * Page links, as bordered cells.

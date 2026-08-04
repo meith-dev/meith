@@ -10,7 +10,7 @@ import 'server-only'
  * Not a Server Action module: a `'use server'` file publishes every export as a
  * callable endpoint, and this one hands back a permission decision.
  */
-import type { ReportScope } from '@forum/moderation'
+import type { ReportScope } from '@meith/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'

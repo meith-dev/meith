@@ -11,16 +11,16 @@ import 'server-only'
  * loop — F16 maintains the dot-path for exactly this, and a loop would be one
  * query per level of a tree an operator is allowed to nest arbitrarily.
  */
-import { ForbiddenError, type PermissionSet } from '@forum/core'
+import { ForbiddenError, type PermissionSet } from '@meith/core'
 import {
   buildPermissionMatrix,
   planCopyToDescendants,
   type CopyPlan,
   type ForumOverride,
   type MatrixRow,
-} from '@forum/authorization'
-import type { ForumRow } from '@forum/forums'
-import { PostgresForumAdminRepository, getDb } from '@forum/db'
+} from '@meith/authorization'
+import type { ForumRow } from '@meith/forums'
+import { PostgresForumAdminRepository, getDb } from '@meith/db'
 
 import { getContainer } from './container'
 

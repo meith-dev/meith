@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { requireSlot } from "@forum/theme-kit"
+import { requireSlot } from "@meith/theme-kit"
 
 import { boardRegion, filterView, viewerRef } from "@/server/plugin-view"
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = { title: "Forums" }
  * The shape every page in this phase copies:
  *
  *   1. resolve the actor;
- *   2. read data through the container — never `@forum/db`, which
+ *   2. read data through the container — never `@meith/db`, which
  *      dependency-cruiser enforces for everything under `app/`;
  *   3. build a view model with a pure function in `src/view/`;
  *   4. resolve slots and compose them.

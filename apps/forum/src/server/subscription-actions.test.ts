@@ -1,7 +1,7 @@
 /**
  * F56 at the app layer.
  *
- * The cadence rules are unit-tested in `@forum/subscriptions` and the SQL
+ * The cadence rules are unit-tested in `@meith/subscriptions` and the SQL
  * against real Postgres. What is proven here is the seam neither can see:
  *
  *  - subscribing re-authorises `thread.view` against the *target's* forum, so a
@@ -12,11 +12,11 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type * as CoreModule from '@forum/core'
-import { InMemoryAuthorizationSource, combinePermissionSets } from '@forum/authorization'
-import type { Actor } from '@forum/authorization'
-import { mintUnsubscribeToken } from '@forum/subscriptions'
-import type { SubscriptionMode, SubscriptionRepository, SubscriptionTarget } from '@forum/subscriptions'
+import type * as CoreModule from '@meith/core'
+import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
+import type { Actor } from '@meith/authorization'
+import { mintUnsubscribeToken } from '@meith/subscriptions'
+import type { SubscriptionMode, SubscriptionRepository, SubscriptionTarget } from '@meith/subscriptions'
 
 const { SECRET, RedirectError } = vi.hoisted(() => {
   /*
@@ -42,8 +42,8 @@ vi.mock('next/navigation', () => ({
 const actorRef: { current: Actor | null } = { current: null }
 vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
-vi.mock('@forum/core', async () => {
-  const actual = await vi.importActual<typeof CoreModule>('@forum/core')
+vi.mock('@meith/core', async () => {
+  const actual = await vi.importActual<typeof CoreModule>('@meith/core')
   return { ...actual, env: { ...actual.env, AUTH_SECRET: SECRET, DATA_SOURCE: 'fixture' } }
 })
 

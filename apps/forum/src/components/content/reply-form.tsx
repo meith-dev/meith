@@ -14,7 +14,7 @@ import { useActionState } from "react"
 import { createReplyAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
-import type { UploadLimits } from "@forum/attachments/limits"
+import type { UploadLimits } from "@meith/attachments/limits"
 
 import { AttachmentField } from "./attachment-field"
 import { FormError, SubmitButton } from "../auth/form-controls"

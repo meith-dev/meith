@@ -22,7 +22,7 @@
  * writing transaction; its residual race is one extra rating and is stated in
  * the migration rather than hidden.
  */
-import { ForbiddenError, ValidationError } from '@forum/core'
+import { ForbiddenError, ValidationError } from '@meith/core'
 
 import {
   COMMENT_MAX,

@@ -1,5 +1,5 @@
 /**
- * Driver implementations. Ports live in `@forum/core`; domain packages depend on
+ * Driver implementations. Ports live in `@meith/core`; domain packages depend on
  * those, never on this package (enforced by `domain-no-infra-impl`).
  */
 

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
-import { MemberSettingsService } from '@forum/accounts'
+import { MemberSettingsService } from '@meith/accounts'
 
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'

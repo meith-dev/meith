@@ -5,7 +5,7 @@
  * dependency an ADR, and the surface here is `--key value` and `--key=value`.
  * Anything richer would be a sign the CLI is growing a UI it should not have.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 export type Flags = ReadonlyMap<string, string>
 

@@ -1,4 +1,4 @@
-import type { ThreadCursor } from '@forum/threads'
+import type { ThreadCursor } from '@meith/threads'
 
 /** Decode the opaque keyset cursor carried by `/forum/[id]-[slug]`. */
 export function decodeForumCursor(value: string | undefined): ThreadCursor | null | undefined {

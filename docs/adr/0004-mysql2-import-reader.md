@@ -4,7 +4,7 @@
 
 ## The decision
 
-`@forum/import` depends on `mysql2`, loaded dynamically inside
+`@meith/import` depends on `mysql2`, loaded dynamically inside
 `MysqlMybbSource.connect()`.
 
 ## Why there was a question at all
@@ -47,7 +47,7 @@ reader is not a callback adapter.
 ## What the dependency costs, and what bounds it
 
 **It is loaded dynamically**, inside `connect()`. The app imports
-`@forum/import` — F86's legacy URL table lives there — so a static import would
+`@meith/import` — F86's legacy URL table lives there — so a static import would
 put a MySQL driver in the serverless bundle of every board, including the
 overwhelming majority that will never import anything. A test asserts on the
 source text that the only reference is `await import('mysql2/promise')`, because

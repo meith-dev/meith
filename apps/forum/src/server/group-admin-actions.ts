@@ -14,8 +14,8 @@
  * repository bumps the number inside the same transaction as the write; this
  * clears the tag that makes the caches holding the old number let go.
  */
-import { CacheTags, PERMISSION_FIELDS, ValidationError, isAppError, logger } from '@forum/core'
-import { drivers } from '@forum/drivers'
+import { CacheTags, PERMISSION_FIELDS, ValidationError, isAppError, logger } from '@meith/core'
+import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { promotionService, requireGroupAdmin } from './group-admin'

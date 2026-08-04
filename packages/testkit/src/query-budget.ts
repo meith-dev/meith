@@ -14,10 +14,10 @@
  */
 /*
  * Deep import, not the package barrel: `pglite.fixture` pulls in PGlite, and
- * exporting it from `@forum/db`'s index would drag a WASM Postgres into every
+ * exporting it from `@meith/db`'s index would drag a WASM Postgres into every
  * production bundle that imports the database package.
  */
-import type { TestDb } from '@forum/db/pglite.fixture'
+import type { TestDb } from '@meith/db/pglite.fixture'
 
 export interface QueryBudgetResult<T> {
   readonly value: T

@@ -1,7 +1,7 @@
 /**
  * F42 — decoding, re-encoding and resizing an uploaded image.
  *
- * Confined to its own entry point (`@forum/drivers/images`) and reached only
+ * Confined to its own entry point (`@meith/drivers/images`) and reached only
  * from the attachment path, exactly as ADR 0002 confines the S3 client: a board
  * that never accepts an image never compiles a codec. See ADR 0003 for why
  * `@jsquash` and not the alternatives.

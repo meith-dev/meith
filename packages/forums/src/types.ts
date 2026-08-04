@@ -2,7 +2,7 @@
  * F16 forum-tree types.
  *
  * Deliberately structural: this package knows about shape and ordering, not
- * about Postgres and not about React. `@forum/db` implements the repository;
+ * about Postgres and not about React. `@meith/db` implements the repository;
  * `apps/forum` maps nodes into a view model.
  */
 

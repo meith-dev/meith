@@ -11,9 +11,9 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import type { Action } from '@forum/authorization'
-import { ThreadTools, parseThreadTool, type ThreadToolRights } from '@forum/moderation'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import type { Action } from '@meith/authorization'
+import { ThreadTools, parseThreadTool, type ThreadToolRights } from '@meith/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'

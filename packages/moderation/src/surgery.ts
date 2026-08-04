@@ -17,7 +17,7 @@
  * whole of it, and it is why split is a cheaper place to settle the question
  * than copy: there is no second copy of anything to argue about.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 /** A thread as the surgery needs it. */
 export interface SurgeryThread {

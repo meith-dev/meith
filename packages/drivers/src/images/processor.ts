@@ -1,7 +1,7 @@
 /**
  * F42's `ImageProcessor`, over the codecs.
  *
- * The port lives in `@forum/attachments` so that package — and everything that
+ * The port lives in `@meith/attachments` so that package — and everything that
  * merely *reads* an attachment — can be built and tested without ~630 KB of
  * WebAssembly. This is the one implementation, and it is imported only by
  * whatever registers the processing job.
@@ -26,7 +26,7 @@ import {
   THUMBNAIL,
   type ImageProcessor,
   type ProcessedImage,
-} from '@forum/attachments'
+} from '@meith/attachments'
 
 import { decodeImage, encodeImage, resizeToFit } from './codec'
 

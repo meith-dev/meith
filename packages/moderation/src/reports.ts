@@ -13,7 +13,7 @@
  * So the note lives on the *event*, never on the report, and nothing that
  * returns a report to a reporter carries an event at all.
  */
-import { ValidationError } from '@forum/core'
+import { ValidationError } from '@meith/core'
 
 export const REPORT_TARGET_KINDS = ['post', 'thread', 'user', 'private_message'] as const
 export type ReportTargetKind = (typeof REPORT_TARGET_KINDS)[number]

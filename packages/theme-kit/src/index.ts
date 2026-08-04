@@ -1,5 +1,5 @@
 /**
- * `@forum/theme-kit` — the contract between the app and a theme (F25).
+ * `@meith/theme-kit` — the contract between the app and a theme (F25).
  *
  * Three things, frozen as **v1** by F77:
  *
@@ -14,7 +14,7 @@
  * **Everything exported here is public API.** A module not re-exported from this
  * barrel is an internal, whatever its file permissions look like.
  *
- * Nothing here touches a database, a request, or `@forum/db`: a theme renders
+ * Nothing here touches a database, a request, or `@meith/db`: a theme renders
  * what it is handed (R6), and dependency-cruiser's `themes-are-presentation-only`
  * keeps it that way.
  */

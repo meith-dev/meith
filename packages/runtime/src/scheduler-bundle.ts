@@ -7,10 +7,10 @@
  * whose worker does not exist yet is absent rather than stubbed — so it never
  * appears as a healthy run of nothing.
  */
-import type { FileStore, MailDriver, QueueDriver } from '@forum/core'
-import { AttachmentService, type ImageProcessor } from '@forum/attachments'
-import { AvatarService } from '@forum/avatars'
-import { env, logger } from '@forum/core'
+import type { FileStore, MailDriver, QueueDriver } from '@meith/core'
+import { AttachmentService, type ImageProcessor } from '@meith/attachments'
+import { AvatarService } from '@meith/avatars'
+import { env, logger } from '@meith/core'
 import {
   getDb,
   PostgresBanRepository,
@@ -33,10 +33,10 @@ import {
   PostgresAuthorizationSource,
   ActorBuilder,
   type Database,
-} from '@forum/db'
-import { Authorizer } from '@forum/authorization'
-import { deliverNotificationEmail, NotificationService } from '@forum/notifications'
-import { builtinTasks, type TaskDefinition, type TaskRepository } from '@forum/tasks'
+} from '@meith/db'
+import { Authorizer } from '@meith/authorization'
+import { deliverNotificationEmail, NotificationService } from '@meith/notifications'
+import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'

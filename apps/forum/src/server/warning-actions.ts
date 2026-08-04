@@ -15,8 +15,8 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, isAppError, logger } from '@forum/core'
-import { WarningService } from '@forum/moderation'
+import { ForbiddenError, isAppError, logger } from '@meith/core'
+import { WarningService } from '@meith/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'

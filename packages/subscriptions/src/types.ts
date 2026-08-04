@@ -121,7 +121,7 @@ export interface SubscriptionRepository {
    * What one member has waiting, filtered to forums they can still see.
    *
    * The visible set is resolved per member by the caller and passed in, because
-   * permissions live in `@forum/authorization` and a repository that decided
+   * permissions live in `@meith/authorization` and a repository that decided
    * visibility would be the second answer F47 exists to prevent.
    */
   pendingFor(input: {

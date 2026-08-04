@@ -9,7 +9,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import type { TaskRepository } from '@forum/tasks'
+import type { TaskRepository } from '@meith/tasks'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

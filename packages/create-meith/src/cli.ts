@@ -1,5 +1,5 @@
 /**
- * F82 — `npx create-forum my-board`.
+ * F82 — `npx create-meith my-board`.
  *
  * Everything interesting is in `scaffold.ts`, which is a pure function from
  * options to a map of files. This is the part that parses argv, refuses to
@@ -46,9 +46,9 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
     return {
       code: 0,
       lines: [
-        'create-forum — scaffold a forum project.',
+        'create-meith — scaffold a forum project.',
         '',
-        '  npx create-forum <name> [--repo <url>]',
+        '  npx create-meith <name> [--repo <url>]',
         '',
         'Writes package.json, forum.config.ts, .env.example, vercel.json,',
         '.gitignore and README.md into ./<name>, then tells you what to run.',
@@ -58,7 +58,7 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
 
   const invalid = validateName(name)
   if (invalid !== null) {
-    return { code: 1, lines: [`create-forum: ${invalid}`, '', 'Usage: npx create-forum <name>'] }
+    return { code: 1, lines: [`create-meith: ${invalid}`, '', 'Usage: npx create-meith <name>'] }
   }
 
   const repoIndex = argv.indexOf('--repo')
@@ -70,7 +70,7 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
     return {
       code: 1,
       lines: [
-        `create-forum: ${name} already exists and is not empty.`,
+        `create-meith: ${name} already exists and is not empty.`,
         'Refusing to write into it — pick another name, or empty it first.',
       ],
     }

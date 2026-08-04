@@ -9,7 +9,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { renderBBCode } from '@forum/bbcode'
+import { renderBBCode } from '@meith/bbcode'
 
 import type {
   CreatedThread,
@@ -19,7 +19,7 @@ import type {
   ReplyTarget,
   ReplyWriteRepository,
   ThreadWriteRepository,
-} from '@forum/threads'
+} from '@meith/threads'
 
 import type { Database } from './client'
 import { applyCreatedContentCounters } from './content-counters'

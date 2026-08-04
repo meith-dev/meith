@@ -24,9 +24,9 @@ import 'server-only'
 import { headers } from 'next/headers'
 import { cache } from 'react'
 
-import { AdminService, ipAllowed, parseAllowlist, type AdminContext } from '@forum/admin'
-import { hashToken } from '@forum/accounts'
-import { ForbiddenError, env, truncateIp } from '@forum/core'
+import { AdminService, ipAllowed, parseAllowlist, type AdminContext } from '@meith/admin'
+import { hashToken } from '@meith/accounts'
+import { ForbiddenError, env, truncateIp } from '@meith/core'
 
 import { getContainer } from './container'
 import { getActor } from './context'
@@ -169,7 +169,7 @@ export async function recordAdminAction(input: {
 
   try {
     const actor = await getActor()
-    const { assertLogAction } = await import('@forum/admin')
+    const { assertLogAction } = await import('@meith/admin')
     assertLogAction(input.action)
 
     await adminLog.record({
@@ -182,7 +182,7 @@ export async function recordAdminAction(input: {
       at: new Date(),
     })
   } catch (err) {
-    const { logger } = await import('@forum/core')
+    const { logger } = await import('@meith/core')
     logger({ module: 'admin' }).error({ err, action: input.action }, 'admin log write failed')
   }
 }

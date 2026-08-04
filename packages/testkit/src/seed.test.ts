@@ -4,9 +4,9 @@
  * flip — and the first three green runs would teach everyone to re-run a
  * failure rather than read it.
  */
-import { schema } from '@forum/db'
+import { schema } from '@meith/db'
 import { eq } from 'drizzle-orm'
-import { createTestDb, type TestDb } from '@forum/db/pglite.fixture'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { createRandom } from './random'

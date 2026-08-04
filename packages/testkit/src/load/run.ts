@@ -17,8 +17,8 @@
  * measuring the WASM boundary rather than the query plan.
  */
 
-import { Authorizer } from '@forum/authorization'
-import { PUBLIC_CONTENT } from '@forum/core'
+import { Authorizer } from '@meith/authorization'
+import { PUBLIC_CONTENT } from '@meith/core'
 import {
   ActorBuilder,
   getDb,
@@ -32,7 +32,7 @@ import {
   PostgresThreadRepository,
   schema,
   type Database,
-} from '@forum/db'
+} from '@meith/db'
 import { desc, eq, sql } from 'drizzle-orm'
 import { writeFile } from 'node:fs/promises'
 import { cpus, totalmem } from 'node:os'

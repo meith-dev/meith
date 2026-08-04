@@ -11,9 +11,9 @@
  * Those are exactly the things a fixture cannot tell you, and exactly where a
  * private forum leaks.
  */
-import { Authorizer, type Actor } from '@forum/authorization'
-import { ActorBuilder, PostgresAuthorizationSource, schema } from '@forum/db'
-import { createTestDb, type TestDb } from '@forum/db/pglite.fixture'
+import { Authorizer, type Actor } from '@meith/authorization'
+import { ActorBuilder, PostgresAuthorizationSource, schema } from '@meith/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 

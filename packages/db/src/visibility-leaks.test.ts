@@ -20,7 +20,7 @@ import {
   contentScopeFrom,
   type ContentScope,
   type ContentVisibility,
-} from '@forum/core'
+} from '@meith/core'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'

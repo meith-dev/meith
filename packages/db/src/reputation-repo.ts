@@ -20,7 +20,7 @@ import type {
   ReputationRepository,
   ReputationRow,
   ReputationSummary,
-} from '@forum/reputation'
+} from '@meith/reputation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

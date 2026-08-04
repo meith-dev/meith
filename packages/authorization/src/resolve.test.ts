@@ -5,7 +5,7 @@
  * resolving correctly at every level. This is the case that distinguishes
  * "walk per group, then combine" (correct) from "combine, then walk" (wrong).
  */
-import { emptyPermissionSet, type PermissionSet } from '@forum/core'
+import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
 import { resolveForumMatrix, indexOverrides } from './resolve'

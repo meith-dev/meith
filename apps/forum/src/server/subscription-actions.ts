@@ -23,12 +23,12 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, env, isAppError, logger } from '@forum/core'
+import { ForbiddenError, env, isAppError, logger } from '@meith/core'
 import {
   SubscriptionService,
   parseSubscriptionTarget,
   readUnsubscribeToken,
-} from '@forum/subscriptions'
+} from '@meith/subscriptions'
 
 import { getActor } from './context'
 import { getContainer } from './container'

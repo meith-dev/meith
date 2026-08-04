@@ -7,7 +7,7 @@
  * discovered by somebody's client, which is why both lists are exported and
  * compared here.
  */
-import { ROUTES } from '@forum/api'
+import { ROUTES } from '@meith/api'
 import { describe, expect, it } from 'vitest'
 
 import { DECLARED_ROUTES, IMPLEMENTED_ROUTES } from '../../app/api/v1/[...path]/route'

@@ -28,7 +28,7 @@ import {
   LIGHT_TOKENS,
   SCHEME_INDEPENDENT_TOKENS,
   TOKEN_NAMES,
-} from '@forum/theme-default'
+} from '@meith/theme-default'
 import { colorToHex } from '../server/theme-style'
 
 const CSS = readFileSync(

@@ -18,8 +18,8 @@ import {
   MemoryMailDriver,
   MemoryQueue,
   PostgresQueue,
-} from '@forum/drivers'
-import { createTestDb, type TestDb } from '@forum/db/pglite.fixture'
+} from '@meith/drivers'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll } from 'vitest'
 

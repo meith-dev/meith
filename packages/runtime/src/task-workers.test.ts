@@ -2,14 +2,14 @@
  * F38 — the event path from a committed outbox row to a moved counter.
  *
  * The pieces are each tested where they live: the reader against real Postgres,
- * the relay in `@forum/events`, the roll-up SQL against PGlite. What no other
+ * the relay in `@meith/events`, the roll-up SQL against PGlite. What no other
  * test can see is whether they are *wired to each other* — that a relayed job's
  * `kind` is the handler id the drain looks up, and that the payload survives the
  * round trip. That seam is what this file covers, with a real queue.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { MemoryQueue } from '@forum/drivers'
-import type { OutboxReader, OutboxRecord } from '@forum/events'
+import { MemoryQueue } from '@meith/drivers'
+import type { OutboxReader, OutboxRecord } from '@meith/events'
 
 import { buildEventRegistry } from './event-handlers'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'

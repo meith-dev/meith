@@ -4,7 +4,7 @@ import 'server-only'
  * F83 — the app's half of the installer: gather the facts, then perform the
  * writes.
  *
- * Every *decision* lives in `@forum/install` and is unit-tested there. This file
+ * Every *decision* lives in `@meith/install` and is unit-tested there. This file
  * is the part that cannot be: it opens a connection, runs migrations, and calls
  * the same registration command a member uses.
  *
@@ -17,8 +17,8 @@ import 'server-only'
  * why the step order in `INSTALL_STEPS` is not a suggestion.
  */
 
-import { IdentityService, DEFAULT_AUTH_POLICY, type AuthConfig } from '@forum/accounts'
-import { PostgresAdminRepository } from '@forum/db'
+import { IdentityService, DEFAULT_AUTH_POLICY, type AuthConfig } from '@meith/accounts'
+import { PostgresAdminRepository } from '@meith/db'
 import {
   countUsers,
   canConnect as canConnectTo,
@@ -29,8 +29,8 @@ import {
   PostgresForumRepository,
   PostgresSettingsRepository,
   runMigrations,
-} from '@forum/db'
-import { env, logger } from '@forum/core'
+} from '@meith/db'
+import { env, logger } from '@meith/core'
 import {
   INSTALL_STEPS,
   defaultForumSlug,
@@ -38,7 +38,7 @@ import {
   type Check,
   type InstallInput,
   type StepOutcome,
-} from '@forum/install'
+} from '@meith/install'
 
 /** The version recorded in `install_state`. F84 reads it. */
 const INSTALLED_VERSION = '0.1.0'

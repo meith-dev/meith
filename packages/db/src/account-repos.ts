@@ -1,7 +1,7 @@
 /**
- * Postgres adapters for the four identity ports declared in `@forum/accounts`.
+ * Postgres adapters for the four identity ports declared in `@meith/accounts`.
  *
- * The domain (`@forum/accounts`) owns the interfaces; this is their SQL
+ * The domain (`@meith/accounts`) owns the interfaces; this is their SQL
  * implementation, so the same `IdentityService` runs over Postgres here and over
  * the in-memory store in tests. Infrastructure depends on the domain interface,
  * never the reverse.
@@ -29,7 +29,7 @@ import type {
   SessionLocation,
   SessionRecord,
   SessionRepository,
-} from '@forum/accounts'
+} from '@meith/accounts'
 
 import type { Database } from './client'
 import {

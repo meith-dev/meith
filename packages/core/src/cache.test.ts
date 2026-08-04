@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { CacheTags, cachedGlobal, globalCacheKey } from './cache'
 import type { CacheDriver, CacheSetOptions } from './ports'
 
-/** Minimal in-memory driver — the real MemoryCache lives in @forum/drivers,
+/** Minimal in-memory driver — the real MemoryCache lives in @meith/drivers,
  * which core must not depend on. */
 function fakeCache(): CacheDriver & { entries: Map<string, { value: unknown; tags: readonly string[] }> } {
   const entries = new Map<string, { value: unknown; tags: readonly string[] }>()

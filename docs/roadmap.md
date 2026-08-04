@@ -24,7 +24,7 @@ reading this file—use the evidence in `plan-status.md`.
 - App Router, Server Components by default, and client components only for
   leaf enhancements. Pages/layouts compose typed view models; domain packages
   contain commands and interfaces, never Next, React, or SQL.
-- Only `@forum/db` opens the database. Installable themes/plugins are explicit
+- Only `@meith/db` opens the database. Installable themes/plugins are explicit
   `forum.config.ts` entries; no runtime filesystem discovery.
 - Permission-sensitive output is never cached. Global data is tagged and
   invalidated after mutation. `proxy.ts` is cookie triage, never authorization.
@@ -36,7 +36,7 @@ reading this file—use the evidence in `plan-status.md`.
   request operation. Tick/jobs must be idempotent and catch-up capable.
 - `authorization.can()` / `require()` make all access decisions. SQL list
   queries filter by `visibleForumIds()` in-query; group IDs and admin checks do
-  not escape `@forum/authorization`.
+  not escape `@meith/authorization`.
 - Components and API responses receive typed view models, never database rows.
   Migrations are forward-only. Counter changes are atomic and every counter has
   an outbox path plus a recount tool.
@@ -231,7 +231,7 @@ contracts without reading core source.
 
 | ID | Depends on | Deliverable and acceptance |
 |---|---|---|
-| F82 | F04 | `npx create-forum` scaffold with config/env/README/Deploy-to-Vercel; push-to-deploy works without manual build configuration. |
+| F82 | F04 | `npx create-meith` scaffold with config/env/README/Deploy-to-Vercel; push-to-deploy works without manual build configuration. |
 | F83 | F82/F63 | One-time `/install`: safe preflight, migrations/setup/admin/default forum, pooler warning, then irreversible self-disable. |
 | F84 | F83 | Core/plugin upgrade command, dependency order, version/ACP notice, documented two-version no-data-loss upgrade. |
 | F85 | F83 | Chunked, resumable, idempotent MyBB import preserving legacy IDs across all supported content; fixture round trip/report/counter proof. |

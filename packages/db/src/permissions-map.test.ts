@@ -4,7 +4,7 @@ import {
   FORUM_PERMISSION_FIELDS,
   PERMISSION_FIELDS,
   emptyPermissionSet,
-} from '@forum/core'
+} from '@meith/core'
 
 import { forumRowToOverride, groupRowToPermissionSet } from './permissions-map'
 

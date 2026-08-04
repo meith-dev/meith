@@ -1,4 +1,4 @@
-import type { ForumJumpModel } from '@forum/theme-kit'
+import type { ForumJumpModel } from '@meith/theme-kit'
 
 /**
  * The forum jump box (F27) — MyBB's `<select>` at the foot of every page.

@@ -8,8 +8,8 @@
 
 import { randomUUID } from 'node:crypto'
 
-import { type Job, type EnqueueOptions, type QueueDriver, logger } from '@forum/core'
-import { getDb, jobs, type Database, resultRows } from '@forum/db'
+import { type Job, type EnqueueOptions, type QueueDriver, logger } from '@meith/core'
+import { getDb, jobs, type Database, resultRows } from '@meith/db'
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
 
 /**

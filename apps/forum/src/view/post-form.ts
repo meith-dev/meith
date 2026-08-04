@@ -1,5 +1,5 @@
 /** F39's composer view model, and F41's edit frame. Pure: no container, no request, no clock. */
-import type { PostFormModel } from '@forum/theme-kit'
+import type { PostFormModel } from '@meith/theme-kit'
 
 export interface PostFormInput {
   readonly forum: { readonly id: number; readonly title: string; readonly slug: string }

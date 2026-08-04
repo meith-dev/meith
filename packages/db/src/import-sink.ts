@@ -1,7 +1,7 @@
 /**
  * F85 — where imported rows land.
  *
- * The `ImportSink` port lives in `@forum/import` and is proved by the fixture
+ * The `ImportSink` port lives in `@meith/import` and is proved by the fixture
  * round trip; this is the Postgres implementation, and everything difficult
  * about it comes from one requirement: **the import is resumable, so every write
  * happens more than once.**
@@ -49,8 +49,8 @@ import { resolveLegacyIds } from './import-repo'
 import { resultRows } from './result-rows'
 
 /*
- * These mirror `@forum/import`'s `Imported*` types structurally rather than
- * importing them. `@forum/db` is imported *by* `@forum/import`'s consumers, and
+ * These mirror `@meith/import`'s `Imported*` types structurally rather than
+ * importing them. `@meith/db` is imported *by* `@meith/import`'s consumers, and
  * a dependency in the other direction would close a cycle — the same reason
  * `thread-surgery.ts` keeps its own slug helper.
  */

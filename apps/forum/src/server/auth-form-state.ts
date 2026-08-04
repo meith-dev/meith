@@ -18,7 +18,7 @@ export interface FormState {
   /**
    * A rendered preview of the submitted body (F36/F41).
    *
-   * Trusted HTML, and only ever `@forum/bbcode`'s own output — which is why it
+   * Trusted HTML, and only ever `@meith/bbcode`'s own output — which is why it
    * is a distinct field rather than an entry in `values`: everything in
    * `values` is echoed back into a form control as text, and one field that is
    * inserted as markup instead must not be reachable by the same name.

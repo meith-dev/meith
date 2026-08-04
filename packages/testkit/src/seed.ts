@@ -20,7 +20,7 @@
  *  - rows go in as batched multi-row INSERTs, never one statement each;
  *  - forum paths are tracked in memory rather than read back per forum.
  */
-import { schema, type Database } from '@forum/db'
+import { schema, type Database } from '@meith/db'
 import { eq } from 'drizzle-orm'
 
 import { createRandom, paragraphs, words, type Random } from './random'

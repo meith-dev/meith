@@ -1,12 +1,12 @@
 import "server-only";
 
-import type { ContentScope } from '@forum/core'
+import type { ContentScope } from '@meith/core'
 import type {
   ThreadCursor,
   ThreadListingRow,
   ThreadPage,
   ThreadRepository,
-} from "@forum/threads";
+} from "@meith/threads";
 
 import { SEED_THREAD_ROWS } from "./seed-board";
 

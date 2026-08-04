@@ -26,7 +26,7 @@ import type {
   AttachmentStatus,
   CreateAttachmentInput,
   ReadyInput,
-} from '@forum/attachments'
+} from '@meith/attachments'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

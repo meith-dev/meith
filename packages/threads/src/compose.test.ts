@@ -1,6 +1,6 @@
 /** F39 — the posting rules, with no database and no HTTP in sight. */
 import { describe, expect, it } from 'vitest'
-import { RateLimitedError, ValidationError } from '@forum/core'
+import { RateLimitedError, ValidationError } from '@meith/core'
 
 import {
   ThreadComposer,

@@ -12,10 +12,10 @@
  * per-row walk on a small fixture; only the scaling test proves the cost is
  * constant.
  */
-import { Authorizer } from '@forum/authorization'
-import { PUBLIC_CONTENT } from '@forum/core'
-import { ActorBuilder, PostgresAuthorizationSource, PostgresDiscoveryRepository } from '@forum/db'
-import { createTestDb, type TestDb } from '@forum/db/pglite.fixture'
+import { Authorizer } from '@meith/authorization'
+import { PUBLIC_CONTENT } from '@meith/core'
+import { ActorBuilder, PostgresAuthorizationSource, PostgresDiscoveryRepository } from '@meith/db'
+import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { measureQueries } from './query-budget'

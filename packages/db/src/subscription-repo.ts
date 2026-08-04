@@ -26,7 +26,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { PUBLIC_CONTENT } from '@forum/core'
+import { PUBLIC_CONTENT } from '@meith/core'
 import type {
   DigestCadence,
   PendingForUser,
@@ -34,8 +34,8 @@ import type {
   SubscriptionRepository,
   SubscriptionRow,
   SubscriptionTarget,
-} from '@forum/subscriptions'
-import { parseSubscriptionMode } from '@forum/subscriptions'
+} from '@meith/subscriptions'
+import { parseSubscriptionMode } from '@meith/subscriptions'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

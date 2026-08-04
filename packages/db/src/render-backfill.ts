@@ -24,7 +24,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { RENDER_VERSION, renderBBCode } from '@forum/bbcode'
+import { RENDER_VERSION, renderBBCode } from '@meith/bbcode'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

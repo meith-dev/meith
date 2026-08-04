@@ -86,9 +86,9 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
           forum: 'forum',
         },
         dependencies: {
-          '@forum/web': version,
-          '@forum/cli': version,
-          '@forum/theme-default': version,
+          '@meith/web': version,
+          '@meith/cli': version,
+          '@meith/theme-default': version,
         },
         engines: { node: '>=22' },
       },
@@ -109,13 +109,13 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
  *
  * Adding a theme or a plugin is: \`npm install\` it, add a line here, redeploy.
  */
-import { defineForumConfig } from '@forum/web/config'
+import { defineForumConfig } from '@meith/web/config'
 import {
   BROWSER_THEME_COLOR,
   DARK_TOKENS,
   defaultTheme,
   LIGHT_TOKENS,
-} from '@forum/theme-default'
+} from '@meith/theme-default'
 
 export default defineForumConfig({
   themes: {
@@ -269,7 +269,7 @@ npm run forum -- user:create --admin
 ## Upgrading
 
 \`\`\`sh
-npm install @forum/web@latest @forum/cli@latest
+npm install @meith/web@latest @meith/cli@latest
 npm run forum -- upgrade
 \`\`\`
 

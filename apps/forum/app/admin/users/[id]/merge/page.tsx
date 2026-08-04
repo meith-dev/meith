@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { MergeForm } from '@/components/admin/user-forms'
 import { requireAdmin } from '@/server/admin'
 import { userAdminRepository } from '@/server/user-admin'
-import { PostgresUserMergeRepository, getDb } from '@forum/db'
+import { PostgresUserMergeRepository, getDb } from '@meith/db'
 
 export const metadata: Metadata = { title: 'Merge account' }
 

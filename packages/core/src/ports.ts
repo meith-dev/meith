@@ -1,9 +1,9 @@
 /**
  * Driver ports.
  *
- * These interfaces live in `@forum/core` — the bottom of the dependency graph —
+ * These interfaces live in `@meith/core` — the bottom of the dependency graph —
  * so domain packages can depend on the *shape* of a queue or cache without
- * depending on any implementation. `@forum/drivers` provides the
+ * depending on any implementation. `@meith/drivers` provides the
  * implementations; nothing in `packages/<domain>/` may import it (enforced by
  * the `domain-no-infra-impl` boundary rule).
  */
@@ -80,7 +80,7 @@ export interface QueueDriver {
 export interface CacheSetOptions {
   /** Time to live in seconds. Omitted means "until invalidated". */
   readonly ttlSeconds?: number
-  /** Tags for group invalidation. See `@forum/core/cache` for canonical names. */
+  /** Tags for group invalidation. See `@meith/core/cache` for canonical names. */
   readonly tags?: readonly string[]
 }
 

@@ -64,7 +64,7 @@ export default tseslint.config(
           object: 'process',
           property: 'env',
           message:
-            'Read configuration from `env` in @forum/core instead. It validates ' +
+            'Read configuration from `env` in @meith/core instead. It validates ' +
             'every variable once at boot (F02) so a typo fails fast with a ' +
             'readable message rather than surfacing as `undefined` at runtime.',
         },
@@ -77,20 +77,20 @@ export default tseslint.config(
          *
          * Turned back off for packages/authorization/** in a later block (flat
          * config: last match wins), which is the one place allowed to know.
-         * @forum/db's actor-construction reads them under a narrow, justified
+         * @meith/db's actor-construction reads them under a narrow, justified
          * per-line disable when that repo lands.
          */
         {
           property: 'groupIds',
           message:
-            'Group IDs must not leak outside @forum/authorization (F20). Ask ' +
+            'Group IDs must not leak outside @meith/authorization (F20). Ask ' +
             'the Authorizer `can(actor, action, target)` instead of branching ' +
             'on group membership.',
         },
         {
           property: 'primaryGroupId',
           message:
-            'Group IDs must not leak outside @forum/authorization (F20). Ask ' +
+            'Group IDs must not leak outside @meith/authorization (F20). Ask ' +
             'the Authorizer instead of branching on the primary group.',
         },
       ],
@@ -181,11 +181,11 @@ export default tseslint.config(
       'apps/cli/**',
       'apps/worker/**',
       /*
-       * F82. `create-forum` is a console program in the same sense: it prints to
+       * F82. `create-meith` is a console program in the same sense: it prints to
        * a terminal and exits, and it runs before a board — and therefore before
        * any validated env — exists at all.
        */
-      'packages/create-forum/**',
+      'packages/create-meith/**',
       '**/*.config.{ts,mts,mjs,js,cjs}',
       '**/drizzle.config.ts',
       '**/*.test.ts',
@@ -218,7 +218,7 @@ export default tseslint.config(
         {
           object: 'process',
           property: 'env',
-          message: 'Read configuration from `env` in @forum/core instead (F02).',
+          message: 'Read configuration from `env` in @meith/core instead (F02).',
         },
       ],
     },
@@ -229,7 +229,7 @@ export default tseslint.config(
    * thing from the group-ID logic F20 bans.
    *
    * The rule exists to stop code deciding what someone may *do* by comparing
-   * group ids — `if (user.primaryGroupId === 3) allowAdmin()`. @forum/groups
+   * group ids — `if (user.primaryGroupId === 3) allowAdmin()`. @meith/groups
    * decides which group a user *belongs to*, which cannot be expressed without
    * naming groups: a promotion rule is literally "users in group X with N posts
    * move to group Y".
@@ -247,7 +247,7 @@ export default tseslint.config(
         {
           object: 'process',
           property: 'env',
-          message: 'Read configuration from `env` in @forum/core instead (F02).',
+          message: 'Read configuration from `env` in @meith/core instead (F02).',
         },
       ],
     },
@@ -269,7 +269,7 @@ export default tseslint.config(
         {
           object: 'process',
           property: 'env',
-          message: 'Read configuration from `env` in @forum/core instead (F02).',
+          message: 'Read configuration from `env` in @meith/core instead (F02).',
         },
       ],
     },

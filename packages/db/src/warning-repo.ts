@@ -21,8 +21,8 @@ import type {
   WarningRepository,
   WarningRow,
   WarningType,
-} from '@forum/moderation'
-import { parseWarningAction } from '@forum/moderation'
+} from '@meith/moderation'
+import { parseWarningAction } from '@meith/moderation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

@@ -15,7 +15,7 @@ Proxy that calls it on first property *access*. `apps/forum/instrumentation.ts`
 calls `assertEnv()` at boot, so the startup-crash guarantee is preserved for the
 running app.
 
-**Why:** validating at module load means importing *any* `@forum/core` symbol —
+**Why:** validating at module load means importing *any* `@meith/core` symbol —
 an error class, a type — detonates in processes that legitimately have no app
 environment. This was not theoretical: `drizzle-kit generate` imports the schema,
 which imports the permission registry from core, purely to diff DDL. With eager
@@ -61,13 +61,13 @@ The R2 rules reported a clean run while enforcing **nothing**. Two compounding
 causes:
 
 1. `tsConfig` pointed at the root `tsconfig.json`, which contains only
-   `references` — no `paths`. Every `@forum/*` import was therefore
+   `references` — no `paths`. Every `@meith/*` import was therefore
    unresolvable, and dependency-cruiser recorded `couldNotResolve: true` with
    the bare specifier as the `resolved` value. Rules matching a *path* could
    never match. Fixed by pointing at `tsconfig.base.json`, where the aliases
    live.
 2. Even resolving correctly, the only infra rule matched `^packages/drivers/`.
-   Nothing covered `@forum/db`.
+   Nothing covered `@meith/db`.
 
 A probe module importing `getDb()` into `packages/forums` passed silently under
 both faults. The merged `domain-no-infra-impl` rule now matches all three shapes
@@ -142,7 +142,7 @@ proven by a deliberate violation before it is trusted:
 
 | Gate | Probe used | Observed |
 | --- | --- | --- |
-| `depcruise` R2 | domain module importing `@forum/db` + `next/navigation` | 2 errors |
+| `depcruise` R2 | domain module importing `@meith/db` + `next/navigation` | 2 errors |
 | `eslint` F02 | `process.env` read in `packages/forums` | 1 error |
 | `guards` F02 | `process.env` read in `apps/forum/src` | 1 violation |
 | `vitest` outbox crash-safety | `markRelayed` moved before `enqueue` | correct test failed |
@@ -167,7 +167,7 @@ which throws is worse than one that omits it. They land with the composition
 root in Phase 1, alongside the account and forum repositories that need the same
 wiring.
 
-`runMigrations()` was genuinely missing from `@forum/db` and has been added. It
+`runMigrations()` was genuinely missing from `@meith/db` and has been added. It
 uses `DIRECT_DATABASE_URL` (new, optional, falls back to `DATABASE_URL`) with
 `max: 1`, because drizzle's advisory lock only serialises concurrent deploys if
 every statement runs on one connection — a transaction-mode pooler defeats it.
@@ -233,7 +233,7 @@ The authorizer defines its data needs as a port (`AuthorizationSource`);
 something must supply a Postgres implementation without making the domain depend
 on the database. Two placement decisions:
 
-- **The SQL adapter lives in `@forum/db`, not `@forum/authorization`.**
+- **The SQL adapter lives in `@meith/db`, not `@meith/authorization`.**
   authorization is a domain package (core-only). Implementing a domain port with
   SQL is exactly the database layer's job, and the edge `db → authorization →
   core` is acyclic (verified: 72 modules, no cycle). The forum tree uses a
@@ -242,7 +242,7 @@ on the database. Two placement decisions:
   forum-override lookup are filtered in SQL, not post-filtered in JS.
 
 - **The container lives in `apps/forum/src/server`, the app tier.** Only the app
-  may import both `@forum/db` and the domain, so composition belongs there. It
+  may import both `@meith/db` and the domain, so composition belongs there. It
   selects the source from `env.DATA_SOURCE` and builds the `Authorizer` once. The
   Postgres branch is loaded through a **synchronous, single-line, twice-disabled
   `require`** so fixture mode (dev, tests, DB-less preview) never pulls in
@@ -326,7 +326,7 @@ resolved `Actor` the authorizer consumes: it loads the account row, unions the
 primary group with the secondary memberships (deduped), OR/max-combines their
 permission sets via `combinePermissionSets`, maps DB state → `ActorState`, and
 stamps the `cache_versions[permissions]` counter. The four Postgres repository
-adapters (`account-repos.ts`) implement the `@forum/accounts` ports so the same
+adapters (`account-repos.ts`) implement the `@meith/accounts` ports so the same
 `IdentityService` runs over Postgres in production and the in-memory store in
 unit tests.
 
@@ -506,7 +506,7 @@ restoring the old call and watching the guard fire.
 The schema (materialised `path`, indexes) already existed; `packages/forums` was
 an empty package. The operations half now lives there: `path.ts` (path
 arithmetic), `tree.ts` (`buildTree`), `move.ts` (`planMove`), plus
-`PostgresForumRepository` in `@forum/db`.
+`PostgresForumRepository` in `@meith/db`.
 
 **The one thing worth writing down.** A materialised-path implementation is
 almost entirely correct if you get one predicate right and catastrophically
@@ -599,7 +599,7 @@ That module is `server-only` and reaches for `next/headers`, which has no
 meaning in a plain Node process.
 
 What the two must share is **policy**, not wiring. `DEFAULT_AUTH_POLICY` moved
-into `@forum/accounts` so a user created by `forum user:create` satisfies exactly
+into `@meith/accounts` so a user created by `forum user:create` satisfies exactly
 the rules the registration form enforces — otherwise the CLI becomes a way to
 mint accounts the app then rejects, which is the failure the CLI's "thin layer"
 rule exists to prevent. Only the two genuinely board-level decisions
@@ -610,7 +610,7 @@ running, so `forum user:create` against it would report success and change
 nothing — worse than refusing.
 
 **No SQL in the CLI.** The commands first composed drizzle queries directly,
-which put schema knowledge outside `@forum/db` in violation of R2. They now go
+which put schema knowledge outside `@meith/db` in violation of R2. They now go
 through `PostgresAdminRepository`, which the ACP's user and group screens
 (F66/F67) will want anyway.
 
@@ -699,7 +699,7 @@ those groups — and then pure in-memory work.
 **Why three and not the literal one the plan asks for.** The combination rules
 (R4.2's OR/max/AND across groups, and first-non-null up the ancestor chain) are
 domain logic. Expressing them in SQL would move the permission model into the
-database, where F20's "nothing outside `@forum/authorization` knows what a group
+database, where F20's "nothing outside `@meith/authorization` knows what a group
 id is" stops being enforceable, and where the F22 matrix could no longer drive
 it. The property that actually matters is that the cost is **constant**, and
 that is asserted directly by comparing a 15-forum board against a 65-forum one —
@@ -735,7 +735,7 @@ built the `DbDriver` seam specifically so Neon could slot in later. The queue
 would have failed on that swap, at runtime, in production, on the code path that
 delivers email and notifications.
 
-Fixed with `resultRows()` in `@forum/db`, which accepts either shape and is now
+Fixed with `resultRows()` in `@meith/db`, which accepts either shape and is now
 the sanctioned way to read rows from `execute()`. The query builder is
 unaffected — it normalises internally.
 
@@ -854,8 +854,8 @@ and is near-impossible to reproduce by hand.
 are written. An ACP preview computed by separate code would eventually disagree
 with what applying actually does, which is the one thing a dry run must never do.
 
-**F20 lint scope.** `@forum/groups` is exempted from the group-ID rule, like
-`@forum/authorization`. The rule bans deciding what someone may *do* by
+**F20 lint scope.** `@meith/groups` is exempted from the group-ID rule, like
+`@meith/authorization`. The rule bans deciding what someone may *do* by
 comparing group ids; this package decides which group a user *belongs to*, which
 cannot be expressed without naming groups. The boundary it must not cross is
 stated in the config: it may move a user between groups, never conclude anything
@@ -908,7 +908,7 @@ instead of returning `ran: []`.
 **Two workers still have no implementation, and are omitted rather than
 stubbed.** `reconcileCounters` needs F38 — there are no maintained counters to
 reconcile — and `relayOutbox` needs an `OutboxReader`/`RelayTarget` over
-Postgres that `@forum/db` does not have yet.
+Postgres that `@meith/db` does not have yet.
 
 `builtinTasks` therefore takes a *partial* worker set and registers only the
 tasks whose workers exist. The alternatives are both worse:
@@ -961,7 +961,7 @@ migration runner — all of which legitimately read a real filesystem outside th
 request path. Probed both ways.
 
 **The registry is load-bearing, not decorative.** `layout.tsx` reads its
-theme-colour through `forumConfig` rather than importing `@forum/theme-default`,
+theme-colour through `forumConfig` rather than importing `@meith/theme-default`,
 so installing a second theme does not mean editing the layout. Verified in the
 built output: the tokens in the registry are the values in the rendered
 `<meta name="theme-color">`.
@@ -989,7 +989,7 @@ means `container.ts`'s Postgres branch (D14) never achieved this either.
 
 **And `require()` in an ESM package throws in plain Node.** It works inside
 Next, whose bundler polyfills it, which is why nothing caught it. But
-`@forum/drivers` is used by the CLI and worker too, so `FILESTORE_DRIVER=s3`
+`@meith/drivers` is used by the CLI and worker too, so `FILESTORE_DRIVER=s3`
 would have failed there at runtime — found by actually running the resolver
 outside Next rather than trusting the unit tests.
 
@@ -1016,7 +1016,7 @@ something grep can establish; a bundle analyser is F89's job.
 
 ### D35 — theme-kit: three enforcement layers, and what each one cannot catch (F25)
 
-`@forum/theme-kit` was an empty package with a `package.json`. It now holds the
+`@meith/theme-kit` was an empty package with a `package.json`. It now holds the
 slot registry, the view-model contract, and `defineTheme`/`resolveTheme`.
 
 **The R6 slot list is derived, not transcribed.** This repository does not carry
@@ -1107,7 +1107,7 @@ function clause from `never` to `T` fails `pnpm typecheck` immediately.
 #### The registry entry is generic, not `unknown`
 
 A registered theme now carries its `ThemeDefinition`, whose type lives in
-`@forum/theme-kit` — and `@forum/core` may not import a sibling
+`@meith/theme-kit` — and `@meith/core` may not import a sibling
 (`core-depends-on-nothing`, or the graph has no floor). `InstalledTheme<TTheme>`
 takes it as a type parameter, inferred from `forum.config.ts` so no call site
 spells it out. The alternatives were `Record<string, unknown>` plus a cast at
@@ -1188,7 +1188,7 @@ values by hand.
 ### D37 — `register()` was never running in the Edge runtime (F02)
 
 `proxy.ts` means Next compiles `instrumentation.ts` twice, once per runtime. The
-Edge copy imported `@forum/core`'s barrel, which reaches `node:crypto` (the
+Edge copy imported `@meith/core`'s barrel, which reaches `node:crypto` (the
 constant-time compare) and `node:async_hooks` + pino (logging) — none of which
 exist on Edge. The Edge compilation therefore failed, **as a warning**:
 
@@ -1210,7 +1210,7 @@ if (process.env.NEXT_RUNTIME !== 'nodejs') return
 **`process.env` is read literally here on purpose**, and it is the one place that
 is correct. Next replaces `NEXT_RUNTIME` with a string literal during each
 compilation, so the Edge build evaluates `'edge' !== 'nodejs'` and drops the
-dynamic import as unreachable. Reading it through `env` in `@forum/core` — what
+dynamic import as unreachable. Reading it through `env` in `@meith/core` — what
 F02 requires for everything else — would make it a runtime value, leave the
 import reachable, and bring the warning straight back.
 
@@ -1314,7 +1314,7 @@ apart.
   `.next/types/validator.ts` still imports the removed page. Known trade-off (the
   tsconfig comment covers the dev-types half of it); the fix is to rebuild.
 - **`apps/forum/tsconfig.json` hand-copies the path aliases** and was missing
-  `@forum/testkit`, which surfaced the moment a package test imported it — that
+  `@meith/testkit`, which surfaced the moment a package test imported it — that
   config compiles `packages/**`, tests included. Added, with a note that the list
   is duplicated and both copies need editing.
 
@@ -1598,7 +1598,7 @@ the stated price of not counting.
 
 Post bodies were stored raw and rendered by `plainTextHtml` in
 `src/view/thread-view.ts` — a deliberate placeholder, and the only place raw
-text became markup. `@forum/bbcode` replaces it. Four decisions are worth
+text became markup. `@meith/bbcode` replaces it. Four decisions are worth
 recording, and one of them is the reason the package is a scanner rather than
 the obvious pile of regular expressions.
 
@@ -1686,7 +1686,7 @@ renderer version that produced it. The version is what makes the cache safe:
   obvious per-post update turns a 200-post batch into 201 round trips.
 
 The write path renders inside the same transaction as the insert, in
-`@forum/db` rather than in the composer. That is a small purity cost — the
+`@meith/db` rather than in the composer. That is a small purity cost — the
 package that owns SQL now calls a renderer — bought for a structural guarantee:
 `posts` is only written from one module, so no post can exist without its
 render, and no future writer (F41's edit, F85's importer) can forget to supply
@@ -1712,7 +1712,7 @@ one.
 The ⛔ gate for content mutation. Everything downstream of it — the moderation
 queue, thread tools, merge and split — is a different actor performing one of
 the two transitions defined here, so both are written once, in
-`@forum/posts`, with their counter consequences attached rather than left to
+`@meith/posts`, with their counter consequences attached rather than left to
 each caller.
 
 #### A deletion is not a creation with a minus sign
@@ -1839,7 +1839,7 @@ reads as a bug on every thread that has ever been moderated.
   relied on: a current-version render is *trusted*, so until the sweep ran every
   reader would be served the pre-edit body.
 - **Previews now render.** F36 shipped without wiring the composer preview to
-  the renderer; all three forms now show `@forum/bbcode`'s own output, produced
+  the renderer; all three forms now show `@meith/bbcode`'s own output, produced
   on the server by the same function that renders the post, so the preview
   cannot drift from the result.
 
@@ -1939,8 +1939,8 @@ scope, and a numbering subquery that counts the whole table.
   in front of everybody, with their name on it), the mark-read target (a
   watermark set to a hidden post moves backwards the moment it is removed), and
   the unread computation.
-- **`ContentVisibility` was declared twice** — once in `@forum/core` and once in
-  `@forum/authorization`. The second is now a re-export; two structurally
+- **`ContentVisibility` was declared twice** — once in `@meith/core` and once in
+  `@meith/authorization`. The second is now a re-export; two structurally
   identical declarations is how a shared vocabulary drifts.
 - **`ThreadListingRow` gained `visibility`.** A listing that can contain hidden
   rows has to say which ones they are, or the theme cannot mark them and the
@@ -1962,7 +1962,7 @@ somebody to moderate one forum appointed them to nothing.
 
 F48 is the first feature where that gap is load-bearing: "the forums I
 moderate" is the queue's entire scope. So the port gained
-`moderatorAppointments`, `@forum/db` gained the query, and
+`moderatorAppointments`, `@meith/db` gained the query, and
 `Authorizer.moderatedForumIds` unions two sources — a group-level
 `canApproveContent`, and an appointment, expanded down the tree when it
 cascades. It is constant-query for the same reason `visibleForumIds` is (D26).
@@ -2260,7 +2260,7 @@ F50's row says `PARTIAL` for exactly these, rather than `DONE` with a footnote.
 **Plan:** "Test-first merge/split across forums, preserving post order and all
 pointers/counters/authors."
 
-**Implemented:** `ThreadSurgery` in `@forum/moderation` with
+**Implemented:** `ThreadSurgery` in `@meith/moderation` with
 `PostgresThreadSurgeryRepository` behind it, two Server Actions rather than one,
 and the two controls in the same moderator bar as F50's.
 
@@ -2692,9 +2692,9 @@ page now builds every affordance on an appointment-aware target.
   is already logged in as themselves and their powers are the ones the board
   grants them; a second password would protect nothing the first one does not.
 
-### D54 — `@forum/db` is imported, not required (F04)
+### D54 — `@meith/db` is imported, not required (F04)
 
-Three modules loaded `@forum/db` with a synchronous `require()` inside the
+Three modules loaded `@meith/db` with a synchronous `require()` inside the
 function that needed it — `container.ts`'s Postgres branch, `theme-runtime.ts`
 and `settings.ts` — on the reasoning that fixture mode should never pull in
 postgres.js. All three are now plain static imports.
@@ -2706,7 +2706,7 @@ lazily and throws in fixture mode, so "building the container in fixture mode
 must not open a socket" is a property of `getDb`, not of the import. What the
 require actually bought was bundle size in a *server* bundle nobody downloads.
 
-Broken, because Turbopack resolves `@forum/db` as an **async module** — its
+Broken, because Turbopack resolves `@meith/db` as an **async module** — its
 graph reaches postgres.js — and a synchronous `require()` of an async module
 yields the pending namespace rather than the exports. Every destructured binding
 came back `undefined`, so the first call failed:
@@ -2744,7 +2744,7 @@ and friends — with a transparent passthrough, `(v) => v`. That is deliberate
 and correct for the query builder: a *typed* column runs its value through
 `mapToDriverValue` first, so postgres.js only ever receives a string.
 
-It is wrong for a **raw `sql` template**, which is what most of `@forum/db`
+It is wrong for a **raw `sql` template**, which is what most of `@meith/db`
 writes. A bare value in a template gets drizzle's noop encoder, so a `Date`
 arrives at the passthrough still a `Date`, and postgres.js calls
 `Buffer.byteLength()` on it. Isolated with a probe: postgres.js accepts a
@@ -2805,7 +2805,7 @@ the record survives.
 
 `data` is a small JSON object written at raise time — a title, a points total,
 a task id — and the *sentence* around it is applied on read by
-`@forum/notifications`. The obvious alternative, storing a post id and reading
+`@meith/notifications`. The obvious alternative, storing a post id and reading
 the post back when the centre renders, fails in exactly the case notifications
 exist for: the post that caused the notification is frequently the post a
 moderator has since deleted, and the warning behind one may have been revoked.
@@ -2880,7 +2880,7 @@ window — claiming before sending would turn a rare duplicate into a lost
 message, which is the wrong trade for something a member is meant to read.
 
 The HTML is assembled from tag literals plus `escapeHtml`/`escapeAttribute`
-imported from `@forum/bbcode` — F36's safety argument and F36's actual
+imported from `@meith/bbcode` — F36's safety argument and F36's actual
 functions, not a second copy. The test asserts the same property F36 does: every
 `<` in the output is one this package wrote.
 
@@ -3184,7 +3184,7 @@ something only staff read — `editableFields` therefore does **not** require
 #### `Authorizer.applicableGroupRows` returns rows, never ids
 
 The resolver needs to know which of a field's per-group rows apply to the
-viewer, and F20/D13's lint rule says only `@forum/authorization` may reason
+viewer, and F20/D13's lint rule says only `@meith/authorization` may reason
 about group IDs. The obvious escape hatch — hand the caller `actor.groupIds` —
 would end the rule in practice: every caller would then be free to invent its
 own combination semantics, and one of them would eventually get "any grant is a
@@ -3192,7 +3192,7 @@ grant" backwards.
 
 So the Authorizer gained a generic narrowing instead. It takes the caller's own
 configuration rows, returns the subset this actor's groups matched, and hands
-back no ids at all. `@forum/profile-fields` combines those rows by R4.2 without
+back no ids at all. `@meith/profile-fields` combines those rows by R4.2 without
 ever learning who is in what.
 
 Registration is the one caller with no actor to narrow by — an applicant is not
@@ -3380,7 +3380,7 @@ mailbox.
 
 #### `Authorizer.globalLimit`, because a limit is still a permission
 
-`@forum/messages` knows nothing about groups (F20), so "may they receive" and
+`@meith/messages` knows nothing about groups (F20), so "may they receive" and
 "how many may they keep" are asked in the app's `MessagePolicy` — through
 `can(actor, 'pm.use')` and a new `globalLimit(actor, 'privateMessageQuota')`.
 
@@ -3454,7 +3454,7 @@ explicit rather than silent — somebody who believes they have hidden a moderat
 and has not is worse off than somebody who was told.
 
 Whether somebody is staff is `modcp.access`, resolved by the Authorizer in the
-app and handed to `@forum/relations` as a boolean (F20). It is asked only when
+app and handed to `@meith/relations` as a boolean (F20). It is asked only when
 somebody is about to be *ignored*, so an ordinary page render never pays for it.
 
 #### The PM block gives the same answer as a permission refusal
@@ -3492,7 +3492,7 @@ the last moments of every interval.
 #### What is deliberately not here
 
 - **A board-wide online list.** F75 owns it. `ONLINE_WINDOW_MINUTES` lives in
-  `@forum/relations` because that is the only consumer today; when F75 arrives
+  `@meith/relations` because that is the only consumer today; when F75 arrives
   it should take the constant, not declare a second one.
 - **`PostAuthorModel.isOnline`.** Still `false` for every post: filling it needs
   `last_active_at` per author in the post query, and the buddy list is what F61
@@ -3658,7 +3658,7 @@ polls.
 A password change revokes ACP sessions too. F57's `changePassword` revokes every
 *board* session; the ACP ones live in a different table and would otherwise
 survive — which would mean a password change failed to close the one session
-that matters most. Done in the app rather than in `@forum/accounts`, which has
+that matters most. Done in the app rather than in `@meith/accounts`, which has
 no idea the control panel exists.
 
 #### Two clocks, and only one of them moves with activity
@@ -3778,7 +3778,7 @@ board's attack surface.
 
 ---
 
-### D64 — Every gate resolved `@forum/*` without a package.json (F01)
+### D64 — Every gate resolved `@meith/*` without a package.json (F01)
 
 `packages/admin` shipped in F63 **without its manifest**. A `cat >` heredoc ran
 with the working directory left at `packages/db`, so the file landed at
@@ -3793,10 +3793,10 @@ nowhere a person working in an already-installed tree would look.
 The reason is one line in `tsconfig.base.json`:
 
 ```json
-"@forum/admin": ["packages/admin/src/index.ts"]
+"@meith/admin": ["packages/admin/src/index.ts"]
 ```
 
-Every gate this project runs resolves `@forum/*` through the path aliases,
+Every gate this project runs resolves `@meith/*` through the path aliases,
 which point at `src/index.ts` directly. **None of them consults a
 `package.json`.** Vitest resolves through the same aliases, dependency-cruiser
 reads the same tsconfig, and Turbopack is given the same paths. The manifest's
@@ -3815,7 +3815,7 @@ tsconfig aliases and the pnpm workspace — and nothing compared them.
    our business);
 2. every `workspace:` dependency must name a package that actually declares
    that name;
-3. every non-wildcard `@forum/*` alias in `tsconfig.base.json` must point into
+3. every non-wildcard `@meith/*` alias in `tsconfig.base.json` must point into
    a directory that is a real workspace package.
 
 Removing the restored manifest fails all four ways at once — the missing
@@ -4552,7 +4552,7 @@ matches every row, and this is the list read as "these are the same person".
 
 #### F20's group-id rule needed six justified exemptions
 
-The lint rule that bans reading `primaryGroupId` outside `@forum/authorization`
+The lint rule that bans reading `primaryGroupId` outside `@meith/authorization`
 fired on a screen whose entire job is editing that column. Each site got a
 per-line disable with a reason, following the convention `account-repos.ts` and
 `ban-repos.ts` set: transporting a column into a row, rendering it as the
@@ -4953,7 +4953,7 @@ empty registry is explicitly not that alarm: a board with no tasks registered
 has a different problem and must not be told this one. (`every` on an empty
 array is vacuously true, which is exactly the mutant that test kills.)
 
-The verdict is a pure function in `@forum/tasks`, not in the repository, so the
+The verdict is a pure function in `@meith/tasks`, not in the repository, so the
 screen, the CLI and any future alerting reach the same answer from the same
 code.
 
@@ -5002,7 +5002,7 @@ This runs on rendered HTML, so a naive `replace` rewrites the inside of
 broken link, silently, with nothing about the post looking wrong. The scanner
 walks tag by tag and substitutes only in the spans between them.
 
-That is sound *because the input is the renderer's own output*: `@forum/bbcode`
+That is sound *because the input is the renderer's own output*: `@meith/bbcode`
 emits a fixed sanitised tag set and escapes `<` in text to `&lt;`, so a bare
 angle bracket in a post cannot desynchronise the scan. An unterminated tag —
 which cannot arise from that renderer — is copied through rather than filtered,
@@ -5115,7 +5115,7 @@ those with a syntax error — a board whose search looks broken. `websearch_to_t
 accepts arbitrary text and understands the two conventions members actually use:
 `"quoted phrases"` and a leading `-` for exclusion.
 
-`@forum/search`'s parser therefore does **not** build a query. It normalises
+`@meith/search`'s parser therefore does **not** build a query. It normalises
 whitespace, strips control characters, and answers one question the engine
 cannot: is there anything here worth running? Length is measured on the *words*
 rather than the raw string, because `"a"` and `-a` are one-character searches
@@ -5137,7 +5137,7 @@ produce the same document or results would depend on when a post was written.
 #### The provider seam is narrow on purpose
 
 Everything above `SearchProvider` speaks in queries and hits; nothing outside
-`@forum/db` knows what a `tsquery` is. Replacing Postgres search with a hosted
+`@meith/db` knows what a `tsquery` is. Replacing Postgres search with a hosted
 index is a new implementation of one interface. Ranking internals, stemming
 configuration and index maintenance stay behind the seam, because no two
 providers would agree on them.
@@ -5612,7 +5612,7 @@ as the recrawl takes.
 
 `no-orphans` fired on the two new view modules. They are not orphans: they are
 imported by route handlers under `app/`. The cause is that dependency-cruiser
-reads path aliases from `tsconfig.base.json`, which holds the `@forum/<name>`
+reads path aliases from `tsconfig.base.json`, which holds the `@meith/<name>`
 workspace aliases and deliberately **not** `@/*` — that one belongs to the app
 alone, and putting it in the base config would let any package resolve `@/…`
 into the app.
@@ -5629,7 +5629,7 @@ Fixed by giving the tool the alias through a `webpackConfig` — its schema does
 not accept `enhancedResolveOptions.alias` — and the file repeats the extension
 list, because supplying a webpack config *replaces* the resolver defaults rather
 than adding to them; without that the module count drops by a fifth. Verified
-with a probe: a domain package importing `@forum/db` still errors.
+with a probe: a domain package importing `@meith/db` still errors.
 
 Adding the two files to the orphan exemption list would have made the warning go
 away and left the blindness in place. That is the fourth time this session a
@@ -5974,7 +5974,7 @@ It has been `{ key, enabled? }` and explicitly opaque since F01, with a comment
 saying F79 would fill it in. It now carries the definition as a **type
 parameter**, exactly as `InstalledTheme.theme` does and for the same reason:
 `PluginDefinition` lives in a package that imports React, and
-`core-depends-on-nothing` keeps `@forum/core` importable by the CLI and the
+`core-depends-on-nothing` keeps `@meith/core` importable by the CLI and the
 worker.
 
 The definition stays optional, because the registry entry and the definition
@@ -6088,7 +6088,7 @@ reposts the same webhook on every accidental double-submit.
 
 #### A boundary rule, because isolation is not privilege
 
-`plugins-use-the-kit-only` makes a plugin importing `@forum/db`, a driver or a
+`plugins-use-the-kit-only` makes a plugin importing `@meith/db`, a driver or a
 domain package a dependency-cruiser error. The host isolates *failures*; it does
 nothing about access. A plugin with its own database handle is outside every
 guarantee this codebase makes, and "the host catches the exception" is no comfort
@@ -6239,7 +6239,7 @@ bypass in it.
 
 ### D88 — A generator's behaviour is its output, so the output is a value (F82)
 
-`npx create-forum my-board`. Six files, and the interesting decisions are in
+`npx create-meith my-board`. Six files, and the interesting decisions are in
 what they contain rather than in the CLI that writes them.
 
 #### The scaffold is a pure function
@@ -6306,7 +6306,7 @@ gets a chance, because a project called `..` scaffolds into the parent directory
 
 #### One eslint exemption, and why it belongs
 
-`packages/create-forum` joins `scripts/`, `apps/cli` and `apps/worker` in the
+`packages/create-meith` joins `scripts/`, `apps/cli` and `apps/worker` in the
 `no-console` exemption. It is a console program in the same sense as those: it
 prints to a terminal and exits, and it runs *before a board exists* and therefore
 before there is any validated `env` to log through.
@@ -6322,7 +6322,7 @@ Nearly every failure a new operator hits is visible *before* anything is
 written — no database URL, the wrong connection string, a missing secret, a board
 that is already installed. So the checks are a function from a plain record of
 what the environment looks like to a list of findings, and nothing in
-`@forum/install` opens a connection, reads `process.env` or touches Next.
+`@meith/install` opens a connection, reads `process.env` or touches Next.
 
 That is what makes "what does the installer say when the connection string is the
 direct one" a unit test rather than an experiment against a real Supabase
@@ -6931,7 +6931,7 @@ and this is what they cost.
 
 #### `mysql2`, and how small the reader turned out to be
 
-Open question 5, resolved: `@forum/import` may depend on a MySQL client. The
+Open question 5, resolved: `@meith/import` may depend on a MySQL client. The
 full reasoning is in [ADR 0004](./adr/0004-mysql2-import-reader.md); the thing
 worth recording here is that **the port paid off exactly as intended**. The
 reader is about a hundred and fifty lines, four near-identical `SELECT`s and a
@@ -6956,7 +6956,7 @@ The driver is loaded by `await import` inside `connect()`, and a test asserts
 that on the **source text** — unusual in a test file, and right here, because the
 property is "no static import exists" and no runtime check can observe the
 absence of one. A bundler can, which is the entire point: the app imports
-`@forum/import` for F86's URL table, and a static import would put a MySQL
+`@meith/import` for F86's URL table, and a static import would put a MySQL
 driver in every board's serverless bundle.
 
 #### The sink refuses rather than guesses
@@ -7158,7 +7158,7 @@ the top level — announcing that they exist, what they are called, and making t
 board's shape depend on who is looking.
 
 The board index already had that rule, inlined. It moved to
-`@forum/forums.keepVisibleSubtrees` when the jump box became its second caller,
+`@meith/forums.keepVisibleSubtrees` when the jump box became its second caller,
 because a security-relevant filter implemented twice is one that gets fixed once
 and stays broken in the other place. Mutation-verified: substituting a row filter
 fails two tests, both named for the leak rather than for the output.

@@ -1,4 +1,4 @@
-import type { UserPanelModel } from '@forum/theme-kit'
+import type { UserPanelModel } from '@meith/theme-kit'
 
 /**
  * The welcome block (F25/F27) — MyBB's `header_welcomeblock`.

@@ -23,8 +23,8 @@ import type {
   ModCpRepository,
   ModLogEntry,
   ModLogPage,
-} from '@forum/moderation'
-import { MOD_LOG_ACTIONS } from '@forum/moderation'
+} from '@meith/moderation'
+import { MOD_LOG_ACTIONS } from '@meith/moderation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'

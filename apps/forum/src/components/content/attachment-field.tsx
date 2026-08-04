@@ -15,11 +15,11 @@
  */
 /*
  * The leaf modules, not the package barrel. This file runs in the browser, and
- * the barrel reaches `service.ts` -> `@forum/core` -> `node:async_hooks`, which
+ * the barrel reaches `service.ts` -> `@meith/core` -> `node:async_hooks`, which
  * is a build error rather than a slow page. See `limits.ts`.
  */
-import { ACCEPTED_EXTENSIONS, ATTACHMENT_FIELD } from '@forum/attachments/types'
-import { maxBytesFor, maxPerPostFor, type UploadLimits } from '@forum/attachments/limits'
+import { ACCEPTED_EXTENSIONS, ATTACHMENT_FIELD } from '@meith/attachments/types'
+import { maxBytesFor, maxPerPostFor, type UploadLimits } from '@meith/attachments/limits'
 
 import { formatBytes } from '@/view/attachments'
 

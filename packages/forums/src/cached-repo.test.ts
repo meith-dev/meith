@@ -1,4 +1,4 @@
-import { CacheTags, type CacheDriver, type CacheSetOptions } from '@forum/core'
+import { CacheTags, type CacheDriver, type CacheSetOptions } from '@meith/core'
 import { describe, expect, it, vi } from 'vitest'
 
 import { CachedForumRepository } from './cached-repo'

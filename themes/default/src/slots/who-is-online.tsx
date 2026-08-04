@@ -1,4 +1,4 @@
-import type { WhoIsOnlineModel } from '@forum/theme-kit'
+import type { WhoIsOnlineModel } from '@meith/theme-kit'
 
 /**
  * Who is on the board (F75).

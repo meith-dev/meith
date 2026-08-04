@@ -14,8 +14,8 @@
  */
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError, isAppError, logger } from '@forum/core'
-import { parseRelationKind } from '@forum/relations'
+import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import { parseRelationKind } from '@meith/relations'
 
 import { getActor } from './context'
 import { isStaff, relationService } from './relations'
@@ -86,7 +86,7 @@ export async function setRelationAction(_prev: FormState, form: FormData): Promi
 
     /*
      * The staff check is asked *here*, not inside the service: whether somebody
-     * is a moderator is the Authorizer's answer (F20), and `@forum/relations`
+     * is a moderator is the Authorizer's answer (F20), and `@meith/relations`
      * has no idea what a group is. It runs only for an ignore, so putting
      * somebody on a buddy list costs no actor build.
      */

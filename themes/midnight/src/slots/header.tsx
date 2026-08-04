@@ -1,4 +1,4 @@
-import type { HeaderModel } from '@forum/theme-kit'
+import type { HeaderModel } from '@meith/theme-kit'
 
 /**
  * A masthead with the navigation as a tab strip.

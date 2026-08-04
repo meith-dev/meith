@@ -27,14 +27,14 @@ import 'server-only'
  */
 import { cookies, headers } from 'next/headers'
 
-import type { Actor } from '@forum/authorization'
-import { contentScopeFrom, env } from '@forum/core'
+import type { Actor } from '@meith/authorization'
+import { contentScopeFrom, env } from '@meith/core'
 import {
   PostgresPresenceRepository,
   getDb,
   type OnlineScope,
   type OnlineSnapshot,
-} from '@forum/db'
+} from '@meith/db'
 
 import { getContainer } from './container'
 import { sessionCookieName } from './cookies'

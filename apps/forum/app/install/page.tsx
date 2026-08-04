@@ -1,4 +1,4 @@
-import { INSTALL_STEPS, blockers, canProceed, warnings } from '@forum/install'
+import { INSTALL_STEPS, blockers, canProceed, warnings } from '@meith/install'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 

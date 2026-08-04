@@ -1,4 +1,4 @@
-import type { ShellModel } from '@forum/theme-kit'
+import type { ShellModel } from '@meith/theme-kit'
 
 /**
  * The page frame (F25/F27).
@@ -8,7 +8,7 @@ import type { ShellModel } from '@forum/theme-kit'
  * the flat-composition note in `theme-kit`'s view-models.
  *
  * Plain `<a>` for the skip link rather than `next/link`: a theme should need
- * nothing but `@forum/theme-kit`, and a full navigation is the right behaviour
+ * nothing but `@meith/theme-kit`, and a full navigation is the right behaviour
  * for a board that ships almost no JavaScript anyway.
  */
 export function Shell({ viewer, children }: ShellModel) {

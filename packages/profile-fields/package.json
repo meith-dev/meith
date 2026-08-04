@@ -1,11 +1,11 @@
 {
-  "name": "@forum/profile-fields",
+  "name": "@meith/profile-fields",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@forum/core": "workspace:*"
+    "@meith/core": "workspace:*"
   }
 }
