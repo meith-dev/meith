@@ -21,6 +21,10 @@ const BUTTON =
 const QUIET_BUTTON =
   "inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 
+/** Quieter still: no border, for the one control that undoes the other two. */
+const GHOST_BUTTON =
+  "inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+
 const FIELD =
   "rounded-md border border-border bg-background px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 
@@ -36,6 +40,19 @@ export interface ModeOption {
  * because they are one act from the member's side and the server treats them
  * as one (`subscribe` is an upsert). The unsubscribe button is a separate form
  * because it posts to a different action.
+ *
+ * ## A panel, and a quiet one
+ *
+ * It rendered as a bare row of controls on the page background. Theme API 1.3
+ * puts it in the `tools` region beside the rating and the moderator bar, both
+ * of which are bordered panels, so a loose row was the one thing on the strip
+ * that did not look like it belonged to it.
+ *
+ * Its submit is **not** the filled variant any more, and that is the more
+ * important half. A thread page is supposed to have exactly one loud control
+ * and it is "Reply" (see the theme's `ThreadView`); a second filled button
+ * offering to *subscribe* competed with it for the eye on every thread a
+ * signed-in member opened.
  */
 export function FollowForm({
   target,
@@ -57,7 +74,10 @@ export function FollowForm({
   const [stopState, stopAction] = useActionState(unsubscribeAction, EMPTY_STATE)
 
   return (
-    <div className="flex flex-col gap-2">
+    <section
+      aria-label={label}
+      className="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3"
+    >
       <FormError message={state.error ?? stopState.error} />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -82,7 +102,7 @@ export function FollowForm({
             </select>
           </label>
 
-          <button type="submit" className={BUTTON}>
+          <button type="submit" className={QUIET_BUTTON}>
             {mode === null ? "Follow" : "Save"}
           </button>
         </form>
@@ -92,13 +112,13 @@ export function FollowForm({
             <input type="hidden" name="target" value={target} />
             <input type="hidden" name="targetId" value={targetId} />
             <input type="hidden" name="back" value={back} />
-            <button type="submit" className={QUIET_BUTTON}>
+            <button type="submit" className={GHOST_BUTTON}>
               Stop following
             </button>
           </form>
         )}
       </div>
-    </div>
+    </section>
   )
 }
 

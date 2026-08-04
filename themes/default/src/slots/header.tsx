@@ -20,9 +20,18 @@ import { LINK, PAGE } from '../shared'
  * So the nav is a single row that scrolls horizontally when it has to.
  * `overflow-x-auto` with no scrollbar styling: the platform draws its own, the
  * row is swipeable, and every item stays reachable by keyboard because it is
- * still an ordinary link in an ordinary list. `-mx-4 px-4` lets the first and
- * last item sit flush with the page's measure while the scroll area runs the
- * full width, so nothing looks clipped at rest.
+ * still an ordinary link in an ordinary list.
+ *
+ * **The scroll area is the page, not the measure.** This paragraph described
+ * `-mx-4 px-4` for two features and the markup carried `-mx-px`, which is a
+ * different thing entirely: the padding belonged to the scrolling element, so
+ * it scrolled away with the content and the row ended hard against the
+ * viewport edge with no trailing space — the last item looked severed rather
+ * than scrollable. Negative margins that cancel the parent's gutter, with the
+ * same gutter re-applied *inside* the scroller, is the arrangement that was
+ * always meant: items line up with the page's measure at rest, the scroll
+ * region runs edge to edge so nothing looks clipped, and there is padding
+ * again when you reach the end.
  *
  * ## The two rows are also two landmarks
  *
@@ -46,18 +55,21 @@ export function Header({ boardTitle, homeHref, navigation, children }: HeaderMod
 
       {navigation.length > 0 && (
         <nav aria-label="Board sections" className="border-t border-border">
-          <ul className={`${PAGE} -mx-px flex items-stretch gap-1 overflow-x-auto text-sm`}>
-            {navigation.map((item) => (
-              <li key={item.href} className="shrink-0">
-                <a
-                  href={item.href}
-                  className="inline-flex h-10 items-center rounded-t-md border-b-2 border-transparent px-2.5 font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
-                >
-                  {item.label}
-                </a>
-              </li>
-            ))}
-          </ul>
+          {/* The rule is full-bleed; the row inside it is on the measure. */}
+          <div className={PAGE}>
+            <ul className="-mx-4 flex items-stretch gap-1 overflow-x-auto px-4 text-sm sm:-mx-6 sm:px-6">
+              {navigation.map((item) => (
+                <li key={item.href} className="shrink-0">
+                  <a
+                    href={item.href}
+                    className="inline-flex h-10 items-center rounded-t-md border-b-2 border-transparent px-2.5 font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         </nav>
       )}
     </header>

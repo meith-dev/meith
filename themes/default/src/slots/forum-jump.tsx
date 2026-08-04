@@ -38,6 +38,13 @@ import { PAGE } from '../shared'
  * aligned on a wide screen, full width on a narrow one, and the label is beside
  * the box rather than above it — a two-line form for one `<select>` is a form
  * that looks more important than it is.
+ *
+ * It carries the footer's `bg-card` for the same reason. On the page's own
+ * background it was a third band — content, then a strip holding one select,
+ * then the footer — and a reader scanning down the page met two changes of
+ * surface where there is one idea. Same fill, one hairline between them: the
+ * chrome at the bottom of the page is one block that happens to have a control
+ * in its top half.
  */
 export function ForumJump({ action, field, forums, submitLabel, label }: ForumJumpModel) {
   if (forums.length === 0) return null
@@ -57,7 +64,7 @@ export function ForumJump({ action, field, forums, submitLabel, label }: ForumJu
      * not `flex-1` is a page missing its `<main>` landmark, which is a broken
      * skip link before it is a layout problem.
      */
-    <div className="border-t border-border">
+    <div className="border-t border-border bg-card">
       <form
         method="get"
         action={action}

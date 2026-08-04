@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v1.2.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
+**theme-kit v1.3.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -236,7 +236,7 @@ Props: `ForumDisplayModel`
 | `forum` | `ForumRowModel` |  |
 | `newThreadHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` |  |
-| `regions` | `{ readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * This forum's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode }` |  |
+| `regions` | `{ /** * Controls scoped to this forum — the thread ordering, and the follow * form for a member who may subscribe. Rendered by the route because both * carry a Server Action or a URL contract the theme does not own. * * **A theme renders this under its heading, not above it.** That placement * is the reason the field exists: these were app-rendered strips stacked * *before* `ForumDisplay`, so the first thing on a forum page was a filter * with nothing yet to say what it filtered. A control belongs after the * thing it acts on has been named. * * Optional, which is what makes it a **minor** addition under the v1 * policy — a theme written against 1.2 keeps compiling. */ readonly tools?: ReactNode readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * This forum's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode }` |  |
 
 ### ThreadRow
 
@@ -293,7 +293,7 @@ Props: `ThreadViewModel`
 | `forum` | `LinkModel` |  |
 | `replyHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` | A native POST target for the last visible post on this page. |
-| `regions` | `{ /** One `PostBit` per post on this page. */ readonly posts: ReactNode readonly pagination: ReactNode /** * The quick-reply island, or `null` when the viewer may not reply — in which * case nothing is rendered and no island bytes are shipped. */ readonly quickReply: ReactNode }` |  |
+| `regions` | `{ /** * Controls scoped to this thread — following it, rating it, its poll, and * the moderator's thread tools. Rendered by the route, for the reason * every app-rendered region exists: each one carries a Server Action. * * **A theme renders this under its heading, not above it**, and the same * history is behind this field as behind `ForumDisplayModel`'s. Four of * these strips used to stack before `ThreadView`, so a thread opened on a * phone began with a follow control, a star rating and a poll, and the * title of the thing being followed, rated and voted on was a screen * further down. * * Optional under the v1 policy: a theme written against 1.2 compiles and * simply does not offer them. */ readonly tools?: ReactNode /** One `PostBit` per post on this page. */ readonly posts: ReactNode readonly pagination: ReactNode /** * The quick-reply island, or `null` when the viewer may not reply — in which * case nothing is rendered and no island bytes are shipped. */ readonly quickReply: ReactNode }` |  |
 
 ### PostBit
 
@@ -321,6 +321,7 @@ Props: `PostActionsSlotModel`
 |---|---|---|
 | `actions` | `PostActionsModel` |  |
 | `postId` | `number` |  |
+| `children` | `ReactNode` | optional — App-rendered controls that belong beside the post's own actions — today, F45's multi-quote island. It is `children` for the reason logging out is: the button is a client island holding browser state, and neither a component nor a handler can cross this contract as data. Before this field the page had nowhere to put it but `PostBitModel.regions.pluginFooter`, so every post on the board carried a second bordered row containing one control — the plugin region used as a parking space, and a visible band of furniture per post as the price. Additive under the v1 policy, and `children` is already exempt from the plain-data rule. |
 
 ### QuickReply
 
@@ -664,5 +665,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v1.2. Nothing can be: this is the first
+Nothing is deprecated in v1.3. Nothing can be: this is the first
 frozen version, so there is no earlier promise to withdraw.

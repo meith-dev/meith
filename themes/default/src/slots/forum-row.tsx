@@ -31,11 +31,20 @@ import { Counts, LINK, MUTED_LINK, ReadSpacer, Stamp, UnreadDot, UserRef } from 
  *
  * ## The grid
  *
- * Three columns from `md` up — subject, counters, last post — declared on the
- * row rather than on a wrapping table, so `CategoryBlock` stays a `<ul>` and a
- * theme that wants a real `<table>` (see `themes/midnight`) can have one without
- * this file being involved. Below `md` the row stacks and the counters become a
- * single line under the title, which is the order somebody reads them in anyway.
+ * Four columns from `md` up — marker, subject, counters, last post — declared on
+ * the row rather than on a wrapping table, so `CategoryBlock` stays a `<ul>` and
+ * a theme that wants a real `<table>` (see `themes/midnight`) can have one
+ * without this file being involved. Below `md` the row stacks and the counters
+ * become a single line under the title, which is the order somebody reads them
+ * in anyway.
+ *
+ * **The marker is a column, not a flex sibling of the title.** It was the
+ * latter, which meant that when the row stacked on a phone the title was
+ * indented past the dot and the two lines beneath it — the counters and the
+ * last post — started at the card's edge instead. Three lines of one row, at
+ * two different left edges. As a column the marker owns its width at every
+ * width, and `col-start-2` puts the stacked lines under the title where they
+ * belong.
  */
 export function ForumRow({ forum }: ForumRowSlotModel) {
   /* A link row navigates away and has no threads, so it has no columns either. */
@@ -45,40 +54,38 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
     <li
       data-unread={forum.isUnread ? '' : undefined}
       className={
-        'grid grid-cols-1 gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/60' +
-        (isLink ? '' : ' md:grid-cols-[minmax(0,1fr)_auto_15rem] md:items-center')
+        'grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/60' +
+        (isLink ? '' : ' md:grid-cols-[auto_minmax(0,1fr)_9rem_15rem] md:items-center md:gap-x-4')
       }
     >
-      <div className="flex min-w-0 gap-2.5">
-        {forum.isUnread ? <UnreadDot /> : <ReadSpacer />}
+      {forum.isUnread ? <UnreadDot /> : <ReadSpacer />}
 
-        <div className="min-w-0">
-          <a
-            href={forum.href}
-            className={
-              (forum.isUnread ? 'font-semibold text-foreground' : 'font-medium text-foreground') +
-              ` ${LINK}`
-            }
-          >
-            {forum.title}
-          </a>
-          {forum.isUnread && <span className="sr-only"> (new posts)</span>}
+      <div className="min-w-0">
+        <a
+          href={forum.href}
+          className={
+            (forum.isUnread ? 'font-semibold text-foreground' : 'font-medium text-foreground') +
+            ` ${LINK}`
+          }
+        >
+          {forum.title}
+        </a>
+        {forum.isUnread && <span className="sr-only"> (new posts)</span>}
 
-          {forum.description !== null && (
-            <p className="mt-0.5 text-sm text-muted-foreground">{forum.description}</p>
-          )}
+        {forum.description !== null && (
+          <p className="mt-0.5 text-sm text-muted-foreground">{forum.description}</p>
+        )}
 
-          {forum.subforums.length > 0 && (
-            <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Subforums</span>
-              {forum.subforums.map((sub) => (
-                <a key={sub.href} href={sub.href} className={MUTED_LINK}>
-                  {sub.label}
-                </a>
-              ))}
-            </p>
-          )}
-        </div>
+        {forum.subforums.length > 0 && (
+          <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Subforums</span>
+            {forum.subforums.map((sub) => (
+              <a key={sub.href} href={sub.href} className={MUTED_LINK}>
+                {sub.label}
+              </a>
+            ))}
+          </p>
+        )}
       </div>
 
       {!isLink && (
@@ -90,7 +97,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
            * as broken rather than tight.
            */}
           <Counts
-            className="md:w-36 md:justify-end"
+            className="col-start-2 md:col-start-3 md:justify-end"
             items={[
               {
                 label: 'Threads',
@@ -107,7 +114,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
             ]}
           />
 
-          <div className="min-w-0 text-xs text-muted-foreground">
+          <div className="col-start-2 min-w-0 text-xs text-muted-foreground md:col-start-4">
             {forum.lastPost === null ? (
               <span className="text-forum-read">No posts yet</span>
             ) : (

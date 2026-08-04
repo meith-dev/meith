@@ -35,6 +35,7 @@ import { attachmentsForPosts } from '@/server/attachments'
 import { avatarsFor } from '@/server/avatars'
 import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
 import { getSettings } from '@/server/settings'
+import { buildBreadcrumb } from '@/view/breadcrumb'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
 import {
   cardDescription,
@@ -503,6 +504,7 @@ export default async function ThreadPage({
   }).modes
 
   const ThreadView = requireSlot(activeTheme, 'ThreadView')
+  const Navigation = requireSlot(activeTheme, 'Navigation')
   const Notice = requireSlot(activeTheme, 'Notice')
   const PostBit = requireSlot(activeTheme, 'PostBit')
   const PostActions = requireSlot(activeTheme, 'PostActions')
@@ -591,17 +593,37 @@ export default async function ThreadPage({
             inlineOffered,
           ),
           regions: {
-            actions: <PostActions {...actions} />,
+            /*
+             * The multi-quote island goes *into* the actions (theme API 1.3),
+             * not into the plugin footer beside them. It sat in the footer
+             * because that was the only region reachable from here, which cost
+             * every post on the board a second bordered row holding one
+             * control. It is a post action; it lives with the post actions.
+             *
+             * The condition is the same one that decides whether the post can
+             * be quoted at all — collecting a quote you may not use is a
+             * control that does nothing.
+             */
+            actions: (
+              <PostActions {...actions}>
+                {post.actions.quoteHref === null ? null : (
+                  <MultiQuoteButton
+                    author={post.author.username}
+                    message={post.quoteSource}
+                  />
+                )}
+              </PostActions>
+            ),
             pluginBadges: pluginRegion('postbit.badges', {
               viewer: viewerRef(actor),
               subjectId: post.id,
               authorId: post.author.userId,
             }),
-            pluginFooter: <>{pluginRegion('postbit.footer', {
+            pluginFooter: pluginRegion('postbit.footer', {
               viewer: viewerRef(actor),
               subjectId: post.id,
               authorId: post.author.userId,
-            })}{post.actions.quoteHref === null ? null : <MultiQuoteButton author={post.author.username} message={post.quoteSource} />}</>,
+            }),
           },
         },
         pluginContext,
@@ -647,11 +669,74 @@ export default async function ThreadPage({
     />
   )
 
+  /*
+   * Everything that acts on this thread, in one region under its heading
+   * (theme API 1.3).
+   *
+   * These four used to be siblings of `<ThreadView>` and rendered *before* it,
+   * because the contract had nowhere else to put them — so a thread opened
+   * with a moderator's tool bar, a follow control, a poll and a star rating,
+   * and the `<h1>` saying which thread was a screen below all of it. On a
+   * phone the title was reliably below the fold.
+   *
+   * They stay app-rendered: each one is a `<form>` bound to a Server Action,
+   * and an action reference is the one thing that never crosses into a theme.
+   */
+  const anyTool =
+    toolRights.lock ||
+    toolRights.stick ||
+    toolRights.move ||
+    toolRights.delete ||
+    surgeryRights.merge ||
+    surgeryRights.split
+  const tools =
+    !anyTool && !followOffered && poll === null && (rating === null || !ratingsEnabled) ? undefined : (
+      <>
+        {anyTool && (
+          <ThreadToolsForm
+            threadId={thread.id}
+            isLocked={thread.isLocked}
+            isSticky={thread.isSticky}
+            rights={toolRights}
+            moveTargets={moveTargets}
+          >
+            <ThreadSurgeryForm
+              threadId={thread.id}
+              rights={surgeryRights}
+              splitPoints={splitPoints}
+            />
+          </ThreadToolsForm>
+        )}
+        {/* The poll first of the three: it is content, not a control. */}
+        {poll !== null && (
+          <PollForm poll={poll} threadId={thread.id} canVote={canVotePoll} />
+        )}
+        {rating !== null && ratingsEnabled && (
+          <ThreadRatingForm
+            threadId={thread.id}
+            rating={rating}
+            canRate={canRateThread}
+          />
+        )}
+        {followOffered && (
+          <FollowForm
+            target="thread"
+            targetId={thread.id}
+            mode={followMode}
+            modes={followModes}
+            back={`/thread/${thread.id}-${thread.slug}`}
+            label="Follow this thread"
+          />
+        )}
+      </>
+    )
+
   const threadViewModel = await filterView(
     'view.thread-view',
     {
       ...view.view,
       regions: {
+        ...(tools === undefined ? {} : { tools }),
         posts: postModels.map((model) => (
           <PostBit key={model.post.id} {...model} />
         )),
@@ -662,8 +747,29 @@ export default async function ThreadPage({
     pluginContext,
   )
 
+  /*
+   * The trail: Forums › Category › Forum › this thread.
+   *
+   * Both reads are already paid for on this request — `listAll` is what the
+   * shell's jump box calls and `CachedForumRepository` serves once, and the
+   * visibility set is memoised by the authorizer. Rendered outside `<main>`,
+   * because it is navigation and "skip to content" should skip it.
+   */
+  const [allForums, visibleIds] = await Promise.all([
+    forums.listAll(),
+    authorizer.visibleForumIds(actor),
+  ])
+  const trail = buildBreadcrumb({
+    forums: allForums,
+    forumId: forum.id,
+    visibleForumIds: new Set(visibleIds),
+    leaf: thread.title,
+  })
+
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
+    <>
+      <Navigation items={trail} />
+      <main id="board-content" tabIndex={-1} className="flex-1">
       {jsonLd !== null && (
         <script
           type="application/ld+json"
@@ -679,50 +785,6 @@ export default async function ThreadPage({
           />
         </div>
       )}
-      {(toolRights.lock ||
-        toolRights.stick ||
-        toolRights.move ||
-        toolRights.delete ||
-        surgeryRights.merge ||
-        surgeryRights.split) && (
-        <ThreadToolsForm
-          threadId={thread.id}
-          isLocked={thread.isLocked}
-          isSticky={thread.isSticky}
-          rights={toolRights}
-          moveTargets={moveTargets}
-        >
-          <ThreadSurgeryForm
-            threadId={thread.id}
-            rights={surgeryRights}
-            splitPoints={splitPoints}
-          />
-        </ThreadToolsForm>
-      )}
-      {followOffered && (
-        <div className={`${BOARD_MEASURE} pt-4`}>
-          <FollowForm
-            target="thread"
-            targetId={thread.id}
-            mode={followMode}
-            modes={followModes}
-            back={`/thread/${thread.id}-${thread.slug}`}
-            label="Follow this thread"
-          />
-        </div>
-      )}
-      {poll !== null && (
-        <div className={BOARD_MEASURE}>
-          <PollForm poll={poll} threadId={thread.id} canVote={canVotePoll} />
-        </div>
-      )}
-      {rating !== null && ratingsEnabled && (
-        <ThreadRatingForm
-          threadId={thread.id}
-          rating={rating}
-          canRate={canRateThread}
-        />
-      )}
       <ThreadView {...threadViewModel} />
       {inlineOffered && (
         <InlineModerationForm
@@ -735,6 +797,7 @@ export default async function ThreadPage({
           splitFrom={surgeryRights.split ? thread.id : null}
         />
       )}
-    </main>
+      </main>
+    </>
   )
 }

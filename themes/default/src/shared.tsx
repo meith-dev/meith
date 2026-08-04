@@ -106,6 +106,24 @@ export function ReadSpacer() {
 }
 
 /**
+ * Did a region render nothing?
+ *
+ * A region arrives as a `ReactNode`, and a node that will render nothing is
+ * indistinguishable from one that will render something — until it does.
+ * `:empty` in CSS can *hide* a box that turned out to have no children, and
+ * that is what the postbit's footer uses; it cannot put a sentence in one.
+ *
+ * A forum with no threads needs the sentence. The page hands the listing an
+ * array of rendered rows, so an empty array is the honest signal available
+ * here, and the model's own note says the empty state is the theme's to
+ * supply.
+ */
+export function isEmptyRegion(node: React.ReactNode): boolean {
+  if (node === null || node === undefined || node === false) return true
+  return Array.isArray(node) && node.length === 0
+}
+
+/**
  * Numbers in a listing, in a face whose digits are all one width.
  *
  * Without this a column of counts jitters left and right as the digits change,

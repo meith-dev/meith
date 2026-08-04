@@ -24,6 +24,15 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
         {reply}
       </div>
 
+      {/*
+        Theme API 1.3: follow, rate, vote, moderate. Under the heading, which
+        is where a control that acts on this thread belongs — and where the
+        default theme independently put it, for the same reason.
+      */}
+      {regions.tools !== undefined && (
+        <div className="flex flex-col gap-2 empty:hidden">{regions.tools}</div>
+      )}
+
       {regions.pagination}
       <div className="flex flex-col gap-2">{regions.posts}</div>
       {regions.pagination}

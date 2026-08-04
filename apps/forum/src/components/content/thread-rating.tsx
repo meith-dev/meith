@@ -2,7 +2,6 @@ import type { ThreadRating } from '@meith/polls'
 import { cn } from '@meith/ui'
 
 import { rateThreadAction } from '@/server/thread-rating-actions'
-import { BOARD_MEASURE } from '@/components/shell/measure'
 
 /**
  * F62's thread rating.
@@ -14,8 +13,16 @@ import { BOARD_MEASURE } from '@/components/shell/measure'
  * button back to plain text, so the control did not look like a control — it
  * looked like a line of debug output above the thread title. It also sat in
  * `px-6`, which is full-bleed, while every other region on the page is centred
- * in `BOARD_MEASURE`, so the one line on the page that was not aligned with
- * anything was this one.
+ * in the board's measure, so the one line on the page that was not aligned
+ * with anything was this one.
+ *
+ * ## It no longer carries a measure of its own
+ *
+ * It did, and had to, while it was a sibling of `<ThreadView>` rendered above
+ * it. Theme API 1.3 gave the thread page a `tools` region, so this now renders
+ * *inside* the slot, under the title — the theme supplies the width, and a
+ * second centring container inside one would only inset it from the posts it
+ * sits above.
  *
  * And it dropped `rating.mine`, which the repository goes out of its way to
  * fetch: a member who had already rated the thread was shown five identical
@@ -117,88 +124,86 @@ export function ThreadRatingForm({
   if (rating.count === 0 && !canRate) return null
 
   return (
-    <div className={BOARD_MEASURE}>
-      <section
-        aria-label="Thread rating"
-        className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-border bg-card px-4 py-3"
-      >
-        <div className="flex items-center gap-2.5">
-          {rating.count === 0 ? (
-            <p className="text-sm text-muted-foreground">No ratings yet.</p>
-          ) : (
-            <>
-              <Average value={rating.average} threadId={threadId} />
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground tabular-nums">
-                  {rating.average.toFixed(1)}
-                </span>{' '}
-                out of 5
-                <span className="sr-only">
-                  , from {rating.count} {rating.count === 1 ? 'rating' : 'ratings'}
-                </span>
-                <span aria-hidden="true" className="tabular-nums">
-                  {' · '}
-                  {rating.count} {rating.count === 1 ? 'rating' : 'ratings'}
-                </span>
-              </p>
-            </>
-          )}
-        </div>
-
-        {canRate && (
-          <form action={rateThreadAction} className="flex flex-wrap items-center gap-2 text-sm">
-            <input type="hidden" name="threadId" value={threadId} />
-
-            <span id={`rate-${threadId}`} className="text-muted-foreground">
-              {rating.mine === null ? 'Rate it' : 'Your rating'}
-            </span>
-
-            <span
-              role="group"
-              aria-labelledby={`rate-${threadId}`}
-              className="flex items-center gap-0.5"
-            >
-              {[1, 2, 3, 4, 5].map((value) => {
-                const chosen = rating.mine !== null && value <= rating.mine
-
-                return (
-                  <button
-                    key={value}
-                    type="submit"
-                    name="rating"
-                    value={value}
-                    /*
-                     * The full sentence, because "3" on its own is what a screen
-                     * reader would otherwise announce for a control that changes
-                     * a public number. `aria-pressed` is deliberately absent:
-                     * these are submits, not toggles, and the state they carry
-                     * is reported in the name instead.
-                     */
-                    aria-label={
-                      rating.mine === value
-                        ? `${value} out of 5 — your current rating`
-                        : `Rate ${value} out of 5`
-                    }
-                    className={cn(
-                      'inline-flex size-7 items-center justify-center rounded-md transition-colors',
-                      'hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-                      chosen ? 'text-thread-pinned' : 'text-muted-foreground',
-                    )}
-                  >
-                    <Star fill={chosen ? 1 : 0} className="size-5" />
-                  </button>
-                )
-              })}
-            </span>
-
-            {rating.mine !== null && (
-              <span className="text-xs text-muted-foreground tabular-nums">
-                You rated this {rating.mine}
+    <section
+      aria-label="Thread rating"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-border bg-card px-4 py-3"
+    >
+      <div className="flex items-center gap-2.5">
+        {rating.count === 0 ? (
+          <p className="text-sm text-muted-foreground">No ratings yet.</p>
+        ) : (
+          <>
+            <Average value={rating.average} threadId={threadId} />
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground tabular-nums">
+                {rating.average.toFixed(1)}
+              </span>{' '}
+              out of 5
+              <span className="sr-only">
+                , from {rating.count} {rating.count === 1 ? 'rating' : 'ratings'}
               </span>
-            )}
-          </form>
+              <span aria-hidden="true" className="tabular-nums">
+                {' · '}
+                {rating.count} {rating.count === 1 ? 'rating' : 'ratings'}
+              </span>
+            </p>
+          </>
         )}
-      </section>
-    </div>
+      </div>
+
+      {canRate && (
+        <form action={rateThreadAction} className="flex flex-wrap items-center gap-2 text-sm">
+          <input type="hidden" name="threadId" value={threadId} />
+
+          <span id={`rate-${threadId}`} className="text-muted-foreground">
+            {rating.mine === null ? 'Rate it' : 'Your rating'}
+          </span>
+
+          <span
+            role="group"
+            aria-labelledby={`rate-${threadId}`}
+            className="flex items-center gap-0.5"
+          >
+            {[1, 2, 3, 4, 5].map((value) => {
+              const chosen = rating.mine !== null && value <= rating.mine
+
+              return (
+                <button
+                  key={value}
+                  type="submit"
+                  name="rating"
+                  value={value}
+                  /*
+                   * The full sentence, because "3" on its own is what a screen
+                   * reader would otherwise announce for a control that changes
+                   * a public number. `aria-pressed` is deliberately absent:
+                   * these are submits, not toggles, and the state they carry
+                   * is reported in the name instead.
+                   */
+                  aria-label={
+                    rating.mine === value
+                      ? `${value} out of 5 — your current rating`
+                      : `Rate ${value} out of 5`
+                  }
+                  className={cn(
+                    'inline-flex size-7 items-center justify-center rounded-md transition-colors',
+                    'hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                    chosen ? 'text-thread-pinned' : 'text-muted-foreground',
+                  )}
+                >
+                  <Star fill={chosen ? 1 : 0} className="size-5" />
+                </button>
+              )
+            })}
+          </span>
+
+          {rating.mine !== null && (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              You rated this {rating.mine}
+            </span>
+          )}
+        </form>
+      )}
+    </section>
   )
 }
