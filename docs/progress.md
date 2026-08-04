@@ -744,7 +744,7 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### 87 done, 1 partial, 1 todo. Both open questions are answered.
+### 88 done, 0 partial, 1 todo. Both open questions are answered.
 
 **Phase 9 is closed** and the two escalated decisions came back (D95): `mysql2`
 behind F85's port (ADR 0004), and a bounded relevance window for F89's search
@@ -775,10 +775,18 @@ budget — 5,486 ms to 98 ms.
   Announcements were the last thing on this board with no model at all; they
   brought theme-kit to 1.2 and tripped four existing ratchets, all correctly.
 
-**One `PARTIAL` row remains**:
+**No `PARTIAL` rows remain.** One feature is outstanding:
 
-1. **F81** — public REST API and webhooks. The route registry and signing are
-   done; five endpoint handlers, token management, and webhook delivery remain.
+1. **F46** — anti-spam and flood control. Never started. Everything else on the
+   plan is `DONE` or a green `GATE`.
+
+**This file was wrong about F81 and said so for a while.** Its paragraph here
+described the route registry and signing as done with the handlers, token
+management and webhook delivery still to come — which stopped being true when
+F81 was finished, and nobody removed it. `plan-status.md`'s row has said `DONE`
+since. Two summaries were then written from *this* file rather than from that
+row, which is how the error propagated; the rule at the top of this page exists
+for exactly that and points the other way. Audit the row, not the prose.
 
 **Outstanding release task:** nothing is published to npm, so a scaffolded
 project cannot yet `npm install`.

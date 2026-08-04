@@ -40,22 +40,29 @@ since F39 is closed. What is still absent is a spec for the inline-moderation
 checkboxes, whose claim is that the HTML `form` attribute submits them with
 scripting off; that is now ordinary work rather than a blocked capability.
 
-Counts below are features, not effort. Several `TODO` rows are days of work;
-some `PARTIAL` rows are an afternoon.
+Counts below are features, not effort. A `GATE` row counts as done once it is
+green, which all three are.
+
+**Re-derived from the rows rather than carried forward**, after two of these
+numbers turned out to disagree with the table under them: Phase 8 still said
+`4 done, 1 partial` some time after F81's own row said `DONE`, and Phase 3's
+`11 done, 1 todo` came to more features than Phase 3 has. Both are the failure
+this file warns about one section down — a status nobody updated — landing on
+the summary instead of on a row.
 
 | Phase | Features | DONE | PARTIAL | TODO |
 |---|---|---|---|---|
 | 0 — Skeleton | 14 | 14 | 0 | 0 |
 | 1 — Identity, tree, permissions | 10 | 10 | 0 | 0 |
 | 2 — Themes and reading | 11 | 11 | 0 | 0 |
-| 3 — Posting | 11 | 11 | 0 | 1 |
+| 3 — Posting | 11 | 10 | 0 | 1 |
 | 4 — Moderation | 8 | 8 | 0 | 0 |
 | 5 — Members and social | 8 | 8 | 0 | 0 |
 | 6 — Admin CP | 9 | 9 | 0 | 0 |
 | 7 — Search and discovery | 5 | 5 | 0 | 0 |
-| 8 — Public APIs | 5 | 4 | 1 | 0 |
+| 8 — Public APIs | 5 | 5 | 0 | 0 |
 | 9 — Ship it | 8 | 8 | 0 | 0 |
-| **Total** | **89** | **87** | **1** | **1** |
+| **Total** | **89** | **88** | **0** | **1** |
 
 ---
 
