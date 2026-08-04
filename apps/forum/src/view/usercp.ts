@@ -1,7 +1,15 @@
-/** F57's pure UserCP view models. */
+/**
+ * F57's pure UserCP view models.
+ *
+ * The panel's *sections* used to be here too, as `userCpSections()`. They are
+ * in `usercp-nav.ts` now, with the rail that reads them — one tree feeding the
+ * navigation and the index, which is what made a sidebar defensible in the
+ * first place. Its old note still holds and moved with it: F55's and F56's
+ * screens are listed rather than relocated, because both are linked from
+ * e-mails and a bookmark should not break for tidiness.
+ */
 import type { MemberSettings } from '@meith/accounts'
 import { maxLengthFor, type ResolvedProfileField } from '@meith/profile-fields'
-import type { LinkModel } from '@meith/theme-kit'
 
 /**
  * The zones the options screen offers.
@@ -46,70 +54,6 @@ const FALLBACK_TIMEZONES: readonly string[] = [
   'Australia/Sydney',
   'Pacific/Auckland',
 ]
-
-export interface UserCpSection {
-  readonly title: string
-  readonly description: string
-  readonly link: LinkModel
-}
-
-/**
- * The panel's index.
- *
- * F55's and F56's screens are listed here rather than moved: both work on their
- * own URLs, both are linked from elsewhere, and a member who bookmarked one
- * should not find it gone. The UserCP is where they are *findable*, which is
- * what F57 owes them — not where they have to live.
- */
-export function userCpSections(): readonly UserCpSection[] {
-  return [
-    {
-      title: 'Profile',
-      description: 'What other members see about you.',
-      link: { label: 'Edit your profile', href: '/usercp/profile' },
-    },
-    {
-      title: 'Options',
-      description: 'Your timezone and how much of a thread fits on a page.',
-      link: { label: 'Change your options', href: '/usercp/options' },
-    },
-    {
-      title: 'E-mail and password',
-      description: 'Both need your current password.',
-      link: { label: 'Account security', href: '/usercp/security' },
-    },
-    {
-      title: 'Subscriptions',
-      description: 'The threads and forums you follow, and how often you hear about them.',
-      link: { label: 'Manage subscriptions', href: '/subscriptions' },
-    },
-    {
-      title: 'Private messages',
-      description: 'Your inbox, and what you have sent.',
-      link: { label: 'Open your messages', href: '/messages' },
-    },
-    {
-      title: 'Avatar',
-      description: 'The picture shown beside your posts.',
-      link: { label: 'Change your avatar', href: '/usercp/avatar' },
-    },
-    {
-      title: 'Signature',
-      description: 'What appears under every post you make.',
-      link: { label: 'Edit your signature', href: '/usercp/signature' },
-    },
-    {
-      title: 'Buddies and ignored members',
-      description: 'Who you follow, and whose posts you would rather not read.',
-      link: { label: 'Manage your lists', href: '/usercp/contacts' },
-    },
-    {
-      title: 'Notifications',
-      description: 'Which of them also reach you by e-mail.',
-      link: { label: 'Notification preferences', href: '/notifications/preferences' },
-    },
-  ]
-}
 
 /** The profile form's fields, as strings a form can hold. */
 export function profileFormValues(settings: MemberSettings): {

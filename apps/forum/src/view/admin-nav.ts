@@ -29,38 +29,38 @@
  *
  * ## No file reads what a path means twice
  *
- * `activeSectionHref` and `deepestNavHref` are longest-prefix matches over the
- * same tree, which is what makes `/admin/users/12` highlight "Users" and
- * `/admin/users/mail` highlight "Mass mail" without either page saying so.
- * They are pure string functions with tests, because "which nav item is lit"
- * is exactly the kind of thing that silently rots.
+ * The matching lives in `panel-nav.ts` and is shared with the member's own
+ * control panel, which grew the same rail afterwards. What is here is the
+ * tree, plus wrappers that bind the shared matchers to it — so
+ * `/admin/users/12` highlights "Users" and `/admin/users/mail` highlights
+ * "Mass mail" without either page saying so, by the same rule the other panel
+ * uses.
  */
 
-export interface AdminSubsection {
-  readonly href: string
-  readonly title: string
-}
+import {
+  type PanelNav,
+  type PanelSection,
+  currentProps,
+  deepestHrefIn,
+  isUnder,
+  sectionHrefIn,
+} from './panel-nav'
 
-export interface AdminSection {
-  readonly href: string
-  readonly title: string
-  /** One sentence, for the index's cards and the navigation's `title`. */
-  readonly blurb: string
-  readonly children?: readonly AdminSubsection[]
-}
+export { currentProps, isUnder }
+export type { PanelSection as AdminSection, PanelSubsection as AdminSubsection } from './panel-nav'
 
 /**
  * The panel's front door. Kept out of `ADMIN_SECTIONS` because the index does
  * not list itself, and kept in `ADMIN_NAV` because every other screen needs a
  * way back to it that is not the browser's history.
  */
-export const ADMIN_OVERVIEW: AdminSection = {
+export const ADMIN_OVERVIEW: PanelSection = {
   href: '/admin',
   title: 'Overview',
   blurb: 'What is waiting, the board at a glance, and the latest activity.',
 }
 
-export const ADMIN_SECTIONS: readonly AdminSection[] = [
+export const ADMIN_SECTIONS: PanelNav = [
   {
     href: '/admin/settings',
     title: 'Board settings',
@@ -131,37 +131,15 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
 ]
 
 /** What the shell's navigation renders, in order. */
-export const ADMIN_NAV: readonly AdminSection[] = [ADMIN_OVERVIEW, ...ADMIN_SECTIONS]
+export const ADMIN_NAV: PanelNav = [ADMIN_OVERVIEW, ...ADMIN_SECTIONS]
 
 /**
- * Is `pathname` this href or somewhere below it?
- *
- * The trailing slash is the whole point: `/admin/users` must not claim
- * `/admin/users-and-more`, and a board that later grows such a route should
- * not need to remember why the navigation went strange.
- */
-export function isUnder(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
-
-function longest(pathname: string, hrefs: readonly string[]): string {
-  let best = ADMIN_OVERVIEW.href
-  for (const href of hrefs) {
-    if (isUnder(pathname, href) && href.length > best.length) best = href
-  }
-  return best
-}
-
-/**
- * Which section this path belongs to. Always answers: `/admin` is a prefix of
- * everything under the panel, so an address this file has never heard of lands
- * on the overview rather than on nothing.
+ * Which section this path belongs to. **Always answers**, unlike the shared
+ * matcher: `/admin` is a prefix of everything under the panel, so an address
+ * this file has never heard of lands on the overview rather than on nothing.
  */
 export function activeSectionHref(pathname: string): string {
-  return longest(
-    pathname,
-    ADMIN_NAV.map((section) => section.href),
-  )
+  return sectionHrefIn(ADMIN_NAV, pathname) ?? ADMIN_OVERVIEW.href
 }
 
 /**
@@ -169,33 +147,5 @@ export function activeSectionHref(pathname: string): string {
  * there is one, otherwise its section. This is what "you are here" means.
  */
 export function deepestNavHref(pathname: string): string {
-  return longest(
-    pathname,
-    ADMIN_NAV.flatMap((section) => [
-      section.href,
-      ...(section.children ?? []).map((child) => child.href),
-    ]),
-  )
-}
-
-/**
- * `aria-current` for one navigation link, as props to spread.
- *
- * Only the deepest match gets it, so `/admin/users/mail` does not announce
- * both "Users, current" and "Mass mail, current page". It is `page` when the
- * link *is* the address, and `true` when the address is a record inside it —
- * `/admin/users/12` has no link of its own, and "somewhere in Users" is more
- * useful than nothing at all.
- *
- * Returned as an object rather than a value because the app compiles with
- * `exactOptionalPropertyTypes`: `aria-current={undefined}` is a type error,
- * not an absent attribute.
- */
-export function currentProps(
-  pathname: string,
-  href: string,
-  deepest: string,
-): { readonly 'aria-current'?: 'page' | 'true' } {
-  if (href !== deepest) return {}
-  return { 'aria-current': pathname === href ? 'page' : 'true' }
+  return deepestHrefIn(ADMIN_NAV, pathname) ?? ADMIN_OVERVIEW.href
 }
