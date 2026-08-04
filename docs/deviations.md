@@ -7027,3 +7027,85 @@ and the slowness goes undocumented, or leave the budget unmet and CI is
 permanently red — and the next scenario in that position should have somewhere
 honest to sit. A test caps limits at two, so the escape hatch cannot quietly
 become a second budget tier.
+
+---
+
+### D96 — The corpus was wrong three times, and the guard caught all three (F28)
+
+R3.5 asks for "`EXPLAIN` evidence for partial visible indexes". Producing it took
+three attempts, and each failure was the same shape: **the board did not contain
+the thing being measured**, so the measurement succeeded and meant nothing.
+
+#### Evidence is a check, not a paragraph
+
+`pnpm perf explain` runs five hot queries and fails when the planner does not
+choose the declared index. Pasting a plan into a document would describe a
+database that existed once, and the failure worth guarding is not that somebody
+deletes an index — the schema still declares it — but that **a query drifts until
+the planner stops picking it**.
+
+Partial indexes are unusually easy to lose that way. `where visibility =
+'visible'` only matches a query whose predicate the planner can *prove* implies
+it, so a read path that starts passing a variable scope where it passed a
+literal, or an `in ('visible')` where there was an `=`, falls off the index and
+onto a sequential scan of the largest table on the board. Nothing errors. The
+page is simply slow, at a scale nobody develops against.
+
+The unfiltered twins are checked for the mirror reason: a moderator's predicate
+does not imply the partial index, so without the twin *their* forum view is that
+scan — and that failure is invisible to every test written from a member's point
+of view, which is most of them.
+
+#### Failure one: every row was visible
+
+The first run reported `forum-listing-visible` using
+`threads_forum_listing_all_idx` — the twin — rather than the partial index. The
+planner was not wrong. The seeder wrote `visible` for every row, so the partial
+index and the twin covered **exactly the same 2.3 million rows** and either was
+an equally good answer.
+
+Worse, and quieter: the moderation-queue check *passed*, in 0.0 ms, because its
+index matched no rows at all. An empty index scan is very fast and proves
+nothing — the same failure mode as F89's `minRows` guard, wearing a different
+hat.
+
+The seeder now writes ~2% unapproved and ~1% soft-deleted. All five queries then
+chose their index, and the moderation queue took 1.2 ms against real rows.
+
+#### Failure two: two "every Nth row" rules that were not independent
+
+Adding the visibility mix broke the rare-term search scenario outright — it
+started matching **nothing**. The rare word was injected every 2,000th post and
+hidden content applied to every 50th, and 2,000 is a multiple of both 50 and 100,
+so *every single* rare-term post became soft-deleted.
+
+Two independent-looking "every Nth row" rules are not independent when their
+periods share a factor. The interval is now 1,999, a prime, which avoids the
+whole family of collisions rather than the one that happened to be noticed.
+
+F89's `minRows` guard caught this on the first run, as it caught two of the four
+problems in F89 itself. It has now paid for itself four times.
+
+#### Failure three: the first `EXPLAIN` timing was a cold cache
+
+`forum-listing-visible` reported 119 ms, which reads as a problem and is not one
+— it was the first statement of the run paying for an unwarmed buffer cache. The
+same query warm is 2.7 ms. The runner now executes each statement twice and
+records the second.
+
+#### And a budget that was set tighter than its own rule
+
+Unrelated to the corpus, found by the same re-runs. `discovery-latest` was
+budgeted at 80 ms against a typical p95 near 50 — 1.6×, where the top of
+`budgets.ts` states 2–3× and gives the reason. It duly went red on a noisy run at
+110 ms with a 621 ms outlier.
+
+Raised to 150 ms, and the note says *why* in those terms: not "it was failing" but
+"the number broke the methodology the rest of the table follows". A budget raised
+because it went red is how a budget stops meaning anything; one raised because it
+was never set correctly is a correction. The distinction is only legible if it is
+written down.
+
+The generated document now says the run is a single run on shared hardware, and
+the p99 column sits beside the p95 so an occasionally-slow scenario is
+distinguishable from a uniformly slow one.

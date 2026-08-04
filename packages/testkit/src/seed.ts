@@ -64,10 +64,37 @@ export interface SeedScale {
    * Injecting a rare word makes the second case exist. It is placed by counting
    * posts rather than by drawing from `random`, so adding it does not shift the
    * pseudo-random sequence and a board seeded without it is unchanged.
+   *
+   * **Keep this coprime with `hiddenContent`'s intervals.** It was 2,000 first,
+   * which shares every factor of 50 and 100 — so when the visibility mix arrived,
+   * *every single* rare-term post became soft-deleted and the rare-term search
+   * scenario matched nothing. Two independent-looking "every Nth row" rules are
+   * not independent if their periods share a factor; a prime avoids the whole
+   * family of collisions rather than just the one that was noticed.
    */
   readonly rareTerm?: {
     readonly word: string
     readonly everyNthPost: number
+  }
+  /**
+   * A realistic minority of hidden content.
+   *
+   * Every seeded row is `visible` without this, and that makes a whole class of
+   * index unmeasurable. R3.5's partial indexes exist to keep unapproved and
+   * soft-deleted rows out of the common path — but on an all-visible board the
+   * partial index and its unfiltered twin cover *exactly the same rows*, so the
+   * planner is free to pick either and `EXPLAIN` evidence proves nothing. The
+   * moderation queue is worse: its index matches no rows at all, so the query is
+   * instant and the measurement is of an empty set.
+   *
+   * One row in `unapprovedInN` is held for approval, one in `deletedInN` is soft
+   * deleted. Applied by counting rather than by drawing from `random`, so adding
+   * it leaves the pseudo-random sequence — and every board seeded without it —
+   * untouched.
+   */
+  readonly hiddenContent?: {
+    readonly unapprovedInN: number
+    readonly deletedInN: number
   }
 }
 
@@ -100,7 +127,9 @@ export const FULL_SCALE: SeedScale = {
   threads: 100_000,
   repliesPerThread: [10, 30],
   longThreads: { count: 30, posts: [2_000, 15_000] },
-  rareTerm: { word: 'quinsyflange', everyNthPost: 2_000 },
+  rareTerm: { word: 'quinsyflange', everyNthPost: 1_999 },
+  /* ~2% held for approval, ~1% soft deleted. A quiet, well-moderated board. */
+  hiddenContent: { unapprovedInN: 50, deletedInN: 100 },
 }
 
 /**
@@ -301,6 +330,7 @@ async function seedThreads(
       // ordering and its separator without swamping page one.
       isSticky: random.chance(0.04),
       isLocked: random.chance(0.02),
+      visibility: visibilityFor(scale, i),
       createdAt,
       lastPostAt: createdAt,
     }
@@ -364,6 +394,12 @@ async function seedThreads(
         subject: p === 0 ? thread.title : null,
         message: body(paragraphs(random, random.int(1, 3))),
         isFirstPost: p === 0,
+        /*
+         * A hidden *post* is independent of its thread's state: a visible thread
+         * routinely contains one held reply, which is the case the moderation
+         * queue exists for and the case an all-visible corpus cannot produce.
+         */
+        visibility: visibilityFor(scale, generated),
         createdAt: thread.createdAt,
       })
 
@@ -428,6 +464,21 @@ async function seedThreads(
   await flush()
 
   return { threadIds, postCount }
+}
+
+/**
+ * The visibility of the nth row.
+ *
+ * Deterministic on the counter rather than on `random`, so switching the option
+ * on does not shift the pseudo-random sequence and every board seeded without it
+ * is byte-for-byte what it was.
+ */
+function visibilityFor(scale: SeedScale, n: number): 'visible' | 'unapproved' | 'deleted' {
+  const hidden = scale.hiddenContent
+  if (hidden === undefined) return 'visible'
+  if (n > 0 && n % hidden.deletedInN === 0) return 'deleted'
+  if (n > 0 && n % hidden.unapprovedInN === 0) return 'unapproved'
+  return 'visible'
 }
 
 function daysAgo(days: number): Date {

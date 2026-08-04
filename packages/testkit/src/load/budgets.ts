@@ -135,9 +135,15 @@ export const BUDGETS: readonly Budget[] = [
     id: 'discovery-latest',
     page: 'Latest threads',
     work: 'Discovery page 1, scoped to visible forums',
-    p95Ms: 80,
+    p95Ms: 150,
     kind: 'target',
-    why: 'Ordered across the whole board rather than within one forum — the widest scan.',
+    why:
+      'Ordered across the whole board rather than within one forum — the widest scan, ' +
+      'and the most run-to-run variance of anything here. It was budgeted at 80ms ' +
+      'against a typical p95 near 50, which is 1.6× and breaks the 2–3× rule stated ' +
+      'at the top of this file; it duly went red on a noisy run at 110ms with a 621ms ' +
+      'outlier. Raised to 150ms — not to make it pass, but because the original number ' +
+      'was set tighter than the methodology the rest of the table follows.',
   },
   {
     id: 'search-common',
