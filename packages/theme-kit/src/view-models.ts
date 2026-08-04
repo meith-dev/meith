@@ -319,6 +319,8 @@ export interface PostBitModel {
   readonly author: PostAuthorModel
   /** Pre-rendered BBCode (F36). */
   readonly bodyHtml: string
+  /** Source used only by F45's client multiquote button; themes never render it. */
+  readonly quoteSource: string
   readonly postedAt: TimeModel
   /** "Last edited by X on Y", already assembled, or `null`. */
   readonly editedNote: string | null

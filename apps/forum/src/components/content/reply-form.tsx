@@ -9,7 +9,7 @@
  * `defaultValue` from the server, so quoting works without scripting too — it
  * is a link to this page, not a button that edits a textarea.
  */
-import { useActionState } from "react"
+import { useActionState, useEffect } from "react"
 
 import { createReplyAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
@@ -38,6 +38,13 @@ export function ReplyForm({
   draft: Draft | null
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)
+  useEffect(() => {
+    const field = document.getElementById('post-message') as HTMLTextAreaElement | null
+    const quotes = JSON.parse(sessionStorage.getItem('multiquote') ?? '[]') as Array<{ author: string; message: string }>
+    if (field === null || quotes.length === 0) return
+    field.value = `${field.value}${field.value ? '\n\n' : ''}${quotes.map((quote) => `[quote=${quote.author}]${quote.message}[/quote]`).join('\n\n')}`
+    sessionStorage.removeItem('multiquote')
+  }, [])
 
   /*
    * No `encType` on the form: React renders a Server Action form as

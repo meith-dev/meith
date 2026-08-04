@@ -12,6 +12,7 @@ import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 import { PollForm } from '@/components/content/poll'
 import { ThreadRatingForm } from '@/components/content/thread-rating'
 import { ReplyForm } from '@/components/content/reply-form'
+import { MultiQuoteButton } from '@/components/content/multiquote-button'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 
 import { getContainer } from '@/server/container'
@@ -593,11 +594,11 @@ export default async function ThreadPage({
               subjectId: post.id,
               authorId: post.author.userId,
             }),
-            pluginFooter: pluginRegion('postbit.footer', {
+            pluginFooter: <>{pluginRegion('postbit.footer', {
               viewer: viewerRef(actor),
               subjectId: post.id,
               authorId: post.author.userId,
-            }),
+            })}{post.actions.quoteHref === null ? null : <MultiQuoteButton author={post.author.username} message={post.quoteSource} />}</>,
           },
         },
         pluginContext,

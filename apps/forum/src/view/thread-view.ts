@@ -141,6 +141,7 @@ function post(
     id: post.id,
     number: post.number,
     permalink: `/thread/${thread.id}-${thread.slug}#post-${post.id}`,
+    quoteSource: hidden ? '' : post.message,
     author: {
       userId: post.authorUserId,
       username: post.authorUsername,
