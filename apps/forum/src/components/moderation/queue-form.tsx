@@ -48,7 +48,7 @@ export function QueueForm({ rows }: { rows: readonly QueueFormRow[] }) {
                 <span className="flex flex-wrap items-baseline gap-2 text-sm">
                   <span className="font-medium">{row.kindLabel}</span>
                   <span className="text-muted-foreground">in {row.forumTitle}</span>
-                  <a href={row.href} className="text-primary hover:underline">
+                  <a href={row.href} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                     {row.threadTitle}
                   </a>
                 </span>

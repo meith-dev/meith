@@ -35,7 +35,7 @@ export default async function AvatarPage({
   const notice = userCpNotice(query)
 
   return (
-    <div className="flex flex-col gap-6">
+    <main id="board-content" tabIndex={-1} className="flex flex-1 flex-col gap-6">
       {notice !== null && (
         <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/avatar" />
       )}
@@ -54,6 +54,6 @@ export default async function AvatarPage({
         locked={avatar.locked}
         lockedReason={avatar.lockedReason}
       />
-    </div>
+    </main>
   )
 }

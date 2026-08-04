@@ -28,7 +28,7 @@ const BUTTON =
   "inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 
 const LINK_BUTTON =
-  "text-sm text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  "text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 
 export function MarkNotificationReadForm({ notificationId }: { notificationId: number }) {
   const [state, action] = useActionState(markNotificationReadAction, EMPTY_STATE)

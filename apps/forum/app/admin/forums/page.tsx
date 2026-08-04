@@ -62,12 +62,12 @@ export default async function AdminForumsPage() {
               </span>
             </span>
             <span className="flex shrink-0 gap-3 text-sm">
-              <a href={`/admin/forums/${forum.id}`} className="text-primary hover:underline">
+              <a href={`/admin/forums/${forum.id}`} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                 Options
               </a>
               <a
                 href={`/admin/forums/${forum.id}/permissions`}
-                className="text-primary hover:underline"
+                className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 Permissions
               </a>

@@ -116,15 +116,15 @@ export default async function DiscoverPage({
      */
     if (isAppError(err)) {
       return (
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
+        <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8 flex-1">
           <Tabs current={view} />
           <p role="alert" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
             {err.message}{' '}
-            <a href="/login" className="text-primary hover:underline">
+            <a href="/login" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Sign in
             </a>
           </p>
-        </div>
+        </main>
       )
     }
     throw err
@@ -136,7 +136,7 @@ export default async function DiscoverPage({
       : `/discover/${view}?at=${encodeURIComponent(page.nextCursor.at.toISOString())}&after=${page.nextCursor.threadId}`
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
+    <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8 flex-1">
       <div className="flex flex-col gap-1">
         <h1 className="font-serif text-2xl font-semibold">{TABS[view].label}</h1>
         <p className="text-sm text-muted-foreground">{TABS[view].blurb}</p>
@@ -161,7 +161,7 @@ export default async function DiscoverPage({
               <div className="flex min-w-0 flex-col gap-0.5">
                 <a
                   href={`/thread/${row.threadId}-${row.slug}`}
-                  className="truncate text-sm font-medium text-primary hover:underline"
+                  className="truncate text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                 >
                   {row.title}
                 </a>
@@ -193,11 +193,11 @@ export default async function DiscoverPage({
       )}
 
       {nextHref !== null && (
-        <a href={nextHref} className="text-sm text-primary hover:underline">
+        <a href={nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Next {DISCOVER_PAGE} threads →
         </a>
       )}
-    </div>
+    </main>
   )
 }
 

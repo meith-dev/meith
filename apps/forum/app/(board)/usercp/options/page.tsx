@@ -49,7 +49,7 @@ export default async function OptionsPage({
         <div>
           <h1 className="font-serif text-2xl font-semibold">Your options</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            <a href="/usercp" className="text-primary hover:underline">
+            <a href="/usercp" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Back to your control panel
             </a>
           </p>

@@ -60,7 +60,7 @@ export default async function ModCpPage() {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <a
                   href={`/forum/${forum.forumId}-${forum.slug}`}
-                  className="font-medium text-foreground hover:text-primary"
+                  className="font-medium text-foreground hover:underline underline-offset-2"
                 >
                   {forum.title}
                 </a>

@@ -32,17 +32,17 @@ export default async function OnlinePage() {
 
   if (snapshot === null) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-6 py-8">
+      <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-6 py-8 flex-1">
         <h1 className="font-serif text-2xl font-semibold">Who&rsquo;s online</h1>
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
           This board is not tracking who is online.
         </p>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
+    <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 flex-1">
       <div className="flex flex-col gap-1">
         <h1 className="font-serif text-2xl font-semibold">Who&rsquo;s online</h1>
         <p className="text-sm text-muted-foreground">
@@ -72,7 +72,7 @@ export default async function OnlinePage() {
                 <span className="text-sm font-medium">
                   <a
                     href={`/member/${member.userId}`}
-                    className="text-primary hover:underline"
+                    className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                   >
                     {member.username}
                   </a>
@@ -109,6 +109,6 @@ export default async function OnlinePage() {
           .
         </p>
       )}
-    </div>
+    </main>
   )
 }

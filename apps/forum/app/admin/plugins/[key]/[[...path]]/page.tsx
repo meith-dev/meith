@@ -52,7 +52,7 @@ export default async function AdminPluginPage({
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
         <div className="flex flex-col gap-1">
-          <a href={`/admin/plugins/${key}`} className="text-sm text-primary hover:underline">
+          <a href={`/admin/plugins/${key}`} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             ← {plugin.name ?? plugin.key}
           </a>
           <h1 className="font-serif text-2xl font-semibold">{rendered.title}</h1>
@@ -79,7 +79,7 @@ export default async function AdminPluginPage({
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-8">
       <div className="flex flex-col gap-1">
-        <a href="/admin/plugins" className="text-sm text-primary hover:underline">
+        <a href="/admin/plugins" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           ← All plugins
         </a>
         <h1 className="font-serif text-2xl font-semibold">{plugin.name ?? plugin.key}</h1>
@@ -222,7 +222,7 @@ export default async function AdminPluginPage({
           <ul className="flex flex-col divide-y divide-border text-sm">
             {plugin.pages.map((page) => (
               <li key={page.path} className="flex justify-between gap-3 py-2">
-                <a href={page.href} className="text-primary hover:underline">
+                <a href={page.href} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                   {page.title}
                 </a>
                 <code className="text-xs text-muted-foreground">{page.href}</code>
@@ -238,7 +238,7 @@ export default async function AdminPluginPage({
           <p className="text-sm text-muted-foreground">
             Registered in the board&rsquo;s own task registry and run by the same
             tick. Their runs and failures are on the{' '}
-            <a href="/admin/system" className="text-primary hover:underline">
+            <a href="/admin/system" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               system health
             </a>{' '}
             screen with everything else.

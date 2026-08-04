@@ -34,7 +34,7 @@ export default async function ModCpForumsPage() {
             <li key={forum.forumId} className="rounded-lg border border-border bg-card p-4">
               <a
                 href={`/forum/${forum.forumId}-${forum.slug}`}
-                className="font-medium text-foreground hover:text-primary"
+                className="font-medium text-foreground hover:underline underline-offset-2"
               >
                 {forum.title}
               </a>

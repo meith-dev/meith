@@ -1,4 +1,16 @@
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+} from '@meith/ui'
 import type { BoardStatsModel } from '@meith/theme-kit'
+
+import { NUMERIC, Stamp, UserRef } from '../shared'
 
 /**
  * The board's totals (F75).
@@ -8,11 +20,17 @@ import type { BoardStatsModel } from '@meith/theme-kit'
  * **The panel says when the numbers were computed.** They are a rollup, not a
  * live count — the member count is a count of `users`, and the index is the
  * most-requested page on the board. A number that is ten minutes old and says
- * so is honest; the same number presented as "now" is wrong.
+ * so is honest; the same number presented as "now" is wrong. It sits in the
+ * card's footer, which is where a caveat belongs: readable, not shouted.
  *
  * **Before the first rollup it says so rather than showing zeroes.** Three
  * convincing zeroes on a board with content is the worst of the three possible
- * outputs, because nobody doubts it.
+ * outputs, because nobody doubts it — and on a board that genuinely has nothing
+ * yet it is indistinguishable from a rollup that has failed for a week.
+ *
+ * The figures are a `<dl>` and the numbers lead: somebody reading this panel is
+ * comparing three quantities, and putting the word first makes them read three
+ * sentences instead.
  */
 export function BoardStats({
   threadCount,
@@ -22,44 +40,50 @@ export function BoardStats({
   computedAt,
 }: BoardStatsModel) {
   return (
-    <section
-      aria-labelledby="board-stats-heading"
-      className="rounded-lg border border-border p-4"
-    >
-      <h2 id="board-stats-heading" className="font-serif text-lg font-semibold">
-        Board statistics
-      </h2>
+    <Card aria-labelledby="board-stats-heading">
+      <CardHeader>
+        <CardTitle id="board-stats-heading">Board statistics</CardTitle>
+      </CardHeader>
 
       {computedAt === null ? (
-        <p className="mt-2 text-sm text-muted-foreground">
-          Not counted yet — the board totals are rolled up on a schedule and the
-          first run has not happened.
-        </p>
+        <Empty className="py-8">
+          <EmptyTitle>Not counted yet</EmptyTitle>
+          <EmptyDescription>
+            The board totals are rolled up on a schedule, and the first run has not happened.
+          </EmptyDescription>
+        </Empty>
       ) : (
         <>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {threadCount.toLocaleString()} threads · {postCount.toLocaleString()} posts ·{' '}
-            {memberCount.toLocaleString()} members
-          </p>
+          <CardContent>
+            <dl className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Threads', value: threadCount },
+                { label: 'Posts', value: postCount },
+                { label: 'Members', value: memberCount },
+              ].map((figure) => (
+                <div key={figure.label}>
+                  <dd className={`text-xl font-semibold text-foreground ${NUMERIC}`}>
+                    {figure.value.toLocaleString('en')}
+                  </dd>
+                  <dt className="text-xs text-muted-foreground">{figure.label}</dt>
+                </div>
+              ))}
+            </dl>
 
-          {newestMember !== null && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              Newest member:{' '}
-              {newestMember.profileHref === null ? (
-                newestMember.username
-              ) : (
-                <a href={newestMember.profileHref} className="text-primary hover:underline">
-                  {newestMember.username}
-                </a>
-              )}
-            </p>
-          )}
+            {newestMember !== null && (
+              <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
+                Newest member: <UserRef user={newestMember} className="text-foreground" />
+              </p>
+            )}
+          </CardContent>
 
-          <p className="mt-1 text-xs text-muted-foreground">
-            Counted <time dateTime={computedAt.iso}>{computedAt.label}</time>.
-          </p>
+          <CardFooter>
+            <span>
+              Counted <Stamp at={computedAt} />
+            </span>
+          </CardFooter>
         </>
       )}
-    </section>
+    </Card>
   )
 }

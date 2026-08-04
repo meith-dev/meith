@@ -54,7 +54,7 @@ export default async function UserCpPage() {
             >
               <a
                 href={section.link.href}
-                className="text-sm font-medium text-primary hover:underline"
+                className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 {section.title}
               </a>

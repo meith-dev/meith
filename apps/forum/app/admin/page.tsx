@@ -57,7 +57,7 @@ export default async function AdminHomePage() {
         <h2 className="font-serif text-lg font-semibold">Sections</h2>
         <ul className="flex flex-col gap-2 text-sm">
           <li>
-            <a href="/admin/settings" className="text-primary hover:underline">
+            <a href="/admin/settings" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Board settings
             </a>{' '}
             <span className="text-muted-foreground">
@@ -65,7 +65,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/forums" className="text-primary hover:underline">
+            <a href="/admin/forums" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Forums
             </a>{' '}
             <span className="text-muted-foreground">
@@ -73,7 +73,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/groups" className="text-primary hover:underline">
+            <a href="/admin/groups" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Groups
             </a>{' '}
             <span className="text-muted-foreground">
@@ -81,7 +81,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/users" className="text-primary hover:underline">
+            <a href="/admin/users" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Members
             </a>{' '}
             <span className="text-muted-foreground">
@@ -89,7 +89,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/themes" className="text-primary hover:underline">
+            <a href="/admin/themes" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Themes
             </a>{' '}
             <span className="text-muted-foreground">
@@ -97,7 +97,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/plugins" className="text-primary hover:underline">
+            <a href="/admin/plugins" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Plugins
             </a>{' '}
             <span className="text-muted-foreground">
@@ -105,7 +105,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/api-tokens" className="text-primary hover:underline">
+            <a href="/admin/api-tokens" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               API tokens
             </a>{' '}
             <span className="text-muted-foreground">
@@ -113,7 +113,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/system" className="text-primary hover:underline">
+            <a href="/admin/system" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               System health
             </a>{' '}
             <span className="text-muted-foreground">
@@ -121,7 +121,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/content" className="text-primary hover:underline">
+            <a href="/admin/content" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Content
             </a>{' '}
             <span className="text-muted-foreground">
@@ -130,7 +130,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/antispam" className="text-primary hover:underline">
+            <a href="/admin/antispam" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Anti-spam
             </a>{' '}
             <span className="text-muted-foreground">
@@ -138,7 +138,7 @@ export default async function AdminHomePage() {
             </span>
           </li>
           <li>
-            <a href="/admin/log" className="text-primary hover:underline">
+            <a href="/admin/log" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               Admin log
             </a>{' '}
             <span className="text-muted-foreground">

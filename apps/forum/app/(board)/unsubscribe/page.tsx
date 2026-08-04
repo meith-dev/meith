@@ -55,7 +55,7 @@ export default async function UnsubscribePage({
             <Notice kind="info" message={done} dismissHref="/" />
             <p className="text-sm text-muted-foreground">
               You can change any of this later from{' '}
-              <a href="/subscriptions" className="text-primary hover:underline">
+              <a href="/subscriptions" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                 your subscriptions
               </a>
               .
@@ -66,7 +66,7 @@ export default async function UnsubscribePage({
             That link is not valid — it may have been truncated by a mail client,
             or the board’s settings may have changed since it was sent. You can
             still manage everything from{' '}
-            <a href="/subscriptions" className="text-primary hover:underline">
+            <a href="/subscriptions" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               your subscriptions
             </a>{' '}
             after signing in.

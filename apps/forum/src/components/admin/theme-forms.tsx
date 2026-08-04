@@ -83,7 +83,7 @@ function PreviewSample({ css }: { css: string }) {
         </div>
 
         <p className="text-sm">
-          Body text, with <a href="#preview" className="text-primary underline">a link</a> and{" "}
+          Body text, with <a href="#preview" className="font-medium text-foreground underline decoration-border underline-offset-2">a link</a> and{" "}
           <span className="text-muted-foreground">muted secondary text</span>.
         </p>
       </div>

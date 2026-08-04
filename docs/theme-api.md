@@ -163,6 +163,62 @@ compiled defaults
 `oklch()`. Keep it equal to the two `background` tokens converted — there is a
 test for that, because a hand-written pair goes stale silently.
 
+### The default theme's palette is neutral on purpose
+
+Every greyscale token the default theme ships is at **chroma zero**, and
+`primary` is ink — near-black in light, near-white in dark — rather than a house
+colour. A board brands itself by overriding `primary` and `primary-foreground`
+and nothing else fights the result; a default that shipped its author's green
+would make every other community's mark look like a mistake on their own board.
+
+Two consequences worth knowing before you write a theme or a plugin:
+
+- **`accent` is a hover surface, not a highlight.** It carries shadcn/ui's
+  meaning here. Anything that needs to shout uses a semantic token, which has a
+  meaning to justify the volume.
+- **Links are weight and an underline, never colour.** With `primary` equal to
+  the body colour, a coloured link would be invisible — and a board whose
+  operator has just set `primary` to a pale yellow would be unreadable.
+
+Neither is a rule the contract enforces. A theme is free to disagree; it should
+disagree deliberately.
+
+## Components: `@meith/ui`
+
+`@meith/ui` is shadcn/ui's component vocabulary implemented on **Base UI**
+(`@base-ui/react`), and it is available to a theme — the shipped default theme
+is built out of it.
+
+The package is split by rendering cost rather than by category, and that split is
+the thing to understand before importing from it:
+
+| Import | What it is |
+|---|---|
+| `@meith/ui` | Everything that renders on the **server**: `Card`, `Badge`, `Alert`, `Avatar`, `Field`, `Input`, `NativeSelect`, `Separator`, `Empty`, plus the `buttonVariants` and `badgeVariants` class recipes |
+| `@meith/ui/button` | The Base UI `Button` — a `"use client"` island |
+
+Nothing reachable from the barrel declares `"use client"`, which is what makes it
+safe in a server slot. `PostBit` is rendered fifty times on a thread page, and a
+design system that pulled a client boundary in behind a `<Card>` would cost the
+board the property the slot registry exists to protect.
+
+That is also why `buttonVariants` is a separate module from `Button`. Almost
+every button on a forum is not a button: "New thread" is a link, "Mark read" is a
+native form submit. Both want the class recipe on a plain element —
+
+```tsx
+<a href={newThreadHref} className={buttonVariants({ variant: 'primary' })}>
+  New thread
+</a>
+```
+
+— and get the same appearance for no bytes. Reach for `@meith/ui/button` when the
+control genuinely lives in an island.
+
+A theme is not required to use any of this. `@meith/theme-kit` remains the only
+dependency a theme *needs*, and a theme that wants its own markup from scratch
+(as `themes/midnight` largely does) is a supported thing to be.
+
 ## Testing a theme
 
 `apps/forum/src/theme/contract.test.ts` renders **every theme registered in

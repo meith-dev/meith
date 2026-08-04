@@ -104,7 +104,7 @@ export default async function AdminLogPage({
       )}
 
       {view.nextHref !== null && (
-        <a href={view.nextHref} className="text-sm text-primary hover:underline">
+        <a href={view.nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Older entries
         </a>
       )}

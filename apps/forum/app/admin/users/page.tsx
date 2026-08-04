@@ -74,10 +74,10 @@ export default async function AdminUsersPage({
       </div>
 
       <nav className="flex flex-wrap gap-4 text-sm">
-        <a href="/admin/users/prune" className="text-primary hover:underline">
+        <a href="/admin/users/prune" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Prune dormant accounts
         </a>
-        <a href="/admin/users/mail" className="text-primary hover:underline">
+        <a href="/admin/users/mail" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Mass mail
         </a>
       </nav>
@@ -205,7 +205,7 @@ export default async function AdminUsersPage({
               </span>
               <a
                 href={`/admin/users/${row.id}`}
-                className="shrink-0 text-sm text-primary hover:underline"
+                className="shrink-0 text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
               >
                 Edit
               </a>
@@ -217,7 +217,7 @@ export default async function AdminUsersPage({
       {page.nextCursor !== null && (
         <a
           href={nextPageQuery(params, page.nextCursor)}
-          className="text-sm text-primary hover:underline"
+          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
         >
           Next {50} members →
         </a>

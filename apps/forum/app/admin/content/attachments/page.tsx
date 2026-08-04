@@ -83,7 +83,7 @@ export default async function AdminAttachmentsPage({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
       <div className="flex flex-col gap-1">
-        <a href="/admin/content" className="text-sm text-primary hover:underline">
+        <a href="/admin/content" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           ← Content
         </a>
         <h1 className="font-serif text-2xl font-semibold">Attachments</h1>
@@ -180,7 +180,7 @@ export default async function AdminAttachmentsPage({
                       {' · '}
                       <a
                         href={`/thread/${row.threadSlug}#post-${row.postId}`}
-                        className="text-primary hover:underline"
+                        className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                       >
                         the post
                       </a>
@@ -203,7 +203,7 @@ export default async function AdminAttachmentsPage({
       )}
 
       {page.nextBeforeId !== null && (
-        <a href={nextHref()} className="text-sm text-primary hover:underline">
+        <a href={nextHref()} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           Older →
         </a>
       )}

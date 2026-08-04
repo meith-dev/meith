@@ -43,6 +43,7 @@ import {
   threadJsonLd,
 } from '@/view/metadata'
 import { buildSubscriptionsView } from '@/view/subscriptions'
+import { BOARD_MEASURE } from '@/components/shell/measure'
 
 /**
  * F76 — the thread's own metadata, resolved in the viewer's scope.
@@ -664,7 +665,7 @@ export default async function ThreadPage({
         />
       )}
       {notice !== null && (
-        <div className="px-6 pt-6">
+        <div className={`${BOARD_MEASURE} pt-6`}>
           <Notice
             kind="info"
             message={notice}
@@ -693,7 +694,7 @@ export default async function ThreadPage({
         </ThreadToolsForm>
       )}
       {followOffered && (
-        <div className="px-6 pt-4">
+        <div className={`${BOARD_MEASURE} pt-4`}>
           <FollowForm
             target="thread"
             targetId={thread.id}
@@ -705,7 +706,7 @@ export default async function ThreadPage({
         </div>
       )}
       {poll !== null && (
-        <div className="px-6">
+        <div className={BOARD_MEASURE}>
           <PollForm poll={poll} threadId={thread.id} canVote={canVotePoll} />
         </div>
       )}

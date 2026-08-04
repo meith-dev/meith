@@ -55,7 +55,7 @@ export default async function AdminPrunePage({
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
       <div className="flex flex-col gap-1">
-        <a href="/admin/users" className="text-sm text-primary hover:underline">
+        <a href="/admin/users" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           ← All members
         </a>
         <h1 className="font-serif text-2xl font-semibold">Prune members</h1>
@@ -123,7 +123,7 @@ export default async function AdminPrunePage({
           <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
             {preview.sample.map((row) => (
               <li key={row.id}>
-                <a href={`/admin/users/${row.id}`} className="text-primary hover:underline">
+                <a href={`/admin/users/${row.id}`} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                   {row.username}
                 </a>{' '}
                 — {row.email}, registered{' '}

@@ -125,7 +125,7 @@ export default async function ReputationPage({
             {profile.username}&rsquo;s reputation
           </h1>
           <p className="text-sm text-muted-foreground">{reputationLabel(view.summary)}</p>
-          <a href={`/member/${id}`} className="text-sm text-primary hover:underline">
+          <a href={`/member/${id}`} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             Back to their profile
           </a>
         </div>
@@ -154,7 +154,7 @@ export default async function ReputationPage({
                   <span
                     className={
                       row.points > 0
-                        ? 'font-semibold text-primary'
+                        ? 'font-semibold text-moderation-approved'
                         : row.points < 0
                           ? 'font-semibold text-destructive'
                           : 'font-semibold text-muted-foreground'
@@ -167,7 +167,7 @@ export default async function ReputationPage({
                   {row.givenByHref === null ? (
                     <span className="font-medium">{row.givenBy}</span>
                   ) : (
-                    <a href={row.givenByHref} className="font-medium hover:text-primary">
+                    <a href={row.givenByHref} className="font-medium text-foreground hover:underline underline-offset-2">
                       {row.givenBy}
                     </a>
                   )}
@@ -175,7 +175,7 @@ export default async function ReputationPage({
                     {row.at.label}
                   </time>
                   {row.postHref !== null && (
-                    <a href={row.postHref} className="text-xs text-primary hover:underline">
+                    <a href={row.postHref} className="text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                       on a post
                     </a>
                   )}
@@ -199,7 +199,7 @@ export default async function ReputationPage({
         )}
 
         {view.nextHref !== null && (
-          <a href={view.nextHref} className="text-sm text-primary hover:underline">
+          <a href={view.nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             Older ratings
           </a>
         )}

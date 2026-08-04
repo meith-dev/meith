@@ -1,4 +1,7 @@
+import { Card, CardDescription, CardHeader, CardRows, CardTitle } from '@meith/ui'
 import type { CategoryBlockModel } from '@meith/theme-kit'
+
+import { LINK } from '../shared'
 
 /**
  * One category and its forums (F29).
@@ -10,18 +13,21 @@ import type { CategoryBlockModel } from '@meith/theme-kit'
  * A block with no rows still renders its heading. An administrator who has
  * created a category and not yet filled it should see it on the board — an empty
  * category that renders as nothing looks like a save that failed.
+ *
+ * ## The listing is ruled, not boxed
+ *
+ * `CardRows` separates forums with a hairline instead of a gap. A board is read
+ * by scanning down a column of titles, and a gap between every row breaks that
+ * column into twenty objects the eye has to re-acquire. The card's border is the
+ * only box; everything inside it is a table without being one.
  */
 export function CategoryBlock({ category, children }: CategoryBlockModel) {
+  const headingId = `category-${category.id}`
+
   return (
-    <section
-      aria-labelledby={`category-${category.id}`}
-      className="overflow-hidden rounded-lg border border-border bg-card"
-    >
-      <div className="border-b border-border bg-secondary px-4 py-2.5">
-        <h2
-          id={`category-${category.id}`}
-          className="font-serif text-base font-semibold text-secondary-foreground"
-        >
+    <Card aria-labelledby={headingId}>
+      <CardHeader className="flex-col items-start gap-0.5">
+        <CardTitle id={headingId}>
           {/*
            * A category is a heading, not a destination: it holds no threads, so
            * linking it would send a reader to an empty forum page. A root-level
@@ -30,17 +36,17 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
           {category.type === 'category' ? (
             category.title
           ) : (
-            <a href={category.href} className="hover:text-foreground">
+            <a href={category.href} className={LINK}>
               {category.title}
             </a>
           )}
-        </h2>
+        </CardTitle>
         {category.description !== null && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{category.description}</p>
+          <CardDescription className="text-xs">{category.description}</CardDescription>
         )}
-      </div>
+      </CardHeader>
 
-      <ul className="divide-y divide-border">{children}</ul>
-    </section>
+      <CardRows>{children}</CardRows>
+    </Card>
   )
 }

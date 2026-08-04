@@ -66,7 +66,7 @@ export default async function AdminMergePage({
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
       <div className="flex flex-col gap-1">
-        <a href={`/admin/users/${member.id}`} className="text-sm text-primary hover:underline">
+        <a href={`/admin/users/${member.id}`} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           ← {member.username}
         </a>
         <h1 className="font-serif text-2xl font-semibold">Merge {member.username}</h1>

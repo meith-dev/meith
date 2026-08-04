@@ -6,6 +6,7 @@ import { requireSlot } from '@meith/theme-kit'
 
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
+import { BOARD_MEASURE } from '@/components/shell/measure'
 import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -347,7 +348,7 @@ export default async function ForumPage({
         which needs no JavaScript and no state.
       */}
       {notice !== null && (
-        <div className="px-6 pt-6">
+        <div className={`${BOARD_MEASURE} pt-6`}>
           <Notice
             kind="info"
             message={notice}
@@ -356,7 +357,7 @@ export default async function ForumPage({
         </div>
       )}
       {followOffered && (
-        <div className="px-6 pt-4">
+        <div className={`${BOARD_MEASURE} pt-4`}>
           <FollowForm
             target="forum"
             targetId={forum.id}
@@ -367,20 +368,45 @@ export default async function ForumPage({
           />
         </div>
       )}
-      <nav className="px-6 pt-4 text-sm" aria-label="Thread order">
-        <a
-          href={`/forum/${id}-${forum.slug}`}
-          aria-current={sort === 'activity' ? 'page' : undefined}
-        >
-          Latest
-        </a>
-        {' · '}
-        <a
-          href={`/forum/${id}-${forum.slug}?sort=rating`}
-          aria-current={sort === 'rating' ? 'page' : undefined}
-        >
-          Top rated
-        </a>
+      {/*
+        The two orderings, as a control somebody can see.
+
+        These were bare `<a>`s separated by a middot, and Tailwind's preflight
+        renders those as plain body text — a navigation nobody could tell was a
+        navigation, whose current item was marked only by an `aria-current` that
+        no sighted reader receives. They are anchors and stay anchors (an
+        ordering is a URL, and paging has to work with scripting off), but the
+        current one now carries weight and a rule as well as the attribute.
+      */}
+      <nav className={`${BOARD_MEASURE} pt-4`} aria-label="Thread order">
+        <ul className="flex items-center gap-4 text-sm">
+          {[
+            {
+              label: 'Latest',
+              href: `/forum/${id}-${forum.slug}`,
+              isCurrent: sort === 'activity',
+            },
+            {
+              label: 'Top rated',
+              href: `/forum/${id}-${forum.slug}?sort=rating`,
+              isCurrent: sort === 'rating',
+            },
+          ].map((tab) => (
+            <li key={tab.href}>
+              <a
+                href={tab.href}
+                aria-current={tab.isCurrent ? 'page' : undefined}
+                className={
+                  tab.isCurrent
+                    ? 'inline-flex border-b-2 border-foreground pb-1 font-semibold text-foreground'
+                    : 'inline-flex border-b-2 border-transparent pb-1 text-muted-foreground hover:border-border hover:text-foreground'
+                }
+              >
+                {tab.label}
+              </a>
+            </li>
+          ))}
+        </ul>
       </nav>
       <ForumDisplay {...forumDisplayModel} />
       {/*

@@ -43,7 +43,7 @@ export default async function AdminAntispamPage() {
         <h1 className="font-serif text-2xl font-semibold">Anti-spam</h1>
         <p className="text-sm text-muted-foreground">
           The thresholds are in{' '}
-          <a href="/admin/settings?group=antispam" className="text-primary hover:underline">
+          <a href="/admin/settings?group=antispam" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
             Settings → Anti-spam
           </a>
           . This screen holds the questions, and what each control is actually
@@ -141,7 +141,7 @@ export default async function AdminAntispamPage() {
               twice and never return, so a threshold of two or three catches
               nearly all of it — at the cost of a real new member waiting for a
               moderator once. Held posts appear in{' '}
-              <a href="/modcp" className="text-primary hover:underline">
+              <a href="/modcp" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                 the moderation queue
               </a>
               .

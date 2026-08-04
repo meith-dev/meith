@@ -6,7 +6,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@meith/theme-kit": "workspace:*"
+    "@meith/theme-kit": "workspace:*",
+    "@meith/ui": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.2.0"

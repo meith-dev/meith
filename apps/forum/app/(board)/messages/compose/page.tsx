@@ -66,7 +66,7 @@ export default async function ComposePage({
           replyToId={draft?.replyToId ?? null}
         />
 
-        <a href="/messages" className="text-sm text-primary hover:underline">
+        <a href="/messages" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           ← Back to your messages
         </a>
       </div>

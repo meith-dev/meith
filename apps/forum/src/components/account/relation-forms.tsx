@@ -16,7 +16,7 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 import { FormError } from "../auth/form-controls"
 
 const LINK_BUTTON =
-  "text-sm text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+  "text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 
 const QUIET_BUTTON =
   "text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

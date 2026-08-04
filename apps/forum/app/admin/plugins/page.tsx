@@ -106,7 +106,7 @@ export default async function AdminPluginsPage() {
                 <span className="flex shrink-0 items-center gap-3">
                   <a
                     href={`/admin/plugins/${plugin.key}`}
-                    className="text-sm text-primary hover:underline"
+                    className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                   >
                     Details
                   </a>

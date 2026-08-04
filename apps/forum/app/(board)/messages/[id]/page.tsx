@@ -64,7 +64,7 @@ export default async function MessagePage({
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-6 py-8">
-        <a href={folderHref(view.folder)} className="text-sm text-primary hover:underline">
+        <a href={folderHref(view.folder)} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
           ← Back to {view.folder}
         </a>
 
@@ -102,7 +102,7 @@ export default async function MessagePage({
 
         <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
           {view.actions.map((action) => (
-            <a key={action.href} href={action.href} className="text-sm text-primary hover:underline">
+            <a key={action.href} href={action.href} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
               {action.label}
             </a>
           ))}
