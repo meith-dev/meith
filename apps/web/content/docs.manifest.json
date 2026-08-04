@@ -51,13 +51,22 @@
 
   "documents": [
     {
+      "slug": "quickstart",
+      "file": "quickstart.md",
+      "section": "running",
+      "title": "Quickstart",
+      "blurb": "From an empty directory to a working board, in five steps. About ten minutes, most of it waiting for npm install.",
+      "generated": false,
+      "primary": true
+    },
+    {
       "slug": "operating",
       "file": "operating.md",
       "section": "running",
       "title": "Running a board",
-      "blurb": "The operator handbook. Configuration, permissions, themes, plugins, migrations, backup and restore, connection pooling, and the failures that actually happen.",
+      "blurb": "The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen.",
       "generated": false,
-      "primary": true
+      "primary": false
     },
     {
       "slug": "upgrading",

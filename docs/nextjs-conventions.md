@@ -1,12 +1,35 @@
 # Next.js conventions
 
-F14. The decisions that would otherwise be re-litigated in every PR. Link this
-from your PR description; if you need to depart from it, say so in the PR and
-add a `docs/deviations.md` entry rather than quietly doing something else.
+The decisions that would otherwise be re-litigated in every pull request. Link
+this from your PR description.
 
-Everything here is drawn from code that exists — the file paths are real, and
-the failure each rule prevents has either happened in this repository or is one
-the plan calls out explicitly.
+> [!NOTE]
+> Everything here is drawn from code that exists. The file paths are real, and
+> the failure each rule prevents has either happened in this repository or is one
+> the plan calls out explicitly.
+>
+> If you need to depart from a rule, say so in the PR and add a
+> [`deviations.md`](./deviations.md) entry rather than quietly doing something
+> else.
+
+## The rules, in one table
+
+If you read nothing else on this page, read this.
+
+| Rule | Where it is enforced |
+|---|---|
+| `app/` never imports `@meith/db` | dependency-cruiser |
+| `"use client"` on leaf components only — never a page, never a layout | Review, and `pnpm slots:check` for themes |
+| Every Server Action re-checks authorization itself | Review |
+| `redirect()` goes **outside** the `try` | Review |
+| Never return a credential in `FormState` | Review — this shipped once, as an account-takeover hole |
+| `logger()` is called where you log, never bound at module scope | Guard `F02 no-module-scope-logger` |
+| Cache tags are spelled once, in `CacheTags` | Review |
+| A cached region never reads `cookies()`, `headers()`, `getActor()` or `getUserId()` | Guard `F10 no-request-state-in-cache` |
+| Every counter has a recount | Review |
+| Event handlers are idempotent | Review |
+| A slot never renders another slot | Review |
+| View models are JSON-shaped | The compiler, via `Serialisable<T>` |
 
 ---
 
@@ -108,9 +131,12 @@ swallows it turns a successful action into a silent no-op. Look at
 channel and become a message on the form. Anything unrecognised is logged and
 becomes a generic message — see `toFormState`.
 
-**Never return a credential in `FormState`.** It is serialised into the client
-payload. This is not hypothetical: the password-reset action returned a live
-reset token to the browser and it was an account-takeover hole (D20).
+> [!CAUTION]
+> **Never return a credential in `FormState`.** It is serialised into the client
+> payload.
+>
+> This is not hypothetical: the password-reset action returned a live reset token
+> to the browser, and it was an account-takeover hole.
 
 ---
 
@@ -127,8 +153,9 @@ written:
 - Echo the user's input back in `FormState.values` so a failed submit does not
   blank the form — **except the password**.
 
-**Islands enhance; they never enable.** If removing a client component breaks a
-page, it was not an island. Write the server path first and the island second.
+> [!IMPORTANT]
+> **Islands enhance; they never enable.** If removing a client component breaks a
+> page, it was not an island. Write the server path first and the island second.
 
 ### Forms that live in a theme slot
 
@@ -190,8 +217,12 @@ Read `packages/core/src/cache.ts` before caching anything.
   literal: a writer invalidating `"forum-tree"` while a reader cached under
   `"forumTree"` is stale data that no test catches.
 - **`cachedGlobal` is for global data only.** If a value varies by actor it must
-  not go through it. A cached permission-filtered page is how private forums
-  leak, and it is the reason the harness exists at all.
+  not go through it.
+
+  > [!CAUTION]
+  > A cached permission-filtered page is how private forums leak. This is the
+  > reason the caching harness exists at all.
+
 - **Invalidate after the write, never before.** Clearing first opens a window
   where a concurrent read repopulates from the pre-write state and nothing
   clears it again. `CachedForumRepository` pins this ordering with a test.
@@ -311,9 +342,12 @@ adding a field is minor, renaming or removing one needs a deprecation cycle.
   (`expectQueryBudget` in `@meith/testkit`). An N+1 does not fail a test — it
   passes, slowly, and only on an empty board.
 - **Prove a new test can fail.** Break the code deliberately, watch it go red,
-  put it back. A test that has never failed is not known to test anything; this
-  is standing rule D10, and `pnpm guards:probe` applies the same idea to the
-  textual guards.
+  put it back.
+
+  > [!TIP]
+  > A test that has never failed is not known to test anything. `pnpm
+  > guards:probe` applies the same idea to the textual guards.
+
 
 ---
 

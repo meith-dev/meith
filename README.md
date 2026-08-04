@@ -25,13 +25,12 @@ cp .env.example .env.local    # fill in DATABASE_URL and AUTH_SECRET
 npm run dev
 ```
 
-Then open `/install`. Five steps, and the page names each one before it runs it.
-The preflight check runs first and reports what it finds — read it, because
-nearly every way a new board fails is visible there.
+Then open `/install`. The full walkthrough, including deployment and what to do
+when the install fails halfway, is in the
+[Quickstart](./docs/quickstart.md).
 
 Deploy it serverlessly on Vercel, or self-host the standalone Docker image with
-its worker. Both are first-class; see
-[`docs/operating.md`](./docs/operating.md).
+its worker. Both are first-class.
 
 ## What you get
 
@@ -67,7 +66,8 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 
 | Section | Document | What it answers |
 |---|---|---|
-| Running a board | [`operating.md`](./docs/operating.md) | The operator handbook. Configuration, permissions, themes, plugins, migrations, backup and restore, connection pooling, and the failures that actually happen. |
+| Running a board | [`quickstart.md`](./docs/quickstart.md) | From an empty directory to a working board, in five steps. About ten minutes, most of it waiting for npm install. |
+| Running a board | [`operating.md`](./docs/operating.md) | The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
 | Running a board | [`upgrading.md`](./docs/upgrading.md) | How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
 | Themes | [`theme-api.md`](./docs/theme-api.md) | What the freeze covers, what a theme may do, and how to write one. |

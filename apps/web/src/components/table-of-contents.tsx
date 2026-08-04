@@ -11,9 +11,16 @@
  * one you are reading" once it has passed under the header and before it leaves
  * the top of the screen — the alternative, marking whatever is centred, marks
  * the *next* section while you are still finishing the current one.
+ *
+ * **Sub-headings collapse.** `mybb-parity.md` has eighteen sections and
+ * seventy-nine entries under them; a rail listing all ninety-seven is a rail
+ * nobody reads and, worse, one that hides where you are in a list too long to
+ * scan. So the third-level headings of the section you are in are shown, and the
+ * rest are not — which is also what makes the rail a map of the document rather
+ * than a copy of it.
  */
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 export interface TocHeading {
   readonly id: string
@@ -60,13 +67,47 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     return () => observer.disconnect()
   }, [headings])
 
+  /**
+   * The rail's own shape: top-level headings always, and the children of
+   * whichever one contains the active heading.
+   *
+   * A document with no `##` at all — every ADR is one long run of `###` — has no
+   * sections to collapse into, so everything stays visible.
+   */
+  const shown = useMemo(() => {
+    const hasSections = headings.some((heading) => heading.depth === 2)
+    if (!hasSections) return headings
+
+    let openSection: string | null = null
+    let currentSection: string | null = null
+    for (const heading of headings) {
+      if (heading.depth === 2) currentSection = heading.id
+      if (heading.id === activeId) {
+        openSection = currentSection
+        break
+      }
+    }
+
+    const result: TocHeading[] = []
+    let section: string | null = null
+    for (const heading of headings) {
+      if (heading.depth === 2) {
+        section = heading.id
+        result.push(heading)
+      } else if (section === openSection) {
+        result.push(heading)
+      }
+    }
+    return result
+  }, [headings, activeId])
+
   if (headings.length === 0) return null
 
   return (
     <nav aria-label="On this page" className="flex flex-col gap-2">
       <p className="eyebrow">On this page</p>
       <ul className="flex flex-col gap-0.5 border-l border-wall">
-        {headings.map((heading) => {
+        {shown.map((heading) => {
           const active = heading.id === activeId
           return (
             <li key={heading.id}>

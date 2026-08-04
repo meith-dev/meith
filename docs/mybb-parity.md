@@ -1,16 +1,47 @@
 # MyBB parity decisions
 
-R4.2 closes with: *"MyBB's real resolution has twenty years of special cases.
-Implement the rules above. Where an imported board diverges, record it in
-`docs/mybb-parity.md` with a decision — do not guess silently."*
+Every place a Meith board behaves differently from MyBB, what it does instead,
+and why. **Read this before promising anyone a like-for-like move.**
 
-This file is that record. Every entry states what MyBB does, what we do, and
-why. An entry is added when a divergence is **chosen**, not when one is
-discovered by accident — a surprise is a bug, not a parity decision.
+Each entry has the same four parts:
+
+| Part | What it tells you |
+|---|---|
+| **MyBB** | What the board you are leaving does |
+| **We** | What this board does instead |
+| **Why** | The reasoning, so you can judge whether it suits your community |
+| **Cost** | What an imported board actually loses, stated plainly |
+
+> [!NOTE]
+> An entry is added when a divergence is **chosen**, not when one is discovered
+> by accident. A surprise is a bug, not a parity decision.
+
+## What is on this page
+
+- [Permissions and groups](#permissions-and-groups)
+- [Posting and BBCode](#posting-and-bbcode)
+- [Spam](#spam)
+- [Announcements](#announcements)
+- [Editing and deleting](#editing-and-deleting)
+- [Moderation](#moderation)
+- [Warnings](#warnings)
+- [The moderator log](#the-moderator-log)
+- [Notifications and digests](#notifications-and-digests)
+- [Accounts and profiles](#accounts-and-profiles)
+- [Private messages](#private-messages)
+- [Buddies, ignoring and signatures](#buddies-ignoring-and-signatures)
+- [Reputation](#reputation)
+- [The control panel](#the-control-panel)
+- [Attachments and avatars](#attachments-and-avatars)
+- [Reading and discovery](#reading-and-discovery)
+- [Feeds, URLs and the sitemap](#feeds-urls-and-the-sitemap)
+- [Parity passes](#parity-passes)
 
 ---
 
-## flood-intervals
+## Permissions and groups
+
+### Flood intervals
 
 **MyBB** stores `searchfloodtime` (and `floodtime`) as a per-usergroup numeric
 column, combined like any other numeric limit.
@@ -44,7 +75,7 @@ interval is a board setting rather than a per-forum grant.
 
 ---
 
-## Permission field naming
+### Permission field naming
 
 **MyBB** uses lowercase, unpunctuated column names (`canpostthreads`,
 `canviewthreads`, `cansearch`).
@@ -59,7 +90,7 @@ importer code can translate a legacy column name in one place.
 
 ---
 
-## Separate `canAccessAdminCp` and `isAdministrator`
+### Separate `canAccessAdminCp` and `isAdministrator`
 
 **MyBB** treats admin status and admin CP access as effectively the same thing
 (`cp_access` gates panel modules for an already-admin user).
@@ -74,7 +105,9 @@ the audit log meaningful, because a bypass entry now implies a specific field.
 
 ---
 
-## BBCode coverage
+## Posting and BBCode
+
+### BBCode coverage
 
 **MyBB** ships `b i u s color size font align url email img quote code php list
 hr video` plus smilies, admin-defined custom tags, and automatic linkification
@@ -121,7 +154,9 @@ F87's corpus pass is where every remaining difference becomes an entry here.
 
 ---
 
-## Anti-spam: no hosted captcha, and limits are not intervals
+## Spam
+
+### Anti-spam: no hosted captcha, and limits are not intervals
 
 **MyBB** ships a built-in image captcha, supports reCAPTCHA and hCaptcha, and
 models flood control as a per-usergroup interval.
@@ -158,7 +193,9 @@ map onto the interval as before, with the hourly limits starting at zero.
 
 ---
 
-## Announcements are not sticky threads
+## Announcements
+
+### Announcements are not sticky threads
 
 **MyBB** has announcements as a first-class thing, and boards frequently use a
 pinned thread for the same job.
@@ -184,7 +221,9 @@ container happened to have.
 
 ---
 
-## Unclosed and mismatched BBCode
+## Editing and deleting
+
+### Unclosed and mismatched BBCode
 
 **MyBB**'s regex passes leave an unmatched `[b]` as literal text, and can emit
 unbalanced HTML for crossed tags such as `[b][i]x[/b]`.
@@ -201,7 +240,7 @@ this one is not negotiable regardless of parity.
 
 ---
 
-## Deleting the first post of a thread
+### Deleting the first post of a thread
 
 **MyBB** lets a member with `candeleteposts` delete any of their own posts,
 including the opening one; deleting it leaves the thread's remaining replies in
@@ -224,7 +263,7 @@ moderator view shows and the member view skips.
 
 ---
 
-## Editing a post you no longer own the window for
+### Editing a post you no longer own the window for
 
 **MyBB** hides the edit control once `edittimelimit` has passed and refuses the
 submission server-side.
@@ -242,7 +281,9 @@ window is an *allowance*, so MAX is the right rule and no special case is needed
 
 ---
 
-## Who handles a report
+## Moderation
+
+### Who handles a report
 
 **MyBB** has a dedicated permission, `canmanagereportedcontent`, separate from
 the moderator rights that decide what somebody can actually *do* about a report.
@@ -265,7 +306,7 @@ as a migration note rather than guessing.
 
 ---
 
-## What can be reported
+### What can be reported
 
 **MyBB** allows reports against posts, threads, profiles, private messages and
 (with plugins) more.
@@ -280,7 +321,7 @@ branch; nothing else changes.
 
 ---
 
-## Who can lock, pin and move threads
+### Who can lock, pin and move threads
 
 **MyBB** grants these through `moderators` rows (per forum, per right) plus the
 super-moderator and administrator bypasses. There is no usergroup column for
@@ -303,7 +344,7 @@ not one checkbox.
 
 ---
 
-## Copying a thread
+### Copying a thread
 
 **MyBB** offers "copy thread" alongside move, duplicating every post and
 crediting the copies to their original authors — so one piece of writing raises
@@ -321,7 +362,7 @@ and it has to answer the same question.
 
 ---
 
-## Splitting a thread, and where the pieces land
+### Splitting a thread, and where the pieces land
 
 **MyBB** offers "split thread", which takes a checkbox selection of posts, lets
 the moderator choose a destination forum, and can leave the split-off posts
@@ -345,7 +386,7 @@ posts 3, 7 and 12 and not 4–6 cannot express that yet.
 
 ---
 
-## Which thread survives a merge
+### Which thread survives a merge
 
 **MyBB** merges by thread URL or id and keeps the thread the moderator is
 looking at, absorbing the one they name.
@@ -365,7 +406,7 @@ possible is the software making it for them.
 
 ---
 
-## What a merge does to post counts
+### What a merge does to post counts
 
 **MyBB** moves the posts and leaves author post counts alone, which is correct
 and worth stating because the neighbouring operation gets it wrong: MyBB's
@@ -380,7 +421,7 @@ one.
 **Cost.** None here. This is the answer to the question the copy entry above
 leaves open, and it is the reason we built split before copy.
 
-## Inline moderation offers no "unapprove"
+### Inline moderation offers no "unapprove"
 
 **MyBB:** the inline moderation dropdown on a forum listing includes *Unapprove
 threads*, which sends published content back to the queue.
@@ -397,7 +438,7 @@ the queue a mixture of "new content nobody has read" and "old content somebody
 removed", which is the one thing the queue's ordering (oldest first) relies on
 not being true. Deleting says what happened and restoring undoes it.
 
-## Bulk moderation chunks rather than refusing
+### Bulk moderation chunks rather than refusing
 
 **MyBB:** inline moderation acts on whatever was selected, in one request.
 
@@ -412,7 +453,9 @@ it exists for. Chunking is safe because every transition is state-guarded — a
 bulk action that dies halfway is fixed by pressing the button again, and the
 chunks that already ran report "already in that state".
 
-## Warning levels are points, not percentages
+## Warnings
+
+### Warning levels are points, not percentages
 
 **MyBB:** warning levels are expressed as a percentage of a configured maximum,
 and a member's warning level reads as e.g. "40%".
@@ -430,7 +473,7 @@ their own, the seeded ladder works on a fresh board, and "2 points, expires
 after 90 days" is a sentence a moderator can weigh before issuing it. The
 importer (F85) can convert a percentage against the source board's maximum.
 
-## A warning restriction outranks a moderation bypass
+### A warning restriction outranks a moderation bypass
 
 **MyBB:** a user under a "moderate posts" warning has their posts held; staff
 permissions and moderator status are resolved separately and can conflict.
@@ -445,7 +488,7 @@ the second is a sanction a person received. Letting the first cancel the second
 would make the board's moderators the only members a warning could not reach,
 which inverts what a warning is for.
 
-## Bans from a warning level are not lifted by revoking the warning
+### Bans from a warning level are not lifted by revoking the warning
 
 **MyBB:** a warning that triggered a ban and is then revoked leaves the ban in
 place; an administrator lifts it.
@@ -460,7 +503,9 @@ and its removal should be a decision a human makes while looking — which is wh
 "a moderator lifts it" means. The revocation still lowers the points, so the
 level no longer applies and no further action is taken.
 
-## The moderator log is an allow-list of moderation actions
+## The moderator log
+
+### The moderator log is an allow-list of moderation actions
 
 **MyBB:** the moderator log and the administrator log are separate tables.
 
@@ -475,7 +520,7 @@ action into a moderator-visible disclosure the day somebody forgets to update
 it, whereas an allow-list turns a new moderation action into a missing row
 somebody notices.
 
-## The address lookup finds ranges, not addresses
+### The address lookup finds ranges, not addresses
 
 **MyBB:** the ModCP's IP search matches full addresses, which MyBB stores.
 
@@ -488,7 +533,7 @@ choice made here. It is stated on the screen because the difference matters to
 what a moderator does next: "shares an address" reads as proof, "shares a range"
 reads as something to check, and only the second is what the data supports.
 
-## Copying a thread credits its authors twice
+### Copying a thread credits its authors twice
 
 **MyBB:** copying a thread duplicates its posts, and each copy counts towards
 its author's post count. One piece of writing therefore counts twice.
@@ -510,7 +555,7 @@ the board stays internally consistent, and a repair run will not quietly undo
 it. Only visible posts are copied: copying held content would double the
 approval queue, and copying removed content would republish it.
 
-## Copy is authorised by `thread.move`, at both ends
+### Copy is authorised by `thread.move`, at both ends
 
 **MyBB:** copy is governed by the same "can manage threads" moderator
 permission as move.
@@ -526,7 +571,7 @@ separately. Unlike a move, the destination *may* be the source forum: forking a
 discussion in place is legitimate and there is no pointer to repair, because
 nothing left.
 
-## A moved thread leaves no redirect stub
+### A moved thread leaves no redirect stub
 
 **MyBB:** moving a thread can leave a "Moved: <title>" row in the source forum,
 linking to its new home, optionally expiring after a set number of days.
@@ -543,7 +588,9 @@ real board reports people losing threads after a move.
 
 ---
 
-## A notification centre exists at all
+## Notifications and digests
+
+### A notification centre exists at all
 
 **MyBB:** has no notification centre. What a member is told arrives as e-mail
 (a subscribed thread, a warning, a PM alert), plus the "You have N new
@@ -565,7 +612,7 @@ rather than an e-mail template each.
 on every page for a signed-in member, which is why its index is partial over
 unread rows.
 
-## On-site delivery cannot be switched off; e-mail can
+### On-site delivery cannot be switched off; e-mail can
 
 **MyBB:** every notification channel is opt-out. A member can disable e-mail
 about warnings and about subscribed threads.
@@ -583,7 +630,7 @@ because the record survives.
 only mark it read. If that becomes a real complaint, the answer is a "clear
 read notifications" control, not a channel switch.
 
-## The reporter is told when their report is closed
+### The reporter is told when their report is closed
 
 **MyBB:** tells the reporter nothing. A report is filed and disappears.
 
@@ -602,7 +649,7 @@ content is not something to opt somebody into.
 coalesce per report rather than per target, so closing and re-closing one report
 is one line.
 
-## A repeated notification is one row with a count
+### A repeated notification is one row with a count
 
 **MyBB:** does not have the problem, having no notification store.
 
@@ -625,7 +672,7 @@ hide the one that crossed a threshold.
 
 ---
 
-## "Instant" notification means "within a tick"
+### "Instant" notification means "within a tick"
 
 **MyBB:** sends a subscription e-mail during the request that created the post,
 inside `add_thread`/`add_post`.
@@ -646,7 +693,7 @@ indistinguishable from a prompt one except in timing.
 about it arrives. That is strictly better than the failure it avoids, and the
 delay is bounded by the tick interval an operator controls.
 
-## A digest's clock is per member, not per board
+### A digest's clock is per member, not per board
 
 **MyBB:** has no digests at all — every subscription is instant e-mail or
 nothing.
@@ -665,7 +712,7 @@ and another weekly, and one clock cannot serve both.
 actually gone out. A member who has never received one is due immediately, which
 is what makes a new subscriber's first digest arrive rather than never.
 
-## The unsubscribe link acts on POST, not on GET
+### The unsubscribe link acts on POST, not on GET
 
 **MyBB:** unsubscribe links are GETs — following the URL removes the
 subscription.
@@ -682,7 +729,7 @@ know why the notifications stopped. It also matches what one-click unsubscribe
 **Cost:** one extra click for somebody who genuinely wants out. The page needs
 no login and no JavaScript, so it is the cheapest possible extra click.
 
-## Unsubscribing from a digest does not delete subscriptions
+### Unsubscribing from a digest does not delete subscriptions
 
 **MyBB:** does not have the case, having no digests.
 
@@ -698,7 +745,9 @@ because there the member knows exactly which thread they are silencing.
 
 ---
 
-## Timezones are IANA names, never offsets
+## Accounts and profiles
+
+### Timezones are IANA names, never offsets
 
 **MyBB** stores a numeric offset (`timezone` = `-5`, plus a separate
 `dst` flag the board or the member toggles).
@@ -718,7 +767,7 @@ answer.
 certain. F85's importer will have to pick a representative zone per offset and
 say so, rather than pretending the data was there.
 
-## A password change signs out every other device
+### A password change signs out every other device
 
 **MyBB:** changing a password keeps other sessions alive.
 
@@ -733,7 +782,7 @@ being the annoying one.
 **Cost:** somebody who changes their password on a phone is signed out on their
 desktop. That is the intended outcome, and the screen says so before the button.
 
-## Changing an e-mail address requires confirming the new one
+### Changing an e-mail address requires confirming the new one
 
 **MyBB:** with "verify e-mail" off — the default on many boards — the address
 changes immediately.
@@ -750,7 +799,7 @@ password reset, done. Confirming the new address closes both.
 safe direction. A board with no mail configured cannot change addresses at all —
 the UserCP says the link was sent, because from the board's side it was.
 
-## A custom profile field's visibility is per group, not a single "hidden" flag
+### A custom profile field's visibility is per group, not a single "hidden" flag
 
 **MyBB:** `profilefields` carries `viewableby` and `editableby` as
 comma-separated group-id lists, plus `hidden` — and resolution is a substring
@@ -772,7 +821,7 @@ does not survive: a group absent from `viewableby` becomes a group with no
 opinion, which inherits. F85's importer must write an explicit `false` row per
 group MyBB omitted, or set `default_visible` false and grant the listed ones.
 
-## Registration asks only for fields the new member's group may edit
+### Registration asks only for fields the new member's group may edit
 
 **MyBB:** a field marked `required` is asked at registration regardless of
 whether the registering member's group can edit it afterwards.
@@ -791,7 +840,7 @@ registered group edit it gets a field that is silently never asked. The CLI's
 `profile-field:add` says every new field starts editable by every group, which
 is the state where this cannot bite.
 
-## An emptied field is deleted, not stored as an empty string
+### An emptied field is deleted, not stored as an empty string
 
 **MyBB:** `userfields` has a column per field and a text column defaults to
 `''`, so "not answered" and "answered with nothing" are the same value.
@@ -808,7 +857,9 @@ members who filled in two.
 schema migration every time an operator adds a field, which is the trade MyBB
 made and this does not.
 
-## A private message is stored once, not once per recipient
+## Private messages
+
+### A private message is stored once, not once per recipient
 
 **MyBB:** `privatemessages` holds a row per copy — the sender's Sent Items and
 each recipient's Inbox carry the full subject and body.
@@ -827,7 +878,7 @@ exist for. And a message everybody has deleted leaves an orphan row rather than
 disappearing by cascade — deliberately, because deleting *your* copy must not
 reach into somebody else's mailbox. Pruning orphans belongs to F70.
 
-## The quota is storage; the daily cap is separate
+### The quota is storage; the daily cap is separate
 
 **MyBB:** `pmquota` caps stored messages and there is no separate send rate for
 most groups.
@@ -845,7 +896,7 @@ that wants to allow a hundred stored messages must also allow a hundred a day.
 think about instead of one. The seeded ladder sets both, so a board nobody
 configures behaves sensibly.
 
-## A full inbox refuses the whole send, and names who is full
+### A full inbox refuses the whole send, and names who is full
 
 **MyBB:** a send to a member over quota fails and reports it.
 
@@ -861,7 +912,7 @@ failure of a sender who believes they were heard.
 sender removes their name. That is the intended outcome, and the message says
 which name to remove.
 
-## Reporting is the only way staff read a private message
+### Reporting is the only way staff read a private message
 
 **MyBB:** a reported PM is copied into the report, and administrators with
 database access can read any message.
@@ -879,7 +930,7 @@ surveillance tool with a moderation feature attached.
 the message that was reported. Reporting each message is the way to give them
 more, which is also the way the member chooses what staff see.
 
-## Reply addresses the author, not everybody on the message
+### Reply addresses the author, not everybody on the message
 
 **MyBB:** reply addresses the sender; a separate "reply to all" addresses
 everyone.
@@ -894,7 +945,9 @@ message that quietly grows its audience is not what a reply button should mean.
 **Cost:** answering a group conversation means typing the other names, which the
 composer shows in the "To" line of the message being replied to.
 
-## Ignoring hides a post's body; it does not remove the post
+## Buddies, ignoring and signatures
+
+### Ignoring hides a post's body; it does not remove the post
 
 **MyBB:** an ignored member's posts are collapsed client-side, with the body
 still in the HTML.
@@ -913,7 +966,7 @@ pagination and counts.
 placeholders. That is the intended reading: a conversation with holes in it is
 still a conversation, and a reader who wants the missing half is one click away.
 
-## Buddy and ignore are one table, and ignoring is not mutual
+### Buddy and ignore are one table, and ignoring is not mutual
 
 **MyBB:** `userlist` with a `type` column, which is the same shape — but the
 ignore is often read as symmetric by the code around it.
@@ -928,7 +981,7 @@ by ignoring them first, which is a griefing tool rather than a preference.
 **Cost:** two people who both want to stop reading each other need a row each.
 That is one extra click, and it is the correct model.
 
-## A blocked private message is refused, not silently discarded
+### A blocked private message is refused, not silently discarded
 
 **MyBB:** a message to somebody who ignores you is accepted and dropped.
 
@@ -945,7 +998,7 @@ the sender without betraying the recipient.
 **Cost:** a sender cannot tell "they blocked me" from "their group cannot use
 PMs". That ambiguity is the feature.
 
-## A signature's forbidden tags render as text rather than refusing the save
+### A signature's forbidden tags render as text rather than refusing the save
 
 **MyBB:** per-group switches for images, links and HTML in signatures, enforced
 by stripping or by refusing.
@@ -963,7 +1016,7 @@ every post is a tracking beacon reporting each reader's IP to whoever hosts it.
 bracketed text the member can then delete. F85's importer should strip the tags
 rather than leave them, and say how many it touched.
 
-## A signature is locked, not deleted
+### A signature is locked, not deleted
 
 **MyBB:** `suspendsignature` with an expiry, plus moderators simply clearing the
 text.
@@ -980,7 +1033,9 @@ actually there rather than at somebody's recollection.
 suspension is the nicer behaviour and needs a scheduled task; it belongs with
 F70's maintenance work rather than being faked with a column nothing sweeps.
 
-## Reputation has no per-group power multiplier
+## Reputation
+
+### Reputation has no per-group power multiplier
 
 **MyBB:** `reputationpower` makes a moderator's vote worth more than a member's.
 
@@ -997,7 +1052,7 @@ rather than invert the combination rule for one field.
 it. An imported `reputationpower` is dropped, and F85's importer should say so
 rather than silently scaling everybody's totals.
 
-## Reputation totals are recomputed, not incremented
+### Reputation totals are recomputed, not incremented
 
 **MyBB:** `users.reputation` is adjusted as ratings are added and removed.
 
@@ -1012,7 +1067,9 @@ counters (F38).
 **Cost:** one extra aggregate per rating. It is bounded by the number of ratings
 one member has, and a rating is a deliberate act rather than a hot path.
 
-## The control panel has its own session, with its own timeout
+## The control panel
+
+### The control panel has its own session, with its own timeout
 
 **MyBB:** an "admin session" keyed to the board login, with a configurable
 timeout, plus an optional `ADMIN_BRANCH`-style secret URL.
@@ -1030,7 +1087,7 @@ Separating them is what lets the ACP timeout be short enough to matter.
 for the panel — and again after half an hour away. That is the intended price,
 and the sign-in screen says what it buys.
 
-## The re-authentication clock is separate from the activity clock
+### The re-authentication clock is separate from the activity clock
 
 **MyBB:** the admin session has one timestamp, refreshed on every request.
 
@@ -1045,7 +1102,7 @@ exactly the people who are about to be asked anyway when it expires.
 **Cost:** a long ACP session asks for the password more than once. Fifteen
 minutes is the window; it applies only to operations that are destructive.
 
-## The address allowlist is prefixes in the environment, not CIDR in the database
+### The address allowlist is prefixes in the environment, not CIDR in the database
 
 **MyBB:** `$config['superadmins']` and an optional IP check in `config.php`.
 
@@ -1064,7 +1121,9 @@ Both are deliberate. A deployment behind no proxy — where no forwarded address
 header arrives — is refused outright when a list is configured, which is the
 documented failure direction rather than a silent bypass.
 
-## An attachment is re-encoded, and until it is, it does not exist
+## Attachments and avatars
+
+### An attachment is re-encoded, and until it is, it does not exist
 
 **MyBB:** an upload is checked against a list of allowed extensions and MIME
 types, stored, and served. `verify_attachment` looks at the file's magic bytes
@@ -1090,7 +1149,7 @@ photographers and a real gain for everybody who did not mean to publish where
 they took the picture. Animated GIF is not accepted at all rather than being
 silently flattened to one frame.
 
-## Four file types, not an operator-configurable list
+### Four file types, not an operator-configurable list
 
 **MyBB:** the ACP has an attachment-types screen; an operator adds any
 extension and MIME type they like.
@@ -1108,7 +1167,7 @@ signature, so "is this a text file" can only ever be a guess.
 release. F71 owns the ACP screen; what it will be able to configure is *limits*,
 not *formats*, until something can attest to a new one.
 
-## The download is served by the board, not by the object store
+### The download is served by the board, not by the object store
 
 **MyBB:** `attachment.php` streams the file through PHP after a permission
 check.
@@ -1129,7 +1188,7 @@ serving member-supplied bytes actually lives.
 bandwidth and, on a serverless platform, function time. Revisit if the
 `FileStore` port ever grows the ability to sign *with* response headers.
 
-## Files are submitted with the post, in one form
+### Files are submitted with the post, in one form
 
 **MyBB:** the composer uploads each attachment over its own request, keyed to a
 post id or a "posthash" for a post that does not exist yet, and the abandoned
@@ -1148,7 +1207,7 @@ validation loses the chosen files even though the message survives. That is true
 of every no-JS upload. F45's islands are where an incremental upload belongs,
 and it should be an enhancement over this path rather than a replacement for it.
 
-## An avatar is re-encoded and locked, never linked and never deleted
+### An avatar is re-encoded and locked, never linked and never deleted
 
 **MyBB:** three ways to have one — upload, a remote URL, or Gravatar. An upload
 is checked for dimensions and extension and stored as sent. A moderator's
@@ -1179,7 +1238,7 @@ loses its EXIF, which is the point. And an upload is not visible for as long as
 the queue takes, which the screen says rather than leaving somebody to conclude
 it failed.
 
-## An avatar keeps its aspect ratio; it is not cropped to a square
+### An avatar keeps its aspect ratio; it is not cropped to a square
 
 **MyBB:** scales to fit the configured maximum, same as here.
 
@@ -1192,7 +1251,9 @@ reversible; a crop at upload time is not.
 **Cost:** a wide image renders wide, so a theme laying out a fixed square has to
 say `object-fit: cover` rather than assuming. The default theme does.
 
-## "New posts" lists threads, and its window is a day rather than your last visit
+## Reading and discovery
+
+### "New posts" lists threads, and its window is a day rather than your last visit
 
 **MyBB:** `search.php?action=getnew` runs a search for posts made since
 `lastvisit` and shows the *threads* those posts are in, ordered by last post. A
@@ -1216,7 +1277,7 @@ two screens that do not have a window at all. When F32's read state and this
 query can be joined without a per-row cost, the window becomes a fallback for
 guests rather than the rule.
 
-## A busy thread is one row, not forty
+### A busy thread is one row, not forty
 
 **MyBB:** the "new posts" and "today's posts" screens are searches over
 *posts*, so a thread with forty new replies contributes forty hits — collapsed
@@ -1235,7 +1296,7 @@ the board.
 many of the replies are new to this reader — that is the same read-state
 dependency the window above names.
 
-## Invisible browsing hides you from the count as well as the list
+### Invisible browsing hides you from the count as well as the list
 
 **MyBB:** `users.invisible` removes a member from the online list. The board's
 "N users online" figure is computed from the same session table and the
@@ -1257,7 +1318,7 @@ counts everybody, invisible included, because it is a fact about the board's
 traffic rather than about who anybody may see — so the record can exceed any
 total a member has ever been shown.
 
-## An online list says where somebody is only when the reader may know
+### An online list says where somebody is only when the reader may know
 
 **MyBB:** the online list shows each user's location as a description derived
 from the script they are on ("Viewing Thread X"), and the thread and forum
@@ -1281,7 +1342,7 @@ string, so "reading page 4" is not distinguishable from "reading page 1", and a
 member browsing the admin panel shows as somewhere on the board rather than in
 the panel.
 
-## Board totals are a rollup with a timestamp, not a live count
+### Board totals are a rollup with a timestamp, not a live count
 
 **MyBB:** `datacache` holds the board statistics and they are updated on the
 write path — every new post, thread and member updates the cached figures.
@@ -1302,7 +1363,9 @@ count is what sets the shape.
 brand-new board shows "not counted yet" until the first tick, which is a truer
 statement than three zeroes.
 
-## A feed shows what a signed-out visitor sees, whoever fetches it
+## Feeds, URLs and the sitemap
+
+### A feed shows what a signed-out visitor sees, whoever fetches it
 
 **MyBB:** `syndication.php` resolves the requesting user from their cookie and
 filters the feed against that member's forum permissions, so a signed-in
@@ -1324,7 +1387,7 @@ deliver to a member rather than to a URL. A per-member feed token would restore
 it — a capability URL, cached safely because it is unguessable — and it is a
 feature with its own decisions to make, not a flag on this one.
 
-## Every page of a thread is its own canonical URL
+### Every page of a thread is its own canonical URL
 
 **MyBB:** emits no canonical link. Duplicate URLs for one page — `showthread.php`
 with and without a `pid`, with and without `page=1` — are left for the crawler
@@ -1343,7 +1406,7 @@ canonical is actually for here is collapsing `?post=812`, `?after=…` and
 a search result lands on the page rather than the post. The anchor still works
 for anybody who follows the original link.
 
-## The sitemap is an index of chunks, ordered by id
+### The sitemap is an index of chunks, ordered by id
 
 **MyBB:** ships no sitemap. Plugins that add one generally emit a single
 document.
@@ -1362,7 +1425,9 @@ and revisit others.
 own starting id — the only OFFSET in this codebase — because the index names the
 chunks by number before any of them exists. It is paid by crawlers, not readers.
 
-## The BBCode parity pass (F87)
+## Parity passes
+
+### The BBCode parity pass (F87)
 
 The corpus is `packages/bbcode/src/parity.test.ts`. Every case below is a
 difference asserted there, so this document and the renderer cannot disagree
@@ -1432,7 +1497,7 @@ The corpus pins the current behaviour, so implementing one is a deliberate chang
 to that file rather than something that quietly starts working. `[table]` and
 `[align]` are the two most likely to matter on an imported board.
 
-## Search relevance is ranked within a window (F89)
+### Search relevance is ranked within a window (F89)
 
 **MyBB:** ranks every matching post, however many there are.
 

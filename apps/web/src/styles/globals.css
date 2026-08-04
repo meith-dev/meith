@@ -413,25 +413,36 @@ body {
 }
 
 .doc-code {
+  position: relative;
   background: var(--ground-deep);
   border: 1px solid var(--wall);
-  border-radius: 2px;
-  overflow: hidden;
+  border-radius: 3px;
 }
 
-.doc-code-label {
+/*
+ * The language as a corner label rather than a caption bar, so a two-line
+ * snippet is not half chrome. `::before` because the renderer puts the language
+ * in an attribute — there is no element to style, and adding one would put it in
+ * the copied text.
+ */
+.doc-code[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.35rem 0.7rem;
   font-family: var(--mono);
-  font-size: var(--step--1);
-  text-transform: uppercase;
+  font-size: 0.7rem;
   letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--ink-faint);
-  padding: 0.5rem 1rem 0;
+  pointer-events: none;
 }
 
 .doc-code pre {
   overflow-x: auto;
   padding: 1rem 1.1rem;
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
 .doc-code pre code {
@@ -441,6 +452,129 @@ body {
   font-size: var(--step--1);
   white-space: pre;
   overflow-wrap: normal;
+}
+
+/*
+ * Shiki emits both schemes on every token and the stylesheet chooses. The four
+ * blocks mirror the palette's own arrangement, and for the same reason: the
+ * explicit `data-theme` has to beat the media query in *both* directions.
+ */
+.doc-code pre code span {
+  color: var(--shiki-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  .doc-code pre code span {
+    color: var(--shiki-dark);
+  }
+}
+
+:root[data-theme="light"] .doc-code pre code span {
+  color: var(--shiki-light);
+}
+
+:root[data-theme="dark"] .doc-code pre code span {
+  color: var(--shiki-dark);
+}
+
+.doc-code-copy {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: var(--ground);
+  border: 1px solid var(--wall);
+  border-radius: 2px;
+  cursor: copy;
+  /*
+   * Hidden until the block is hovered or the button itself is focused. Focus is
+   * the half that matters: `opacity: 0` alone would leave a keyboard user
+   * tabbing onto something they cannot see.
+   */
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.doc-code:hover .doc-code-copy,
+.doc-code-copy:focus-visible {
+  opacity: 1;
+}
+
+.doc-code-copy:hover {
+  color: var(--gorse);
+  border-color: var(--gorse);
+}
+
+/* Touch has no hover, so the button is simply always there. */
+@media (hover: none) {
+  .doc-code-copy {
+    opacity: 1;
+  }
+}
+
+/* ── callouts ─────────────────────────────────────────────────────────── */
+
+/*
+ * GitHub's alert syntax, styled. Deliberately quiet: a documentation page where
+ * a third of the text is in a coloured box has taught the reader to skip boxes,
+ * which is the opposite of what a warning is for. A rule down the side, a label,
+ * and otherwise the same type as the prose around it.
+ */
+.doc-callout {
+  border-left: 3px solid var(--accent, var(--lichen));
+  background: var(--ground-deep);
+  border-radius: 0 3px 3px 0;
+  padding: 1rem 1.2rem;
+  max-width: 42rem;
+}
+
+.doc-callout-label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent, var(--lichen));
+  margin: 0 0 0.4rem;
+}
+
+.doc-callout-body > * + * {
+  margin-top: 0.8em;
+}
+
+.doc-callout-body > :first-child {
+  margin-top: 0;
+}
+
+.doc-callout[data-kind="note"] {
+  --accent: var(--lichen);
+}
+
+.doc-callout[data-kind="tip"] {
+  --accent: var(--lichen);
+}
+
+.doc-callout[data-kind="important"] {
+  --accent: var(--gorse);
+}
+
+.doc-callout[data-kind="warning"] {
+  --accent: var(--gorse);
+}
+
+/*
+ * Caution is the only one that gets the loud treatment — a tinted ground as well
+ * as the rule. It marks the handful of things in these documents that cannot be
+ * undone, and nothing else should compete with it.
+ */
+.doc-callout[data-kind="caution"] {
+  --accent: var(--gorse);
+  background: color-mix(in srgb, var(--gorse) 10%, var(--ground-deep));
+  border-color: var(--gorse);
 }
 
 .doc-table {

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
+import { CodeCopyButtons } from "../../../src/components/code-copy"
 import { TableOfContents } from "../../../src/components/table-of-contents"
 import { site } from "../../../src/content/site"
 import { loadDocument } from "../../../src/docs/load"
@@ -64,11 +65,17 @@ export default async function DocumentPage({ params }: PageProps) {
           <h1 className="display mt-2 text-huge leading-[1.04]">
             {rendered.title ?? entry.title}
           </h1>
-          <p className="mt-4 max-w-[42rem] text-mid leading-[1.45] text-ink-soft text-pretty">
-            {entry.blurb}
-          </p>
 
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-ink-faint">
+          {/*
+            The manifest's blurb is deliberately *not* rendered here. Every
+            document opens with its own lead paragraph — it has to, because it is
+            read on GitHub as well — so printing the blurb above it said the same
+            thing twice in slightly different words, which reads as an editing
+            mistake. The blurb earns its keep in the listings, the search results
+            and the page description, where the document's own text is not there
+            to do the job.
+          */}
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-ink-faint">
             <a className="textlink" href={sourceUrl}>
               {sourcePath}
             </a>
@@ -99,6 +106,7 @@ export default async function DocumentPage({ params }: PageProps) {
           className="doc-body mt-10"
           dangerouslySetInnerHTML={{ __html: rendered.html }}
         />
+        <CodeCopyButtons />
 
         <nav
           aria-label="Nearby documents"

@@ -22,6 +22,7 @@
 
 import { lexer, parser, Renderer, type Token, type Tokens } from "marked"
 
+import { highlight, type HighlightedCode } from "./highlight"
 import { createSlugger } from "./slug"
 
 export interface DocHeading {
@@ -173,12 +174,45 @@ const LANGUAGE_LABELS: Record<string, string> = {
   "": "",
 }
 
+/**
+ * GitHub's alert syntax, which is a blockquote whose first line is a marker.
+ *
+ * Supported because it is what a documentation author already reaches for, and
+ * because it degrades correctly: a file using it renders as a labelled
+ * blockquote on GitHub and as a callout here, with no site-specific syntax that
+ * only works in one of the two places the documents are read.
+ */
+const ALERT_MARKER = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*\n?/
+
+const ALERT_LABELS: Record<string, string> = {
+  NOTE: "Note",
+  TIP: "Tip",
+  IMPORTANT: "Important",
+  WARNING: "Warning",
+  CAUTION: "Caution",
+}
+
 class DocRenderer extends Renderer {
   constructor(
     private readonly headingIds: WeakMap<Tokens.Heading, string>,
+    private readonly codeBlocks: WeakMap<Tokens.Code, HighlightedCode>,
+    private readonly alerts: WeakMap<Tokens.Blockquote, string>,
     private readonly resolveLink: RenderOptions["resolveLink"],
   ) {
     super()
+  }
+
+  override blockquote(token: Tokens.Blockquote): string {
+    const kind = this.alerts.get(token)
+    if (kind === undefined) return super.blockquote(token)
+
+    const label = ALERT_LABELS[kind] ?? kind
+    return (
+      `<aside class="doc-callout" data-kind="${kind.toLowerCase()}">` +
+      `<p class="doc-callout-label">${escapeHtml(label)}</p>` +
+      `<div class="doc-callout-body">${this.parser.parse(token.tokens)}</div>` +
+      `</aside>\n`
+    )
   }
 
   override heading(token: Tokens.Heading): string {
@@ -217,15 +251,22 @@ class DocRenderer extends Renderer {
     return `<img src="${escapeHtml(resolved.href)}" alt="${escapeHtml(text)}"${titleAttribute} loading="lazy" />`
   }
 
-  override code({ text, lang }: Tokens.Code): string {
-    const language = (lang ?? "").trim().split(/\s+/)[0] ?? ""
+  override code(token: Tokens.Code): string {
+    const language = (token.lang ?? "").trim().split(/\s+/)[0] ?? ""
     const label = LANGUAGE_LABELS[language.toLowerCase()] ?? language
-    const caption = label === "" ? "" : `<figcaption class="doc-code-label">${escapeHtml(label)}</figcaption>`
+    const highlighted = this.codeBlocks.get(token)
 
     return (
-      `<figure class="doc-code">${caption}` +
-      `<pre><code>${escapeHtml(text)}</code></pre>` +
-      `</figure>\n`
+      `<figure class="doc-code"${label === "" ? "" : ` data-lang="${escapeHtml(label)}"`}>` +
+      /*
+       * The raw source on the element, so the copy button beside it copies what
+       * the author wrote rather than the highlighted markup's textContent —
+       * which differs the moment a line wraps or a token carries a zero-width
+       * space.
+       */
+      `<pre data-code="${escapeHtml(token.text)}"><code>` +
+      (highlighted ? highlighted.html : escapeHtml(token.text)) +
+      `</code></pre></figure>\n`
     )
   }
 
@@ -275,7 +316,87 @@ function collectHeadings(tokens: readonly Token[]): {
   return { headings, ids }
 }
 
-export function renderMarkdown(markdown: string, options: RenderOptions): RenderedMarkdown {
+/** Every token in the tree, depth-first, including the ones nested in lists and quotes. */
+function* everyToken(tokens: readonly Token[] | undefined): Generator<Token> {
+  if (!tokens) return
+
+  for (const token of tokens) {
+    if (!token || typeof token !== "object") continue
+    yield token
+    yield* everyToken((token as Tokens.Generic).tokens)
+    yield* everyToken((token as Tokens.List).items)
+
+    const table = token as Tokens.Table
+    if (Array.isArray(table.header)) for (const cell of table.header) yield* everyToken(cell.tokens)
+    if (Array.isArray(table.rows)) {
+      for (const row of table.rows) for (const cell of row) yield* everyToken(cell.tokens)
+    }
+  }
+}
+
+/**
+ * Strip an alert's `[!NOTE]` marker out of the tokens that will be rendered.
+ *
+ * Done to the token rather than to the output because the marker has to
+ * disappear from the *text* as well: it would otherwise be indexed, and a
+ * reader searching for "note" would match every callout on the site.
+ */
+function stripAlertMarker(tokens: readonly Token[] | undefined): boolean {
+  for (const token of tokens ?? []) {
+    const generic = token as Tokens.Generic
+    if (typeof generic.text === "string" && ALERT_MARKER.test(generic.text)) {
+      generic.text = generic.text.replace(ALERT_MARKER, "")
+      if (typeof generic.raw === "string") generic.raw = generic.raw.replace(ALERT_MARKER, "")
+      /* A text token may itself hold inline tokens; the marker is in both. */
+      stripAlertMarker(generic.tokens)
+      return true
+    }
+    if (generic.tokens && stripAlertMarker(generic.tokens)) return true
+  }
+  return false
+}
+
+/**
+ * One pass over the token tree for the two things that cannot be done inside a
+ * synchronous renderer: highlighting (which is async) and rewriting alert
+ * markers out of the tokens (which has to happen before anything reads them).
+ */
+async function prepare(tokens: readonly Token[]): Promise<{
+  codeBlocks: WeakMap<Tokens.Code, HighlightedCode>
+  alerts: WeakMap<Tokens.Blockquote, string>
+}> {
+  const codeBlocks = new WeakMap<Tokens.Code, HighlightedCode>()
+  const alerts = new WeakMap<Tokens.Blockquote, string>()
+  const pending: Promise<void>[] = []
+
+  for (const token of everyToken(tokens)) {
+    if (token.type === "code") {
+      const code = token as Tokens.Code
+      pending.push(
+        highlight(code.text, code.lang).then((result) => {
+          codeBlocks.set(code, result)
+        }),
+      )
+      continue
+    }
+
+    if (token.type === "blockquote") {
+      const quote = token as Tokens.Blockquote
+      const marker = ALERT_MARKER.exec(quote.text)
+      if (!marker?.[1]) continue
+      alerts.set(quote, marker[1])
+      stripAlertMarker(quote.tokens)
+    }
+  }
+
+  await Promise.all(pending)
+  return { codeBlocks, alerts }
+}
+
+export async function renderMarkdown(
+  markdown: string,
+  options: RenderOptions,
+): Promise<RenderedMarkdown> {
   const tokens = lexer(markdown, { gfm: true })
 
   /*
@@ -292,12 +413,14 @@ export function renderMarkdown(markdown: string, options: RenderOptions): Render
     body.splice(body.indexOf(first), 1)
   }
 
+  const { codeBlocks, alerts } = await prepare(body)
   const { headings, ids } = collectHeadings(body)
   const sections = splitAtHeadings(body, ids, title ?? "")
+  const renderer = new DocRenderer(ids, codeBlocks, alerts, options.resolveLink)
 
   return {
     title,
-    html: parser(body, { gfm: true, renderer: new DocRenderer(ids, options.resolveLink) }),
+    html: parser(body, { gfm: true, renderer }),
     headings,
     sections,
     text: sections.map((section) => section.text).join("\n"),

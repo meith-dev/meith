@@ -125,7 +125,7 @@ export const loadDocument = cache(async (slug: string): Promise<LoadedDocument |
 
   return {
     entry,
-    rendered: renderMarkdown(markdown, { resolveLink: linkResolver(entry.file) }),
+    rendered: await renderMarkdown(markdown, { resolveLink: linkResolver(entry.file) }),
     sourcePath: `docs/${entry.file}`,
   }
 })
