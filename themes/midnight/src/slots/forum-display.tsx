@@ -53,6 +53,11 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
 
       {regions.pagination}
 
+      {/* Theme API 1.4 — following this forum, after the threads. */}
+      {regions.afterContent !== undefined && (
+        <div className="flex flex-col gap-2 empty:hidden">{regions.afterContent}</div>
+      )}
+
       {markReadAction !== null && (
         <form action={markReadAction} method="post">
           <button

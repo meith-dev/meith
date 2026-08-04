@@ -1,7 +1,7 @@
 import { Avatar, Card, CardContent, CardHeader, CardTitle, buttonVariants } from '@meith/ui'
 import type { MemberProfileModel } from '@meith/theme-kit'
 
-import { NUMERIC, PAGE, Stamp } from '../shared'
+import { NUMERIC, Stamp, pageAt } from '../shared'
 
 /**
  * A member's profile (F33).
@@ -39,7 +39,7 @@ export function MemberProfile({
   regions,
 }: MemberProfileModel) {
   return (
-    <div className={`${PAGE} flex w-full max-w-4xl flex-col gap-4 py-6 sm:py-8`}>
+    <div className={`${pageAt('max-w-4xl')} flex w-full flex-col gap-4 py-6 sm:py-8`}>
       <Card>
         <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">

@@ -38,6 +38,15 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
       {regions.pagination}
 
       {/*
+        Theme API 1.4 — rating and following, after the posts and before the
+        composer. The default theme independently put them here, for the same
+        reason: they ask what you made of something you have now read.
+      */}
+      {regions.afterContent !== undefined && (
+        <div className="flex flex-col gap-2 empty:hidden">{regions.afterContent}</div>
+      )}
+
+      {/*
         The quick-reply island, or nothing. When the app passes null no island
         bytes are shipped and the `reply` link above is the whole reply path —
         which is the arrangement R5 requires and the island only enhances.

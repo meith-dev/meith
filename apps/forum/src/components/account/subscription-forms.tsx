@@ -41,18 +41,19 @@ export interface ModeOption {
  * as one (`subscribe` is an upsert). The unsubscribe button is a separate form
  * because it posts to a different action.
  *
- * ## A panel, and a quiet one
+ * ## A row, not a panel
  *
- * It rendered as a bare row of controls on the page background. Theme API 1.3
- * puts it in the `tools` region beside the rating and the moderator bar, both
- * of which are bordered panels, so a loose row was the one thing on the strip
- * that did not look like it belonged to it.
+ * It was briefly a bordered card, to match the rating beside it. Both went
+ * back to being bare rows: two one-line controls drawn as two panels, at the
+ * foot of a page that already ends with a bordered composer, is three objects
+ * where there is one idea. The theme draws a single ruled strip and puts both
+ * in it (`regions.afterContent`).
  *
- * Its submit is **not** the filled variant any more, and that is the more
- * important half. A thread page is supposed to have exactly one loud control
- * and it is "Reply" (see the theme's `ThreadView`); a second filled button
- * offering to *subscribe* competed with it for the eye on every thread a
- * signed-in member opened.
+ * Its submit is **not** the filled variant, and that is the more important
+ * half. A thread page is supposed to have exactly one loud control and it is
+ * "Reply" (see the theme's `ThreadView`); a second filled button offering to
+ * *subscribe* competed with it for the eye on every thread a signed-in member
+ * opened.
  */
 export function FollowForm({
   target,
@@ -74,10 +75,7 @@ export function FollowForm({
   const [stopState, stopAction] = useActionState(unsubscribeAction, EMPTY_STATE)
 
   return (
-    <section
-      aria-label={label}
-      className="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3"
-    >
+    <section aria-label={label} className="flex flex-col gap-2">
       <FormError message={state.error ?? stopState.error} />
 
       <div className="flex flex-wrap items-center gap-2">

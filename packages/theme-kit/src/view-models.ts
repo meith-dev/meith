@@ -558,6 +558,9 @@ export interface ForumDisplayModel {
      *
      * Optional, which is what makes it a **minor** addition under the v1
      * policy — a theme written against 1.2 keeps compiling.
+     *
+     * Only what acts on the listing *below* it belongs here. Following the
+     * forum is in `afterContent`, for the reason given there.
      */
     readonly tools?: ReactNode
     readonly subforums: ReactNode
@@ -570,6 +573,17 @@ export interface ForumDisplayModel {
      * the page fewest people arrive on.
      */
     readonly announcements?: ReactNode
+    /**
+     * Controls for somebody who has finished with the page — today, the form
+     * that follows this forum.
+     *
+     * A theme renders it after the listing. "Do you want to hear about this
+     * forum?" is a question you can only answer once you have seen what is in
+     * it, and asked above the threads it is a panel between a reader and the
+     * thing they came for. The ordering tabs stay at the top in `tools`,
+     * because those act on the list underneath them.
+     */
+    readonly afterContent?: ReactNode
   }
 }
 
@@ -596,6 +610,10 @@ export interface ThreadViewModel {
      * title of the thing being followed, rated and voted on was a screen
      * further down.
      *
+     * Only what belongs *before* the posts: the moderator's bar, and the
+     * poll, which is content rather than a control. Rating and following are
+     * in `afterContent`.
+     *
      * Optional under the v1 policy: a theme written against 1.2 compiles and
      * simply does not offer them.
      */
@@ -603,6 +621,17 @@ export interface ThreadViewModel {
     /** One `PostBit` per post on this page. */
     readonly posts: ReactNode
     readonly pagination: ReactNode
+    /**
+     * Controls for a reader who has reached the end — rating the thread, and
+     * following it.
+     *
+     * A theme renders it after the posts and **before** the quick reply, which
+     * is the order the two are wanted in: somebody who has just read fifty
+     * posts is deciding what they think and whether to keep hearing about it,
+     * and then whether to answer. Both used to be above the first post, where
+     * they were asking for a verdict on something the reader had not read yet.
+     */
+    readonly afterContent?: ReactNode
     /**
      * The quick-reply island, or `null` when the viewer may not reply — in which
      * case nothing is rendered and no island bytes are shipped.

@@ -6,6 +6,7 @@ import { requireSlot } from '@meith/theme-kit'
 
 import { MessageActionBar } from '@/components/messages/message-forms'
 import { getContainer } from '@/server/container'
+import { ViewTabs } from '@/components/shell/view-tabs'
 import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
 import { activeTheme } from '@/server/theme'
@@ -106,26 +107,16 @@ export default async function MessagesPage({
           </a>
         </div>
 
-        <nav aria-label="Message folders" className="flex flex-wrap items-center gap-4 border-b border-border pb-2">
-          {view.tabs.map((tab) => (
-            <a
-              key={tab.folder}
-              href={tab.href}
-              aria-current={tab.isCurrent ? 'page' : undefined}
-              className={
-                tab.isCurrent
-                  ? 'text-sm font-semibold text-foreground'
-                  : 'text-sm text-muted-foreground hover:text-foreground'
-              }
-            >
-              {tab.label}
-              {tab.count > 0 && (
-                <span className="ml-1 text-xs text-muted-foreground">({tab.count})</span>
-              )}
-            </a>
-          ))}
-          <span className="ml-auto text-xs text-muted-foreground">{view.quota.label}</span>
-        </nav>
+        <ViewTabs
+          label="Message folders"
+          tabs={view.tabs.map((tab) => ({
+            href: tab.href,
+            label: tab.label,
+            isCurrent: tab.isCurrent,
+            count: tab.count,
+          }))}
+          aside={view.quota.label}
+        />
 
         {view.quota.isFull ? (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">

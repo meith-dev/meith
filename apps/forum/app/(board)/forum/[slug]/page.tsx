@@ -14,6 +14,7 @@ import { getViewerPreferences } from '@/server/viewer-preferences'
 import { activeTheme } from '@/server/theme'
 import { decodeForumCursor, encodeForumCursor } from '@/view/forum-cursor'
 import { FollowForm } from '@/components/account/subscription-forms'
+import { ViewTabs } from '@/components/shell/view-tabs'
 import { buildBreadcrumb } from '@/view/breadcrumb'
 import { buildForumDisplayView } from '@/view/forum-display'
 import { canonicalPath } from '@/view/metadata'
@@ -326,8 +327,9 @@ export default async function ForumPage({
    * renders those as plain body text — a navigation nobody could tell was a
    * navigation, whose current item was marked only by an `aria-current` that
    * no sighted reader receives. They are anchors and stay anchors (an ordering
-   * is a URL, and paging has to work with scripting off), but the current one
-   * now carries weight and a rule as well as the attribute.
+   * is a URL, and paging has to work with scripting off), and they are the
+   * same `ViewTabs` the inbox and the discovery views draw, so "the one you
+   * are looking at" means one thing across the board.
    *
    * They are also *under the forum's name* now, through theme API 1.3's
    * `tools` region. Rendered above `<ForumDisplay>`, as they were, the first
@@ -335,36 +337,21 @@ export default async function ForumPage({
    * was being sorted.
    */
   const orderTabs = (
-    <nav aria-label="Thread order">
-      <ul className="flex items-center gap-4 text-sm">
-        {[
-          {
-            label: 'Latest',
-            href: `/forum/${id}-${forum.slug}`,
-            isCurrent: sort === 'activity',
-          },
-          {
-            label: 'Top rated',
-            href: `/forum/${id}-${forum.slug}?sort=rating`,
-            isCurrent: sort === 'rating',
-          },
-        ].map((tab) => (
-          <li key={tab.href}>
-            <a
-              href={tab.href}
-              aria-current={tab.isCurrent ? 'page' : undefined}
-              className={
-                tab.isCurrent
-                  ? 'inline-flex border-b-2 border-foreground pb-1 font-semibold text-foreground'
-                  : 'inline-flex border-b-2 border-transparent pb-1 text-muted-foreground hover:border-border hover:text-foreground'
-              }
-            >
-              {tab.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <ViewTabs
+      label="Thread order"
+      tabs={[
+        {
+          href: `/forum/${id}-${forum.slug}`,
+          label: 'Latest',
+          isCurrent: sort === 'activity',
+        },
+        {
+          href: `/forum/${id}-${forum.slug}?sort=rating`,
+          label: 'Top rated',
+          isCurrent: sort === 'rating',
+        },
+      ]}
+    />
   )
 
   const forumDisplayModel = await filterView(
@@ -372,21 +359,27 @@ export default async function ForumPage({
     {
       ...view.display,
       regions: {
-        tools: (
-          <>
-            {orderTabs}
-            {followOffered && (
-              <FollowForm
-                target="forum"
-                targetId={forum.id}
-                mode={followMode}
-                modes={followModes}
-                back={`/forum/${id}-${forum.slug}`}
-                label="Follow this forum"
-              />
-            )}
-          </>
-        ),
+        tools: orderTabs,
+        /*
+         * Following the forum, under the threads (theme API 1.4). It was above
+         * them, which put a subscription panel between a reader and the list
+         * they had come for — and asked whether they wanted to hear about a
+         * forum before showing them what was in it.
+         */
+        ...(followOffered
+          ? {
+              afterContent: (
+                <FollowForm
+                  target="forum"
+                  targetId={forum.id}
+                  mode={followMode}
+                  modes={followModes}
+                  back={`/forum/${id}-${forum.slug}`}
+                  label="Follow this forum"
+                />
+              ),
+            }
+          : {}),
         subforums: subforums === null ? null : <SubforumList {...subforums} />,
         threads: threadRows.map((row) => (
           <ThreadRow key={row.thread.id} {...row} />

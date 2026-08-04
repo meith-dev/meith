@@ -16,13 +16,19 @@ import { rateThreadAction } from '@/server/thread-rating-actions'
  * in the board's measure, so the one line on the page that was not aligned
  * with anything was this one.
  *
- * ## It no longer carries a measure of its own
+ * ## It carries no chrome of its own — no measure, and no card
  *
- * It did, and had to, while it was a sibling of `<ThreadView>` rendered above
- * it. Theme API 1.3 gave the thread page a `tools` region, so this now renders
- * *inside* the slot, under the title — the theme supplies the width, and a
- * second centring container inside one would only inset it from the posts it
- * sits above.
+ * It had both, and needed them, while it was a sibling of `<ThreadView>`
+ * rendered above it. Theme API 1.3 gave the thread page a region and 1.4 moved
+ * it to the foot, so it renders inside the slot now and the theme supplies the
+ * frame.
+ *
+ * The card went for a plainer reason: rating a thread and following it are two
+ * one-line controls, and drawn as a bordered panel each they stacked into two
+ * more objects the same visual weight as a post — under a page that already
+ * ends with a bordered composer. Three panels for one row of controls. They
+ * are a row of controls, so they are laid out as one: this renders bare, and
+ * the theme puts both in a single ruled strip.
  *
  * And it dropped `rating.mine`, which the repository goes out of its way to
  * fetch: a member who had already rated the thread was shown five identical
@@ -124,10 +130,7 @@ export function ThreadRatingForm({
   if (rating.count === 0 && !canRate) return null
 
   return (
-    <section
-      aria-label="Thread rating"
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-border bg-card px-4 py-3"
-    >
+    <section aria-label="Thread rating" className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div className="flex items-center gap-2.5">
         {rating.count === 0 ? (
           <p className="text-sm text-muted-foreground">No ratings yet.</p>

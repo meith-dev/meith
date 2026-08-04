@@ -93,10 +93,10 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
       </div>
 
       {/*
-        Theme API 1.3 — the ordering tabs and the follow form, under the
-        heading rather than above the whole page. See `ThreadView` for the
-        history; a forum page used to open with "Latest · Top rated" before it
-        said which forum was being sorted.
+        Theme API 1.3 — the ordering tabs, under the heading rather than above
+        the whole page. A forum page used to open with "Latest · Top rated"
+        before it said which forum was being sorted. Following the forum is not
+        here; see `regions.afterContent` at the foot of this slot.
       */}
       {regions.tools !== undefined && (
         <div className="flex flex-col gap-3 empty:hidden">{regions.tools}</div>
@@ -138,6 +138,22 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
       </Card>
 
       {regions.pagination}
+
+      {/*
+        Theme API 1.4 — following this forum, after the threads rather than
+        above them. "Do you want to hear about this?" is a question somebody
+        can only answer once they have seen what is in it.
+
+        A hairline and a row, not a card: it is one control, and a bordered
+        panel holding one `<select>` and one button reads as a section of the
+        page rather than as a footnote to it. `ThreadView` draws the same strip
+        for the same reason.
+      */}
+      {regions.afterContent !== undefined && (
+        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-border pt-4 empty:hidden">
+          {regions.afterContent}
+        </div>
+      )}
     </div>
   )
 }

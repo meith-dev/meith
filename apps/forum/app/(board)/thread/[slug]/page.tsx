@@ -670,14 +670,19 @@ export default async function ThreadPage({
   )
 
   /*
-   * Everything that acts on this thread, in one region under its heading
-   * (theme API 1.3).
+   * The thread's controls, at the two ends of it (theme API 1.3 and 1.4).
    *
-   * These four used to be siblings of `<ThreadView>` and rendered *before* it,
+   * All four used to be siblings of `<ThreadView>` rendered *before* it,
    * because the contract had nowhere else to put them — so a thread opened
    * with a moderator's tool bar, a follow control, a poll and a star rating,
-   * and the `<h1>` saying which thread was a screen below all of it. On a
-   * phone the title was reliably below the fold.
+   * and the `<h1>` saying which thread was a screen below all of it.
+   *
+   * They split by when somebody wants them. **Before** the posts: the
+   * moderator's bar, and the poll — a poll is content, and it is part of what
+   * the opening post is asking. **After** them: rating the thread and
+   * following it, which are both verdicts on something you have to have read.
+   * A star rating above the first post was asking what a reader thought of a
+   * discussion they had not started reading.
    *
    * They stay app-rendered: each one is a `<form>` bound to a Server Action,
    * and an action reference is the one thing that never crosses into a theme.
@@ -690,7 +695,7 @@ export default async function ThreadPage({
     surgeryRights.merge ||
     surgeryRights.split
   const tools =
-    !anyTool && !followOffered && poll === null && (rating === null || !ratingsEnabled) ? undefined : (
+    !anyTool && poll === null ? undefined : (
       <>
         {anyTool && (
           <ThreadToolsForm
@@ -707,11 +712,17 @@ export default async function ThreadPage({
             />
           </ThreadToolsForm>
         )}
-        {/* The poll first of the three: it is content, not a control. */}
         {poll !== null && (
           <PollForm poll={poll} threadId={thread.id} canVote={canVotePoll} />
         )}
-        {rating !== null && ratingsEnabled && (
+      </>
+    )
+
+  const showRating = rating !== null && ratingsEnabled
+  const afterContent =
+    !showRating && !followOffered ? undefined : (
+      <>
+        {showRating && (
           <ThreadRatingForm
             threadId={thread.id}
             rating={rating}
@@ -741,6 +752,7 @@ export default async function ThreadPage({
           <PostBit key={model.post.id} {...model} />
         )),
         pagination: <Pagination {...pagination} />,
+        ...(afterContent === undefined ? {} : { afterContent }),
         quickReply,
       },
     },

@@ -12,6 +12,27 @@
  * It lives in the app rather than the theme because the form element carries a
  * Server Action reference, which never crosses the theme contract (D38/D42).
  * The theme renders the page around it.
+ *
+ * ## Its three buttons say which is which now
+ *
+ * "Save draft" was a bare `<button>`, which Tailwind's preflight renders as
+ * plain body text — so the composer's action row read as a filled button, an
+ * outlined button, and the word "Save draft" floating between them. The reply
+ * form was fixed when it grew its accordion; this one was not, and the two
+ * composers are the same act.
+ *
+ * The order is the order Enter picks. With several submits in one form the
+ * browser sends the **first**, so "Post thread" is first, "Preview" second
+ * because it is the other thing an author reaches for, and "Save draft" last
+ * and quietest — it is the only one that publishes nothing.
+ *
+ * ## The poll is folded away
+ *
+ * Five always-visible fields for a feature most threads do not use, sitting
+ * between the message box and the button that posts it. It is a `<details>`
+ * (see `@meith/ui`'s `Disclosure` for why not a scripted accordion), open
+ * whenever a submit came back with something in it — otherwise a rejected post
+ * would hide the poll the author had just filled in.
  */
 import { useActionState } from "react"
 
@@ -20,6 +41,8 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import type { UploadLimits } from "@meith/attachments/limits"
 import type { Draft } from "@meith/drafts"
+
+import { Disclosure, buttonVariants } from "@meith/ui"
 
 import { AttachmentField } from "./attachment-field"
 import { EditorToolbar } from "./editor-toolbar"
@@ -49,6 +72,17 @@ export function NewThreadForm({
   draft: Draft | null
 }) {
   const [state, action] = useActionState(createThreadAction, EMPTY_STATE)
+
+  /*
+   * Open the poll panel when a rejected submit brought poll text back with it,
+   * or when the saved draft has some. Otherwise a failed post would fold away
+   * the question the author had just typed, and it would look lost.
+   *
+   * `Field` re-fills from `state.values` by name, so these are the same keys
+   * the inputs read.
+   */
+  const hasPollDraft =
+    (state.values?.pollQuestion ?? "") !== "" || (state.values?.pollOption ?? "") !== ""
 
   /*
    * No `encType` on the form: React renders a Server Action form as
@@ -141,13 +175,17 @@ export function NewThreadForm({
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}
 
       {canPostPoll && (
-        <fieldset className="flex flex-col gap-2 rounded-md border border-border p-3">
-          <legend className="px-1 text-sm font-medium">Poll (optional)</legend>
+        <Disclosure
+          summary="Add a poll"
+          aside="Optional"
+          contentClassName="flex flex-col gap-2"
+          {...(hasPollDraft ? { open: true } : {})}
+        >
           <Field label="Question" name="pollQuestion" maxLength={250} />
           {[1, 2, 3, 4].map((number) => (
             <Field key={number} label={`Option ${number}`} name="pollOption" maxLength={200} />
           ))}
-        </fieldset>
+        </Disclosure>
       )}
 
       {canSubscribe && (
@@ -157,11 +195,8 @@ export function NewThreadForm({
         </label>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <SubmitButton>Post thread</SubmitButton>
-        <button type="submit" name="intent" value="save_draft">
-          Save draft
-        </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <SubmitButton className="w-auto">Post thread</SubmitButton>
         {/*
           Preview is a second submit button on the same form, not a separate
           one: a form with two actions loses whichever the browser did not send,
@@ -171,9 +206,22 @@ export function NewThreadForm({
           type="submit"
           name="intent"
           value="preview"
-          className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className={buttonVariants({ variant: "outline" })}
         >
           Preview
+        </button>
+        {/*
+          Last and quietest of the three. It is the only one that publishes
+          nothing, and with several submits in one form the *first* is what
+          Enter picks — which must be "Post thread".
+        */}
+        <button
+          type="submit"
+          name="intent"
+          value="save_draft"
+          className={buttonVariants({ variant: "ghost" })}
+        >
+          Save draft
         </button>
       </div>
     </form>

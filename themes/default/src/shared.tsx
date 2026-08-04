@@ -31,6 +31,9 @@
 import { Badge, cn } from '@meith/ui'
 import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
 
+/** The width of a listing page. Named so `pageAt` cannot be handed it. */
+const PAGE_WIDTH = 'max-w-6xl'
+
 /**
  * The page's measure.
  *
@@ -41,10 +44,26 @@ import type { PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
  * post body at 72ch); a table of rows is not prose and does not want a
  * paragraph's measure.
  */
-export const PAGE = 'mx-auto w-full max-w-6xl px-4 sm:px-6'
+export const PAGE = `mx-auto w-full ${PAGE_WIDTH} px-4 sm:px-6`
 
 /** A page body: the measure, plus the vertical rhythm every route shares. */
 export const PAGE_BODY = `${PAGE} flex w-full flex-col gap-5 py-6 sm:py-8`
+
+/**
+ * A page centred at a **narrower** measure than the board's.
+ *
+ * `PAGE` for a listing; this for a page that is one column of text somebody
+ * reads or writes — a composer, a profile. Two `max-w-*` classes on one element
+ * do not compose, they collide: Tailwind emits both, they have equal
+ * specificity, and whichever it happens to write later wins. `${PAGE} max-w-3xl`
+ * therefore rendered the composer at the full board width for as long as it was
+ * written that way, with a doc comment above it explaining why it was narrow.
+ *
+ * Taking the width as an argument is what makes that impossible to write.
+ */
+export function pageAt(width: 'max-w-3xl' | 'max-w-4xl'): string {
+  return `mx-auto w-full ${width} px-4 sm:px-6`
+}
 
 /**
  * A link in running text or a listing.

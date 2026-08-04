@@ -1,7 +1,7 @@
 import { Alert, AlertDescription, AlertTitle, Card } from '@meith/ui'
 import type { PostFormModel } from '@meith/theme-kit'
 
-import { MUTED_LINK, PAGE } from '../shared'
+import { MUTED_LINK, pageAt } from '../shared'
 
 /**
  * The composer page frame (F39).
@@ -11,7 +11,7 @@ import { MUTED_LINK, PAGE } from '../shared'
  * contract (D38/D42). Everything visible here — heading, cancel, where the
  * toolbar island sits — is still the theme's to change.
  *
- * ## Narrower than the rest of the board, on purpose
+ * ## Narrower than the rest of the board, on purpose — and now actually narrower
  *
  * Every other page here is `max-w-6xl`, because a listing is a table and tables
  * want width. A composer is a single column of text that somebody is going to
@@ -19,6 +19,11 @@ import { MUTED_LINK, PAGE } from '../shared'
  * can track back to the start of — the same reason `.prose-bb` caps a rendered
  * post at 72ch. The two measures agree, which means what an author types is
  * shaped roughly like what a reader will get.
+ *
+ * That paragraph was here already and the page was full width anyway: it read
+ * `${PAGE} max-w-3xl`, and two `max-w-*` utilities on one element do not
+ * compose — Tailwind emits both at equal specificity and the later one wins.
+ * `pageAt` takes the width instead, so the collision cannot be written.
  *
  * The cancel control is a link and stays a link: it navigates, it does not
  * submit, and making it look like a button beside the form's own submit is how
@@ -32,7 +37,7 @@ export function PostForm({
   regions,
 }: PostFormModel) {
   return (
-    <div className={`${PAGE} flex w-full max-w-3xl flex-col gap-5 py-6 sm:py-8`}>
+    <div className={`${pageAt('max-w-3xl')} flex w-full flex-col gap-5 py-6 sm:py-8`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <h1 className="font-serif text-2xl font-semibold tracking-tight text-balance">{heading}</h1>
         <a href={cancelHref} className={`text-sm ${MUTED_LINK}`}>

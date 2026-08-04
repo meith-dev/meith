@@ -12,6 +12,7 @@ import {
   type DiscoveryView,
 } from '@/server/discovery'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { ViewTabs } from '@/components/shell/view-tabs'
 import { formatTime } from '@/view/time'
 
 /**
@@ -116,7 +117,20 @@ export default async function DiscoverPage({
      */
     if (isAppError(err)) {
       return (
+        /*
+         * The heading, the blurb and the tabs, exactly as the success branch
+         * renders them. This branch used to open with the tab row and no
+         * `<h1>` at all — a page with no heading has no outline for a screen
+         * reader to navigate, and it is the branch a signed-out visitor is
+         * most likely to land on, because the two personal views are the ones
+         * that refuse.
+         */
         <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8 flex-1">
+          <div className="flex flex-col gap-1">
+            <h1 className="font-serif text-2xl font-semibold">{TABS[view].label}</h1>
+            <p className="text-sm text-muted-foreground">{TABS[view].blurb}</p>
+          </div>
+
           <Tabs current={view} />
           <p role="alert" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
             {err.message}{' '}
@@ -207,27 +221,20 @@ export default async function DiscoverPage({
  * Rendered for a guest too, including the two that will refuse: a member who
  * cannot see a tab does not learn it exists, and the refusal names the reason
  * and offers the sign-in link, which is more useful than the tab disappearing.
+ *
+ * The row itself is `ViewTabs`, shared with the inbox's folders and a forum's
+ * ordering — see that file for why the board had three of these and now has
+ * one.
  */
 function Tabs({ current }: { current: DiscoveryView }) {
   return (
-    <nav aria-label="Discovery views">
-      <ul className="flex flex-wrap gap-2">
-        {DISCOVERY_VIEWS.map((view) => (
-          <li key={view}>
-            <a
-              href={`/discover/${view}`}
-              aria-current={view === current ? 'page' : undefined}
-              className={
-                view === current
-                  ? 'inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground'
-                  : 'inline-flex h-9 items-center rounded-md border border-border px-3 text-sm hover:bg-muted'
-              }
-            >
-              {TABS[view].label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <ViewTabs
+      label="Discovery views"
+      tabs={DISCOVERY_VIEWS.map((view) => ({
+        href: `/discover/${view}`,
+        label: TABS[view].label,
+        isCurrent: view === current,
+      }))}
+    />
   )
 }
