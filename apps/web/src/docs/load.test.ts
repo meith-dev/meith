@@ -13,7 +13,7 @@ import { documents, internalDocuments, readingOrder } from "./registry"
  */
 describe("linkResolver", () => {
   const fromDocs = linkResolver("operating.md")
-  const fromAdr = linkResolver("adr/0002-s3-filestore-dependency.md")
+  const fromNested = linkResolver("notes/example.md")
 
   it("keeps an anchor within the page", () => {
     expect(fromDocs("#connection-pooling")).toEqual({
@@ -31,15 +31,16 @@ describe("linkResolver", () => {
   })
 
   it("resolves relative to the document doing the linking", () => {
-    expect(fromDocs("./adr/0001-hash-wasm-argon2id.md")).toEqual({
-      href: "/docs/adr/0001-hash-wasm-argon2id",
-      external: false,
-    })
-    /* An ADR pointing back up out of adr/. */
-    expect(fromAdr("../operating.md")).toEqual({ href: "/docs/operating", external: false })
-    expect(fromAdr("0003-jsquash-image-codecs.md")).toEqual({
-      href: "/docs/adr/0003-jsquash-image-codecs",
-      external: false,
+    /*
+     * A nested document. `docs/` has none today — the ADRs that used to live in
+     * `adr/` are gone — but the resolver has to keep working for one, because the
+     * failure is silent: a link from a subdirectory would resolve against the
+     * root and quietly point at a document that is not the one meant.
+     */
+    expect(fromNested("../operating.md")).toEqual({ href: "/docs/operating", external: false })
+    expect(fromNested("./sibling.md")).toEqual({
+      href: `${site.repository}/blob/main/docs/notes/sibling.md`,
+      external: true,
     })
   })
 
@@ -56,8 +57,8 @@ describe("linkResolver", () => {
       href: `${site.repository}/blob/main/docs/roadmap.md`,
       external: true,
     })
-    expect(fromDocs("./adr")).toEqual({
-      href: `${site.repository}/tree/main/docs/adr`,
+    expect(fromDocs("./notes")).toEqual({
+      href: `${site.repository}/tree/main/docs/notes`,
       external: true,
     })
   })

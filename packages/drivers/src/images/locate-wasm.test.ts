@@ -156,7 +156,7 @@ describe('compileAsset', () => {
     /*
      * Not a fake tree: the real installed packages, compiled by the real
      * WebAssembly engine. If a version bump moves one of these paths, this is
-     * where it is noticed — which is the whole risk ADR 0003 accepts.
+     * where it is noticed — which is the whole risk this accepts.
      */
     for (const spec of [
       '@jsquash/png/codec/pkg/squoosh_png_bg.wasm',

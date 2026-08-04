@@ -74,15 +74,15 @@ const nextConfig = {
    * even in fixture mode.
    *
    * These are all server-only and none is needed by every deployment, which is
-   * exactly what this option is for. It is also the condition ADR 0002 accepted
-   * the S3 dependency on, so it is load-bearing rather than an optimisation.
+   * exactly what this option is for. It is also the condition on which the S3
+   * dependency was accepted, so it is load-bearing rather than an optimisation.
    */
   serverExternalPackages: [
     "@aws-sdk/client-s3",
     "@aws-sdk/s3-request-presigner",
     "postgres",
     /*
-     * F42's image codecs (ADR 0003). External for a reason beyond bundle size:
+     * The image codecs. External for a reason beyond bundle size:
      * the tracer copies an external package's directory whole, `.wasm`
      * included, and `packages/drivers/src/images/locate-wasm.ts` needs those
      * files to be *on disk* — it reads and compiles them itself, because

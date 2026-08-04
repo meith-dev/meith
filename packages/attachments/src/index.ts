@@ -10,7 +10,7 @@
  * being validated, it is made safe by being re-encoded**. Everything in
  * `service.ts` is arranged around that — the two storage keys, the `pending`
  * status, the queued job, and the fact that nothing is downloadable until the
- * job has succeeded. See ADR 0003.
+ * job has succeeded.
  */
 export {
   ACCEPTED_EXTENSIONS,

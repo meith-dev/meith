@@ -50,7 +50,7 @@ column, combined like any other numeric limit.
 setting `search.flood_seconds` holds the interval, and the existing
 `canBypassFloodCheck` boolean permission exempts a group from it.
 
-**Why.** R4.2 mandates one combination rule for all numerics: take the maximum,
+**Why.** This board has one combination rule for all numerics: take the maximum,
 with `0` meaning unlimited and therefore beating every other value. That rule is
 correct for *allowances* — attachment size, posts per day — because a larger
 number is more permissive. It is exactly backwards for an *interval*, where the
@@ -58,19 +58,19 @@ most permissive value is the smallest non-zero one. A user in a 30-second group
 and a 5-second group should get 5 seconds; MAX would give them 30.
 
 Keeping the field would have required a fourth combination kind used by two
-fields, and a permanent footnote on the F22 matrix. Modelling it as a setting
-plus a boolean keeps R4.2 literally true for every field in the registry — the
+fields, and a permanent footnote on the permission matrix. Modelling it as a
+setting plus a boolean keeps that rule literally true for every field — the
 boolean combines by OR, which gives the right answer with no special case.
 
 **Cost.** An imported board loses per-group flood granularity: everyone is
 either subject to the board interval or exempt from it. Reintroducing
 granularity later means adding a `numeric-min` kind to
-`packages/core/src/permissions.ts` and one row per actor to the F22 fixture.
+`packages/core/src/permissions.ts` and one row per actor to the permission fixture.
 
-**Live since F39/F40.** `posting.flood_seconds` is read by the posting path and
+`posting.flood_seconds` is read by the posting path and
 the exemption is asked for as the global action `flood.bypass`, so no permission
-field escapes `@meith/authorization` (R4). Administrators bypass it like any
-other action; the F22 forum matrix does not carry a column for it, because the
+field escapes `@meith/authorization`. Administrators bypass it like any
+other action; the forum matrix does not carry a column for it, because the
 interval is a board setting rather than a per-forum grant.
 
 ---
@@ -98,7 +98,7 @@ importer code can translate a legacy column name in one place.
 **We** keep them as two fields: `isAdministrator` grants the permission bypass,
 `canAccessAdminCp` grants the panel.
 
-**Why.** R4.2 requires the bypass be explicit and logged. Splitting the fields
+**Why.** A bypass has to be explicit and logged. Splitting the fields
 makes it possible to grant a trusted role read access to the panel without also
 handing it the ability to bypass every forum permission on the board — and makes
 the audit log meaningful, because a bypass entry now implies a specific field.
@@ -113,8 +113,8 @@ the audit log meaningful, because a bypass entry now implies a specific field.
 hr video` plus smilies, admin-defined custom tags, and automatic linkification
 of bare URLs in post text.
 
-**We** ship, at F36: `b i u s color size url email img quote code list *`, plus
-**smilies and admin-defined custom tags at F71**. Absent for now: `font`,
+**We** ship `b i u s color size url email img quote code list *`, plus
+**smilies and admin-defined custom tags**. Absent for now: `font`,
 `align`, `hr`, `video`, `php`, and auto-linking.
 
 **A custom tag is not MyBB's custom MyCode.** MyBB's takes a *replacement
@@ -124,19 +124,19 @@ administrator can produce any markup they like from a form. Ours chooses a
 `@meith/bbcode`. That is a real capability difference and a deliberate one: a
 field that chooses output markup is a second markup language administered
 through a web form, which is how boards with custom MyCode acquire a permanent
-XSS surface. A tag that needs bespoke markup is a plugin (F79), where the code
+XSS surface. A tag that needs bespoke markup is a plugin, where the code
 is reviewed and installed rather than typed into a text box.
 
 **Why.** Each absentee is either owned by a later feature or is a decision:
 
 - `font` and `align` are presentation an author dictates over the theme's
-  typography and layout. They are cheap to add and belong with F37's per-forum
+  typography and layout. They are cheap to add and belong with the per-forum
   capability toggles, where a board can decide whether members may override the
   theme at all.
 - `video` embeds third-party markup, which is the one thing this renderer's
   construction argument does not cover. It needs a provider allowlist and a
   privacy decision (an embed is a request to another host from every reader's
-  browser), so it waits for F37 rather than arriving as an exception.
+  browser), so it waits for that work rather than arriving as an exception.
 - `php` is `code` with a syntax highlighter. Two tags that differ only in
   highlighting is a parity artefact, not a feature; when highlighting exists it
   will be an attribute on `code`.
@@ -149,8 +149,8 @@ is reviewed and installed rather than typed into a text box.
   text.
 
 **Cost.** An imported board's posts render slightly plainer: bare URLs are not
-clickable, and `[font]`/`[align]`/`[video]` show as literal text until F37.
-F87's corpus pass is where every remaining difference becomes an entry here.
+clickable, and `[font]`/`[align]`/`[video]` show as literal text for now.
+The corpus pass below is where every remaining difference becomes an entry here.
 
 ---
 
@@ -183,7 +183,7 @@ module against it; no form or call site changes.
 interval, and this board keeps one (`posting.flood_seconds`, see
 [flood-intervals](#flood-intervals) for why it is a setting rather than a
 permission field). An interval does nothing about a script that posts every 31
-seconds all night, so F46 adds a *limit* — how many in an hour — counted in the
+seconds all night, so the board adds a *limit* — how many in an hour — counted in the
 database so every instance shares one allowance. The two answer different
 questions and both are configured.
 
@@ -256,7 +256,7 @@ deleting the whole thread means "delete my post" removes other people's replies
 without saying so. Refusing and naming the alternative is the only option that
 does what it says.
 
-**Cost.** Until F50's thread tools exist, a member who wants their thread gone
+**Cost.** Until the full thread tools exist, a member who wants their thread gone
 has to ask a moderator. An imported MyBB thread whose first post was deleted
 arrives with a first post that is soft-deleted rather than missing, which the
 moderator view shows and the member view skips.
@@ -269,7 +269,7 @@ moderator view shows and the member view skips.
 submission server-side.
 
 **We** do the same, with one difference worth stating: the window is a
-**numeric permission**, so R4.2's combination applies — `0` means unlimited and
+**numeric permission**, so the usual combination applies — `0` means unlimited and
 beats every other value across a user's groups. A member in a 30-minute group
 and an unlimited group gets unlimited.
 
@@ -301,7 +301,7 @@ see it.
 
 **Cost.** An imported board's `canmanagereportedcontent` grants do not map
 one-to-one: anybody who held it without moderating a forum loses report access,
-and anybody who moderates a forum gains it. F85's importer should surface that
+and anybody who moderates a forum gains it. The importer should surface that
 as a migration note rather than guessing.
 
 ---
@@ -311,12 +311,12 @@ as a migration note rather than guessing.
 **MyBB** allows reports against posts, threads, profiles, private messages and
 (with plugins) more.
 
-**We** ship posts, threads and members. Private messages are absent because F60
+**We** ship posts, threads and members. Private messages are absent because they
 has not been built — there are no tables for them, and a target kind nothing can
 produce is a promise the board cannot keep.
 
 **Why.** Same rule as everywhere else in this build: omit rather than stub. When
-F60 lands, `REPORT_TARGET_KINDS` gains an entry and `resolveTarget` gains a
+they land, `REPORT_TARGET_KINDS` gains an entry and `resolveTarget` gains a
 branch; nothing else changes.
 
 ---
@@ -357,7 +357,7 @@ matching the posts that exist), or it credits twice (and post counts stop
 meaning "things this person wrote").
 
 **Cost.** Moderators split and re-file threads by moving rather than copying.
-F51's split is the operation that actually covers most of what copy is used for,
+Splitting is the operation that actually covers most of what copy is used for,
 and it has to answer the same question.
 
 ---
@@ -374,7 +374,7 @@ forum**, always.
 **Why.** The two differences answer two different questions. The cut point is a
 `<select>` of the posts on screen rather than a checkbox set because a select
 cannot name a post that is not on the page, and arbitrary selection needs the
-per-post checkbox surface F52 is building — two selection mechanisms for one
+per-post checkbox surface — two selection mechanisms for one
 operation is worse than one narrower one. The destination is fixed because
 splitting and moving are two acts: a single operation with a second forum to
 authorise would let a moderator who may split here, but not post there, place
@@ -430,7 +430,7 @@ threads*, which sends published content back to the queue.
 unlock, pin, unpin and move; taking a visible thread off the board is `delete`,
 which is reversible with `restore` and is what a moderator actually wants.
 
-**Why:** `unapproved` and `deleted` are both "not counted, not visible" (D41),
+**Why:** `unapproved` and `deleted` are both "not counted, not visible",
 so the two differ only in which list the content appears on afterwards. Sending
 a published thread to the *approval queue* puts it in front of a moderator as
 something to decide on, when the decision has already been made — and it makes
@@ -443,7 +443,7 @@ not being true. Deleting says what happened and restoring undoes it.
 **MyBB:** inline moderation acts on whatever was selected, in one request.
 
 **Here:** a selection is applied in transactions of 25, up to a ceiling of 500
-in one request. The approval queue keeps its hard refusal above 200 (F48).
+in one request. The approval queue keeps its hard refusal above 200.
 
 **Why:** the two surfaces have different shapes. Nobody hand-selects two hundred
 items from a queue, so refusing and saying "work through it a page at a time" is
@@ -466,12 +466,12 @@ with thresholds at 4, 7 and 10.
 **Why:** a percentage needs a configured maximum to mean anything, and a board
 that has never opened the admin screen would have every member permanently at 0%
 of nothing — which is precisely the state a v1 board is in, because no screen
-configures `warning_levels` yet. F66 landed and is not that screen: levels are
+configures `warning_levels` yet. The admin screen that exists is not that one: levels are
 moderation configuration rather than group permissions, and the seeded ladder is
 what a board runs on until something owns them. Points are readable on
 their own, the seeded ladder works on a fresh board, and "2 points, expires
 after 90 days" is a sentence a moderator can weigh before issuing it. The
-importer (F85) can convert a percentage against the source board's maximum.
+importer can convert a percentage against the source board's maximum.
 
 ### A warning restriction outranks a moderation bypass
 
@@ -495,7 +495,7 @@ place; an administrator lifts it.
 
 **Here:** the same, and deliberately.
 
-**Why:** F23 owns the ban lifecycle, including the group the ban captured so it
+**Why:** the ban lifecycle owns the group the ban captured so it
 can be restored at expiry. Un-banning from the warning path would restore a
 group this feature never saw, through a code path that already refuses to run
 twice. More importantly, a ban is the heaviest thing the board does to somebody
@@ -527,7 +527,7 @@ somebody notices.
 **Here:** it matches the truncated prefix the board stores, and the screen says
 so.
 
-**Why:** F09 truncates every address before writing it, so there is no full
+**Why:** every address is truncated before it is written, so there is no full
 address to match — this is a consequence of the privacy invariant rather than a
 choice made here. It is stated on the screen because the difference matters to
 what a moderator does next: "shares an address" reads as proof, "shares a range"
@@ -541,7 +541,7 @@ its author's post count. One piece of writing therefore counts twice.
 **Here:** the same, chosen deliberately.
 
 **Why:** every other counter on this board holds to one definition —
-`users.post_count` means *posts written* — and F51 settled the merge/split
+`users.post_count` means *posts written* — and the merge/split rule was settled the
 question by that definition (neither operation duplicates a post, so neither
 moves an author's total). Copy is the one tool that genuinely creates rows, so
 the definition and parity actually conflict, and parity won: an imported MyBB
@@ -561,7 +561,7 @@ approval queue, and copying removed content would republish it.
 permission as move.
 
 **Here:** `thread.copy` does not exist as a right. Copying reads `thread.move`
-in the source forum *and* in the destination, exactly as a move does (D49).
+in the source forum *and* in the destination, exactly as a move does.
 
 **Why:** copying is moving that leaves the original behind. It puts content into
 the destination forum by the same mechanism, so the destination's moderators
@@ -580,9 +580,9 @@ linking to its new home, optionally expiring after a set number of days.
 `ThreadRowModel.isMoved` for a future implementation, and nothing writes them.
 
 **Why:** the stub is a second kind of row in every listing query, in a listing
-that is already the board's most performance-sensitive read (F29/F30's budgets),
+that is already the board's most performance-sensitive read,
 and it has to be filtered, counted and expired everywhere. What it buys is a
-reader who bookmarked a thread finding it — and search (F72) and the thread's
+reader who bookmarked a thread finding it — and search and the thread's
 own permalink already do that, because the thread keeps its id. Revisit if a
 real board reports people losing threads after a move.
 
@@ -602,10 +602,10 @@ delivered by e-mail second. The board's record is the row; the e-mail is one
 transport for it, and the transport can be declined.
 
 **Why:** a warning that changes what a member may do has to be discoverable
-from the board itself. F53 shipped with exactly that gap and its row said so —
+from the board itself. Warnings shipped with exactly that gap —
 a suspended member found out by trying to post and being refused. Making the
-record the primary artefact also gives every later notifier (F56's
-subscriptions, F60's private messages, F62's reputation) one place to write to
+record the primary artefact also gives every later notifier — subscriptions,
+private messages, reputation — one place to write to
 rather than an e-mail template each.
 
 **Cost:** one more table on the read path — an unread count in the user panel
@@ -637,7 +637,7 @@ read notifications" control, not a channel switch.
 **Here:** closing a report raises `report.actioned` for the reporter, naming
 the outcome (actioned or closed without action) and the captured label of what
 they reported. The moderator's private note is never included — the port that
-carries the notification has no field that could hold one (D48).
+carries the notification has no field that could hold one.
 
 **Why:** a report button that silently swallows reports trains members to stop
 using it, and "we looked and decided not to act" is a legitimate outcome to
@@ -686,7 +686,7 @@ One iteration per subscriber, each needing a permission re-check (a subscription
 is not a standing grant), each potentially a mail send — on a thread with 500
 followers that is a posting request that takes seconds and fails if the mail
 provider is down. Every other side effect on this board already works this way
-(F07's outbox, F38's roll-up), and the watermark makes a delayed run
+(the outbox, the counter roll-up), and the watermark makes a delayed run
 indistinguishable from a prompt one except in timing.
 
 **Cost:** a subscriber can open a thread and see a reply before the notification
@@ -738,7 +738,7 @@ Every subscription stays, and new posts still appear in the notification centre.
 
 **Why:** a digest covers many subscriptions, so "unsubscribe" cannot mean one of
 them — and taking it to mean "all of them" would delete a member's follow list
-because they wanted fewer e-mails. F55 already separates the record from the
+because they wanted fewer e-mails. The notification record is already separate from the
 transport; this is that separation applied to the one-click case. The per-thread
 link in an "as it happens" notification *does* end that one subscription,
 because there the member knows exactly which thread they are silencing.
@@ -764,7 +764,7 @@ answer.
 
 **Cost:** an imported MyBB board's offsets do not map cleanly — `-5` is
 `America/New_York` in winter and `America/Chicago`'s summer, and neither is
-certain. F85's importer will have to pick a representative zone per offset and
+certain. The importer will have to pick a representative zone per offset and
 say so, rather than pretending the data was there.
 
 ### A password change signs out every other device
@@ -806,10 +806,10 @@ comma-separated group-id lists, plus `hidden` — and resolution is a substring
 check against the member's group string.
 
 **Here:** a row per (field, group) in `profile_field_groups` with nullable
-`can_view` / `can_edit`, resolved by the same R4.2 rule everything else on this
+`can_view` / `can_edit`, resolved by the same rule everything else on this
 board uses: NULL abstains, any explicit grant wins.
 
-**Why:** the same shape as `forum_permissions` (F21), so "who can see this" has
+**Why:** the same shape as `forum_permissions`, so "who can see this" has
 one mental model rather than a second one that only applies to profile fields.
 A NULL that abstains is also what makes "staff may edit this" one row instead of
 a row per group with the other answer copied in — and a comma-separated list of
@@ -818,7 +818,7 @@ ids cannot express "no opinion" at all.
 **Cost:** an imported MyBB board's `viewableby=-1` (everyone) maps to the field
 default and its explicit lists map to grant rows, but MyBB's *deny by omission*
 does not survive: a group absent from `viewableby` becomes a group with no
-opinion, which inherits. F85's importer must write an explicit `false` row per
+opinion, which inherits. The importer must write an explicit `false` row per
 group MyBB omitted, or set `default_visible` false and grant the listed ones.
 
 ### Registration asks only for fields the new member's group may edit
@@ -869,14 +869,14 @@ holds one small row per participant.
 
 **Why:** a message to twenty people is otherwise twenty copies of the text, and
 re-rendering one is twenty writes. It also makes quota count *copies* — the
-thing a member can actually delete — and lets F36's render cache invalidate
+thing a member can actually delete — and lets the render cache invalidate
 private messages the same way it invalidates posts, on the next page load,
 with no migration.
 
 **Cost:** a join on every folder listing, which the folder and message indexes
 exist for. And a message everybody has deleted leaves an orphan row rather than
 disappearing by cascade — deliberately, because deleting *your* copy must not
-reach into somebody else's mailbox. Pruning orphans belongs to F70.
+reach into somebody else's mailbox. Pruning orphans belongs to the maintenance sweep.
 
 ### The quota is storage; the daily cap is separate
 
@@ -886,7 +886,7 @@ most groups.
 **Here:** two numbers. `max_private_messages_per_day` has existed since the
 initial schema and caps sends; `private_message_quota` caps what a member may
 keep. Both are 0-means-unlimited like every other numeric permission, combined
-by MAX across groups (R4.2).
+by MAX across groups.
 
 **Why:** they answer different abuse questions. A rate limit slows a spammer; a
 storage limit bounds what the board pays to keep. Collapsing them means a board
@@ -959,7 +959,7 @@ placeholder and a per-post reveal link take its place.
 **Why:** shipping the text and hiding it with CSS is a preference rather than a
 feature. And filtering the post *out* instead would give every viewer a
 different page size, make "#12" mean different posts to different people, and
-land permalinks on the wrong page — which is why F61's acceptance names stable
+land permalinks on the wrong page — which is why the requirement names stable
 pagination and counts.
 
 **Cost:** a thread with an ignored member in it still has their posts in it, as
@@ -1013,7 +1013,7 @@ rather than an error. `[img]` is the one that matters: a remote image under
 every post is a tracking beacon reporting each reader's IP to whoever hosts it.
 
 **Cost:** an imported MyBB signature that used images loses them, visibly, as
-bracketed text the member can then delete. F85's importer should strip the tags
+bracketed text the member can then delete. The importer should strip the tags
 rather than leave them, and say how many it touched.
 
 ### A signature is locked, not deleted
@@ -1031,7 +1031,7 @@ actually there rather than at somebody's recollection.
 
 **Cost:** no expiry — an unlock is a second deliberate act. MyBB's timed
 suspension is the nicer behaviour and needs a scheduled task; it belongs with
-F70's maintenance work rather than being faked with a column nothing sweeps.
+the maintenance sweep rather than being faked with a column nothing sweeps.
 
 ## Reputation
 
@@ -1042,14 +1042,14 @@ F70's maintenance work rather than being faked with a column nothing sweeps.
 **Here:** every rating is worth −1, 0 or +1. The per-group settings are *whether*
 you may rate and *how many a day*.
 
-**Why:** a multiplier cannot obey R4.2's rule for numeric permissions — MAX
+**Why:** a multiplier cannot obey the rule for numeric permissions — MAX
 across groups with 0 meaning unlimited — because "unlimited power" is
 meaningless and a multiplier has no unlimited state. It is the same shape as the
 `searchfloodtime` problem recorded above, and gets the same answer: leave it out
 rather than invert the combination rule for one field.
 
 **Cost:** a board that wants staff endorsements to carry weight cannot express
-it. An imported `reputationpower` is dropped, and F85's importer should say so
+it. An imported `reputationpower` is dropped, and the importer should say so
 rather than silently scaling everybody's totals.
 
 ### Reputation totals are recomputed, not incremented
@@ -1061,8 +1061,8 @@ transaction as whatever changed them.
 
 **Why:** an incremented total cannot survive a rating being revised or
 withdrawn, and when it drifts nobody notices until somebody counts by hand. Same
-decision this board made for `warning_points` (F53) and for the thread and forum
-counters (F38).
+decision this board made for `warning_points` and for the thread and forum
+counters.
 
 **Cost:** one extra aggregate per rating. It is bounded by the number of ratings
 one member has, and a rating is a deliberate act rather than a hot path.
@@ -1164,7 +1164,7 @@ code cannot honour. `text/plain` is the instructive omission: it has no
 signature, so "is this a text file" can only ever be a guess.
 
 **Cost:** no `.docx`, no `.mp3`, no `.7z`, and no way to add one without a
-release. F71 owns the ACP screen; what it will be able to configure is *limits*,
+release. The admin screen configures *limits*,
 not *formats*, until something can attest to a new one.
 
 ### The download is served by the board, not by the object store
@@ -1204,7 +1204,7 @@ the sweep for abandoned drafts.
 
 **Cost:** a browser cannot repopulate a file input, so a submission that fails
 validation loses the chosen files even though the message survives. That is true
-of every no-JS upload. F45's islands are where an incremental upload belongs,
+of every no-JS upload. The editor islands are where an incremental upload belongs,
 and it should be an enhancement over this path rather than a replacement for it.
 
 ### An avatar is re-encoded and locked, never linked and never deleted
@@ -1214,19 +1214,19 @@ is checked for dimensions and extension and stored as sent. A moderator's
 remedy is to delete it.
 
 **Here:** upload only, decoded and re-encoded from raw pixels like every other
-image on this board (D65), fitted to 200×200, and unservable until that
+image on this board, fitted to 200×200, and unservable until that
 succeeds. A moderator locks it rather than deleting it.
 
 **Why no remote URL:** rendered directly it is a tracking beacon that reports
 every reader's IP, referrer and user agent to a third party on every page view
-— which F58's own acceptance forbids in as many words. Fetched server-side to
+— which the requirement forbids in as many words. Fetched server-side to
 avoid that, it is SSRF: an attacker supplies a URL and the board makes the
 request, from inside whatever network it runs in. The only safe version ends at
 fetch-validate-re-encode-store, which is what the upload path already is, with
 an SSRF problem bolted on the front. Gravatar is the remote-URL problem with a
 better-known third party.
 
-**Why a lock and not a delete:** the same argument D61 makes for signatures, and
+**Why a lock and not a delete:** the same argument that applies to signatures, and
 stronger here. Deleting destroys the evidence — an appeal about a signature can
 read the text that was kept; an appeal about an image has nothing at all unless
 the file survives. Locking stops it rendering, stops the member replacing it,
@@ -1260,11 +1260,11 @@ say `object-fit: cover` rather than assuming. The default theme does.
 member's `lastvisit` is stamped by the session handling on each new visit.
 
 **Here:** `/discover/new` lists threads whose last post landed in the last 24
-hours. `/discover/today` uses midnight in the member's own timezone (F57).
+hours. `/discover/today` uses midnight in the member's own timezone.
 Both are thread listings ordered by last post, permission-filtered in SQL and
 keyset-paged.
 
-**Why:** a genuine "since your last visit" needs the per-thread read state F32
+**Why:** a genuine "since your last visit" needs the per-thread read state
 keeps, and folding it into this query means either a join per row or a second
 query per page — against a feature specified as *budgeted*, with a test that
 holds it to one query on two board sizes. MyBB pays that cost as a full search
@@ -1272,8 +1272,8 @@ run per page view, which is why the screen is one of the heaviest on a large
 board and why several hosts disable it.
 
 **Cost:** a member who has been away a week sees a day, not a week. The label
-says so, and `/discover/participated` and the subscription list (F56) are the
-two screens that do not have a window at all. When F32's read state and this
+says so, and `/discover/participated` and the subscription list are the
+two screens that do not have a window at all. When that read state and this
 query can be joined without a per-row cost, the window becomes a fallback for
 guests rather than the rule.
 
@@ -1355,7 +1355,7 @@ when it last ran. `computed_at` is null before the first run and the panel says
 most-requested page there is. Updating on the write path is the other way to
 avoid that scan, and it makes every post pay for a number nobody reads on the
 posting screen — plus a cache that drifts from the truth with no way to notice.
-The thread and post totals are summed from the root forums, where F38's counters
+The thread and post totals are summed from the root forums, where the counters
 have already accumulated the tree, so those two are nearly free; the member
 count is what sets the shape.
 
@@ -1382,7 +1382,7 @@ MyBB's version is only safe because most readers never send the cookie at all,
 which means the personalisation mostly does not happen.
 
 **Cost:** a member cannot follow a private forum by RSS. That is a real
-capability lost, and the honest replacement is F56's subscriptions, which
+capability lost, and the honest replacement is subscriptions, which
 deliver to a member rather than to a URL. A per-member feed token would restore
 it — a capability URL, cached safely because it is unguessable — and it is a
 feature with its own decisions to make, not a flag on this one.
@@ -1427,7 +1427,7 @@ chunks by number before any of them exists. It is paid by crawlers, not readers.
 
 ## Parity passes
 
-### The BBCode parity pass (F87)
+### The BBCode parity pass
 
 The corpus is `packages/bbcode/src/parity.test.ts`. Every case below is a
 difference asserted there, so this document and the renderer cannot disagree
@@ -1497,7 +1497,7 @@ The corpus pins the current behaviour, so implementing one is a deliberate chang
 to that file rather than something that quietly starts working. `[table]` and
 `[align]` are the two most likely to matter on an imported board.
 
-### Search relevance is ranked within a window (F89)
+### Search relevance is ranked within a window
 
 **MyBB:** ranks every matching post, however many there are.
 
@@ -1510,7 +1510,7 @@ relevance. Sorting by newest or oldest reads the whole corpus.
 query, so there is nothing to have indexed in advance, and Postgres has to score
 every matching row before it can name the top twenty.
 
-F89 measured what that costs on a board of 2,343,847 posts: a term matching 96%
+The load run measured what that costs on a board of 2,343,847 posts: a term matching 96%
 of them took a **p95 of 5.5 seconds**. The GIN index was present and used
 throughout — the cost was the ranking, not the lookup. A term matching 1,171
 posts, through exactly the same code, took 35 ms. Bounding the ranked set brought

@@ -42,7 +42,7 @@
  *
  * ## Why not inline the WASM as base64
  *
- * `hash-wasm` (ADR 0001) does exactly that, which is why it has never needed
+ * `hash-wasm` does exactly that, which is why it has never needed
  * any of this. It is also why it is the only dependency here that does not: the
  * four codecs total ~630 KB, and base64 of that is ~840 KB of generated source
  * to commit and to keep in step with the installed version. A search that runs

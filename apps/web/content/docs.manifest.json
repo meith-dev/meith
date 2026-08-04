@@ -15,7 +15,6 @@
     "in neither list, when an entry points at a file that does not exist, or",
     "when README.md's generated table no longer matches this file."
   ],
-
   "sections": [
     {
       "id": "running",
@@ -48,7 +47,6 @@
       "blurb": "The conventions and the decisions that would otherwise be re-argued in every pull request."
     }
   ],
-
   "documents": [
     {
       "slug": "quickstart",
@@ -148,45 +146,8 @@
       "blurb": "Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request.",
       "generated": false,
       "primary": true
-    },
-    {
-      "slug": "adr/0001-hash-wasm-argon2id",
-      "file": "adr/0001-hash-wasm-argon2id.md",
-      "section": "contributing",
-      "title": "ADR 0001 — hash-wasm for Argon2id",
-      "blurb": "Why password hashing runs on a WebAssembly implementation rather than a native addon.",
-      "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "adr/0002-s3-filestore-dependency",
-      "file": "adr/0002-s3-filestore-dependency.md",
-      "section": "contributing",
-      "title": "ADR 0002 — the S3 file store's dependency",
-      "blurb": "The dependency the S3 file store needed, and the amendment it took on implementation.",
-      "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "adr/0003-jsquash-image-codecs",
-      "file": "adr/0003-jsquash-image-codecs.md",
-      "section": "contributing",
-      "title": "ADR 0003 — @jsquash image codecs",
-      "blurb": "Decoding and re-encoding uploaded images without a native toolchain.",
-      "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "adr/0004-mysql2-import-reader",
-      "file": "adr/0004-mysql2-import-reader.md",
-      "section": "contributing",
-      "title": "ADR 0004 — mysql2 for reading a MyBB board",
-      "blurb": "Reading the old board's MySQL directly, and why the driver is loaded dynamically.",
-      "generated": false,
-      "primary": false
     }
   ],
-
   "internal": [
     {
       "file": "README.md",

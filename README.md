@@ -77,10 +77,6 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 | The API | [`rest-api.md`](./docs/rest-api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
 | Migrating from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place this board behaves differently from MyBB, with the reason. Read it before promising anyone a like-for-like move. |
 | Working on Meith | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
-| Working on Meith | [`adr/0001-hash-wasm-argon2id.md`](./docs/adr/0001-hash-wasm-argon2id.md) | Why password hashing runs on a WebAssembly implementation rather than a native addon. |
-| Working on Meith | [`adr/0002-s3-filestore-dependency.md`](./docs/adr/0002-s3-filestore-dependency.md) | The dependency the S3 file store needed, and the amendment it took on implementation. |
-| Working on Meith | [`adr/0003-jsquash-image-codecs.md`](./docs/adr/0003-jsquash-image-codecs.md) | Decoding and re-encoding uploaded images without a native toolchain. |
-| Working on Meith | [`adr/0004-mysql2-import-reader.md`](./docs/adr/0004-mysql2-import-reader.md) | Reading the old board's MySQL directly, and why the driver is loaded dynamically. |
 
 <!-- docs:table end -->
 

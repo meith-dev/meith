@@ -58,7 +58,7 @@ for (const guard of GUARDS) {
     const rel = relative(ROOT, abs)
     if (!guard.files.test(rel)) continue
     if (guard.allow?.test(rel)) continue
-    if (guard.id === 'R2 no-next-in-domain' && !isDomainPath(rel)) continue
+    if (guard.id === 'no-next-in-domain' && !isDomainPath(rel)) continue
 
     const source = await readFile(abs, 'utf8')
     const match = guard.pattern.exec(source)

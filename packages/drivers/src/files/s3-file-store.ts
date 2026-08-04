@@ -1,8 +1,8 @@
 /**
- * S3-compatible object storage (F05, ADR 0002).
+ * S3-compatible object storage.
  *
  * This module is loaded **lazily**, only when `FILESTORE_DRIVER=s3` — see
- * `resolve.ts`. That is the condition ADR 0002 accepted the dependency on: a
+ * `resolve.ts`. That is the condition the dependency was accepted on: a
  * board running on local disk must never pull the AWS client into its bundle.
  * A static import here would defeat it, so the import below is the reason this
  * file exists separately at all.
@@ -98,7 +98,7 @@ export class S3FileStore implements FileStore {
    *
    * Constructing it is free and opens no connection — presigning is local
    * crypto — so a test can inject a fake `sender` and still exercise real
-   * signature generation rather than mocking the one thing ADR 0002 took this
+   * signature generation rather than mocking the one thing this dependency was taken
    * dependency for.
    */
   private readonly signingClient: S3Client

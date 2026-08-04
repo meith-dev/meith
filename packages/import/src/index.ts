@@ -22,7 +22,7 @@ export {
   type Page,
 } from './source'
 
-/* The MySQL reader. Open question 5, resolved: see docs/adr/0004. */
+/* The MySQL reader, loaded dynamically — see `mysql-source.ts`. */
 export {
   assertSafePrefix,
   MysqlMybbSource,

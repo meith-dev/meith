@@ -12,7 +12,7 @@
  * stay boring enough to read in one sitting.
  *
  * The dependency (`mysql2`) was open question 5 and is now decided. See
- * `docs/adr/0004-mysql2-import-reader.md`.
+ * this module's header.
  *
  * ## Loaded lazily, and that is load-bearing
  *

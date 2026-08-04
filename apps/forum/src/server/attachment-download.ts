@@ -9,7 +9,7 @@ import 'server-only'
  *
  * ## Why the bytes go through the app
  *
- * `S3FileStore` can sign a URL and ADR 0002 named that as what F42 would rely
+ * `S3FileStore` can sign a URL, and attachment delivery was expected to rely
  * on. Building it disproved the assumption, so the reason is recorded rather
  * than quietly dropped. A signed URL is a bearer token for one object, and
  * three things here cannot be done with one:

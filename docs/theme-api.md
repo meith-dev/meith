@@ -41,7 +41,7 @@ Worth knowing before they fire.
 |---|---|
 | **Write the slot map inline, with bare identifiers.** | `scripts/slot-kinds.mjs` resolves each binding to its module to check the server/client boundary. A map assembled dynamically cannot be checked, so it fails rather than passing unchecked. |
 | **A server slot must not be a `"use client"` module.** | For `PostBit` that ships the whole post list to the browser. Checked statically, and again at `defineTheme` for anything the bundler marked. |
-| **Colours come from tokens.** | A board's operator restyles by overriding tokens; a hardcoded colour is a region they cannot reach. Guard `R7 no-hardcoded-colour` rejects hex literals in a theme. |
+| **Colours come from tokens.** | A board's operator restyles by overriding tokens; a hardcoded colour is a region they cannot reach. Guard `no-hardcoded-colour` rejects hex literals in a theme. |
 | **View models are plain JSON data.** | No `Date`, no functions, no class instances — the same models cross to client slots and out through the REST API. `Serialisable<T>` proves it at compile time. |
 
 ## What a theme can and cannot do

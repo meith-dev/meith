@@ -464,15 +464,15 @@ function render({ slots, freeze, models, slotModels }) {
     '',
     '## Every slot',
     '',
-    '| Slot | Kind | Stability | Feature | Props |',
-    '|---|---|---|---|---|',
+    '| Slot | Kind | Stability | Props |',
+    '|---|---|---|---|',
   )
 
   for (const slot of slots) {
     const model = slotModels.get(slot.name) ?? '—'
     push(
       `| [\`${slot.name}\`](#${slot.name.toLowerCase()}) | \`${slot.kind}\` | ` +
-        `${freeze.stability.get(slot.name)} | ${slot.feature} | \`${model}\` |`,
+        `${freeze.stability.get(slot.name)} | \`${model}\` |`,
     )
   }
 
@@ -484,7 +484,7 @@ function render({ slots, freeze, models, slotModels }) {
     push(
       `### ${slot.name}`,
       '',
-      `\`${slot.kind}\` · ${freeze.stability.get(slot.name)} · introduced by ${slot.feature}`,
+      `\`${slot.kind}\` · ${freeze.stability.get(slot.name)}`,
       '',
       slot.purpose,
       '',

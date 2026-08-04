@@ -36,12 +36,12 @@
  * ## What is deliberately not here
  *
  * There is no hook that decides **authorization**, and there never will be one.
- * `authorization.can()` is the single answer to "may this actor do this" (R4),
+ * `authorization.can()` is the single answer to "may this actor do this",
  * and a plugin able to filter its result is a plugin able to grant itself
  * anything. Plugins receive what a viewer may already see and change how it is
  * presented or what happens afterwards.
  *
- * For the same reason there is no hook inside the visibility filter (F47). A
+ * For the same reason there is no hook inside the visibility filter. A
  * plugin that could rewrite a `where` clause is a plugin that can leak a private
  * forum, and no amount of isolation makes that recoverable.
  */
@@ -61,7 +61,7 @@ export interface HookSpec {
  * and the handler signature can branch on it.
  */
 export const HOOKS = {
-  /* ---- Content rendering (F36/F37/F71) ---- */
+  /* ---- Content rendering ---- */
   'bbcode.parse.text': {
     kind: 'filter',
     feature: 'F36',
@@ -100,7 +100,7 @@ export const HOOKS = {
     purpose: 'The render-time word filter’s pattern list.',
   },
 
-  /* ---- View models (F25–F34) ---- */
+  /* ---- View models ---- */
   'view.header': {
     kind: 'filter',
     feature: 'F27',
@@ -234,7 +234,7 @@ export const HOOKS = {
     purpose: 'The interstitial shown after a mutation, before the meta refresh fires.',
   },
 
-  /* ---- Posting (F39–F44) ---- */
+  /* ---- Posting ---- */
   'thread.create.validate': {
     kind: 'filter',
     feature: 'F39',
@@ -348,7 +348,7 @@ export const HOOKS = {
     purpose: 'A thread rating was recorded or changed.',
   },
 
-  /* ---- Moderation (F47–F54) ---- */
+  /* ---- Moderation ---- */
   'report.created': {
     kind: 'event',
     feature: 'F49',
@@ -385,7 +385,7 @@ export const HOOKS = {
     purpose: 'A moderation action was written to the log.',
   },
 
-  /* ---- Identity (F17–F24) ---- */
+  /* ---- Identity ---- */
   'user.register.validate': {
     kind: 'filter',
     feature: 'F18',
@@ -451,7 +451,7 @@ export const HOOKS = {
     purpose: 'An account was pruned or deleted.',
   },
 
-  /* ---- Mail, notifications, messages (F55–F61) ---- */
+  /* ---- Mail, notifications, messages ---- */
   'notification.create.before': {
     kind: 'filter',
     feature: 'F55',
@@ -495,7 +495,7 @@ export const HOOKS = {
     purpose: 'Reputation was given, changed or removed.',
   },
 
-  /* ---- Search, discovery, syndication (F72–F76) ---- */
+  /* ---- Search, discovery, syndication ---- */
   'search.query.before': {
     kind: 'filter',
     feature: 'F72',
@@ -524,7 +524,7 @@ export const HOOKS = {
     purpose: 'Title, description and social card for a page.',
   },
 
-  /* ---- Admin and system (F63–F70) ---- */
+  /* ---- Admin and system ---- */
   'admin.navigation': {
     kind: 'filter',
     feature: 'F63',

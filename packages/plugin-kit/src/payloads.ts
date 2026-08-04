@@ -275,7 +275,7 @@ export interface HookSignatures {
     value: {
       readonly username: string
       readonly outcome: 'ok' | 'bad-credentials' | 'locked-out' | 'banned'
-      /** Truncated as F09 requires. Never a full address. */
+      /** Truncated. Never a full address. */
       readonly ipPrefix: string | null
     }
     context: RequestRef
@@ -353,7 +353,7 @@ export interface HookSignatures {
       readonly publishedAt: string
       readonly summary: string
     }[]
-    /** Always a guest: a feed is cached under a shared URL (D82). */
+    /** Always a guest: a feed is cached under a shared URL. */
     context: { readonly feed: 'board' | 'forum' | 'thread' }
   }
   'sitemap.entries': {

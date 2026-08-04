@@ -604,7 +604,7 @@ export const reputation = pgTable(
  * a member uploaded; `storageKey` is what the board serves, written by an
  * encoder from decoded pixels. A `pending` row has the first and not the
  * second, and nothing may be downloaded before that swaps — see
- * `migrations/0016_attachments.sql` and ADR 0003.
+ * `migrations/0016_attachments.sql`.
  */
 export const attachments = pgTable(
   'attachments',

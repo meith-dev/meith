@@ -1,5 +1,5 @@
 /**
- * `S3FileStore` against the F05 contract, plus the behaviour ADR 0002 singled
+ * `S3FileStore` against the file-store contract, plus the behaviour singled
  * out as the reason for taking the dependency at all.
  *
  * Driven through a fake S3 client rather than a live bucket. That is a
@@ -70,7 +70,7 @@ describe('S3FileStore specifics', () => {
   const body = new TextEncoder().encode('attachment bytes')
 
   /*
-   * ADR 0002 named this as the reason for taking the SDK rather than
+   * This was the reason for taking the SDK rather than
    * hand-rolling SigV4: F42 needs "an attachment in a forum the actor cannot
    * view is not downloadable by direct URL". The app checks permission, then
    * mints a short-lived signature — an unsigned URL here would hand out every

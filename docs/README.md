@@ -55,29 +55,17 @@ and most of them guess the roadmap.
 | [`mybb-parity.md`](./mybb-parity.md) | Every place this board behaves differently from MyBB, with the reason. Read it before promising anyone a like-for-like move. |
 
 The importer itself, the legacy-URL redirects and the legacy password upgrade are
-described in [`operating.md`](./operating.md) and in the roadmap's R4.
+described in [`operating.md`](./operating.md).
 
 ## Building the project
 
 | Document | What it answers |
 |---|---|
 | [`nextjs-conventions.md`](./nextjs-conventions.md) | The decisions that would otherwise be re-litigated in every pull request. |
-| [`roadmap.md`](./roadmap.md) | The canonical delivery plan, F01–F89, with acceptance criteria. The source of truth for *what* is being built. |
+| [`roadmap.md`](./roadmap.md) | The delivery plan, with acceptance criteria. The source of truth for *what* is being built. |
 | [`plan-status.md`](./plan-status.md) | One row per plan feature: done, partial, or not started. The source of truth for *where* it is. |
 | [`progress.md`](./progress.md) | The running log and the next action. Read this to pick up work. |
 | [`deviations.md`](./deviations.md) | Every departure from the plan text, numbered, with the reasoning. Read before "fixing" something that looks wrong. |
-
-### Architecture decision records
-
-Kept in [`adr/`](./adr). One per decision that added a runtime dependency, or
-that a future reader would otherwise reopen.
-
-| ADR | Decision |
-|---|---|
-| [`0001`](./adr/0001-hash-wasm-argon2id.md) | `hash-wasm` for Argon2id password hashing. |
-| [`0002`](./adr/0002-s3-filestore-dependency.md) | The S3 file store's dependency, and its amendment on implementation. |
-| [`0003`](./adr/0003-jsquash-image-codecs.md) | `@jsquash` for decoding and re-encoding uploaded images. |
-| [`0004`](./adr/0004-mysql2-import-reader.md) | `mysql2` for reading a MyBB board, loaded dynamically. |
 
 ## About the generated references
 

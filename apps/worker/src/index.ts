@@ -86,7 +86,7 @@ async function main(): Promise<number> {
   const bundle = buildSchedulerBundle({
     queue: drivers().queue,
     mail: drivers().mail,
-    /* F42. The worker is where a re-encode belongs — see ADR 0003 on why
+    /* The worker is where a re-encode belongs — see the codec module on why
        nothing decodes an image on the request path. */
     files: drivers().files,
     images: imageProcessor,

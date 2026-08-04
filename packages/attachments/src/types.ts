@@ -6,7 +6,7 @@
  * available:
  *
  *  - *re-encoded* — the file was decoded to raw pixels and written back out by
- *    an encoder, so nothing of the original survives (ADR 0003). PNG and JPEG.
+ *    an encoder, so nothing of the original survives. PNG and JPEG.
  *  - *opaque* — the board does not parse the format and does not pretend to. It
  *    is served with `Content-Disposition: attachment` and `nosniff` and is
  *    never rendered inline. PDF and ZIP.
