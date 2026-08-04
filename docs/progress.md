@@ -744,7 +744,7 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### 84 done, 3 partial, 2 todo. Both open questions are answered.
+### 84 done, 4 partial, 1 todo. Both open questions are answered.
 
 **Phase 9 is closed** and the two escalated decisions came back (D95): `mysql2`
 behind F85's port (ADR 0004), and a bounded relevance window for F89's search
@@ -762,7 +762,10 @@ budget — 5,486 ms to 98 ms.
   F55; nobody had changed the status.
 - **F27** — the forum jump box, the last shell gap (D97).
 
-**Three `PARTIAL` rows remain**, all of them real work rather than stale status:
+**Four `PARTIAL` rows remain**, all of them real work rather than stale status:
+
+0. **F45** — the toolbar, drag-and-drop attachments and quick reply are live;
+   multiquote remains.
 
 1. **F69** — plugin manager. Five of six deliverables were blocked on F79, which
    has since landed, so this is now unblocked and mostly unwritten: enable and

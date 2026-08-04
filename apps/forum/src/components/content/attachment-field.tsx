@@ -1,3 +1,5 @@
+'use client'
+
 /**
  * F42's file input, shared by both composers.
  *
@@ -20,17 +22,30 @@
  */
 import { ACCEPTED_EXTENSIONS, ATTACHMENT_FIELD } from '@meith/attachments/types'
 import { maxBytesFor, maxPerPostFor, type UploadLimits } from '@meith/attachments/limits'
+import { useRef } from 'react'
 
 import { formatBytes } from '@/view/attachments'
 
 export function AttachmentField({ limits }: { limits: UploadLimits }) {
+  const input = useRef<HTMLInputElement>(null)
   const perPost = maxPerPostFor(limits)
   const maxBytes = maxBytesFor(limits)
 
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label
+      className="flex flex-col gap-1 text-sm"
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault()
+        if (input.current === null) return
+        const files = new DataTransfer()
+        for (const file of event.dataTransfer.files) files.items.add(file)
+        input.current.files = files.files
+      }}
+    >
       <span className="font-medium">Attachments</span>
       <input
+        ref={input}
         type="file"
         name={ATTACHMENT_FIELD}
         multiple
@@ -42,6 +57,7 @@ export function AttachmentField({ limits }: { limits: UploadLimits }) {
         accept={ACCEPTED_EXTENSIONS.map((extension) => `.${extension}`).join(',')}
         className="rounded-md border border-border bg-background px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm"
       />
+      <span className="text-xs text-muted-foreground">Drop files here to attach them.</span>
       <span className="text-xs text-muted-foreground">
         Up to {perPost} file{perPost === 1 ? '' : 's'}, {formatBytes(maxBytes)} each.
         PNG, JPEG, PDF or ZIP. Images are re-encoded, which removes any metadata
