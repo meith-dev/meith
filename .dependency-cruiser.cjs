@@ -77,8 +77,8 @@ module.exports = {
            * no importer in the module graph by design. Flagging them as dead
            * code would make the rule useless for every real page.
            */
-          'apps/forum/app/.*/(page|layout|route|template|loading|error|not-found|default|sitemap|robots|opengraph-image|icon)\\.(ts|tsx)$',
-          'apps/forum/app/(page|layout|route|template|loading|error|not-found|global-error|sitemap|robots)\\.(ts|tsx)$',
+          'apps/(forum|web)/app/.*/(page|layout|route|template|loading|error|not-found|default|sitemap|robots|opengraph-image|icon)\\.(ts|tsx)$',
+          'apps/(forum|web)/app/(page|layout|route|template|loading|error|not-found|global-error|sitemap|robots)\\.(ts|tsx)$',
           'apps/forum/(instrumentation|middleware|proxy)\\.(ts|tsx)$',
         ],
       },

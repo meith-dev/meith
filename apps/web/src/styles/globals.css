@@ -1,0 +1,504 @@
+@import "tailwindcss";
+
+/*
+ * ── The meitheal's own landscape ──────────────────────────────────────────
+ *
+ * Carried over unchanged from the static `site/index.html` this app replaces,
+ * because the identity was already right: limewash walls, peat ink, gorse
+ * burning on the hillside, lichen on the field wall. Gorse is the only loud
+ * colour on the page and it appears sparingly on purpose — it has to mean
+ * something every time it shows up.
+ *
+ * Three declarations of the same palette rather than one, and the repetition is
+ * load-bearing:
+ *
+ *   :root                       the light scheme, and the default
+ *   @media (prefers-color-scheme: dark)   a visitor who has never touched the toggle
+ *   :root[data-theme="…"]       a visitor who has, in either direction
+ *
+ * The attribute has to win over the media query in *both* directions, which a
+ * single media-query-only definition cannot do: someone whose system is dark and
+ * who asked for light needs the light values at a higher specificity, not the
+ * absence of the dark ones.
+ */
+:root {
+  --ground: #eef0e8;
+  --ground-deep: #e3e7db;
+  --ink: #191e19;
+  --ink-soft: #4a5347;
+  --ink-faint: #78826f;
+  --gorse: #c8901a;
+  --gorse-flat: #e4b024;
+  --lichen: #77896c;
+  --wall: #cbd1c0;
+  --field-a: #dde3d2;
+  --field-b: #e6eadd;
+
+  --measure: 34rem;
+  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
+  --step-0: clamp(1rem, 0.97rem + 0.16vw, 1.09rem);
+  --step-1: clamp(1.2rem, 1.12rem + 0.38vw, 1.42rem);
+  --step-2: clamp(1.5rem, 1.32rem + 0.9vw, 2.1rem);
+  --step-3: clamp(2.1rem, 1.6rem + 2.5vw, 3.9rem);
+  --step-4: clamp(2.7rem, 1.5rem + 5.4vw, 6.4rem);
+
+  --display: "Hoefler Text", Baskerville, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --body: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #14180f;
+    --ground-deep: #0e1109;
+    --ink: #e8ebe0;
+    --ink-soft: #aeb8a4;
+    --ink-faint: #7c8873;
+    --gorse: #efc245;
+    --gorse-flat: #e9bc3a;
+    --lichen: #8fa283;
+    --wall: #404d33;
+    --field-a: #242d18;
+    --field-b: #1b2213;
+  }
+}
+
+:root[data-theme="light"] {
+  --ground: #eef0e8;
+  --ground-deep: #e3e7db;
+  --ink: #191e19;
+  --ink-soft: #4a5347;
+  --ink-faint: #78826f;
+  --gorse: #c8901a;
+  --gorse-flat: #e4b024;
+  --lichen: #77896c;
+  --wall: #cbd1c0;
+  --field-a: #dde3d2;
+  --field-b: #e6eadd;
+}
+
+:root[data-theme="dark"] {
+  --ground: #14180f;
+  --ground-deep: #0e1109;
+  --ink: #e8ebe0;
+  --ink-soft: #aeb8a4;
+  --ink-faint: #7c8873;
+  --gorse: #efc245;
+  --gorse-flat: #e9bc3a;
+  --lichen: #8fa283;
+  --wall: #404d33;
+  --field-a: #242d18;
+  --field-b: #1b2213;
+}
+
+/*
+ * The palette as Tailwind utilities. `inline` so the generated `bg-ground`
+ * resolves `var(--ground)` at use time — which is what lets the scheme switch
+ * without regenerating a stylesheet.
+ */
+@theme inline {
+  --color-ground: var(--ground);
+  --color-ground-deep: var(--ground-deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-gorse: var(--gorse);
+  --color-gorse-flat: var(--gorse-flat);
+  --color-lichen: var(--lichen);
+  --color-wall: var(--wall);
+  --color-field-a: var(--field-a);
+  --color-field-b: var(--field-b);
+
+  --font-display: var(--display);
+  --font-body: var(--body);
+  --font-mono: var(--mono);
+
+  /*
+   * Named rather than numbered. The `--step--1` spelling the tokens use above is
+   * fine in CSS but would generate a `text-step--1` utility, whose double hyphen
+   * is a Tailwind modifier separator — so the utility silently does not exist.
+   */
+  --text-micro: var(--step--1);
+  --text-base: var(--step-0);
+  --text-mid: var(--step-1);
+  --text-large: var(--step-2);
+  --text-huge: var(--step-3);
+  --text-hero: var(--step-4);
+}
+
+/* ── base ─────────────────────────────────────────────────────────────── */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  /* The sticky header must not sit on top of the heading an anchor jumps to. */
+  scroll-padding-top: 6rem;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gorse);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--gorse) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ── the shared voice ─────────────────────────────────────────────────── */
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+}
+
+.display {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.textlink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--gorse);
+  text-underline-offset: 0.3em;
+  text-decoration-thickness: 2px;
+  transition: color 0.15s ease;
+}
+
+.textlink:hover {
+  color: var(--gorse);
+}
+
+/*
+ * A grid of bordered cells whose last row may be short.
+ *
+ * The obvious way to draw this — `gap-px` over a background the colour of the
+ * wall — draws the wall wherever a cell is missing, so the last row of a
+ * seven-item grid in three columns ends in a solid block. That is a layout that
+ * silently constrains the *content*: adding a seventh capability, or a seventh
+ * documentation section, would have meant either living with the block or
+ * finding an eighth thing to say. Per-cell borders instead, so the count is free.
+ */
+.cell-grid {
+  display: grid;
+  border-top: 1px solid var(--wall);
+  border-left: 1px solid var(--wall);
+}
+
+.cell-grid > * {
+  border-right: 1px solid var(--wall);
+  border-bottom: 1px solid var(--wall);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/*
+ * The wash over the hero canvas. A gradient rather than a flat scrim: the
+ * townland has to stay legible at the right-hand edge, where there is no text
+ * over it, and disappear under the headline, where there is.
+ */
+.hero-wash {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  background: linear-gradient(
+    105deg,
+    var(--ground) 30%,
+    color-mix(in srgb, var(--ground) 62%, transparent) 68%,
+    transparent
+  );
+}
+
+/* ── the rendered documents ───────────────────────────────────────────── */
+
+/*
+ * Written by hand rather than pulled in from a typography plugin. The documents
+ * this renders are dense — five-column tables of TypeScript types, fenced shell
+ * transcripts, tables of contents made of anchor links — and every one of the
+ * rules below exists because one of them looked wrong without it.
+ */
+.doc-body {
+  font-size: var(--step-0);
+  line-height: 1.7;
+  color: var(--ink-soft);
+  overflow-wrap: break-word;
+}
+
+.doc-body > * + * {
+  margin-top: 1.15em;
+}
+
+.doc-body p {
+  max-width: 42rem;
+  text-wrap: pretty;
+}
+
+.doc-body strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.doc-body em {
+  font-style: italic;
+}
+
+.doc-heading {
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  text-wrap: balance;
+  scroll-margin-top: 6rem;
+}
+
+.doc-body h2.doc-heading {
+  font-size: var(--step-2);
+  margin-top: 2.6em;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--wall);
+}
+
+.doc-body h3.doc-heading {
+  font-size: var(--step-1);
+  margin-top: 2em;
+}
+
+.doc-body h4.doc-heading,
+.doc-body h5.doc-heading,
+.doc-body h6.doc-heading {
+  font-size: var(--step-0);
+  font-family: var(--body);
+  margin-top: 1.8em;
+  letter-spacing: 0;
+}
+
+/*
+ * The heading *is* the link. A `¶` bolted onto the end is a four-pixel target
+ * that only appears on hover, which rules out touch and keyboard alike.
+ */
+.doc-heading-anchor {
+  color: inherit;
+  text-decoration: none;
+  position: relative;
+}
+
+.doc-heading-anchor:hover {
+  color: var(--gorse);
+}
+
+.doc-heading-anchor::before {
+  content: "#";
+  position: absolute;
+  left: -1.1ch;
+  color: var(--gorse);
+  opacity: 0;
+  font-family: var(--mono);
+  font-weight: 400;
+  transition: opacity 0.15s ease;
+}
+
+@media (min-width: 64rem) {
+  .doc-heading-anchor:hover::before,
+  .doc-heading-anchor:focus-visible::before {
+    opacity: 1;
+  }
+}
+
+.doc-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--gorse) 70%, transparent);
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 1px;
+}
+
+.doc-link:hover {
+  color: var(--gorse);
+  text-decoration-color: var(--gorse);
+}
+
+/* A link that leaves the site says so, rather than surprising the reader. */
+.doc-link-external::after {
+  content: "↗";
+  font-size: 0.8em;
+  margin-left: 0.15em;
+  color: var(--ink-faint);
+  vertical-align: 0.15em;
+}
+
+.doc-body ul,
+.doc-body ol {
+  max-width: 42rem;
+  padding-left: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+}
+
+.doc-body ul {
+  list-style: none;
+}
+
+.doc-body ul > li {
+  position: relative;
+}
+
+.doc-body ul > li::before {
+  content: "";
+  position: absolute;
+  left: -1rem;
+  top: 0.68em;
+  width: 0.34rem;
+  height: 0.34rem;
+  background: var(--lichen);
+  border-radius: 50%;
+}
+
+.doc-body ol {
+  list-style: decimal;
+}
+
+.doc-body ol > li::marker {
+  color: var(--gorse);
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+.doc-body li > ul,
+.doc-body li > ol {
+  margin-top: 0.45em;
+}
+
+.doc-body code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--ground-deep);
+  border: 1px solid var(--wall);
+  border-radius: 2px;
+  padding: 0.1em 0.35em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.doc-code {
+  background: var(--ground-deep);
+  border: 1px solid var(--wall);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.doc-code-label {
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  padding: 0.5rem 1rem 0;
+}
+
+.doc-code pre {
+  overflow-x: auto;
+  padding: 1rem 1.1rem;
+  line-height: 1.7;
+}
+
+.doc-code pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: var(--step--1);
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.doc-table {
+  overflow-x: auto;
+  border: 1px solid var(--wall);
+  border-radius: 2px;
+}
+
+.doc-table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--step--1);
+  line-height: 1.55;
+}
+
+.doc-table th,
+.doc-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--wall);
+}
+
+.doc-table th {
+  font-family: var(--mono);
+  font-size: 0.82em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  font-weight: 400;
+  background: var(--ground-deep);
+  white-space: nowrap;
+}
+
+.doc-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.doc-table code {
+  white-space: nowrap;
+}
+
+.doc-body blockquote {
+  border-left: 2px solid var(--gorse);
+  padding-left: 1.1rem;
+  color: var(--ink-faint);
+  max-width: 42rem;
+}
+
+.doc-body hr {
+  border: 0;
+  border-top: 1px solid var(--wall);
+  margin-block: 2.5em;
+}
+
+.doc-body img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--wall);
+  border-radius: 2px;
+}
