@@ -18,6 +18,7 @@
  */
 import { parse, type ParseOptions } from './parse'
 import { renderDocument } from './render'
+import type { CompiledSmilies } from './extensions'
 
 /** Current version of the renderer's output. Bump to invalidate every render. */
 export const RENDER_VERSION = 1
@@ -31,11 +32,15 @@ export interface RenderedBody {
   readonly version: number
 }
 
+export interface BBCodeRenderOptions extends ParseOptions {
+  readonly smilies?: CompiledSmilies
+}
+
 /** Render a post body. Never throws: bad input degrades to text. */
-export function renderBBCode(source: string, options: ParseOptions = {}): RenderedBody {
+export function renderBBCode(source: string, options: BBCodeRenderOptions = {}): RenderedBody {
   const document = parse(source, options)
   return {
-    html: renderDocument(document, options.tags),
+    html: renderDocument(document, options.tags, options.smilies),
     truncated: document.truncated,
     version: RENDER_VERSION,
   }

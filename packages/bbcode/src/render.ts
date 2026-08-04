@@ -11,6 +11,7 @@
  */
 import { textOf, type BBDocument, type BBNode } from './ast'
 import { escapeHtml } from './escape'
+import { renderSmilies, type CompiledSmilies } from './extensions'
 import { TAGS, type TagSpec } from './tags'
 
 type Registry = Readonly<Record<string, TagSpec>>
@@ -34,20 +35,25 @@ function renderText(
   previous: BBNode | undefined,
   next: BBNode | undefined,
   tags: Registry,
+  smilies: CompiledSmilies | undefined,
 ): string {
   let text = value
   if (isBlock(previous, tags)) text = text.replace(/^\r?\n/, '')
   if (isBlock(next, tags)) text = text.replace(/\r?\n$/, '')
-  return escapeHtml(text).replace(/\r?\n/g, '<br>\n')
+  return renderSmilies(text, smilies).replace(/\r?\n/g, '<br>\n')
 }
 
-export function renderNodes(nodes: readonly BBNode[], tags: Registry = TAGS): string {
+export function renderNodes(
+  nodes: readonly BBNode[],
+  tags: Registry = TAGS,
+  smilies?: CompiledSmilies,
+): string {
   let html = ''
   for (let index = 0; index < nodes.length; index += 1) {
     const node = nodes[index]!
 
     if (node.kind === 'text') {
-      html += renderText(node.value, nodes[index - 1], nodes[index + 1], tags)
+      html += renderText(node.value, nodes[index - 1], nodes[index + 1], tags, smilies)
       continue
     }
 
@@ -59,7 +65,7 @@ export function renderNodes(nodes: readonly BBNode[], tags: Registry = TAGS): st
        * that. Dropping the wrapper and keeping the contents is the answer that
        * loses no words.
        */
-      html += node.kind === 'raw' ? escapeHtml(node.value) : renderNodes(node.children, tags)
+      html += node.kind === 'raw' ? escapeHtml(node.value) : renderNodes(node.children, tags, smilies)
       continue
     }
 
@@ -68,7 +74,7 @@ export function renderNodes(nodes: readonly BBNode[], tags: Registry = TAGS): st
         ? { attribute: node.attribute, html: escapeHtml(node.value), text: node.value, raw: node.value }
         : {
             attribute: node.attribute,
-            html: renderNodes(node.children, tags),
+            html: renderNodes(node.children, tags, smilies),
             text: textOf(node.children),
             raw: '',
           },
@@ -77,6 +83,10 @@ export function renderNodes(nodes: readonly BBNode[], tags: Registry = TAGS): st
   return html
 }
 
-export function renderDocument(document: BBDocument, tags: Registry = TAGS): string {
-  return renderNodes(document.nodes, tags)
+export function renderDocument(
+  document: BBDocument,
+  tags: Registry = TAGS,
+  smilies?: CompiledSmilies,
+): string {
+  return renderNodes(document.nodes, tags, smilies)
 }

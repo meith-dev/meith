@@ -15,6 +15,7 @@ export {
   renderBBCode,
   type RenderablePost,
   type RenderedBody,
+  type BBCodeRenderOptions,
 } from './body'
 export { parse, type ParseOptions } from './parse'
 export { renderDocument, renderNodes } from './render'
@@ -29,4 +30,13 @@ export {
   type WordFilterRule,
 } from './word-filter'
 export { RAW_TAGS, TAGS, type RenderContext, type TagSpec } from './tags'
+export {
+  compileSmilies,
+  createTagRegistry,
+  renderSmilies,
+  restrictTagRegistry,
+  type CompiledSmilies,
+  type CustomTagDefinition,
+  type SmileyDefinition,
+} from './extensions'
 export { DEFAULT_LIMITS, type BBCodeLimits } from './limits'

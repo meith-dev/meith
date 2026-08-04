@@ -744,7 +744,7 @@ tests mock.
 
 ## NEXT ACTION — resume here
 
-### 81 done, 3 partial, 5 todo. Both open questions are answered.
+### 82 done, 3 partial, 4 todo. Both open questions are answered.
 
 **Phase 9 is closed** and the two escalated decisions came back (D95): `mysql2`
 behind F85's port (ADR 0004), and a bounded relevance window for F89's search
