@@ -19,10 +19,10 @@ import { createThreadAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import type { UploadLimits } from "@meith/attachments/limits"
-import type { Draft } from '@meith/drafts'
+import type { Draft } from "@meith/drafts"
 
 import { AttachmentField } from "./attachment-field"
-import { EditorToolbar } from './editor-toolbar'
+import { EditorToolbar } from "./editor-toolbar"
 import { Field, FormError, SubmitButton } from "../auth/form-controls"
 
 export interface PrefixOption {
@@ -60,7 +60,7 @@ export function NewThreadForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      {state.notice === 'saved' && <p role="status">Draft saved.</p>}
+      {state.notice === "saved" && <p role="status">Draft saved.</p>}
       {state.notice === "preview" && (
         <section
           aria-label="Preview"
@@ -91,7 +91,7 @@ export function NewThreadForm({
         required
         minLength={3}
         maxLength={120}
-          defaultValue={state.values?.title ?? draft?.title}
+        defaultValue={state.values?.title ?? draft?.title}
       />
 
       {prefixes.length > 0 && (
@@ -99,7 +99,7 @@ export function NewThreadForm({
           <span className="font-medium">Prefix{requiresPrefix ? "" : " (optional)"}</span>
           <select
             name="prefixId"
-            defaultValue={state.values?.prefixId ?? (draft?.prefixId?.toString() ?? "")}
+            defaultValue={state.values?.prefixId ?? draft?.prefixId?.toString() ?? ""}
             className="h-10 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <option value="">{requiresPrefix ? "Choose a prefix…" : "None"}</option>
@@ -112,8 +112,21 @@ export function NewThreadForm({
         </label>
       )}
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Message</span>
+      {/*
+        `htmlFor`, not a `<label>` wrapped around the whole group.
+
+        A label's control is its **first labelable descendant**, and a
+        `<button>` is labelable — so with the toolbar inside it, this label
+        named the *Bold button* "Message" and left the textarea with no
+        accessible name at all. It rendered identically, which is why it stood
+        for as long as it did; the browser suite could not see it either,
+        because the specs that reach a composer were being refused at
+        registration by the anti-spam timing floor (see `e2e/support/database.ts`).
+      */}
+      <div className="flex flex-col gap-1 text-sm">
+        <label htmlFor="post-message" className="font-medium">
+          Message
+        </label>
         <EditorToolbar />
         <textarea
           id="post-message"
@@ -123,7 +136,7 @@ export function NewThreadForm({
           defaultValue={state.values?.message ?? draft?.message}
           className="rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
-      </label>
+      </div>
 
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}
 
@@ -146,7 +159,9 @@ export function NewThreadForm({
 
       <div className="flex flex-wrap gap-3">
         <SubmitButton>Post thread</SubmitButton>
-        <button type="submit" name="intent" value="save_draft">Save draft</button>
+        <button type="submit" name="intent" value="save_draft">
+          Save draft
+        </button>
         {/*
           Preview is a second submit button on the same form, not a separate
           one: a form with two actions loses whichever the browser did not send,

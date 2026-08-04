@@ -16,15 +16,11 @@
  */
 import { useActionState } from "react"
 
-import {
-  deletePostAction,
-  editPostAction,
-  restorePostAction,
-} from "@/server/content-actions"
+import { deletePostAction, editPostAction, restorePostAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
-import { EditorToolbar } from './editor-toolbar'
+import { EditorToolbar } from "./editor-toolbar"
 
 export function EditPostForm({
   threadId,
@@ -60,8 +56,21 @@ export function EditPostForm({
           tampering with either buys a permission check, not a bypass. */}
       <input type="hidden" name="postId" value={postId} />
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Message</span>
+      {/*
+        `htmlFor`, not a `<label>` wrapped around the whole group.
+
+        A label's control is its **first labelable descendant**, and a
+        `<button>` is labelable — so with the toolbar inside it, this label
+        named the *Bold button* "Message" and left the textarea with no
+        accessible name at all. It rendered identically, which is why it stood
+        for as long as it did; the browser suite could not see it either,
+        because the specs that reach a composer were being refused at
+        registration by the anti-spam timing floor (see `e2e/support/database.ts`).
+      */}
+      <div className="flex flex-col gap-1 text-sm">
+        <label htmlFor="post-message" className="font-medium">
+          Message
+        </label>
         <EditorToolbar />
         <textarea
           id="post-message"
@@ -71,7 +80,7 @@ export function EditPostForm({
           defaultValue={state.values?.message ?? message}
           className="rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
-      </label>
+      </div>
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Reason for editing (optional)</span>
@@ -100,13 +109,7 @@ export function EditPostForm({
 }
 
 /** The destructive half, deliberately its own form and its own action. */
-export function DeletePostForm({
-  threadId,
-  postId,
-}: {
-  threadId: number
-  postId: number
-}) {
+export function DeletePostForm({ threadId, postId }: { threadId: number; postId: number }) {
   const [state, action] = useActionState(deletePostAction, EMPTY_STATE)
 
   return (
@@ -129,13 +132,7 @@ export function DeletePostForm({
   )
 }
 
-export function RestorePostForm({
-  threadId,
-  postId,
-}: {
-  threadId: number
-  postId: number
-}) {
+export function RestorePostForm({ threadId, postId }: { threadId: number; postId: number }) {
   const [state, action] = useActionState(restorePostAction, EMPTY_STATE)
 
   return (
@@ -144,8 +141,8 @@ export function RestorePostForm({
       <input type="hidden" name="threadId" value={threadId} />
       <input type="hidden" name="postId" value={postId} />
       <p className="text-sm text-muted-foreground">
-        This post is deleted. Restoring puts it back in the thread and back into
-        the board&rsquo;s counts.
+        This post is deleted. Restoring puts it back in the thread and back into the board&rsquo;s
+        counts.
       </p>
       <div>
         <SubmitButton>Restore this post</SubmitButton>

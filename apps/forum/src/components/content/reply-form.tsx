@@ -15,10 +15,10 @@ import { createReplyAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import type { UploadLimits } from "@meith/attachments/limits"
-import type { Draft } from '@meith/drafts'
+import type { Draft } from "@meith/drafts"
 
 import { AttachmentField } from "./attachment-field"
-import { EditorToolbar } from './editor-toolbar'
+import { EditorToolbar } from "./editor-toolbar"
 import { FormError, SubmitButton } from "../auth/form-controls"
 
 export function ReplyForm({
@@ -39,11 +39,14 @@ export function ReplyForm({
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)
   useEffect(() => {
-    const field = document.getElementById('post-message') as HTMLTextAreaElement | null
-    const quotes = JSON.parse(sessionStorage.getItem('multiquote') ?? '[]') as Array<{ author: string; message: string }>
+    const field = document.getElementById("post-message") as HTMLTextAreaElement | null
+    const quotes = JSON.parse(sessionStorage.getItem("multiquote") ?? "[]") as Array<{
+      author: string
+      message: string
+    }>
     if (field === null || quotes.length === 0) return
-    field.value = `${field.value}${field.value ? '\n\n' : ''}${quotes.map((quote) => `[quote=${quote.author}]${quote.message}[/quote]`).join('\n\n')}`
-    sessionStorage.removeItem('multiquote')
+    field.value = `${field.value}${field.value ? "\n\n" : ""}${quotes.map((quote) => `[quote=${quote.author}]${quote.message}[/quote]`).join("\n\n")}`
+    sessionStorage.removeItem("multiquote")
   }, [])
 
   /*
@@ -56,7 +59,7 @@ export function ReplyForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      {state.notice === 'saved' && <p role="status">Draft saved.</p>}
+      {state.notice === "saved" && <p role="status">Draft saved.</p>}
       {state.notice === "preview" && (
         <section
           aria-label="Preview"
@@ -90,8 +93,21 @@ export function ReplyForm({
         />
       )}
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Message</span>
+      {/*
+        `htmlFor`, not a `<label>` wrapped around the whole group.
+
+        A label's control is its **first labelable descendant**, and a
+        `<button>` is labelable — so with the toolbar inside it, this label
+        named the *Bold button* "Message" and left the textarea with no
+        accessible name at all. It rendered identically, which is why it stood
+        for as long as it did; the browser suite could not see it either,
+        because the specs that reach a composer were being refused at
+        registration by the anti-spam timing floor (see `e2e/support/database.ts`).
+      */}
+      <div className="flex flex-col gap-1 text-sm">
+        <label htmlFor="post-message" className="font-medium">
+          Message
+        </label>
         <EditorToolbar />
         <textarea
           id="post-message"
@@ -101,7 +117,7 @@ export function ReplyForm({
           defaultValue={state.values?.message ?? draft?.message ?? prefill}
           className="rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
-      </label>
+      </div>
 
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}
 
@@ -114,7 +130,9 @@ export function ReplyForm({
 
       <div className="flex flex-wrap gap-3">
         <SubmitButton>Post reply</SubmitButton>
-        <button type="submit" name="intent" value="save_draft">Save draft</button>
+        <button type="submit" name="intent" value="save_draft">
+          Save draft
+        </button>
         <button
           type="submit"
           name="intent"

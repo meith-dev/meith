@@ -182,6 +182,14 @@ function seedSql(): string {
     author_username: thread.authorUsername,
     reply_count: thread.replyCount,
     view_count: thread.viewCount,
+    /*
+     * F43's running aggregate. Omitted until now, so the Postgres board showed
+     * "no ratings yet" on a thread the fixture board rates — the same class of
+     * difference the denormalised last post above exists to avoid. A spec (or a
+     * person) looking at the rating strip has to be looking at the same board.
+     */
+    rating_total: thread.ratingTotal,
+    rating_count: thread.ratingCount,
     visibility: thread.visibility,
     is_sticky: thread.isSticky,
     is_locked: thread.isLocked,
@@ -223,9 +231,34 @@ function seedSql(): string {
     group_id: user.primary_group_id,
   }))
 
+  /*
+   * Board configuration the *browser* needs, as opposed to the board's defaults.
+   *
+   * **`antispam.min_form_seconds` is why six specs were failing.** It defaults
+   * to 3: a registration submitted sooner than that is treated as automated,
+   * which is a good default for a real board and an impossible one for a
+   * browser driver that fills three fields in half a second. Every spec that
+   * needs a session registers through the form — the only way in, since the
+   * seeded accounts carry a hash nothing can match — so the whole write half of
+   * the suite was being refused with "That submission looked automated", on
+   * `main`, for as long as the check has existed.
+   *
+   * Setting it to 0 here rather than making the specs wait three seconds each:
+   * the timing floor has its own unit tests in `@meith/antispam`, this suite is
+   * about whether a board can be read and written without JavaScript, and six
+   * artificial three-second waits is a slower suite that proves nothing extra.
+   *
+   * The value is JSON-encoded, because the settings registry owns parsing per
+   * type and the column is text — see `packages/db/src/schema/platform.ts`.
+   */
+  const settings = [
+    { key: 'antispam.min_form_seconds', value: '0', group_key: 'antispam' },
+  ]
+
   return [
     insert('users', users),
     insert('user_group_memberships', memberships),
+    insert('settings', settings),
     insert('forums', forums),
     insert('threads', threads),
     insert('posts', posts),
