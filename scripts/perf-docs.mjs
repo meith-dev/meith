@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * F89 — the performance reference, generated from the budgets and the recorded run.
+ * The performance reference, generated from the budgets and the recorded run.
  *
  * Fourth in the family, and the one where "generated" earns the most. The other
  * three references restate a registry; this one restates a *measurement*, and a
@@ -269,11 +269,11 @@ function render({ budgets, results, indexes, plans }) {
     out.push('')
   }
 
-  /* ---- The partial-visible indexes (F28) ---- */
+  /* ---- The partial-visible indexes ---- */
   out.push('## Partial visible indexes')
   out.push('')
-  out.push('R3.5 asks for `EXPLAIN` evidence that the partial `visibility` indexes are')
-  out.push('used. This is that evidence, and it is also a **check**: `pnpm perf explain`')
+  out.push('`EXPLAIN` evidence that the partial `visibility` indexes are actually used.')
+  out.push('This is that evidence, and it is also a **check**: `pnpm perf explain`')
   out.push('fails when the planner stops choosing one.')
   out.push('')
   out.push('That failure is the one worth guarding. A partial index only matches a query')

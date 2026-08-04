@@ -20,7 +20,7 @@
  */
 export const GUARDS = [
   {
-    id: 'R0 no-raw-control-characters',
+    id: 'no-raw-control-characters',
     why:
       'A literal control or zero-width character in source is invisible in every ' +
       'editor, diff and review, so it reads as one thing and behaves as another. ' +
@@ -45,7 +45,7 @@ export const GUARDS = [
     },
   },
   {
-    id: 'R1 no-runtime-filesystem-scan',
+    id: 'no-runtime-filesystem-scan',
     why:
       'Invariant 6: everything installable is registered in forum.config.ts, and ' +
       'nothing is discovered by scanning a directory at runtime. A serverless ' +
@@ -70,7 +70,7 @@ export const GUARDS = [
      * because the directory name carries a version. It is also the opposite of
      * the failure the rule describes: this path exists **because** the developer
      * machine and the standalone image differ, and it was written against a
-     * booted standalone image rather than a dev server. See ADR 0003.
+     * booted standalone image rather than a dev server.
      */
     /*
      * F82's `create-meith` joins the exemption for the plainest possible reason:
@@ -87,7 +87,7 @@ export const GUARDS = [
     },
   },
   {
-    id: 'F02 single-env-reader',
+    id: 'single-env-reader',
     why:
       'process.env may only be read in packages/core/src/env.ts. A stray read is a ' +
       'config value that is never validated and blows up at request time in prod ' +
@@ -129,7 +129,7 @@ export const GUARDS = [
     alsoClean: ["if (process.env.NEXT_RUNTIME !== 'nodejs') return"],
   },
   {
-    id: 'R7 no-hardcoded-colour',
+    id: 'no-hardcoded-colour',
     why:
       'Components must consume design tokens so a board can be re-themed from the ' +
       'database (F26). A literal hex/rgb/hsl in a component is a colour that no ' +
@@ -144,7 +144,7 @@ export const GUARDS = [
     },
   },
   {
-    id: 'F10 no-request-state-in-cache',
+    id: 'no-request-state-in-cache',
     why:
       'Reading cookies()/headers() inside a cached function bakes one user\'s data ' +
       'into a shared cache entry — the classic "logged in as someone else" bug. ' +
@@ -172,7 +172,7 @@ export const GUARDS = [
     },
   },
   {
-    id: 'F17 no-locale-case-fold',
+    id: 'no-locale-case-fold',
     why:
       'Identifier case-folding must be locale-independent: use foldIdentifier() ' +
       '(packages/accounts/src/case-fold.ts), never toLocaleLowerCase(). With no ' +
@@ -194,7 +194,7 @@ export const GUARDS = [
     },
   },
   {
-    id: 'F02 no-module-scope-logger',
+    id: 'no-module-scope-logger',
     why:
       'Bind the logger where you log, not at module scope. A module-level ' +
       'instance captures the request context once at import time (i.e. empty), ' +
@@ -216,7 +216,7 @@ export const GUARDS = [
     },
   },
   {
-    id: 'R2 no-next-in-domain',
+    id: 'no-next-in-domain',
     why:
       'Domain packages must not import next/*. Enforced structurally by ' +
       'dependency-cruiser too; this catches it in string form (dynamic import).',
@@ -229,7 +229,7 @@ export const GUARDS = [
     },
   },
   {
-    id: 'R2 no-lazy-require-of-db',
+    id: 'no-lazy-require-of-db',
     why:
       "@meith/db must be imported statically, never with require(). Turbopack " +
       'resolves it as an async module — its graph reaches postgres.js — and a ' +
@@ -250,7 +250,7 @@ export const GUARDS = [
     },
   },
   {
-    id: 'R3 no-adhoc-content-visibility',
+    id: 'no-adhoc-content-visibility',
     why:
       'F47: no query may name a visibility state. Every viewer-facing read takes a ' +
       'ContentScope from Authorizer.contentScope and turns it into SQL with ' +

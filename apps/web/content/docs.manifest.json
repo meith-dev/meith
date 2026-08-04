@@ -1,0 +1,173 @@
+{
+  "$comment": [
+    "The single place the documentation set is described.",
+    "",
+    "The prose itself is never copied here. Every entry points at a file under",
+    "docs/ at the workspace root, which stays the one editable copy — the site",
+    "reads those files at build time and renders them. Adding a document means",
+    "adding it to docs/ and naming it here (or in `internal`), and nothing else.",
+    "",
+    "JSON rather than TypeScript so that `scripts/site-docs.mjs` and the Next",
+    "app read the same bytes. A registry the checker cannot parse is a registry",
+    "that drifts from what is published.",
+    "",
+    "Checked by `pnpm site:docs:check`, which fails when a file under docs/ is",
+    "in neither list, when an entry points at a file that does not exist, or",
+    "when README.md's generated table no longer matches this file."
+  ],
+  "sections": [
+    {
+      "id": "running",
+      "title": "Running a board",
+      "blurb": "From an empty directory to a board that has been up long enough to go wrong."
+    },
+    {
+      "id": "themes",
+      "title": "Themes",
+      "blurb": "The frozen v1 slot contract, and every slot a theme may fill."
+    },
+    {
+      "id": "plugins",
+      "title": "Plugins",
+      "blurb": "What a plugin may do, how its failures are contained, and every hook it can listen to."
+    },
+    {
+      "id": "api",
+      "title": "The API",
+      "blurb": "Every endpoint, scope and rate limit, generated from the route registry."
+    },
+    {
+      "id": "migrating",
+      "title": "Migrating from MyBB",
+      "blurb": "Where a Meith board behaves differently from the one you are leaving, and why."
+    },
+    {
+      "id": "contributing",
+      "title": "Working on Meith",
+      "blurb": "The conventions and the decisions that would otherwise be re-argued in every pull request."
+    }
+  ],
+  "documents": [
+    {
+      "slug": "quickstart",
+      "file": "quickstart.md",
+      "section": "running",
+      "title": "Quickstart",
+      "blurb": "From an empty directory to a working board, in five steps. About ten minutes, most of it waiting for npm install.",
+      "generated": false,
+      "primary": true
+    },
+    {
+      "slug": "operating",
+      "file": "operating.md",
+      "section": "running",
+      "title": "Running a board",
+      "blurb": "The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "upgrading",
+      "file": "upgrading.md",
+      "section": "running",
+      "title": "Upgrading a board",
+      "blurb": "How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "performance",
+      "file": "performance.md",
+      "section": "running",
+      "title": "Performance",
+      "blurb": "The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board.",
+      "generated": true,
+      "primary": false
+    },
+    {
+      "slug": "theme-api",
+      "file": "theme-api.md",
+      "section": "themes",
+      "title": "The theme API, v1",
+      "blurb": "What the freeze covers, what a theme may do, and how to write one.",
+      "generated": false,
+      "primary": true
+    },
+    {
+      "slug": "theme-slots",
+      "file": "theme-slots.md",
+      "section": "themes",
+      "title": "Theme slots and view models",
+      "blurb": "Every slot and every view model, generated from the theme registry.",
+      "generated": true,
+      "primary": false
+    },
+    {
+      "slug": "plugin-api",
+      "file": "plugin-api.md",
+      "section": "plugins",
+      "title": "The plugin API, v1",
+      "blurb": "What a plugin is, what it may and may not do, and how a failure is contained.",
+      "generated": false,
+      "primary": true
+    },
+    {
+      "slug": "plugin-hooks",
+      "file": "plugin-hooks.md",
+      "section": "plugins",
+      "title": "Plugin hooks",
+      "blurb": "Every hook and payload, generated from the hook registry.",
+      "generated": true,
+      "primary": false
+    },
+    {
+      "slug": "rest-api",
+      "file": "rest-api.md",
+      "section": "api",
+      "title": "REST API v1",
+      "blurb": "Every endpoint, scope and rate limit, generated from the route registry.",
+      "generated": true,
+      "primary": true
+    },
+    {
+      "slug": "mybb-parity",
+      "file": "mybb-parity.md",
+      "section": "migrating",
+      "title": "MyBB parity decisions",
+      "blurb": "Every place this board behaves differently from MyBB, with the reason. Read it before promising anyone a like-for-like move.",
+      "generated": false,
+      "primary": true
+    },
+    {
+      "slug": "nextjs-conventions",
+      "file": "nextjs-conventions.md",
+      "section": "contributing",
+      "title": "Next.js conventions",
+      "blurb": "Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request.",
+      "generated": false,
+      "primary": true
+    }
+  ],
+  "internal": [
+    {
+      "file": "README.md",
+      "reason": "The index for people reading the repository. On the site, /docs is the index."
+    },
+    {
+      "file": "roadmap.md",
+      "reason": "The delivery plan — what is still to be built. Kept in the repository, deliberately not published."
+    },
+    {
+      "file": "plan-status.md",
+      "reason": "Where each planned feature has got to. A progress record, not documentation."
+    },
+    {
+      "file": "progress.md",
+      "reason": "The running work log and the next action. A progress record, not documentation."
+    },
+    {
+      "file": "deviations.md",
+      "reason": "The numbered log of departures from the plan text. Written against the plan, and only meaningful beside it."
+    }
+  ]
+}

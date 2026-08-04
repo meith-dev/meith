@@ -69,7 +69,7 @@ function buildFiles(): FileStore {
       return new LocalFileStore(env.UPLOADS_DIR)
     case 's3':
       /*
-       * Statically imported, and ADR 0002 was amended to say so.
+       * Statically imported, deliberately.
        *
        * The ADR originally required a lazy `require()` to keep the AWS client
        * out of bundles. Two measurements killed that: a literal `require()` is

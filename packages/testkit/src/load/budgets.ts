@@ -97,7 +97,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'listThread(afterId) far into a long thread',
     p95Ms: 60,
     kind: 'target',
-    why: 'The keyset claim (F31). Under OFFSET this degrades with depth; it must not.',
+    why: 'The keyset claim. Under OFFSET this degrades with depth; it must not.',
   },
   {
     id: 'forum-page-first',
@@ -121,7 +121,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'listListing() — every forum with its counters and last post',
     p95Ms: 80,
     kind: 'target',
-    why: 'One query for the whole tree (F16), and the page every visitor lands on.',
+    why: 'One query for the whole tree, and the page every visitor lands on.',
   },
   {
     id: 'visible-forums',
@@ -152,7 +152,7 @@ export const BUDGETS: readonly Budget[] = [
     p95Ms: 300,
     kind: 'target',
     why:
-      'The worst query a member can trigger, and it was the one budget F89 failed. ' +
+      'The worst query a member can trigger, and the one budget the first load run failed. ' +
       'Relevance ordering is not indexable: `ts_rank_cd` has to score every matching ' +
       'row before it can name the top twenty, so a term matching 2.26M of 2.34M posts ' +
       'cost a p95 of 5.5 seconds with the GIN index present and used. The fix was to ' +

@@ -96,6 +96,14 @@ jobs:
       - name: Documentation index is complete
         run: pnpm docs:index:check
 
+      # The site publishes docs/*.md and holds no copy of any of them, so the one
+      # way that arrangement rots is silent: a document is added and nobody names
+      # it in the manifest, so the site simply never mentions it. This fails on
+      # that, on a manifest entry pointing at a file that is gone, and on the
+      # README table having drifted from the manifest it is generated from.
+      - name: Published documentation set is accounted for
+        run: pnpm site:docs:check
+
       - name: Lint
         run: pnpm lint
 
@@ -110,6 +118,12 @@ jobs:
       # entire app (pages, actions, components) goes unchecked until `next build`.
       - name: Types (app)
         run: pnpm typecheck:app
+
+      # And again for the marketing site, which has its own tsconfig for the same
+      # reason the board does — the Next plugin and JSX settings — and is excluded
+      # from the root project alongside it.
+      - name: Types (site)
+        run: pnpm typecheck:site
 
       - name: Unit and integration tests
         run: pnpm test
@@ -140,6 +154,13 @@ jobs:
         run: pnpm build
         env:
           DATA_SOURCE: fixture
+
+      # meith.dev. It reads `docs/*.md` at build time and prerenders every page,
+      # so this step is also the check that every published document still
+      # *renders* — a Markdown table left half-written, or a manifest entry whose
+      # file was deleted, fails here rather than on the deploy.
+      - name: Build the site
+        run: pnpm site:build
 
   # F04's acceptance criterion, and the half that was missing for its whole
   # life: CI *builds* the standalone image and then **boots** it, in every role.

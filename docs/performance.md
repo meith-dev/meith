@@ -45,8 +45,8 @@ page costs more than a first page. Compare ratios, not milliseconds.
 
 ## Partial visible indexes
 
-R3.5 asks for `EXPLAIN` evidence that the partial `visibility` indexes are
-used. This is that evidence, and it is also a **check**: `pnpm perf explain`
+`EXPLAIN` evidence that the partial `visibility` indexes are actually used.
+This is that evidence, and it is also a **check**: `pnpm perf explain`
 fails when the planner stops choosing one.
 
 That failure is the one worth guarding. A partial index only matches a query
@@ -80,7 +80,7 @@ The single most requested page on any forum. Everything else is rounding.
 
 `thread-page-deep` — listThread(afterId) far into a long thread.
 
-The keyset claim (F31). Under OFFSET this degrades with depth; it must not.
+The keyset claim. Under OFFSET this degrades with depth; it must not.
 
 ### Forum, page 1
 
@@ -98,7 +98,7 @@ Same keyset claim on the other axis, and the one an archive crawler hits.
 
 `board-index` — listListing() — every forum with its counters and last post.
 
-One query for the whole tree (F16), and the page every visitor lands on.
+One query for the whole tree, and the page every visitor lands on.
 
 ### Permission filter
 
@@ -116,7 +116,7 @@ Ordered across the whole board rather than within one forum — the widest scan,
 
 `search-common` — Relevance search for a term matching 96% of the board.
 
-The worst query a member can trigger, and it was the one budget F89 failed. Relevance ordering is not indexable: `ts_rank_cd` has to score every matching row before it can name the top twenty, so a term matching 2.26M of 2.34M posts cost a p95 of 5.5 seconds with the GIN index present and used. The fix was to bound the ranked set to the most recent 20,000 matches, which measured 98ms — and changes nothing for any term selective enough that the window holds the whole match set, which is every real query. Recorded in mybb-parity.md.
+The worst query a member can trigger, and the one budget the first load run failed. Relevance ordering is not indexable: `ts_rank_cd` has to score every matching row before it can name the top twenty, so a term matching 2.26M of 2.34M posts cost a p95 of 5.5 seconds with the GIN index present and used. The fix was to bound the ranked set to the most recent 20,000 matches, which measured 98ms — and changes nothing for any term selective enough that the window holds the whole match set, which is every real query. Recorded in mybb-parity.md.
 
 ### Search, rare term
 

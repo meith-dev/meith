@@ -16,7 +16,7 @@
  *
  * ## Nothing decodes an image on the request path
  *
- * A condition of ADR 0003 rather than an implementation detail. `accept()` runs
+ * A deliberate condition rather than an implementation detail. `accept()` runs
  * in the request and reads *headers* — magic bytes and declared dimensions —
  * which is bounded work on a bounded prefix. The decode, the re-encode and the
  * thumbnail happen in `process()`, which runs in a queued job. Until it
@@ -28,7 +28,7 @@
  * decompression bomb. It cannot establish that the file is *only* a PNG — a ZIP
  * appended after the IEND chunk is invisible to it, and to every other
  * validator. `process()` is what removes it, by writing the stored object from
- * decoded pixels. See ADR 0003.
+ * decoded pixels.
  */
 import { ValidationError } from '@meith/core'
 import type { FileStore } from '@meith/core'
@@ -157,7 +157,7 @@ export interface ProcessedImage {
  * Decoding and re-encoding, as a port.
  *
  * The implementation is `@meith/drivers/images` and carries ~630 KB of
- * WebAssembly with it (ADR 0003). It is a port so this package can be tested
+ * WebAssembly with it. It is a port so this package can be tested
  * without any of that, and — more importantly — so nothing that merely reads
  * attachments has to load a codec.
  */

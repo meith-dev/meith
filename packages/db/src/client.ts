@@ -8,7 +8,7 @@
  *    on one backend will not exist on the next. postgres.js would otherwise
  *    silently use the extended protocol and fail under load with
  *    "prepared statement 's1' does not exist". This must stay false for any
- *    pgbouncer-style pooler. See docs/adr/0002-transaction-pooler.md.
+ *    pgbouncer-style pooler.
  *
  * 2. `max`. Serverless functions scale horizontally, so every instance holds
  *    its own pool. A large `max` multiplied by N instances exhausts Postgres'

@@ -2,7 +2,7 @@
  * The image codecs, run for real.
  *
  * No mocking: these tests compile the same WebAssembly the board ships and put
- * real pixels through it. A faked codec would prove nothing — the risk ADR 0003
+ * real pixels through it. A faked codec would prove nothing — the risk this
  * accepts is entirely about whether these modules load and behave, and a test
  * double is the one thing that cannot answer that.
  *

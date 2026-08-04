@@ -1,0 +1,30 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    /*
+     * No path aliases at all, and specifically no `@/*`.
+     *
+     * `@` is already spoken for across this workspace: it resolves to
+     * `apps/forum/src` in `vitest.config.ts` and in
+     * `.dependency-cruiser.webpack.cjs`, both of which are single-valued and
+     * repository-wide. A second app claiming the same prefix would hand a test
+     * importing `@/…` from here a module out of the *forum* — silently, and only
+     * in the tools, so `tsc` and `next build` would both be green while
+     * `pnpm test` compiled something else entirely.
+     *
+     * Relative imports instead. This app is shallow enough that the deepest one
+     * is three levels, and they are unambiguous in every tool without a third
+     * place to register them.
+     *
+     * TypeScript replaces `paths` rather than merging it, so the workspace
+     * aliases in tsconfig.base.json are deliberately not inherited: this app
+     * depends on no `@meith/*` package, and that is worth keeping visible.
+     */
+    "paths": {}
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}

@@ -38,7 +38,7 @@
  *
  * **The list is derived, not transcribed.** The plan's R6 names the slot list
  * and this repository does not carry the plan text, so these 25 are derived from
- * the pages Phases 2–3 actually build (F27–F35, F39–F45) and cross-checked
+ * the pages Phases 2–3 actually build and cross-checked
  * against MyBB's template names. Where R6 disagrees, R6 wins and this file
  * changes — see docs/deviations.md D35, which records the divergence rather than
  * leaving it to be discovered.
@@ -63,7 +63,7 @@ export interface SlotSpec {
  * literal type and `SlotComponent` can branch on it.
  */
 export const SLOTS = {
-  /* ---- Shell (F27) ---- */
+  /* ---- Shell ---- */
   Shell: {
     kind: 'server',
     feature: 'F27',
@@ -110,7 +110,7 @@ export const SLOTS = {
       'just did — these are for everybody and last until they expire.',
   },
 
-  /* ---- Board index (F29) ---- */
+  /* ---- Board index ---- */
   BoardIndex: {
     kind: 'server',
     feature: 'F29',
@@ -131,15 +131,15 @@ export const SLOTS = {
   BoardStats: {
     kind: 'server',
     feature: 'F75',
-    purpose: 'Totals and newest member. Named now; F75 supplies the numbers.',
+    purpose: 'Board totals and the newest member.',
   },
   WhoIsOnline: {
     kind: 'server',
     feature: 'F75',
-    purpose: 'The online list and its record. Named now; F75 supplies the data.',
+    purpose: 'The online list and its record.',
   },
 
-  /* ---- Forum display (F30) ---- */
+  /* ---- Forum display ---- */
   ForumDisplay: {
     kind: 'server',
     feature: 'F30',
@@ -160,10 +160,10 @@ export const SLOTS = {
     feature: 'F30',
     purpose:
       'Page links. Server-rendered and href-based: paging must work with ' +
-      'JavaScript disabled (R5), so this can never become an island.',
+      'JavaScript disabled, so this can never become an island.',
   },
 
-  /* ---- Thread view (F31) ---- */
+  /* ---- Thread view ---- */
   ThreadView: {
     kind: 'server',
     feature: 'F31',
@@ -191,7 +191,7 @@ export const SLOTS = {
       'reply page; it never becomes the only way to reply.',
   },
 
-  /* ---- Posting (F39/F40/F45) ---- */
+  /* ---- Posting ---- */
   PostForm: {
     kind: 'server',
     feature: 'F39',
@@ -207,14 +207,14 @@ export const SLOTS = {
       'textarea; removing it must leave a working plain-textarea form.',
   },
 
-  /* ---- Members (F33) ---- */
+  /* ---- Members ---- */
   MemberProfile: {
     kind: 'server',
     feature: 'F33',
     purpose: 'A member’s profile page body: identity, stats, recent activity.',
   },
 
-  /* ---- Search (F73) ---- */
+  /* ---- Search ---- */
   SearchForm: {
     kind: 'server',
     feature: 'F73',
@@ -223,7 +223,7 @@ export const SLOTS = {
       'that can be linked and cached.',
   },
 
-  /* ---- Navigation (F27) ---- */
+  /* ---- Navigation ---- */
   ForumJump: {
     kind: 'server',
     feature: 'F27',
@@ -234,7 +234,7 @@ export const SLOTS = {
       'keyboard user to the first forum in the list.',
   },
 
-  /* ---- Errors and redirects (F34) ---- */
+  /* ---- Errors and redirects ---- */
   RedirectNotice: {
     kind: 'server',
     feature: 'F34',

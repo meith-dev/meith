@@ -1,12 +1,35 @@
 # Next.js conventions
 
-F14. The decisions that would otherwise be re-litigated in every PR. Link this
-from your PR description; if you need to depart from it, say so in the PR and
-add a `docs/deviations.md` entry rather than quietly doing something else.
+The decisions that would otherwise be re-litigated in every pull request. Link
+this from your PR description.
 
-Everything here is drawn from code that exists — the file paths are real, and
-the failure each rule prevents has either happened in this repository or is one
-the plan calls out explicitly.
+> [!NOTE]
+> Everything here is drawn from code that exists. The file paths are real, and
+> the failure each rule prevents has either happened in this repository or is one
+> the plan calls out explicitly.
+>
+> If you need to depart from a rule, say so in the PR and add a
+> [`deviations.md`](./deviations.md) entry rather than quietly doing something
+> else.
+
+## The rules, in one table
+
+If you read nothing else on this page, read this.
+
+| Rule | Where it is enforced |
+|---|---|
+| `app/` never imports `@meith/db` | dependency-cruiser |
+| `"use client"` on leaf components only — never a page, never a layout | Review, and `pnpm slots:check` for themes |
+| Every Server Action re-checks authorization itself | Review |
+| `redirect()` goes **outside** the `try` | Review |
+| Never return a credential in `FormState` | Review — this shipped once, as an account-takeover hole |
+| `logger()` is called where you log, never bound at module scope | Guard `no-module-scope-logger` |
+| Cache tags are spelled once, in `CacheTags` | Review |
+| A cached region never reads `cookies()`, `headers()`, `getActor()` or `getUserId()` | Guard `no-request-state-in-cache` |
+| Every counter has a recount | Review |
+| Event handlers are idempotent | Review |
+| A slot never renders another slot | Review |
+| View models are JSON-shaped | The compiler, via `Serialisable<T>` |
 
 ---
 
@@ -44,7 +67,7 @@ The rule exists because of one number: a guest thread page must ship
 near-zero JavaScript. Marking `PostBit` as a client component would send the
 entire post list to the browser and give away the product's main advantage.
 `theme-kit` declares a server/client kind per slot and the build fails if a
-theme crosses it (F25).
+theme crosses it.
 
 In practice the split looks like the auth forms:
 
@@ -108,15 +131,18 @@ swallows it turns a successful action into a silent no-op. Look at
 channel and become a message on the form. Anything unrecognised is logged and
 becomes a generic message — see `toFormState`.
 
-**Never return a credential in `FormState`.** It is serialised into the client
-payload. This is not hypothetical: the password-reset action returned a live
-reset token to the browser and it was an account-takeover hole (D20).
+> [!CAUTION]
+> **Never return a credential in `FormState`.** It is serialised into the client
+> payload.
+>
+> This is not hypothetical: the password-reset action returned a live reset token
+> to the browser, and it was an account-takeover hole.
 
 ---
 
 ## Forms and `useActionState`
 
-Every page on the no-JS list (Reference §R5) must work with JavaScript disabled.
+Every page on the no-JavaScript list must work with JavaScript disabled.
 That is a hard requirement, not an aspiration, and it shapes how forms are
 written:
 
@@ -127,8 +153,9 @@ written:
 - Echo the user's input back in `FormState.values` so a failed submit does not
   blank the form — **except the password**.
 
-**Islands enhance; they never enable.** If removing a client component breaks a
-page, it was not an island. Write the server path first and the island second.
+> [!IMPORTANT]
+> **Islands enhance; they never enable.** If removing a client component breaks a
+> page, it was not an island. Write the server path first and the island second.
 
 ### Forms that live in a theme slot
 
@@ -136,7 +163,7 @@ A page whose whole content is a form — the composer, and every editor after it
 splits in two: the **theme** renders the page around it, the **app** renders the
 `<form>` into a region. The reason is mechanical rather than stylistic: the form
 element carries a Server Action reference, and those are not plain data, so they
-never cross the theme contract (D38, D42). Controls are built from the shared
+never cross the theme contract. Controls are built from the shared
 token-styled primitives in `src/components/auth/form-controls.tsx`, which is
 what keeps an app-owned form looking like part of the theme.
 
@@ -154,8 +181,8 @@ a rendered page.
 
 Throwing a bare `Error` for a user-facing failure is a bug: callers key off the
 taxonomy. `saveSettings` threw a plain `Error` on an invalid value, which meant
-the ACP would have shown "Something went wrong" instead of the actual problem
-(D24).
+the admin panel would have shown "Something went wrong" instead of the actual
+problem.
 
 ---
 
@@ -164,7 +191,7 @@ the ACP would have shown "Something went wrong" instead of the actual problem
 `logger()` is called **where you log**, never bound at module scope:
 
 ```ts
-// Wrong — guarded by `F02 no-module-scope-logger`.
+// Wrong — guarded by `no-module-scope-logger`.
 const log = logger({ module: 'x' })
 
 // Right.
@@ -174,11 +201,11 @@ logger({ module: 'x' }).warn({ err }, 'something')
 A module-level instance captures the request context once at import time (i.e.
 empty), so every line loses its `requestId` — and it builds pino eagerly, which
 reads `env` and turns importing the module into an environment validation. That
-broke `next build` (D19).
+broke `next build` once.
 
 Never log a password, a token, or a full IP at default level. Pino's redaction
 covers `token`-shaped keys but **not** a token interpolated into a URL string,
-which is how one escaped (D20).
+which is how one escaped.
 
 ---
 
@@ -190,20 +217,24 @@ Read `packages/core/src/cache.ts` before caching anything.
   literal: a writer invalidating `"forum-tree"` while a reader cached under
   `"forumTree"` is stale data that no test catches.
 - **`cachedGlobal` is for global data only.** If a value varies by actor it must
-  not go through it. A cached permission-filtered page is how private forums
-  leak, and it is the reason the harness exists at all.
+  not go through it.
+
+  > [!CAUTION]
+  > A cached permission-filtered page is how private forums leak. This is the
+  > reason the caching harness exists at all.
+
 - **Invalidate after the write, never before.** Clearing first opens a window
   where a concurrent read repopulates from the pre-write state and nothing
   clears it again. `CachedForumRepository` pins this ordering with a test.
 - A cached region may not read `cookies()`, `headers()`, `getActor()` or
-  `getUserId()` — guarded by `F10 no-request-state-in-cache`.
+  `getUserId()` — guarded by `no-request-state-in-cache`.
 
 ---
 
 ## Counters and event handlers
 
 A denormalised counter has three obligations, and a change that adds one has to
-satisfy all three (R5, and F38 is the worked example):
+satisfy all three — the thread and forum counters are the worked example:
 
 - **Write it in the transaction that writes the content.** Counters and the row
   they describe move together or not at all. `applyCreatedContentCounters()`
@@ -225,7 +256,7 @@ its second pass.
 dispatched after the enqueue returns and the queue re-runs a job whose worker
 died mid-handler, so every handler is delivered at least once and sometimes
 twice. A handler that writes a *computed* value gets this for free; one that
-applies a **delta** must record what it has applied — F38's roll-up ledger is
+applies a **delta** must record what it has applied — the counter roll-up ledger is
 the pattern to copy.
 
 ---
@@ -265,7 +296,7 @@ const PostBit = requireSlot(theme, 'PostBit')
 
 If `ThreadView` imported `PostBit` itself, a child theme overriding `PostBit`
 would be ignored inside the parent's `ThreadView`. One place resolves slots, so an
-override applies everywhere. See D35.
+override applies everywhere.
 
 **Write the slot map literally in the manifest**, one bare imported identifier per
 slot. A map built by spreading cannot be statically checked, and `slots:check`
@@ -280,13 +311,13 @@ view model, and hand it to components; they do not pass rows around.
 
 **View models are JSON-shaped**: no `Date`, no `Map`, no functions. `theme-kit`
 proves this at compile time for every slot model. The reason is not React — it is
-that a view model is also F81's API payload, and that a `Date` pushes formatting
+that a view model is also the REST API's payload, and that a `Date` pushes formatting
 into every theme, where it becomes a timezone-dependent hydration mismatch. A
 timestamp crosses as `TimeModel` (`iso` + a preformatted `label`); paging crosses
 as resolved hrefs, never a function that builds them.
 
 **Never link to a route that does not exist.** `buildUserPanelModel` returns an
-empty link list for a member because profile (F33), UserCP (F57) and admin (F63)
+empty link list for a member because the profile, user panel and admin screens
 are not built. That is the accurate rendering of the board as it is; a header link
 to a 404 on every page is not.
 
@@ -311,9 +342,12 @@ adding a field is minor, renaming or removing one needs a deprecation cycle.
   (`expectQueryBudget` in `@meith/testkit`). An N+1 does not fail a test — it
   passes, slowly, and only on an empty board.
 - **Prove a new test can fail.** Break the code deliberately, watch it go red,
-  put it back. A test that has never failed is not known to test anything; this
-  is standing rule D10, and `pnpm guards:probe` applies the same idea to the
-  textual guards.
+  put it back.
+
+  > [!TIP]
+  > A test that has never failed is not known to test anything. `pnpm
+  > guards:probe` applies the same idea to the textual guards.
+
 
 ---
 
@@ -323,8 +357,7 @@ adding a field is minor, renaming or removing one needs a deprecation cycle.
 lint, dependency-cruiser, both typechecks, tests. `pnpm build` if you touched
 anything under `app/` — and if you touched a theme, check the class you used is
 actually in the built CSS: Tailwind scans `themes/` only because `globals.css`
-says so, and a missing `@source` is a green build that renders unstyled (D35).
+says so, and a missing `@source` is a green build that renders unstyled.
 
-Update `docs/plan-status.md` in the same PR as the feature. A feature is `DONE`
-only when its acceptance criteria are met *and* the Definition of Done holds;
-anything else is `PARTIAL` with the gap named. "Mostly done" is not a state.
+If the change closes something the repository tracks in `docs/plan-status.md`,
+update that row in the same pull request. "Mostly done" is not a state.

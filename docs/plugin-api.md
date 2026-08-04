@@ -1,147 +1,155 @@
 # The plugin API, v1
 
-`@meith/plugin-kit` is the contract between the board and a plugin. This document
-is the policy: what a plugin is, what it may and may not do, how failures are
-handled, and what the guarantees actually cover. The reference — every hook,
-every payload — is generated into [`plugin-hooks.md`](./plugin-hooks.md).
+`@meith/plugin-kit` is the contract between the board and a plugin.
 
-## What a plugin is
+This document is the policy — what a plugin is, what it may and may not do, and
+what the guarantees actually cover. The reference (every hook, every payload) is
+generated into [Plugin hooks](./plugin-hooks.md).
 
-A module that calls `definePlugin` with a manifest and is registered in
-`forum.config.ts`. It declares:
+## Writing a plugin
 
-| | |
+A plugin is a module that calls `definePlugin` and is registered in
+`forum.config.ts`.
+
+```ts
+export const greeter = definePlugin({
+  key: "greeter",
+  name: "Greeter",
+  version: "1.0.0",
+  hooks: {
+    // A filter: what it returns replaces the value.
+    "view.footer": (footer) => ({
+      ...footer,
+      links: [...footer.links, { label: "Rules", href: "/rules" }],
+    }),
+    // An event: its return value is discarded.
+    "post.created": { handler: (post) => report(post.postId), priority: 200 },
+  },
+})
+```
+
+Installing it is `pnpm add`, a line in `forum.config.ts`, and a redeploy.
+
+### What a plugin can declare
+
+| Field | What it is |
 |---|---|
 | `hooks` | Handlers for named hooks. Filters change a value; events observe. |
-| `settings` | Settings the ACP will render, stored under `plugin.<key>.<name>`. |
+| `settings` | Settings the admin panel renders, stored under `plugin.<key>.<name>`. |
 | `migrations` | Forward-only SQL, applied in ascending id order and recorded per plugin. |
 | `tasks` | Scheduled work, registered as `plugin.<key>.<id>` and run by the same tick as core's. |
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
 | `contributions` | Markup in named UI regions. |
 | `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks. |
 
-Everything but the callbacks is **declarative**. A plugin does not call
-`registerHook` at import time — it exports an object and the host reads it.
-Registration by side effect makes the installed set depend on module evaluation
-order, which differs between the dev server, a bundled build and the worker, and
-is the direct cause of the "works locally, missing in production" class of
-plugin bug.
-
-Installing a plugin is `pnpm add`, a line in `forum.config.ts`, and a redeploy.
-There is no upload-a-zip path and there will not be one: a serverless bundle
-contains only what the bundler saw (invariant 6), so a plugin discovered at
-runtime is a plugin that is not there in production.
+> [!NOTE]
+> Everything but the callbacks is **declarative**. A plugin does not call
+> `registerHook` at import time — it exports an object and the host reads it.
+>
+> Registration by side effect makes the installed set depend on module evaluation
+> order, which differs between the dev server, a bundled build and the worker.
+> That is the direct cause of the "works locally, missing in production" class of
+> plugin bug.
 
 ## What a plugin cannot do
 
 These are not discouraged. There is no API for them.
 
-- **Decide authorization.** No hook filters `authorization.can()`, and none ever
-  will. A plugin able to change that answer is a plugin able to grant itself
-  anything.
-- **Reach inside the visibility filter.** No hook sits in F47's query path. A
-  plugin that could rewrite a `where` clause could publish a private forum, and
-  no amount of isolation makes that recoverable.
-- **See an `Actor`.** Payloads carry `{ userId, isGuest }`. An `Actor` carries
-  resolved group membership, which invites a plugin to make its own permission
-  decision from group ids — exactly what R4 forbids of core code.
-- **Open a database connection.** Migrations are SQL text the host runs; a
-  plugin does not import `@meith/db`.
-- **Patch core.** There is no monkey-patching seam and no way to replace a
-  domain command. Everything a plugin can do is in the registry.
-- **Fill a theme slot.** A theme owns its slots. Plugins contribute to *regions*
-  — see below.
+| It cannot | Why |
+|---|---|
+| Decide authorization | No hook filters `authorization.can()`, and none ever will. A plugin able to change that answer is a plugin able to grant itself anything |
+| Reach inside the visibility filter | No hook sits in the query path. A plugin that could rewrite a `where` clause could publish a private forum, and no amount of isolation makes that recoverable |
+| See an `Actor` | Payloads carry `{ userId, isGuest }`. An `Actor` carries resolved group membership, which invites a plugin to make its own permission decision from group ids |
+| Open a database connection | Migrations are SQL text the host runs. A plugin does not import `@meith/db` |
+| Patch core | There is no monkey-patching seam and no way to replace a domain command |
+| Fill a theme slot | A theme owns its slots. Plugins contribute to *regions* — see below |
 
 ## Filters and events
 
-A **filter** is handed a value and returns a replacement. Its result is used, so
-a filter is powerful and correspondingly dangerous. Filters chain: each plugin
-receives what the previous one returned.
+| | What it gets | What happens to the return value |
+|---|---|---|
+| **Filter** | A value | It is used. Filters chain: each plugin receives what the previous one returned |
+| **Event** | A notification | Discarded |
 
-An **event** is told something happened and its return value is discarded.
-Anything that only wants to *know* — logging, a webhook, a counter — must be an
-event, because an event handler cannot corrupt the thing it is watching even
-when it is wrong.
+> [!TIP]
+> Anything that only wants to *know* — logging, a webhook, a counter — should be
+> an event. An event handler cannot corrupt the thing it is watching even when it
+> is wrong.
+
+### Ordering
 
 Handlers run in **(priority, plugin key)** order. Lower priority runs first; the
-default is 100, so a plugin can insert either side of an unopinionated one
-without negative numbers. Both halves are declared and total, so two plugins
-compose the same way on every request, on every instance and in every
-deployment. Nothing depends on registration order or on how `forum.config.ts`
-happens to list its plugins.
+default is 100, so a plugin can insert on either side of an unopinionated one
+without negative numbers.
 
-```ts
-export const greeter = definePlugin({
-  key: 'greeter',
-  name: 'Greeter',
-  version: '1.0.0',
-  hooks: {
-    'view.footer': (footer) => ({
-      ...footer,
-      links: [...footer.links, { label: 'Rules', href: '/rules' }],
-    }),
-    'post.created': { handler: (post) => report(post.postId), priority: 200 },
-  },
-})
-```
+Both halves are declared and total, so two plugins compose the same way on every
+request, on every instance, in every deployment. Nothing depends on registration
+order or on how `forum.config.ts` happens to list its plugins.
 
-## Failure isolation, and what it does not cover
+## Failure isolation
 
-Every handler runs inside the host's try/catch:
+Every handler runs inside the host's try/catch.
 
-- a **filter** that throws leaves the value as it was, and the chain continues
-  with the next plugin;
-- a filter that returns `undefined` — the shape of a handler that forgot to
-  return — is treated the same way;
-- an **event** that throws is recorded and forgotten.
+| What happens | Result |
+|---|---|
+| A filter throws | The value is left as it was, and the chain continues with the next plugin |
+| A filter returns `undefined` | Treated the same way — that is the shape of a handler that forgot to return |
+| An event throws | Recorded and forgotten |
 
 Nothing a plugin does propagates to the page. That makes plugin failures
 survivable, **not invisible**: every failure is counted, logged with the plugin
 key and the hook, and reported by `host.health()`.
 
-Three limits, stated plainly because a guarantee with an unstated edge is worse
-than a smaller honest one:
+### Three limits worth stating
 
-**Auto-disable is per instance and in memory.** A plugin that has failed five
-times is switched off for the rest of that process and does not re-enable itself
-— a plugin that recovers silently means the operator never learns their board
-spent a day without the feature they installed. But the counter resets whenever
-the platform recycles the instance. Auto-disable protects a request path within
-one instance; switching a plugin off across the board is an operator action.
+A guarantee with an unstated edge is worse than a smaller honest one.
 
-**Timing is measured, never enforced.** Each call is timed and slow ones are
+> [!WARNING]
+> **Auto-disable is per instance and in memory.** A plugin that has failed five
+> times is switched off for the rest of that process, and does not re-enable
+> itself — a plugin that recovered silently would mean the operator never learned
+> their board spent a day without the feature they installed. But the counter
+> resets whenever the platform recycles the instance.
+>
+> Auto-disable protects a request path within one instance. Switching a plugin
+> off across the board is an operator action.
+
+**Timing is measured, never enforced.** Each call is timed, and slow ones are
 logged and counted. There is no timeout, because JavaScript cannot abort a
 handler: a `Promise.race` that "times out" returns control while the handler
 keeps running, keeps its connection, and resolves later. That is not a timeout.
 
-**UI contributions are isolated when they are built, not while they render.**
-The host calls your `render` function inside a try/catch, so a throw there drops
-your contribution and the region renders without it. A node that throws during
-React's own render cannot be contained from the server: catching that needs an
-error boundary, and error boundaries are client components. So build your markup
-in the function; do not return a component that does work.
+**UI contributions are isolated when they are built, not while they render.** The
+host calls your `render` function inside a try/catch, so a throw there drops your
+contribution and the region renders without it. A node that throws during React's
+own render cannot be contained from the server — catching that needs an error
+boundary, and error boundaries are client components.
+
+So: build your markup in the function. Do not return a component that does work.
 
 ## UI regions
 
-Regions are not theme slots, and the distinction is deliberate. If a plugin
-could fill a slot, an installed plugin would decide what a post looks like and
-two plugins filling the same slot would have to be resolved somehow.
+Regions are not theme slots, and the distinction is deliberate. If a plugin could
+fill a slot, an installed plugin would decide what a post looks like — and two
+plugins filling the same slot would have to be resolved somehow.
 
 A region is the other arrangement: an explicit "plugins may add something here"
-point that a *theme* renders. The theme keeps control of where plugin output
-appears; the plugin keeps control of what it is; several plugins compose by
-concatenation in the usual deterministic order.
+point that a *theme* renders.
 
-There are six, listed in [`plugin-hooks.md`](./plugin-hooks.md). The list is
-short on purpose — every region is a commitment every theme has to render or
-silently drop.
+- The theme keeps control of **where** plugin output appears.
+- The plugin keeps control of **what** it is.
+- Several plugins compose by concatenation, in the usual deterministic order.
+
+There are six, listed in [Plugin hooks](./plugin-hooks.md). The list is short on
+purpose — every region is a commitment every theme has to render or silently
+drop.
 
 ## Namespacing
 
-A plugin's key namespaces everything it registers, and the host builds the names
-so a plugin cannot collide with another or reach a core one:
+A plugin's key namespaces everything it registers, and the host builds the names,
+so a plugin cannot collide with another or reach a core one.
 
-| | |
+| Thing | Name it gets |
 |---|---|
 | Setting | `plugin.<key>.<setting>` |
 | Task | `plugin.<key>.<task>` |
@@ -153,46 +161,37 @@ a slash in a page path escapes the admin prefix.
 
 ## Migrations
 
-Forward-only, like core's, and for the same reason (invariant 32): a down
-migration that drops a column is a data-loss button on a live board.
+Forward-only, like core's, and for the same reason: a down migration that drops a
+column is a data-loss button on a live board.
 
-Ids look like `0001_add_table` and are applied in **sort** order. `definePlugin`
-refuses a list that is not written in ascending order, because the failure is
-silent: a fresh board applies everything, an upgraded board skips the id that
-sorts before the last one applied, and the two boards end up with different
-schemas and no error anywhere.
+Ids look like `0001_add_table` and are applied in **sort** order.
+
+> [!IMPORTANT]
+> `definePlugin` refuses a migration list that is not written in ascending order,
+> because the failure is otherwise silent: a fresh board applies everything, an
+> upgraded board skips the id that sorts before the last one applied, and the two
+> boards end up with different schemas and no error anywhere.
 
 ## Versioning
 
-`definePlugin` requires semver, and the version is the plugin's own — it is what
-the ACP shows and what its migration history is recorded against.
+`definePlugin` requires semver. The version is the plugin's own — it is what the
+admin panel shows and what its migration history is recorded against.
 
 `apiVersion` declares which plugin-kit major the plugin was written against. The
 same policy as the theme API applies: a minor adds hooks, payload fields and
 regions; a major may remove or rename one, and only after a deprecation cycle.
 
-## The generated reference is a gate
-
-[`plugin-hooks.md`](./plugin-hooks.md) is written by
-`scripts/plugin-hook-docs.mjs` from the registry. `pnpm verify` and CI run
-`pnpm plugin:docs:check`, which fails when the file and the code disagree.
-
-Hook documentation goes stale faster than most, because a hook is added in the
-feature that needs it and documented, if at all, afterwards. If the check fails,
-run `pnpm plugin:docs` and commit the result.
-
 ## What is wired, and what is not
 
-Honest inventory, because the alternative is a document describing a system that
-does not run — and it is derived rather than remembered.
+An honest inventory, because the alternative is a document describing a system
+that does not run. It is derived rather than remembered:
+`scripts/hook-callsites.mjs` computes it by scanning the tree, so the generated
+reference's column cannot drift from the code.
 
-**21 of the 91 hooks are wired**: the shell filters, the index, forum, thread,
-member, search and error-page view models, and the three posting events. The
-generated reference marks each hook's column, and
-`scripts/hook-callsites.mjs` computes it by scanning the tree, so the column
-cannot drift from the code.
+**21 of the 91 hooks are wired** — the shell filters, the index, forum, thread,
+member, search and error-page view models, and the three posting events.
 
-A hook that is declared but not wired is not broken — it is a call site that has
+A hook that is declared but not wired is not broken; it is a call site that has
 not been written. Registering a handler for one is legal, does nothing, and the
 reference marks it so you find out before you ship.
 
@@ -201,31 +200,43 @@ That is the ratchet: wiring a new call site into the board fails the reference
 plugin's test until a handler is added there, so a hook cannot join the running
 product without something proving it fires.
 
-**The four descriptors now execute** (F69). Migrations are applied by
-`forum upgrade`, in dependency order and one transaction each; settings are
-stored at `plugin.<key>.<name>` and edited in the control panel; tasks are
-registered in F06's registry as `plugin.<key>.<id>` and run by the same tick as
-everything else; admin pages are mounted at `/admin/plugins/<key>/<path>`.
+### The four descriptors execute
+
+Migrations are applied by `forum upgrade` in dependency order, one transaction
+each. Settings are stored at `plugin.<key>.<name>` and edited in the control
+panel. Tasks are registered as `plugin.<key>.<id>` and run by the same tick as
+everything else. Admin pages are mounted at `/admin/plugins/<key>/<path>`.
 
 What that leaves, stated plainly:
 
 - **A page cannot reach anything a task cannot.** Both are handed a
   `PluginRuntimeContext` — resolved settings and a logger — and neither gets the
-  `Actor`, the request or a database handle. A page renders under an
+  `Actor`, the request, or a database handle. A page renders under an
   already-authenticated panel route; there is no per-page permission to declare,
-  because a plugin does not get to make that decision (R4).
+  because a plugin does not get to make that decision.
 - **A task's failure is not swallowed.** Hooks are isolated because the
-  alternative is a plugin taking down a page render; a task has no page to take
-  down, and the scheduler already records failures and notifies administrators.
-  Catching there would turn every failure into a successful run of nothing.
-- **There is still no plugin-run button for migrations**, and there will not be.
-  A schema change belongs to the deploy that shipped the code expecting it. The
+  alternative is a plugin taking down a page render. A task has no page to take
+  down, and the scheduler already records failures and notifies administrators —
+  catching there would turn every failure into a successful run of nothing.
+- **There is no plugin-run button for migrations**, and there will not be. A
+  schema change belongs to the deploy that shipped the code expecting it. The
   panel reports which migrations have and have not been applied, which is the
   part an operator cannot otherwise find out.
 - **Disabling is durable and immediate; uninstalling is not offered.** The
-  panel's switch writes a row every instance reconciles against on its next
-  request, so it survives a redeploy — the plugin somebody switched off at 2am
-  is exactly the one that must stay off. Removing a plugin is still
-  `pnpm remove`, a line out of `forum.config.ts`, and a redeploy: a button that
-  dropped the rows and left the code running would produce a state neither
-  installing nor removing does.
+  panel's switch writes a row that every instance reconciles against on its next
+  request, so it survives a redeploy — the plugin somebody switched off at 2am is
+  exactly the one that must stay off. Removing a plugin is `pnpm remove`, a line
+  out of `forum.config.ts`, and a redeploy; a button that dropped the rows and
+  left the code running would produce a state neither installing nor removing
+  does.
+
+## The generated reference is a gate
+
+[Plugin hooks](./plugin-hooks.md) is written by `scripts/plugin-hook-docs.mjs`
+from the registry. `pnpm verify` and CI run `pnpm plugin:docs:check`, which fails
+when the file and the code disagree.
+
+Hook documentation goes stale faster than most, because a hook is added in the
+feature that needs it and documented, if at all, afterwards.
+
+If the check fails, run `pnpm plugin:docs` and commit the result.

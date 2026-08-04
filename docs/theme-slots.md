@@ -18,41 +18,41 @@ works and has a removal scheduled below.
 
 ## Every slot
 
-| Slot | Kind | Stability | Feature | Props |
-|---|---|---|---|---|
-| [`Shell`](#shell) | `server` | stable | F27 | `ShellModel` |
-| [`Header`](#header) | `server` | stable | F27 | `HeaderModel` |
-| [`UserPanel`](#userpanel) | `server` | stable | F27 | `UserPanelModel` |
-| [`Navigation`](#navigation) | `server` | stable | F27 | `NavigationModel` |
-| [`Footer`](#footer) | `server` | stable | F27 | `FooterModel` |
-| [`Notice`](#notice) | `server` | stable | F27 | `NoticeModel` |
-| [`Announcement`](#announcement) | `server` | stable | F71 | `AnnouncementModel` |
-| [`BoardIndex`](#boardindex) | `server` | stable | F29 | `BoardIndexModel` |
-| [`CategoryBlock`](#categoryblock) | `server` | stable | F29 | `CategoryBlockModel` |
-| [`ForumRow`](#forumrow) | `server` | stable | F29 | `ForumRowSlotModel` |
-| [`BoardStats`](#boardstats) | `server` | stable | F75 | `BoardStatsModel` |
-| [`WhoIsOnline`](#whoisonline) | `server` | stable | F75 | `WhoIsOnlineModel` |
-| [`ForumDisplay`](#forumdisplay) | `server` | stable | F30 | `ForumDisplayModel` |
-| [`ThreadRow`](#threadrow) | `server` | stable | F30 | `ThreadRowSlotModel` |
-| [`SubforumList`](#subforumlist) | `server` | stable | F30 | `SubforumListModel` |
-| [`Pagination`](#pagination) | `server` | stable | F30 | `PaginationModel` |
-| [`ThreadView`](#threadview) | `server` | stable | F31 | `ThreadViewModel` |
-| [`PostBit`](#postbit) | `server` | stable | F31 | `PostBitSlotModel` |
-| [`PostActions`](#postactions) | `server` | stable | F31 | `PostActionsSlotModel` |
-| [`QuickReply`](#quickreply) | `client` | provisional | F45 | `QuickReplyModel` |
-| [`PostForm`](#postform) | `server` | stable | F39 | `PostFormModel` |
-| [`EditorToolbar`](#editortoolbar) | `client` | provisional | F45 | `EditorToolbarModel` |
-| [`MemberProfile`](#memberprofile) | `server` | stable | F33 | `MemberProfileModel` |
-| [`SearchForm`](#searchform) | `server` | stable | F73 | `SearchFormModel` |
-| [`ForumJump`](#forumjump) | `server` | stable | F27 | `ForumJumpModel` |
-| [`RedirectNotice`](#redirectnotice) | `server` | stable | F34 | `RedirectNoticeModel` |
-| [`ErrorNotice`](#errornotice) | `server` | stable | F34 | `ErrorNoticeModel` |
+| Slot | Kind | Stability | Props |
+|---|---|---|---|
+| [`Shell`](#shell) | `server` | stable | `ShellModel` |
+| [`Header`](#header) | `server` | stable | `HeaderModel` |
+| [`UserPanel`](#userpanel) | `server` | stable | `UserPanelModel` |
+| [`Navigation`](#navigation) | `server` | stable | `NavigationModel` |
+| [`Footer`](#footer) | `server` | stable | `FooterModel` |
+| [`Notice`](#notice) | `server` | stable | `NoticeModel` |
+| [`Announcement`](#announcement) | `server` | stable | `AnnouncementModel` |
+| [`BoardIndex`](#boardindex) | `server` | stable | `BoardIndexModel` |
+| [`CategoryBlock`](#categoryblock) | `server` | stable | `CategoryBlockModel` |
+| [`ForumRow`](#forumrow) | `server` | stable | `ForumRowSlotModel` |
+| [`BoardStats`](#boardstats) | `server` | stable | `BoardStatsModel` |
+| [`WhoIsOnline`](#whoisonline) | `server` | stable | `WhoIsOnlineModel` |
+| [`ForumDisplay`](#forumdisplay) | `server` | stable | `ForumDisplayModel` |
+| [`ThreadRow`](#threadrow) | `server` | stable | `ThreadRowSlotModel` |
+| [`SubforumList`](#subforumlist) | `server` | stable | `SubforumListModel` |
+| [`Pagination`](#pagination) | `server` | stable | `PaginationModel` |
+| [`ThreadView`](#threadview) | `server` | stable | `ThreadViewModel` |
+| [`PostBit`](#postbit) | `server` | stable | `PostBitSlotModel` |
+| [`PostActions`](#postactions) | `server` | stable | `PostActionsSlotModel` |
+| [`QuickReply`](#quickreply) | `client` | provisional | `QuickReplyModel` |
+| [`PostForm`](#postform) | `server` | stable | `PostFormModel` |
+| [`EditorToolbar`](#editortoolbar) | `client` | provisional | `EditorToolbarModel` |
+| [`MemberProfile`](#memberprofile) | `server` | stable | `MemberProfileModel` |
+| [`SearchForm`](#searchform) | `server` | stable | `SearchFormModel` |
+| [`ForumJump`](#forumjump) | `server` | stable | `ForumJumpModel` |
+| [`RedirectNotice`](#redirectnotice) | `server` | stable | `RedirectNoticeModel` |
+| [`ErrorNotice`](#errornotice) | `server` | stable | `ErrorNoticeModel` |
 
 ## Slot reference
 
 ### Shell
 
-`server` · stable · introduced by F27
+`server` · stable
 
 The outermost frame: skip link, header, main landmark, footer. Wraps every page including the error pages.
 
@@ -66,7 +66,7 @@ Props: `ShellModel`
 
 ### Header
 
-`server` · stable · introduced by F27
+`server` · stable
 
 Board title or logo, and the region the user panel sits in.
 
@@ -82,7 +82,7 @@ Props: `HeaderModel`
 
 ### UserPanel
 
-`server` · stable · introduced by F27
+`server` · stable
 
 Greeting and account links, or the sign-in prompt for a guest. Varies by actor, which is why no page wrapping it may be cached globally.
 
@@ -92,13 +92,13 @@ Props: `UserPanelModel`
 |---|---|---|
 | `viewer` | `ViewerModel` |  |
 | `links` | `readonly LinkModel[]` | Sign-in / register, or account links. Resolved by the app. |
-| `unreadNotifications` | `number` | F55. `0` when there is nothing to show. |
+| `unreadNotifications` | `number` | `0` when there is nothing to show. |
 | `unreadMessages` | `number` |  |
 | `children` | `ReactNode` | optional — Account controls the app supplies — today, the log-out form. Log out cannot be a `LinkModel`: it is a POST to a Server Action, because a GET that ends a session is fired by every prefetcher and link scanner that touches the page. A Server Action reference is also not plain data and could never cross this contract, so the app renders the form and the theme decides where in the panel it sits. |
 
 ### Navigation
 
-`server` · stable · introduced by F27
+`server` · stable
 
 The breadcrumb trail. Board → category → forum → thread.
 
@@ -110,7 +110,7 @@ Props: `NavigationModel`
 
 ### Footer
 
-`server` · stable · introduced by F27
+`server` · stable
 
 Board footer: copyright, timezone note, links.
 
@@ -124,7 +124,7 @@ Props: `FooterModel`
 
 ### Notice
 
-`server` · stable · introduced by F27
+`server` · stable
 
 A board-wide announcement or a flash message. Server-rendered so a notice is present in the first response, not after hydration.
 
@@ -138,7 +138,7 @@ Props: `NoticeModel`
 
 ### Announcement
 
-`server` · stable · introduced by F71
+`server` · stable
 
 One announcement: a dated, authored notice shown above the forums. Distinct from Notice, which is a flash message about what the viewer just did — these are for everybody and last until they expire.
 
@@ -154,7 +154,7 @@ Props: `AnnouncementModel`
 
 ### BoardIndex
 
-`server` · stable · introduced by F29
+`server` · stable
 
 The index page body: the ordered list of category blocks.
 
@@ -162,12 +162,12 @@ Props: `BoardIndexModel`
 
 | Field | Type | Notes |
 |---|---|---|
-| `markAllReadAction` | `string \| null` | F32's "mark all read" — a form target, not a client handler. |
-| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * F80's `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the v1 * policy — a theme written against 1.0 keeps compiling and simply does not * render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode /** * F71's live announcements, already rendered — one `Announcement` per row, * or absent when there are none. * * Optional for the same reason the plugin region is, and under the same * policy: a theme written against an earlier minor compiles and simply does * not show them. */ readonly announcements?: ReactNode }` |  |
+| `markAllReadAction` | `string \| null` | The "mark all read" target — a form target, not a client handler. |
+| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * The `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the v1 * policy — a theme written against 1.0 keeps compiling and simply does not * render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode /** * Live announcements, already rendered — one `Announcement` per row, * or absent when there are none. * * Optional for the same reason the plugin region is, and under the same * policy: a theme written against an earlier minor compiles and simply does * not show them. */ readonly announcements?: ReactNode }` |  |
 
 ### CategoryBlock
 
-`server` · stable · introduced by F29
+`server` · stable
 
 One top-level category and the forum rows under it.
 
@@ -180,7 +180,7 @@ Props: `CategoryBlockModel`
 
 ### ForumRow
 
-`server` · stable · introduced by F29
+`server` · stable
 
 One forum in a listing: title, description, counters, last post, subforum links.
 
@@ -192,9 +192,9 @@ Props: `ForumRowSlotModel`
 
 ### BoardStats
 
-`server` · stable · introduced by F75
+`server` · stable
 
-Totals and newest member. Named now; F75 supplies the numbers.
+Board totals and the newest member.
 
 Props: `BoardStatsModel`
 
@@ -204,13 +204,13 @@ Props: `BoardStatsModel`
 | `postCount` | `number` |  |
 | `memberCount` | `number` |  |
 | `newestMember` | `UserRefModel \| null` |  |
-| `computedAt` | `TimeModel \| null` | When the totals were last rolled up, or null before the first run (F75). Part of the contract rather than a detail the app hides, because a theme that shows the numbers should be able to say how old they are — and "computed ten minutes ago" is the difference between a number that is stale and one that is wrong. |
+| `computedAt` | `TimeModel \| null` | When the totals were last rolled up, or null before the first run. Part of the contract rather than a detail the app hides, because a theme that shows the numbers should be able to say how old they are — and "computed ten minutes ago" is the difference between a number that is stale and one that is wrong. |
 
 ### WhoIsOnline
 
-`server` · stable · introduced by F75
+`server` · stable
 
-The online list and its record. Named now; F75 supplies the data.
+The online list and its record.
 
 Props: `WhoIsOnlineModel`
 
@@ -218,14 +218,14 @@ Props: `WhoIsOnlineModel`
 |---|---|---|
 | `guestCount` | `number` |  |
 | `members` | `readonly OnlineMemberModel[]` |  |
-| `total` | `number` | Members plus guests, as this reader is permitted to count them (F75). |
+| `total` | `number` | Members plus guests, as this reader is permitted to count them. |
 | `recordCount` | `number` |  |
 | `recordAt` | `TimeModel \| null` |  |
 | `fullListHref` | `string` | The full list, for a theme that shows only a summary here. |
 
 ### ForumDisplay
 
-`server` · stable · introduced by F30
+`server` · stable
 
 A forum page body: subforums, thread list, pagination.
 
@@ -236,11 +236,11 @@ Props: `ForumDisplayModel`
 | `forum` | `ForumRowModel` |  |
 | `newThreadHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` |  |
-| `regions` | `{ readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * F71. This forum's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode }` |  |
+| `regions` | `{ readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * This forum's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode }` |  |
 
 ### ThreadRow
 
-`server` · stable · introduced by F30
+`server` · stable
 
 One thread in a listing: prefix, title, author, counters, last post.
 
@@ -249,11 +249,11 @@ Props: `ThreadRowSlotModel`
 | Field | Type | Notes |
 |---|---|---|
 | `thread` | `ThreadRowModel` |  |
-| `select` | `SelectionModel \| null` | F52's checkbox, or `null`. |
+| `select` | `SelectionModel \| null` | The inline-moderation checkbox, or `null`. |
 
 ### SubforumList
 
-`server` · stable · introduced by F30
+`server` · stable
 
 The compact list of child forums shown above a thread list.
 
@@ -265,9 +265,9 @@ Props: `SubforumListModel`
 
 ### Pagination
 
-`server` · stable · introduced by F30
+`server` · stable
 
-Page links. Server-rendered and href-based: paging must work with JavaScript disabled (R5), so this can never become an island.
+Page links. Server-rendered and href-based: paging must work with JavaScript disabled, so this can never become an island.
 
 Props: `PaginationModel`
 
@@ -281,7 +281,7 @@ Props: `PaginationModel`
 
 ### ThreadView
 
-`server` · stable · introduced by F31
+`server` · stable
 
 A thread page body: the post list, pagination, reply affordance.
 
@@ -292,12 +292,12 @@ Props: `ThreadViewModel`
 | `thread` | `ThreadRowModel` |  |
 | `forum` | `LinkModel` |  |
 | `replyHref` | `string \| null` |  |
-| `markReadAction` | `string \| null` | F32: a native POST target for the last visible post on this page. |
+| `markReadAction` | `string \| null` | A native POST target for the last visible post on this page. |
 | `regions` | `{ /** One `PostBit` per post on this page. */ readonly posts: ReactNode readonly pagination: ReactNode /** * The quick-reply island, or `null` when the viewer may not reply — in which * case nothing is rendered and no island bytes are shipped. */ readonly quickReply: ReactNode }` |  |
 
 ### PostBit
 
-`server` · stable · introduced by F31
+`server` · stable
 
 One post: author block, body, footer. **The** load-bearing server slot — see this file’s header for what marking it `client` costs.
 
@@ -306,12 +306,12 @@ Props: `PostBitSlotModel`
 | Field | Type | Notes |
 |---|---|---|
 | `post` | `PostBitModel` |  |
-| `select` | `SelectionModel \| null` | F52's checkbox, or `null`. A theme that ignores it loses only bulk actions. |
-| `regions` | `{ /** The `PostActions` slot, rendered by the page. */ readonly actions: ReactNode /** F80's `postbit.badges` region, beside the author's name. */ readonly pluginBadges?: ReactNode /** F80's `postbit.footer` region, below the body. */ readonly pluginFooter?: ReactNode }` |  |
+| `select` | `SelectionModel \| null` | The inline-moderation checkbox, or `null`. A theme that ignores it loses only bulk actions. |
+| `regions` | `{ /** The `PostActions` slot, rendered by the page. */ readonly actions: ReactNode /** The `postbit.badges` region, beside the author's name. */ readonly pluginBadges?: ReactNode /** The `postbit.footer` region, below the body. */ readonly pluginFooter?: ReactNode }` |  |
 
 ### PostActions
 
-`server` · stable · introduced by F31
+`server` · stable
 
 Per-post controls (quote, edit, report, moderate). Links and forms, not buttons with handlers, so they work without JavaScript.
 
@@ -324,7 +324,7 @@ Props: `PostActionsSlotModel`
 
 ### QuickReply
 
-`client` · provisional · introduced by F45
+`client` · provisional
 
 The inline reply island at the foot of a thread. Enhances the full reply page; it never becomes the only way to reply.
 
@@ -340,7 +340,7 @@ Props: `QuickReplyModel`
 
 ### PostForm
 
-`server` · stable · introduced by F39
+`server` · stable
 
 The composer page: subject, message, prefix, options. A native form posting to a Server Action — the editor toolbar is the island, not this.
 
@@ -353,11 +353,11 @@ Props: `PostFormModel`
 | `cancelHref` | `string` | Where a cancel link returns to — the forum, or the thread being replied to. |
 | `cancelLabel` | `string` |  |
 | `errorMessage` | `string \| null` |  |
-| `regions` | `{ /** The app-rendered `<form>` carrying the Server Action and its controls. */ readonly form: ReactNode /** * The `EditorToolbar` island, or `null`. A `null` here must leave a working * plain-textarea form: the island enhances, it never enables (R5). */ readonly toolbar: ReactNode }` |  |
+| `regions` | `{ /** The app-rendered `<form>` carrying the Server Action and its controls. */ readonly form: ReactNode /** * The `EditorToolbar` island, or `null`. A `null` here must leave a working * plain-textarea form: the island enhances, it never enables. */ readonly toolbar: ReactNode }` |  |
 
 ### EditorToolbar
 
-`client` · provisional · introduced by F45
+`client` · provisional
 
 BBCode buttons, preview, attachment picker. Mounted beside the textarea; removing it must leave a working plain-textarea form.
 
@@ -371,7 +371,7 @@ Props: `EditorToolbarModel`
 
 ### MemberProfile
 
-`server` · stable · introduced by F33
+`server` · stable
 
 A member’s profile page body: identity, stats, recent activity.
 
@@ -386,13 +386,13 @@ Props: `MemberProfileModel`
 | `lastVisitAt` | `TimeModel \| null` |  |
 | `postCount` | `number` |  |
 | `signatureHtml` | `string \| null` |  |
-| `fields` | `readonly { readonly label: string; readonly value: string }[]` | F59's custom fields, already filtered by visibility. |
+| `fields` | `readonly { readonly label: string; readonly value: string }[]` | Custom profile fields, already filtered by visibility. |
 | `actions` | `readonly LinkModel[]` |  |
-| `regions` | `{ /** F80's `profile.panel` region. */ readonly plugins?: ReactNode }` | optional |
+| `regions` | `{ /** The `profile.panel` region. */ readonly plugins?: ReactNode }` | optional |
 
 ### SearchForm
 
-`server` · stable · introduced by F73
+`server` · stable
 
 The search form. A GET form with named inputs, so a search is a URL that can be linked and cached.
 
@@ -411,7 +411,7 @@ Props: `SearchFormModel`
 
 ### ForumJump
 
-`server` · stable · introduced by F27
+`server` · stable
 
 The jump box at the foot of every page. A GET form with a submit control, never a select that navigates on change — choosing an option is not committing to it, and arrow-keying through one would teleport a keyboard user to the first forum in the list.
 
@@ -427,7 +427,7 @@ Props: `ForumJumpModel`
 
 ### RedirectNotice
 
-`server` · stable · introduced by F34
+`server` · stable
 
 The MyBB-style interstitial: "your post was made, continuing in a moment", with a real link for anyone the meta refresh does not carry.
 
@@ -441,7 +441,7 @@ Props: `RedirectNoticeModel`
 
 ### ErrorNotice
 
-`server` · stable · introduced by F34
+`server` · stable
 
 The themed body of an error or not-found page. Must not depend on the database: it is what renders when the database is the thing that failed.
 
@@ -453,7 +453,7 @@ Props: `ErrorNoticeModel`
 | `title` | `string` |  |
 | `message` | `string` |  |
 | `homeHref` | `string` |  |
-| `requestId` | `string \| null` | F09's request id, so a user can quote it in a report. |
+| `requestId` | `string \| null` | The request id, so a user can quote it in a report. |
 
 ## Shared models
 
@@ -484,7 +484,7 @@ Submitted as the form value. Opaque to the theme. readonly value: string readonl
 | `threadCount` | `number` |  |
 | `postCount` | `number` |  |
 | `lastPost` | `LastPostModel \| null` |  |
-| `isUnread` | `boolean` | F32. `false` for a guest, who has no read state. |
+| `isUnread` | `boolean` | `false` for a guest, who has no read state. |
 | `subforums` | `readonly LinkModel[]` |  |
 
 ### LastPostModel
@@ -509,7 +509,7 @@ A resolved link. Themes never build hrefs; the app owns URL shape.
 
 ### OnlineMemberModel
 
-One visitor in the online list (F75). `location` is **already resolved against the reader**: a forum they may not see arrives as the bare label, never as a title with a link. The theme renders what it is given and cannot leak what it was not.
+One visitor in the online list. `location` is **already resolved against the reader**: a forum they may not see arrives as the bare label, never as a title with a link. The theme renders what it is given and cannot leak what it was not.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -536,15 +536,15 @@ One choice in a `<select>` or a radio group, with the current one marked. `isSel
 |---|---|---|
 | `quoteHref` | `string \| null` |  |
 | `editHref` | `string \| null` |  |
-| `restoreHref` | `string \| null` | Where a soft-deleted post is put back (F41). A separate field rather than a second meaning for `editHref`, because the two are never both offered: a deleted post cannot be edited, and a visible one has nothing to restore. A theme that renders both gets exactly one. |
+| `restoreHref` | `string \| null` | Where a soft-deleted post is put back. A separate field rather than a second meaning for `editHref`, because the two are never both offered: a deleted post cannot be edited, and a visible one has nothing to restore. A theme that renders both gets exactly one. |
 | `reportHref` | `string \| null` |  |
-| `warnHref` | `string \| null` | Warn this post's author, citing this post (F53). Present for moderators only, and `null` for a post whose author is the viewer or a deleted account. Separate from `moderateHref` because a warning is aimed at the *person* and the post is only the evidence — which is also why the link carries the post id rather than living on the post's own moderation controls. |
-| `moderateHref` | `string \| null` | Reserved for per-post moderation controls that are not inline (F54). Still `null` everywhere: F52 put per-post moderation on checkboxes and a bar rather than a per-post link, so nothing fills this yet. It stays in the contract because F54's ModCP is where a per-post moderation *page* would live, and removing a public field to add it back next feature is worse than a documented `null`. |
-| `rateHref` | `string \| null` | Rate this post's author, for this post (F62). Null on your own post, on a board with reputation off, and for anybody without the permission. It carries the post so the rating is attached to *this* post rather than to the author generally — which is what makes one rating per post a meaningful rule. |
+| `warnHref` | `string \| null` | Warn this post's author, citing this post. Present for moderators only, and `null` for a post whose author is the viewer or a deleted account. Separate from `moderateHref` because a warning is aimed at the *person* and the post is only the evidence — which is also why the link carries the post id rather than living on the post's own moderation controls. |
+| `moderateHref` | `string \| null` | Reserved for per-post moderation controls that are not inline. Still `null` everywhere: per-post moderation is on checkboxes and a bar rather than a per-post link, so nothing fills this yet. It stays in the contract because the moderation control panel is where such a *page* would live, and removing a public field to add it back next feature is worse than a documented `null`. |
+| `rateHref` | `string \| null` | Rate this post's author, for this post. Null on your own post, on a board with reputation off, and for anybody without the permission. It carries the post so the rating is attached to *this* post rather than to the author generally — which is what makes one rating per post a meaningful rule. |
 
 ### PostAttachmentModel
 
-One file attached to a post (F42).
+One file attached to a post.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -570,9 +570,9 @@ The author block beside a post.
 | `title` | `string \| null` | Usergroup title or custom user title. |
 | `postCount` | `number` |  |
 | `joinedAt` | `TimeModel \| null` |  |
-| `signatureHtml` | `string \| null` | Pre-rendered BBCode (F36). Trusted output of the sanitising renderer. |
+| `signatureHtml` | `string \| null` | Pre-rendered BBCode. Trusted output of the sanitising renderer. |
 | `isOnline` | `boolean` |  |
-| `fields` | `readonly { readonly label: string; readonly value: string }[]` | F59's custom fields, for the ones an operator marked for the postbit and this viewer may see. The same `{label, value}` shape `MemberProfileModel.fields` uses, and **plain text** for the same reason: it is rendered as text by the theme, and a field that could carry markup is stored XSS on the board's heaviest page. Empty on a board with no custom fields, which is most of them. |
+| `fields` | `readonly { readonly label: string; readonly value: string }[]` | Custom profile fields, for the ones an operator marked for the postbit and this viewer may see. The same `{label, value}` shape `MemberProfileModel.fields` uses, and **plain text** for the same reason: it is rendered as text by the theme, and a field that could carry markup is stored XSS on the board's heaviest page. Empty on a board with no custom fields, which is most of them. |
 
 ### PostBitModel
 
@@ -582,19 +582,19 @@ The author block beside a post.
 | `number` | `number` | Position within the thread, 1-based. What "#12" in the corner means. |
 | `permalink` | `string` |  |
 | `author` | `PostAuthorModel` |  |
-| `bodyHtml` | `string` | Pre-rendered BBCode (F36). |
-| `quoteSource` | `string` | Source used only by F45's client multiquote button; themes never render it. |
+| `bodyHtml` | `string` | Pre-rendered BBCode. |
+| `quoteSource` | `string` | Source used only by the client multiquote button; themes never render it. |
 | `postedAt` | `TimeModel` |  |
 | `editedNote` | `string \| null` | "Last edited by X on Y", already assembled, or `null`. |
 | `isFirstPost` | `boolean` |  |
-| `visibility` | `'visible' \| 'unapproved' \| 'deleted'` | F47: a moderator sees deleted and unapproved posts, marked as such. |
-| `ignored` | `{ readonly authorUsername: string /** Same page, this post revealed. A GET: revealing changes nothing. */ readonly revealHref: string } \| null` | F61. Set when this viewer ignores the author and has not revealed this post; `null` otherwise, which is the case on almost every post. The body is **withheld server-side** when this is set — `bodyHtml` is empty, the signature and custom fields are gone — rather than hidden with CSS, because "ignored" that ships the text to the browser is a preference rather than a feature. The post keeps its place and its number: filtering it out would give every viewer a different page size and make "#12" mean different posts to different people. A theme renders the placeholder and the link. Both are required — a hidden post with no way to see it is a hole in a conversation. |
-| `attachments` | `readonly PostAttachmentModel[]` | The files attached to this post (F42). Empty on almost every post, and empty rather than absent so a theme has one shape to render. **Every entry is already downloadable**: a `pending` upload — one whose re-encode has not finished — and a failed one are not in this list, because a link to a file that is not there yet is worse than the file appearing a minute later. `thumbnailHref` is `null` for anything that is not an image, and for an image small enough that a thumbnail would be the same picture again. A theme showing an image inline uses `thumbnailHref ?? href` and gets the right answer in both cases. |
+| `visibility` | `'visible' \| 'unapproved' \| 'deleted'` | A moderator sees deleted and unapproved posts, marked as such. |
+| `ignored` | `{ readonly authorUsername: string /** Same page, this post revealed. A GET: revealing changes nothing. */ readonly revealHref: string } \| null` | Set when this viewer ignores the author and has not revealed this post; `null` otherwise, which is the case on almost every post. The body is **withheld server-side** when this is set — `bodyHtml` is empty, the signature and custom fields are gone — rather than hidden with CSS, because "ignored" that ships the text to the browser is a preference rather than a feature. The post keeps its place and its number: filtering it out would give every viewer a different page size and make "#12" mean different posts to different people. A theme renders the placeholder and the link. Both are required — a hidden post with no way to see it is a hole in a conversation. |
+| `attachments` | `readonly PostAttachmentModel[]` | The files attached to this post. Empty on almost every post, and empty rather than absent so a theme has one shape to render. **Every entry is already downloadable**: a `pending` upload — one whose re-encode has not finished — and a failed one are not in this list, because a link to a file that is not there yet is worse than the file appearing a minute later. `thumbnailHref` is `null` for anything that is not an image, and for an image small enough that a thumbnail would be the same picture again. A theme showing an image inline uses `thumbnailHref ?? href` and gets the right answer in both cases. |
 | `actions` | `PostActionsModel` |  |
 
 ### PrefixModel
 
-A thread prefix (F37 supplies styling from `token`).
+A thread prefix; `token` supplies its styling.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -603,7 +603,7 @@ A thread prefix (F37 supplies styling from `token`).
 
 ### SelectionModel
 
-One inline-moderation checkbox (F52), or `null` when this viewer has no business selecting rows. Plain data, and it has to be: the *form* it belongs to carries a Server Action reference, and D38 settled that such references never cross the theme contract. So the app renders the form — below the listing, where a bar of buttons belongs — and the theme renders a checkbox that says which form it belongs to. `formId` is the whole trick, and it is why this works with scripting off. HTML's `form` attribute associates a control with a form **by id, anywhere in the document**, so the checkboxes can live inside table rows, list items or article elements without the listing having to be wrapped in a `<form>` — which it cannot be, because `ForumDisplay` already renders a mark-read form and nested forms are not a thing browsers will parse.
+One inline-moderation checkbox, or `null` when this viewer has no business selecting rows. Plain data, and it has to be: the *form* it belongs to carries a Server Action reference, and such references never cross the theme contract. So the app renders the form — below the listing, where a bar of buttons belongs — and the theme renders a checkbox that says which form it belongs to. `formId` is the whole trick, and it is why this works with scripting off. HTML's `form` attribute associates a control with a form **by id, anywhere in the document**, so the checkboxes can live inside table rows, list items or article elements without the listing having to be wrapped in a `<form>` — which it cannot be, because `ForumDisplay` already renders a mark-read form and nested forms are not a thing browsers will parse.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -659,8 +659,8 @@ Who is looking. The only actor data a theme is given.
 | `username` | `string \| null` |  |
 | `profileHref` | `string \| null` |  |
 | `avatarUrl` | `string \| null` |  |
-| `canAccessAdminCp` | `boolean` | Whether to render the admin-panel link. A *rendering* hint, resolved by the Authorizer already — a theme must never conclude anything about permissions on its own, and R6 keeps themes out of authorization entirely. |
-| `canAccessModCp` | `boolean` | Whether to render the moderation link (F48). Same shape and same rule as `canAccessAdminCp`: a rendering hint the Authorizer has already decided. Group-level only, which is a real limitation rather than an oversight: a per-forum appointee's queue exists and is reachable, but answering "does this person moderate anything" for them costs the tree, and the shell renders on every page. F54's ModCP is where that link earns its query. |
+| `canAccessAdminCp` | `boolean` | Whether to render the admin-panel link. A *rendering* hint, resolved by the Authorizer already — a theme must never conclude anything about permissions on its own, and themes stay out of authorization entirely. |
+| `canAccessModCp` | `boolean` | Whether to render the moderation link. Same shape and same rule as `canAccessAdminCp`: a rendering hint the Authorizer has already decided. Group-level only, which is a real limitation rather than an oversight: a per-forum appointee's queue exists and is reachable, but answering "does this person moderate anything" for them costs the tree, and the shell renders on every page. The moderation control panel is where that link earns its query. |
 
 ## Scheduled removals
 

@@ -260,7 +260,7 @@ function render({ hooks, signatures, regions, wired }) {
   const groups = [...new Set(hooks.map((hook) => hook.group))]
   for (const group of groups) {
     push(`## ${group}`, '')
-    push('| Hook | Kind | Wired | Value | Context | Feature |', '|---|---|---|---|---|---|')
+    push('| Hook | Kind | Wired | Value | Context |', '|---|---|---|---|---|')
     for (const hook of hooks.filter((entry) => entry.group === group)) {
       const signature = signatures.get(hook.name)
       if (signature === undefined) {
@@ -268,7 +268,7 @@ function render({ hooks, signatures, regions, wired }) {
       }
       push(
         `| \`${hook.name}\` | ${hook.kind} | ${wired.has(hook.name) ? 'yes' : '—'} | ` +
-          `\`${cell(signature.value)}\` | \`${cell(signature.context)}\` | ${hook.feature} |`,
+          `\`${cell(signature.value)}\` | \`${cell(signature.context)}\` |`,
       )
     }
     push('')

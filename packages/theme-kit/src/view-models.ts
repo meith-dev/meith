@@ -14,7 +14,7 @@
  *
  *  1. a **server slot**, which renders it;
  *  2. a **client slot**, across the RSC boundary;
- *  3. the **public REST API** (F81), which returns view models as JSON.
+ *  3. the **public REST API**, which returns view models as JSON.
  *
  * A `Date` also pushes formatting into every theme, and formatting a date is
  * timezone- and locale-dependent: the server does not know the viewer's zone,
@@ -55,7 +55,7 @@ import type { SlotName } from './slots'
  * entire API as methods, so mapping it produces an object whose members are
  * `never` and the assignment fails. An explicit branch naming those five was
  * written first and then deleted: no mutation could make it matter, and a clause
- * no test can kill is a clause that will quietly stop being true (D10).
+ * no test can kill is a clause that will quietly stop being true.
  *
  * **Limit, stated plainly:** a class instance with only data fields is
  * structurally indistinguishable from a plain object, so this cannot catch one.
@@ -133,17 +133,17 @@ export interface ViewerModel {
   /**
    * Whether to render the admin-panel link. A *rendering* hint, resolved by the
    * Authorizer already — a theme must never conclude anything about permissions
-   * on its own, and R6 keeps themes out of authorization entirely.
+   * on its own, and themes stay out of authorization entirely.
    */
   readonly canAccessAdminCp: boolean
   /**
-   * Whether to render the moderation link (F48). Same shape and same rule as
+   * Whether to render the moderation link. Same shape and same rule as
    * `canAccessAdminCp`: a rendering hint the Authorizer has already decided.
    *
    * Group-level only, which is a real limitation rather than an oversight: a
    * per-forum appointee's queue exists and is reachable, but answering "does
    * this person moderate anything" for them costs the tree, and the shell
-   * renders on every page. F54's ModCP is where that link earns its query.
+   * renders on every page. The moderation control panel is where that link earns its query.
    */
   readonly canAccessModCp: boolean
 }
@@ -165,7 +165,7 @@ export interface LastPostModel {
   readonly at: TimeModel
 }
 
-/** A thread prefix (F37 supplies styling from `token`). */
+/** A thread prefix; `token` supplies its styling. */
 export interface PrefixModel {
   readonly label: string
   readonly token: string | null
@@ -200,7 +200,7 @@ export interface ForumRowModel {
   readonly threadCount: number
   readonly postCount: number
   readonly lastPost: LastPostModel | null
-  /** F32. `false` for a guest, who has no read state. */
+  /** `false` for a guest, who has no read state. */
   readonly isUnread: boolean
   readonly subforums: readonly LinkModel[]
 }
@@ -228,7 +228,7 @@ export interface ThreadRowModel {
  * impossible here, and that is the constraint doing its job: a function cannot
  * cross to a client slot or into an API response. The app resolves the window
  * and hands over links, which also means paging is plain anchors and therefore
- * works with JavaScript disabled (R5).
+ * works with JavaScript disabled.
  */
 export interface PaginationModel {
   readonly page: number
@@ -253,11 +253,11 @@ export interface PostAuthorModel extends UserRefModel {
   readonly title: string | null
   readonly postCount: number
   readonly joinedAt: TimeModel | null
-  /** Pre-rendered BBCode (F36). Trusted output of the sanitising renderer. */
+  /** Pre-rendered BBCode. Trusted output of the sanitising renderer. */
   readonly signatureHtml: string | null
   readonly isOnline: boolean
   /**
-   * F59's custom fields, for the ones an operator marked for the postbit and
+   * Custom profile fields, for the ones an operator marked for the postbit and
    * this viewer may see.
    *
    * The same `{label, value}` shape `MemberProfileModel.fields` uses, and
@@ -272,7 +272,7 @@ export interface PostActionsModel {
   readonly quoteHref: string | null
   readonly editHref: string | null
   /**
-   * Where a soft-deleted post is put back (F41).
+   * Where a soft-deleted post is put back.
    *
    * A separate field rather than a second meaning for `editHref`, because the
    * two are never both offered: a deleted post cannot be edited, and a visible
@@ -281,7 +281,7 @@ export interface PostActionsModel {
   readonly restoreHref: string | null
   readonly reportHref: string | null
   /**
-   * Warn this post's author, citing this post (F53).
+   * Warn this post's author, citing this post.
    *
    * Present for moderators only, and `null` for a post whose author is the
    * viewer or a deleted account. Separate from `moderateHref` because a warning
@@ -291,17 +291,17 @@ export interface PostActionsModel {
    */
   readonly warnHref: string | null
   /**
-   * Reserved for per-post moderation controls that are not inline (F54).
+   * Reserved for per-post moderation controls that are not inline.
    *
-   * Still `null` everywhere: F52 put per-post moderation on checkboxes and a
+   * Still `null` everywhere: per-post moderation is on checkboxes and a
    * bar rather than a per-post link, so nothing fills this yet. It stays in the
-   * contract because F54's ModCP is where a per-post moderation *page* would
+   * contract because the moderation control panel is where such a *page* would
    * live, and removing a public field to add it back next feature is worse
    * than a documented `null`.
    */
   readonly moderateHref: string | null
   /**
-   * Rate this post's author, for this post (F62).
+   * Rate this post's author, for this post.
    *
    * Null on your own post, on a board with reputation off, and for anybody
    * without the permission. It carries the post so the rating is attached to
@@ -317,18 +317,18 @@ export interface PostBitModel {
   readonly number: number
   readonly permalink: string
   readonly author: PostAuthorModel
-  /** Pre-rendered BBCode (F36). */
+  /** Pre-rendered BBCode. */
   readonly bodyHtml: string
-  /** Source used only by F45's client multiquote button; themes never render it. */
+  /** Source used only by the client multiquote button; themes never render it. */
   readonly quoteSource: string
   readonly postedAt: TimeModel
   /** "Last edited by X on Y", already assembled, or `null`. */
   readonly editedNote: string | null
   readonly isFirstPost: boolean
-  /** F47: a moderator sees deleted and unapproved posts, marked as such. */
+  /** A moderator sees deleted and unapproved posts, marked as such. */
   readonly visibility: 'visible' | 'unapproved' | 'deleted'
   /**
-   * F61. Set when this viewer ignores the author and has not revealed this
+   * Set when this viewer ignores the author and has not revealed this
    * post; `null` otherwise, which is the case on almost every post.
    *
    * The body is **withheld server-side** when this is set — `bodyHtml` is
@@ -347,7 +347,7 @@ export interface PostBitModel {
     readonly revealHref: string
   } | null
   /**
-   * The files attached to this post (F42).
+   * The files attached to this post.
    *
    * Empty on almost every post, and empty rather than absent so a theme has one
    * shape to render. **Every entry is already downloadable**: a `pending`
@@ -364,7 +364,7 @@ export interface PostBitModel {
   readonly actions: PostActionsModel
 }
 
-/** One file attached to a post (F42). */
+/** One file attached to a post. */
 export interface PostAttachmentModel {
   readonly id: number
   /** Sanitised, and always ending in the extension the *bytes* imply. */
@@ -408,7 +408,7 @@ export interface UserPanelModel {
   readonly viewer: ViewerModel
   /** Sign-in / register, or account links. Resolved by the app. */
   readonly links: readonly LinkModel[]
-  /** F55. `0` when there is nothing to show. */
+  /** `0` when there is nothing to show. */
   readonly unreadNotifications: number
   readonly unreadMessages: number
   /**
@@ -441,7 +441,7 @@ export interface NoticeModel {
 }
 
 /**
- * One announcement (F71).
+ * One announcement.
  *
  * **Not a `NoticeModel`, and the two are worth telling apart.** A notice is a
  * flash — the result of what the viewer just did, gone on the next page. An
@@ -464,7 +464,7 @@ export interface AnnouncementModel {
 }
 
 export interface BoardIndexModel {
-  /** F32's "mark all read" — a form target, not a client handler. */
+  /** The "mark all read" target — a form target, not a client handler. */
   readonly markAllReadAction: string | null
   readonly regions: {
     /** One `CategoryBlock` per top-level category, already rendered. */
@@ -472,7 +472,7 @@ export interface BoardIndexModel {
     readonly stats: ReactNode
     readonly online: ReactNode
     /**
-     * F80's `index.footer` region: whatever plugins contributed, already
+     * The `index.footer` region: whatever plugins contributed, already
      * rendered and ordered by the host.
      *
      * Optional, which is what makes this a **minor** addition under the v1
@@ -481,7 +481,7 @@ export interface BoardIndexModel {
      */
     readonly plugins?: ReactNode
     /**
-     * F71's live announcements, already rendered — one `Announcement` per row,
+     * Live announcements, already rendered — one `Announcement` per row,
      * or absent when there are none.
      *
      * Optional for the same reason the plugin region is, and under the same
@@ -504,7 +504,7 @@ export interface BoardStatsModel {
   readonly memberCount: number
   readonly newestMember: UserRefModel | null
   /**
-   * When the totals were last rolled up, or null before the first run (F75).
+   * When the totals were last rolled up, or null before the first run.
    *
    * Part of the contract rather than a detail the app hides, because a theme
    * that shows the numbers should be able to say how old they are — and
@@ -515,7 +515,7 @@ export interface BoardStatsModel {
 }
 
 /**
- * One visitor in the online list (F75).
+ * One visitor in the online list.
  *
  * `location` is **already resolved against the reader**: a forum they may not
  * see arrives as the bare label, never as a title with a link. The theme
@@ -532,7 +532,7 @@ export interface OnlineMemberModel extends UserRefModel {
 export interface WhoIsOnlineModel {
   readonly guestCount: number
   readonly members: readonly OnlineMemberModel[]
-  /** Members plus guests, as this reader is permitted to count them (F75). */
+  /** Members plus guests, as this reader is permitted to count them. */
   readonly total: number
   readonly recordCount: number
   readonly recordAt: TimeModel | null
@@ -550,7 +550,7 @@ export interface ForumDisplayModel {
     readonly threads: ReactNode
     readonly pagination: ReactNode
     /**
-     * F71. This forum's announcements *and* the board's — an announcement being
+     * This forum's announcements *and* the board's — an announcement being
      * board-wide would mean little if it appeared only on the index, which is
      * the page fewest people arrive on.
      */
@@ -566,7 +566,7 @@ export interface ThreadViewModel {
   readonly thread: ThreadRowModel
   readonly forum: LinkModel
   readonly replyHref: string | null
-  /** F32: a native POST target for the last visible post on this page. */
+  /** A native POST target for the last visible post on this page. */
   readonly markReadAction: string | null
   readonly regions: {
     /** One `PostBit` per post on this page. */
@@ -588,15 +588,15 @@ export interface ThreadViewModel {
  * needs anyway. The app's `<form action={serverAction}>` wraps the slot.
  */
 /**
- * The composer page (F39).
+ * The composer page.
  *
  * The form *element* is a region rather than a set of value props, and that is
  * a deliberate reversal of this model's first shape. A composer submits to a
- * Server Action, and a Server Action reference is not plain data — D38 settled
+ * Server Action, and a Server Action reference is not plain data — which settled
  * that such references never cross the theme contract, which is why logging out
  * is also a form the app renders into a slot. So the theme owns the page around
  * the form (heading, error, preview, where "cancel" goes) and the app owns the
- * controls. See D42.
+ * controls.
  */
 export interface PostFormModel {
   readonly mode: 'thread' | 'reply' | 'edit'
@@ -610,7 +610,7 @@ export interface PostFormModel {
    * There is no `previewHtml` here yet, and its absence is deliberate. Preview
    * state belongs to the submitted form — it is what the author just typed —
    * so it renders inside the form region, where the action's result actually
-   * lands. When F36 can turn BBCode into HTML on the server, the rendered
+   * lands. Once BBCode is turned into HTML on the server, the rendered
    * preview becomes a slot concern and this model gains the field. Carrying it
    * now would be a prop no theme could ever fill.
    */
@@ -619,7 +619,7 @@ export interface PostFormModel {
     readonly form: ReactNode
     /**
      * The `EditorToolbar` island, or `null`. A `null` here must leave a working
-     * plain-textarea form: the island enhances, it never enables (R5).
+     * plain-textarea form: the island enhances, it never enables.
      */
     readonly toolbar: ReactNode
   }
@@ -653,19 +653,19 @@ export interface MemberProfileModel {
   readonly lastVisitAt: TimeModel | null
   readonly postCount: number
   readonly signatureHtml: string | null
-  /** F59's custom fields, already filtered by visibility. */
+  /** Custom profile fields, already filtered by visibility. */
   readonly fields: readonly { readonly label: string; readonly value: string }[]
   readonly actions: readonly LinkModel[]
   readonly regions?: {
-    /** F80's `profile.panel` region. */
+    /** The `profile.panel` region. */
     readonly plugins?: ReactNode
   }
 }
 
 /**
- * The search form (F73), reshaped at the v1 freeze (F77).
+ * The search form, reshaped at the v1 freeze.
  *
- * It was declared at F25 as `{ action, query, forums: LinkModel[], errorMessage }`
+ * It was originally declared as `{ action, query, forums: LinkModel[], errorMessage }`
  * and never rendered — F73 shipped its own form inside the page, so the slot was
  * a contract nothing had ever tested. Wiring it up is what found the shape wrong:
  * a filter is a `<select>`, and an option is a value and a label, not an href.
@@ -699,7 +699,7 @@ export interface SearchFormModel {
 }
 
 /**
- * The forum jump box (F27) — MyBB's `<select>` at the foot of every page.
+ * The forum jump box — MyBB's `<select>` at the foot of every page.
  *
  * ## Why a form and a button rather than a `<select>` that navigates
  *
@@ -755,16 +755,16 @@ export interface ErrorNoticeModel {
   readonly title: string
   readonly message: string
   readonly homeHref: string
-  /** F09's request id, so a user can quote it in a report. */
+  /** The request id, so a user can quote it in a report. */
   readonly requestId: string | null
 }
 
 /**
- * One inline-moderation checkbox (F52), or `null` when this viewer has no
+ * One inline-moderation checkbox, or `null` when this viewer has no
  * business selecting rows.
  *
  * Plain data, and it has to be: the *form* it belongs to carries a Server
- * Action reference, and D38 settled that such references never cross the theme
+ * Action reference, and such references never cross the theme
  * contract. So the app renders the form — below the listing, where a bar of
  * buttons belongs — and the theme renders a checkbox that says which form it
  * belongs to.
@@ -789,14 +789,14 @@ export interface SelectionModel {
 
 export interface PostBitSlotModel {
   readonly post: PostBitModel
-  /** F52's checkbox, or `null`. A theme that ignores it loses only bulk actions. */
+  /** The inline-moderation checkbox, or `null`. A theme that ignores it loses only bulk actions. */
   readonly select: SelectionModel | null
   readonly regions: {
     /** The `PostActions` slot, rendered by the page. */
     readonly actions: ReactNode
-    /** F80's `postbit.badges` region, beside the author's name. */
+    /** The `postbit.badges` region, beside the author's name. */
     readonly pluginBadges?: ReactNode
-    /** F80's `postbit.footer` region, below the body. */
+    /** The `postbit.footer` region, below the body. */
     readonly pluginFooter?: ReactNode
   }
 }
@@ -807,7 +807,7 @@ export interface ForumRowSlotModel {
 
 export interface ThreadRowSlotModel {
   readonly thread: ThreadRowModel
-  /** F52's checkbox, or `null`. */
+  /** The inline-moderation checkbox, or `null`. */
   readonly select: SelectionModel | null
 }
 
