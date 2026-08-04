@@ -19,6 +19,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { readTotals } from '@/server/stats'
+import { ADMIN_SECTIONS } from '@/view/admin-nav'
 import { formatTime } from '@/view/time'
 
 /**
@@ -27,8 +28,7 @@ import { formatTime } from '@/view/time'
  * ## It used to be a list of links
  *
  * Eleven bullets, each a section name and a sentence about it, above five lines
- * of admin log. That is a table of contents, and the navigation on the left is
- * already one — so the landing page of the control panel answered no question an
+ * of admin log. That is a table of contents, and it answered no question an
  * administrator actually arrives with. Nobody opens the ACP to discover that a
  * "Forums" screen exists; they open it because something needs doing, or to
  * check that nothing does.
@@ -41,8 +41,10 @@ import { formatTime } from '@/view/time'
  * reading.
  *
  * Below that is the board at a glance and the log. The sections are still
- * listed, because the ACP is used by people who visit it twice a year and the
- * sidebar's labels are terse — but they are a grid at the bottom, not the page.
+ * listed at the bottom — the shell's rail is terse by design, and this is
+ * where each one gets a sentence saying what is inside it. Both read the same
+ * tree, from `@/view/admin-nav`, so the panel cannot grow a screen that only
+ * one of them knows about.
  *
  * ## The counts are the same counts those pages show
  *
@@ -60,70 +62,6 @@ import { formatTime } from '@/view/time'
  * sees after an install, when the rollup has genuinely never run — which is why
  * "not counted yet" is a state with words rather than three confident zeroes.
  */
-
-interface SectionLink {
-  readonly href: string
-  readonly title: string
-  readonly blurb: string
-}
-
-const SECTIONS: readonly SectionLink[] = [
-  {
-    href: '/admin/settings',
-    title: 'Board settings',
-    blurb: 'Every setting this build has, grouped and searchable.',
-  },
-  {
-    href: '/admin/forums',
-    title: 'Forums',
-    blurb: 'The tree, each forum’s options, and the permission matrix.',
-  },
-  {
-    href: '/admin/groups',
-    title: 'Groups',
-    blurb: 'What each group allows, promotions, and mass membership changes.',
-  },
-  {
-    href: '/admin/users',
-    title: 'Users',
-    blurb: 'Find an account, change it, merge or prune, or mail the board.',
-  },
-  {
-    href: '/admin/content',
-    title: 'Content',
-    blurb: 'Announcements, attachments, and the housekeeping around them.',
-  },
-  {
-    href: '/admin/antispam',
-    title: 'Anti-spam',
-    blurb: 'The honeypot, the question, the limits, and first-post moderation.',
-  },
-  {
-    href: '/admin/themes',
-    title: 'Themes',
-    blurb: 'Installed themes, their tokens, and this board’s overrides.',
-  },
-  {
-    href: '/admin/plugins',
-    title: 'Plugins',
-    blurb: 'What is installed, what it may do, and what has been failing.',
-  },
-  {
-    href: '/admin/api-tokens',
-    title: 'API tokens',
-    blurb: 'Issue and revoke tokens, and see what each one may reach.',
-  },
-  {
-    href: '/admin/system',
-    title: 'System',
-    blurb: 'Scheduled tasks, the search index, caches, and the build.',
-  },
-  {
-    href: '/admin/log',
-    title: 'Admin log',
-    blurb: 'Every administrative and moderation action, with who and from where.',
-  },
-]
 
 /** One number that is also a call to action. */
 function Waiting({
@@ -364,7 +302,7 @@ export default async function AdminHomePage() {
           index being honest on their behalf.
         */}
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SECTIONS.map((section) => (
+          {ADMIN_SECTIONS.map((section) => (
             <li key={section.href}>
               <Card className="relative h-full transition-colors hover:bg-muted/50">
                 <CardContent className="flex flex-col gap-0.5 p-4">
