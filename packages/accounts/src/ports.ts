@@ -72,7 +72,7 @@ export interface MemberProfileRecord {
   /**
    * F57's three self-written fields. Public by definition — this record is the
    * *public* subset, and a member who fills them in is publishing them.
-   * Rendered as plain text, never as markup: a signature is F58's BBCode and a
+   * Rendered as plain text, never as markup: a signature is F58's Markdown and a
    * different thing entirely.
    */
   readonly location: string | null

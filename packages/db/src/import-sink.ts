@@ -36,6 +36,8 @@
 
 import { sql } from 'drizzle-orm'
 
+import { BodyFormat } from '@meith/markdown'
+
 import type { Database } from './client'
 import { resolveLegacyIds } from './import-repo'
 /*
@@ -403,10 +405,15 @@ export class PostgresImportSink {
    * lowest, and marking the wrong post first puts the wrong body under the
    * thread title everywhere the board shows an excerpt.
    *
-   * `message_html` is left null: the body is BBCode and F87's renderer produces
-   * the HTML on read, at the render version the board is currently on. Baking
-   * HTML in at import time would freeze two million posts at whatever the
-   * renderer did on migration day.
+   * `message_html` is left null and `body_format` is **BBCode**, because that
+   * is what MyBB hands over. Neither the conversion to Markdown nor the render
+   * happens here: both are the render backfill's job, which does them together,
+   * in bounded batches, and is resumable — and an import is precisely the case
+   * where the alternative (convert and render two million posts inside the
+   * import) turns a resumable migration into one long transaction.
+   *
+   * Until the sweep reaches a row it renders live, converted in memory, so an
+   * imported board is readable the moment the import finishes.
    */
   async putPosts(rows: readonly ImportedPostRow[]): Promise<WriteResult> {
     if (rows.length === 0) return empty
@@ -439,14 +446,15 @@ export class PostgresImportSink {
       await this.db.execute(sql`
       insert into posts (
         thread_id, forum_id, author_user_id, author_username,
-        message, created_at, edited_at, visibility, is_first_post, legacy_mybb_pid
+        message, body_format, created_at, edited_at, visibility, is_first_post,
+        legacy_mybb_pid
       )
       values ${sql.join(
         writable.map(
           ({ row, threadId, forumId, authorId }) => sql`(
             ${threadId}, ${forumId}, ${authorId}, ${row.authorUsername},
-            ${row.body}, ${row.createdAt}, ${row.editedAt}, ${row.visibility},
-            false, ${row.legacyId}
+            ${row.body}, ${BodyFormat.LegacyBBCode}, ${row.createdAt}, ${row.editedAt},
+            ${row.visibility}, false, ${row.legacyId}
           )`,
         ),
         sql`, `,
@@ -457,6 +465,7 @@ export class PostgresImportSink {
         author_user_id = excluded.author_user_id,
         author_username = excluded.author_username,
         message = excluded.message,
+        body_format = excluded.body_format,
         edited_at = excluded.edited_at,
         visibility = excluded.visibility
       returning legacy_mybb_pid as legacy_id, id as new_id, (xmax = 0) as inserted

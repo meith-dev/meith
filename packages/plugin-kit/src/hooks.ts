@@ -62,22 +62,24 @@ export interface HookSpec {
  */
 export const HOOKS = {
   /* ---- Content rendering ---- */
-  'bbcode.parse.text': {
+  'markdown.parse.text': {
     kind: 'filter',
     feature: 'F36',
-    purpose: 'The raw BBCode source, before it is tokenised. Last chance to rewrite input.',
+    purpose: 'The raw Markdown source, before it is parsed. Last chance to rewrite input.',
   },
-  'bbcode.render.html': {
+  'markdown.render.html': {
     kind: 'filter',
     feature: 'F36',
     purpose:
-      'Rendered HTML, after sanitising. Anything added here is trusted output — ' +
-      'the sanitizer has already run and will not run again.',
+      'Rendered HTML, after the renderer has constructed it. Anything added here is ' +
+      'trusted output and nothing escapes it afterwards.',
   },
-  'bbcode.tags': {
+  'markdown.directives': {
     kind: 'filter',
     feature: 'F37',
-    purpose: 'The declarative custom-tag list, so a plugin can add a tag without core changes.',
+    purpose:
+      'The declarative directive list, so a plugin can add a `:::name` block or ' +
+      '`:name[…]` span without core changes.',
   },
   'post.body.html': {
     kind: 'filter',

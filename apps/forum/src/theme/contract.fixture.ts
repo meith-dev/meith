@@ -122,7 +122,7 @@ const POST = {
   bodyHtml: '<p>The shed should be teak.</p>',
   /*
    * F45's multiquote source. Deliberately *different* from `bodyHtml` — it is
-   * the BBCode a quote button copies, not the rendered post — so a theme that
+   * the Markdown source a quote button copies, not the rendered post — so a theme that
    * mistakenly rendered it would fail the contract's `requires` rather than
    * pass by looking identical.
    */

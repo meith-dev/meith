@@ -8,7 +8,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { renderBBCode, vocabularyOptions } from '@meith/bbcode'
+import { BodyFormat, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import type {
   PostEditRecord,
   PostEditTarget,
@@ -122,7 +122,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
        * not be relied on here: between the edit and the sweep every reader sees
        * the *old* body, because a current-version render is trusted.
        */
-      const body = renderBBCode(record.message, vocabularyOptions(vocabulary))
+      const body = renderMarkdown(record.message, vocabularyOptions(vocabulary))
       await tx.execute(sql`
         update posts
            set message = ${record.message},
@@ -136,6 +136,13 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
                search_vector = ${searchVectorSql(sql`subject`, sql`${record.message}`)},
                render_version = ${body.version},
                vocab_version = ${vocabulary.revision},
+               /*
+                * Named rather than left to the column default: an edit is the
+                * one path that can turn a legacy row into a current one, and a
+                * row whose text is now Markdown while its stamp still says
+                * BBCode would be converted a second time by the backfill.
+                */
+               body_format = ${BodyFormat.Markdown},
                visibility = ${record.toVisibility},
                edited_at = ${record.editedAt},
                edited_by_user_id = ${record.editedByUserId},

@@ -9,18 +9,27 @@ export interface PostListingRow {
   readonly authorUsername: string
   readonly authorPostCount: number
   readonly authorJoinedAt: Date | null
-  /** The raw BBCode. Still carried: a stale render is rebuilt from it (F36). */
+  /** The raw Markdown. Still carried: a stale render is rebuilt from it (F36). */
   readonly message: string
   /**
    * The stored render, and the renderer version that produced it.
    *
    * Read together or not at all — `messageHtml` without `renderVersion` is HTML
    * of unknown provenance, which is the one thing a body must never be. The
-   * pair satisfies `RenderablePost` in `@meith/bbcode`; `postBodyHtml` is what
+   * pair satisfies `RenderablePost` in `@meith/markdown`; `postBodyHtml` is what
    * decides between them.
    */
   readonly messageHtml: string | null
   readonly renderVersion: number
+  /**
+   * Which markup language `message` is in (`BodyFormat`).
+   *
+   * Carried for the same reason `renderVersion` is: a row written before this
+   * board spoke Markdown has a render nothing can trust and a source that has
+   * to be converted on the way through. The backfill removes both conditions
+   * one batch at a time.
+   */
+  readonly bodyFormat: number
   readonly isFirstPost: boolean
   /**
    * The post's state as stored.

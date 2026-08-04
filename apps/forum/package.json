@@ -20,7 +20,7 @@
     "@meith/events": "workspace:*",
     "@meith/forums": "workspace:*",
     "@meith/groups": "workspace:*",
-    "@meith/bbcode": "workspace:*",
+    "@meith/markdown": "workspace:*",
     "@meith/moderation": "workspace:*",
     "@meith/notifications": "workspace:*",
     "@meith/polls": "workspace:*",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { RENDER_VERSION } from '@meith/bbcode'
+import { BodyFormat, RENDER_VERSION } from '@meith/markdown'
 import type { ForumRow } from '@meith/forums'
 import type { PostListingRow } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
@@ -59,6 +59,7 @@ describe('buildThreadView', () => {
             message: '<script>alert(1)</script>\nHello',
             messageHtml: null,
             renderVersion: 0,
+            bodyFormat: BodyFormat.Markdown,
             editedAt: null,
             editedByUsername: null,
             editReason: null,
@@ -76,7 +77,7 @@ describe('buildThreadView', () => {
 
     expect(view.posts[0]).toMatchObject({
       permalink: '/thread/3-hello#post-4',
-      bodyHtml: '&lt;script&gt;alert(1)&lt;/script&gt;<br>\nHello',
+      bodyHtml: '<p>&lt;script&gt;alert(1)&lt;/script&gt;<br>\nHello</p>',
       author: { username: 'departed', profileHref: null },
     })
   })
@@ -102,6 +103,7 @@ function bodyOf(
           authorJoinedAt: null,
           messageHtml: null,
           renderVersion: 0,
+          bodyFormat: BodyFormat.Markdown,
           editedAt: null,
           editedByUsername: null,
           editReason: null,
@@ -121,16 +123,33 @@ function bodyOf(
 }
 
 describe('the post body (F36)', () => {
-  it('renders BBCode when the post carries no stored render', () => {
-    expect(bodyOf({ message: 'a [b]bold[/b] claim' })).toBe(
-      'a <strong>bold</strong> claim',
+  it('renders the Markdown source when the post carries no stored render', () => {
+    expect(bodyOf({ message: 'a **bold** claim' })).toBe(
+      '<p>a <strong>bold</strong> claim</p>',
     )
+  })
+
+  it('converts a body still stored as BBCode, and ignores its render', () => {
+    /*
+     * The board upgraded; the backfill has not reached this row. It renders as
+     * what its author meant rather than as the tags they typed, and the stored
+     * HTML is not trusted whatever version it claims — a BBCode renderer made
+     * it, and there is no longer one of those.
+     */
+    expect(
+      bodyOf({
+        message: 'a [b]bold[/b] claim',
+        messageHtml: '<em>stale</em>',
+        renderVersion: RENDER_VERSION,
+        bodyFormat: BodyFormat.LegacyBBCode,
+      }),
+    ).toBe('<p>a <strong>bold</strong> claim</p>')
   })
 
   it('uses the stored render when it is at the current version', () => {
     expect(
       bodyOf({
-        message: '[b]ignored[/b]',
+        message: '**ignored**',
         messageHtml: '<em>stored</em>',
         renderVersion: RENDER_VERSION,
       }),
@@ -150,7 +169,7 @@ describe('the post body (F36)', () => {
         messageHtml: '<script>alert(1)</script>',
         renderVersion: RENDER_VERSION - 1,
       }),
-    ).toBe('safe')
+    ).toBe('<p>safe</p>')
   })
 })
 
@@ -188,6 +207,7 @@ describe('post affordances (F41)', () => {
             message: 'body',
             messageHtml: null,
             renderVersion: 0,
+            bodyFormat: BodyFormat.Markdown,
             editedAt: null,
             editedByUsername: null,
             editReason: null,
@@ -239,6 +259,7 @@ describe('post affordances (F41)', () => {
             message: 'body',
             messageHtml: null,
             renderVersion: 0,
+            bodyFormat: BodyFormat.Markdown,
             editedAt: null,
             editedByUsername: null,
             editReason: null,
@@ -340,6 +361,7 @@ describe('the report link (F49)', () => {
             message: 'body',
             messageHtml: null,
             renderVersion: 0,
+            bodyFormat: BodyFormat.Markdown,
             editedAt: null,
             editedByUsername: null,
             editReason: null,
@@ -391,6 +413,7 @@ describe('ignored posts (F61)', () => {
       authorUsername: 'noisy',
       authorPostCount: 0,
       authorJoinedAt: null,
+      bodyFormat: BodyFormat.Markdown,
       message: 'Something.',
       messageHtml: null,
       renderVersion: 0,

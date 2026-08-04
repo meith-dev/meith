@@ -9,7 +9,7 @@
     "@meith/accounts": "workspace:*",
     "@meith/antispam": "workspace:*",
     "@meith/authorization": "workspace:*",
-    "@meith/bbcode": "workspace:*",
+    "@meith/markdown": "workspace:*",
     "@meith/search": "workspace:*",
     "@meith/core": "workspace:*",
     "@meith/drafts": "workspace:*",

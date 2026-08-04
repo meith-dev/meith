@@ -17,7 +17,7 @@ export const CacheTags = {
   /** Resolved theme tokens/branding for one theme key. */
   theme: (key: string) => `theme:${key}`,
   /**
-   * F71's smilies and custom BBCode tags, read as one unit by the render path.
+   * F71's smilies and custom directives, read as one unit by the render path.
    *
    * F10 declared this as `smilies` and nothing ever read it. It is broader than
    * that name now and renamed to say so: a custom tag and a smiley are edited on
@@ -25,7 +25,7 @@ export const CacheTags = {
    * render as one revision — so one tag is the honest granularity, and two would
    * be two chances to invalidate the wrong half.
    */
-  bbcodeVocabulary: () => "bbcode-vocabulary",
+  markdownVocabulary: () => "markdown-vocabulary",
   prefixes: () => "prefixes",
   /**
    * F71's word filters. Read on the render path, so a stale set is visible on
@@ -61,7 +61,7 @@ export type CacheTag = ReturnType<(typeof CacheTags)[keyof typeof CacheTags]>
 export const GLOBAL_TAGS: readonly string[] = [
   CacheTags.forumTree(),
   CacheTags.settings(),
-  CacheTags.bbcodeVocabulary(),
+  CacheTags.markdownVocabulary(),
   CacheTags.prefixes(),
   CacheTags.wordFilters(),
   CacheTags.boardStats(),

@@ -151,7 +151,7 @@ export default async function WarnPage({
                   {/*
                     Plain text, never markup. A warning reason is written by a
                     moderator about a member and is not a post; rendering it as
-                    BBCode would give it capabilities the box never advertised.
+                    Markdown would give it capabilities the box never advertised.
                   */}
                   <p className="mt-2 whitespace-pre-wrap break-words text-sm">{row.reason}</p>
                   {row.postId !== null && (

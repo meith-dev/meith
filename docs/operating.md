@@ -189,7 +189,7 @@ Writing a plugin: [The plugin API](./plugin-api.md). Every hook:
 ## Content and announcements
 
 `/admin/content` holds the board-wide vocabularies — the word filter, thread
-prefixes, smilies and custom BBCode — with attachments and announcements on
+prefixes, smilies and custom directives — with attachments and announcements on
 screens beside it.
 
 ### One difference that matters operationally
@@ -197,19 +197,40 @@ screens beside it.
 | Change | When it applies | Cost |
 |---|---|---|
 | Word filter | Next page load, everywhere | None. It is applied when a post is *shown*. |
-| Smilies, custom BBCode | Gradually | Marks every stored render on the board out of date. |
+| Smilies, custom directives | Gradually | Marks every stored render on the board out of date. |
 
-Smilies and custom BBCode decide what a post *renders to*, so changing one
+Smilies and directives decide what a post *renders to*, so changing one
 invalidates every cached render. Nothing breaks — those posts render correctly on
 demand and are rewritten in the background by the ordinary tick — but on a large
 board expect a period of extra rendering, and expect `/admin/system` to report a
 backlog until it clears.
 
-### Custom BBCode
+### Custom directives
 
-A tag chooses a name and whether it is inline or block. There is deliberately no
-replacement-pattern field: if you need bespoke markup, that is a plugin, where
-the code is reviewed rather than typed into a form.
+Markdown's extension point, and the board's own additions to it. A directive
+chooses a name and whether it is inline or block; members write a block one as
+`:::spoiler` … `:::` and an inline one as `:spoiler[the ending]`, and it renders
+as a `div` or `span` carrying a class your theme can style.
+
+There is deliberately no replacement-pattern field: if you need bespoke markup,
+that is a plugin, where the code is reviewed rather than typed into a form.
+
+### Posts are Markdown
+
+Since 0.2 the board's markup language is Markdown, and there is no BBCode
+renderer left in it. A board upgrading from an earlier release — or importing
+one from MyBB — has every post, private message, signature, announcement and
+draft **converted once**, in the background, by `posts.render_backfill`. Two
+things follow for an operator:
+
+- **Nothing looks broken while it runs.** A row the sweep has not reached is
+  converted in memory when somebody reads it. `/admin/system` reports the
+  backlog; on a large board expect it to take a while and to clear on its own.
+- **`[u]`, `[color]` and `[size]` lose their styling.** Markdown has no spelling
+  for underline, colour or size, so those tags become their own text: the words
+  survive, the presentation does not. It is the one permanent loss in the
+  conversion, and it is recorded in
+  [mybb-parity.md](./mybb-parity.md#the-markup-language-is-markdown-not-bbcode).
 
 ### Attachments
 

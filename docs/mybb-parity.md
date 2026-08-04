@@ -19,7 +19,7 @@ Each entry has the same four parts:
 ## What is on this page
 
 - [Permissions and groups](#permissions-and-groups)
-- [Posting and BBCode](#posting-and-bbcode)
+- [Posting and Markdown](#posting-and-markdown)
 - [Spam](#spam)
 - [Announcements](#announcements)
 - [Editing and deleting](#editing-and-deleting)
@@ -105,52 +105,70 @@ the audit log meaningful, because a bypass entry now implies a specific field.
 
 ---
 
-## Posting and BBCode
+## Posting and Markdown
 
-### BBCode coverage
+### The markup language is Markdown, not BBCode
 
-**MyBB** ships `b i u s color size font align url email img quote code php list
-hr video` plus smilies, admin-defined custom tags, and automatic linkification
-of bare URLs in post text.
+**MyBB** posts are BBCode: `b i u s color size font align url email img quote
+code php list hr video`, plus smilies, admin-defined custom MyCode, and
+automatic linkification of bare URLs.
 
-**We** ship `b i u s color size url email img quote code list *`, plus
-**smilies and admin-defined custom tags**. Absent for now: `font`,
-`align`, `hr`, `video`, `php`, and auto-linking.
+**We** post in Markdown. Every board that upgrades has its posts, private
+messages, signatures, announcements and drafts **converted once**, in the
+background, by the render backfill; the importer marks what MyBB hands over as
+BBCode and the same sweep converts it. There is no BBCode renderer left in the
+tree, and no board runs two markup languages at once.
 
-**A custom tag is not MyBB's custom MyCode.** MyBB's takes a *replacement
+This is the largest single divergence in this document, so what survives and
+what does not is worth stating precisely.
+
+**Converted with no loss.** `b i s url email img quote code list` all have a
+Markdown spelling, and the converter produces it. A quote keeps its
+attribution — `[quote='Bob']` becomes `> **Bob wrote:**` above the quoted lines
+— and a `[code]` body is fenced with a rail long enough that its own backticks
+cannot close it.
+
+**Converted with the styling dropped, the words kept.** `u`, `color` and `size`
+have no Markdown spelling. `[color=red]stop[/color]` becomes `stop`. Inventing a
+board-only directive for each would have meant shipping three tags that exist
+nowhere else, which is the thing Markdown was chosen to stop doing. **This is a
+real, permanent loss of presentation on an imported board, and it is the one
+place in this migration where something a member wrote does not come back.**
+Nothing they *said* is lost — only how it was coloured.
+
+**Left as the text it was.** `font`, `align`, `hr`, `video`, `php`, and any
+custom MyCode the old board defined: an unrecognised tag is escaped and shown as
+the characters its author typed, so an imported post reads as slightly plainer
+prose rather than as a hole.
+
+**Gained.** Headings, tables, task lists, thematic rules, fenced code with a
+language, and **auto-linking** — which MyBB had and the BBCode renderer refused.
+Markdown resolves the ambiguity that made it refusable: a bare URL ends at
+whitespace and gives back the trailing punctuation that belongs to the sentence,
+which is a rule that can be written down and tested rather than guessed.
+
+**A directive is not MyBB's custom MyCode.** MyBB's takes a *replacement
 pattern* — a regular expression and the HTML to put in its place — so an
 administrator can produce any markup they like from a form. Ours chooses a
-**name** and whether it is inline or block, and the element is constructed by
-`@meith/bbcode`. That is a real capability difference and a deliberate one: a
-field that chooses output markup is a second markup language administered
-through a web form, which is how boards with custom MyCode acquire a permanent
-XSS surface. A tag that needs bespoke markup is a plugin, where the code
-is reviewed and installed rather than typed into a text box.
+**name** and whether it is inline or block; members write `:::spoiler` … `:::`
+or `:spoiler[…]`, and the element is constructed by `@meith/markdown`. That is a
+real capability difference and a deliberate one: a field that chooses output
+markup is a second markup language administered through a web form, which is how
+boards with custom MyCode acquire a permanent XSS surface. Anything that needs
+bespoke markup is a plugin, where the code is reviewed and installed rather than
+typed into a text box.
 
-**Why.** Each absentee is either owned by a later feature or is a decision:
+**We do not accept raw HTML**, which CommonMark says should pass through. That
+would need a sanitiser, and a sanitiser is a blocklist; this renderer constructs
+its output instead, which is why it has never had one. `<script>` in a post is
+seven escaped characters and a word. Two smaller deviations from CommonMark are
+recorded in `deviations.md`: a single newline is a line break, and there are no
+indented code blocks.
 
-- `font` and `align` are presentation an author dictates over the theme's
-  typography and layout. They are cheap to add and belong with the per-forum
-  capability toggles, where a board can decide whether members may override the
-  theme at all.
-- `video` embeds third-party markup, which is the one thing this renderer's
-  construction argument does not cover. It needs a provider allowlist and a
-  privacy decision (an embed is a request to another host from every reader's
-  browser), so it waits for that work rather than arriving as an exception.
-- `php` is `code` with a syntax highlighter. Two tags that differ only in
-  highlighting is a parity artefact, not a feature; when highlighting exists it
-  will be an attribute on `code`.
-- **Auto-linking is the real divergence.** MyBB turns a bare `http://…` in post
-  text into a link. We do not: every link on the board is one an author asked
-  for with `[url]`. Linkifying text means the renderer decides where a run of
-  text ends, which is the ambiguity behind "the trailing full stop is part of my
-  link" — and it makes every pasted string a live link, which is a spam
-  affordance rather than a feature. An imported MyBB post keeps its bare URL as
-  text.
-
-**Cost.** An imported board's posts render slightly plainer: bare URLs are not
-clickable, and `[font]`/`[align]`/`[video]` show as literal text for now.
-The corpus pass below is where every remaining difference becomes an entry here.
+**Cost.** An operator promising a like-for-like move should promise it about the
+*text*, not about the colours. Members who knew BBCode have to learn a different
+syntax — the composer's toolbar, its shortcuts and its formatting help exist for
+exactly that week.
 
 ---
 
@@ -223,20 +241,21 @@ container happened to have.
 
 ## Editing and deleting
 
-### Unclosed and mismatched BBCode
+### Markup that does not close
 
 **MyBB**'s regex passes leave an unmatched `[b]` as literal text, and can emit
 unbalanced HTML for crossed tags such as `[b][i]x[/b]`.
 
-**We** demote an unclosed tag to literal text — matching MyBB's visible result —
-but close crossed tags implicitly, so `[b][i]x[/b]y` renders as
-`<strong><em>x</em></strong>y` rather than unbalanced markup.
+**We** cannot emit unbalanced markup at all: the renderer builds a tree and
+writes elements out of it, so there is no path by which an opening tag reaches
+the page without its closing one. An unmatched `**` is two asterisks, an
+unterminated `` ` `` is a backtick, and an unclosed ``` fence ends at the end of
+the post rather than swallowing the thread.
 
-**Why.** The visible outcome for the common mistake is the same, and the
-divergence only appears in the case where MyBB's output is invalid HTML whose
-rendering is browser-dependent. Unbalanced output from a post body is also the
-shape that lets formatting escape a post and affect the rest of the page, so
-this one is not negotiable regardless of parity.
+**Why.** Unbalanced output from a post body is the shape that lets formatting
+escape a post and affect the rest of the page, so this one is not negotiable
+regardless of parity. The visible outcome for the common mistake is the same as
+MyBB's — you see what you typed.
 
 ---
 
@@ -1427,10 +1446,10 @@ chunks by number before any of them exists. It is paid by crawlers, not readers.
 
 ## Parity passes
 
-### The BBCode parity pass
+### The conversion pass
 
-The corpus is `packages/bbcode/src/parity.test.ts`. Every case below is a
-difference asserted there, so this document and the renderer cannot disagree
+The corpus is `packages/markdown/src/bbcode.test.ts`. Every case below is a
+difference asserted there, so this document and the converter cannot disagree
 without a test failing.
 
 **No MyBB source artefacts are copied**, and that is not only a licensing rule:
@@ -1438,22 +1457,38 @@ MyBB's parser is a pile of regular expressions accumulated over fifteen years,
 and reproducing them would reproduce their bugs as though the bugs were the
 specification. The corpus is written from the *observable* side — the BBCode
 people actually type, the shapes that appear in real posts — and every case is a
-claim about what a reader sees.
+claim about what a reader sees after the conversion.
 
-### Where parity is exact
+### Where the conversion is exact
 
-Bold, italic, underline, strikethrough, quote, code, list, and case-insensitive
-tag names. `[B]` matters more than it looks: boards are full of it, and a parser
-that matched only lower case would render fifteen years of emphasis as literal
-text.
+Bold, italic, strikethrough, both link forms, images, quotes with their
+attribution, code blocks, both kinds of list, and case-insensitive tag names.
+`[B]` matters more than it looks: boards are full of it, and a converter that
+matched only lower case would turn fifteen years of emphasis into literal text.
+
+### Difference: the text is escaped on the way through
+
+**MyBB:** a post is BBCode; `*`, `_`, `#` and `[` in it are punctuation.
+
+**Here:** those are Markdown syntax, so the converter escapes them. A post that
+said `a * b` still says `a * b`; a post that said `# 1 fan` is not a heading; a
+variable called `snake_case` does not come out half italic.
+
+**Why:** without it, every post on a converted board containing an asterisk
+changes meaning on the day of the upgrade — silently, and in a way nobody could
+find afterwards.
+
+**Cost:** an author who opens an old post in the editor sees backslashes where
+one was genuinely needed. That is the visible half of a guarantee whose
+alternative is invisible.
 
 ### Difference: URLs and CSS this renderer refuses
 
 **MyBB:** has historically rendered `[url=javascript:…]`, `[img]data:…[/img]`
 and `[color=red;background:…]` with varying degrees of filtering by version.
 
-**Here:** refused. The tag is dropped and its content survives as escaped text —
-no anchor, no image element, no attribute.
+**Here:** refused. The link keeps its text and loses its destination — no
+anchor, no image element, no attribute.
 
 **Why:** each is an XSS in a forum post, and "MyBB renders it" is a description
 of MyBB's history rather than a requirement.
@@ -1468,34 +1503,33 @@ in others, depending on which regular expression ran first. Its behaviour on
 crossed tags (`[b][i]x[/b][/i]`) likewise depends on the order of replacement.
 
 **Here:** the input is parsed, so the answer is the same everywhere. An unclosed
-tag renders as text; a crossed pair keeps its content; a stray closing tag does
-not eat the line.
+tag converts to the text it is; a crossed pair keeps its content; a stray closing
+tag does not eat the line.
 
 **Why:** consistency is worth more than bug-compatibility here, and the rule is
 chosen so nothing is silently dropped — a post whose second half vanished is
 worse than a post with a visible `[b]` in it.
 
-**Cost:** posts that relied on MyBB's particular recovery may render slightly
+**Cost:** posts that relied on MyBB's particular recovery may read slightly
 differently. In every case the text is present.
 
-### Difference: an unknown tag renders as text
+### Difference: an unknown tag becomes text
 
 **MyBB:** drops unknown tags in some paths.
 
-**Here:** an unknown tag is text, and its content is kept.
+**Here:** an unknown tag is escaped and shown, and its content is kept.
 
-**Why:** dropping is the worse default. A plugin tag that stopped being installed
-would silently erase whatever it wrapped, and nobody would know which posts were
-affected.
+**Why:** dropping is the worse default. A custom MyCode the old board defined
+would otherwise silently erase whatever it wrapped, and nobody would know which
+posts were affected.
 
-### Gap: tags MyBB has and this board does not
+### Gap: tags MyBB has and this conversion does not translate
 
-`[table]`, `[align]`, `[font]`, `[video]`, `[spoiler]`. Their content renders as
-text, which is legible; a tag that vanishes takes its content with it.
-
-The corpus pins the current behaviour, so implementing one is a deliberate change
-to that file rather than something that quietly starts working. `[table]` and
-`[align]` are the two most likely to matter on an imported board.
+`[table]`, `[align]`, `[font]`, `[video]`, `[php]`, and any custom MyCode. Their
+content survives as text, which is legible; a tag that vanishes takes its
+content with it. `[table]` is the one most likely to matter — Markdown has
+tables, and a converter for MyBB's table syntax is a plausible later addition
+rather than a missing piece of this one.
 
 ### Search relevance is ranked within a window
 

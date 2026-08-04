@@ -2,7 +2,7 @@
  * F55 — the mail renderer.
  *
  * The load-bearing test is the safety one, and it is the same *property* F36
- * asserts about BBCode rather than a list of payloads: **every `<` in the HTML
+ * asserts about markup rather than a list of payloads: **every `<` in the HTML
  * is one this package wrote.** A message goes to a mail client this project
  * does not control and cannot audit, so "we escaped the fields we thought of"
  * is not the claim being made — the claim is that there is no path by which

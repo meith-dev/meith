@@ -37,17 +37,17 @@ the limits.
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `bbcode.parse.text` | filter | — | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
-| `bbcode.render.html` | filter | — | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
-| `bbcode.tags` | filter | — | `readonly string[]` | `ForumRef \| Record<string, never>` |
+| `markdown.parse.text` | filter | — | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
+| `markdown.render.html` | filter | — | `string` | `ViewerRef & { source: 'post' \| 'signature' \| 'pm' }` |
+| `markdown.directives` | filter | — | `readonly string[]` | `ForumRef \| Record<string, never>` |
 | `post.body.html` | filter | — | `string` | `PostRef & ViewerRef` |
 | `signature.html` | filter | — | `string` | `ViewerRef & { authorId: number }` |
 | `smilies.list` | filter | — | `readonly { readonly code: string; readonly imageUrl: string }[]` | `ViewerRef` |
 | `word-filter.patterns` | filter | — | `readonly { readonly pattern: string; readonly replacement: string }[]` | `Record<string, never>` |
 
-- **`bbcode.parse.text`** — The raw BBCode source, before it is tokenised. Last chance to rewrite input.
-- **`bbcode.render.html`** — Rendered HTML, after sanitising. Anything added here is trusted output — the sanitizer has already run and will not run again.
-- **`bbcode.tags`** — The declarative custom-tag list, so a plugin can add a tag without core changes.
+- **`markdown.parse.text`** — The raw Markdown source, before it is parsed. Last chance to rewrite input.
+- **`markdown.render.html`** — Rendered HTML, after the renderer has constructed it. Anything added here is trusted output and nothing escapes it afterwards.
+- **`markdown.directives`** — The declarative directive list, so a plugin can add a `:::name` block or `:name[…]` span without core changes.
 - **`post.body.html`** — One post’s rendered body, in the context of the thread it is being read in.
 - **`signature.html`** — A member’s rendered signature, wherever it appears.
 - **`smilies.list`** — The smilie set offered by the editor and substituted at render.

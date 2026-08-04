@@ -407,45 +407,50 @@
 }
 
 /*
- * `.prose-bb` — the typography of a rendered post body.
+ * `.prose-md` — the typography of a rendered post body.
  *
  * **This block is a bug fix as much as a design.** Both shipped themes have
- * carried `className="prose-bb"` (and `prose-forum`) on the elements that
- * receive `bodyHtml` since the slots were written, and neither class was
- * defined anywhere in the workspace. Tailwind's preflight zeroes the margin on
- * `p`, `ul` and `ol` and removes the underline and colour from `a`, so a
- * four-paragraph post rendered as one unbroken block of text with invisible
- * links in it. Nothing failed — there is no such thing as a stylesheet error —
- * and the contract suite could not see it, because the markup was correct and
- * only its appearance was not.
+ * carried a prose class on the elements that receive `bodyHtml` since the slots
+ * were written, and it was defined nowhere in the workspace. Tailwind's
+ * preflight zeroes the margin on `p`, `ul` and `ol` and removes the underline
+ * and colour from `a`, so a four-paragraph post rendered as one unbroken block
+ * of text with invisible links in it. Nothing failed — there is no such thing
+ * as a stylesheet error — and the contract suite could not see it, because the
+ * markup was correct and only its appearance was not.
  *
- * It lives here rather than in a theme for the same reason the `.bb-*` rules
- * below do: the class names are emitted by `@meith/bbcode`, which is the app's
- * renderer, and a theme that had to restate all of this to show a paragraph
- * break would be inheriting a bug rather than a baseline. Everything is in
- * tokens and `em`, so a theme changes it by changing its tokens and its base
- * size — and a board's operator reaches it through F26 like any other surface.
+ * It lives here rather than in a theme for the same reason the `.md-*` rules
+ * below do: the class names are emitted by `@meith/markdown`, which is the
+ * app's renderer, and a theme that had to restate all of this to show a
+ * paragraph break would be inheriting a bug rather than a baseline. Everything
+ * is in tokens and `em`, so a theme changes it by changing its tokens and its
+ * base size — and a board's operator reaches it through F26 like any other
+ * surface.
+ *
+ * Markdown widened what a post can contain — headings, tables, task lists, a
+ * horizontal rule — so this block is longer than the BBCode one it replaces.
+ * Every addition is a construct the parser can now produce; nothing here styles
+ * anything a post cannot emit.
  */
-.prose-bb {
+.prose-md {
   /* Long enough to read, short enough to track back to the next line. */
   max-width: 72ch;
   line-height: 1.65;
   overflow-wrap: break-word;
 }
 
-.prose-bb > :first-child {
+.prose-md > :first-child {
   margin-top: 0;
 }
 
-.prose-bb > :last-child {
+.prose-md > :last-child {
   margin-bottom: 0;
 }
 
-.prose-bb p {
+.prose-md p {
   margin-block: 0.75em;
 }
 
-.prose-bb a {
+.prose-md a {
   color: inherit;
   text-decoration-line: underline;
   text-decoration-color: var(--border);
@@ -454,12 +459,12 @@
   transition: text-decoration-color 120ms ease;
 }
 
-.prose-bb a:hover {
+.prose-md a:hover {
   text-decoration-color: currentColor;
 }
 
-.prose-bb strong,
-.prose-bb b {
+.prose-md strong,
+.prose-md b {
   font-weight: 600;
 }
 
@@ -468,13 +473,35 @@
  * then the thread, then the page. Breaking it is uglier than the alternative
  * only until you meet the alternative.
  */
-.prose-bb a,
-.prose-bb code {
+.prose-md a,
+.prose-md code {
   overflow-wrap: anywhere;
 }
 
+/*
+ * A post's headings start at `h2` — the renderer offsets them, because the page
+ * already has an `h1` — and they must not out-shout the thread's subject. Sized
+ * in `em` off the post's own text rather than the browser's defaults, which
+ * would make an `h2` in a post twice the size of the title above it.
+ */
+.prose-md h2,
+.prose-md h3,
+.prose-md h4,
+.prose-md h5,
+.prose-md h6 {
+  margin-block: 1.2em 0.5em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.prose-md h2 { font-size: 1.35em; }
+.prose-md h3 { font-size: 1.2em; }
+.prose-md h4 { font-size: 1.05em; }
+.prose-md h5,
+.prose-md h6 { font-size: 1em; }
+
 /* Inline images and smilies sit on the text baseline, not below it. */
-.bb-smiley {
+.md-smiley {
   display: inline-block;
   height: 1.25em;
   width: auto;
@@ -482,16 +509,15 @@
 }
 
 /*
- * F36 — the BBCode renderer's output.
+ * F36 — the Markdown renderer's output.
  *
- * `@meith/bbcode` emits a fixed, closed set of class names and nothing else:
- * no inline styling beyond `[color]`, which is the author's own choice and has
- * no token to defer to. Everything below is therefore the *theme's* say in what
- * a quote or a code block looks like, expressed in tokens so a runtime override
+ * `@meith/markdown` emits a fixed, closed set of class names and no inline
+ * styling at all. Everything below is therefore the *theme's* say in what a
+ * quote or a code block looks like, expressed in tokens so a runtime override
  * (F26) reaches it like any other surface.
  */
-.bb-quote {
-  /* `em`, so a quote inside a `[size=2]` block scales with the text it is in. */
+.md-quote {
+  /* `em`, so a quote inside a heading scales with the text it is in. */
   margin-block: 0.85em;
   padding: 0.55em 0.85em;
   border-inline-start: 3px solid var(--border);
@@ -505,20 +531,11 @@
  * nested backgrounds of the same colour are indistinguishable. The inner ones
  * drop the fill and keep the rule, so depth reads as a stack of margins.
  */
-.bb-quote .bb-quote {
+.md-quote .md-quote {
   background-color: transparent;
 }
 
-.bb-quote-author {
-  display: block;
-  margin-bottom: 0.3em;
-  font-size: 0.85em;
-  font-style: normal;
-  font-weight: 500;
-  color: var(--muted-foreground);
-}
-
-.bb-code {
+.md-code {
   margin-block: 0.85em;
   padding: 0.75em 0.85em;
   overflow-x: auto;
@@ -536,46 +553,98 @@
   tab-size: 2;
 }
 
-.bb-list {
+/*
+ * A code *span* is a word inside a sentence, so it gets a tint and no border —
+ * a boxed word breaks the line's rhythm, and at this size a border is thicker
+ * than the letterforms it surrounds.
+ */
+.md-code-span {
+  padding: 0.15em 0.35em;
+  background-color: var(--muted);
+  border-radius: calc(var(--radius) - 2px);
+  font-size: 0.9em;
+}
+
+.md-list {
   margin: 0.5em 0 0.5em 1.5em;
   list-style-position: outside;
 }
 
-.bb-list li {
+.md-list li {
   margin-block: 0.2em;
 }
 
-ul.bb-list {
+ul.md-list {
   list-style-type: disc;
 }
 
-ol.bb-list {
+ol.md-list {
   list-style-type: decimal;
 }
 
-ol.bb-list-a {
-  list-style-type: lower-alpha;
+/*
+ * A task list is a list of statements, not of bullets: the checkbox is the
+ * marker, and leaving the disc there gives every line two.
+ */
+.md-list li.md-task {
+  list-style: none;
+  margin-inline-start: -1.2em;
 }
 
-ol.bb-list-i {
-  list-style-type: lower-roman;
+.md-task input {
+  margin-inline-end: 0.35em;
+  vertical-align: baseline;
 }
 
 /* An oversized image must not widen the thread and force a horizontal scroll. */
-.bb-image {
+.md-image {
   max-width: 100%;
   height: auto;
 }
 
+.md-rule {
+  margin-block: 1.2em;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
 /*
- * Seven steps, relative to the surrounding text rather than absolute, so a post
- * sized 7 inside a quote stays proportionate and a theme that changes its base
- * size takes these with it.
+ * The scroller is the renderer's, not the theme's: a table wider than the post
+ * would otherwise make the *thread* scroll sideways, which on a phone is every
+ * table with four columns in it.
  */
-.bb-size-1 { font-size: 0.7em; }
-.bb-size-2 { font-size: 0.85em; }
-.bb-size-3 { font-size: 1em; }
-.bb-size-4 { font-size: 1.15em; }
-.bb-size-5 { font-size: 1.35em; }
-.bb-size-6 { font-size: 1.6em; }
-.bb-size-7 { font-size: 2em; }
+.md-table-scroll {
+  margin-block: 0.85em;
+  overflow-x: auto;
+}
+
+.md-table {
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.md-table th,
+.md-table td {
+  padding: 0.35em 0.6em;
+  border: 1px solid var(--border);
+  text-align: start;
+}
+
+.md-table th {
+  background-color: var(--muted);
+  font-weight: 600;
+}
+
+.md-align-left { text-align: start; }
+.md-align-center { text-align: center; }
+.md-align-right { text-align: end; }
+
+/*
+ * A board's own directives (F71). The renderer gives each one a class and
+ * nothing else — no colour, no box — because what a `spoiler` looks like is a
+ * decision for the board that defined it, made in its theme's own stylesheet.
+ * The only thing stated here is that a block one is a block.
+ */
+div.md-directive {
+  margin-block: 0.85em;
+}

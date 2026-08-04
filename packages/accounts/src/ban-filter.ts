@@ -7,7 +7,7 @@
  *
  * Patterns are admin-authored (`*@spam.example`, `192.0.2.*`) and are *not*
  * regular expressions. That is deliberate: F37 makes the same call about custom
- * BBCode, for the same reason — accepting regex from an ACP form hands whoever
+ * markup, for the same reason — accepting regex from an ACP form hands whoever
  * has that screen a denial-of-service at minimum, via a pattern that
  * backtracks catastrophically.
  */

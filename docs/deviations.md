@@ -1598,7 +1598,7 @@ the stated price of not counting.
 
 Post bodies were stored raw and rendered by `plainTextHtml` in
 `src/view/thread-view.ts` — a deliberate placeholder, and the only place raw
-text became markup. `@meith/bbcode` replaces it. Four decisions are worth
+text became markup. `@meith/markdown` replaces it. Four decisions are worth
 recording, and one of them is the reason the package is a scanner rather than
 the obvious pile of regular expressions.
 
@@ -1705,7 +1705,7 @@ one.
   than one without a link.
 - **Bare URLs are not auto-linked.** MyBB linkifies loose `http://…` in post
   text. Recorded as a parity decision rather than done quietly — see
-  `mybb-parity.md#bbcode-coverage`.
+  `mybb-parity.md#the-markup-language-is-markdown-not-bbcode`.
 
 ### D45 — Editing, deleting, and the counters that have to come back (F41)
 
@@ -1839,7 +1839,7 @@ reads as a bug on every thread that has ever been moderated.
   relied on: a current-version render is *trusted*, so until the sweep ran every
   reader would be served the pre-edit body.
 - **Previews now render.** F36 shipped without wiring the composer preview to
-  the renderer; all three forms now show `@meith/bbcode`'s own output, produced
+  the renderer; all three forms now show `@meith/markdown`'s own output, produced
   on the server by the same function that renders the post, so the preview
   cannot drift from the result.
 
@@ -2880,7 +2880,7 @@ window — claiming before sending would turn a rare duplicate into a lost
 message, which is the wrong trade for something a member is meant to read.
 
 The HTML is assembled from tag literals plus `escapeHtml`/`escapeAttribute`
-imported from `@meith/bbcode` — F36's safety argument and F36's actual
+imported from `@meith/markdown` — F36's safety argument and F36's actual
 functions, not a second copy. The test asserts the same property F36 does: every
 `<` in the output is one this package wrote.
 
@@ -5002,7 +5002,7 @@ This runs on rendered HTML, so a naive `replace` rewrites the inside of
 broken link, silently, with nothing about the post looking wrong. The scanner
 walks tag by tag and substitutes only in the spans between them.
 
-That is sound *because the input is the renderer's own output*: `@meith/bbcode`
+That is sound *because the input is the renderer's own output*: `@meith/markdown`
 emits a fixed sanitised tag set and escapes `<` in text to `&lt;`, so a bare
 angle bracket in a post cannot desynchronise the scan. An unterminated tag —
 which cannot arise from that renderer — is copied through rather than filtered,
@@ -7660,3 +7660,100 @@ describe — the number of distinct groups, and one task per worker supplied.
 The reason for the change rather than an edit: the fix for that kind of failure
 is *always* to update the number, so the assertion stops being a claim and
 becomes a record of the last time somebody ran it.
+
+### D101 — Markdown replaces BBCode, and the source is converted rather than dual-rendered
+
+**Plan:** F36/F37 specify a BBCode renderer and BBCode extensions.
+
+**Implemented:** `@meith/markdown` — a Markdown parser and renderer with the same
+architecture and the same guarantees — and `@meith/bbcode` is gone. Not deprecated,
+not kept behind a flag: **deleted**. Six decisions are worth recording, and the
+first is the one everything else follows from.
+
+#### There is exactly one markup language on a board at a time
+
+The alternative was keeping the BBCode renderer for old rows and writing Markdown
+for new ones. It is the cheaper change and it is the wrong one, permanently: two
+renderers means two security surfaces, two sets of escaping rules to keep in
+step, two answers to "what does `[b]` do", and a members' guide that has to
+explain which posts obey which. Every board that has taken that path still has
+both a decade later.
+
+So the **source** is converted. `bbcodeToMarkdown` in `packages/markdown/src/bbcode.ts`
+is a parser, not a regex sweep — the same reason F36 gave for the original
+tokeniser — and it runs in exactly two places: the importer marks what MyBB hands
+over as BBCode, and the render backfill converts a row the first time it touches
+it. Nothing converts on write, and nothing converts twice.
+
+#### `body_format` exists so the conversion can be resumable and idempotent
+
+`posts.body_format` (and the same column on `private_messages`, `users`,
+`announcements`, `post_drafts`) says which language a row's source is in. It is
+added with `DEFAULT 0` and then re-defaulted to `1` in the same migration — the
+first statement is metadata-only, so it stamps every existing row BBCode without
+rewriting the largest table on the board, and the second makes every future row
+Markdown.
+
+The asymmetry is deliberate and it is the one thing in this migration that could
+not be undone. A **BBCode** row mislabelled as **Markdown** shows a few `[b]`
+tags until somebody notices. A **Markdown** row mislabelled as **BBCode** is run
+through the converter, comes back with its asterisks escaped, and there is no way
+afterwards to tell that it happened. Every default in the code and in the SQL is
+chosen for that direction: `sourceAsMarkdown` treats an absent format as
+Markdown, and only a caller that *knows* a row is old says so.
+
+#### The renderer's version number does the invalidation, as it was always meant to
+
+`RENDER_VERSION` went from 1 to 2, so every stored render on the board is stale
+from the moment the release deploys and is re-rendered behind the read path by
+F36's existing backfill. That mechanism was built for "an escaping fix must reach
+two million posts without a migration"; a change of markup language is the same
+event, larger. Nothing new was needed for it.
+
+#### `[u]`, `[color]` and `[size]` lose their styling, and this is recorded rather than papered over
+
+Markdown has no spelling for underline, colour or size. The converter keeps the
+text and drops the presentation. The alternative — three board-only directives —
+would be BBCode again under a different syntax, on a board that had just changed
+language to stop having one. It is a real loss on an imported board, it is the
+only one, and `mybb-parity.md` says so where an operator will read it before
+promising anyone a like-for-like move.
+
+#### Custom tags became directives; a smiley did not change at all
+
+`[spoiler]…[/spoiler]` has no Markdown spelling either, so F37's custom tags are
+now **directives** — `:::spoiler` for a block, `:spoiler[…]` for a span — which is
+the syntax the CommonMark community settled on for exactly this. The table was
+renamed (`custom_bbcode` → `custom_directives`) and every column kept, because
+the safety argument did not change: a name and inline-or-block, never markup.
+Smilies were already literal codes and images, and are untouched.
+
+#### Three deviations from CommonMark, each with a forum's reason
+
+- **A single newline is a line break.** CommonMark folds it into a space, which is
+  right for documents and wrong for a message box. A member who has to type two
+  trailing spaces to get a line break will type them once, see nothing happen,
+  and ask for BBCode back.
+- **No indented code blocks.** Four spaces of indent is what a pasted, wrapped or
+  hand-aligned paragraph looks like, and turning that into a code block is the
+  single most common "Markdown ate my post" complaint. Fenced code is the one
+  way, and it is what the composer's toolbar inserts.
+- **No raw HTML**, which CommonMark says should pass through. That would need a
+  sanitiser, and a sanitiser is a blocklist — the thing this package has never
+  had. Reference links are also absent, for a smaller reason: in a post they read
+  as a broken link to everyone who cannot see the definition.
+
+#### The composer is a textarea, and the preview is a round trip
+
+R5 decides this before taste does: a board that posts with scripting off cannot
+have an editor that *replaces* the textarea, which rules out every WYSIWYG. What
+is added on top is enhancement in the strict sense — the toolbar and the
+Write/Preview tabs are rendered **after mount**, so nobody with scripting off is
+shown a button that does nothing, and every shortcut inserts something the member
+could have typed.
+
+The preview calls a Server Action that runs the same `renderMarkdown` the thread
+page runs, with the same board vocabulary. A client-side parser would be faster
+and would drift from the server's the first time either was fixed; the round trip
+buys a preview that is the render rather than an impression of it. With scripting
+off the form's own `intent=preview` submit reaches the same function.

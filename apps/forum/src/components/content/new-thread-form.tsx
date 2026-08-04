@@ -45,7 +45,7 @@ import type { Draft } from "@meith/drafts"
 import { Disclosure, buttonVariants } from "@meith/ui"
 
 import { AttachmentField } from "./attachment-field"
-import { EditorToolbar } from "./editor-toolbar"
+import { MarkdownEditor } from "./markdown-editor"
 import { Field, FormError, SubmitButton } from "../auth/form-controls"
 
 export interface PrefixOption {
@@ -95,25 +95,6 @@ export function NewThreadForm({
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
       {state.notice === "saved" && <p role="status">Draft saved.</p>}
-      {state.notice === "preview" && (
-        <section
-          aria-label="Preview"
-          className="rounded-md border border-border bg-muted/40 px-3 py-2"
-        >
-          <h2 className="mb-1 text-sm font-medium text-muted-foreground">Preview</h2>
-          {/*
-            The renderer's own output (F36), produced on the server by the same
-            function that renders the post — so the preview shows what the
-            thread will show rather than an approximation that drifts. Trusted
-            for the same reason every post body is: it is constructed from
-            escaped text and validated attributes, never parsed from markup.
-          */}
-          <div
-            className="text-sm leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: state.preview ?? "" }}
-          />
-        </section>
-      )}
       {/* The forum is a hidden field rather than a route param the action
           trusts: the action re-resolves the matrix for whatever id arrives, so
           tampering with this buys a permission check, not a bypass. */}
@@ -147,30 +128,16 @@ export function NewThreadForm({
       )}
 
       {/*
-        `htmlFor`, not a `<label>` wrapped around the whole group.
-
-        A label's control is its **first labelable descendant**, and a
-        `<button>` is labelable — so with the toolbar inside it, this label
-        named the *Bold button* "Message" and left the textarea with no
-        accessible name at all. It rendered identically, which is why it stood
-        for as long as it did; the browser suite could not see it either,
-        because the specs that reach a composer were being refused at
-        registration by the anti-spam timing floor (see `e2e/support/database.ts`).
+        The composer owns its own label, formatting toolbar and preview tab —
+        see `markdown-editor.tsx`, and in particular why none of that is in the
+        server-rendered HTML. The `intent=preview` button below is what still
+        works with scripting off, and `preview` is where its result comes back.
       */}
-      <div className="flex flex-col gap-1 text-sm">
-        <label htmlFor="post-message" className="font-medium">
-          Message
-        </label>
-        <EditorToolbar />
-        <textarea
-          id="post-message"
-          name="message"
-          rows={12}
-          required
-          defaultValue={state.values?.message ?? draft?.message}
-          className="rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        />
-      </div>
+      <MarkdownEditor
+        required
+        defaultValue={state.values?.message ?? draft?.message}
+        preview={state.notice === "preview" ? (state.preview ?? "") : undefined}
+      />
 
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}
 

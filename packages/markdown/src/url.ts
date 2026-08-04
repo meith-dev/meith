@@ -27,7 +27,13 @@ const MAILTO = /^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/i
 
 export interface UrlPolicy {
   readonly maxLength?: number
-  /** Allow `mailto:` — true only for `[email]`, so `[url]` cannot emit one. */
+  /**
+   * Allow `mailto:`.
+   *
+   * True only where an address is the point — an autolinked `<a@b.example>`,
+   * or a link an author wrote as `[mail me](mailto:…)`. It is off by default so
+   * that no other path can emit one by accident.
+   */
   readonly allowMailto?: boolean
 }
 
@@ -60,7 +66,7 @@ export function safeUrl(value: string, policy: UrlPolicy = {}): string | null {
   return null
 }
 
-/** `[img]` is stricter: an image is fetched, so no `mailto:` and no data URL. */
+/** An image is *fetched*, so it is stricter: no `mailto:`, and no data URL. */
 export function safeImageUrl(value: string): string | null {
   /*
    * `data:` never reaches here (it is not in the allowlist), and that is not an

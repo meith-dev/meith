@@ -13,7 +13,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
-import { RENDER_VERSION } from '@meith/bbcode'
+import { RENDER_VERSION } from '@meith/markdown'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
@@ -212,7 +212,7 @@ describe('applyEdit', () => {
     forumId: FORUM,
     authorUserId: AUTHOR,
     isFirstPost: false,
-    message: 'a [b]revised[/b] body',
+    message: 'a **revised** body',
     reason: 'typo',
     editedByUserId: AUTHOR,
     editedAt: new Date('2026-07-30T13:00:00Z'),
@@ -237,7 +237,7 @@ describe('applyEdit', () => {
     expect(revisions).toHaveLength(1)
     expect(revisions[0]).toMatchObject({ revision: 1, message: 'reply 0', edit_reason: 'typo' })
     expect(await postRow(postIds[1]!)).toMatchObject({
-      message: 'a [b]revised[/b] body',
+      message: 'a **revised** body',
       revision_count: 1,
       edit_reason: 'typo',
       edited_by_user_id: AUTHOR,
@@ -254,7 +254,7 @@ describe('applyEdit', () => {
     await repo.applyEdit(edit(postIds[1]!, threadId))
 
     expect(await postRow(postIds[1]!)).toMatchObject({
-      message_html: 'a <strong>revised</strong> body',
+      message_html: '<p>a <strong>revised</strong> body</p>',
       render_version: RENDER_VERSION,
     })
   })
@@ -288,7 +288,7 @@ describe('applyEdit', () => {
     await repo.applyEdit(
       edit(postIds[1]!, threadId, {
         revision: 2,
-        previousMessage: 'a [b]revised[/b] body',
+        previousMessage: 'a **revised** body',
         message: 'third time',
       }),
     )
@@ -300,7 +300,7 @@ describe('applyEdit', () => {
     ) as Array<{ revision: number; message: string }>
 
     expect(revisions.map((r) => Number(r.revision))).toEqual([1, 2])
-    expect(revisions[1]!.message).toBe('a [b]revised[/b] body')
+    expect(revisions[1]!.message).toBe('a **revised** body')
     expect((await postRow(postIds[1]!)).revision_count).toBe(2)
   })
 })

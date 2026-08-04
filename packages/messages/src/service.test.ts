@@ -1,4 +1,5 @@
 import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
+import { BodyFormat } from '@meith/markdown'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { MessageService } from './service'
@@ -136,6 +137,7 @@ class FakeRepository implements MessageRepository {
       message: input.message,
       messageHtml: input.messageHtml,
       renderVersion: input.renderVersion,
+      bodyFormat: BodyFormat.Markdown,
       vocabVersion: input.vocabVersion,
       replyToId: input.replyToId,
       receiptRequested: input.receiptRequested,
@@ -297,9 +299,9 @@ describe('sending', () => {
   })
 
   it('renders the body once and stores it with its version (F36)', async () => {
-    await sendTo('bob', { message: '[b]loud[/b]' })
+    await sendTo('bob', { message: '**loud**' })
     const message = repo.messages[0]
-    expect(message?.message).toBe('[b]loud[/b]')
+    expect(message?.message).toBe('**loud**')
     expect(message?.messageHtml).toContain('<strong')
     expect(message?.renderVersion).toBeGreaterThan(0)
   })
@@ -607,17 +609,17 @@ describe('reply and forward', () => {
     expect(draft.subject).toBe('Re: Hello')
   })
 
-  it('quotes the original, with a username that cannot break out of the tag', async () => {
+  it('quotes the original, with a username that cannot reformat the attribution', async () => {
     const id = await service.send({
       authorUserId: IVAN,
-      authorUsername: "iv'an]",
+      authorUsername: 'iv**an**[',
       to: 'bob',
       subject: 'Hello',
       message: 'A message.',
     })
 
     const draft = await service.replyDraft({ messageId: id, userId: BOB })
-    expect(draft.message).toBe("[quote='ivan']A message.[/quote]\n\n")
+    expect(draft.message).toBe('> **ivan wrote:**\n>\n> A message.\n\n')
   })
 
   it('starts a forward with no recipient and no thread', async () => {

@@ -131,9 +131,15 @@ export type ValidationMessages = readonly string[]
 
 export interface HookSignatures {
   /* ---- Content rendering ---- */
-  'bbcode.parse.text': { value: string; context: ViewerRef & { source: 'post' | 'signature' | 'pm' } }
-  'bbcode.render.html': { value: string; context: ViewerRef & { source: 'post' | 'signature' | 'pm' } }
-  'bbcode.tags': { value: readonly string[]; context: ForumRef | Record<string, never> }
+  'markdown.parse.text': {
+    value: string
+    context: ViewerRef & { source: 'post' | 'signature' | 'pm' }
+  }
+  'markdown.render.html': {
+    value: string
+    context: ViewerRef & { source: 'post' | 'signature' | 'pm' }
+  }
+  'markdown.directives': { value: readonly string[]; context: ForumRef | Record<string, never> }
   'post.body.html': { value: string; context: PostRef & ViewerRef }
   'signature.html': { value: string; context: ViewerRef & { authorId: number } }
   'smilies.list': {

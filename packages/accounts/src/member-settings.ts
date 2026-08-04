@@ -149,7 +149,7 @@ export class MemberSettingsService {
    * Save the public profile.
    *
    * Every field is stored as plain text and rendered as plain text. A signature
-   * is BBCode and is moderated (F58); this is not that, and treating it as
+   * is Markdown and is moderated (F58); this is not that, and treating it as
    * markup would give a profile capabilities the box never advertised — the
    * same rule F53's warning reasons follow.
    */
@@ -373,7 +373,7 @@ function parsePageSize(raw: string, label: string): number | null {
  *
  * Only `http` and `https` survive. A profile field that renders as a link is an
  * attacker-controlled `href`, and `javascript:` in one is the oldest stored-XSS
- * vector there is — F36 makes the same argument about BBCode `[url]`. A bare
+ * vector there is — F36 makes the same argument about a Markdown link. A bare
  * `example.com` is given `https://` rather than refused, because typing the
  * scheme is not something anybody does and refusing it teaches nothing.
  */

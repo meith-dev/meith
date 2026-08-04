@@ -215,7 +215,7 @@ F38's four extra database suites pushed the Argon2id lockout test past (D41).
   view-model props, and for the gap: fixture mode has no writer, so the no-JS
   proof is `FormData`-driven action tests rather than the browser suite.
 
-- **F36 BBCode** — post bodies are markup. `@meith/bbcode` is a scanner, not a
+- **F36 BBCode** — post bodies are markup. `@meith/markdown` is a scanner, not a
   pile of regular expressions, and its safety argument is that it *constructs*
   its output rather than sanitising one: every character comes from a tag
   literal, a validated attribute, or `escapeHtml`. The suite asserts that
@@ -780,6 +780,22 @@ budget — 5,486 ms to 98 ms.
   it, a honeypot and fill-time floor, and first-post moderation as a third
   reason to hold a post.
 
+- **Markdown replaces BBCode, board-wide** (D101). `@meith/bbcode` is deleted,
+  not deprecated: a board runs one markup language, and the alternative — two
+  renderers, two escaping rule sets, two answers to "what does `[b]` do" — is
+  the state every forum that took the cheap path is still in a decade later.
+  The **source** is converted instead, by a parser, in exactly two places: the
+  importer marks what MyBB hands over as BBCode, and F36's render backfill
+  converts each row the first time it touches it. `RENDER_VERSION` 1 → 2 does
+  the invalidation, which is the mechanism it was built for. A `body_format`
+  column on the five tables holding member-written source makes that resumable
+  and impossible to do twice; both of its defaults are chosen so the *safe*
+  mislabelling is the one that can happen. `[u]`, `[color]` and `[size]` lose
+  their styling and keep their words — the only permanent loss, recorded in
+  `mybb-parity.md`. F37's custom tags became directives (`:::spoiler`,
+  `:spoiler[…]`), and F45's toolbar became a composer that still degrades to a
+  bare textarea with scripting off.
+
 **Nothing on the plan is outstanding.** 86 `DONE`, 3 green `GATE`, no `PARTIAL`
 and no `TODO`. That is the roadmap finished, not the project: what remains is
 the release task below, the standing gaps under *Still outstanding and worth
@@ -941,7 +957,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D100). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D101). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

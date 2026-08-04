@@ -78,8 +78,8 @@ describe('xmlEscape', () => {
 })
 
 describe('summarise', () => {
-  it('strips BBCode, including tags with arguments', () => {
-    expect(summarise('[b]Hi[/b] see [url=https://x.test]this[/url]')).toBe('Hi see this')
+  it('strips the markup and keeps the words', () => {
+    expect(summarise('**Hi** see [this](https://x.test)')).toBe('Hi see this')
   })
 
   it('collapses whitespace so a feed entry is one paragraph', () => {

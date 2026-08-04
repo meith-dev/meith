@@ -125,7 +125,7 @@ export function MemberProfile({
       )}
 
       {/*
-        The signature is pre-rendered BBCode (F36) — the sanitising renderer's
+        The signature is pre-rendered Markdown (F36) — the renderer's
         own output, which is why it may be inserted as HTML here and nowhere a
         theme composes a string itself.
       */}
@@ -138,7 +138,7 @@ export function MemberProfile({
           </CardHeader>
           <CardContent>
             <div
-              className="prose-bb text-sm text-muted-foreground"
+              className="prose-md text-sm text-muted-foreground"
               dangerouslySetInnerHTML={{ __html: signatureHtml }}
             />
           </CardContent>

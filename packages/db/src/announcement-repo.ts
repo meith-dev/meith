@@ -25,6 +25,7 @@
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
+import { BodyFormat, sourceAsMarkdown } from '@meith/markdown'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -36,7 +37,14 @@ export interface AnnouncementRow {
   readonly forumTitle: string | null
   readonly forumSlug: string | null
   readonly title: string
-  /** BBCode source. Rendered by the caller — there is no stored render. */
+  /**
+   * Markdown source. Rendered by the caller — there is no stored render.
+   *
+   * Always Markdown by the time it leaves this repository: a row written before
+   * the board spoke it is converted on the way out. There are a handful of
+   * announcements on any board, so this costs nothing worth measuring and saves
+   * every caller from knowing the format column exists.
+   */
   readonly message: string
   readonly authorUserId: number | null
   readonly authorUsername: string
@@ -66,7 +74,7 @@ function toRow(row: Record<string, unknown>): AnnouncementRow {
       ? null
       : String(row.forum_slug),
     title: String(row.title),
-    message: String(row.message),
+    message: sourceAsMarkdown(String(row.message), Number(row.body_format ?? BodyFormat.Markdown)),
     authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
     authorUsername: String(row.author_username),
     startsAt: new Date(String(row.starts_at)),
@@ -108,7 +116,7 @@ export class PostgresAnnouncementRepository {
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select a.id, a.forum_id, a.title, a.message, a.author_user_id,
+        select a.id, a.forum_id, a.title, a.message, a.body_format, a.author_user_id,
                a.author_username, a.starts_at, a.ends_at, a.enabled, a.created_at,
                f.title as forum_title, f.slug as forum_slug
           from announcements a
@@ -131,7 +139,7 @@ export class PostgresAnnouncementRepository {
   async list(): Promise<readonly AnnouncementRow[]> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select a.id, a.forum_id, a.title, a.message, a.author_user_id,
+        select a.id, a.forum_id, a.title, a.message, a.body_format, a.author_user_id,
                a.author_username, a.starts_at, a.ends_at, a.enabled, a.created_at,
                f.title as forum_title, f.slug as forum_slug
           from announcements a
@@ -146,7 +154,7 @@ export class PostgresAnnouncementRepository {
   async find(id: number): Promise<AnnouncementRow | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select a.id, a.forum_id, a.title, a.message, a.author_user_id,
+        select a.id, a.forum_id, a.title, a.message, a.body_format, a.author_user_id,
                a.author_username, a.starts_at, a.ends_at, a.enabled, a.created_at,
                f.title as forum_title, f.slug as forum_slug
           from announcements a
@@ -177,10 +185,11 @@ export class PostgresAnnouncementRepository {
 
     const rows = resultRows(
       await this.db.execute(sql`
-        insert into announcements (forum_id, title, message, author_user_id,
-                                   author_username, starts_at, ends_at, enabled)
+        insert into announcements (forum_id, title, message, body_format,
+                                   author_user_id, author_username, starts_at,
+                                   ends_at, enabled)
         values (${input.forumId}, ${input.title}, ${input.message},
-                ${input.authorUserId},
+                ${BodyFormat.Markdown}, ${input.authorUserId},
                 coalesce((select username from users where id = ${input.authorUserId}), ''),
                 ${input.startsAt}, ${input.endsAt}, ${input.enabled})
         returning id
@@ -205,7 +214,8 @@ export class PostgresAnnouncementRepository {
       await this.db.execute(sql`
         update announcements
            set forum_id = ${input.forumId}, title = ${input.title},
-               message = ${input.message}, starts_at = ${input.startsAt},
+               message = ${input.message}, body_format = ${BodyFormat.Markdown},
+               starts_at = ${input.startsAt},
                ends_at = ${input.endsAt}, enabled = ${input.enabled}
          where id = ${id}
         returning id

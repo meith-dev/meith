@@ -10,6 +10,7 @@
  * Group IDs mirror the seed migration's canonical groups so that switching
  * `DATA_SOURCE` from `fixture` to `postgres` does not renumber anything.
  */
+import { BodyFormat } from '@meith/markdown'
 import {
   emptyPermissionSet,
   type ForumPermissions,
@@ -404,10 +405,11 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
     message:
-      'Welcome to the [b]new forum[/b]. We are glad you are here.\n\n' +
-      'The rules live at [url=/forum/100-announcements]Announcements[/url].',
+      'Welcome to the **new forum**. We are glad you are here.\n\n' +
+      'The rules live in [Announcements](/forum/100-announcements).',
     messageHtml: null,
     renderVersion: 0,
+    bodyFormat: BodyFormat.Markdown,
     editedAt: null,
     editedByUsername: null,
     editReason: null,
@@ -427,6 +429,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     message: 'Thanks for joining us for the first release.',
     messageHtml: null,
     renderVersion: 0,
+    bodyFormat: BodyFormat.Markdown,
     editedAt: null,
     editedByUsername: null,
     editReason: null,
@@ -446,6 +449,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     message: 'Show us the place where you make things.',
     messageHtml: null,
     renderVersion: 0,
+    bodyFormat: BodyFormat.Markdown,
     editedAt: null,
     editedByUsername: null,
     editReason: null,
@@ -463,9 +467,11 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
     message:
-      "[quote='admin' pid='121']Show us the place where you make things.[/quote]\nA standing desk and a notebook are all I need.",
+      '> **admin wrote:**\n>\n> Show us the place where you make things.\n\n' +
+      'A standing desk and a notebook are all I need.',
     messageHtml: null,
     renderVersion: 0,
+    bodyFormat: BodyFormat.Markdown,
     editedAt: null,
     editedByUsername: null,
     editReason: null,
@@ -485,6 +491,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     message: 'Tell us what you are reading this week.',
     messageHtml: null,
     renderVersion: 0,
+    bodyFormat: BodyFormat.Markdown,
     editedAt: null,
     editedByUsername: null,
     editReason: null,
@@ -504,6 +511,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     message: 'I just started a mystery novel.',
     messageHtml: null,
     renderVersion: 0,
+    bodyFormat: BodyFormat.Markdown,
     editedAt: null,
     editedByUsername: null,
     editReason: null,

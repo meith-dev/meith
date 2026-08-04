@@ -207,11 +207,11 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             <div className="px-4 py-4">
               {/*
                 Trusted markup: the sanitising renderer's own output (F36).
-                `.prose-bb` is defined in the app's stylesheet beside the
+                `.prose-md` is defined in the app's stylesheet beside the
                 `.bb-*` rules, because the class names come from the renderer.
               */}
               <div
-                className="prose-bb text-sm"
+                className="prose-md text-sm"
                 dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
               />
 
@@ -273,14 +273,14 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
           )}
 
           {/*
-            F58's signature. Trusted HTML from `@meith/bbcode`, rendered with
+            F58's signature. Trusted HTML from `@meith/markdown`, rendered with
             the narrower signature registry — the app resolves it, and a hidden
             post (F61) carries none. Quieter and smaller than the post it is
             attached to, because that is what a signature is.
           */}
           {post.ignored === null && post.author.signatureHtml !== null && (
             <div
-              className="prose-bb border-t border-border px-4 py-2.5 text-xs text-muted-foreground"
+              className="prose-md border-t border-border px-4 py-2.5 text-xs text-muted-foreground"
               dangerouslySetInnerHTML={{ __html: post.author.signatureHtml }}
             />
           )}

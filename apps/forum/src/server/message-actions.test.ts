@@ -12,6 +12,7 @@
  *  - a rejected send comes back with what was typed rather than an empty form;
  *  - the bulk action parses a selection posted by hand without trusting it.
  */
+import { BodyFormat } from '@meith/markdown'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { InMemoryAuthorizationSource, combinePermissionSets } from '@meith/authorization'
@@ -103,6 +104,7 @@ class FakeMessages implements MessageRepository {
       message: input.message,
       messageHtml: input.messageHtml,
       renderVersion: input.renderVersion,
+      bodyFormat: BodyFormat.Markdown,
       vocabVersion: input.vocabVersion,
       replyToId: input.replyToId,
       receiptRequested: input.receiptRequested,

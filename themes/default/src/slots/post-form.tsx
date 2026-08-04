@@ -16,7 +16,7 @@ import { MUTED_LINK, pageAt } from '../shared'
  * Every other page here is `max-w-6xl`, because a listing is a table and tables
  * want width. A composer is a single column of text that somebody is going to
  * *write* in, and a textarea eleven hundred pixels wide produces lines nobody
- * can track back to the start of — the same reason `.prose-bb` caps a rendered
+ * can track back to the start of — the same reason `.prose-md` caps a rendered
  * post at 72ch. The two measures agree, which means what an author types is
  * shaped roughly like what a reader will get.
  *

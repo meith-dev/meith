@@ -13,7 +13,7 @@ test('the fixture board, registration, and login work without JavaScript', async
   /*
    * F36 in the browser, and specifically through the *live* render path: the
    * fixture board stores no rendered HTML, so what is on screen here was
-   * produced by `@meith/bbcode` while the page was being rendered. Asserting
+   * produced by `@meith/markdown` while the page was being rendered. Asserting
    * the tags rather than the words is the point — a renderer that emitted its
    * input verbatim would still show the sentence.
    */
@@ -40,10 +40,11 @@ test('the fixture board, registration, and login work without JavaScript', async
 test('a quoted reply renders as a quote block, not as its own markup', async ({ page }) => {
   await page.goto('/thread/21-show-us-your-desk-setup')
 
-  const quote = page.locator('#post-132 blockquote.bb-quote')
-  await expect(quote.locator('cite')).toHaveText('admin wrote:')
+  const quote = page.locator('#post-132 blockquote.md-quote')
+  await expect(quote).toContainText('admin wrote:')
   await expect(quote).toContainText('Show us the place where you make things.')
-  await expect(page.locator('#post-132')).not.toContainText('[quote')
+  /* The marker itself never reaches the page — that is the whole assertion. */
+  await expect(page.locator('#post-132')).not.toContainText('> **admin')
 })
 
 /**

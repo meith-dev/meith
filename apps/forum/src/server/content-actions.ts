@@ -14,7 +14,7 @@
  */
 import { redirect } from 'next/navigation'
 
-import { renderBBCode } from '@meith/bbcode'
+import { SIGNATURE_FEATURES, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import {
   ForbiddenError,
   ValidationError,
@@ -31,6 +31,8 @@ import { POSTS_PER_PAGE } from '../view/paging'
 
 import { emitEvent, viewerRef } from './plugin-view'
 
+import { activeVocabulary } from './content-admin'
+
 import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import { getActor } from './context'
 import { holdsNewMember, limitMessage, spendLimit } from './antispam'
@@ -39,6 +41,58 @@ import { resolveReplyTarget, submitReply } from './reply-core'
 import { resolvePostScope } from './post-scope'
 import { getSettings } from './settings'
 import type { FormState } from './auth-form-state'
+
+/** Which set of constructs a preview is rendered with. */
+export type PreviewScope = 'post' | 'signature'
+
+/**
+ * A body as the thread will show it.
+ *
+ * The **same** function that renders a post, with the **same** board vocabulary
+ * — so a preview is not an approximation that drifts, it is the render. That is
+ * the whole argument for making the preview cost a round trip rather than
+ * shipping a second parser to the browser: two renderers that agree today are
+ * two renderers that disagree after the next fix to one of them.
+ *
+ * The word filter is deliberately not applied. It is a view of the *board's*
+ * finished markup and reversible by design (D75); showing an author their own
+ * words censored before they have posted them would be a preview of somebody
+ * else's decision, and would tell them which patterns the filter holds.
+ */
+async function previewHtml(message: string, scope: PreviewScope = 'post'): Promise<string> {
+  const vocabulary = await activeVocabulary()
+  return renderMarkdown(message, {
+    ...vocabularyOptions(vocabulary),
+    /*
+     * A signature is parsed with a narrower set of constructs (F58), so its
+     * preview has to be too — otherwise the box shows a heading that the saved
+     * signature renders as `## Heading`, which is a preview that lies.
+     */
+    ...(scope === 'signature' ? { features: SIGNATURE_FEATURES } : {}),
+  }).html
+}
+
+/**
+ * The preview a scripted composer fetches, without submitting the form.
+ *
+ * A Server Action rather than a route, so it is one function that cannot fall
+ * out of step with the three `intent=preview` branches below — those are what
+ * still runs with JavaScript off, and this is the same render reached without
+ * losing the caret, the scroll position or an unsaved attachment.
+ *
+ * It reads nothing and writes nothing: the argument goes in, HTML built from it
+ * comes back. There is no actor to check because there is nothing to authorise
+ * — previewing your own text asks the board for no information it holds.
+ */
+export async function renderPreviewAction(
+  message: string,
+  scope: PreviewScope = 'post',
+): Promise<string> {
+  return previewHtml(
+    typeof message === 'string' ? message : '',
+    scope === 'signature' ? 'signature' : 'post',
+  )
+}
 
 function field(form: FormData, name: string): string {
   const v = form.get(name)
@@ -89,7 +143,7 @@ export async function createThreadAction(
    * *only* what the user typed, so it cannot become a way to read anything.
    */
   if (field(form, 'intent') === 'preview') {
-    return { notice: 'preview', values, preview: renderBBCode(message).html }
+    return { notice: 'preview', values, preview: await previewHtml(message) }
   }
 
   const actor = await getActor()
@@ -278,7 +332,7 @@ export async function createReplyAction(
   if (threadId === null) return { error: 'That thread does not exist.', values }
 
   if (field(form, 'intent') === 'preview') {
-    return { notice: 'preview', values, preview: renderBBCode(message).html }
+    return { notice: 'preview', values, preview: await previewHtml(message) }
   }
 
   const actor = await getActor()
@@ -401,7 +455,7 @@ export async function editPostAction(
   }
 
   if (field(form, 'intent') === 'preview') {
-    return { notice: 'preview', values, preview: renderBBCode(message).html }
+    return { notice: 'preview', values, preview: await previewHtml(message) }
   }
 
   const { postWrites } = getContainer()

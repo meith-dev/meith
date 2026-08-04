@@ -44,7 +44,7 @@ export interface TaskWorkers {
   reconcileCounters(batchSize: number): Promise<number>
   /** Folds buffered thread views into `threads.view_count`. Returns threads updated. */
   flushThreadViews(batchSize: number): Promise<number>
-  /** Re-renders posts left on an older BBCode renderer. Returns posts rewritten. */
+  /** Re-renders posts left on an older renderer, converting any still on BBCode. */
   backfillPostRenders(batchSize: number): Promise<number>
   /** Promotes users who now meet a promotion rule. Returns users moved. */
   applyPromotions(batchSize: number): Promise<number>
@@ -216,8 +216,8 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       title: 'Re-render stale post bodies',
       description:
         'Rewrites the stored HTML of posts rendered by an older version of the ' +
-        'BBCode renderer. Purely an optimisation: a stale render is rendered ' +
-        'live on read, so this never gates correctness — it stops a renderer ' +
+        'renderer, and converts any body still stored as BBCode. A stale render ' +
+        'is rendered live on read, so this never gates correctness — it stops a renderer ' +
         'change, or an import that wrote none, from making every thread page ' +
         'pay for it. Idempotent, and its own progress marker is the row.',
       /*

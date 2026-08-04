@@ -13,7 +13,7 @@ import { MUTED_LINK, Stamp, UserRef } from '../shared'
  * than as an alert bar, and it carries the leading rule that marks it as the
  * board speaking rather than the page reporting.
  *
- * `bodyHtml` is trusted markup from `@meith/bbcode`'s own renderer, the same
+ * `bodyHtml` is trusted markup from `@meith/markdown`'s own renderer, the same
  * contract a post body carries, which is why it is inserted rather than escaped.
  * A theme must never be handed member-supplied text to insert; this is not that.
  */
@@ -24,7 +24,7 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
         <h2 className="font-serif text-lg font-semibold tracking-tight text-balance">{title}</h2>
 
         <div
-          className="prose-bb text-sm"
+          className="prose-md text-sm"
           /* Trusted: the renderer's own output. See the note above. */
           dangerouslySetInnerHTML={{ __html: bodyHtml }}
         />

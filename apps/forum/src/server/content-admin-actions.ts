@@ -9,7 +9,7 @@
  * cleared. An operator who adds a filter and sees the word still there would
  * reasonably conclude the feature does not work.
  */
-import { compileSmilies, createTagRegistry } from '@meith/bbcode'
+import { compileSmilies, createDirectiveRegistry } from '@meith/markdown'
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
 import type {
   AnnouncementInput,
@@ -183,13 +183,13 @@ export async function deletePrefixAction(
 }
 
 /* ------------------------------------------------------------------ *
- * The board's BBCode vocabulary
+ * The board's markup vocabulary
  * ------------------------------------------------------------------ */
 
 /**
  * Every vocabulary write clears the same tag.
  *
- * The repository bumps `cache_versions['bbcode_vocabulary']` in the same call,
+ * The repository bumps `cache_versions['markdown_vocabulary']` in the same call,
  * which is the *other* half of the same invalidation: this one drops the
  * compiled vocabulary the render path is holding, and that one marks every
  * stored render on the board stale. Doing one without the other leaves a board
@@ -197,7 +197,7 @@ export async function deletePrefixAction(
  * is the confusing half-applied state this pairing exists to avoid.
  */
 async function invalidateVocabulary(): Promise<void> {
-  await drivers().cache.invalidateTags([CacheTags.bbcodeVocabulary()])
+  await drivers().cache.invalidateTags([CacheTags.markdownVocabulary()])
 }
 
 /**
@@ -302,43 +302,46 @@ export async function deleteSmileyAction(_prev: FormState, form: FormData): Prom
 }
 
 /**
- * Validate a custom tag the way the parser will.
+ * Validate a directive the way the parser will.
  *
- * `createTagRegistry` enforces both rules that matter and neither is restated
- * here: the name shape, and that an existing tag cannot be overridden — because
- * changing what `[url]` does must be a code review rather than an admin form.
+ * `createDirectiveRegistry` is the function the render path runs, and calling
+ * it here is the rule F68's theme editor follows: a second validator drifts,
+ * and the direction it drifts is a board whose thread pages throw because an
+ * admin form accepted something the parser refuses.
  */
-function assertTagCompiles(name: string, block: boolean): void {
+function assertDirectiveCompiles(name: string, block: boolean): void {
   try {
-    createTagRegistry([{ name, block }])
+    createDirectiveRegistry([{ name, block }])
   } catch (err) {
-    throw new ValidationError(err instanceof Error ? err.message : 'That tag name is not valid.')
+    throw new ValidationError(
+      err instanceof Error ? err.message : 'That directive name is not valid.',
+    )
   }
 }
 
-export async function createCustomTagAction(_prev: FormState, form: FormData): Promise<FormState> {
+export async function createDirectiveAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
 
     /*
-     * Lower-cased before anything else looks at it. `[Spoiler]` and `[spoiler]`
-     * are the same tag to the tokeniser, so storing both would be two rows the
-     * registry refuses to build from — and the refusal would happen on the
-     * render path rather than here.
+     * Lower-cased before anything else looks at it. `:::Spoiler` and
+     * `:::spoiler` are the same directive to the parser, so storing both would
+     * be two rows the registry refuses to build from — and the refusal would
+     * happen on the render path rather than here.
      */
     const name = text(form, 'name').toLowerCase()
     const block = form.get('block') !== null
-    assertTagCompiles(name, block)
+    assertDirectiveCompiles(name, block)
 
     const description = text(form, 'description')
-    const tagId = await requireContentAdmin().createCustomTag({
+    const tagId = await requireContentAdmin().createDirective({
       name,
       block,
       description: description === '' ? null : description,
     })
 
     await invalidateVocabulary()
-    await recordAdminAction({ action: 'content.bbcode_added', detail: { tagId, name } })
+    await recordAdminAction({ action: 'content.directive_added', detail: { tagId, name } })
 
     return { notice: 'saved' }
   } catch (err) {
@@ -346,17 +349,17 @@ export async function createCustomTagAction(_prev: FormState, form: FormData): P
   }
 }
 
-export async function updateCustomTagAction(_prev: FormState, form: FormData): Promise<FormState> {
+export async function updateDirectiveAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
 
     const tagId = id(form)
     const name = text(form, 'name').toLowerCase()
     const block = form.get('block') !== null
-    assertTagCompiles(name, block)
+    assertDirectiveCompiles(name, block)
 
     const description = text(form, 'description')
-    await requireContentAdmin().updateCustomTag(tagId, {
+    await requireContentAdmin().updateDirective(tagId, {
       name,
       block,
       description: description === '' ? null : description,
@@ -364,7 +367,7 @@ export async function updateCustomTagAction(_prev: FormState, form: FormData): P
     })
 
     await invalidateVocabulary()
-    await recordAdminAction({ action: 'content.bbcode_changed', detail: { tagId, name } })
+    await recordAdminAction({ action: 'content.directive_changed', detail: { tagId, name } })
 
     return { notice: 'saved' }
   } catch (err) {
@@ -373,22 +376,22 @@ export async function updateCustomTagAction(_prev: FormState, form: FormData): P
 }
 
 /**
- * Delete a custom tag.
+ * Delete a directive.
  *
- * `[spoiler]x[/spoiler]` in a post whose tag has gone renders as that literal
- * text, because F36's parser demotes an unknown tag rather than dropping it.
- * The post shows the markup its author typed, which is the least surprising of
- * the available outcomes and is why this needs no "in use" check.
+ * `:spoiler[x]` in a post whose directive has gone renders as that literal
+ * text, because F36's parser only opens a directive it has been told about. The
+ * post shows the markup its author typed, which is the least surprising of the
+ * available outcomes and is why this needs no "in use" check.
  */
-export async function deleteCustomTagAction(_prev: FormState, form: FormData): Promise<FormState> {
+export async function deleteDirectiveAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     await requireAdmin()
 
     const tagId = id(form)
-    await requireContentAdmin().deleteCustomTag(tagId)
+    await requireContentAdmin().deleteDirective(tagId)
 
     await invalidateVocabulary()
-    await recordAdminAction({ action: 'content.bbcode_removed', detail: { tagId } })
+    await recordAdminAction({ action: 'content.directive_removed', detail: { tagId } })
 
     return { notice: 'deleted' }
   } catch (err) {
@@ -475,7 +478,7 @@ function announcementInput(form: FormData): AnnouncementInput {
     /* Empty is board-wide. One column says it; see the migration. */
     forumId: forumText === '' ? null : id(form, 'forumId'),
     title: text(form, 'title'),
-    /* Untrimmed body: leading whitespace can be deliberate in BBCode. */
+    /* Untrimmed body: leading whitespace can be deliberate in Markdown. */
     message: typeof form.get('message') === 'string' ? (form.get('message') as string) : '',
     startsAt: moment(form, 'startsAt') ?? new Date(),
     endsAt: moment(form, 'endsAt'),

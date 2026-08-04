@@ -8,15 +8,30 @@
  * with the offending construct demoted to plain text, because a body that
  * cannot render is a thread page that returns a 500 for everyone who opens it.
  */
-export interface BBCodeLimits {
+export interface MarkdownLimits {
   /** Characters of source considered. Beyond this the tail renders as text. */
   readonly maxInput: number
-  /** Nested open tags. A tag that would exceed it stays literal text. */
+  /**
+   * Nested containers — quotes, lists, directives.
+   *
+   * Markdown makes this cheaper to reach than BBCode did: `>>>>>>>>>>>>>>>` is
+   * fifteen blockquotes and one keypress each. A container that would exceed
+   * the ceiling keeps its marker as literal text.
+   */
   readonly maxDepth: number
   /** AST nodes. Beyond this the remaining source becomes one text node. */
   readonly maxNodes: number
-  /** Characters in a URL attribute. Longer ones are not links. */
+  /** Characters in a URL. Longer ones are not links. */
   readonly maxUrlLength: number
+  /**
+   * Delimiter runs (`*`, `_`, `~`) considered by the emphasis matcher.
+   *
+   * That matcher is quadratic in the worst case — inherent to CommonMark's
+   * rules, not a shortcut taken here — and a line of two thousand asterisks is
+   * a body somebody wrote to find out what happens. Past the ceiling the
+   * remaining runs stay literal text, which is what they look like anyway.
+   */
+  readonly maxDelimiters: number
 }
 
 /**
@@ -27,9 +42,10 @@ export interface BBCodeLimits {
  * that predate a tightened setting, and for the importer (F85), which writes
  * whatever the old board stored.
  */
-export const DEFAULT_LIMITS: BBCodeLimits = {
+export const DEFAULT_LIMITS: MarkdownLimits = {
   maxInput: 64 * 1024,
   maxDepth: 12,
   maxNodes: 4000,
   maxUrlLength: 2048,
+  maxDelimiters: 2000,
 }

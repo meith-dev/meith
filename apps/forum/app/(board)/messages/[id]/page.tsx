@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { postBodyHtml } from '@meith/bbcode'
+import { postBodyHtml } from '@meith/markdown'
 
 import { activeVocabulary } from '@/server/content-admin'
 import { getContainer } from '@/server/container'
@@ -90,7 +90,7 @@ export default async function MessagePage({
         </div>
 
         {/*
-          Trusted HTML from `@meith/bbcode` — the one place on this board where
+          Trusted HTML from `@meith/markdown` — the one place on this board where
           `dangerouslySetInnerHTML` is correct, for the same reason a post body
           uses it: the string is this codebase's own construction, escaped at
           the point it was built.

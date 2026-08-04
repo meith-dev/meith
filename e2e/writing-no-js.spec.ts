@@ -80,14 +80,14 @@ test('a member posts a thread and a reply, and both land in the database', async
 
   const title = `A thread from the browser ${Date.now()}`
   await page.getByLabel('Subject').fill(title)
-  await page.getByLabel('Message').fill('Written with [b]no JavaScript[/b] at all.')
+  await page.getByLabel('Message').fill('Written with **no JavaScript** at all.')
   await page.getByRole('button', { name: 'Post thread' }).click()
 
   await expect(page).toHaveURL(/\/thread\/\d+-/)
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
   /*
    * The renderer ran on the server: asserting the tag rather than the words is
-   * what distinguishes "BBCode was rendered" from "the input was echoed".
+   * what distinguishes "the Markdown was rendered" from "the input was echoed".
    */
   await expect(page.locator('article strong').first()).toHaveText('no JavaScript')
 

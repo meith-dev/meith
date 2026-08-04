@@ -201,14 +201,25 @@ describe('ReplyComposer', () => {
 })
 
 describe('quotePrefill', () => {
-  it('emits the BBCode form, attributed and addressable', async () => {
+  it('emits a Markdown blockquote, attributed', async () => {
     expect(
       quotePrefill({
         postId: 12,
         authorUsername: 'ada',
         message: 'Original text',
       }),
-    ).toBe("[quote='ada' pid='12']Original text[/quote]\n\n")
+    ).toBe('> **ada wrote:**\n>\n> Original text\n\n')
+  })
+
+  it('marks every line, so a two-paragraph quote stays one quote', () => {
+    /*
+     * A blockquote ends at the first line without a `>`. Without the marker on
+     * the blank line, quoting a two-paragraph post would quote the first
+     * paragraph and put the second one in the replier's own voice.
+     */
+    const quoted = quotePrefill({ postId: 3, authorUsername: 'ada', message: 'one\n\ntwo' })
+
+    expect(quoted).toContain('> one\n>\n> two')
   })
 
   it('keeps the quoted body verbatim, markup and all', () => {
@@ -217,20 +228,25 @@ describe('quotePrefill', () => {
     const quoted = quotePrefill({
       postId: 1,
       authorUsername: 'ada',
-      message: '[b]bold[/b] & <em>',
+      message: '**bold** & <em>',
     })
 
-    expect(quoted).toContain('[b]bold[/b] & <em>')
+    expect(quoted).toContain('**bold** & <em>')
   })
 
-  it('does not let a username break out of the attribute', () => {
+  it('does not let a username reformat the attribution line', () => {
+    /*
+     * The renderer escapes what it produces, but the *source* is what the
+     * replier then edits — a name carrying `**` would close the bold early and
+     * stay broken in whatever they post.
+     */
     const quoted = quotePrefill({
       postId: 1,
-      authorUsername: "ada' pid='999",
+      authorUsername: '**ada**_[x]`',
       message: 'x',
     })
 
-    expect(quoted).toBe("[quote='ada pid=999' pid='1']x[/quote]\n\n")
+    expect(quoted).toBe('> **adax wrote:**\n>\n> x\n\n')
   })
 })
 

@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
-import { RENDER_VERSION, renderBBCode } from '@meith/bbcode'
+import { BodyFormat, RENDER_VERSION, renderMarkdown } from '@meith/markdown'
 import { expectQueryBudget } from '@meith/testkit'
 
 import type { Database } from './client'
@@ -62,8 +62,17 @@ beforeEach(async () => {
   ])
 })
 
-/** A post written straight to the table, as an import or an old release left it. */
-async function insertStale(id: number, message: string): Promise<void> {
+/**
+ * A post written straight to the table, as an import or an old release left it.
+ *
+ * `format` defaults to Markdown, so a test that is about *staleness* says
+ * nothing about the markup language. The conversion tests pass it explicitly.
+ */
+async function insertStale(
+  id: number,
+  message: string,
+  format: number = BodyFormat.Markdown,
+): Promise<void> {
   await db.execute(sql`
     insert into threads (id, forum_id, title, slug, author_user_id, author_username,
                          visibility, last_post_at, created_at, updated_at)
@@ -72,8 +81,8 @@ async function insertStale(id: number, message: string): Promise<void> {
   `)
   await db.execute(sql`
     insert into posts (id, thread_id, forum_id, author_user_id, author_username,
-                       message, visibility, is_first_post, created_at)
-    values (${id}, ${id}, ${FORUM}, 1, 'ada', ${message}, 'visible', true, ${AT})
+                       message, body_format, visibility, is_first_post, created_at)
+    values (${id}, ${id}, ${FORUM}, 1, 'ada', ${message}, ${format}, 'visible', true, ${AT})
   `)
 }
 
@@ -94,7 +103,7 @@ describe('the stored render', () => {
       forumId: FORUM,
       title: 'Hello there',
       slug: 'hello-there',
-      message: 'a [b]bold[/b] claim',
+      message: 'a **bold** claim',
       prefixId: null,
       authorUserId: 1,
       authorUsername: 'ada',
@@ -104,7 +113,7 @@ describe('the stored render', () => {
     })
 
     expect(await readPost(created.postId)).toEqual({
-      html: 'a <strong>bold</strong> claim',
+      html: '<p>a <strong>bold</strong> claim</p>',
       version: RENDER_VERSION,
     })
   })
@@ -127,7 +136,7 @@ describe('the stored render', () => {
       threadId: thread.threadId,
       forumId: FORUM,
       threadTitle: 'Hello there',
-      message: '[quote]opening[/quote]agreed',
+      message: '> opening\n\nagreed',
       authorUserId: 1,
       authorUsername: 'ada',
       visibility: 'visible',
@@ -137,21 +146,21 @@ describe('the stored render', () => {
 
     const stored = await readPost(postId)
     expect(stored.version).toBe(RENDER_VERSION)
-    expect(stored.html).toContain('<blockquote class="bb-quote">opening</blockquote>')
+    expect(stored.html).toContain('<blockquote class="md-quote"><p>opening</p>')
   })
 })
 
 describe('PostgresRenderBackfill', () => {
   it('renders rows an older release left behind', async () => {
     await insertStale(10, 'plain')
-    await insertStale(11, '[b]bold[/b]')
+    await insertStale(11, '**bold**')
 
     expect(await backfill.pending()).toBe(2)
-    expect(await backfill.run(50)).toEqual({ rendered: 2 })
+    expect(await backfill.run(50)).toEqual({ rendered: 2, converted: 0 })
 
-    expect(await readPost(10)).toEqual({ html: 'plain', version: RENDER_VERSION })
+    expect(await readPost(10)).toEqual({ html: '<p>plain</p>', version: RENDER_VERSION })
     expect(await readPost(11)).toEqual({
-      html: '<strong>bold</strong>',
+      html: '<p><strong>bold</strong></p>',
       version: RENDER_VERSION,
     })
     expect(await backfill.pending()).toBe(0)
@@ -163,13 +172,13 @@ describe('PostgresRenderBackfill', () => {
    * Distinct messages are the only way to see it.
    */
   it('gives each post its own render, not the last one in the batch', async () => {
-    for (let id = 20; id < 26; id += 1) await insertStale(id, `[b]${id}[/b]`)
+    for (let id = 20; id < 26; id += 1) await insertStale(id, `**${id}**`)
 
     await backfill.run(10)
 
     for (let id = 20; id < 26; id += 1) {
       expect(await readPost(id)).toEqual({
-        html: `<strong>${id}</strong>`,
+        html: `<p><strong>${id}</strong></p>`,
         version: RENDER_VERSION,
       })
     }
@@ -178,11 +187,11 @@ describe('PostgresRenderBackfill', () => {
   it('is bounded by the batch size and resumes on the next run', async () => {
     for (let id = 30; id < 35; id += 1) await insertStale(id, 'x')
 
-    expect(await backfill.run(2)).toEqual({ rendered: 2 })
+    expect(await backfill.run(2)).toEqual({ rendered: 2, converted: 0 })
     expect(await backfill.pending()).toBe(3)
-    expect(await backfill.run(2)).toEqual({ rendered: 2 })
-    expect(await backfill.run(2)).toEqual({ rendered: 1 })
-    expect(await backfill.run(2)).toEqual({ rendered: 0 })
+    expect(await backfill.run(2)).toEqual({ rendered: 2, converted: 0 })
+    expect(await backfill.run(2)).toEqual({ rendered: 1, converted: 0 })
+    expect(await backfill.run(2)).toEqual({ rendered: 0, converted: 0 })
   })
 
   it('does nothing on a board that is already current', async () => {
@@ -190,7 +199,7 @@ describe('PostgresRenderBackfill', () => {
     await backfill.run(10)
 
     const before = await readPost(40)
-    expect(await backfill.run(10)).toEqual({ rendered: 0 })
+    expect(await backfill.run(10)).toEqual({ rendered: 0, converted: 0 })
     expect(await readPost(40)).toEqual(before)
   })
 
@@ -210,9 +219,52 @@ describe('PostgresRenderBackfill', () => {
     /* And a *newer* version is stale too — a rollback must re-render, not trust. */
     await backfill.run(10)
     expect(await readPost(50)).toEqual({
-      html: renderBBCode('x').html,
+      html: renderMarkdown('x').html,
       version: RENDER_VERSION,
     })
+  })
+
+  /*
+   * The migration off BBCode, which is this sweep's other job. A legacy row is
+   * converted once: the source is rewritten, the stamp moves, and the second
+   * run has nothing to do — which is the property that makes it safe to leave
+   * running on a schedule forever.
+   */
+  it('converts a body still stored as BBCode, exactly once', async () => {
+    await insertStale(80, 'a [b]bold[/b] claim', BodyFormat.LegacyBBCode)
+
+    expect(await backfill.pending()).toBe(1)
+    expect(await backfill.run(10)).toEqual({ rendered: 1, converted: 1 })
+
+    const rows = resultRows(
+      await db.execute(sql`select message, body_format from posts where id = 80`),
+    ) as Array<{ message: string; body_format: number }>
+
+    expect(rows[0]!.message).toBe('a **bold** claim')
+    expect(Number(rows[0]!.body_format)).toBe(BodyFormat.Markdown)
+    expect((await readPost(80)).html).toBe('<p>a <strong>bold</strong> claim</p>')
+
+    /* The second pass finds nothing, so the asterisks are never escaped twice. */
+    expect(await backfill.run(10)).toEqual({ rendered: 0, converted: 0 })
+    expect(rows[0]!.message).toBe('a **bold** claim')
+  })
+
+  /*
+   * The other half of "exactly once": a row that is *already* Markdown must
+   * come out of the sweep byte-identical. This runs over every post on the
+   * board on every renderer change, and one that rewrote sources each time
+   * would be an edit history nobody made.
+   */
+  it('leaves a Markdown source untouched, however often it re-renders', async () => {
+    await insertStale(81, 'a * b and file_name and [not a link]')
+    await backfill.run(10)
+    await db.execute(sql`update posts set render_version = 0 where id = 81`)
+    await backfill.run(10)
+
+    const rows = resultRows(
+      await db.execute(sql`select message from posts where id = 81`),
+    ) as Array<{ message: string }>
+    expect(rows[0]!.message).toBe('a * b and file_name and [not a link]')
   })
 
   /*
@@ -235,8 +287,8 @@ describe('PostgresRenderBackfill', () => {
 describe('the board vocabulary', () => {
   beforeEach(async () => {
     await db.execute(sql`delete from smilies`)
-    await db.execute(sql`delete from custom_bbcode`)
-    await db.execute(sql`delete from cache_versions where key = 'bbcode_vocabulary'`)
+    await db.execute(sql`delete from custom_directives`)
+    await db.execute(sql`delete from cache_versions where key = 'markdown_vocabulary'`)
   })
 
   async function addSmiley(): Promise<number> {

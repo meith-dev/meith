@@ -1,14 +1,8 @@
 import { ValidationError } from '@meith/core'
-import { RENDER_VERSION } from '@meith/bbcode'
+import { BodyFormat, RENDER_VERSION } from '@meith/markdown'
 import { describe, expect, it } from 'vitest'
 
-import {
-  SIGNATURE_HARD_MAX,
-  SIGNATURE_TAGS,
-  prepareSignature,
-  signatureHtml,
-  signatureLimit,
-} from './index'
+import { SIGNATURE_HARD_MAX, prepareSignature, signatureHtml, signatureLimit } from './index'
 import type { SignatureLimits, StoredSignature } from './index'
 
 const ALLOWED: SignatureLimits = { canUse: true, maxLength: 200 }
@@ -24,35 +18,40 @@ function stored(overrides: Partial<StoredSignature> = {}): StoredSignature {
   }
 }
 
-describe('the restricted tag set', () => {
-  it('keeps the styling tags a signature needs', () => {
-    for (const tag of ['b', 'i', 'u', 's', 'color', 'url', 'email']) {
-      expect(SIGNATURE_TAGS[tag]).toBeDefined()
-    }
+describe('the restricted construct set', () => {
+  it('keeps the styling a signature needs', () => {
+    const { rendered } = prepareSignature('**bold** *and* [a link](https://x.test)', ALLOWED)
+
+    expect(rendered.html).toContain('<strong>bold</strong>')
+    expect(rendered.html).toContain('<em>and</em>')
+    expect(rendered.html).toContain('href="https://x.test"')
   })
 
-  it('leaves out the ones that would repeat on every post', () => {
+  it('drops the image and keeps its words, rather than refusing the save', () => {
     /*
-     * Each omission is the same argument: a signature appears under every post
-     * its author has ever made. `img` is the important one — a remote image is
-     * a tracking beacon that reports every reader's IP to whoever hosts it.
+     * The reason this is a narrower parse rather than a validator: it cannot be
+     * bypassed by a construct this build does not know, and a member pasting an
+     * old signature gets most of it instead of an error.
      */
-    for (const tag of ['img', 'quote', 'size', 'code', 'list']) {
-      expect(SIGNATURE_TAGS[tag]).toBeUndefined()
-    }
-  })
-
-  it('renders a forbidden tag as literal text rather than refusing the save', () => {
-    /*
-     * The reason this is a registry rather than a validator: it cannot be
-     * bypassed by a tag this build does not know, and a member pasting an old
-     * signature gets most of it instead of an error.
-     */
-    const { rendered } = prepareSignature('[b]hi[/b] [img]http://x.test/a.png[/img]', ALLOWED)
+    const { rendered } = prepareSignature('**hi** ![a photo](https://x.test/a.png)', ALLOWED)
 
     expect(rendered.html).toContain('<strong>hi</strong>')
     expect(rendered.html).not.toContain('<img')
-    expect(rendered.html).toContain('[img]')
+    expect(rendered.html).toContain('a photo')
+  })
+
+  it('leaves the block constructs as the characters they are', () => {
+    /*
+     * Each omission is the same argument: a signature appears under every post
+     * its author has ever made, so nothing in one may change the height of a
+     * thread page.
+     */
+    const { rendered } = prepareSignature('# Shouting\n> quoted\n- listed', ALLOWED)
+
+    expect(rendered.html).not.toContain('<h2')
+    expect(rendered.html).not.toContain('<blockquote')
+    expect(rendered.html).not.toContain('<ul')
+    expect(rendered.html).toContain('# Shouting')
   })
 
   it('still escapes what it renders as text', () => {
@@ -89,11 +88,11 @@ describe('prepareSignature', () => {
 
   it('measures the raw source, not the rendered HTML', () => {
     /*
-     * A member types BBCode, and a limit they cannot count against is one they
-     * cannot work with. It also means a renderer change can never retroactively
-     * push somebody over.
+     * A member types Markdown, and a limit they cannot count against is one
+     * they cannot work with. It also means a renderer change can never
+     * retroactively push somebody over.
      */
-    const source = `[b]${'x'.repeat(90)}[/b]`
+    const source = `**${'x'.repeat(90)}**`
     expect(source.length).toBeLessThanOrEqual(100)
 
     const { rendered } = prepareSignature(source, { canUse: true, maxLength: 100 })
@@ -127,7 +126,7 @@ describe('signatureHtml', () => {
      * waiting for a backfill.
      */
     const html = signatureHtml(
-      stored({ signature: '[b]fresh[/b]', signatureHtml: '<p>stale</p>', signatureRenderVersion: 0 }),
+      stored({ signature: '**fresh**', signatureHtml: '<p>stale</p>', signatureRenderVersion: 0 }),
     )
     expect(html).toContain('<strong>fresh</strong>')
   })
@@ -148,5 +147,23 @@ describe('signatureHtml', () => {
 
   it('shows nothing for an empty one, rather than an empty container', () => {
     expect(signatureHtml(stored({ signature: '   ', signatureHtml: '' }))).toBeNull()
+  })
+
+  it('converts a signature still stored as BBCode, and does not trust its render', () => {
+    /*
+     * A board that upgraded has signatures full of `[b]`. The stored render is
+     * ignored whatever version it claims — it was produced by a renderer that
+     * no longer exists — and the source is converted on the way through until
+     * the member next saves.
+     */
+    const html = signatureHtml(
+      stored({
+        signature: '[b]old[/b]',
+        signatureHtml: '<p>stale</p>',
+        signatureFormat: BodyFormat.LegacyBBCode,
+      }),
+    )
+
+    expect(html).toContain('<strong>old</strong>')
   })
 })

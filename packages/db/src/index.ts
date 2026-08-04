@@ -194,7 +194,7 @@ export {
 } from './search-store'
 export {
   PostgresContentAdminRepository,
-  type CustomTagRow,
+  type DirectiveRow,
   type SmileyRow,
   type ThreadPrefixRow,
   type WordFilterRow,

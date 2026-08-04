@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 import {
-  CustomTagRowForm,
+  DirectiveRowForm,
   DeletePrefixForm,
-  NewCustomTagForm,
+  NewDirectiveForm,
   NewPrefixForm,
   NewSmileyForm,
   NewWordFilterForm,
@@ -44,11 +44,11 @@ export default async function AdminContentPage() {
     )
   }
 
-  const [filters, prefixes, smilies, customTags] = await Promise.all([
+  const [filters, prefixes, smilies, directives] = await Promise.all([
     repository.listWordFilters(),
     repository.listPrefixes(),
     repository.listSmilies(),
-    repository.listCustomTags(),
+    repository.listDirectives(),
   ])
 
   return (
@@ -187,39 +187,40 @@ export default async function AdminContentPage() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Custom BBCode</h2>
+        <h2 className="font-serif text-lg font-semibold">Custom directives</h2>
         <p className="text-sm text-muted-foreground">
-          A tag chooses a <strong>name</strong> and whether it is inline or block.
-          That is the whole form, and the omissions are the point: there is no
-          replacement template, no pattern and no HTML field, because a box that
-          chose output markup would be a second markup language administered
-          through a web form — which is how boards with &ldquo;custom
-          MyCode&rdquo; acquire a permanent security hole.
+          Markdown&rsquo;s extension point, and this board&rsquo;s own additions
+          to it. A directive chooses a <strong>name</strong> and whether it is
+          inline or block. That is the whole form, and the omissions are the
+          point: there is no replacement template, no pattern and no HTML field,
+          because a box that chose output markup would be a second markup
+          language administered through a web form — which is how boards with
+          &ldquo;custom MyCode&rdquo; acquire a permanent security hole.
         </p>
         <p className="text-xs text-muted-foreground">
-          Your tag renders as a{' '}
-          <code className="text-xs">span</code> (or{' '}
-          <code className="text-xs">div</code> for a block one) carrying a class
-          your theme can style. A name that already exists is refused: changing
-          what <code className="text-xs">[url]</code> does has to be a code
-          change, not a setting. Removing a tag makes posts using it show the
-          markup as written, which is what an unknown tag has always done.
+          Members write a block one as{' '}
+          <code className="text-xs">:::spoiler</code> … <code className="text-xs">:::</code>{' '}
+          and an inline one as <code className="text-xs">:spoiler[the ending]</code>. It
+          renders as a <code className="text-xs">div</code> or{' '}
+          <code className="text-xs">span</code> carrying a class your theme can style.
+          Removing one makes posts using it show the markup as written, which is
+          what an undefined directive has always done.
         </p>
 
-        {customTags.length === 0 ? (
+        {directives.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            None configured. Posts use the renderer&rsquo;s built-in tags only.
+            None configured. Posts use Markdown&rsquo;s own syntax only.
           </p>
         ) : (
           <div className="flex flex-col divide-y divide-border">
-            {customTags.map((tag) => (
-              <CustomTagRowForm key={tag.id} tag={tag} />
+            {directives.map((directive) => (
+              <DirectiveRowForm key={directive.id} directive={directive} />
             ))}
           </div>
         )}
 
         <div className="border-t border-border pt-3">
-          <NewCustomTagForm />
+          <NewDirectiveForm />
         </div>
       </section>
     </div>

@@ -1,22 +1,22 @@
 /**
  * `@meith/signatures` — F58's signature half.
  *
- * A signature is member-written BBCode shown under every post they have ever
+ * A signature is member-written Markdown shown under every post they have ever
  * made. That last clause is the whole feature: it multiplies one member's text
- * across the board's heaviest pages, so it needs a **narrower tag set**, a
- * **length limit that is a group permission**, and a way for a moderator to
- * **stop it** without deleting what was there.
+ * across the board's heaviest pages, so it needs a **narrower set of
+ * constructs**, a **length limit that is a group permission**, and a way for a
+ * moderator to **stop it** without deleting what was there.
  *
- * ## Why a restricted registry rather than a validator
+ * ## Why narrower syntax rather than a validator
  *
- * The obvious implementation refuses a signature containing `[img]`. The one
- * here renders it with a tag registry that has no `img` in it, so the tag comes
- * out as literal text. That is better for two reasons: it cannot be bypassed by
- * a tag this build does not know about, and it degrades — a member who pastes
- * their old MyBB signature gets most of it rather than a refusal.
+ * The obvious implementation refuses a signature containing an image. The one
+ * here parses it with images turned off, so `![me](…)` comes out as the words
+ * `me`. That is better for two reasons: it cannot be bypassed by a construct
+ * this build does not know about, and it degrades — a member who pastes their
+ * old signature gets most of it rather than a refusal.
  *
- * F37's custom tags arrive through `ParseOptions.tags`, so this is the seam
- * being used as designed rather than a special case cut into the renderer.
+ * `SIGNATURE_FEATURES` in `@meith/markdown` is the seam being used as designed
+ * rather than a special case cut into the renderer.
  *
  * ## The avatar half is not here
  *
@@ -24,36 +24,24 @@
  * is not a safe substitute — see `docs/deviations.md` D61. Omitted rather than
  * half-built, per D32.
  */
-import { RENDER_VERSION, TAGS, renderBBCode, type TagSpec } from '@meith/bbcode'
+import {
+  BodyFormat,
+  RENDER_VERSION,
+  SIGNATURE_FEATURES,
+  renderMarkdown,
+  sourceAsMarkdown,
+} from '@meith/markdown'
 import { ValidationError } from '@meith/core'
 
 /** The hard ceiling, whatever a group's `maxSignatureLength` says. */
 export const SIGNATURE_HARD_MAX = 1000
 
 /**
- * The tags a signature may use.
- *
- * Text styling and links, and nothing that changes the size of the page. What
- * is left out is the list, and each omission is the same argument: a signature
- * repeats on every post.
- *
- *   - **`img`** — an image per post is what makes a thread page unreadable, and
- *     a remote one is a tracking beacon that reports every reader's IP address
- *     to whoever hosts it. The same objection D61 makes about remote avatars.
- *   - **`quote`** — a quote block inside a signature is a quote of nothing.
- *   - **`size`** — the point of a size tag in a signature is to be bigger than
- *     everybody else's.
- *   - **`code`** — a preformatted block in a signature is a wall.
- *   - **`list`** — same.
+ * What a signature may use, and the reason for each omission, live beside the
+ * parser in `@meith/markdown`'s `features.ts` — one line per construct, so the
+ * rule is readable in the place that enforces it rather than restated here.
  */
-export const SIGNATURE_TAG_NAMES: readonly string[] = ['b', 'i', 'u', 's', 'color', 'url', 'email']
-
-export const SIGNATURE_TAGS: Readonly<Record<string, TagSpec>> = Object.fromEntries(
-  SIGNATURE_TAG_NAMES.filter((name) => name in TAGS).map((name) => [
-    name,
-    TAGS[name] as TagSpec,
-  ]),
-)
+export const SIGNATURE_RENDER_OPTIONS = { features: SIGNATURE_FEATURES } as const
 
 /** What a member may do with their signature, resolved by the caller (F20). */
 export interface SignatureLimits {
@@ -68,6 +56,8 @@ export interface StoredSignature {
   readonly signature: string
   readonly signatureHtml: string | null
   readonly signatureRenderVersion: number
+  /** `BodyFormat`. Absent reads as Markdown, per `sourceAsMarkdown`. */
+  readonly signatureFormat?: number
   readonly locked: boolean
   readonly lockedReason: string | null
 }
@@ -87,9 +77,9 @@ export function signatureLimit(limits: SignatureLimits): number {
  * Validate and render a signature.
  *
  * The **raw** length is what the limit applies to, not the rendered HTML: a
- * member types BBCode and a limit they cannot count against is one they cannot
- * work with. It also means a renderer change can never retroactively push
- * somebody over.
+ * member types Markdown and a limit they cannot count against is one they
+ * cannot work with. It also means a renderer change can never retroactively
+ * push somebody over.
  */
 export function prepareSignature(
   raw: string,
@@ -108,7 +98,7 @@ export function prepareSignature(
     )
   }
 
-  const rendered = renderBBCode(source, { tags: SIGNATURE_TAGS })
+  const rendered = renderMarkdown(source, SIGNATURE_RENDER_OPTIONS)
   return { source, rendered: { html: rendered.html, version: rendered.version } }
 }
 
@@ -128,12 +118,15 @@ export function signatureHtml(stored: StoredSignature): string | null {
   if (stored.locked) return null
   if (stored.signature.trim() === '') return null
 
+  const format = stored.signatureFormat ?? BodyFormat.Markdown
+
   if (
     stored.signatureHtml !== null &&
-    stored.signatureRenderVersion === RENDER_VERSION
+    stored.signatureRenderVersion === RENDER_VERSION &&
+    format === BodyFormat.Markdown
   ) {
     return stored.signatureHtml
   }
 
-  return renderBBCode(stored.signature, { tags: SIGNATURE_TAGS }).html
+  return renderMarkdown(sourceAsMarkdown(stored.signature, format), SIGNATURE_RENDER_OPTIONS).html
 }

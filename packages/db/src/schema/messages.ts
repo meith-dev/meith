@@ -45,15 +45,17 @@ export const privateMessages = pgTable(
     }),
     authorUsername: text('author_username').notNull().default(''),
     subject: text('subject').notNull(),
-    /** Raw BBCode, the source of truth — same contract as `posts.message`. */
+    /** Raw Markdown, the source of truth — same contract as `posts.message`. */
     message: text('message').notNull(),
+    /** `BodyFormat`; see `posts.bodyFormat`. */
+    bodyFormat: smallint('body_format').notNull().default(1),
     messageHtml: text('message_html'),
     renderVersion: smallint('render_version').notNull().default(0),
     /**
      * The board vocabulary that produced `message_html` (F71). See
      * `posts.vocabVersion`.
      *
-     * Private messages get the board's smilies and custom tags, and the *word
+     * Private messages get the board's smilies and directives, and the *word
      * filter* deliberately does not reach them. That is not an inconsistency:
      * the vocabulary is the markup language this board speaks, and a smiley
      * that works in a post and not in a message would be arbitrary. Filtering

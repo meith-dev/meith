@@ -125,9 +125,9 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
             </p>
           ) : (
             <>
-              {/* Pre-rendered by the sanitising BBCode renderer (F36). */}
+              {/* Pre-rendered by the board's own Markdown renderer (F36). */}
               <div
-                className="prose-bb px-3 py-3 text-sm"
+                className="prose-md px-3 py-3 text-sm"
                 dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
               />
 

@@ -23,7 +23,7 @@ const DOMAIN = [
   'reputation',
   'signatures',
   'admin',
-  'bbcode',
+  'markdown',
   'moderation',
   'notifications',
   'settings',
