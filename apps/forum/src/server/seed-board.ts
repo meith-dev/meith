@@ -179,7 +179,10 @@ export const SEED_BOARD: MemoryBoard = {
    */
   chains: {
     [SEED_FORUM.community]: [SEED_FORUM.community],
-    [SEED_FORUM.announcements]: [SEED_FORUM.announcements, SEED_FORUM.community],
+    [SEED_FORUM.announcements]: [
+      SEED_FORUM.announcements,
+      SEED_FORUM.community,
+    ],
     [SEED_FORUM.general]: [SEED_FORUM.general, SEED_FORUM.community],
     [SEED_FORUM.generalOffTopic]: [
       SEED_FORUM.generalOffTopic,
@@ -315,6 +318,8 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
     authorUsername: 'admin',
     replyCount: 1,
     viewCount: 64,
+    ratingTotal: 0,
+    ratingCount: 0,
     visibility: 'visible',
     isSticky: false,
     isLocked: false,
@@ -337,6 +342,8 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
     authorUsername: 'departed',
     replyCount: 1,
     viewCount: 241,
+    ratingTotal: 0,
+    ratingCount: 0,
     visibility: 'visible',
     isSticky: true,
     isLocked: false,
@@ -359,6 +366,8 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
     authorUsername: 'admin',
     replyCount: 1,
     viewCount: 116,
+    ratingTotal: 0,
+    ratingCount: 0,
     visibility: 'visible',
     isSticky: false,
     isLocked: false,
@@ -443,7 +452,8 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorUsername: 'admin',
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
-    message: "[quote='admin' pid='121']Show us the place where you make things.[/quote]\nA standing desk and a notebook are all I need.",
+    message:
+      "[quote='admin' pid='121']Show us the place where you make things.[/quote]\nA standing desk and a notebook are all I need.",
     messageHtml: null,
     renderVersion: 0,
     editedAt: null,

@@ -9,6 +9,8 @@ import { FollowForm } from '@/components/account/subscription-forms'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
 import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
 import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
+import { PollForm } from '@/components/content/poll'
+import { ThreadRatingForm } from '@/components/content/thread-rating'
 
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -29,8 +31,14 @@ import { attachmentsByPost } from '@/view/attachments'
 import { attachmentsForPosts } from '@/server/attachments'
 import { avatarsFor } from '@/server/avatars'
 import { activeWordFilter } from '@/server/content-admin'
+import { getSettings } from '@/server/settings'
 import { buildThreadView, revealedFrom } from '@/view/thread-view'
-import { cardDescription, jsonLdScript, pageLinks, threadJsonLd } from '@/view/metadata'
+import {
+  cardDescription,
+  jsonLdScript,
+  pageLinks,
+  threadJsonLd,
+} from '@/view/metadata'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 
 /**
@@ -69,7 +77,9 @@ export async function generateMetadata({
   if (!forum || forum.type !== 'forum') return { title: 'Thread' }
 
   const matrix = await authorizer.forumMatrix(actor, forum.id)
-  if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) {
+  if (
+    !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
+  ) {
     /*
      * The same title an unknown thread gets. A metadata function that said
      * "Private thread" would answer, in the page title of a 404, a question the
@@ -174,11 +184,23 @@ export default async function ThreadPage({
   const id = threadId(slug)
   const after = afterId(query.after)
   const page = query.page === undefined ? 1 : Number(query.page)
-  if (id === null || after === null || !Number.isSafeInteger(page) || page < 1) notFound()
+  if (id === null || after === null || !Number.isSafeInteger(page) || page < 1)
+    notFound()
 
   const actor = await getActor()
-  const { forums, posts, threads, authorizer, threadViews, threadWrites, postWrites, threadTools, threadSurgery, inlineModeration } =
-    getContainer()
+  const {
+    forums,
+    posts,
+    threads,
+    authorizer,
+    threadViews,
+    threadWrites,
+    postWrites,
+    threadTools,
+    threadSurgery,
+    inlineModeration,
+    polls,
+  } = getContainer()
   /*
    * Locate, authorise, then read — in that order, and the order is the whole
    * point. The scope cannot be built before the forum is known and the forum
@@ -193,9 +215,15 @@ export default async function ThreadPage({
   const forum = await forums.findById(forumId)
   if (!forum || forum.type !== 'forum') notFound()
   const matrix = await authorizer.forumMatrix(actor, forum.id)
-  if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) notFound()
+  if (
+    !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
+  )
+    notFound()
 
-  const scope = authorizer.contentScope(actor, { forumId: forum.id, forum: matrix })
+  const scope = authorizer.contentScope(actor, {
+    forumId: forum.id,
+    forum: matrix,
+  })
   const thread = await threads.findById(id, scope)
   if (!thread) notFound()
 
@@ -222,9 +250,10 @@ export default async function ThreadPage({
     limit: preferences.postsPerPage,
     scope,
   })
-  const nextHref = postPage.nextAfterId === null
-    ? null
-    : `/thread/${thread.id}-${thread.slug}?after=${postPage.nextAfterId}&page=${page + 1}`
+  const nextHref =
+    postPage.nextAfterId === null
+      ? null
+      : `/thread/${thread.id}-${thread.slug}?after=${postPage.nextAfterId}&page=${page + 1}`
   /*
    * The reply link is offered only where the actor may actually use it, and a
    * locked thread offers it to nobody but a moderator — the same answer the
@@ -233,7 +262,11 @@ export default async function ThreadPage({
   const canReply =
     threadWrites !== null &&
     authorizer.can(actor, 'reply.post', { forumId: forum.id, forum: matrix }) &&
-    (!thread.isLocked || authorizer.can(actor, 'content.viewUnapproved', { forumId: forum.id, forum: matrix }))
+    (!thread.isLocked ||
+      authorizer.can(actor, 'content.viewUnapproved', {
+        forumId: forum.id,
+        forum: matrix,
+      }))
 
   /*
    * F41's affordances, resolved once. `post.editOwn` and `post.deleteOwn` are
@@ -270,7 +303,8 @@ export default async function ThreadPage({
     /* Global (F49): reporting is a board capability, not a per-forum grant. */
     canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
     /* F53. Global too, and gated on there being a warning store at all (D38). */
-    canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
+    canWarn:
+      getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
     /*
      * F62. Global as well, gated on a reputation store *and* on the board
      * setting — a Rate link that leads to a 404 because reputation is switched
@@ -289,13 +323,20 @@ export default async function ThreadPage({
    * queries for a moderator, none for everybody else.
    */
   const movableInto =
-    threadTools === null ? [] : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
+    threadTools === null
+      ? []
+      : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
   const toolTarget = appointment
   const toolRights = {
-    lock: threadTools !== null && authorizer.can(actor, 'thread.lock', toolTarget),
-    stick: threadTools !== null && authorizer.can(actor, 'thread.stick', toolTarget),
-    move: threadTools !== null && authorizer.can(actor, 'thread.move', toolTarget),
-    delete: threadTools !== null && authorizer.can(actor, 'thread.delete', toolTarget),
+    lock:
+      threadTools !== null && authorizer.can(actor, 'thread.lock', toolTarget),
+    stick:
+      threadTools !== null && authorizer.can(actor, 'thread.stick', toolTarget),
+    move:
+      threadTools !== null && authorizer.can(actor, 'thread.move', toolTarget),
+    delete:
+      threadTools !== null &&
+      authorizer.can(actor, 'thread.delete', toolTarget),
   }
   /*
    * F51's two, gated on their own repository. The split points are the posts on
@@ -303,8 +344,12 @@ export default async function ThreadPage({
    * start from, because taking everything from it is a move (F51).
    */
   const surgeryRights = {
-    merge: threadSurgery !== null && authorizer.can(actor, 'thread.merge', toolTarget),
-    split: threadSurgery !== null && authorizer.can(actor, 'thread.split', toolTarget),
+    merge:
+      threadSurgery !== null &&
+      authorizer.can(actor, 'thread.merge', toolTarget),
+    split:
+      threadSurgery !== null &&
+      authorizer.can(actor, 'thread.split', toolTarget),
   }
   const splitPoints = !surgeryRights.split
     ? []
@@ -333,13 +378,15 @@ export default async function ThreadPage({
    */
   const inlineRights = {
     approve:
-      inlineModeration !== null && authorizer.can(actor, 'content.approve', toolTarget),
+      inlineModeration !== null &&
+      authorizer.can(actor, 'content.approve', toolTarget),
     lock: false,
     stick: false,
     move: false,
     /* `toolTarget` already carries `isForumModerator` (see `appointment`). */
     delete:
-      inlineModeration !== null && authorizer.can(actor, 'post.softDelete', toolTarget),
+      inlineModeration !== null &&
+      authorizer.can(actor, 'post.softDelete', toolTarget),
   }
   /*
    * Split alone is enough to want the checkboxes: a moderator appointed only to
@@ -443,7 +490,10 @@ export default async function ThreadPage({
       ? null
       : await subscriptions.modeFor(actor.userId, 'thread', thread.id)
   const followOffered = subscriptions !== null && actor.userId !== null
-  const followModes = buildSubscriptionsView({ rows: [], now: new Date() }).modes
+  const followModes = buildSubscriptionsView({
+    rows: [],
+    now: new Date(),
+  }).modes
 
   const ThreadView = requireSlot(activeTheme, 'ThreadView')
   const Notice = requireSlot(activeTheme, 'Notice')
@@ -457,12 +507,12 @@ export default async function ThreadPage({
       : query.posted === 'moderated'
         ? 'Your post is waiting for a moderator to approve it.'
         : query.tool !== undefined
-          ? TOOL_NOTICE[query.tool] ?? null
+          ? (TOOL_NOTICE[query.tool] ?? null)
           : query.post === 'deleted'
-          ? 'That post has been deleted.'
-          : query.post === 'unchanged'
-            ? 'Nothing changed — that post was already in this state.'
-            : inlineOutcomeNotice(query)
+            ? 'That post has been deleted.'
+            : query.post === 'unchanged'
+              ? 'Nothing changed — that post was already in this state.'
+              : inlineOutcomeNotice(query)
 
   /*
    * F76. JSON-LD, from rows this page has already read **inside the viewer's
@@ -494,7 +544,10 @@ export default async function ThreadPage({
           modified: thread.lastPostAt,
           replyCount: thread.replyCount,
           forumTitle: forum.title,
-          description: cardDescription(opening.message, `A discussion in ${forum.title}.`),
+          description: cardDescription(
+            opening.message,
+            `A discussion in ${forum.title}.`,
+          ),
         })
 
   /*
@@ -507,7 +560,11 @@ export default async function ThreadPage({
    * commonest plugin badge — a role marker, a country flag, a post-count tier —
    * is about the person rather than the post.
    */
-  const pluginContext = { ...viewerRef(actor), threadId: thread.id, forumId: forum.id }
+  const pluginContext = {
+    ...viewerRef(actor),
+    threadId: thread.id,
+    forumId: forum.id,
+  }
 
   const postModels = await Promise.all(
     view.posts.map(async (post) => {
@@ -520,7 +577,12 @@ export default async function ThreadPage({
         'view.post-bit',
         {
           post,
-          select: selectionFor('post', post.id, `post #${post.number}`, inlineOffered),
+          select: selectionFor(
+            'post',
+            post.id,
+            `post #${post.number}`,
+            inlineOffered,
+          ),
           regions: {
             actions: <PostActions {...actions} />,
             pluginBadges: pluginRegion('postbit.badges', {
@@ -540,14 +602,35 @@ export default async function ThreadPage({
     }),
   )
 
-  const pagination = await filterView('view.pagination', view.pagination, viewerRef(actor))
+  const pagination = await filterView(
+    'view.pagination',
+    view.pagination,
+    viewerRef(actor),
+  )
+  const poll = polls === null ? null : await polls.find(thread.id, actor.userId)
+  const canVotePoll =
+    polls !== null &&
+    actor.userId !== null &&
+    authorizer.can(actor, 'poll.vote', { forumId: forum.id, forum: matrix })
+  const ratingsEnabled = (await getSettings()).get(
+    'posting.thread_ratings_enabled',
+  )
+  const rating =
+    polls === null ? null : await polls.findRating(thread.id, actor.userId)
+  const canRateThread =
+    ratingsEnabled &&
+    polls !== null &&
+    actor.userId !== null &&
+    authorizer.can(actor, 'thread.rate', { forumId: forum.id, forum: matrix })
 
   const threadViewModel = await filterView(
     'view.thread-view',
     {
       ...view.view,
       regions: {
-        posts: postModels.map((model) => <PostBit key={model.post.id} {...model} />),
+        posts: postModels.map((model) => (
+          <PostBit key={model.post.id} {...model} />
+        )),
         pagination: <Pagination {...pagination} />,
         quickReply: null,
       },
@@ -603,6 +686,18 @@ export default async function ThreadPage({
             label="Follow this thread"
           />
         </div>
+      )}
+      {poll !== null && (
+        <div className="px-6">
+          <PollForm poll={poll} threadId={thread.id} canVote={canVotePoll} />
+        </div>
+      )}
+      {rating !== null && ratingsEnabled && (
+        <ThreadRatingForm
+          threadId={thread.id}
+          rating={rating}
+          canRate={canRateThread}
+        />
       )}
       <ThreadView {...threadViewModel} />
       {inlineOffered && (

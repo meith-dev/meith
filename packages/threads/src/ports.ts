@@ -1,6 +1,11 @@
 import type { ContentScope } from '@meith/core'
 
-import type { ThreadCursor, ThreadListingRow, ThreadPage } from './types'
+import type {
+  ThreadCursor,
+  ThreadListingRow,
+  ThreadPage,
+  ThreadSort,
+} from './types'
 
 /** SQL-free seam for the forum-display read (F30). */
 export interface ThreadRepository {
@@ -33,6 +38,7 @@ export interface ThreadRepository {
       readonly after?: ThreadCursor
       readonly limit: number
       readonly scope: ContentScope
+      readonly sort?: ThreadSort
     },
   ): Promise<ThreadPage>
 }

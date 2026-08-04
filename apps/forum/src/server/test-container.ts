@@ -18,7 +18,11 @@
  * is running on in-memory sample data" refusal, which is a legible failure,
  * rather than a `null` dereference twelve frames deep.
  */
-import { IdentityService, SessionService, createMemoryStore } from '@meith/accounts'
+import {
+  IdentityService,
+  SessionService,
+  createMemoryStore,
+} from '@meith/accounts'
 import type { MemoryAppointment, MemoryBoard } from '@meith/authorization'
 import { Authorizer, InMemoryAuthorizationSource } from '@meith/authorization'
 
@@ -103,6 +107,7 @@ export function installTestContainer(
     messages: null,
     relations: null,
     reputation: null,
+    polls: null,
     signatures: null,
     adminSessions: null,
     adminLog: null,
@@ -182,7 +187,11 @@ function identityOver(store: ReturnType<typeof createMemoryStore>) {
         defaultMemberGroupId: 2,
       },
     }),
-    sessions: new SessionService({ store, rememberDays: 30, sessionIdleDays: 30 }),
+    sessions: new SessionService({
+      store,
+      rememberDays: 30,
+      sessionIdleDays: 30,
+    }),
   }
 }
 

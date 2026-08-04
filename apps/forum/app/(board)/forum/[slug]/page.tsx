@@ -1,26 +1,26 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 
-import { hasAnyModeratorRight } from "@meith/authorization";
-import { requireSlot } from "@meith/theme-kit";
+import { hasAnyModeratorRight } from '@meith/authorization'
+import { requireSlot } from '@meith/theme-kit'
 
-import { filterView, viewerRef } from "@/server/plugin-view";
-import { InlineModerationForm } from "@/components/moderation/inline-moderation-form";
-import { getContainer } from "@/server/container";
-import { getActor } from "@/server/context"
-import { getViewerPreferences } from "@/server/viewer-preferences";
-import { activeTheme } from "@/server/theme";
-import { decodeForumCursor, encodeForumCursor } from "@/view/forum-cursor";
-import { FollowForm } from "@/components/account/subscription-forms";
-import { buildForumDisplayView } from "@/view/forum-display";
-import { canonicalPath } from "@/view/metadata";
-import { buildSubscriptionsView } from "@/view/subscriptions";
+import { filterView, viewerRef } from '@/server/plugin-view'
+import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
+import { getContainer } from '@/server/container'
+import { getActor } from '@/server/context'
+import { getViewerPreferences } from '@/server/viewer-preferences'
+import { activeTheme } from '@/server/theme'
+import { decodeForumCursor, encodeForumCursor } from '@/view/forum-cursor'
+import { FollowForm } from '@/components/account/subscription-forms'
+import { buildForumDisplayView } from '@/view/forum-display'
+import { canonicalPath } from '@/view/metadata'
+import { buildSubscriptionsView } from '@/view/subscriptions'
 import {
   INLINE_FORM_ID,
   anyInlineTool,
   inlineOutcomeNotice,
   selectionFor,
-} from "@/view/inline-moderation";
+} from '@/view/inline-moderation'
 
 /**
  * F76 — one forum's metadata, resolved in the viewer's scope.
@@ -38,31 +38,33 @@ export async function generateMetadata({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string }>;
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ page?: string }>
 }): Promise<Metadata> {
-  const [{ slug }, query] = await Promise.all([params, searchParams]);
-  const id = forumId(slug);
-  if (id === null) return { title: "Forum" };
+  const [{ slug }, query] = await Promise.all([params, searchParams])
+  const id = forumId(slug)
+  if (id === null) return { title: 'Forum' }
 
-  const actor = await getActor();
-  const { forums, authorizer } = getContainer();
+  const actor = await getActor()
+  const { forums, authorizer } = getContainer()
 
-  const forum = await forums.findById(id);
-  if (!forum || forum.type !== "forum") return { title: "Forum" };
+  const forum = await forums.findById(id)
+  if (!forum || forum.type !== 'forum') return { title: 'Forum' }
 
-  const matrix = await authorizer.forumMatrix(actor, forum.id);
-  if (!authorizer.can(actor, "thread.view", { forumId: forum.id, forum: matrix })) {
+  const matrix = await authorizer.forumMatrix(actor, forum.id)
+  if (
+    !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
+  ) {
     /* The same title an unknown forum gets — see the thread page. */
-    return { title: "Forum" };
+    return { title: 'Forum' }
   }
 
-  const page = Number(query.page ?? "1");
+  const page = Number(query.page ?? '1')
   const canonical = canonicalPath({
     path: `/forum/${forum.id}-${forum.slug}`,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
-  });
-  const description = forum.description ?? `Discussions in ${forum.title}.`;
+  })
+  const description = forum.description ?? `Discussions in ${forum.title}.`
 
   return {
     title: forum.title,
@@ -70,65 +72,79 @@ export async function generateMetadata({
     alternates: {
       canonical,
       types: {
-        "application/rss+xml": `/forum/${forum.id}-${forum.slug}/feed.xml`,
+        'application/rss+xml': `/forum/${forum.id}-${forum.slug}/feed.xml`,
       },
     },
     openGraph: {
-      type: "website",
+      type: 'website',
       title: forum.title,
       description,
       url: canonical,
     },
-    twitter: { card: "summary", title: forum.title, description },
-  };
+    twitter: { card: 'summary', title: forum.title, description },
+  }
 }
 
 function forumId(value: string): number | null {
-  const match = /^(\d+)-/.exec(value);
-  if (!match) return null;
-  const id = Number(match[1]);
-  return Number.isSafeInteger(id) && id > 0 ? id : null;
+  const match = /^(\d+)-/.exec(value)
+  if (!match) return null
+  const id = Number(match[1])
+  return Number.isSafeInteger(id) && id > 0 ? id : null
 }
 
 export default async function ForumPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string }>
   searchParams: Promise<{
-    after?: string;
-    page?: string;
-    posted?: string;
+    after?: string
+    page?: string
+    sort?: string
+    posted?: string
     /* F52's outcome, written by the inline-moderation action's redirect. */
-    did?: string;
-    n?: string;
-    refused?: string;
-    gone?: string;
-    skipped?: string;
-  }>;
+    did?: string
+    n?: string
+    refused?: string
+    gone?: string
+    skipped?: string
+  }>
 }) {
-  const [{ slug }, query] = await Promise.all([params, searchParams]);
-  const id = forumId(slug);
-  const after = decodeForumCursor(query.after);
-  const page = query.page === undefined ? 1 : Number(query.page);
-  if (id === null || after === null || !Number.isSafeInteger(page) || page < 1)
-    notFound();
+  const [{ slug }, query] = await Promise.all([params, searchParams])
+  const id = forumId(slug)
+  const after = decodeForumCursor(query.after)
+  const sort = query.sort === 'rating' ? 'rating' : 'activity'
+  const page = query.page === undefined ? 1 : Number(query.page)
+  if (
+    id === null ||
+    after === null ||
+    (after !== undefined && after.sort !== sort) ||
+    !Number.isSafeInteger(page) ||
+    page < 1
+  )
+    notFound()
 
-  const actor = await getActor();
-  const { forums, threads, authorizer, readState, threadWrites, inlineModeration } =
-    getContainer();
+  const actor = await getActor()
+  const {
+    forums,
+    threads,
+    authorizer,
+    readState,
+    threadWrites,
+    inlineModeration,
+  } = getContainer()
   const [rows, visible, read] = await Promise.all([
     forums.listListing(),
     authorizer.visibleForumIds(actor),
     actor.userId === null || readState === null
       ? Promise.resolve(null)
       : readState.forUser(actor.userId),
-  ]);
-  const forum = rows.find((row) => row.id === id);
-  if (!forum || forum.type !== "forum" || !visible.includes(id)) notFound();
-  const matrix = await authorizer.forumMatrix(actor, id);
-  if (!authorizer.can(actor, "thread.view", { forumId: id, forum: matrix }))
-    notFound();
+  ])
+  const forum = rows.find((row) => row.id === id)
+  if (!forum || forum.type !== 'forum' || !visible.includes(id)) notFound()
+  const matrix = await authorizer.forumMatrix(actor, id)
+  if (!authorizer.can(actor, 'thread.view', { forumId: id, forum: matrix }))
+    notFound()
 
   /*
    * F47: what this actor may see, decided once by the permission model. The
@@ -136,22 +152,23 @@ export default async function ForumPage({
    * return, which is what makes "does this page leak the queue" a question with
    * one answer instead of one per query.
    */
-  const scope = authorizer.contentScope(actor, { forumId: id, forum: matrix });
+  const scope = authorizer.contentScope(actor, { forumId: id, forum: matrix })
   /*
    * F57. The member's own page size, falling back to the board setting and then
    * to the module constant — resolved *before* the read, because the page size
    * is the read's `limit` and a preference applied after the query would be a
    * setting that does nothing.
    */
-  const preferences = await getViewerPreferences();
+  const preferences = await getViewerPreferences()
   const threadPage = await threads.listForum(id, {
     ...(after === undefined ? {} : { after }),
     limit: preferences.threadsPerPage,
     scope,
-  });
+    sort,
+  })
   const nextHref = threadPage.nextCursor
-    ? `/forum/${id}-${forum.slug}?after=${encodeForumCursor(threadPage.nextCursor)}&page=${page + 1}`
-    : null;
+    ? `/forum/${id}-${forum.slug}?after=${encodeForumCursor(threadPage.nextCursor)}&page=${page + 1}${sort === 'rating' ? '&sort=rating' : ''}`
+    : null
   /*
    * The composer link appears only when this actor may actually use it, and
    * only when the board can accept a post at all (fixture mode cannot). A link
@@ -159,8 +176,8 @@ export default async function ForumPage({
    */
   const canPost =
     threadWrites !== null &&
-    forum.type === "forum" &&
-    authorizer.can(actor, "thread.post", { forumId: id, forum: matrix });
+    forum.type === 'forum' &&
+    authorizer.can(actor, 'thread.post', { forumId: id, forum: matrix })
 
   /*
    * F52's tools, resolved once for this forum. `moderatorRightsIn` reads the
@@ -168,38 +185,42 @@ export default async function ForumPage({
    * staff bypasses — the same route F50's bar takes, and the same route the
    * action takes again for itself. A checkbox is not authorisation.
    */
-  const moderatorRights = await authorizer.moderatorRightsIn(actor, id);
+  const moderatorRights = await authorizer.moderatorRightsIn(actor, id)
   const inlineTarget = {
     forumId: id,
     forum: matrix,
     moderatorRights,
     isForumModerator: hasAnyModeratorRight(moderatorRights),
-  };
+  }
   const inlineRights = {
     approve:
       inlineModeration !== null &&
-      authorizer.can(actor, "content.approve", inlineTarget),
+      authorizer.can(actor, 'content.approve', inlineTarget),
     lock:
-      inlineModeration !== null && authorizer.can(actor, "thread.lock", inlineTarget),
+      inlineModeration !== null &&
+      authorizer.can(actor, 'thread.lock', inlineTarget),
     stick:
-      inlineModeration !== null && authorizer.can(actor, "thread.stick", inlineTarget),
+      inlineModeration !== null &&
+      authorizer.can(actor, 'thread.stick', inlineTarget),
     move:
-      inlineModeration !== null && authorizer.can(actor, "thread.move", inlineTarget),
+      inlineModeration !== null &&
+      authorizer.can(actor, 'thread.move', inlineTarget),
     delete:
-      inlineModeration !== null && authorizer.can(actor, "thread.delete", inlineTarget),
-  };
-  const inlineOffered = anyInlineTool(inlineRights);
+      inlineModeration !== null &&
+      authorizer.can(actor, 'thread.delete', inlineTarget),
+  }
+  const inlineOffered = anyInlineTool(inlineRights)
   /* Two extra queries for a moderator who may move, none for anybody else. */
   const inlineMoveTargets = !inlineRights.move
     ? []
-    : (
-        await authorizer.forumIdsWhere(actor, "thread.move")
-      ).flatMap((forumId) => {
-        const row = rows.find((r) => r.id === forumId);
-        return row === undefined || row.type !== "forum" || row.id === id
-          ? []
-          : [{ id: row.id, title: row.title }];
-      });
+    : (await authorizer.forumIdsWhere(actor, 'thread.move')).flatMap(
+        (forumId) => {
+          const row = rows.find((r) => r.id === forumId)
+          return row === undefined || row.type !== 'forum' || row.id === id
+            ? []
+            : [{ id: row.id, title: row.title }]
+        },
+      )
 
   const view = buildForumDisplayView({
     forum,
@@ -214,27 +235,30 @@ export default async function ForumPage({
     markReadAction: read === null ? null : `/api/read/forum/${id}`,
     now: new Date(),
     timeZone: preferences.timezone,
-  });
+  })
 
   /* F56, same shape as the thread page's control. */
-  const { subscriptions } = getContainer();
+  const { subscriptions } = getContainer()
   const followMode =
     subscriptions === null || actor.userId === null
       ? null
-      : await subscriptions.modeFor(actor.userId, "forum", forum.id);
-  const followOffered = subscriptions !== null && actor.userId !== null;
-  const followModes = buildSubscriptionsView({ rows: [], now: new Date() }).modes;
+      : await subscriptions.modeFor(actor.userId, 'forum', forum.id)
+  const followOffered = subscriptions !== null && actor.userId !== null
+  const followModes = buildSubscriptionsView({
+    rows: [],
+    now: new Date(),
+  }).modes
 
-  const ForumDisplay = requireSlot(activeTheme, "ForumDisplay");
-  const Notice = requireSlot(activeTheme, "Notice");
-  const ThreadRow = requireSlot(activeTheme, "ThreadRow");
-  const SubforumList = requireSlot(activeTheme, "SubforumList");
-  const Pagination = requireSlot(activeTheme, "Pagination");
+  const ForumDisplay = requireSlot(activeTheme, 'ForumDisplay')
+  const Notice = requireSlot(activeTheme, 'Notice')
+  const ThreadRow = requireSlot(activeTheme, 'ThreadRow')
+  const SubforumList = requireSlot(activeTheme, 'SubforumList')
+  const Pagination = requireSlot(activeTheme, 'Pagination')
 
   const notice =
-    query.posted === "moderated"
-      ? "Your thread was posted and is waiting for a moderator to approve it."
-      : inlineOutcomeNotice(query);
+    query.posted === 'moderated'
+      ? 'Your thread was posted and is waiting for a moderator to approve it.'
+      : inlineOutcomeNotice(query)
 
   /* F80. `view.thread-row` runs once per row; see the index page for the cost. */
   const pluginContext = { ...viewerRef(actor), forumId: id }
@@ -242,10 +266,15 @@ export default async function ForumPage({
   const threadRows = await Promise.all(
     view.threads.map((thread) =>
       filterView(
-        "view.thread-row",
+        'view.thread-row',
         {
           thread,
-          select: selectionFor("thread", thread.id, `“${thread.title}”`, inlineOffered),
+          select: selectionFor(
+            'thread',
+            thread.id,
+            `“${thread.title}”`,
+            inlineOffered,
+          ),
         },
         pluginContext,
       ),
@@ -255,17 +284,23 @@ export default async function ForumPage({
   const subforums =
     view.subforums === null
       ? null
-      : await filterView("view.subforum-list", view.subforums, pluginContext)
+      : await filterView('view.subforum-list', view.subforums, pluginContext)
 
-  const pagination = await filterView("view.pagination", view.pagination, viewerRef(actor))
+  const pagination = await filterView(
+    'view.pagination',
+    view.pagination,
+    viewerRef(actor),
+  )
 
   const forumDisplayModel = await filterView(
-    "view.forum-display",
+    'view.forum-display',
     {
       ...view.display,
       regions: {
         subforums: subforums === null ? null : <SubforumList {...subforums} />,
-        threads: threadRows.map((row) => <ThreadRow key={row.thread.id} {...row} />),
+        threads: threadRows.map((row) => (
+          <ThreadRow key={row.thread.id} {...row} />
+        )),
         pagination: <Pagination {...pagination} />,
       },
     },
@@ -301,6 +336,21 @@ export default async function ForumPage({
           />
         </div>
       )}
+      <nav className="px-6 pt-4 text-sm" aria-label="Thread order">
+        <a
+          href={`/forum/${id}-${forum.slug}`}
+          aria-current={sort === 'activity' ? 'page' : undefined}
+        >
+          Latest
+        </a>
+        {' · '}
+        <a
+          href={`/forum/${id}-${forum.slug}?sort=rating`}
+          aria-current={sort === 'rating' ? 'page' : undefined}
+        >
+          Top rated
+        </a>
+      </nav>
       <ForumDisplay {...forumDisplayModel} />
       {/*
         Below the listing, not around it: the checkboxes reach this form by id
@@ -317,5 +367,5 @@ export default async function ForumPage({
         />
       )}
     </main>
-  );
+  )
 }

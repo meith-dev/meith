@@ -105,6 +105,9 @@ export const threads = pgTable(
     /** Denormalised for the listing; maintained with the thread's posts. */
     replyCount: integer('reply_count').notNull().default(0),
     viewCount: integer('view_count').notNull().default(0),
+    /** F43's running aggregate, so the forum can order by ratings without a join. */
+    ratingTotal: integer('rating_total').notNull().default(0),
+    ratingCount: integer('rating_count').notNull().default(0),
 
     lastPostId: integer('last_post_id'),
     lastPostUserId: integer('last_post_user_id'),
@@ -289,7 +292,9 @@ export const postRevisions = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex('post_revisions_post_revision_key').on(t.postId, t.revision)],
+  (t) => [
+    uniqueIndex('post_revisions_post_revision_key').on(t.postId, t.revision),
+  ],
 )
 
 /**
@@ -337,7 +342,9 @@ export const threadViewBuffer = pgTable(
       .references(() => threads.id, { onDelete: 'cascade' }),
     /** Views recorded since the last flush. */
     pending: integer('pending').notNull().default(0),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index('thread_view_buffer_updated_idx').on(t.updatedAt)],
 )
@@ -400,9 +407,13 @@ export const digestRuns = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     cadence: text('cadence').notNull(),
-    lastSentAt: timestamp('last_sent_at', { withTimezone: true }).notNull().defaultNow(),
+    lastSentAt: timestamp('last_sent_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (t) => [primaryKey({ name: 'digest_runs_pkey', columns: [t.userId, t.cadence] })],
+  (t) => [
+    primaryKey({ name: 'digest_runs_pkey', columns: [t.userId, t.cadence] }),
+  ],
 )
 
 /**
@@ -433,8 +444,12 @@ export const reports = pgTable(
      * join per kind — and what keeps a report readable after its target is
      * hard-deleted.
      */
-    forumId: integer('forum_id').references(() => forums.id, { onDelete: 'set null' }),
-    threadId: integer('thread_id').references(() => threads.id, { onDelete: 'set null' }),
+    forumId: integer('forum_id').references(() => forums.id, {
+      onDelete: 'set null',
+    }),
+    threadId: integer('thread_id').references(() => threads.id, {
+      onDelete: 'set null',
+    }),
     /** Captured at report time: the target may be edited or removed afterwards. */
     targetLabel: text('target_label').notNull().default(''),
 
@@ -449,17 +464,27 @@ export const reports = pgTable(
      * two of them.
      */
     status: text('status').notNull().default('open'),
-    assignedToUserId: integer('assigned_to_user_id').references(() => users.id, {
-      onDelete: 'set null',
-    }),
+    assignedToUserId: integer('assigned_to_user_id').references(
+      () => users.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
 
-    resolvedByUserId: integer('resolved_by_user_id').references(() => users.id, {
-      onDelete: 'set null',
-    }),
+    resolvedByUserId: integer('resolved_by_user_id').references(
+      () => users.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
 
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     index('reports_open_idx')
@@ -495,7 +520,9 @@ export const reportEvents = pgTable(
     kind: text('kind').notNull(),
     /** Never shown to the reporter. */
     note: text('note'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index('report_events_report_idx').on(t.reportId, t.createdAt)],
 )
@@ -525,11 +552,17 @@ export const reputation = pgTable(
     /* The FK lives here rather than in identity.ts, which is why this table
        does: `posts` is declared in this file, and the schema files have a
        strict dependency order (identity <- structure <- content). */
-    postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }),
+    postId: integer('post_id').references(() => posts.id, {
+      onDelete: 'cascade',
+    }),
     points: smallint('points').notNull().default(1),
     comment: text('comment').notNull().default(''),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     uniqueIndex('reputation_profile_unique')
@@ -580,7 +613,9 @@ export const attachments = pgTable(
     status: text('status').notNull().default('pending'),
     failureReason: text('failure_reason'),
     downloadCount: integer('download_count').notNull().default(0),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     readyAt: timestamp('ready_at', { withTimezone: true }),
   },
   (t) => [
@@ -610,7 +645,9 @@ export const attachmentOrphans = pgTable(
   'attachment_orphans',
   {
     storageKey: text('storage_key').primaryKey(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index('attachment_orphans_age_idx').on(t.createdAt)],
 )
@@ -636,5 +673,7 @@ export const wordFilters = pgTable('word_filters', {
   /** Whole-word by default: see the Scunthorpe problem. */
   wholeWord: boolean('whole_word').notNull().default(true),
   enabled: boolean('enabled').notNull().default(true),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 })

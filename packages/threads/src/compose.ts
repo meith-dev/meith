@@ -12,6 +12,7 @@
  * `@meith/authorization` (R4). What arrives here is a decision already made.
  */
 import { RateLimitedError, ValidationError } from '@meith/core'
+import { validatePoll, type NewPoll } from '@meith/polls'
 
 /** The forum's own posting rules, read from the forum row. */
 export interface ForumPostingRules {
@@ -20,6 +21,7 @@ export interface ForumPostingRules {
   readonly isOpen: boolean
   readonly allowThreads: boolean
   readonly allowReplies: boolean
+  readonly allowPolls: boolean
   readonly requiresPrefix: boolean
   readonly moderateNewThreads: boolean
   readonly moderateNewPosts: boolean
@@ -46,13 +48,18 @@ export interface AuthorRestriction {
   readonly moderated: boolean
 }
 
-export const UNRESTRICTED: AuthorRestriction = { suspended: false, moderated: false }
+export const UNRESTRICTED: AuthorRestriction = {
+  suspended: false,
+  moderated: false,
+}
 
 export interface ComposeThreadInput {
   readonly title: string
   readonly message: string
   readonly prefixId: number | null
   readonly subscribe: boolean
+  readonly poll?: NewPoll | undefined
+  readonly mayPostPoll?: boolean | undefined
   /**
    * Whether this actor's content skips the moderation queue. Resolved by the
    * caller from the forum matrix — a moderator of the forum posts straight
@@ -76,6 +83,7 @@ export interface NewThreadRecord {
   readonly authorUsername: string
   readonly visibility: 'visible' | 'unapproved'
   readonly subscribe: boolean
+  readonly poll?: NewPoll | undefined
   readonly createdAt: Date
 }
 
@@ -200,14 +208,20 @@ export class ThreadComposer {
      */
     const restriction = input.restriction ?? UNRESTRICTED
     if (restriction.suspended) {
-      throw new ValidationError('Your posting privileges are currently suspended.')
+      throw new ValidationError(
+        'Your posting privileges are currently suspended.',
+      )
     }
 
     if (title.length < TITLE_MIN) {
-      throw new ValidationError(`A title needs at least ${TITLE_MIN} characters.`)
+      throw new ValidationError(
+        `A title needs at least ${TITLE_MIN} characters.`,
+      )
     }
     if (title.length > TITLE_MAX) {
-      throw new ValidationError(`A title may be at most ${TITLE_MAX} characters.`)
+      throw new ValidationError(
+        `A title may be at most ${TITLE_MAX} characters.`,
+      )
     }
     if (message.length < MESSAGE_MIN) {
       throw new ValidationError('A post needs a message.')
@@ -219,6 +233,16 @@ export class ThreadComposer {
     }
 
     const prefixId = await this.resolvePrefix(input.prefixId, forum)
+    const poll =
+      input.poll === undefined
+        ? undefined
+        : validatePoll(input.poll, this.now())
+    if (
+      poll !== undefined &&
+      (input.mayPostPoll !== true || !forum.allowPolls)
+    ) {
+      throw new ValidationError('You cannot attach a poll in this forum.')
+    }
 
     await this.enforceFlood(input, author)
 
@@ -236,7 +260,8 @@ export class ThreadComposer {
      * person on the board the restriction could not reach.
      */
     const visibility =
-      (forum.moderateNewThreads && !input.bypassesModeration) || restriction.moderated
+      (forum.moderateNewThreads && !input.bypassesModeration) ||
+      restriction.moderated
         ? 'unapproved'
         : 'visible'
 
@@ -250,6 +275,7 @@ export class ThreadComposer {
       authorUsername: author.username,
       visibility,
       subscribe: input.subscribe,
+      poll,
       createdAt: this.now(),
     })
   }

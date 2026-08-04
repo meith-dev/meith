@@ -82,6 +82,7 @@ export default async function NewThreadPage({
                 prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
                 requiresPrefix={rules.requiresPrefix}
                 canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
+                canPostPoll={authorizer.can(actor, 'poll.post', target)}
                 attachmentLimits={
                   canAttach(actor, target) ? attachmentLimits(target) : null
                 }

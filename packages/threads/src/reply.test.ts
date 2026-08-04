@@ -45,6 +45,7 @@ const TARGET: ReplyTarget = {
     isOpen: true,
     allowThreads: true,
     allowReplies: true,
+    allowPolls: true,
     requiresPrefix: false,
     moderateNewThreads: false,
     moderateNewPosts: false,
@@ -84,7 +85,12 @@ describe('ReplyComposer', () => {
       visibility: 'visible',
       createdAt: AT,
     })
-    expect(result).toMatchObject({ postId: 501, threadId: 20, slug: 'hello', raced: false })
+    expect(result).toMatchObject({
+      postId: 501,
+      threadId: 20,
+      slug: 'hello',
+      raced: false,
+    })
   })
 
   it.each([
@@ -92,7 +98,10 @@ describe('ReplyComposer', () => {
     ['an unapproved thread', { visibility: 'unapproved' as const }],
     ['a deleted thread', { visibility: 'deleted' as const }],
     ['a closed forum', { forum: { ...TARGET.forum, isOpen: false } }],
-    ['a forum that takes no replies', { forum: { ...TARGET.forum, allowReplies: false } }],
+    [
+      'a forum that takes no replies',
+      { forum: { ...TARGET.forum, allowReplies: false } },
+    ],
   ])('refuses %s', async (_label, overrides) => {
     const posts = new RecordingReplies()
 
@@ -119,7 +128,11 @@ describe('ReplyComposer', () => {
       composer(posts).create({ ...INPUT, message: '  ' }, AUTHOR, TARGET),
     ).rejects.toThrow(ValidationError)
     await expect(
-      composer(posts, { floodSeconds: 0, maxLength: 5 }).create(INPUT, AUTHOR, TARGET),
+      composer(posts, { floodSeconds: 0, maxLength: 5 }).create(
+        INPUT,
+        AUTHOR,
+        TARGET,
+      ),
     ).rejects.toThrow(/at most 5 characters/)
   })
 
@@ -139,7 +152,11 @@ describe('ReplyComposer', () => {
     const posts = new RecordingReplies(new Date(AT.getTime() - 5000))
 
     await expect(
-      composer(posts, { floodSeconds: 15, maxLength: 30_000 }).create(INPUT, AUTHOR, TARGET),
+      composer(posts, { floodSeconds: 15, maxLength: 30_000 }).create(
+        INPUT,
+        AUTHOR,
+        TARGET,
+      ),
     ).rejects.toThrow(RateLimitedError)
   })
 
@@ -184,7 +201,11 @@ describe('ReplyComposer', () => {
 describe('quotePrefill', () => {
   it('emits the BBCode form, attributed and addressable', async () => {
     expect(
-      quotePrefill({ postId: 12, authorUsername: 'ada', message: 'Original text' }),
+      quotePrefill({
+        postId: 12,
+        authorUsername: 'ada',
+        message: 'Original text',
+      }),
     ).toBe("[quote='ada' pid='12']Original text[/quote]\n\n")
   })
 

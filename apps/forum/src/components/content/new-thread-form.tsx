@@ -33,12 +33,14 @@ export function NewThreadForm({
   prefixes,
   requiresPrefix,
   canSubscribe,
+  canPostPoll,
   attachmentLimits,
 }: {
   forumId: number
   prefixes: readonly PrefixOption[]
   requiresPrefix: boolean
   canSubscribe: boolean
+  canPostPoll: boolean
   /** F42. Null when this member may not attach here, or the board cannot. */
   attachmentLimits: UploadLimits | null
 }) {
@@ -118,6 +120,16 @@ export function NewThreadForm({
       </label>
 
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}
+
+      {canPostPoll && (
+        <fieldset className="flex flex-col gap-2 rounded-md border border-border p-3">
+          <legend className="px-1 text-sm font-medium">Poll (optional)</legend>
+          <Field label="Question" name="pollQuestion" maxLength={250} />
+          {[1, 2, 3, 4].map((number) => (
+            <Field key={number} label={`Option ${number}`} name="pollOption" maxLength={200} />
+          ))}
+        </fieldset>
+      )}
 
       {canSubscribe && (
         <label className="flex items-center gap-2 text-sm">

@@ -50,6 +50,9 @@ const FORUM_SCOPED: ReadonlySet<Action> = new Set<Action>([
   'thread.view',
   'thread.post',
   'reply.post',
+  'poll.post',
+  'poll.vote',
+  'thread.rate',
   'post.editOwn',
   'post.editOthers',
   'post.deleteOwn',
@@ -229,7 +232,10 @@ export class Authorizer {
     actor: Actor,
     right: keyof ModeratorRights = 'canApproveContent',
   ): Promise<number[]> {
-    if (actor.global.isAdministrator === true || actor.global.isSuperModerator === true) {
+    if (
+      actor.global.isAdministrator === true ||
+      actor.global.isSuperModerator === true
+    ) {
       return [...(await this.source.allForumIds())]
     }
 
@@ -256,7 +262,10 @@ export class Authorizer {
         if (!appointment[right]) continue
         if (appointment.forumId === forumId) {
           approvesByAppointment.add(forumId)
-        } else if (appointment.cascadeToSubforums && chain.includes(appointment.forumId)) {
+        } else if (
+          appointment.cascadeToSubforums &&
+          chain.includes(appointment.forumId)
+        ) {
           approvesByAppointment.add(forumId)
         }
       }
@@ -272,7 +281,8 @@ export class Authorizer {
        * rights the appointment is the only route short of a staff bypass, which
        * is handled above.
        */
-      const byGroup = right === 'canApproveContent' && matrix.canApproveContent === true
+      const byGroup =
+        right === 'canApproveContent' && matrix.canApproveContent === true
       if (byGroup || approvesByAppointment.has(forumId)) moderated.push(forumId)
     }
     return moderated
@@ -341,7 +351,10 @@ export class Authorizer {
    * offered on the strength of these rights appears for staff, and the action
    * behind it reaches the same conclusion by its own route.
    */
-  async moderatorRightsIn(actor: Actor, forumId: number): Promise<ModeratorRights> {
+  async moderatorRightsIn(
+    actor: Actor,
+    forumId: number,
+  ): Promise<ModeratorRights> {
     if (
       actor.global.isAdministrator === true ||
       actor.global.isSuperModerator === true
@@ -398,7 +411,9 @@ export class Authorizer {
    */
   async forumIdsWhere(actor: Actor, action: Action): Promise<number[]> {
     if (!FORUM_SCOPED.has(action)) {
-      throw new Error(`forumIdsWhere is only meaningful for forum-scoped actions: ${action}`)
+      throw new Error(
+        `forumIdsWhere is only meaningful for forum-scoped actions: ${action}`,
+      )
     }
     if (actor.state === 'banned') return []
 
@@ -454,7 +469,8 @@ export class Authorizer {
       for (const appointment of appointments) {
         const covers =
           appointment.forumId === forumId ||
-          (appointment.cascadeToSubforums && chain.includes(appointment.forumId))
+          (appointment.cascadeToSubforums &&
+            chain.includes(appointment.forumId))
         if (!covers) continue
         appointed = true
         moderatorRights = unionRights(moderatorRights, appointment)
@@ -466,7 +482,14 @@ export class Authorizer {
        * set it. Here it is set, which is why an appointee's `post.softDelete`
        * resolves the same way in bulk as it does on their own post.
        */
-      if (this.can(actor, action, { forumId, forum, moderatorRights, isForumModerator: appointed })) {
+      if (
+        this.can(actor, action, {
+          forumId,
+          forum,
+          moderatorRights,
+          isForumModerator: appointed,
+        })
+      ) {
         permitted.push(forumId)
       }
     }
@@ -571,6 +594,12 @@ export class Authorizer {
         return forum.canPostThreads === true
       case 'reply.post':
         return forum.canPostReplies === true
+      case 'poll.post':
+        return forum.canPostPolls === true
+      case 'poll.vote':
+        return forum.canVotePolls === true
+      case 'thread.rate':
+        return forum.canRateThreads === true
       case 'attachment.upload':
         return forum.canUploadAttachments === true
       case 'attachment.download':
@@ -581,15 +610,20 @@ export class Authorizer {
         return ownsContent && forum.canDeleteOwnPosts === true
       case 'post.editOthers':
         return (
-          (target.isForumModerator === true || forum.canEditOthersPosts === true) &&
+          (target.isForumModerator === true ||
+            forum.canEditOthersPosts === true) &&
           !ownsContent
         )
       case 'post.softDelete':
-        return target.isForumModerator === true || forum.canSoftDeletePosts === true
+        return (
+          target.isForumModerator === true || forum.canSoftDeletePosts === true
+        )
       case 'content.viewUnapproved':
         // A forum moderator must see the queue they are meant to action; the
         // permission field is the group-level alternative for non-mod staff.
-        return target.isForumModerator === true || forum.canViewUnapproved === true
+        return (
+          target.isForumModerator === true || forum.canViewUnapproved === true
+        )
       case 'content.viewDeleted':
         return target.isForumModerator === true || forum.canViewDeleted === true
       case 'content.approve':

@@ -18,6 +18,7 @@
     "@meith/messages": "workspace:*",
     "@meith/relations": "workspace:*",
     "@meith/reputation": "workspace:*",
+    "@meith/polls": "workspace:*",
     "@meith/admin": "workspace:*",
     "@meith/attachments": "workspace:*",
     "@meith/avatars": "workspace:*",

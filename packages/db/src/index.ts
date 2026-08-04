@@ -108,6 +108,7 @@ export {
 } from './forum-admin-repo'
 export { PostgresRelationRepository } from './relation-repo'
 export { PostgresReputationRepository } from './reputation-repo'
+export { PostgresPollRepository } from './poll-repo'
 export { PostgresSignatureRepository } from './signature-repo'
 export {
   PostgresAdminLogRepository,

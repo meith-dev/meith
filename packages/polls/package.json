@@ -1,12 +1,11 @@
 {
-  "name": "@meith/threads",
+  "name": "@meith/polls",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@meith/core": "workspace:*",
-    "@meith/polls": "workspace:*"
+    "@meith/core": "workspace:*"
   }
 }

@@ -38,7 +38,7 @@ describe('buildForumDisplayView', () => {
             replyCount: 1,
             viewCount: 2,
             visibility: 'visible',
-  isSticky: false,
+            isSticky: false,
             isLocked: false,
             isMoved: false,
             lastPost: {
@@ -50,7 +50,14 @@ describe('buildForumDisplayView', () => {
             lastPostAt: new Date('2026-07-30T08:41:00Z'),
           },
         ],
-        nextCursor: { isSticky: false, lastPostAt: new Date('2026-07-30T08:41:00Z'), id: 3 },
+        nextCursor: {
+          sort: 'activity',
+          isSticky: false,
+          lastPostAt: new Date('2026-07-30T08:41:00Z'),
+          ratingTotal: 0,
+          ratingCount: 0,
+          id: 3,
+        },
       },
       pageNumber: 1,
       nextHref: '/forum/2-general?after=cursor&page=2',
@@ -63,6 +70,9 @@ describe('buildForumDisplayView', () => {
       author: { username: 'departed', profileHref: null },
       lastPost: { href: '/thread/3-hello#post-4' },
     })
-    expect(view.pagination).toMatchObject({ page: 1, nextHref: '/forum/2-general?after=cursor&page=2' })
+    expect(view.pagination).toMatchObject({
+      page: 1,
+      nextHref: '/forum/2-general?after=cursor&page=2',
+    })
   })
 })

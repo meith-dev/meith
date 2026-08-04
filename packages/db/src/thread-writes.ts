@@ -10,6 +10,7 @@
 import { sql } from 'drizzle-orm'
 
 import { renderBBCode } from '@meith/bbcode'
+import type { NewPoll } from '@meith/polls'
 
 import type {
   CreatedThread,
@@ -35,7 +36,7 @@ export class PostgresThreadWriteRepository
   async postingRules(forumId: number): Promise<ForumPostingTarget | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select id, type, slug, is_open, allow_threads, allow_replies,
+        select id, type, slug, is_open, allow_threads, allow_replies, allow_polls,
                requires_prefix, moderate_new_threads, moderate_new_posts
           from forums where id = ${forumId}
       `),
@@ -46,6 +47,7 @@ export class PostgresThreadWriteRepository
       is_open: boolean
       allow_threads: boolean
       allow_replies: boolean
+      allow_polls: boolean
       requires_prefix: boolean
       moderate_new_threads: boolean
       moderate_new_posts: boolean
@@ -61,6 +63,7 @@ export class PostgresThreadWriteRepository
       isOpen: row.is_open,
       allowThreads: row.allow_threads,
       allowReplies: row.allow_replies,
+      allowPolls: row.allow_polls,
       requiresPrefix: row.requires_prefix,
       moderateNewThreads: row.moderate_new_threads,
       moderateNewPosts: row.moderate_new_posts,
@@ -99,6 +102,9 @@ export class PostgresThreadWriteRepository
         `),
       ) as Array<{ id: number }>
       const postId = Number(postRows[0]!.id)
+
+      if (record.poll !== undefined)
+        await createPoll(tx as Database, threadId, record.poll)
 
       if (record.visibility === 'visible') {
         await applyCreatedContentCounters(tx, {
@@ -141,7 +147,12 @@ export class PostgresThreadWriteRepository
         `)
       }
 
-      return { threadId, postId, slug: record.slug, visibility: record.visibility }
+      return {
+        threadId,
+        postId,
+        slug: record.slug,
+        visibility: record.visibility,
+      }
     })
   }
 
@@ -158,7 +169,7 @@ export class PostgresThreadWriteRepository
         select t.id, t.slug, t.title, t.is_locked, t.visibility, t.last_post_id,
                t.reply_count,
                f.id as forum_id, f.type as forum_type, f.slug as forum_slug,
-               f.is_open, f.allow_threads, f.allow_replies, f.requires_prefix,
+               f.is_open, f.allow_threads, f.allow_replies, f.allow_polls, f.requires_prefix,
                f.moderate_new_threads, f.moderate_new_posts
           from threads t
           join forums f on f.id = t.forum_id
@@ -178,6 +189,7 @@ export class PostgresThreadWriteRepository
       is_open: boolean
       allow_threads: boolean
       allow_replies: boolean
+      allow_polls: boolean
       requires_prefix: boolean
       moderate_new_threads: boolean
       moderate_new_posts: boolean
@@ -201,6 +213,7 @@ export class PostgresThreadWriteRepository
         isOpen: row.is_open,
         allowThreads: row.allow_threads,
         allowReplies: row.allow_replies,
+        allowPolls: row.allow_polls,
         requiresPrefix: row.requires_prefix,
         moderateNewThreads: row.moderate_new_threads,
         moderateNewPosts: row.moderate_new_posts,
@@ -332,4 +345,26 @@ export class PostgresThreadWriteRepository
       token: row.token,
     }))
   }
+}
+
+async function createPoll(
+  tx: Database,
+  threadId: number,
+  poll: NewPoll,
+): Promise<void> {
+  const rows = resultRows(
+    await tx.execute(sql`
+      insert into polls (thread_id, question, closes_at)
+      values (${threadId}, ${poll.question}, ${poll.closesAt}) returning id
+    `),
+  ) as Array<{ id: number }>
+  const pollId = rows[0]?.id
+  if (pollId === undefined) throw new Error('Poll insert returned no row.')
+  await tx.execute(sql`
+    insert into poll_options (poll_id, label, display_order)
+    values ${sql.join(
+      poll.options.map((label, index) => sql`(${pollId}, ${label}, ${index})`),
+      sql`, `,
+    )}
+  `)
 }

@@ -30,6 +30,8 @@ const thread: ThreadListingRow = {
   authorUsername: 'departed',
   replyCount: 1,
   viewCount: 2,
+  ratingTotal: 0,
+  ratingCount: 0,
   visibility: 'visible',
   isSticky: false,
   isLocked: false,
@@ -81,7 +83,9 @@ describe('buildThreadView', () => {
 })
 
 /** One post through the view, so the body tests read as one line each. */
-function bodyOf(post: Partial<PostListingRow> & Pick<PostListingRow, 'message'>): string {
+function bodyOf(
+  post: Partial<PostListingRow> & Pick<PostListingRow, 'message'>,
+): string {
   const view = buildThreadView({
     thread,
     forum,
@@ -118,7 +122,9 @@ function bodyOf(post: Partial<PostListingRow> & Pick<PostListingRow, 'message'>)
 
 describe('the post body (F36)', () => {
   it('renders BBCode when the post carries no stored render', () => {
-    expect(bodyOf({ message: 'a [b]bold[/b] claim' })).toBe('a <strong>bold</strong> claim')
+    expect(bodyOf({ message: 'a [b]bold[/b] claim' })).toBe(
+      'a <strong>bold</strong> claim',
+    )
   })
 
   it('uses the stored render when it is at the current version', () => {
@@ -247,7 +253,10 @@ describe('post affordances (F41)', () => {
       nextHref: null,
       now: new Date('2026-07-30T09:00:00Z'),
     })
-    expect(view.posts[0]!.actions).toMatchObject({ editHref: null, restoreHref: null })
+    expect(view.posts[0]!.actions).toMatchObject({
+      editHref: null,
+      restoreHref: null,
+    })
   })
 
   /*
@@ -256,9 +265,12 @@ describe('post affordances (F41)', () => {
    */
   it('hides Edit once the window has closed, and keeps it for a moderator', () => {
     const stale = { createdAt: new Date('2026-07-30T08:00:00Z') }
-    expect(actionsFor(stale, { editWindowMinutes: 30 }).actions.editHref).toBeNull()
     expect(
-      actionsFor(stale, { editWindowMinutes: 30, bypassesWindow: true }).actions.editHref,
+      actionsFor(stale, { editWindowMinutes: 30 }).actions.editHref,
+    ).toBeNull()
+    expect(
+      actionsFor(stale, { editWindowMinutes: 30, bypassesWindow: true }).actions
+        .editHref,
     ).toBe('/thread/3-hello/edit?post=4')
   })
 
@@ -275,8 +287,13 @@ describe('post affordances (F41)', () => {
    * it. Offering to quote it would put it back in front of everybody.
    */
   it('does not offer to quote a post nobody else can see', () => {
-    expect(actionsFor({ visibility: 'deleted' }, { softDelete: true }).actions.quoteHref).toBeNull()
-    expect(actionsFor({}).actions.quoteHref).toBe('/thread/3-hello/reply?quote=4')
+    expect(
+      actionsFor({ visibility: 'deleted' }, { softDelete: true }).actions
+        .quoteHref,
+    ).toBeNull()
+    expect(actionsFor({}).actions.quoteHref).toBe(
+      '/thread/3-hello/reply?quote=4',
+    )
   })
 
   it('carries the edit notice through to the theme', () => {
@@ -434,9 +451,12 @@ describe('ignored posts (F61)', () => {
      * would give every viewer a different page size and make "#2" mean
      * different posts to different people.
      */
-    const view = build([row({ id: 4, number: 1 }), row({ id: 5, number: 2, authorUserId: 8 })], {
-      ignoredIds: new Set([9]),
-    })
+    const view = build(
+      [row({ id: 4, number: 1 }), row({ id: 5, number: 2, authorUserId: 8 })],
+      {
+        ignoredIds: new Set([9]),
+      },
+    )
 
     expect(view.posts).toHaveLength(2)
     expect(view.posts.map((post) => post.number)).toEqual([1, 2])

@@ -5,6 +5,7 @@ export type {
   ThreadLastPost,
   ThreadListingRow,
   ThreadPage,
+  ThreadSort,
 } from "./types";
 export type { ReadState, ReadStateRepository } from './read-state'
 

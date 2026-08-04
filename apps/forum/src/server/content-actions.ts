@@ -15,9 +15,18 @@
 import { redirect } from 'next/navigation'
 
 import { renderBBCode } from '@meith/bbcode'
-import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
+import {
+  ForbiddenError,
+  ValidationError,
+  isAppError,
+  logger,
+} from '@meith/core'
 import { PostEditor, type PostWriteRepository } from '@meith/posts'
-import { ReplyComposer, ThreadComposer, type AuthorRestriction } from '@meith/threads'
+import {
+  ReplyComposer,
+  ThreadComposer,
+  type AuthorRestriction,
+} from '@meith/threads'
 import { restrictsPosting } from '@meith/moderation'
 
 // Relative, not `@/`: this module is exercised directly by vitest, which
@@ -51,7 +60,10 @@ function positiveInt(value: string): number | null {
 /** Turn a thrown domain error into a FormState; log and generalise the rest. */
 function toFormState(err: unknown, values: Record<string, string>): FormState {
   if (isAppError(err)) return { error: err.message, values }
-  logger({ module: 'content-actions' }).error({ err }, 'unexpected error writing content')
+  logger({ module: 'content-actions' }).error(
+    { err },
+    'unexpected error writing content',
+  )
   return { error: 'Something went wrong. Please try again.', values }
 }
 
@@ -62,8 +74,13 @@ export async function createThreadAction(
   const forumId = positiveInt(field(form, 'forumId'))
   const title = field(form, 'title')
   const message = field(form, 'message')
-  const prefixId = field(form, 'prefixId') === '' ? null : positiveInt(field(form, 'prefixId'))
+  const prefixId =
+    field(form, 'prefixId') === '' ? null : positiveInt(field(form, 'prefixId'))
   const subscribe = checkbox(form, 'subscribe')
+  const pollQuestion = field(form, 'pollQuestion')
+  const pollOptions = form
+    .getAll('pollOption')
+    .filter((value): value is string => typeof value === 'string')
   const values = { title, message, prefixId: field(form, 'prefixId') }
 
   if (forumId === null) return { error: 'That forum does not exist.', values }
@@ -82,7 +99,8 @@ export async function createThreadAction(
 
   if (threadWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept posts.',
+      error:
+        'This board is running on in-memory sample data, so it cannot accept posts.',
       values,
     }
   }
@@ -140,13 +158,23 @@ export async function createThreadAction(
         message,
         prefixId,
         subscribe,
+        poll:
+          pollQuestion === '' &&
+          pollOptions.every((option) => option.trim() === '')
+            ? undefined
+            : { question: pollQuestion, options: pollOptions, closesAt: null },
+        mayPostPoll: authorizer.can(actor, 'poll.post', target),
         /*
          * Moderators of the forum post straight through; everyone else waits
          * when the forum holds new threads. `content.viewUnapproved` is the
          * permission that says "this actor deals with the queue", so it is the
          * one that decides they need not join it.
          */
-        bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', target),
+        bypassesModeration: authorizer.can(
+          actor,
+          'content.viewUnapproved',
+          target,
+        ),
         /*
          * A board setting plus one boolean permission, not a per-group
          * interval — the parity decision in
@@ -234,7 +262,8 @@ export async function createReplyAction(
 
   if (threadWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept posts.',
+      error:
+        'This board is running on in-memory sample data, so it cannot accept posts.',
       values,
     }
   }
@@ -249,7 +278,10 @@ export async function createReplyAction(
 
     const forumId = target.forum.id
     replyForumId = forumId
-    const scope = { forumId, forum: await authorizer.forumMatrix(actor, forumId) }
+    const scope = {
+      forumId,
+      forum: await authorizer.forumMatrix(actor, forumId),
+    }
     if (!authorizer.can(actor, 'thread.view', scope)) {
       throw new ValidationError('That thread does not exist.')
     }
@@ -274,7 +306,11 @@ export async function createReplyAction(
         message,
         subscribe,
         seenLastPostId,
-        bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', scope),
+        bypassesModeration: authorizer.can(
+          actor,
+          'content.viewUnapproved',
+          scope,
+        ),
         bypassesFlood: authorizer.can(actor, 'flood.bypass'),
         /*
          * Replying to a locked thread is a moderator act. `content.viewDeleted`
@@ -390,7 +426,8 @@ export async function editPostAction(
   const { postWrites } = getContainer()
   if (postWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept edits.',
+      error:
+        'This board is running on in-memory sample data, so it cannot accept edits.',
       values,
     }
   }
@@ -480,7 +517,8 @@ async function moveVisibility(
   const { postWrites } = getContainer()
   if (postWrites === null) {
     return {
-      error: 'This board is running on in-memory sample data, so it cannot accept changes.',
+      error:
+        'This board is running on in-memory sample data, so it cannot accept changes.',
     }
   }
 
@@ -496,12 +534,14 @@ async function moveVisibility(
 
     const editor = await postEditor(postWrites)
     if (to === 'deleted') {
-      if (!scope.mayDelete) throw new ForbiddenError('You cannot delete that post.')
+      if (!scope.mayDelete)
+        throw new ForbiddenError('You cannot delete that post.')
       moved = await editor.softDelete(actor.userId, scope.target, {
         bypassesLock: scope.bypassesLock,
       })
     } else {
-      if (!scope.mayRestore) throw new ForbiddenError('You cannot restore that post.')
+      if (!scope.mayRestore)
+        throw new ForbiddenError('You cannot restore that post.')
       moved = await editor.restore(actor.userId, scope.target)
     }
   } catch (err) {
@@ -514,7 +554,11 @@ async function moveVisibility(
    * beats a silent redirect that looks identical to the first one working.
    */
   if (!moved.changed) redirect(`${thread}?post=unchanged`)
-  redirect(to === 'deleted' ? `${thread}?post=deleted` : `${thread}#post-${moved.postId}`)
+  redirect(
+    to === 'deleted'
+      ? `${thread}?post=deleted`
+      : `${thread}#post-${moved.postId}`,
+  )
 }
 
 /**

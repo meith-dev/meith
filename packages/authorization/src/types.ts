@@ -26,11 +26,7 @@ import type {
  * consulted: a banned user with an admin group still cannot act, and an
  * unactivated user is read-mostly regardless of what its groups grant.
  */
-export type ActorState =
-  | 'guest'
-  | 'active'
-  | 'banned'
-  | 'awaiting_activation'
+export type ActorState = 'guest' | 'active' | 'banned' | 'awaiting_activation'
 
 /**
  * A fully-resolved principal. Construction (combining groups, loading state) is
@@ -64,6 +60,9 @@ export type Action =
   | 'thread.view'
   | 'thread.post'
   | 'reply.post'
+  | 'poll.post'
+  | 'poll.vote'
+  | 'thread.rate'
   | 'post.editOwn'
   | 'post.editOthers'
   | 'post.deleteOwn'

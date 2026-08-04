@@ -54,7 +54,10 @@ interface SettingDefinitionBase<T> {
     /** A string that wants a textarea rather than one line. */
     readonly multiline?: boolean
     /** An enum's choices, with the words an operator should see. */
-    readonly options?: readonly { readonly value: string; readonly label: string }[]
+    readonly options?: readonly {
+      readonly value: string
+      readonly label: string
+    }[]
     readonly min?: number
     readonly max?: number
     /**
@@ -145,7 +148,10 @@ export const SETTING_DEFINITIONS = [
         { value: 'none', label: 'Nothing further — the account works at once' },
         { value: 'email', label: 'Confirm the e-mail address' },
         { value: 'admin', label: 'An administrator approves each account' },
-        { value: 'both', label: 'Confirm the address, then an administrator approves' },
+        {
+          value: 'both',
+          label: 'Confirm the address, then an administrator approves',
+        },
       ],
     },
   }),
@@ -201,6 +207,15 @@ export const SETTING_DEFINITIONS = [
     ui: { min: 100, max: 200_000 },
   }),
   define({
+    key: 'posting.thread_ratings_enabled',
+    group: 'posting',
+    label: 'Thread ratings enabled',
+    description: 'Members with permission can give each thread one 1–5 rating.',
+    schema: z.boolean(),
+    default: true,
+    invalidates: ['settings'],
+  }),
+  define({
     key: 'posting.edit_grace_seconds',
     group: 'posting',
     label: 'Silent edit window',
@@ -249,7 +264,8 @@ export const SETTING_DEFINITIONS = [
     key: 'search.enabled',
     group: 'search',
     label: 'Enable search',
-    description: 'Turning this off hides search UI and returns 403 from the route.',
+    description:
+      'Turning this off hides search UI and returns 403 from the route.',
     schema: z.boolean(),
     default: true,
     invalidates: ['settings'],
@@ -308,7 +324,8 @@ export const SETTING_DEFINITIONS = [
     key: 'mail.from_name',
     group: 'mail',
     label: 'Sender name',
-    description: 'Display name on outgoing mail. The address is MAIL_FROM (env).',
+    description:
+      'Display name on outgoing mail. The address is MAIL_FROM (env).',
     schema: z.string().max(100),
     default: '',
   }),
@@ -392,9 +409,10 @@ export const SETTING_DEFINITIONS = [
 
 export type SettingKey = (typeof SETTING_DEFINITIONS)[number]['key']
 
-export const SETTING_DEFINITION_BY_KEY = new Map<string, SettingDefinition<unknown>>(
-  SETTING_DEFINITIONS.map((d) => [d.key, d as SettingDefinition<unknown>]),
-)
+export const SETTING_DEFINITION_BY_KEY = new Map<
+  string,
+  SettingDefinition<unknown>
+>(SETTING_DEFINITIONS.map((d) => [d.key, d as SettingDefinition<unknown>]))
 
 /** Maps a setting key to the type its definition declares. */
 export type SettingValue<K extends SettingKey> = Extract<

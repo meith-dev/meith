@@ -43,8 +43,14 @@ class RecordingWrites implements ThreadWriteRepository {
     return null
   }
 
-  async listPrefixes(): Promise<readonly { id: number; label: string; token: null }[]> {
-    return this.prefixes.map((id) => ({ id, label: `Prefix ${id}`, token: null }))
+  async listPrefixes(): Promise<
+    readonly { id: number; label: string; token: null }[]
+  > {
+    return this.prefixes.map((id) => ({
+      id,
+      label: `Prefix ${id}`,
+      token: null,
+    }))
   }
 }
 
@@ -54,6 +60,7 @@ const FORUM: ForumPostingRules = {
   isOpen: true,
   allowThreads: true,
   allowReplies: true,
+  allowPolls: true,
   requiresPrefix: false,
   moderateNewThreads: false,
   moderateNewPosts: false,
@@ -121,9 +128,9 @@ describe('ThreadComposer', () => {
     const writes = new RecordingWrites()
     const c = composer(writes)
 
-    await expect(c.create({ ...INPUT, title: 'ab' }, AUTHOR, FORUM)).rejects.toThrow(
-      ValidationError,
-    )
+    await expect(
+      c.create({ ...INPUT, title: 'ab' }, AUTHOR, FORUM),
+    ).rejects.toThrow(ValidationError)
     await expect(
       c.create({ ...INPUT, title: 'x'.repeat(121) }, AUTHOR, FORUM),
     ).rejects.toThrow(ValidationError)
@@ -133,7 +140,11 @@ describe('ThreadComposer', () => {
     const writes = new RecordingWrites()
 
     await expect(
-      composer(writes, { floodSeconds: 0, maxLength: 10 }).create(INPUT, AUTHOR, FORUM),
+      composer(writes, { floodSeconds: 0, maxLength: 10 }).create(
+        INPUT,
+        AUTHOR,
+        FORUM,
+      ),
     ).rejects.toThrow(/at most 10 characters/)
   })
 
@@ -142,7 +153,10 @@ describe('ThreadComposer', () => {
       const writes = new RecordingWrites()
 
       await expect(
-        composer(writes).create(INPUT, AUTHOR, { ...FORUM, requiresPrefix: true }),
+        composer(writes).create(INPUT, AUTHOR, {
+          ...FORUM,
+          requiresPrefix: true,
+        }),
       ).rejects.toThrow(/requires a prefix/)
     })
 
@@ -161,6 +175,36 @@ describe('ThreadComposer', () => {
       await composer(writes).create({ ...INPUT, prefixId: 7 }, AUTHOR, FORUM)
 
       expect(writes.written[0]!.prefixId).toBe(7)
+    })
+  })
+
+  describe('polls (F43)', () => {
+    it('carries a validated poll to the transactional writer and refuses an unauthorised one', async () => {
+      const writes = new RecordingWrites()
+      const poll = {
+        question: ' Choose one ',
+        options: [' First ', 'Second'],
+        closesAt: null,
+      }
+
+      await composer(writes).create(
+        { ...INPUT, poll, mayPostPoll: true },
+        AUTHOR,
+        FORUM,
+      )
+      expect(writes.written[0]!.poll).toEqual({
+        question: 'Choose one',
+        options: ['First', 'Second'],
+        closesAt: null,
+      })
+
+      await expect(
+        composer(writes).create(
+          { ...INPUT, poll, mayPostPoll: false },
+          AUTHOR,
+          FORUM,
+        ),
+      ).rejects.toThrow(/cannot attach a poll/i)
     })
   })
 
@@ -283,7 +327,12 @@ describe('warning restrictions (F53)', () => {
 
     await expect(
       composer(writes).create(
-        { ...INPUT, title: 'x', message: '', restriction: { suspended: true, moderated: false } },
+        {
+          ...INPUT,
+          title: 'x',
+          message: '',
+          restriction: { suspended: true, moderated: false },
+        },
         AUTHOR,
         FORUM,
       ),
@@ -329,6 +378,9 @@ describe('warning restrictions (F53)', () => {
       FORUM,
     )
 
-    expect(writes.written.map((w) => w.visibility)).toEqual(['visible', 'visible'])
+    expect(writes.written.map((w) => w.visibility)).toEqual([
+      'visible',
+      'visible',
+    ])
   })
 })
