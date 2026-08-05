@@ -7,7 +7,7 @@ import { EmailForm, PasswordForm } from '@/components/account/usercp-forms'
 import { AUTH_CONFIG } from '@/server/auth-config'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Account security' }
@@ -37,7 +37,7 @@ export default async function SecurityPage({
   if (settings === null) notFound()
 
   const notice = userCpNotice(query)
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">

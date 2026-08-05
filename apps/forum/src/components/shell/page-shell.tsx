@@ -3,6 +3,7 @@ import type { Actor } from '@meith/authorization'
 import { currentRequestId } from '@meith/core/logger'
 
 import { LogoutForm } from '@/components/account/logout-form'
+import { ThemeSwitcher } from '@/components/shell/theme-switcher'
 import { getContainer } from '@/server/container'
 import { unreadMessageCount } from '@/server/messages'
 import { touchActivity } from '@/server/relations'
@@ -11,7 +12,7 @@ import { unreadNotificationCount } from '@/server/notifications'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { getSettings } from '@/server/settings'
 import { avatarsFor } from '@/server/avatars'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
 import { buildForumJumpModel } from '@/view/forum-jump'
 import {
@@ -56,11 +57,16 @@ export async function PageShell({
   actor: Actor
   children: React.ReactNode
 }) {
-  const Shell = requireSlot(activeTheme, 'Shell')
-  const Header = requireSlot(activeTheme, 'Header')
-  const UserPanel = requireSlot(activeTheme, 'UserPanel')
-  const Footer = requireSlot(activeTheme, 'Footer')
-  const ForumJump = requireSlot(activeTheme, 'ForumJump')
+  /*
+   * The theme this *viewer* has chosen, not the board's. Resolved from a cookie
+   * and memoised per request, so asking five times costs one read.
+   */
+  const theme = await currentTheme()
+  const Shell = requireSlot(theme, 'Shell')
+  const Header = requireSlot(theme, 'Header')
+  const UserPanel = requireSlot(theme, 'UserPanel')
+  const Footer = requireSlot(theme, 'Footer')
+  const ForumJump = requireSlot(theme, 'ForumJump')
 
   /*
    * The board's name, from `board.name` (F08). Cached globally and tagged, so
@@ -216,6 +222,17 @@ export async function PageShell({
       {children}
 
       {jump !== null && jump.forums.length > 0 && <ForumJump {...jump} />}
+
+      {/*
+       * The appearance control, above the footer and outside the theme.
+       *
+       * App-rendered for the same reason `header.notice` is: *whether the board
+       * offers a switcher* is the application's decision, and a theme that
+       * forgot to render it would strand every member who had chosen a
+       * different one. It costs no query — the theme list is the same cached
+       * read the `<head>` style block already made this request.
+       */}
+      <ThemeSwitcher />
 
       <Footer {...footerModel} />
     </Shell>

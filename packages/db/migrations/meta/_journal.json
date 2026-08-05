@@ -225,6 +225,13 @@
       "when": 1785740225974,
       "tag": "0031_markdown",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1785740226974,
+      "tag": "0032_theme_enablement",
+      "breakpoints": true
     }
   ]
 }

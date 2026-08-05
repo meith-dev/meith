@@ -52,10 +52,11 @@ function readAccent(overrides: unknown): string | null {
     const value = record[key]
     if (typeof value === 'string' && value.trim() !== '') return value.trim()
     /*
-     * F26 stores one map for both schemes (D39), so an override may be nested
-     * under a scheme rather than sitting at the top level. Light is the one to
-     * take: an e-mail is read against whatever background the client chooses,
-     * and the light palette is the one designed to survive a white one.
+     * Overrides are keyed by colour scheme — `{ light: {…}, dark: {…} }` — and
+     * were a single flat map for both schemes before members could switch
+     * themes (D39), which is what the check above still reads. Light is the one
+     * to take: an e-mail is read against whatever background the client
+     * chooses, and the light palette is the one designed to survive a white one.
      */
     const light = record['light']
     if (light !== null && typeof light === 'object') {

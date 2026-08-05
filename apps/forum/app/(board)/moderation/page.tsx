@@ -7,7 +7,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { QueueForm } from '@/components/moderation/queue-form'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { buildQueueView } from '@/view/moderation-queue'
 
 export const metadata: Metadata = { title: 'Moderation queue' }
@@ -58,7 +58,7 @@ export default async function ModerationPage({
     now: new Date(),
   })
 
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
 
   /*
    * Counts, not a bare "done". A moderator who selected twelve and moved eleven

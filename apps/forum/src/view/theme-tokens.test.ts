@@ -1,0 +1,121 @@
+/**
+ * The token descriptions the editor is built from, and the one conversion the
+ * colour picker cannot do without.
+ */
+import { describe, expect, it } from 'vitest'
+
+import { LIGHT_TOKENS, TOKEN_NAMES } from '@meith/theme-default'
+
+import {
+  BRAND_PRESETS,
+  PICKER_FALLBACK,
+  groupTokens,
+  isSchemeIndependent,
+  pickerValue,
+  tokenMeta,
+} from './theme-tokens'
+
+describe('pickerValue', () => {
+  it('takes the first candidate the platform control can show', () => {
+    expect(pickerValue('', '#AABBCC')).toBe('#aabbcc')
+    expect(pickerValue('#123456', '#aabbcc')).toBe('#123456')
+  })
+
+  it('expands the three-digit form, which the control does not accept', () => {
+    expect(pickerValue('#abc')).toBe('#aabbcc')
+  })
+
+  /*
+   * The failure this exists to prevent. Handed `oklch(…)` a native colour input
+   * silently shows black *and reports black when read*, so a token the operator
+   * never touched would come back as an explicit black on the next save. Kills
+   * the mutant that passes its argument through.
+   */
+  it('falls back rather than handing the control something it will misread', () => {
+    expect(pickerValue('oklch(0.205 0 0)')).toBe(PICKER_FALLBACK)
+    expect(pickerValue('rebeccapurple')).toBe(PICKER_FALLBACK)
+    expect(pickerValue(null, undefined, '')).toBe(PICKER_FALLBACK)
+  })
+})
+
+describe('groupTokens', () => {
+  const tokens = TOKEN_NAMES.map((name) => ({ name }))
+
+  it('places every token the default theme declares', () => {
+    /*
+     * The property that matters: a token this file forgot to describe must
+     * still be editable. It lands in "Other" under its own name rather than
+     * vanishing from a screen that claims to show everything the theme has.
+     */
+    const placed = groupTokens(tokens).flatMap((group) => group.tokens.map((t) => t.name))
+
+    expect([...placed].sort()).toEqual([...TOKEN_NAMES].sort())
+  })
+
+  it('describes every one of them, so nothing lands in "Other" today', () => {
+    expect(groupTokens(tokens).map((group) => group.title)).not.toContain('Other')
+  })
+
+  it('offers only tokens the theme actually has', () => {
+    const groups = groupTokens([{ name: 'primary' }])
+    expect(groups.flatMap((group) => group.tokens.map((t) => t.name))).toEqual(['primary'])
+  })
+
+  it('keeps an undescribed token rather than dropping it', () => {
+    const groups = groupTokens([{ name: 'primary' }, { name: 'invented-by-a-theme' }])
+    const other = groups.find((group) => group.title === 'Other')
+
+    expect(other?.tokens.map((t) => t.name)).toEqual(['invented-by-a-theme'])
+  })
+})
+
+describe('token kinds', () => {
+  /*
+   * The kind decides the control: a colour gets two fields and a picker, and
+   * anything else gets one field, because "light" and "dark" corner radii are
+   * not a thing anybody wants and offering them is two chances to disagree with
+   * yourself.
+   */
+  it('marks geometry and the font stack as scheme-independent', () => {
+    for (const name of ['radius', 'density-unit', 'font-mono-stack']) {
+      expect(isSchemeIndependent(name), name).toBe(true)
+    }
+  })
+
+  it('marks every colour token as scheme-dependent', () => {
+    for (const name of ['primary', 'background', 'thread-locked', 'group-admin']) {
+      expect(isSchemeIndependent(name), name).toBe(false)
+    }
+  })
+
+  it('falls back to the token name for anything undescribed', () => {
+    expect(tokenMeta('invented').label).toBe('invented')
+  })
+})
+
+describe('BRAND_PRESETS', () => {
+  /*
+   * A preset that named a token the theme does not declare would be refused by
+   * F26's validator on save — after the operator had pressed it, watched the
+   * preview change, and pressed Save. Caught here instead.
+   */
+  it('names only tokens the default theme declares', () => {
+    for (const preset of BRAND_PRESETS) {
+      for (const name of [...Object.keys(preset.light), ...Object.keys(preset.dark)]) {
+        expect(LIGHT_TOKENS, `${preset.key}/${name}`).toHaveProperty(name)
+      }
+    }
+  })
+
+  /*
+   * Both schemes, always. The whole reason presets exist is that applying one
+   * colour to light and dark alike is the mistake this editor was rebuilt to
+   * stop somebody making by hand.
+   */
+  it('sets a different value in each scheme', () => {
+    for (const preset of BRAND_PRESETS) {
+      expect(Object.keys(preset.dark), preset.key).toEqual(Object.keys(preset.light))
+      expect(preset.dark.primary, preset.key).not.toBe(preset.light.primary)
+    }
+  })
+})

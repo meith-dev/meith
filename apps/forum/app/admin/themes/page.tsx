@@ -1,94 +1,124 @@
 import type { Metadata } from 'next'
 
+import { ThemeStateForms } from '@/components/admin/theme-forms'
 import { requireAdmin } from '@/server/admin'
-import { installedThemes, themeAdminRepository } from '@/server/theme-admin'
+import { themeListing } from '@/server/theme-admin'
+import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Themes' }
 
 /**
  * F68 — the theme list.
  *
- * **There is no "switch theme" button, and that is the honest answer rather
- * than a gap.** `forum.config.ts` is the build-time registry (invariant 6): a
- * serverless bundle contains only what the bundler saw, and the resolved theme
- * is a module-level constant because its `extends` chain cannot change at
- * runtime. A control that appeared to switch themes would either not work or
- * would cost the board its first paint, which currently needs no database round
- * trip at all.
+ * This screen decides **which themes members may choose**, **which one they
+ * start on**, and behind each row **what each one looks like**. All three are
+ * runtime facts, stored in the `themes` table and read on every render.
  *
- * So this screen says what installing and switching actually involve, in the
- * same words F69 uses about plugins: `pnpm add`, a line in `forum.config.ts`,
- * redeploy. Everything below that line — tokens, custom CSS — *is* runtime, and
- * is what the editor changes.
+ * It said, until recently, that there could be no theme switcher at all,
+ * because "a control that appeared to switch would either not work or would
+ * cost every first paint a database read". The second half had quietly stopped
+ * being true: 91 of the board's 92 routes were already dynamic, because the
+ * shell resolves the viewer from a cookie. There was no static rendering left
+ * to protect, and the switcher costs a cookie read.
+ *
+ * What is still the build's decision is which themes *exist* — a theme is code,
+ * `forum.config.ts` is the registry the bundler reads (invariant 6), and a
+ * serverless bundle contains only what was in it at build time. Installing one
+ * is `pnpm add`, a line, redeploy. Choosing among the installed ones is this
+ * screen and the control at the foot of every page.
  */
 export default async function AdminThemesPage() {
   await requireAdmin()
 
-  const repository = themeAdminRepository()
-  const customised = repository === null ? [] : await repository.list()
-  const byKey = new Map(customised.map((row) => [row.key, row]))
+  const themes = await themeListing()
+  const now = new Date()
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
       <div className="flex flex-col gap-1">
         <h1 className="font-serif text-2xl font-semibold">Themes</h1>
         <p className="text-sm text-muted-foreground">
-          A theme ships its own colours, spacing and components. What this panel
-          changes is the part a board can change at runtime: the token values and
-          any custom CSS.
+          Every theme this build contains. Turn one on and members can pick it
+          from the appearance control at the foot of every page; the default is
+          what a member who has picked nothing sees.
         </p>
       </div>
 
       <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-        {installedThemes().map((theme) => {
-          const record = byKey.get(theme.key)
-          return (
-            <li key={theme.key} className="flex items-center justify-between gap-3 px-4 py-3">
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium">
-                  {theme.title}
-                  {theme.active && (
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">
-                      in use
-                    </span>
-                  )}
-                </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {theme.key} ·{' '}
-                  {record === undefined
-                    ? 'no changes — exactly as it ships'
-                    : `${Object.keys(record.tokenOverrides).length} token${
-                        Object.keys(record.tokenOverrides).length === 1 ? '' : 's'
-                      } overridden${record.customCss === null ? '' : ', plus custom CSS'}`}
-                </span>
+        {themes.map((theme) => (
+          <li key={theme.key} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="truncate text-sm font-medium">{theme.title}</span>
+                {theme.isDefault && (
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+                    Default
+                  </span>
+                )}
+                {!theme.enabled && (
+                  <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                    Off
+                  </span>
+                )}
+                {theme.isBuildTheme && (
+                  <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                    The build&rsquo;s own
+                  </span>
+                )}
               </span>
-              <a
-                href={`/admin/themes/${theme.key}`}
-                className="shrink-0 text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-              >
-                Edit
-              </a>
-            </li>
-          )
-        })}
+
+              <span className="truncate text-xs text-muted-foreground">
+                <code className="text-xs">{theme.key}</code> ·{' '}
+                {theme.overriddenTokens === 0 && !theme.hasCustomCss
+                  ? 'no changes — exactly as it ships'
+                  : `${theme.overriddenTokens} colour${theme.overriddenTokens === 1 ? '' : 's'} changed${
+                      theme.hasCustomCss ? ', plus custom CSS' : ''
+                    }`}
+                {theme.updatedAt !== null && (
+                  <>
+                    {' '}
+                    · changed{' '}
+                    <time dateTime={theme.updatedAt.toISOString()}>
+                      {formatTime(theme.updatedAt, now).label}
+                    </time>
+                  </>
+                )}
+              </span>
+            </span>
+
+            <ThemeStateForms
+              themeKey={theme.key}
+              enabled={theme.enabled}
+              isDefault={theme.isDefault}
+              isBuildTheme={theme.isBuildTheme}
+            />
+          </li>
+        ))}
       </ul>
 
       <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">Installing or switching a theme</h2>
+        <h2 className="font-serif text-lg font-semibold">What a member&rsquo;s choice changes</h2>
         <p className="text-muted-foreground">
-          Not something this screen can do, and the reason is worth knowing. A
-          theme is code — components, not configuration — so it has to be in the
-          build before it can render. Everything installable is named in{' '}
-          <code className="text-xs">forum.config.ts</code> so the bundler can see
-          it and the compiler can check it; nothing is discovered by scanning a
-          directory at request time.
+          <strong>The whole theme</strong> — its components as well as its
+          colours. A theme that renders forum listings as tables renders them as
+          tables for the member who picked it. The choice is a cookie, resolved
+          on the server, so the page arrives already correct: no flash, no
+          second paint, and the control works with JavaScript turned off.
         </p>
         <p className="text-muted-foreground">
-          Installing a theme is therefore three steps:{' '}
-          <code className="text-xs">pnpm add</code> the package, add a line to{' '}
-          <code className="text-xs">forum.config.ts</code>, and redeploy.
-          Switching which one is active is a change to{' '}
-          <code className="text-xs">defaultTheme</code> in the same file.
+          A theme that ships <em>only</em> tokens is the exception, and is a
+          deliberate one: it has no components to render, so picking it repaints
+          the board and leaves the layout alone. That is how a board offers three
+          looks without maintaining three sets of components.
+        </p>
+        <p className="text-muted-foreground">
+          What is still a deploy is which themes <em>exist</em>. A theme is code,
+          so it has to be in the build: <code className="text-xs">pnpm add</code>{' '}
+          the package, add a line to{' '}
+          <code className="text-xs">forum.config.ts</code>, redeploy.{' '}
+          <code className="text-xs">defaultTheme</code> in that file decides
+          which theme the board falls back to when its table says nothing —
+          everything else is on this page.
         </p>
       </section>
     </div>

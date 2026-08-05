@@ -32,6 +32,13 @@ export type SettingGroup =
    * about passwords are nine settings they do not find.
    */
   | 'antispam'
+  /**
+   * What the board asks its readers before processing anything optional. Its
+   * own group rather than a corner of 'board', because an operator looking for
+   * it is answering a question somebody else asked them — a regulator, a
+   * customer, their own legal advice — and will look for the word.
+   */
+  | 'privacy'
 
 interface SettingDefinitionBase<T> {
   readonly key: string
@@ -256,15 +263,58 @@ export const SETTING_DEFINITIONS = [
     invalidates: ['settings'],
     ui: { min: 5, max: 100 },
   }),
+  /*
+   * `display.default_theme_id` used to be here, and it never did anything.
+   *
+   * It came from the build plan, which assumed MyBB's numeric theme ids. Themes
+   * here are keyed by the string they are registered under in
+   * `forum.config.ts`, so nothing could ever have read it — and now that the
+   * board default is a real control (the `themes` table's `is_default`, set
+   * from /admin/themes), an inert setting labelled "Default theme" is worse
+   * than a missing one: it is a control an operator would reasonably use and
+   * then wonder why the board ignored them.
+   *
+   * Removed rather than deprecated. A setting with no reader has no stored
+   * value worth migrating, and `SettingsSnapshot` ignores a row whose key is not
+   * in the registry, so an old row on an upgraded board is inert either way.
+   */
+
+  /* ------------------------------ privacy ------------------------------ */
+  /*
+   * `auto` by default, which asks in the EEA, the UK and Switzerland — and asks
+   * when the board cannot tell where a request came from, which is every
+   * self-hosted board without a CDN in front of it.
+   *
+   * Defaulting to "ask when unsure" is the only defensible way round. The cost
+   * of a false positive is a notice somebody did not need; the cost of a false
+   * negative is a European reader's data reaching a third party without their
+   * being asked. An operator who knows their audience turns it off in one
+   * setting, and one who wants it everywhere says so.
+   *
+   * What the answer actually gates is the analytics script. The board's own
+   * cookies — session, remember-me, CSRF, and the two appearance preferences a
+   * member sets by pressing a control — are strictly necessary or explicitly
+   * requested, and are not part of the question. `src/view/consent.ts` has the
+   * long version.
+   */
   define({
-    key: 'display.default_theme_id',
-    group: 'display',
-    label: 'Default theme',
-    description: 'Used for guests and users who have not chosen a theme.',
-    schema: z.number().int().positive(),
-    default: 1,
-    invalidates: ['settings', 'theme', 'layout'],
-    ui: { min: 1, advanced: true },
+    key: 'privacy.cookie_consent',
+    group: 'privacy',
+    label: 'Ask before optional analytics',
+    description:
+      'Shows a notice before any analytics run. “Where required” asks in the ' +
+      'EEA, the UK and Switzerland, and asks when the visitor’s country is ' +
+      'unknown. Sign-in and appearance cookies are never part of the question.',
+    schema: z.enum(['auto', 'always', 'off']),
+    default: 'auto',
+    invalidates: ['settings'],
+    ui: {
+      options: [
+        { value: 'auto', label: 'Where required' },
+        { value: 'always', label: 'Everywhere' },
+        { value: 'off', label: 'Never ask' },
+      ],
+    },
   }),
 
   /* ------------------------------- search ------------------------------ */

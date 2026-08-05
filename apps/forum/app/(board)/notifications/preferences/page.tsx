@@ -7,7 +7,7 @@ import { NotificationPreferencesForm } from '@/components/account/notification-f
 import { getActor } from '@/server/context'
 import { audiencesForActor } from '@/server/notification-audience'
 import { notificationService } from '@/server/notifications'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { buildPreferencesView, notificationNotice } from '@/view/notifications'
 
 export const metadata: Metadata = { title: 'Notification preferences' }
@@ -53,7 +53,7 @@ export default async function NotificationPreferencesPage({
   ).flat()
 
   const view = buildPreferencesView(rows)
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = notificationNotice(query)
 
   return (

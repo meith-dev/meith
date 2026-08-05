@@ -24,7 +24,7 @@ import { viewerIgnoredIds } from '@/server/relations'
 import { reputationSettings } from '@/server/reputation'
 import { signaturesFor } from '@/server/signatures'
 import { moderatorTargetFor } from '@/server/modcp'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import {
   INLINE_FORM_ID,
   anyInlineTool,
@@ -504,12 +504,12 @@ export default async function ThreadPage({
     now: new Date(),
   }).modes
 
-  const ThreadView = requireSlot(activeTheme, 'ThreadView')
-  const Navigation = requireSlot(activeTheme, 'Navigation')
-  const Notice = requireSlot(activeTheme, 'Notice')
-  const PostBit = requireSlot(activeTheme, 'PostBit')
-  const PostActions = requireSlot(activeTheme, 'PostActions')
-  const Pagination = requireSlot(activeTheme, 'Pagination')
+  const ThreadView = requireSlot(await currentTheme(), 'ThreadView')
+  const Navigation = requireSlot(await currentTheme(), 'Navigation')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
+  const PostBit = requireSlot(await currentTheme(), 'PostBit')
+  const PostActions = requireSlot(await currentTheme(), 'PostActions')
+  const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
   const notice =
     query.replied === 'race'

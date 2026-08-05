@@ -9,8 +9,12 @@ import { env } from "@meith/core"
  * uses, so installing a second one would mean editing the layout — exactly the
  * retrofit `forum.config.ts` exists to avoid.
  */
+import { CookieNotice } from "@/components/shell/cookie-notice"
 import { ThemeRuntimeStyle } from "@/components/shell/theme-runtime-style"
+import { getConsentState } from "@/server/consent"
+import { currentColourScheme, currentThemeKey } from "@/server/theme"
 import { getThemeRuntimeStyle } from "@/server/theme-runtime"
+import { colorSchemeProperty, schemeClass } from "@/view/theme-preference"
 
 import "@/styles/globals.css"
 
@@ -85,19 +89,61 @@ export async function generateViewport(): Promise<Viewport> {
   }
 }
 
-export default function RootLayout({
+/**
+ * The board's frame, and the two attributes that decide how it is painted.
+ *
+ * Both are resolved on the **server**, from cookies, which is what makes the
+ * appearance controls work with no JavaScript and with no flash of the wrong
+ * theme: the correct palette is already selected in the HTML that arrives.
+ * Boards that apply a stored theme in the browser cannot avoid painting twice.
+ *
+ * `data-theme` selects one of the palettes in the style block above it;
+ * `.light` / `.dark` force a colour scheme past the operating system, and their
+ * absence is `system`, which is the case `globals.css`'s
+ * `prefers-color-scheme` block answers.
+ */
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const [theme, scheme, consent] = await Promise.all([
+    currentThemeKey(),
+    currentColourScheme(),
+    getConsentState(),
+  ])
+
   return (
-    <html lang="en" className={`${inter.variable} ${newsreader.variable} bg-background`}>
+    <html
+      lang="en"
+      data-theme={theme}
+      style={{ colorScheme: colorSchemeProperty(scheme) }}
+      className={`${inter.variable} ${newsreader.variable} bg-background ${schemeClass(scheme)}`}
+    >
       <head>
         <ThemeRuntimeStyle />
       </head>
-      <body className="font-sans antialiased">
+      {/*
+        The notice is fixed to the bottom of the viewport, so the page needs
+        room under it or it sits on top of whatever the last thing on the page
+        is — which, on this board, is the appearance controls. Padding rather
+        than a spacer element: a spacer would be in the reading order.
+      */}
+      <body
+        className={`font-sans antialiased ${
+          consent.required && consent.choice === null ? "pb-40 sm:pb-28" : ""
+        }`}
+      >
         {children}
-        {env.NODE_ENV === "production" && <Analytics />}
+        <CookieNotice />
+        {/*
+          Not rendered at all until it is allowed to run — not loaded and then
+          told to stay quiet. A script that is on the page has already been
+          fetched from a third party, which is the thing being consented to;
+          `analyticsAllowed` is false for a reader who has been asked and has
+          not yet answered, so silence is the default rather than the fallback.
+        */}
+        {env.NODE_ENV === "production" && consent.analyticsAllowed && <Analytics />}
       </body>
     </html>
   )

@@ -104,7 +104,25 @@ export const themes = pgTable(
      */
     customCss: text('custom_css'),
 
+    /**
+     * The theme a member who has chosen nothing is shown.
+     *
+     * Carried since the initial schema with no reader and no writer, because
+     * which theme a board rendered was a build-time fact. It answers a real
+     * question now that members choose: the *layout* still comes from the
+     * build, and this decides the palette everybody starts on.
+     */
     isDefault: boolean('is_default').notNull().default(false),
+
+    /**
+     * Whether members may choose this theme.
+     *
+     * True by default: a theme named in `forum.config.ts` is one somebody
+     * installed on purpose, so the state that needs recording is the decision
+     * to turn it *off*. An absent row therefore still means "exactly as it
+     * ships", which is the rule every other column here follows.
+     */
+    enabled: boolean('enabled').notNull().default(true),
 
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()

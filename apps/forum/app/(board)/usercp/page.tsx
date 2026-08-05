@@ -7,7 +7,7 @@ import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { USERCP_SECTIONS } from '@/view/usercp-nav'
 
 export const metadata: Metadata = { title: 'Your control panel' }
@@ -83,7 +83,7 @@ export default async function UserCpPage() {
   const { memberSettings } = getContainer()
   if (actor.userId === null || memberSettings === null) notFound()
 
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
 
   const [messages, notifications] = await Promise.all([
     unreadMessageCount(actor.userId),

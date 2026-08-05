@@ -21,7 +21,7 @@ import {
   RemoveRelationForm,
   SetRelationForm,
 } from '@/components/account/relation-forms'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { avatarFor, avatarsFor } from '@/server/avatars'
 import { buildMemberProfileView } from '@/view/member-profile'
 
@@ -92,7 +92,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
       ? null
       : await signatures.read(id).catch(() => null)
 
-  const MemberProfile = requireSlot(activeTheme, 'MemberProfile')
+  const MemberProfile = requireSlot(await currentTheme(), 'MemberProfile')
 
   /*
    * F80. The profile is one filter and one region — the natural home for a

@@ -7,7 +7,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { SignatureForm } from '@/components/account/usercp-forms'
 import { getActor } from '@/server/context'
 import { signatureStore, viewerSignatureLimits } from '@/server/signatures'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your signature' }
@@ -39,7 +39,7 @@ export default async function SignaturePage({
   const stored = await store.read(actor.userId)
   if (stored === null) notFound()
 
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = userCpNotice(query)
   const preview = signatureHtml(stored)
 

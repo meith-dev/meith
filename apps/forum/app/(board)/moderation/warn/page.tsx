@@ -10,7 +10,7 @@ import {
 } from '@/components/moderation/warning-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { buildWarningView, warningNotice } from '@/view/warnings'
 
 export const metadata: Metadata = { title: 'Warn a member' }
@@ -92,7 +92,7 @@ export default async function WarnPage({
     now: new Date(),
   })
 
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = warningNotice(query)
 
   return (

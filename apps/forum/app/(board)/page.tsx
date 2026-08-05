@@ -8,7 +8,7 @@ import { liveAnnouncements } from "@/server/announcements"
 import { getContainer } from "@/server/container"
 import { getActor } from "@/server/context"
 import { getViewerPreferences } from "@/server/viewer-preferences"
-import { activeTheme } from "@/server/theme"
+import { currentTheme } from "@/server/theme"
 import { buildBoardIndexView } from "@/view/board-index"
 import { presenceRepository, readOnline } from "@/server/presence"
 import { readTotals } from "@/server/stats"
@@ -94,12 +94,12 @@ export default async function BoardIndexPage() {
     timeZone: preferences.timezone,
   })
 
-  const Announcement = requireSlot(activeTheme, "Announcement")
-  const BoardIndex = requireSlot(activeTheme, "BoardIndex")
-  const CategoryBlock = requireSlot(activeTheme, "CategoryBlock")
-  const ForumRow = requireSlot(activeTheme, "ForumRow")
-  const BoardStats = requireSlot(activeTheme, "BoardStats")
-  const WhoIsOnline = requireSlot(activeTheme, "WhoIsOnline")
+  const Announcement = requireSlot(await currentTheme(), "Announcement")
+  const BoardIndex = requireSlot(await currentTheme(), "BoardIndex")
+  const CategoryBlock = requireSlot(await currentTheme(), "CategoryBlock")
+  const ForumRow = requireSlot(await currentTheme(), "ForumRow")
+  const BoardStats = requireSlot(await currentTheme(), "BoardStats")
+  const WhoIsOnline = requireSlot(await currentTheme(), "WhoIsOnline")
 
   /*
    * F80. `view.forum-row` runs once per row, which is the reason its purpose

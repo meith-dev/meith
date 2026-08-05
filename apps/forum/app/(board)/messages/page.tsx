@@ -9,7 +9,7 @@ import { getContainer } from '@/server/container'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import {
   MESSAGE_FORM_ID,
@@ -90,7 +90,7 @@ export default async function MessagesPage({
     timeZone: preferences.timezone,
   })
 
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = messageNotice(query)
 
   return (

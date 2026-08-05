@@ -35,7 +35,11 @@ export { PostgresReadStateRepository } from './read-state-repo'
 export { PostgresImportSink } from './import-sink'
 export { PostgresMemberProfileRepository } from './member-profile-repo'
 export { PostgresSettingsRepository } from './settings-repo'
-export { PostgresThemeRepository, type ThemeRuntimeRecord } from './theme-repo'
+export {
+  PostgresThemeRepository,
+  type ThemeRuntimeRecord,
+  type ThemeRuntimeState,
+} from './theme-repo'
 export {
   applyCreatedContentCounters,
   rollUpAncestorCounters,

@@ -21,7 +21,7 @@ import { drivers } from '@meith/drivers'
 import { parseThemeExport } from '@meith/db'
 
 import { recordAdminAction, requireAdmin } from './admin'
-import { requireThemeAdmin, themeTitle, themeTokens } from './theme-admin'
+import { isBuildTheme, requireThemeAdmin, themeListing, themeTitle, themeTokens } from './theme-admin'
 import { validateCustomCss, validateTokenOverrides } from './theme-style'
 import type { FormState } from './auth-form-state'
 
@@ -45,7 +45,7 @@ function toFormState(err: unknown): FormState {
 }
 
 /**
- * Every `token.<name>` field that was filled in.
+ * Every `token.<scheme>.<name>` field that was filled in.
  *
  * Read from the form rather than from the theme's declared list, so that
  * **F26's validator is the only thing deciding what a valid token is**. Walking
@@ -54,19 +54,40 @@ function toFormState(err: unknown): FormState {
  * would disagree about the same input, and disagreeing quietly is worse than
  * either answer.
  *
+ * `both` is not a third scheme; it is how the editor submits a token that has
+ * no light-and-dark distinction — corner radius, the spacing step, the
+ * monospace stack. It is expanded here rather than stored as a third key,
+ * because the render path has exactly two blocks to write and a stored `both`
+ * would need a rule in every reader.
+ *
  * A blank value is not an override. The editor shows every token the theme
  * declares, so most fields are empty on any real board, and storing those would
  * write `--primary:;` into the cascade: a token that overrides the theme with
- * nothing.
+ * nothing. That is also why the colour picker beside each field carries no
+ * `name` — a native colour input always submits *something*, so letting it post
+ * would turn "unchanged" into an override of every colour on the board.
  */
-function submittedTokens(form: FormData): Record<string, string> {
-  const overrides: Record<string, string> = {}
+function submittedTokens(form: FormData): {
+  light: Record<string, string>
+  dark: Record<string, string>
+} {
+  const light: Record<string, string> = {}
+  const dark: Record<string, string> = {}
+
   for (const [field, value] of form.entries()) {
-    if (!field.startsWith('token.') || typeof value !== 'string') continue
+    if (typeof value !== 'string') continue
+    const match = /^token\.(light|dark|both)\.(.+)$/.exec(field)
+    if (match === null) continue
+
     const trimmed = value.trim()
-    if (trimmed !== '') overrides[field.slice('token.'.length)] = trimmed
+    if (trimmed === '') continue
+
+    const [, scheme, name] = match as unknown as [string, string, string]
+    if (scheme !== 'dark') light[name] = trimmed
+    if (scheme !== 'light') dark[name] = trimmed
   }
-  return overrides
+
+  return { light, dark }
 }
 
 /** A theme key that names an installed theme, or a refusal. */
@@ -97,10 +118,8 @@ export async function saveThemeAction(_prev: FormState, form: FormData): Promise
     const tokens = themeTokens(key)
     if (tokens === null) throw new ValidationError('No such theme.')
 
-    const overrides = submittedTokens(form)
-
     /* F26's own validators — the ones the render path uses. */
-    const validated = validateTokenOverrides(tokens, overrides)
+    const validated = validateTokenOverrides(tokens, submittedTokens(form))
     const css = validateCustomCss(text(form, 'customCss') === '' ? null : text(form, 'customCss'))
 
     await requireThemeAdmin().save({
@@ -114,7 +133,11 @@ export async function saveThemeAction(_prev: FormState, form: FormData): Promise
     await recordAdminAction({
       action: 'theme.saved',
       /* Which tokens changed, never their values — the same rule as F64. */
-      detail: { key, tokens: Object.keys(validated).length, customCss: css !== null },
+      detail: {
+        key,
+        tokens: new Set([...Object.keys(validated.light), ...Object.keys(validated.dark)]).size,
+        customCss: css !== null,
+      },
     })
 
     return { notice: 'saved' }
@@ -126,12 +149,13 @@ export async function saveThemeAction(_prev: FormState, form: FormData): Promise
 /**
  * Validate the pending values and hand them back without saving.
  *
- * The preview is a **post-back**, not an island: the form submits, the action
- * validates exactly as a save would, and the page re-renders with a sample of
- * real board chrome painted in the pending tokens. It therefore works with no
- * JavaScript at all (D06), and — more importantly — it previews *what a save
- * would do*, because it runs the same validator and the same declaration
- * rendering rather than approximating them in the browser.
+ * The editor previews live in the browser when it can — the sample is painted
+ * from the form's own state as a colour is dragged, which is the only thing a
+ * person choosing a colour actually wants. This is the **no-JavaScript** path
+ * (D06): the form posts back, the action validates exactly as a save would, and
+ * the page re-renders with real board chrome painted in the pending tokens. It
+ * previews *what a save would do*, because it runs the same validator and the
+ * same declaration rendering rather than approximating them.
  *
  * The values come back in `values` so the form keeps what was typed. A preview
  * that cleared the form would be worse than none.
@@ -144,11 +168,12 @@ export async function previewThemeAction(_prev: FormState, form: FormData): Prom
     const tokens = themeTokens(key)
     if (tokens === null) throw new ValidationError('No such theme.')
 
-    const overrides = submittedTokens(form)
-    const submitted = Object.fromEntries(
-      Object.entries(overrides).map(([name, value]) => [`token.${name}`, value]),
-    )
-    const validated = validateTokenOverrides(tokens, overrides)
+    const submitted: Record<string, string> = {}
+    for (const [field, value] of form.entries()) {
+      if (field.startsWith('token.') && typeof value === 'string') submitted[field] = value
+    }
+
+    const validated = validateTokenOverrides(tokens, submittedTokens(form))
     const css = validateCustomCss(text(form, 'customCss') === '' ? null : text(form, 'customCss'))
 
     return {
@@ -172,17 +197,24 @@ export async function previewThemeAction(_prev: FormState, form: FormData): Prom
  *
  * Scoped to `[data-theme-preview]` rather than `:root`, so previewing cannot
  * restyle the control panel around it — an operator previewing an unreadable
- * colour must still be able to see the form to change it back.
+ * colour must still be able to see the form to change it back. The dark sample
+ * is scoped one level further, to the element that carries `.dark`, so both
+ * schemes can be shown side by side on one page.
  */
 function declarationBlock(
-  overrides: Readonly<Record<string, string>>,
+  overrides: { light: Readonly<Record<string, string>>; dark: Readonly<Record<string, string>> },
   customCss: string | null,
 ): string {
-  const declarations = Object.entries(overrides)
-    .map(([name, value]) => `--${name}:${value};`)
-    .join('')
+  const declarations = (values: Readonly<Record<string, string>>): string =>
+    Object.entries(values)
+      .map(([name, value]) => `--${name}:${value};`)
+      .join('')
 
-  return `[data-theme-preview]{${declarations}}${customCss ?? ''}`
+  return (
+    `[data-theme-preview]{${declarations(overrides.light)}}` +
+    `[data-theme-preview].dark{${declarations(overrides.dark)}}` +
+    (customCss ?? '')
+  )
 }
 
 /**
@@ -244,10 +276,88 @@ export async function importThemeAction(_prev: FormState, form: FormData): Promi
     await invalidateTheme(key)
     await recordAdminAction({
       action: 'theme.imported',
-      detail: { key, tokens: Object.keys(validated).length },
+      detail: {
+        key,
+        tokens: new Set([...Object.keys(validated.light), ...Object.keys(validated.dark)]).size,
+      },
     })
 
     return { notice: 'imported' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Turn a theme on or off for members.
+ *
+ * Two refusals, and both are about leaving the board in a state the screen
+ * cannot get it out of:
+ *
+ *  - **the build's own theme may not be disabled.** Its components are what
+ *    every page renders; disabling it would leave the board painting one
+ *    theme's markup in another's palette, and the control that did it would
+ *    then be offering no way back.
+ *  - **the default may not be disabled.** Move the default first. Silently
+ *    reassigning it here would be a second, unrequested change hidden inside
+ *    the first.
+ */
+export async function setThemeEnabledAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+    const key = themeKey(form)
+    const enabled = text(form, 'enabled') === 'true'
+
+    if (!enabled) {
+      if (isBuildTheme(key)) {
+        throw new ValidationError(
+          'This is the theme the board is built with, so it always stays available. ' +
+            'Change `defaultTheme` in forum.config.ts and redeploy to swap it.',
+        )
+      }
+      const listing = (await themeListing()).find((entry) => entry.key === key)
+      if (listing?.isDefault === true) {
+        throw new ValidationError(
+          'This is the default theme. Make another theme the default first, then turn this one off.',
+        )
+      }
+    }
+
+    await requireThemeAdmin().setEnabled(key, enabled, themeTitle(key) ?? key)
+
+    await invalidateTheme(key)
+    await recordAdminAction({ action: 'theme.enabled', detail: { key, enabled } })
+
+    return { notice: enabled ? 'enabled' : 'disabled' }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+/**
+ * Choose the theme a member who has chosen nothing is shown.
+ *
+ * Enabling is implied and deliberate: a default nobody may pick is a board
+ * whose members all see a theme that is not in their own switcher, which is a
+ * state with no honest way to describe it on screen.
+ */
+export async function setDefaultThemeAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin()
+    const key = themeKey(form)
+
+    await requireThemeAdmin().setDefault(key, themeTitle(key) ?? key)
+
+    await invalidateTheme(key)
+    await recordAdminAction({ action: 'theme.default', detail: { key } })
+
+    return { notice: 'default' }
   } catch (err) {
     return toFormState(err)
   }

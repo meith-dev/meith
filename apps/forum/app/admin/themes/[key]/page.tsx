@@ -50,7 +50,11 @@ export default async function AdminThemePage({
         <h1 className="font-serif text-2xl font-semibold">{view.title}</h1>
         <p className="text-sm text-muted-foreground">
           <code className="text-xs">{view.key}</code>
-          {view.isActive ? ' · the theme this board renders' : ' · installed, not in use'}
+          {view.isDefault
+            ? ' · what a member who has chosen nothing sees'
+            : view.enabled
+              ? ' · members may choose it'
+              : ' · turned off, so nobody can choose it'}
           {view.updatedAt !== null && (
             <>
               {' '}
@@ -61,13 +65,11 @@ export default async function AdminThemePage({
             </>
           )}
         </p>
-        {!view.isActive && (
-          <p className="text-xs text-muted-foreground">
-            Changes here are stored and will apply if this theme becomes the
-            active one — which is a change to{' '}
-            <code className="text-xs">forum.config.ts</code> and a redeploy.
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">
+          {view.isBuildTheme
+            ? 'The board falls back to this theme’s components when nothing else is chosen, so it is what a new visitor sees.'
+            : 'A member who picks this theme gets its components as well as these colours.'}
+        </p>
       </div>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">

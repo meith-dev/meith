@@ -7,7 +7,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import {
   buildSubscriptionsView,
   subscriptionNotice,
@@ -59,7 +59,7 @@ export default async function SubscriptionsPage({
   )
 
   const view = buildSubscriptionsView({ rows, now: new Date() })
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = subscriptionNotice(query)
 
   return (

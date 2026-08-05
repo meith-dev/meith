@@ -11,7 +11,7 @@ import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { decodeForumCursor, encodeForumCursor } from '@/view/forum-cursor'
 import { FollowForm } from '@/components/account/subscription-forms'
 import { ViewTabs } from '@/components/shell/view-tabs'
@@ -268,13 +268,13 @@ export default async function ForumPage({
     timeZone: preferences.timezone,
   })
 
-  const Announcement = requireSlot(activeTheme, 'Announcement')
-  const ForumDisplay = requireSlot(activeTheme, 'ForumDisplay')
-  const Navigation = requireSlot(activeTheme, 'Navigation')
-  const Notice = requireSlot(activeTheme, 'Notice')
-  const ThreadRow = requireSlot(activeTheme, 'ThreadRow')
-  const SubforumList = requireSlot(activeTheme, 'SubforumList')
-  const Pagination = requireSlot(activeTheme, 'Pagination')
+  const Announcement = requireSlot(await currentTheme(), 'Announcement')
+  const ForumDisplay = requireSlot(await currentTheme(), 'ForumDisplay')
+  const Navigation = requireSlot(await currentTheme(), 'Navigation')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
+  const ThreadRow = requireSlot(await currentTheme(), 'ThreadRow')
+  const SubforumList = requireSlot(await currentTheme(), 'SubforumList')
+  const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
   const notice =
     query.posted === 'moderated'

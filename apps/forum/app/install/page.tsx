@@ -28,10 +28,12 @@ export const dynamic = 'force-dynamic'
  * ## No theme
  *
  * The installer renders its own markup rather than going through the theme, and
- * that is deliberate: `activeTheme` resolves at module load and a theme's slots
- * are the *board's* look, but this page runs before there is a board. It also has
- * to render when the database is unreachable, which is the one situation where
- * depending on anything else is a mistake (the same rule `ErrorNotice` follows).
+ * that is deliberate: a theme's slots are the *board's* look, but this page runs
+ * before there is a board. `currentTheme()` would have to read a `themes` table
+ * that does not exist yet to know which themes are even offered — and this page
+ * also has to render when the database is unreachable, which is the one
+ * situation where depending on anything else is a mistake (the same rule
+ * `ErrorNotice` follows).
  */
 export default async function InstallPage() {
   if (await installerIsSealed()) notFound()

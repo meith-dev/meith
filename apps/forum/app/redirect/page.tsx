@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { requireSlot } from '@meith/theme-kit'
 
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { buildRedirectNotice } from '@/view/redirect-notice'
 
 export const metadata: Metadata = { title: 'Redirecting' }
@@ -14,7 +14,7 @@ export default async function RedirectPage({
 }) {
   const { to, message } = await searchParams
   const notice = buildRedirectNotice(to, message)
-  const RedirectNotice = requireSlot(activeTheme, 'RedirectNotice')
+  const RedirectNotice = requireSlot(await currentTheme(), 'RedirectNotice')
 
   return (
     <>

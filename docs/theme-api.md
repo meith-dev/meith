@@ -63,10 +63,30 @@ Worth knowing before they fire.
 | Build a URL | Every href arrives resolved, so the board can change its URL shape without breaking installed themes |
 | Render another slot | Slots are flat. The page composes them and passes rendered output in `regions` — rendering a slot needs the resolved theme, and there is no way to reach one from inside a slot |
 
-> [!NOTE]
-> There is no theme switcher. `activeTheme` resolves once at module load, because
-> an `extends` chain cannot change between requests — and a control that appeared
-> to switch would either not work or cost every first paint a database read.
+> [!IMPORTANT]
+> **A member can switch the whole theme, components included.** Every registered
+> theme is in the bundle and is resolved at module load — an `extends` chain
+> genuinely cannot change between requests — but *which* resolved map a request
+> renders is a per-request choice, made by `currentTheme()` from a cookie.
+>
+> This document used to say the opposite, on the argument that a switcher "would
+> cost every first paint a database read". That had quietly expired: 91 of the
+> board's 92 routes were already `ƒ (Dynamic)`, because the shell resolves the
+> viewer from a cookie. There was no static rendering left to protect.
+>
+> Consequences for a theme author:
+>
+> - **`assertThemeContract` now runs over every registered theme**, not only the
+>   board's. An incomplete alternate used to be a latent 500 on whatever page
+>   reached its missing slot; now that a member can pick it, it is a boot
+>   failure naming the slots.
+> - **A theme that fills no slots is a palette**, and that is a supported shape
+>   rather than a broken one: picking it repaints the board and leaves the
+>   markup to the build's theme. It is how a board offers three looks without
+>   maintaining three sets of components.
+> - **Pairing rules matter more.** `midnight`'s note about overriding
+>   `ForumRow` and `CategoryBlock` together is now a rule a *member* can trip
+>   over, not only an operator.
 
 ## What v1 covers
 
@@ -152,11 +172,27 @@ any other theme gets its colours without redeploying the CSS.
 The cascade, in order:
 
 ```text
-compiled defaults
-  → the active theme's differences
-    → the board's themes.token_overrides
-      → custom CSS
+compiled defaults                       (globals.css)
+  → the board default theme's values + its overrides + its custom CSS   :root / .dark
+    → each other enabled theme's difference from that   :root[data-theme="<key>"]
 ```
+
+A board with one enabled theme emits exactly the first two lines, byte for byte
+what it emitted before members could switch. The scoped blocks carry only what a
+theme *disagrees with the board default about* — not its difference from the
+stylesheet — because the unscoped block is still in force when `data-theme` names
+another theme. Diffing against the wrong side is the bug that leaks one theme's
+brand colour into another's palette with nothing failing anywhere.
+
+`themes.token_overrides` is keyed by colour scheme:
+
+```json
+{ "light": { "primary": "#1d4ed8" }, "dark": { "primary": "#93c5fd" } }
+```
+
+A flat `{ "primary": "…" }` map is still read, and means both schemes — that is
+what every row written before this shape existed holds, and what an exported
+version 1 document carries.
 
 `BROWSER_THEME_COLOR` is the one place a literal colour belongs in a theme:
 `<meta name="theme-color">` is ignored by Safari and older Chrome when given

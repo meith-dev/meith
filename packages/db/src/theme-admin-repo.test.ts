@@ -3,14 +3,18 @@
  *
  * `themes` has been read on every page render since F26 and had no writer at
  * all — the fifth reader-with-no-writer this project has found. What is proven
- * here is the two decisions that are not CRUD:
+ * here is the decisions that are not CRUD:
  *
- *  - **a reset deletes the row**, because "no overrides" and "no row" are
- *    indistinguishable to every reader and only one of them leaves the board in
- *    the state a fresh install is in;
+ *  - **a reset deletes the row when there is nothing left in it**, because "no
+ *    overrides" and "no row" are indistinguishable to every reader and only one
+ *    of them leaves the board in the state a fresh install is in — and **keeps
+ *    it when there is**, because putting the colours back must not turn a
+ *    disabled theme back on;
  *  - **an export round-trips exactly.** The roadmap's word is "exact", and the
  *    thing that makes an export worth having is that importing it produces the
- *    board it was taken from.
+ *    board it was taken from;
+ *  - **the default moves atomically**, because the partial unique index makes
+ *    two claimants a constraint violation rather than a race with a winner.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
@@ -139,6 +143,97 @@ describe('reset', () => {
     await repo.reset('default')
     expect(await rowCount()).toBe(0)
   })
+
+  /*
+   * The delete is conditional now, and this is why. `enabled` and `is_default`
+   * are decisions about *which* themes a member may pick; "put the colours
+   * back" must not turn a disabled theme back on. Kills the mutant that deletes
+   * unconditionally, which every test above survives.
+   */
+  it('keeps a row whose state is not what a fresh install has', async () => {
+    await repo.setEnabled('midnight', false, 'Midnight')
+    await repo.save({
+      key: 'midnight',
+      title: 'Midnight',
+      tokenOverrides: { light: { primary: '#123456' }, dark: {} },
+      customCss: '.x{}',
+    })
+
+    await repo.reset('midnight')
+
+    const record = await repo.read('midnight')
+    expect(record?.enabled).toBe(false)
+    expect(record?.tokenOverrides).toEqual({})
+    expect(record?.customCss).toBeNull()
+  })
+})
+
+describe('enablement', () => {
+  it('creates a row for a theme that is turned off, because off is a decision', async () => {
+    await repo.setEnabled('midnight', false, 'Midnight')
+
+    expect((await repo.read('midnight'))?.enabled).toBe(false)
+  })
+
+  it('reads an absent row as enabled', async () => {
+    /*
+     * The rule the rest of this table follows: an absent row means the theme is
+     * exactly as it ships, and a theme named in `forum.config.ts` is one
+     * somebody installed on purpose.
+     */
+    expect(await repo.read('midnight')).toBeNull()
+    expect((await repo.list()).some((row) => row.key === 'midnight')).toBe(false)
+  })
+
+  it('leaves the enabled state alone when the colours are saved', async () => {
+    /*
+     * Saving colours must not re-enable a theme an administrator turned off.
+     * Kills the mutant that adds `enabled` to the upsert's update list.
+     */
+    await repo.setEnabled('midnight', false, 'Midnight')
+    await repo.save({
+      key: 'midnight',
+      title: 'Midnight',
+      tokenOverrides: { light: { primary: '#123456' }, dark: {} },
+      customCss: null,
+    })
+
+    expect((await repo.read('midnight'))?.enabled).toBe(false)
+  })
+
+  it('refuses a blank key', async () => {
+    await expect(repo.setEnabled('  ', false, 'x')).rejects.toThrow(/No such theme/)
+    await expect(repo.setDefault('  ', 'x')).rejects.toThrow(/No such theme/)
+  })
+})
+
+describe('the default theme', () => {
+  it('moves, leaving exactly one', async () => {
+    /*
+     * `themes_single_default_key` is a partial unique index, so two rows
+     * claiming the default is a constraint violation rather than a
+     * last-writer-wins race. The clear and the set are one transaction in that
+     * order; the opposite order fails outright, which is what this proves is
+     * not what the code does.
+     */
+    await repo.setDefault('default', 'Default')
+    await repo.setDefault('midnight', 'Midnight')
+
+    const rows = await repo.list()
+    expect(rows.filter((row) => row.isDefault).map((row) => row.key)).toEqual(['midnight'])
+  })
+
+  it('enables the theme it makes default', async () => {
+    /*
+     * A default nobody may pick is a board whose members all see a theme that is
+     * not in their own switcher — a state with no honest way to describe it on
+     * screen.
+     */
+    await repo.setEnabled('midnight', false, 'Midnight')
+    await repo.setDefault('midnight', 'Midnight')
+
+    expect((await repo.read('midnight'))?.enabled).toBe(true)
+  })
 })
 
 describe('export and import', () => {
@@ -159,7 +254,7 @@ describe('export and import', () => {
     await repo.save({
       key: 'default',
       title: 'Default',
-      tokenOverrides: parsed.tokenOverrides as Record<string, string>,
+      tokenOverrides: parsed.tokenOverrides,
       customCss: parsed.customCss,
     })
 
@@ -172,7 +267,7 @@ describe('export and import', () => {
      * it is how somebody takes a blank starting point to another board.
      */
     expect(await repo.exportTheme('default')).toEqual({
-      version: 1,
+      version: 2,
       key: 'default',
       tokenOverrides: {},
       customCss: null,
@@ -208,7 +303,7 @@ describe('parseThemeExport', () => {
      * that ignores the envelope.
      */
     expect(() =>
-      parseThemeExport(JSON.stringify({ version: 2, tokenOverrides: {}, customCss: null })),
+      parseThemeExport(JSON.stringify({ version: 3, tokenOverrides: {}, customCss: null })),
     ).toThrow(/different version/)
     expect(() => parseThemeExport(JSON.stringify({ tokenOverrides: {} }))).toThrow(
       /different version/,
@@ -243,5 +338,24 @@ describe('parseThemeExport', () => {
   it('reads a missing customCss as null rather than undefined', () => {
     expect(parseThemeExport(JSON.stringify({ version: 1, tokenOverrides: {} })).customCss)
       .toBeNull()
+  })
+
+  /*
+   * Version 1 is the flat map every export taken before members could switch
+   * themes holds; version 2 keys it by colour scheme. Both are read, because
+   * refusing the older one would break the one thing export exists for — and
+   * the validator that runs next tells the two apart from the payload itself.
+   */
+  it('reads both document versions', () => {
+    expect(
+      parseThemeExport(JSON.stringify({ version: 1, tokenOverrides: { primary: '#fff' } }))
+        .tokenOverrides,
+    ).toEqual({ primary: '#fff' })
+
+    expect(
+      parseThemeExport(
+        JSON.stringify({ version: 2, tokenOverrides: { light: { primary: '#fff' }, dark: {} } }),
+      ).tokenOverrides,
+    ).toEqual({ light: { primary: '#fff' }, dark: {} })
   })
 })

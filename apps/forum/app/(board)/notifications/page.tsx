@@ -9,7 +9,7 @@ import {
 } from '@/components/account/notification-forms'
 import { getActor } from '@/server/context'
 import { notificationService } from '@/server/notifications'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import {
   buildNotificationCentreView,
   notificationNotice,
@@ -62,7 +62,7 @@ export default async function NotificationsPage({
     now: new Date(),
   })
 
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = notificationNotice(query)
 
   return (
