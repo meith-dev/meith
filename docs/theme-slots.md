@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v1.5.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
+**theme-kit v1.6.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -528,6 +528,7 @@ One visitor in the online list. `location` is **already resolved against the rea
 | `userId` | `number \| null` | from `UserRefModel` — `null` when the account was deleted; `username` is still shown. |
 | `username` | `string` | from `UserRefModel` |
 | `profileHref` | `string \| null` | from `UserRefModel` |
+| `nameClass` | `string \| null \| undefined` | from `UserRefModel` — optional — A class carrying this member's group colour, or `null` for most members. **A theme should put this on whatever renders the name**, wherever a name appears. It is a class rather than a colour because the value has to differ between light and dark, and a `style` attribute cannot hold two answers — a reader on "system" has no `.dark` class at all, so the only place both can live is the stylesheet the app emits into `<head>`. A theme that ignores it renders the name in the ordinary text colour and is still correct, which is what makes the field additive. It will simply not show the board's own hierarchy, which most boards will notice. |
 | `location` | `{ readonly label: string; readonly href: string \| null }` | Where they are, as this reader may be told. Never null — see `label`. |
 | `isInvisible` | `boolean` | True only for staff, who see hidden members marked rather than absent. |
 | `lastSeen` | `TimeModel` |  |
@@ -578,8 +579,11 @@ The author block beside a post.
 | `userId` | `number \| null` | from `UserRefModel` — `null` when the account was deleted; `username` is still shown. |
 | `username` | `string` | from `UserRefModel` |
 | `profileHref` | `string \| null` | from `UserRefModel` |
+| `nameClass` | `string \| null \| undefined` | from `UserRefModel` — optional — A class carrying this member's group colour, or `null` for most members. **A theme should put this on whatever renders the name**, wherever a name appears. It is a class rather than a colour because the value has to differ between light and dark, and a `style` attribute cannot hold two answers — a reader on "system" has no `.dark` class at all, so the only place both can live is the stylesheet the app emits into `<head>`. A theme that ignores it renders the name in the ordinary text colour and is still correct, which is what makes the field additive. It will simply not show the board's own hierarchy, which most boards will notice. |
 | `avatarUrl` | `string \| null` |  |
-| `title` | `string \| null` | Usergroup title or custom user title. |
+| `title` | `string \| null` | The display group's title, or a custom user title. Was `null` on every post the board has ever rendered — the field was in the contract from the start and nothing populated it, so every theme's postbit had a place for a member's standing and nothing to put in it. It comes from `users.display_group_id`, falling back to the primary group. |
+| `badge` | `LogoModel \| null \| undefined` | optional — The board's badge for this member's group, or `null`. Shaped exactly like `LogoModel` and for the same reason: the app has already chosen which of the two images this reader gets, so `darkSrc` is non-null only for a reader on "system", where the server cannot know. |
+| `reputation` | `number \| null \| undefined` | optional — This member's reputation, or `null` when the board has it switched off. A denormalised counter on `users`, so it costs the postbit nothing. |
 | `postCount` | `number` |  |
 | `joinedAt` | `TimeModel \| null` |  |
 | `signatureHtml` | `string \| null` | Pre-rendered Markdown. Trusted output of the board's own renderer. |
@@ -659,6 +663,7 @@ A user as they appear attached to content.
 | `userId` | `number \| null` | `null` when the account was deleted; `username` is still shown. |
 | `username` | `string` |  |
 | `profileHref` | `string \| null` |  |
+| `nameClass` | `string \| null \| undefined` | optional — A class carrying this member's group colour, or `null` for most members. **A theme should put this on whatever renders the name**, wherever a name appears. It is a class rather than a colour because the value has to differ between light and dark, and a `style` attribute cannot hold two answers — a reader on "system" has no `.dark` class at all, so the only place both can live is the stylesheet the app emits into `<head>`. A theme that ignores it renders the name in the ordinary text colour and is still correct, which is what makes the field additive. It will simply not show the board's own hierarchy, which most boards will notice. |
 
 ### ViewerModel
 
@@ -676,5 +681,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v1.5. Nothing can be: this is the first
+Nothing is deprecated in v1.6. Nothing can be: this is the first
 frozen version, so there is no earlier promise to withdraw.

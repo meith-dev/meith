@@ -25,28 +25,25 @@ import 'server-only'
  * would hand it to whichever theme the *reader* picked.
  */
 import { CacheTags } from '@meith/core'
-import { PostgresGroupIdentityRepository, getDb, type GroupIdentity } from '@meith/db'
+import {
+  PostgresGroupIdentityRepository,
+  getDb,
+  type GroupIdentity,
+  type MemberStanding,
+} from '@meith/db'
 import { unstable_cache } from 'next/cache'
 import { cache } from 'react'
 
+import type { MemberIdentity } from '@/view/member-identity'
+
 import { getContainer } from './container'
-import { assertSafeCssValue } from './theme-style'
+import { badgeSrc } from './group-badge'
+import { currentColourScheme } from './theme'
+import { groupNameClass, renderGroupNameStyle } from './theme-style'
 
 /** The class every username of this group carries. */
-export function groupNameClass(groupId: number): string {
-  return `gname-${groupId}`
-}
-
-/** What a page needs to render one member's name and standing. */
-export interface MemberIdentity {
-  readonly groupId: number
-  /** The display group's title — what the postbit shows under a name. */
-  readonly title: string
-  /** `null` when the group has no colour in either scheme. */
-  readonly nameClass: string | null
-  /** Badge image URLs, already resolved for the reader's scheme. */
-  readonly badge: { readonly src: string; readonly darkSrc: string | null } | null
-}
+export type { MemberIdentity }
+export { groupNameClass }
 
 function repository(): PostgresGroupIdentityRepository | null {
   return getContainer().dataSource === 'postgres'
@@ -73,83 +70,90 @@ const loadStyled = unstable_cache(
 /**
  * The stylesheet's group rules, for `<head>`.
  *
- * Three blocks per scheme for the reason `renderBoardStyle` gives: `.dark` is a
- * class this board's own control sets, and a reader who has never touched it
- * has no class at all — the media query is what covers them, and `:not(.light)`
- * is what lets an explicit "light, please" beat the operating system.
- *
- * Values are validated here rather than trusted from the row. They arrive from
- * a settings-like column an operator edits and a restored backup carries, and
- * they are about to be written into a `<style>` block — the same argument the
- * theme tokens get, and the same validator.
+ * The rendering is `renderGroupNameStyle`, beside the theme cascade it mirrors
+ * and where it can be tested without a database; this is the read, the cache and
+ * the "never fail a page over a colour" decision.
  */
 export const getGroupStyle = cache(async (): Promise<string> => {
   const groups = await loadStyled().catch(() => [])
-  if (groups.length === 0) return ''
-
-  /*
-   * Built selector-first rather than by rewriting generated CSS. An earlier
-   * draft produced the light rules and regex-replaced their selectors to make
-   * the dark ones, which works until a colour value happens to contain the
-   * pattern — and is unreadable long before that.
-   */
-  const block = (
-    pick: (group: GroupIdentity) => string | null,
-    prefix: string,
-  ): string =>
-    groups
-      .map((group) => {
-        const colour = pick(group)
-        if (colour === null) return ''
-        assertSafeCssValue(`group ${group.groupId} colour`, colour)
-        return `${prefix}.${groupNameClass(group.groupId)}{color:${colour};}`
-      })
-      .join('')
-
-  const dark = block((group) => group.nameColorDark, '.dark ')
-
-  return (
-    block((group) => group.nameColorLight, '') +
-    dark +
-    (dark === ''
-      ? ''
-      : `@media (prefers-color-scheme: dark){${block(
-          (group) => group.nameColorDark,
-          ':root:not(.light) ',
-        )}}`)
+  return renderGroupNameStyle(
+    groups.map((group) => ({
+      groupId: group.groupId,
+      light: group.nameColorLight,
+      dark: group.nameColorDark,
+    })),
   )
+})
+
+/**
+ * Which badge image this reader gets, resolved on the server.
+ *
+ * The board logo's rule, and it is the same rule for the same reason: a theme
+ * doing this in CSS would be wrong for the commonest reader, the one on
+ * "system", who has no `.dark` class because their dark mode is a media query.
+ * A board with only one badge uses it in both schemes — an operator who
+ * uploaded one has said what they want beside the name.
+ */
+function resolveBadge(
+  group: GroupIdentity,
+  scheme: 'light' | 'dark' | 'system',
+): MemberIdentity['badge'] {
+  const light = group.badgeImageLight ?? group.badgeImageDark
+  const dark = group.badgeImageDark ?? group.badgeImageLight
+  if (light === null || dark === null) return null
+
+  const alt = group.title
+  const lightSrc = badgeSrc(group.groupId, group.badgeImageLight === null ? 'dark' : 'light', light)
+  const darkSrc = badgeSrc(group.groupId, group.badgeImageDark === null ? 'light' : 'dark', dark)
+
+  if (scheme === 'light') return { src: lightSrc, darkSrc: null, alt }
+  if (scheme === 'dark') return { src: darkSrc, darkSrc: null, alt }
+  return { src: lightSrc, darkSrc: darkSrc === lightSrc ? null : darkSrc, alt }
+}
+
+/**
+ * The read, memoised per request on a *string* key.
+ *
+ * `React.cache` compares arguments the way `useMemo` does — by identity for
+ * anything that is not primitive — so a function taking `number[]` is not
+ * memoised at all: every caller builds a fresh array and every call misses.
+ * The ids are sorted and joined so that two callers asking for the same people
+ * ask the same question, whatever order they assembled their list in.
+ */
+const load = cache(async (key: string): Promise<ReadonlyMap<number, MemberStanding>> => {
+  const repo = repository()
+  if (repo === null) return new Map()
+  return repo.forUsers(key.split(',').map(Number)).catch(() => new Map<number, MemberStanding>())
 })
 
 /**
  * Resolve these members' groups, once per request.
  *
- * Memoised with `React.cache` so a thread page that renders a postbit, a
- * "started by" and a last-poster for the same person asks once. Failure is an
- * empty map, not an exception: a name without a colour is a cosmetic loss, and
- * taking a thread page down for it would make the group table a dependency of
- * reading the board.
+ * Failure is an empty map, not an exception: a name without a colour is a
+ * cosmetic loss, and taking a thread page down for it would make the group
+ * table a dependency of reading the board.
  */
-export const identitiesFor = cache(
-  async (userIds: readonly number[]): Promise<ReadonlyMap<number, MemberIdentity>> => {
-    const repo = repository()
-    const ids = [...new Set(userIds)]
-    if (repo === null || ids.length === 0) return new Map()
+export async function identitiesFor(
+  userIds: readonly number[],
+): Promise<ReadonlyMap<number, MemberIdentity>> {
+  const ids = [...new Set(userIds)].sort((a, b) => a - b)
+  if (ids.length === 0) return new Map()
 
-    const rows = await repo.forUsers(ids).catch(() => new Map<number, GroupIdentity>())
+  const [rows, scheme] = await Promise.all([load(ids.join(',')), currentColourScheme()])
 
-    return new Map(
-      [...rows].map(([userId, group]) => [
-        userId,
-        {
-          groupId: group.groupId,
-          title: group.title,
-          nameClass:
-            group.nameColorLight === null && group.nameColorDark === null
-              ? null
-              : groupNameClass(group.groupId),
-          badge: null,
-        },
-      ]),
-    )
-  },
-)
+  return new Map(
+    [...rows].map(([userId, group]) => [
+      userId,
+      {
+        groupId: group.groupId,
+        title: group.title,
+        nameClass:
+          group.nameColorLight === null && group.nameColorDark === null
+            ? null
+            : groupNameClass(group.groupId),
+        badge: resolveBadge(group, scheme),
+        reputation: group.reputation,
+      },
+    ]),
+  )
+}

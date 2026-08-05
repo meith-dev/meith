@@ -2,7 +2,7 @@
 import type { MemberProfileRecord } from '@meith/accounts'
 import type { MemberProfileModel } from '@meith/theme-kit'
 
-import { formatTime } from './time'
+import { formatDate, formatTime } from './time'
 
 export function memberHref(userId: number): string {
   return `/member/${userId}`
@@ -42,6 +42,14 @@ export function buildMemberProfileView(
     readonly canMessage?: boolean
     /** F58. Resolved by the page, and null for the great majority. */
     readonly avatarUrl?: string | null
+    /**
+     * This member's group colour class, or `null`.
+     *
+     * The class rather than the map every listing takes, because a profile
+     * page is one member and handing it a map to look one id up in would be
+     * ceremony. The page has already resolved it.
+     */
+    readonly nameClass?: string | null
   } = {},
 ): MemberProfileModel {
   const {
@@ -50,12 +58,19 @@ export function buildMemberProfileView(
     timeZone,
     customFields = [],
     avatarUrl = null,
+    nameClass = null,
   } = options
   return {
-    user: { userId: profile.id, username: profile.username, profileHref: memberHref(profile.id) },
+    user: {
+      userId: profile.id,
+      username: profile.username,
+      profileHref: memberHref(profile.id),
+      nameClass,
+    },
     avatarUrl,
     title: profile.title,
-    joinedAt: formatTime(profile.createdAt, now, timeZone),
+    /* A date; see `formatDate`. The clock reading on a join date is noise. */
+    joinedAt: formatDate(profile.createdAt, timeZone),
     lastVisitAt:
       profile.lastActiveAt === null
         ? null

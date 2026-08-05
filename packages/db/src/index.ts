@@ -38,6 +38,7 @@ export { PostgresSettingsRepository } from './settings-repo'
 export {
   PostgresGroupIdentityRepository,
   type GroupIdentity,
+  type MemberStanding,
 } from './group-identity-repo'
 export {
   PostgresThemeRepository,

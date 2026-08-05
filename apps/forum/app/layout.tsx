@@ -10,6 +10,7 @@ import { env } from "@meith/core"
  * retrofit `forum.config.ts` exists to avoid.
  */
 import { CookieNotice } from "@/components/shell/cookie-notice"
+import { GroupNameStyle } from "@/components/shell/group-name-style"
 import { ThemeRuntimeStyle } from "@/components/shell/theme-runtime-style"
 import { getConsentState } from "@/server/consent"
 import { getSettings } from "@/server/settings"
@@ -175,6 +176,7 @@ export default async function RootLayout({
     >
       <head>
         <ThemeRuntimeStyle />
+        <GroupNameStyle />
       </head>
       <body className="font-sans antialiased">
         {children}

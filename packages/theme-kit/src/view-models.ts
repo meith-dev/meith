@@ -154,6 +154,20 @@ export interface UserRefModel {
   readonly userId: number | null
   readonly username: string
   readonly profileHref: string | null
+  /**
+   * A class carrying this member's group colour, or `null` for most members.
+   *
+   * **A theme should put this on whatever renders the name**, wherever a name
+   * appears. It is a class rather than a colour because the value has to differ
+   * between light and dark, and a `style` attribute cannot hold two answers — a
+   * reader on "system" has no `.dark` class at all, so the only place both can
+   * live is the stylesheet the app emits into `<head>`.
+   *
+   * A theme that ignores it renders the name in the ordinary text colour and is
+   * still correct, which is what makes the field additive. It will simply not
+   * show the board's own hierarchy, which most boards will notice.
+   */
+  readonly nameClass?: string | null | undefined
 }
 
 /** The last post in a forum or thread, as a listing shows it. */
@@ -249,8 +263,29 @@ export interface PaginationModel {
 /** The author block beside a post. */
 export interface PostAuthorModel extends UserRefModel {
   readonly avatarUrl: string | null
-  /** Usergroup title or custom user title. */
+  /**
+   * The display group's title, or a custom user title.
+   *
+   * Was `null` on every post the board has ever rendered — the field was in the
+   * contract from the start and nothing populated it, so every theme's postbit
+   * had a place for a member's standing and nothing to put in it. It comes from
+   * `users.display_group_id`, falling back to the primary group.
+   */
   readonly title: string | null
+  /**
+   * The board's badge for this member's group, or `null`.
+   *
+   * Shaped exactly like `LogoModel` and for the same reason: the app has
+   * already chosen which of the two images this reader gets, so `darkSrc` is
+   * non-null only for a reader on "system", where the server cannot know.
+   */
+  readonly badge?: LogoModel | null | undefined
+  /**
+   * This member's reputation, or `null` when the board has it switched off.
+   *
+   * A denormalised counter on `users`, so it costs the postbit nothing.
+   */
+  readonly reputation?: number | null | undefined
   readonly postCount: number
   readonly joinedAt: TimeModel | null
   /** Pre-rendered Markdown. Trusted output of the board's own renderer. */

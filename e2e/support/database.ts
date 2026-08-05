@@ -45,13 +45,15 @@
  * app is even launched.
  */
 import { readFileSync } from 'node:fs'
+import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { PGlite } from '@electric-sql/pglite'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
 
-import { E2E_DATABASE_URL, E2E_DB_PORT } from './config'
+import { E2E_DATABASE_URL, E2E_DB_PORT, E2E_UPLOADS_DIR } from './config'
+import { samplePng } from './png'
 
 import {
   SEED_FORUM_ROWS,
@@ -80,6 +82,34 @@ function migrationSql(): string {
     .map((entry) => readFileSync(path.join(MIGRATIONS, `${entry.tag}.sql`), 'utf8'))
     .join('\n')
     .replaceAll('--> statement-breakpoint', '')
+}
+
+/**
+ * The badge objects the styled group below points at.
+ *
+ * Fixed UUIDs rather than minted ones, because the key is also the cache-buster
+ * in the served URL — a value that changed per run would make a screenshot
+ * comparison and a `toHaveAttribute` both unstable for no benefit.
+ */
+const BADGE_KEYS = {
+  light: 'group/3/badge-light-11111111-1111-1111-1111-111111111111.png',
+  dark: 'group/3/badge-dark-22222222-2222-2222-2222-222222222222.png',
+} as const
+
+/**
+ * Put the badge bytes where the file store will find them.
+ *
+ * `LocalFileStore` maps a key straight onto a path under its root, so this is
+ * the whole of "uploading" for a seed. Written before the app starts, because a
+ * route that 404s would leave a broken image in every postbit the suite looks
+ * at.
+ */
+async function seedBadgeFiles(): Promise<void> {
+  for (const key of Object.values(BADGE_KEYS)) {
+    const target = path.join(E2E_UPLOADS_DIR, key)
+    await mkdir(path.dirname(target), { recursive: true })
+    await writeFile(target, samplePng(64, 16))
+  }
 }
 
 /** SQL-quote a value. Test support, and the inputs are checked-in constants. */
@@ -255,10 +285,39 @@ function seedSql(): string {
     { key: 'antispam.min_form_seconds', value: '0', group_key: 'antispam' },
   ]
 
+  /*
+   * A styled usergroup, so the browser suite has something to see.
+   *
+   * `admin` is the only seeded member of group 3, and every post in thread 4 is
+   * theirs — so one thread page carries a coloured name, a group title, a badge
+   * and a reputation, which is the whole surface in one screenshot.
+   *
+   * The colours are the *board's*, not a theme's: the light one is a dark green
+   * and the dark one a pale green, chosen so both clear WCAG AA against their
+   * own background. The accessibility spec runs axe over these pages, so a
+   * decorative choice here would fail a real check rather than a cosmetic one.
+   *
+   * The badge keys match the shape `group-badge.ts` writes and re-validates on
+   * the way out, including the group id in the path — a key naming a different
+   * group is refused by the route, and the file it points at is written to the
+   * upload directory by `seedBadgeFiles` below.
+   */
+  const styledGroup = [
+    `update usergroups set
+       name_color_light = 'oklch(0.45 0.13 155)',
+       name_color_dark = 'oklch(0.85 0.14 155)',
+       badge_image_light = ${literal(BADGE_KEYS.light)},
+       badge_image_dark = ${literal(BADGE_KEYS.dark)}
+     where id = 3;`,
+    /* A reputation the postbit can show, distinguishable from "none". */
+    'update users set reputation = 42 where id = 1;',
+  ]
+
   return [
     insert('users', users),
     insert('user_group_memberships', memberships),
     insert('settings', settings),
+    ...styledGroup,
     insert('forums', forums),
     insert('threads', threads),
     insert('posts', posts),
@@ -276,6 +335,7 @@ export async function startDatabase(): Promise<{ stop: () => Promise<void> }> {
   const db = await PGlite.create()
   await db.exec(migrationSql())
   await db.exec(seedSql())
+  await seedBadgeFiles()
 
   const server = new PGLiteSocketServer({
     db,

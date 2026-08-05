@@ -16,6 +16,7 @@ import type {
   WhoIsOnlineModel,
 } from '@meith/theme-kit'
 
+import { nameClassOf, type MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
 import { formatTime } from './time'
 
@@ -39,6 +40,8 @@ export interface OnlineInput {
   readonly recordAt: Date | null
   readonly now: Date
   readonly timeZone?: string | undefined
+  /** Group colours for the members listed, or absent on a board with none. */
+  readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
 /**
@@ -77,6 +80,7 @@ export function buildWhoIsOnlineModel(input: OnlineInput): WhoIsOnlineModel {
     userId: row.userId,
     username: row.username,
     profileHref: memberHref(row.userId),
+    nameClass: nameClassOf(input.identities, row.userId),
     location: locationOf(row),
     isInvisible: row.invisible,
     lastSeen: formatTime(row.lastSeenAt, input.now, input.timeZone),
@@ -109,6 +113,8 @@ export interface StatsInput {
   readonly computedAt: Date | null
   readonly now: Date
   readonly timeZone?: string | undefined
+  /** Group colours, for the one name this model carries. */
+  readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
 export function buildBoardStatsModel(input: StatsInput): BoardStatsModel {
@@ -128,6 +134,7 @@ export function buildBoardStatsModel(input: StatsInput): BoardStatsModel {
             userId: input.newestUserId,
             username: input.newestUsername,
             profileHref: input.newestUserId === null ? null : memberHref(input.newestUserId),
+            nameClass: nameClassOf(input.identities, input.newestUserId),
           },
     computedAt:
       input.computedAt === null ? null : formatTime(input.computedAt, input.now, input.timeZone),

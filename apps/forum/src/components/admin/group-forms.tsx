@@ -86,7 +86,19 @@ export interface GroupIdentityValues {
   readonly nameColorDark: string
 }
 
-export function GroupIdentityForm({ group }: { group: GroupIdentityValues }) {
+/** One preview surface, resolved by the server. See `boardSampleSurfaces`. */
+export interface SampleSurface {
+  readonly background: string
+  readonly foreground: string
+}
+
+export function GroupIdentityForm({
+  group,
+  surfaces,
+}: {
+  group: GroupIdentityValues
+  surfaces: { readonly light: SampleSurface; readonly dark: SampleSurface }
+}) {
   const [state, action] = useActionState(saveGroupIdentityAction, EMPTY_STATE)
   const [light, setLight] = useState(group.nameColorLight)
   const [dark, setDark] = useState(group.nameColorDark)
@@ -140,10 +152,10 @@ export function GroupIdentityForm({ group }: { group: GroupIdentityValues }) {
         <div className="grid gap-3 sm:grid-cols-2">
           {(
             [
-              ['light', 'Light', light, setLight] as const,
-              ['dark', 'Dark', dark, setDark] as const,
+              ['light', 'Light', light, setLight, surfaces.light] as const,
+              ['dark', 'Dark', dark, setDark, surfaces.dark] as const,
             ]
-          ).map(([scheme, label, value, set]) => (
+          ).map(([scheme, label, value, set, surface]) => (
             <div key={scheme} className="flex flex-col gap-2">
               <span className="text-xs text-muted-foreground">{label}</span>
               <OklchPicker
@@ -151,10 +163,18 @@ export function GroupIdentityForm({ group }: { group: GroupIdentityValues }) {
                 value={value}
                 onChange={set}
               />
+              {/*
+                The surface is painted from values the server resolved, not
+                inherited from the page. Inheriting is wrong for exactly the
+                administrator this feature exists for: the board declares its
+                dark palette under a media query as well as a class, so on a
+                machine set to dark mode an unclassed element *is* dark — and
+                the sample labelled "Light" would be shown on black, which is
+                the one thing it must never do.
+              */}
               <p
-                className={`rounded-md border border-border bg-card px-3 py-2 text-sm ${
-                  scheme === 'dark' ? 'dark' : ''
-                }`}
+                className="rounded-md border border-border px-3 py-2 text-sm"
+                style={{ backgroundColor: surface.background, color: surface.foreground }}
               >
                 <span style={value === '' ? undefined : { color: value }}>
                   {group.title || 'A member'}

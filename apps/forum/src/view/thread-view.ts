@@ -19,7 +19,8 @@ import type { ThreadListingRow } from '@meith/threads'
 import { forumHref } from './board-index'
 import { threadRowModel } from './forum-display'
 import { memberHref } from './member-profile'
-import { formatTime } from './time'
+import type { MemberIdentity } from './member-identity'
+import { formatDate, formatTime } from './time'
 
 /**
  * What this viewer may do to a post, already resolved by the page.
@@ -92,6 +93,17 @@ interface PostContext {
   readonly signatures: ReadonlyMap<number, string>
   /** F58's other half: an avatar URL per author, absent for most of them. */
   readonly avatars: ReadonlyMap<number, string>
+  /**
+   * The author's group, colour, badge and reputation, resolved per page.
+   *
+   * One query for every author on the page, for the reason every other map here
+   * is a map: a postbit is rendered twenty times and resolving this per post is
+   * the N+1 on the board's heaviest page.
+   *
+   * Absent for a deleted account, whose posts remain and whose name is still
+   * shown — which is why every read of it falls back rather than asserting.
+   */
+  readonly identities: ReadonlyMap<number, MemberIdentity>
   /** F61. The ids this viewer ignores, and the posts they asked to see anyway. */
   readonly ignoredIds: ReadonlySet<number>
   readonly revealedPostIds: ReadonlySet<number>
@@ -138,6 +150,9 @@ function post(
     postId: post.id,
   })
 
+  const identity =
+    post.authorUserId === null ? undefined : context.identities.get(post.authorUserId)
+
   const mayEdit =
     post.visibility !== 'deleted' &&
     (isOwn
@@ -162,12 +177,39 @@ function post(
         hidden || post.authorUserId === null
           ? null
           : (context.avatars.get(post.authorUserId) ?? null),
-      title: null,
+      /*
+       * The display group's title. This field has been in the theme contract
+       * since F27 and was hardcoded `null` here, so every theme's postbit had a
+       * place for a member's standing and nothing to put in it — while
+       * `users.display_group_id` was written by three code paths and read by
+       * none. Both ends existed; nothing joined them.
+       */
+      title: identity?.title ?? null,
+      nameClass: identity?.nameClass ?? null,
+      /*
+       * Kept on a hidden post, unlike the avatar. F61's ignore is about the
+       * author's *own* material — their words, their signature, the picture
+       * they chose — and a group badge is none of those: it is the board's
+       * image, uploaded by an administrator, saying which group this is. So is
+       * the title beside it. Withholding them would hide the board's own
+       * labelling from the reader who most needs it to judge the post.
+       */
+      badge: identity?.badge ?? null,
+      /*
+       * Not withheld, for the same reason `postCount` and `joinedAt` two lines
+       * down are not: a number about an account is not the author's content.
+       */
+      reputation: identity?.reputation ?? null,
       postCount: post.authorPostCount,
+      /*
+       * A date, not a timestamp. This read `formatTime` and therefore rendered
+       * "Joined 1 Jan, 00:00" — the minute an account was registered is not
+       * something any reader has ever wanted, and inside the current year the
+       * *year* was dropped in its place, which is the half that is actually
+       * informative here.
+       */
       joinedAt:
-        post.authorJoinedAt === null
-          ? null
-          : formatTime(post.authorJoinedAt, now, timeZone),
+        post.authorJoinedAt === null ? null : formatDate(post.authorJoinedAt, timeZone),
       /*
        * F58. Withheld with the body when the post is hidden (F61) — a
        * signature is the author's text too, and leaving it would put it back on
@@ -308,6 +350,16 @@ export interface ThreadViewInput {
   readonly signatures?: ReadonlyMap<number, string>
   /** F58. Avatar URLs by author id. Empty on a board where nobody set one. */
   readonly avatars?: ReadonlyMap<number, string>
+  /**
+   * The group standing of every author on the page: title, colour class, badge
+   * and reputation.
+   *
+   * Optional, and empty is a real answer rather than a missing one — a board on
+   * sample data has no groups repository, and a board whose groups are all
+   * unstyled produces the same map. Both render exactly as this page did
+   * before, which is what makes it safe for every other caller to omit.
+   */
+  readonly identities?: ReadonlyMap<number, MemberIdentity>
   /** F42. Downloadable attachments, by post id. Empty on most pages. */
   readonly attachments?: ReadonlyMap<number, readonly PostAttachmentModel[]>
   /** F61. The ids this viewer ignores; empty for a guest or a board with none. */
@@ -334,6 +386,7 @@ const EMPTY_IDS: ReadonlySet<number> = new Set()
 const EMPTY_SIGNATURES: ReadonlyMap<number, string> = new Map()
 const EMPTY_ATTACHMENTS: ReadonlyMap<number, readonly PostAttachmentModel[]> = new Map()
 const EMPTY_AVATARS: ReadonlyMap<number, string> = new Map()
+const EMPTY_IDENTITIES: ReadonlyMap<number, MemberIdentity> = new Map()
 
 /**
  * The same page with one more post revealed.
@@ -387,6 +440,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         signatures: input.signatures ?? EMPTY_SIGNATURES,
         attachments: input.attachments ?? EMPTY_ATTACHMENTS,
         avatars: input.avatars ?? EMPTY_AVATARS,
+        identities: input.identities ?? EMPTY_IDENTITIES,
         ignoredIds: input.ignoredIds ?? EMPTY_IDS,
         revealedPostIds: input.revealedPostIds ?? EMPTY_IDS,
         revealHref: (postId) => revealHref(input.currentHref ?? '', postId),

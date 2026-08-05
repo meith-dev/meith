@@ -1,4 +1,4 @@
-import { Avatar, Card, CardContent, CardHeader, CardTitle, buttonVariants } from '@meith/ui'
+import { Avatar, Card, CardContent, CardHeader, CardTitle, buttonVariants, cn } from '@meith/ui'
 import type { MemberProfileModel } from '@meith/theme-kit'
 
 import { NUMERIC, Stamp, pageAt } from '../shared'
@@ -52,7 +52,17 @@ export function MemberProfile({
             <Avatar src={avatarUrl} name={user.username} size={72} />
 
             <div className="min-w-0">
-              <h1 className="font-serif text-2xl font-semibold tracking-tight break-words">
+              {/*
+                `nameClass` here as well as in every listing: this is the page a
+                reader lands on *from* a coloured name, and arriving to find it
+                plain would read as the wrong profile.
+              */}
+              <h1
+                className={cn(
+                  'font-serif text-2xl font-semibold tracking-tight break-words',
+                  user.nameClass,
+                )}
+              >
                 {user.username}
               </h1>
               {title !== null && <p className="mt-0.5 text-sm text-muted-foreground">{title}</p>}

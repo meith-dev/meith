@@ -79,7 +79,7 @@ import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
  * to subscribe to a forum above its thread list, is asking for a verdict on
  * something they have not read.
  */
-export const THEME_API_VERSION = '1.5'
+export const THEME_API_VERSION = '1.6'
 
 /**
  * How much of a promise a slot carries.

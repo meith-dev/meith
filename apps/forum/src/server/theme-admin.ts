@@ -239,3 +239,74 @@ export function themeTitle(key: string): string | null {
 export function isBuildTheme(key: string): boolean {
   return key === buildThemeKey
 }
+
+/**
+ * The two surface colours an administration preview has to paint itself with.
+ *
+ * ## Why a preview cannot just inherit the page
+ *
+ * The group screen shows a member's name in the group's colour twice, once on
+ * the light card it will really be on and once on the dark one. The obvious
+ * implementation — a `<div>` with `bg-card` and a `dark` class on the second —
+ * is right for half the administrators and wrong for the other half, and the
+ * half it is wrong for cannot tell.
+ *
+ * The reason is the cascade this board deliberately uses. Dark values are
+ * declared under `.dark` *and* under `@media (prefers-color-scheme: dark)`; the
+ * light values are only ever on `:root`. So for an administrator whose
+ * operating system is in dark mode, an element with no class inherits the dark
+ * palette — and the sample labelled "Light" is painted on black. There is no
+ * `.light` class to opt back out with, because nothing else on the board has
+ * ever needed one.
+ *
+ * The fix is the one the theme customizer already uses: a preview declares the
+ * palette it means, as custom properties on its own element, so nothing about
+ * the surrounding page can reach into it. This is that palette, cut down to the
+ * two tokens a name-on-a-card needs.
+ *
+ * The values come from the board's **default** theme with its overrides
+ * applied, because that is the theme most readers are actually looking at.
+ */
+export interface SampleSurface {
+  readonly background: string
+  readonly foreground: string
+}
+
+export async function boardSampleSurfaces(): Promise<{
+  readonly light: SampleSurface
+  readonly dark: SampleSurface
+}> {
+  const listing = await themeListing().catch(() => [])
+  const key = listing.find((entry) => entry.isDefault)?.key ?? buildThemeKey
+  const theme = forumConfig.themes[key] ?? forumConfig.themes[buildThemeKey]
+
+  const light = theme?.tokens.light ?? {}
+  const dark = theme?.tokens.dark ?? {}
+
+  let overrides: TokenOverrides = { light: {}, dark: {} }
+  if (theme !== undefined) {
+    const record = await themeAdminRepository()?.read(key).catch(() => null)
+    try {
+      overrides = validateTokenOverrides(theme.tokens, record?.tokenOverrides)
+    } catch {
+      /* A malformed row previews as uncustomised; the editor is where it is repaired. */
+    }
+  }
+
+  const pick = (
+    shipped: Readonly<Record<string, string>>,
+    override: Readonly<Record<string, string>>,
+    name: string,
+  ): string => override[name] ?? shipped[name] ?? ''
+
+  return {
+    light: {
+      background: pick(light, overrides.light, 'card'),
+      foreground: pick(light, overrides.light, 'card-foreground'),
+    },
+    dark: {
+      background: pick(dark, overrides.dark, 'card'),
+      foreground: pick(dark, overrides.dark, 'card-foreground'),
+    },
+  }
+}

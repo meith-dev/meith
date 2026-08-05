@@ -1,5 +1,7 @@
 import type { ThreadRowSlotModel } from '@meith/theme-kit'
 
+import { UserRef } from '../shared'
+
 /**
  * One thread, as a table row.
  *
@@ -46,13 +48,7 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
           {thread.isMoved && <span className="font-mono text-xs text-thread-moved">moved</span>}
         </div>
         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-          {thread.author.profileHref === null ? (
-            thread.author.username
-          ) : (
-            <a href={thread.author.profileHref} className="hover:text-foreground">
-              {thread.author.username}
-            </a>
-          )}
+          <UserRef user={thread.author} className="hover:text-foreground" />
         </p>
       </td>
       <td className="w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground">
@@ -67,7 +63,10 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
         ) : (
           <a href={thread.lastPost.href} className="hover:text-primary">
             <time dateTime={thread.lastPost.at.iso}>{thread.lastPost.at.label}</time>
-            <span className="block">by {thread.lastPost.author.username}</span>
+            {/* Not a link: this cell is already wrapped in one. */}
+            <span className="block">
+              by <UserRef user={thread.lastPost.author} linked={false} />
+            </span>
           </a>
         )}
       </td>

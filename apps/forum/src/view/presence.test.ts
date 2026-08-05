@@ -142,6 +142,8 @@ describe('buildBoardStatsModel', () => {
       userId: null,
       username: 'ghost',
       profileHref: null,
+      /* No id, so no group and no colour — the same reason there is no link. */
+      nameClass: null,
     })
     expect(model.computedAt).not.toBeNull()
   })

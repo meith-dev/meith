@@ -4,7 +4,9 @@ import { BROWSER_THEME_COLOR, DARK_TOKENS, LIGHT_TOKENS } from '@meith/theme-def
 
 import {
   colorToHex,
+  groupNameClass,
   renderBoardStyle,
+  renderGroupNameStyle,
   renderThemeStyle,
   validateCustomCss,
   validateTokenOverrides,
@@ -259,5 +261,76 @@ describe('renderBoardStyle', () => {
         baseline,
       }),
     ).toThrow(/not among/)
+  })
+})
+
+/**
+ * Usergroup name colours.
+ *
+ * The same three-block shape the theme cascade uses, applied to a different
+ * table. Three things here are load-bearing and none of them is "does it emit
+ * CSS": the specificity that stops a theme's utility class winning the toss,
+ * the media query that covers a reader who has never touched the board's own
+ * control, and the refusal to write an unvalidated database value into a
+ * `<style>`.
+ */
+describe('renderGroupNameStyle', () => {
+  const RED = 'oklch(0.55 0.2 25)'
+  const PINK = 'oklch(0.8 0.15 25)'
+
+  it('is empty for a board that has coloured nothing', () => {
+    expect(renderGroupNameStyle([])).toBe('')
+    /* A group in the list with no colours contributes no rule either. */
+    expect(renderGroupNameStyle([{ groupId: 4, light: null, dark: null }])).toBe('')
+  })
+
+  /*
+   * `.gname-4.gname-4`, not `.gname-4`. A theme colours a username with a
+   * utility class — one class, same specificity — and at a tie the later rule
+   * in the stylesheet wins. Which `<style>` the framework emits last is not
+   * something this board controls, so the unrepeated selector would win on some
+   * builds and lose on others. This is the assertion that keeps it repeated.
+   */
+  it('outranks a single utility class', () => {
+    const css = renderGroupNameStyle([{ groupId: 4, light: RED, dark: null }])
+
+    const selector = `.${groupNameClass(4)}`
+    expect(css).toContain(`${selector}${selector}{color:${RED};}`)
+    expect(css).not.toContain(`}${selector}{`)
+  })
+
+  /*
+   * The reader this exists for is the commonest one: somebody on "system",
+   * whose page has no `.dark` class at all because their dark mode is a media
+   * query. Without the third block their moderator names would be the light
+   * colour on a dark page.
+   */
+  it('covers the reader on "system" as well as the one who chose dark', () => {
+    const css = renderGroupNameStyle([{ groupId: 4, light: RED, dark: PINK }])
+
+    expect(css).toContain(`.dark .${groupNameClass(4)}`)
+    expect(css).toContain('@media (prefers-color-scheme: dark)')
+    expect(css).toContain(`:root:not(.light) .${groupNameClass(4)}`)
+  })
+
+  /* Nothing dark to say, so no media query — not an empty one. */
+  it('emits no media query for a board with only light colours', () => {
+    const css = renderGroupNameStyle([{ groupId: 4, light: RED, dark: null }])
+    expect(css).not.toContain('@media')
+  })
+
+  /*
+   * The value comes from a column an operator can edit with SQL and a restored
+   * backup carries in from another board. `assertSafeCssValue` is the same
+   * check the theme tokens get, and this is the proof it is actually reached
+   * from here.
+   */
+  it('refuses a colour that would close the declaration', () => {
+    expect(() =>
+      renderGroupNameStyle([{ groupId: 4, light: 'red;} body{display:none', dark: null }]),
+    ).toThrow(/unsafe/)
+    expect(() =>
+      renderGroupNameStyle([{ groupId: 4, light: null, dark: '</style><script>' }]),
+    ).toThrow(/unsafe/)
   })
 })

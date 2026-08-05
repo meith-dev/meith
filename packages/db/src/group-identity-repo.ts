@@ -41,6 +41,17 @@ export interface GroupIdentity {
   readonly badgeImageDark: string | null
 }
 
+/** A member's group, plus the counter that sits beside it in a postbit. */
+export interface MemberStanding extends GroupIdentity {
+  /**
+   * `users.reputation`, the denormalised counter F62 maintains.
+   *
+   * Carried here because this query already joins `users` for the group — the
+   * alternative is a second read for a number that is sitting in the row.
+   */
+  readonly reputation: number
+}
+
 export class PostgresGroupIdentityRepository {
   constructor(private readonly db: Database) {}
 
@@ -51,12 +62,13 @@ export class PostgresGroupIdentityRepository {
    * whose posts remain, which every caller already handles by falling back to
    * the username alone.
    */
-  async forUsers(userIds: readonly number[]): Promise<ReadonlyMap<number, GroupIdentity>> {
+  async forUsers(userIds: readonly number[]): Promise<ReadonlyMap<number, MemberStanding>> {
     if (userIds.length === 0) return new Map()
 
     const rows = resultRows(
       await this.db.execute(sql`
         select u.id as user_id,
+               u.reputation,
                g.id as group_id,
                g.title,
                g.name_color_light,
@@ -83,6 +95,7 @@ export class PostgresGroupIdentityRepository {
           nameColorDark: row.name_color_dark === null ? null : String(row.name_color_dark),
           badgeImageLight: row.badge_image_light === null ? null : String(row.badge_image_light),
           badgeImageDark: row.badge_image_dark === null ? null : String(row.badge_image_dark),
+          reputation: Number(row.reputation ?? 0),
         },
       ]),
     )

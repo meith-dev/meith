@@ -24,6 +24,7 @@ import {
 import { currentTheme } from '@/server/theme'
 import { avatarFor, avatarsFor } from '@/server/avatars'
 import { buildMemberProfileView } from '@/view/member-profile'
+import { identitiesFor } from '@/server/group-identity'
 
 export const metadata: Metadata = { title: 'Member profile' }
 
@@ -107,6 +108,9 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           {
             /* F58. Null for a member who set none, and for a locked one. */
             avatarUrl: (await avatarsFor([id])).get(id) ?? null,
+            /* Their group's colour, so the name reads the same here as it does
+               on every post they have written. */
+            nameClass: (await identitiesFor([id])).get(id)?.nameClass ?? null,
             /*
              * F53. Gated on the store as well as the permission — fixture mode
              * has no warnings, and a link to a page that 404s is worse than

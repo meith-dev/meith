@@ -17,6 +17,8 @@ import { FollowForm } from '@/components/account/subscription-forms'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { buildBreadcrumb } from '@/view/breadcrumb'
 import { buildForumDisplayView } from '@/view/forum-display'
+import { identitiesFor } from '@/server/group-identity'
+import { distinctUserIds } from '@/view/member-identity'
 import { canonicalPath } from '@/view/metadata'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 import {
@@ -226,6 +228,16 @@ export default async function ForumPage({
         },
       )
 
+  /*
+   * Two names per row — who started the thread, and who posted in it last — in
+   * one query for the page rather than one per row.
+   */
+  const identities = await identitiesFor(
+    distinctUserIds(
+      threadPage.rows.flatMap((row) => [row.authorUserId, row.lastPost?.userId ?? null]),
+    ),
+  )
+
   const view = buildForumDisplayView({
     forum,
     newThreadHref: canPost ? `/forum/${id}-${forum.slug}/new` : null,
@@ -239,6 +251,7 @@ export default async function ForumPage({
     markReadAction: read === null ? null : `/api/read/forum/${id}`,
     now: new Date(),
     timeZone: preferences.timezone,
+    identities,
   })
 
   /* F56, same shape as the thread page's control. */

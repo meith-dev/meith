@@ -118,6 +118,39 @@ change is previewed cell by cell before it applies.
 `admincp.access`. Super-moderator and administrator bypasses apply everywhere
 else, and every use of one is logged.
 
+### How a group looks
+
+`/admin/groups/[id]` carries a group's appearance as well as its rights. Three
+things, and all three are optional — a board that sets none of them looks
+exactly as it did before they existed.
+
+- **A name colour**, set separately for **light and dark**. Both are worth
+  filling in: a colour that reads well on white is usually unreadable on a dark
+  page, and the board will not guess a second one for you. Set one and the other
+  is simply not applied in that scheme.
+- **A badge**, as two uploads, light and dark, on the same terms as the board
+  logo — the bytes decide the format rather than the file name, and SVG is
+  accepted. Upload one and it is used in both schemes. It appears beside the
+  group's title in the postbit.
+- **The title**, which is what shows under a member's name on every post.
+
+A member's group is their **display group** where they have chosen one, and
+their primary group otherwise — so a moderator who prefers to post as an
+ordinary member is shown as one.
+
+The colour reaches **every** username: the postbit, who started a thread, who
+posted last, the profile heading, who is online. It is delivered as a stylesheet
+rule rather than a colour on each name, which is why it works for a reader whose
+dark mode comes from their operating system rather than from the board's own
+control — that reader's page carries no dark-mode class for a theme to match on.
+
+> **Check the contrast.** Nothing stops you setting a pale yellow no reader can
+> make out on a white page. Beneath each picker is a sample of the name on the
+> surface it will really be on — light beside dark, both painted from the
+> board's own palette rather than inherited from the screen you are looking at,
+> so the light sample is light even if your machine is set to dark mode. It is
+> there to be looked at.
+
 ## Themes
 
 A theme is an npm package named in `forum.config.ts`. Installing one is three

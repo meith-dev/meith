@@ -359,3 +359,83 @@ export function renderThemeStyle(
     baseline,
   })
 }
+
+/* ------------------------------------------------------------------ *
+ * Usergroup name colours
+ * ------------------------------------------------------------------ */
+
+/** One usergroup's colours, as `renderGroupNameStyle` needs them. */
+export interface GroupNameColour {
+  readonly groupId: number
+  /** Straight from the database, like a token override. Validated here. */
+  readonly light: string | null
+  readonly dark: string | null
+}
+
+/** The class every username of this group carries. */
+export function groupNameClass(groupId: number): string {
+  return `gname-${groupId}`
+}
+
+/**
+ * Render the board's usergroup colours into one style block.
+ *
+ * ## Why this is CSS and not a value on the model
+ *
+ * Because the answer differs between light and dark, and a `style` attribute
+ * cannot hold two of them. The reader who makes this necessary is the commonest
+ * one: somebody on "system", whose page carries no `.dark` class at all because
+ * their dark mode is a media query. The only place both values can live is the
+ * stylesheet, in the same three blocks `renderBoardStyle` uses and for exactly
+ * the same reason — `.dark` is the class this board's own control sets,
+ * `:root:not(.light)` is what lets an explicit "light, please" beat the
+ * operating system.
+ *
+ * ## Why the class name is written twice
+ *
+ * `.gname-3.gname-3` is specificity 0-2-0, and that is deliberate. A theme puts
+ * its own colour on a username with a utility class — one class, 0-1-0 — and at
+ * equal specificity the later rule in the stylesheet wins. Which of these two
+ * `<style>` elements the framework emits later is not something this board
+ * controls, so an unrepeated selector would win on some builds and lose on
+ * others. Eight characters buys the question away.
+ *
+ * Values are validated rather than trusted. They arrive from a column an
+ * operator can edit with SQL and a restored backup carries in from another
+ * board, and they are about to be written into a `<style>` block.
+ */
+export function renderGroupNameStyle(groups: readonly GroupNameColour[]): string {
+  if (groups.length === 0) return ''
+
+  /*
+   * Built selector-first rather than by rewriting generated CSS. An earlier
+   * draft produced the light rules and regex-replaced their selectors to make
+   * the dark ones, which works until a colour value happens to contain the
+   * pattern — and is unreadable long before that.
+   */
+  const block = (pick: (group: GroupNameColour) => string | null, prefix: string): string =>
+    groups
+      .map((group) => {
+        const colour = pick(group)
+        if (colour === null) return ''
+        assertSafeCssValue(`group ${group.groupId} colour`, colour)
+        const selector = `.${groupNameClass(group.groupId)}`
+        return `${prefix}${selector}${selector}{color:${colour};}`
+      })
+      .join('')
+
+  const dark = block((group) => group.dark, '.dark ')
+
+  return (
+    block((group) => group.light, '') +
+    dark +
+    /*
+     * Omitted entirely when no group has a dark colour, rather than emitted
+     * empty: a board that has only ever set light colours should ship no media
+     * query at all.
+     */
+    (dark === ''
+      ? ''
+      : `@media (prefers-color-scheme: dark){${block((group) => group.dark, ':root:not(.light) ')}}`)
+  )
+}

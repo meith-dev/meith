@@ -11,6 +11,7 @@ import { requireAdmin } from '@/server/admin'
 import { badgeKey, badgeSrc } from '@/server/group-badge'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { buildGroupPermissionView, groupAdminRepository } from '@/server/group-admin'
+import { boardSampleSurfaces } from '@/server/theme-admin'
 
 export const metadata: Metadata = { title: 'Group' }
 
@@ -80,6 +81,7 @@ export default async function AdminGroupPage({
             nameColorLight: view.group.nameColorLight ?? '',
             nameColorDark: view.group.nameColorDark ?? '',
           }}
+          surfaces={await boardSampleSurfaces()}
         />
       </section>
 

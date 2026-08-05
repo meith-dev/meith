@@ -1,5 +1,7 @@
 import type { PostBitSlotModel } from '@meith/theme-kit'
 
+import { UserRef } from '../shared'
+
 /**
  * One post, in the **classic two-column layout**: author on the left, body on
  * the right.
@@ -15,6 +17,39 @@ import type { PostBitSlotModel } from '@meith/theme-kit'
  * the kind and `scripts/slot-kinds.mjs` enforces it; this comment is here
  * because a theme author copying this file is exactly who needs to read it.
  */
+/**
+ * The board's mark for this member's group.
+ *
+ * `alt=""` and `aria-hidden`: the group's title is rendered as text on the very
+ * next line, and a badge that announced it too would make a screen reader say
+ * the word twice.
+ *
+ * A `<picture>` only where the server could not decide — a reader on "system"
+ * with two images uploaded. Everywhere else `darkSrc` is `null` and this is one
+ * element and one request.
+ */
+function GroupBadge({ badge }: { badge: NonNullable<PostBitSlotModel['post']['author']['badge']> }) {
+  const image = (
+    <img
+      src={badge.src}
+      alt=""
+      aria-hidden="true"
+      className="h-4 w-auto max-w-full object-contain"
+      loading="lazy"
+      decoding="async"
+    />
+  )
+
+  if (badge.darkSrc === null) return image
+
+  return (
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcSet={badge.darkSrc} />
+      {image}
+    </picture>
+  )
+}
+
 function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['visibility'] }) {
   if (visibility === 'visible') return null
   return (
@@ -46,17 +81,21 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
                 />
               </label>
             )}
-            {post.author.profileHref === null ? (
-              <span className="font-medium">{post.author.username}</span>
-            ) : (
-              <a href={post.author.profileHref} className="font-medium hover:text-primary">
-                {post.author.username}
-              </a>
-            )}
+            <UserRef
+              user={post.author}
+              className={
+                post.author.profileHref === null ? 'font-medium' : 'font-medium hover:text-primary'
+              }
+            />
           </p>
 
           {regions.pluginBadges}
 
+          {post.author.badge != null && (
+            <p className="mt-1">
+              <GroupBadge badge={post.author.badge} />
+            </p>
+          )}
           {post.author.title !== null && (
             <p className="font-mono text-xs text-muted-foreground">{post.author.title}</p>
           )}
@@ -84,6 +123,17 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
                 <dd>
                   <time dateTime={post.author.joinedAt.iso}>{post.author.joinedAt.label}</time>
                 </dd>
+              </div>
+            )}
+            {/*
+              F62's reputation. `null` means the board has reputation switched
+              off; `0` means nobody has rated this member yet. The two are
+              different answers and must not render the same way.
+            */}
+            {post.author.reputation != null && (
+              <div className="flex gap-1">
+                <dt>rep</dt>
+                <dd className="text-foreground">{post.author.reputation}</dd>
               </div>
             )}
             {post.author.isOnline && <div className="text-forum-unread">online</div>}

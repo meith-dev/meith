@@ -1,5 +1,7 @@
 import type { AnnouncementModel } from '@meith/theme-kit'
 
+import { UserRef } from '../shared'
+
 /**
  * One announcement (F71), midnight's take.
  *
@@ -26,13 +28,12 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
         ) : (
           <>
             Posted by{' '}
-            {postedBy.profileHref === null ? (
-              <span className="font-medium">{postedBy.username}</span>
-            ) : (
-              <a href={postedBy.profileHref} className="text-primary hover:underline">
-                {postedBy.username}
-              </a>
-            )}
+            <UserRef
+              user={postedBy}
+              className={
+                postedBy.profileHref === null ? 'font-medium' : 'text-primary hover:underline'
+              }
+            />
           </>
         )}{' '}
         <time dateTime={postedAt.iso}>{postedAt.label}</time>

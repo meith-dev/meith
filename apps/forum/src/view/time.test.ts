@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { formatTime, timezoneLabel } from './time'
+import { formatDate, formatTime, timezoneLabel } from './time'
 
 const NOW = new Date('2026-07-30T12:00:00Z')
 
@@ -141,5 +141,54 @@ describe('the viewer’s timezone (F57)', () => {
   it('names a zone the way the footer shows it', () => {
     expect(timezoneLabel('America/New_York')).toBe('America/New York')
     expect(timezoneLabel('UTC')).toBe('UTC')
+  })
+})
+
+/**
+ * `formatDate` — the dates where the clock is not information.
+ *
+ * The two differences from `formatTime` are the whole point of the function
+ * existing, and both were live bugs before it did: a postbit read
+ * "Joined 1 Jan, 00:00", and inside the current year it read "Joined 12 Mar"
+ * with the year — the one part a join date is actually asked for — dropped.
+ */
+describe('formatDate', () => {
+  it('carries the exact instant as ISO, like every other timestamp', () => {
+    expect(formatDate(new Date('2026-03-12T09:14:00Z')).iso).toBe('2026-03-12T09:14:00.000Z')
+  })
+
+  /* The bug this function was written for: midnight is not a fact about a member. */
+  it('never shows a time, not even a midnight one', () => {
+    expect(formatDate(new Date('2026-01-01T00:00:00Z')).label).toBe('1 Jan 2026')
+    expect(formatDate(new Date('2026-03-12T09:14:00Z')).label).toBe('12 Mar 2026')
+  })
+
+  /*
+   * `formatTime` drops the year inside the current one, which is right for
+   * activity and wrong here — "how long has this person been here" is the only
+   * question a join date is asked, and the year is the answer to it.
+   */
+  it('keeps the year even for this year, unlike formatTime', () => {
+    const thisYear = new Date('2026-03-12T09:14:00Z')
+
+    expect(formatDate(thisYear).label).toBe('12 Mar 2026')
+    expect(formatTime(thisYear, NOW).label).not.toContain('2026')
+  })
+
+  /*
+   * The date is the viewer's, not the server's. Late evening in UTC on the
+   * 31st is already the 1st in Auckland — a member who joined "on the 1st"
+   * according to their own calendar should not be told they joined on the 31st.
+   */
+  it('resolves the calendar day in the viewer’s zone', () => {
+    const instant = new Date('2025-12-31T23:30:00Z')
+
+    expect(formatDate(instant).label).toBe('31 Dec 2025')
+    expect(formatDate(instant, 'Pacific/Auckland').label).toBe('1 Jan 2026')
+  })
+
+  /* A zone retired from the tz database falls back rather than throwing. */
+  it('falls back to UTC for a zone the runtime has never heard of', () => {
+    expect(formatDate(new Date('2026-03-12T09:14:00Z'), 'Mars/Olympus').label).toBe('12 Mar 2026')
   })
 })

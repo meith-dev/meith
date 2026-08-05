@@ -11,6 +11,7 @@ import type {
 import type { ReadState, ThreadListingRow, ThreadPage } from "@meith/threads";
 
 import { forumHref } from "./board-index";
+import { nameClassOf, type MemberIdentity } from "./member-identity";
 import { memberHref } from "./member-profile";
 import { formatTime } from "./time";
 
@@ -28,12 +29,18 @@ function lastPost(
   thread: ThreadListingRow,
   now: Date,
   timeZone: string | undefined,
+  identities: ReadonlyMap<number, MemberIdentity> | undefined,
 ): LastPostModel | null {
   if (!post) return null;
   return {
     threadTitle: thread.title,
     href: `${threadHref(thread)}#post-${post.postId}`,
-    author: { userId: post.userId, username: post.username, profileHref: post.userId === null ? null : memberHref(post.userId) },
+    author: {
+      userId: post.userId,
+      username: post.username,
+      profileHref: post.userId === null ? null : memberHref(post.userId),
+      nameClass: nameClassOf(identities, post.userId),
+    },
     at: formatTime(post.at, now, timeZone),
   };
 }
@@ -59,6 +66,15 @@ export function threadRowModel(
   readState: Pick<ReadState, "forumReadAt" | "threadLastPostId"> | null = null,
   /** F57's viewer zone. Defaults to UTC, as every timestamp did before it. */
   timeZone?: string,
+  /**
+   * The group colours for the names in this row, or `undefined`.
+   *
+   * Optional and last, because two callers build a thread row — the forum
+   * listing and the thread page's own header — and only one of them has a page
+   * full of names to resolve. A caller that passes nothing gets exactly the row
+   * this function returned before group colours existed.
+   */
+  identities?: ReadonlyMap<number, MemberIdentity>,
 ): ThreadRowModel {
   const last = row.lastPost;
   const isUnread =
@@ -75,6 +91,7 @@ export function threadRowModel(
       userId: row.authorUserId,
       username: row.authorUsername,
       profileHref: row.authorUserId === null ? null : memberHref(row.authorUserId),
+      nameClass: nameClassOf(identities, row.authorUserId),
     },
     replyCount: row.replyCount,
     viewCount: row.viewCount,
@@ -82,7 +99,7 @@ export function threadRowModel(
     isLocked: row.isLocked,
     isUnread,
     isMoved: row.isMoved,
-    lastPost: lastPost(row.lastPost, row, now, timeZone),
+    lastPost: lastPost(row.lastPost, row, now, timeZone, identities),
   };
 }
 
@@ -105,6 +122,14 @@ export interface ForumDisplayInput {
    * this board used before members could choose one.
    */
   readonly timeZone?: string;
+  /**
+   * The group colours for every name on this page, resolved in one query.
+   *
+   * Optional, and an empty map is a real answer rather than a missing one: a
+   * board with no coloured groups produces exactly what this page rendered
+   * before they existed.
+   */
+  readonly identities?: ReadonlyMap<number, MemberIdentity>;
 }
 
 export interface ForumDisplayView {
@@ -128,7 +153,7 @@ export function buildForumDisplayView(
         ? null
         : { forums: input.subforums.map(forum) },
     threads: input.page.rows.map((row) =>
-      threadRowModel(row, input.now, input.readState ?? null, input.timeZone),
+      threadRowModel(row, input.now, input.readState ?? null, input.timeZone, input.identities),
     ),
     pagination: {
       page: input.pageNumber,

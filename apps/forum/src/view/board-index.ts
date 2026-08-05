@@ -39,6 +39,7 @@ import type {
 } from '@meith/theme-kit'
 
 import { formatTime } from './time'
+import { nameClassOf, type MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
 
 export interface BoardIndexInput {
@@ -56,6 +57,14 @@ export interface BoardIndexInput {
    * this board used before members could choose one.
    */
   readonly timeZone?: string
+  /**
+   * The group colours for every last-poster on the index, in one query.
+   *
+   * Optional, and an empty map is a real answer rather than a missing one: a
+   * board with no coloured groups renders exactly what it did before they
+   * existed.
+   */
+  readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
 /** `/forum/12-general` — id first so a rename never breaks a link. */
@@ -84,6 +93,7 @@ function toLastPost(
   row: ForumListingRow,
   now: Date,
   timeZone: string | undefined,
+  identities: ReadonlyMap<number, MemberIdentity> | undefined,
 ): LastPostModel | null {
   const last = row.lastPost
   if (last === null) return null
@@ -95,6 +105,7 @@ function toLastPost(
       userId: last.userId,
       username: last.username,
       profileHref: last.userId === null ? null : memberHref(last.userId),
+      nameClass: nameClassOf(identities, last.userId),
     },
     at: formatTime(last.at, now, timeZone),
   }
@@ -105,6 +116,7 @@ function toForumRow(
   now: Date,
   timeZone: string | undefined,
   unreadForumIds: ReadonlySet<number> | undefined,
+  identities: ReadonlyMap<number, MemberIdentity> | undefined,
 ): ForumRowModel {
   return {
     id: node.id,
@@ -114,7 +126,7 @@ function toForumRow(
     type: node.type,
     threadCount: node.threadCount,
     postCount: node.postCount,
-    lastPost: toLastPost(node, now, timeZone),
+    lastPost: toLastPost(node, now, timeZone, identities),
     isUnread: unreadForumIds?.has(node.id) ?? false,
     subforums: node.children.map(
       (child): LinkModel => ({ label: child.title, href: hrefFor(child) }),
@@ -167,9 +179,17 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
       markAllReadAction: input.markAllReadAction ?? null,
     },
     blocks: tree.map((node) => ({
-      block: { category: toForumRow(node, input.now, input.timeZone, input.unreadForumIds) },
+      block: {
+        category: toForumRow(
+          node,
+          input.now,
+          input.timeZone,
+          input.unreadForumIds,
+          input.identities,
+        ),
+      },
       forums: node.children.map((child) =>
-        toForumRow(child, input.now, input.timeZone, input.unreadForumIds),
+        toForumRow(child, input.now, input.timeZone, input.unreadForumIds, input.identities),
       ),
     })),
   }

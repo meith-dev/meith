@@ -34,6 +34,7 @@ import {
 import { attachmentsByPost } from '@/view/attachments'
 import { attachmentsForPosts } from '@/server/attachments'
 import { avatarsFor } from '@/server/avatars'
+import { identitiesFor } from '@/server/group-identity'
 import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
 import { getSettings } from '@/server/settings'
 import { buildBreadcrumb } from '@/view/breadcrumb'
@@ -446,6 +447,14 @@ export default async function ThreadPage({
   /* F58. Same one-query-per-page shape as the signatures above. */
   const avatars = await avatarsFor(authorIds)
 
+  /*
+   * The group standing behind every name on the page — title, colour, badge and
+   * reputation — in one query, for the same reason. This is what fills
+   * `PostAuthorModel.title`, which has been in the theme contract since F27 and
+   * hardcoded `null` at the only place that builds it.
+   */
+  const identities = await identitiesFor(authorIds)
+
   const attachments = attachmentsByPost(
     await attachmentsForPosts(postPage.rows.map((row) => row.id)),
   )
@@ -475,6 +484,7 @@ export default async function ThreadPage({
     signatures,
     attachments,
     avatars,
+    identities,
     ignoredIds,
     revealedPostIds: revealedFrom(query.reveal),
     /*

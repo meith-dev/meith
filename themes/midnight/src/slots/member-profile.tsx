@@ -34,7 +34,14 @@ export function MemberProfile({
           />
         )}
         <div>
-          <h1 className="font-mono text-2xl font-semibold">{user.username}</h1>
+          {/* The group's colour, as on every other page the name appears on. */}
+          <h1
+            className={['font-mono text-2xl font-semibold', user.nameClass]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {user.username}
+          </h1>
           {title !== null && <p className="font-mono text-xs text-muted-foreground">{title}</p>}
         </div>
       </header>
