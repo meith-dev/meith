@@ -90,7 +90,26 @@ interface SettingDefinitionBase<T> {
 export type SettingDefinition<T = unknown> = SettingDefinitionBase<T>
 
 /** Helper preserving the literal value type through the definition. */
-function define<T>(d: SettingDefinitionBase<T>): SettingDefinition<T> {
+/**
+ * Attach the type, and **keep the key literal**.
+ *
+ * The `K` is the entire point of the second type parameter. Without it the
+ * return type widens `key` to `string`, which is what this signature used to
+ * do — and the consequence was silent and total: `SettingKey` became `string`,
+ * so any key at all type-checked, and `SettingValue<K>` became `never`, because
+ * `Extract<{ key: string, … }, { key: 'board.name' }>` matches nothing.
+ *
+ * `never` is assignable to everything, so nothing complained. Every
+ * `settings.get('board.name')` on the board was typed `never` and every
+ * assignment of one still compiled. It surfaced the first time somebody called
+ * a method on the result rather than assigning it.
+ *
+ * `definitions.type-test.ts` is the deliberate violation that keeps this
+ * honest — put the old signature back and it fails loudly (D10).
+ */
+function define<T, K extends string>(
+  d: SettingDefinitionBase<T> & { readonly key: K },
+): SettingDefinition<T> & { readonly key: K } {
   return d
 }
 

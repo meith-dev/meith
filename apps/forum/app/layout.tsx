@@ -12,8 +12,10 @@ import { env } from "@meith/core"
 import { CookieNotice } from "@/components/shell/cookie-notice"
 import { ThemeRuntimeStyle } from "@/components/shell/theme-runtime-style"
 import { getConsentState } from "@/server/consent"
+import { getSettings } from "@/server/settings"
 import { currentColourScheme, currentThemeKey } from "@/server/theme"
 import { getThemeRuntimeStyle } from "@/server/theme-runtime"
+import { BOARD_TITLE } from "@/view/shell"
 import { colorSchemeProperty, schemeClass } from "@/view/theme-preference"
 
 import "@/styles/globals.css"
@@ -46,12 +48,63 @@ const newsreader = Newsreader({
   variable: "--font-newsreader",
 })
 
-export const metadata: Metadata = {
-  title: {
-    default: "Meith",
-    template: "%s · Meith",
-  },
-  description: "A discussion board.",
+/**
+ * The board's own name and description, not this project's.
+ *
+ * These were literals — `Meith`, and "A discussion board." — which meant every
+ * browser tab, every bookmark and every unfurled link on somebody else's forum
+ * said the name of the software rather than the name of the community running
+ * it. `board.name` has been in the settings registry since F08 and the header
+ * has always rendered it; the `<title>` never did, so a board could be renamed
+ * everywhere it was visible on the page and stay "Meith" everywhere it was
+ * visible off it.
+ *
+ * `generateMetadata` rather than a static export, because the values are read
+ * per request. That costs nothing this layout was not already paying: it reads
+ * cookies for the theme, so it is dynamic regardless.
+ *
+ * ## The fallbacks are load-bearing
+ *
+ * A settings read that fails must not take a page down, and this runs on the
+ * error pages too. `BOARD_TITLE` is the same constant the auth screens and the
+ * error shell already fall back to, for exactly that reason — a board whose
+ * database is unreachable renders with the software's name rather than with an
+ * empty `<title>`, which is the more useful of the two failures.
+ *
+ * An operator who has cleared `board.description` gets no description tag at
+ * all rather than an empty one. `undefined` is how Next is told to omit a tag,
+ * and an empty `<meta name="description">` is worse than none — search engines
+ * read it as a deliberate blank.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  let name = BOARD_TITLE
+  let description: string | undefined
+
+  try {
+    const settings = await getSettings()
+    name = settings.get("board.name").trim() || BOARD_TITLE
+    description = settings.get("board.description").trim() || undefined
+  } catch {
+    /* The constant, and no description. */
+  }
+
+  return {
+    title: {
+      default: name,
+      /*
+       * The board's name after the page's own, which is the convention every
+       * reader with twenty tabs open depends on: the distinguishing part comes
+       * first because that is the part a narrowed tab still shows.
+       */
+      template: `%s · ${name}`,
+    },
+    description,
+    ...BASE_METADATA,
+  }
+}
+
+/** Everything about the board's metadata that does not depend on a setting. */
+const BASE_METADATA: Metadata = {
   /*
    * F76. `metadataBase` is what turns every relative `canonical` and `og:url`
    * on the board into an absolute one — a social card with a relative URL in it
