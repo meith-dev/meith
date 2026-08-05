@@ -127,7 +127,9 @@ Then redeploy.
 - **On or off.** A theme that is on appears in the appearance control at the
   foot of every page, and any member — signed in or not — can pick it. The theme
   the board is built with can never be turned off; neither can the default,
-  which has to be moved first.
+  which has to be moved first. With one theme enabled the menu is not rendered
+  at all — a board with one look does not carry a control for choosing between
+  it and itself — and the light/dark buttons still work on their own.
 - **The default** — what a member who has chosen nothing sees. It need not be
   the theme the board is built with: setting `midnight` as the default gives
   every visitor midnight, without a deploy.

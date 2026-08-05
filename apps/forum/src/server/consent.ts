@@ -5,11 +5,10 @@ import 'server-only'
  *
  * Resolved once per request with `React.cache`, the same shape `getActor` and
  * `currentTheme` use — the root layout asks twice (once to decide whether to
- * render the analytics script, once to decide whether to render the notice) and
- * the appearance strip asks a third time.
+ * render an optional script, once to decide whether to render the notice) and
+ * the preferences strip asks a third time.
  */
-import { headers } from 'next/headers'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { cache } from 'react'
 
 import {
@@ -29,13 +28,19 @@ export interface ConsentState {
   /** Their answer, or `null` if they have not given one. */
   readonly choice: ConsentChoice | null
   /**
-   * Whether optional processing — today, the analytics script — may run.
+   * Whether anything in `OPTIONAL_PROCESSING` may run.
    *
    * `true` when consent is not required at all, or when it was granted. Never
-   * `true` merely because nobody has answered yet: an unanswered banner is a
+   * `true` merely because nobody has answered yet: an unanswered notice is a
    * refusal until it is not, which is the whole point of asking first.
+   *
+   * Deliberately one flag rather than one per category. The notice asks one
+   * question, so it can only carry one answer — a per-category state would be a
+   * promise the interface does not keep. If a board ever needs to allow
+   * analytics and refuse embeds separately, that is a second question on the
+   * notice first and a second field here second, in that order.
    */
-  readonly analyticsAllowed: boolean
+  readonly optionalAllowed: boolean
 }
 
 function mode(value: unknown): ConsentMode {
@@ -64,5 +69,5 @@ export const getConsentState = cache(async (): Promise<ConsentState> => {
   const stored = (await cookies()).get(CONSENT_COOKIE)?.value
   const choice = isConsentChoice(stored) ? stored : null
 
-  return { required, choice, analyticsAllowed: !required || choice === 'granted' }
+  return { required, choice, optionalAllowed: !required || choice === 'granted' }
 })

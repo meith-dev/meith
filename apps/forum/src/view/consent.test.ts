@@ -9,7 +9,14 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { CONSENT_REGIONS, consentRequired, countryFrom, isConsentChoice } from './consent'
+import {
+  CONSENT_REGIONS,
+  ESSENTIAL_PROCESSING,
+  OPTIONAL_PROCESSING,
+  consentRequired,
+  countryFrom,
+  isConsentChoice,
+} from './consent'
 
 /** A stand-in for the `Headers` the request carries. */
 function headers(values: Record<string, string>) {
@@ -90,5 +97,30 @@ describe('isConsentChoice', () => {
     /* A cookie anybody can edit. "true" is not an answer this board wrote. */
     expect(isConsentChoice('true')).toBe(false)
     expect(isConsentChoice(undefined)).toBe(false)
+  })
+})
+
+describe('what the notice describes', () => {
+  /*
+   * The notice and the toggle both read these lists rather than naming a
+   * feature, so that adding a second optional thing cannot leave a banner
+   * describing only the first. These tests are the cheap half of that promise;
+   * the expensive half is that nothing else in the app has its own list.
+   */
+  it('separates what is always stored from what is asked about', () => {
+    const essential = ESSENTIAL_PROCESSING.map((item) => item.key)
+    const optional = OPTIONAL_PROCESSING.map((item) => item.key)
+
+    expect(essential.length).toBeGreaterThan(0)
+    expect(optional.length).toBeGreaterThan(0)
+    expect(essential.filter((key) => optional.includes(key))).toEqual([])
+  })
+
+  it('describes each entry in words a reader could act on', () => {
+    for (const item of [...ESSENTIAL_PROCESSING, ...OPTIONAL_PROCESSING]) {
+      /* A cookie name is not a description. */
+      expect(item.label, item.key).not.toMatch(/meith_|cookie/i)
+      expect(item.label.length, item.key).toBeGreaterThan(20)
+    }
   })
 })

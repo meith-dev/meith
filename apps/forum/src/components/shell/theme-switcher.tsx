@@ -1,22 +1,63 @@
 import { ConsentToggle } from '@/components/shell/cookie-notice'
+import {
+  MonitorIcon,
+  MoonIcon,
+  SunIcon,
+} from '@/components/shell/appearance-icons'
 import { setAppearanceAction } from '@/server/appearance-actions'
 import { currentColourScheme, currentThemeKey } from '@/server/theme'
 import { getBoardThemeStyle } from '@/server/theme-runtime'
-import { COLOUR_SCHEMES, COLOUR_SCHEME_LABEL } from '@/view/theme-preference'
+import {
+  COLOUR_SCHEMES,
+  COLOUR_SCHEME_LABEL,
+  type ColourSchemePreference,
+} from '@/view/theme-preference'
 
 /**
- * The member's appearance control.
+ * The member's appearance controls.
  *
  * ## It ships no JavaScript
  *
  * Ordinary forms and submit buttons. React makes them partial updates when
  * scripting is on and changes nothing about the behaviour when it is off (D06).
  *
+ * ## Why the theme is a menu and the colour scheme is not
+ *
+ * Because they are different sizes of question. A board has two or three themes
+ * and could have eleven, so the theme control has to be one that does not grow
+ * — a `<select>` is the same width whatever is in it. The colour scheme has
+ * exactly three answers, for ever, and three icons are smaller than a menu as
+ * well as being one press instead of two.
+ *
+ * The menu is deliberately the same shape as the forum jump box directly above
+ * it: a label, a `<select>`, a small submit. That is not imitation for its own
+ * sake — the two sit in the same block of chrome, and a reader who has used one
+ * should not have to work out that the other behaves the same way. It is also
+ * why the theme control keeps its "Apply": a `<select>` cannot submit itself
+ * without scripting, and the jump box has always been honest about that.
+ *
+ * **With one theme there is no control at all.** Not a disabled menu, not a
+ * menu with one option — nothing. A board that installs one theme should not
+ * carry a control for choosing between it and itself, and the colour scheme
+ * still works on its own.
+ *
+ * ## Why the colour scheme has no visible label
+ *
+ * This strip is on every page and most readers set these once, so it has to
+ * earn its width. The word "Colours" cost more room than the three buttons it
+ * introduced and told nobody anything the sun, the monitor and the moon do not.
+ *
+ * It is still there as a *name*, on the group rather than on the page:
+ * `aria-label` on the `role="group"`, `sr-only` text inside every button, and
+ * `title` for a pointer. A screen reader announces "Colour scheme, Dark,
+ * pressed"; a sighted reader sees a moon. Nothing was removed except the pixels
+ * — which is the distinction between compacting a control and hiding one.
+ *
  * ## Two forms, and the bug that says why
  *
  * The theme menu and the colour-scheme buttons are **separate forms**. The
  * first draft had them in one, on the reasoning that a submit button
- * contributes its own `name=value` and no other button’s — which is true of
+ * contributes its own `name=value` and no other button's — which is true of
  * *buttons* and not of the form. A `<select name="theme">` posts whatever it is
  * showing, from any submit button in the same form. So pressing "Dark" also
  * wrote a theme cookie pinning the member to the theme the menu happened to
@@ -29,12 +70,7 @@ import { COLOUR_SCHEMES, COLOUR_SCHEME_LABEL } from '@/view/theme-preference'
  * of fix that reads as an arbitrary preference unless the reason is written
  * down.
  *
- * The alternative — a client island writing `localStorage` — could only ever
- * repaint, because the theme decides the markup and the markup comes from the
- * server. It would also have to render nothing until it had mounted, to avoid
- * guessing its own selected value.
- *
- * ## Why the app composes it rather than a theme
+ * ## Why the app composes this rather than a theme
  *
  * The same reason `PageShell` is not itself a slot, and the same reason F80's
  * `header.notice` region is app-rendered: *whether a board offers a theme
@@ -43,6 +79,16 @@ import { COLOUR_SCHEMES, COLOUR_SCHEME_LABEL } from '@/view/theme-preference'
  * chosen a different one, in that theme, with no way back. The v1 slot contract
  * is frozen (F77) and this adds nothing to it.
  */
+
+const SCHEME_ICON: Record<ColourSchemePreference, () => React.ReactNode> = {
+  light: SunIcon,
+  system: MonitorIcon,
+  dark: MoonIcon,
+}
+
+const CONTROL =
+  'h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+
 export async function ThemeSwitcher() {
   const [{ choices }, theme, scheme] = await Promise.all([
     getBoardThemeStyle(),
@@ -51,18 +97,34 @@ export async function ThemeSwitcher() {
   ])
 
   return (
-    <section aria-label="Appearance" className="border-t border-border bg-card text-card-foreground">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 text-xs sm:px-6">
-        <span className="font-medium text-foreground">Appearance</span>
-
-        {choices.length > 1 && (
-          <form action={setAppearanceAction} className="flex items-center gap-2">
-            <label className="flex items-center gap-2 text-muted-foreground">
-              <span>Theme</span>
+    <div className="border-t border-border bg-card text-card-foreground">
+      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-end gap-x-4 gap-y-2 px-4 py-2 sm:px-6">
+        {/*
+          A landmark, not decoration. This strip is the last thing on every page
+          and holds the only controls outside the board's own navigation, so it
+          is worth being able to jump to — and naming it is also what stops the
+          consent toggle beside it being read as part of the same question.
+        */}
+        <section
+          aria-label="Appearance"
+          className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2"
+        >
+          {choices.length > 1 && (
+            <form
+              action={setAppearanceAction}
+              className="flex items-center gap-2"
+            >
+              <label
+                htmlFor="appearance-theme"
+                className="text-xs text-muted-foreground"
+              >
+                Theme
+              </label>
               <select
+                id="appearance-theme"
                 name="theme"
                 defaultValue={theme}
-                className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                className={CONTROL}
               >
                 {choices.map((choice) => (
                   <option key={choice.key} value={choice.key}>
@@ -70,61 +132,71 @@ export async function ThemeSwitcher() {
                   </option>
                 ))}
               </select>
-            </label>
-            {/*
-              A `<select>` cannot submit itself without scripting, so this is
-              the one control on the strip that takes two steps. Everything
-              else is one press.
-            */}
-            <button
-              type="submit"
-              className="h-8 rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              Apply
-            </button>
-          </form>
-        )}
+              <button
+                type="submit"
+                className="h-8 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                Apply
+              </button>
+            </form>
+          )}
 
-        <form action={setAppearanceAction}>
-          <fieldset className="flex items-center gap-2 text-muted-foreground">
-            <legend className="float-left mr-2">Colours</legend>
-            <span className="inline-flex overflow-hidden rounded-md border border-border">
-              {COLOUR_SCHEMES.map((option) => (
-                /*
-                 * `aria-pressed` rather than a radio group, because these *are*
-                 * buttons — each one performs the change rather than recording
-                 * an intention to.
-                 */
-                <button
-                  key={option}
-                  type="submit"
-                  name="scheme"
-                  value={option}
-                  aria-pressed={scheme === option}
-                  className={`h-8 px-3 text-xs focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${
-                    scheme === option
-                      ? 'bg-primary font-medium text-primary-foreground'
-                      : 'bg-background text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {COLOUR_SCHEME_LABEL[option]}
-                </button>
-              ))}
+          <form action={setAppearanceAction}>
+            <span
+              role="group"
+              aria-label="Colour scheme"
+              className="inline-flex items-center overflow-hidden rounded-md border border-border text-muted-foreground"
+            >
+              {COLOUR_SCHEMES.map((option) => {
+                const Icon = SCHEME_ICON[option]
+                const label = COLOUR_SCHEME_LABEL[option]
+                const selected = scheme === option
+                return (
+                  /*
+                   * `aria-pressed` rather than a radio group, because these *are*
+                   * buttons — each one performs the change rather than recording
+                   * an intention to. The selected cell is filled with `primary`,
+                   * the one token every board brands, so the control picks up a
+                   * board's own colour rather than inventing one.
+                   */
+                  <button
+                    key={option}
+                    type="submit"
+                    name="scheme"
+                    value={option}
+                    title={label}
+                    aria-pressed={selected}
+                    className={`inline-flex h-8 items-center justify-center border-border px-2.5 transition-colors [&:not(:first-child)]:border-l focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${
+                      selected
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    <Icon />
+                    {/*
+                    The word is the accessible name and stays in the document —
+                    hidden visually rather than removed, so the control is never
+                    three unlabelled glyphs to a screen reader.
+                  */}
+                    <span className="sr-only">{label}</span>
+                  </button>
+                )
+              })}
             </span>
-          </fieldset>
-        </form>
+          </form>
+        </section>
 
         {/*
-          A sibling, never a child: a `<form>` inside a `<form>` is invalid HTML
-          and browsers resolve it by dropping the inner one, which would
-          silently turn this button into one that posts an appearance form.
+          Its own section and a sibling form: a `<form>` inside a `<form>` is
+          invalid HTML and browsers resolve it by dropping the inner one, which
+          would silently turn its button into one that posts an appearance form.
 
-          It renders nothing for a reader who was never asked about cookies.
+          Labelled "Privacy" rather than folded in with the rest, because it is
+          not a question about how the board looks. It renders nothing at all
+          for a reader who was never asked about cookies.
         */}
         <ConsentToggle />
-
-        <span className="text-muted-foreground">Remembered in this browser.</span>
       </div>
-    </section>
+    </div>
   )
 }

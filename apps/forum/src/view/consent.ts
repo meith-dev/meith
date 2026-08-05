@@ -1,30 +1,26 @@
 /**
  * Cookie consent: what actually needs it, and where it is asked for.
  *
- * ## What this board stores, and why most of it is not a consent question
+ * ## The two categories, and why only one is a question
  *
  * The ePrivacy Directive (Article 5(3), which is what a "cookie banner" is
  * really about — the GDPR governs what you do with the data afterwards) exempts
  * storage that is *strictly necessary* to provide a service the user explicitly
- * asked for. Every cookie this board sets on its own is in that category:
+ * asked for. Everything this board stores on its own is in that category:
+ * signing in, the security of that session, and the preferences a reader sets
+ * by pressing a control. None of them are shared, none identify anybody across
+ * sites, and none exist before somebody asks for them.
  *
- * | Cookie | Why it is exempt |
- * |---|---|
- * | session / remember-me | signing in is a service explicitly requested |
- * | CSRF | security of that same service |
- * | `meith_theme`, `meith_scheme` | user-interface customisation, written *only* in direct response to the member pressing a control — the EDPB names this case |
- * | `meith_consent` | records the answer to this very question; asking again forever would be worse |
+ * **So the notice is not about those**, and pretending otherwise would be the
+ * dishonest kind of cookie notice: one that asks for consent it does not need,
+ * trains people to click through, and buries the one choice that matters.
  *
- * None of them are shared, none identify anybody across sites, and none exist
- * before somebody asks for them. **So the banner is not about them**, and
- * pretending otherwise would be the dishonest kind of cookie notice: one that
- * asks for consent it does not need, trains people to click through, and buries
- * the one choice that matters.
- *
- * What it *is* about is the analytics the board can send to a third party. That
- * is the only processing here that a reader has a genuine interest in refusing,
- * so it is the only thing gated — and it is gated properly, by not rendering
- * the script at all rather than by loading it and hoping.
+ * What it *is* about is `OPTIONAL_PROCESSING` below — the things a reader has a
+ * genuine interest in refusing. There is one today. Adding a second is one
+ * entry in that list and one `allows()` check at the point of use; the notice,
+ * the toggle and the documentation all read the list rather than naming
+ * anything, which is what stops a board growing a tracker the banner does not
+ * mention.
  *
  * ## "Only in GDPR regions"
  *
@@ -34,10 +30,10 @@
  * *unknown*.
  *
  * Unknown is treated as in scope. Getting it wrong in that direction shows a
- * banner to somebody who did not need to see one; getting it wrong the other
- * way processes a European reader's data without asking. Those are not
- * comparable mistakes. An operator who knows better sets `privacy.cookie_consent`
- * to `off` or `always` and stops guessing.
+ * notice to somebody who did not need one; getting it wrong the other way
+ * processes a European reader's data without asking. Those are not comparable
+ * mistakes. An operator who knows better sets `privacy.cookie_consent` to `off`
+ * or `always` and stops guessing.
  *
  * **This is a mechanism, not legal advice.** What a particular board must ask
  * and record depends on what it does with the data, and that is the operator's
@@ -57,14 +53,32 @@ export function isConsentChoice(value: unknown): value is ConsentChoice {
 }
 
 /**
- * The EEA, the United Kingdom and Switzerland, as ISO 3166-1 alpha-2.
+ * What the board stores no matter what, described for a reader rather than for
+ * a lawyer.
  *
- * The EEA is the EU plus Iceland, Liechtenstein and Norway. The UK is here
- * because the UK GDPR and PECR say the same things after Brexit, and
- * Switzerland because the revised FADP does too — an operator asking "do I need
- * a banner in Zurich" wants the same answer, and a list that omitted it would
- * be a list somebody has to remember to correct.
+ * Named categories, not cookie names. "meith_scheme" tells a reader nothing,
+ * and a list that enumerated every cookie would go stale the first time one was
+ * renamed — while a category survives the rename and is what somebody reading a
+ * notice actually wants to know.
  */
+export const ESSENTIAL_PROCESSING: readonly { key: string; label: string }[] = [
+  { key: 'session', label: 'Keeping you signed in, and keeping that session secure' },
+  { key: 'preferences', label: 'Remembering the settings you choose here, in this browser' },
+]
+
+/**
+ * Everything the board will not do until it is allowed to.
+ *
+ * One entry today. It is a list rather than a boolean so that adding the second
+ * is a change in one place that the notice, the toggle and the operator
+ * documentation all pick up — a second optional thing gated by a second ad-hoc
+ * flag is how a board ends up with a banner that describes half of what it does.
+ */
+export const OPTIONAL_PROCESSING: readonly { key: string; label: string }[] = [
+  { key: 'analytics', label: 'Anonymous usage statistics, so the board can see what is read' },
+]
+
+/** The EEA, the United Kingdom and Switzerland, as ISO 3166-1 alpha-2. */
 export const CONSENT_REGIONS: ReadonlySet<string> = new Set([
   // EU
   'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR',
@@ -72,7 +86,12 @@ export const CONSENT_REGIONS: ReadonlySet<string> = new Set([
   'SI', 'ES', 'SE',
   // EEA, beyond the EU
   'IS', 'LI', 'NO',
-  // Same rules, different statute book
+  /*
+   * Same rules, different statute book: the UK GDPR and PECR say what the EU
+   * pair say after Brexit, and Switzerland's revised FADP does too. An operator
+   * asking "do I need a notice in Zurich" wants the same answer, and a list
+   * that omitted it would be one somebody has to remember to correct.
+   */
   'GB', 'CH',
 ])
 
@@ -96,8 +115,8 @@ export function consentRequired(mode: ConsentMode, country: string | null): bool
  * The headers a CDN uses to say where a request came from, most specific first.
  *
  * Only ever read, never trusted for anything but this: a forged header shows
- * somebody a banner they could have dismissed, which is not a security
- * boundary and does not need to be one.
+ * somebody a notice they could have dismissed, which is not a security boundary
+ * and does not need to be one.
  */
 export const COUNTRY_HEADERS = [
   'x-vercel-ip-country',

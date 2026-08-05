@@ -137,13 +137,15 @@ export default async function RootLayout({
         {children}
         <CookieNotice />
         {/*
-          Not rendered at all until it is allowed to run — not loaded and then
-          told to stay quiet. A script that is on the page has already been
-          fetched from a third party, which is the thing being consented to;
-          `analyticsAllowed` is false for a reader who has been asked and has
-          not yet answered, so silence is the default rather than the fallback.
+          The board's one piece of optional processing, and the shape any second
+          one should copy: gated on `optionalAllowed` and not rendered at all
+          until it is true — not loaded and then told to stay quiet. A script
+          that is on the page has already been fetched from a third party, which
+          is the thing being consented to. The flag is false for a reader who
+          has been asked and has not yet answered, so silence is the default
+          rather than the fallback.
         */}
-        {env.NODE_ENV === "production" && consent.analyticsAllowed && <Analytics />}
+        {env.NODE_ENV === "production" && consent.optionalAllowed && <Analytics />}
       </body>
     </html>
   )
