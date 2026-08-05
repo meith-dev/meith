@@ -14,7 +14,7 @@
  * so a third state would be an "inherit" that means nothing. Checkboxes are
  * therefore honest here in a way they would not be on a forum.
  */
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 
 import {
   applyPromotionsAction,
@@ -25,6 +25,8 @@ import {
   saveGroupPermissionsAction,
 } from "@/server/group-admin-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
+
+import { OklchPicker } from "./oklch-picker"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
 
@@ -79,10 +81,15 @@ export interface GroupIdentityValues {
   readonly displayOrder: number
   readonly isStaffGroup: boolean
   readonly badgeToken: string
+  /** The colour this group's members' names are shown in, per scheme. */
+  readonly nameColorLight: string
+  readonly nameColorDark: string
 }
 
 export function GroupIdentityForm({ group }: { group: GroupIdentityValues }) {
   const [state, action] = useActionState(saveGroupIdentityAction, EMPTY_STATE)
+  const [light, setLight] = useState(group.nameColorLight)
+  const [dark, setDark] = useState(group.nameColorDark)
 
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
@@ -116,13 +123,54 @@ export function GroupIdentityForm({ group }: { group: GroupIdentityValues }) {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Badge token</span>
-        <input name="badgeToken" defaultValue={group.badgeToken} className={INPUT} />
-        <span className="text-xs text-muted-foreground">
-          Names the badge a theme renders beside a member&rsquo;s name. Blank for none.
-        </span>
-      </label>
+      {/*
+        Two colours, and a sample of each against the surface it will really be
+        on. A name colour picked against a white page is the commonest way to
+        make half a board's members unreadable at night, and the only reliable
+        cure is showing both while the choice is being made.
+      */}
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-sm font-medium">Name colour</legend>
+        <p className="text-xs text-muted-foreground">
+          Shown wherever a member of this group is named — postbits, thread
+          listings, the online list. Leave a picker empty and their name is the
+          ordinary text colour, which is what every name does by default.
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(
+            [
+              ['light', 'Light', light, setLight] as const,
+              ['dark', 'Dark', dark, setDark] as const,
+            ]
+          ).map(([scheme, label, value, set]) => (
+            <div key={scheme} className="flex flex-col gap-2">
+              <span className="text-xs text-muted-foreground">{label}</span>
+              <OklchPicker
+                name={scheme === 'dark' ? 'nameColorDark' : 'nameColorLight'}
+                value={value}
+                onChange={set}
+              />
+              <p
+                className={`rounded-md border border-border bg-card px-3 py-2 text-sm ${
+                  scheme === 'dark' ? 'dark' : ''
+                }`}
+              >
+                <span style={value === '' ? undefined : { color: value }}>
+                  {group.title || 'A member'}
+                </span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </fieldset>
+
+      {/*
+        `badge_token` is still written because boards have values in it, and
+        still read by nothing — see the note on the column. The badge that does
+        render is an upload, on its own form below this one.
+      */}
+      <input type="hidden" name="badgeToken" value={group.badgeToken} />
 
       <label className="flex items-center gap-2 text-sm">
         <input

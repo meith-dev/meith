@@ -3,7 +3,8 @@ import type { Metadata } from 'next'
 import { LogoUploadForm } from '@/components/admin/branding-forms'
 import { ThemeStateForms } from '@/components/admin/theme-forms'
 import { requireAdmin } from '@/server/admin'
-import { MAX_LOGO_BYTES, logoKey, logoSrc } from '@/server/branding'
+import { logoKey, logoSrc } from '@/server/branding'
+import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { themeListing } from '@/server/theme-admin'
 import { formatTime } from '@/view/time'
 
@@ -66,7 +67,7 @@ export default async function AdminThemesPage() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <LogoUploadForm
-            maxKib={MAX_LOGO_BYTES / 1024}
+            maxKib={MAX_IMAGE_BYTES / 1024}
             slot={{
               scheme: 'light',
               label: 'Light',
@@ -75,7 +76,7 @@ export default async function AdminThemesPage() {
             }}
           />
           <LogoUploadForm
-            maxKib={MAX_LOGO_BYTES / 1024}
+            maxKib={MAX_IMAGE_BYTES / 1024}
             slot={{
               scheme: 'dark',
               label: 'Dark',

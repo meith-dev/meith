@@ -116,6 +116,43 @@ export class PostgresGroupAdminRepository {
     }))
   }
 
+  /**
+   * Point a group's badge at a stored object, and say what it stopped pointing
+   * at.
+   *
+   * `RETURNING` the *old* key is what makes the handover atomic — the avatar
+   * repository's arrangement, and its self-join too: `from usergroups old`
+   * reads the row as it was at the start of the statement, which is the
+   * portable way to return a pre-update value. A read-then-write instead would
+   * let two concurrent uploads both see the same previous key and both try to
+   * delete it, so one of them deletes an object the row now points at.
+   *
+   * No permission-version bump. A badge is presentation; nothing about who may
+   * do what changes, and bumping would invalidate every resolved actor on the
+   * board because somebody uploaded a picture.
+   */
+  async setBadge(
+    groupId: number,
+    scheme: 'light' | 'dark',
+    key: string | null,
+  ): Promise<string | null> {
+    const column = scheme === 'dark' ? sql`badge_image_dark` : sql`badge_image_light`
+
+    const rows = resultRows(
+      await this.db.execute(sql`
+        update usergroups u
+           set ${column} = ${key}, updated_at = now()
+          from usergroups old
+         where u.id = ${groupId}
+           and old.id = u.id
+        returning old.${column} as previous
+      `),
+    ) as Array<Record<string, unknown>>
+
+    const previous = rows[0]?.previous
+    return typeof previous === 'string' ? previous : null
+  }
+
   /** One group's global permissions, complete and coerced (`permissions-map`). */
   async readPermissions(groupId: number): Promise<PermissionSet | null> {
     const rows = resultRows(

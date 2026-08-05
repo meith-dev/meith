@@ -3,69 +3,13 @@
  *
  * Two things are worth pinning here and neither is CRUD:
  *
- *  - **the bytes decide the format.** A browser sends whatever content type the
- *    operating system guessed from the extension and an attacker sends whatever
- *    they like, so the declared type is discarded before it reaches this code.
- *    Every test below hands `sniff` a payload whose *name* would have said
- *    something else.
  *  - **the colour scheme is resolved on the server.** A theme doing it in CSS
  *    would be wrong for the commonest reader — the one on "system", who has no
  *    `.dark` class because their dark mode comes from a media query.
  */
 import { describe, expect, it } from 'vitest'
 
-import { logoSrc, resolveLogo, sniff } from './branding'
-
-const bytes = (...values: number[]) => new Uint8Array(values)
-const text = (value: string) => new TextEncoder().encode(value)
-
-describe('sniff', () => {
-  it('recognises the raster formats by signature', () => {
-    expect(sniff(bytes(0x89, 0x50, 0x4e, 0x47, 0x0d))?.contentType).toBe('image/png')
-    expect(sniff(bytes(0xff, 0xd8, 0xff, 0xe0))?.contentType).toBe('image/jpeg')
-    /* WebP is RIFF with a WEBP tag four bytes later, not at the start. */
-    expect(
-      sniff(bytes(0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x57, 0x45, 0x42, 0x50))?.contentType,
-    ).toBe('image/webp')
-  })
-
-  it('refuses a RIFF container that is not WebP', () => {
-    /* A WAV file is RIFF too. Matching the first four bytes alone would take it. */
-    expect(sniff(bytes(0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x57, 0x41, 0x56, 0x45))).toBeNull()
-  })
-
-  it('accepts SVG, with or without an XML declaration or a byte-order mark', () => {
-    expect(sniff(text('<svg xmlns="http://www.w3.org/2000/svg"></svg>'))?.extension).toBe('svg')
-    expect(sniff(text('<?xml version="1.0"?>\n<svg></svg>'))?.extension).toBe('svg')
-    expect(sniff(text('﻿  <svg></svg>'))?.extension).toBe('svg')
-  })
-
-  /*
-   * The case that matters most, and the one a name-based check waves through:
-   * markup uploaded as `logo.png`. Nothing here looks at the name.
-   */
-  it('refuses markup that is not SVG', () => {
-    expect(sniff(text('<html><body>hello</body></html>'))).toBeNull()
-    expect(sniff(text('GIF89a'))).toBeNull()
-    expect(sniff(new Uint8Array())).toBeNull()
-  })
-
-  /*
-   * The third of three defences — an SVG in an `<img>` cannot run script, and
-   * the serving route sandboxes direct navigation — but the cheapest to check
-   * and the only one visible in a diff.
-   */
-  it('refuses an SVG carrying script, a handler or a javascript: URL', () => {
-    for (const payload of [
-      '<svg><script>alert(1)</script></svg>',
-      '<svg onload="alert(1)"></svg>',
-      '<svg><foreignObject><body/></foreignObject></svg>',
-      '<svg><a href="javascript:alert(1)">x</a></svg>',
-    ]) {
-      expect(() => sniff(text(payload)), payload).toThrow(/script or an event handler/)
-    }
-  })
-})
+import { logoSrc, resolveLogo } from './branding'
 
 describe('logoSrc', () => {
   /*

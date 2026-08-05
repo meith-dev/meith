@@ -406,3 +406,47 @@ describe('moveMembersChunk', () => {
     expect(await permissionVersion()).toBe(before + 2)
   })
 })
+
+describe('setBadge', () => {
+  /*
+   * The property that matters is not that the key is stored — it is that the
+   * write hands back the key it *stopped* pointing at, in the same statement.
+   * The caller deletes that object, and a read-then-write would let two
+   * concurrent uploads both believe they own the same previous key.
+   */
+  it('returns the key it replaced, not the one it just wrote', async () => {
+    expect(await repo.setBadge(REGISTERED, 'light', 'group/2/badge-light-a.png')).toBeNull()
+
+    const previous = await repo.setBadge(REGISTERED, 'light', 'group/2/badge-light-b.png')
+    expect(previous).toBe('group/2/badge-light-a.png')
+
+    const group = (await repo.list()).find((row) => row.id === REGISTERED)
+    expect(group?.badgeImageLight).toBe('group/2/badge-light-b.png')
+  })
+
+  it('keeps the two schemes apart', async () => {
+    await repo.setBadge(REGISTERED, 'light', 'group/2/badge-light-a.png')
+    await repo.setBadge(REGISTERED, 'dark', 'group/2/badge-dark-a.png')
+
+    const group = (await repo.list()).find((row) => row.id === REGISTERED)
+    expect(group?.badgeImageLight).toBe('group/2/badge-light-a.png')
+    expect(group?.badgeImageDark).toBe('group/2/badge-dark-a.png')
+  })
+
+  it('clears back to no badge, handing back what it dropped', async () => {
+    await repo.setBadge(REGISTERED, 'light', 'group/2/badge-light-a.png')
+
+    expect(await repo.setBadge(REGISTERED, 'light', null)).toBe('group/2/badge-light-a.png')
+    expect((await repo.list()).find((row) => row.id === REGISTERED)?.badgeImageLight).toBeNull()
+  })
+
+  /*
+   * A badge is presentation. Bumping the permission version would invalidate
+   * every resolved actor on the board because somebody uploaded a picture.
+   */
+  it('does not bump the permission version', async () => {
+    const before = await permissionVersion()
+    await repo.setBadge(REGISTERED, 'light', 'group/2/badge-light-a.png')
+    expect(await permissionVersion()).toBe(before)
+  })
+})
