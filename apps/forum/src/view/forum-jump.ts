@@ -48,6 +48,29 @@ export interface ForumJumpInput {
 export const JUMP_ACTION = '/jump'
 export const JUMP_FIELD = 'forum'
 
+/**
+ * The submitted forum id, or `null` for "no usable selection".
+ *
+ * Pure and here rather than inline in the page, because the page is a
+ * redirect-or-404 with nothing to assert on: every branch of it ends in a
+ * `throw`, so the only way to test the parsing is to test it separately.
+ *
+ * **A repeated parameter takes its first value.** `?forum=3&forum=9` arrives as
+ * an array, and the rule has to be written down somewhere: the alternative that
+ * looks equally reasonable — refuse an ambiguous submission — turns a URL
+ * anybody can type into a way of telling 404 apart from "ambiguous", which is
+ * the oracle the route exists to avoid. First value wins, and an id the viewer
+ * may not see is the same 404 either way.
+ *
+ * `null` means the index, not an error: it is what pressing "Go" without
+ * choosing anything does, which is an accident rather than a probe.
+ */
+export function parseJumpTarget(raw: string | readonly string[] | undefined): number | null {
+  const first = Array.isArray(raw) ? raw[0] : (raw as string | undefined)
+  if (first === undefined || !/^\d+$/.test(first)) return null
+  return Number(first)
+}
+
 export function buildForumJumpModel(input: ForumJumpInput): ForumJumpModel {
   const visible = keepVisibleSubtrees(input.rows, (row) => input.visibleForumIds.has(row.id))
 

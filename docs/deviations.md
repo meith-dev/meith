@@ -7828,3 +7828,51 @@ The edits moved to `markdown-syntax.ts` — pure functions returning a
 replacement and a caret position — because that bug is invisible in review,
 obvious in use, and had nowhere to be tested while it lived inside a client
 component. Twenty-six cases now cover it.
+
+### D103 — `/jump` and the legacy MyBB URLs are pages, because a route handler cannot 404
+
+Four addresses — `/jump`, `/showthread.php`, `/forumdisplay.php`, `/member.php`
+— were route handlers, and every one of them answered **404 with no body at
+all**: zero bytes, no `Content-Type`, `Transfer-Encoding: chunked` and nothing
+in it.
+
+`notFound()` in a route handler has nothing to render with. A route handler is
+not a React tree, so Next ends the response at the status line. The status was
+always right, which is why every test passed and why this survived a feature
+that exists *for* its 404s: D97 makes an unauthorised jump indistinguishable
+from a nonexistent one, and F86 refuses to soft-404 a legacy link, and both were
+delivering their careful answer as an empty response.
+
+What a browser does with a bodiless error response is its own business.
+Chromium ≥ 126 refuses the navigation outright with
+`ERR_HTTP_RESPONSE_CODE_FAILURE`, so a member who typed a forum id got a browser
+network error page; older Chromium and Firefox render blank. The board never got
+to say no.
+
+**A page is the whole fix.** `notFound()` from a page is caught by
+`app/not-found.tsx`, the status is still 404 — so this stays an honest answer to
+a crawler rather than becoming a redirect to an error page, which is the soft
+404 F86 exists to avoid — and the response is a real HTML document. The four
+files keep their shape: three lines each for the legacy scripts, and
+`serveLegacyUrl` still holds the setting check so it cannot differ between them.
+It takes the script name and `searchParams` now, because a page is not handed a
+request; `parseJumpTarget` moved to `forum-jump.ts` for the same reason, and
+being pure it is finally testable — a page whose every branch throws has nothing
+to assert on.
+
+#### What this does not fix
+
+On Next 16 a `notFound()` thrown from a page ships the not-found tree as an RSC
+payload **without server-rendering it**: the body is
+`<div hidden><!--$--><!--/$--></div>` and the notice is drawn on the client. So
+every page-level 404 on this board — `/member/…`, `/thread/…`, `/forum/…`, some
+ninety call sites — is blank with scripting off, and these four now join them
+rather than escaping it. Only the router-level 404, the one for a path with no
+route, is server-rendered.
+
+That is a real gap against R5 and it is not this change's: it was measured
+against `next start` as well as `next dev`, and a `not-found.tsx` containing one
+static `<h1>` and no data access reproduces it, so nothing in this board's
+not-found page is responsible. It is recorded here because the fix above moves
+these four addresses from *broken for everyone* to *the same as every other 404
+on the board*, which is worth having and is not the same as done.
