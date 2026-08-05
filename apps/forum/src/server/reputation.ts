@@ -59,3 +59,58 @@ export async function viewerRaterLimits(): Promise<RaterLimits> {
     postCount: profile?.postCount ?? 0,
   }
 }
+
+/** What a post's Thanks control needs to know before it renders. */
+export interface PostThanks {
+  /** Whether *this* reader has already thanked it. */
+  readonly thanked: boolean
+  /** How many people have, this reader included. */
+  readonly count: number
+}
+
+/**
+ * Resolve the Thanks state for a page of posts, in at most two queries.
+ *
+ * Two rather than one because they are two different questions asked of two
+ * different scopes — "how many people" is an aggregate over everybody, "have
+ * *I*" is scoped to the reader in its own `where` clause. Joining them would
+ * mean one query that has to be read carefully to see that the second scope is
+ * still there, and this board's rule is that ownership lives in the query
+ * rather than in a filter applied to the result.
+ *
+ * Neither is asked for a guest: they cannot rate, so the control is not
+ * offered, so its state is not needed. Failure is an empty map rather than an
+ * exception — a thread page is not worth failing over a button.
+ */
+export async function thanksForPosts(
+  postIds: readonly number[],
+): Promise<ReadonlyMap<number, PostThanks>> {
+  const service = reputationService()
+  if (service === null || postIds.length === 0) return new Map()
+
+  const actor = await getActor()
+
+  const [counts, mine] = await Promise.all([
+    service.thanksForPosts(postIds).catch(() => new Map<number, number>()),
+    actor.userId === null
+      ? Promise.resolve(new Map())
+      : service
+          .existingForPosts({ givenByUserId: actor.userId, postIds })
+          .catch(() => new Map()),
+  ])
+
+  return new Map(
+    postIds.map((postId) => [
+      postId,
+      {
+        /*
+         * Positive only. A member who left a *negative* rating on this post has
+         * not thanked it, and a control reading "Thanked" over their own
+         * criticism would be the board putting words in their mouth.
+         */
+        thanked: (mine.get(postId)?.points ?? 0) > 0,
+        count: counts.get(postId) ?? 0,
+      },
+    ]),
+  )
+}

@@ -287,6 +287,74 @@ describe('reads', () => {
   })
 })
 
+/**
+ * The two batch reads a thread page's Thanks controls need.
+ *
+ * They exist because asking per post is the N+1 on the board's heaviest page,
+ * and their correctness is entirely about *scope*: one is scoped to the reader
+ * and one deliberately is not, and swapping them would either show everybody
+ * the same button state or count one person's thanks as everybody's.
+ */
+describe('the thread page’s batch reads', () => {
+  beforeEach(async () => {
+    await seedPost(100)
+    await seedPost(101)
+    await seedPost(102)
+  })
+
+  it('reports what this rater said about each post, and nothing about the rest', async () => {
+    await give({ postId: 100, points: 1 })
+    await give({ postId: 101, points: -1 })
+    /* Somebody else's rating on a post this rater has not touched. */
+    await give({ postId: 102, givenByUserId: OTHER, points: 1 })
+
+    const mine = await repo.existingForPosts({
+      givenByUserId: RATER,
+      postIds: [100, 101, 102],
+    })
+
+    expect(mine.get(100)?.points).toBe(1)
+    expect(mine.get(101)?.points).toBe(-1)
+    /*
+     * The scoping is in the `where` clause. A query that fetched every rating
+     * on the page and filtered afterwards is one refactor away from showing a
+     * reader somebody else's button state.
+     */
+    expect(mine.has(102)).toBe(false)
+  })
+
+  /* A profile rating has a null post id and is not what this asks about. */
+  it('does not mistake a profile rating for a post one', async () => {
+    await give({ postId: null })
+
+    const mine = await repo.existingForPosts({ givenByUserId: RATER, postIds: [100] })
+    expect(mine.size).toBe(0)
+  })
+
+  it('asks nothing for an empty page', async () => {
+    expect(await repo.existingForPosts({ givenByUserId: RATER, postIds: [] })).toEqual(new Map())
+    expect(await repo.thanksForPosts([])).toEqual(new Map())
+  })
+
+  /*
+   * A **count of people**, not a sum of points. A sum would let one negative
+   * cancel one thanks and show "2" on a post three people thanked — which is
+   * not a thing either of them said.
+   */
+  it('counts thanks per post, and does not net a negative off against them', async () => {
+    await give({ postId: 100, givenByUserId: RATER, points: 1 })
+    await give({ postId: 100, givenByUserId: OTHER, points: -1 })
+    await give({ postId: 101, givenByUserId: RATER, points: 0 })
+
+    const counts = await repo.thanksForPosts([100, 101, 102])
+
+    expect(counts.get(100)).toBe(1)
+    /* A neutral is not a thanks, and an unrated post is absent rather than 0. */
+    expect(counts.has(101)).toBe(false)
+    expect(counts.has(102)).toBe(false)
+  })
+})
+
 describe('withdrawing', () => {
   it('is scoped to the giver in the query', async () => {
     await give()

@@ -263,6 +263,66 @@ export class PostgresReputationRepository implements ReputationRepository {
     return rows[0] === undefined ? null : toRow(rows[0])
   }
 
+  /**
+   * The batch form of `existing`, for a thread page's Thanks controls.
+   *
+   * Scoped to the *rater* in the `where` clause rather than filtered after the
+   * read, like every other query here: what this reader has said is theirs, and
+   * a query that fetched everybody's ratings and picked out one member's would
+   * be one refactor away from showing the wrong ones.
+   *
+   * `post_id in (...)` rather than `is not distinct from`, because a profile
+   * rating has a null post id and is not what this asks about — the caller is
+   * always holding a page of posts.
+   */
+  async existingForPosts(input: {
+    readonly givenByUserId: number
+    readonly postIds: readonly number[]
+  }): Promise<ReadonlyMap<number, ReputationRow>> {
+    if (input.postIds.length === 0) return new Map()
+
+    const rows = resultRows(
+      await this.db.execute(sql`
+        ${SELECT_ROW}
+         where r.given_by_user_id = ${input.givenByUserId}
+           and r.post_id in ${sql`(${sql.join(
+             input.postIds.map((id) => sql`${id}`),
+             sql`, `,
+           )})`}
+      `),
+    ) as RawRow[]
+
+    return new Map(
+      rows.map(toRow).flatMap((row) => (row.postId === null ? [] : [[row.postId, row] as const])),
+    )
+  }
+
+  /**
+   * The thanks count per post, for a page of them.
+   *
+   * `points > 0` rather than `sum(points)`: this is a count of people, and a
+   * sum would let one negative cancel one thanks — showing "2" on a post that
+   * three people thanked, which is not a thing anybody said.
+   */
+  async thanksForPosts(postIds: readonly number[]): Promise<ReadonlyMap<number, number>> {
+    if (postIds.length === 0) return new Map()
+
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select post_id, count(*)::int as n
+          from reputation
+         where points > 0
+           and post_id in ${sql`(${sql.join(
+             postIds.map((id) => sql`${id}`),
+             sql`, `,
+           )})`}
+         group by post_id
+      `),
+    ) as Array<{ post_id: number; n: number }>
+
+    return new Map(rows.map((row) => [Number(row.post_id), Number(row.n)]))
+  }
+
   async givenSince(givenByUserId: number, since: Date): Promise<number> {
     const rows = resultRows(
       await this.db.execute(sql`

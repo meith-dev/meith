@@ -81,12 +81,22 @@ export function RateMemberForm({
           The value travels on the button, so there is no separate control to
           get out of step with it — and with scripting off the pressed button is
           still the one whose name/value is submitted.
+
+          **The labels follow the board's own setting.** With negatives off,
+          `reputation.allow_negative` describes what is left as "a thanks
+          button" — and "Positive / Neutral" is not one. A board that has
+          decided members may only say something kind should be asking "do you
+          want to thank this person", not offering two thirds of a scale whose
+          missing third is what made the words mean anything. Neutral stays,
+          because a comment with no verdict is a real thing to want and is what
+          most ratings turn out to be; it is just no longer the opposite of
+          anything.
         */}
         <button type="submit" name="points" value="1" className={CHOICE}>
-          Positive
+          {allowNegative ? "Positive" : "Thanks"}
         </button>
         <button type="submit" name="points" value="0" className={CHOICE}>
-          Neutral
+          {allowNegative ? "Neutral" : "Just a comment"}
         </button>
         {allowNegative && (
           <button type="submit" name="points" value="-1" className={CHOICE}>

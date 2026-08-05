@@ -490,7 +490,9 @@ export const SETTING_DEFINITIONS = [
     label: 'Allow negative ratings',
     description:
       'Members can rate somebody down as well as up. Off makes reputation a ' +
-      'thanks button, which is what most boards actually want.',
+      'thanks button, which is what most boards actually want — and takes the ' +
+      'Rate link off posts, since the Thanks button on each one is then the ' +
+      'whole of what the rating form could offer.',
     schema: z.boolean(),
     default: false,
     invalidates: ['settings'],
@@ -501,9 +503,12 @@ export const SETTING_DEFINITIONS = [
     label: 'Require a comment',
     description:
       'A rating must say why. A number with no reason attached is the part of ' +
-      'reputation people argue about.',
+      'reputation people argue about — but it also removes the one-press ' +
+      'Thanks button from posts, because one press cannot carry a reason. Off ' +
+      'by default: thanking an answer that helped should be a single click, ' +
+      'and it is negative ratings that need explaining.',
     schema: z.boolean(),
-    default: true,
+    default: false,
     invalidates: ['settings'],
   }),
   define({

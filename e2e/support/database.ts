@@ -91,6 +91,16 @@ function migrationSql(): string {
  * in the served URL — a value that changed per run would make a screenshot
  * comparison and a `toHaveAttribute` both unstable for no benefit.
  */
+/**
+ * A second real member, so `admin` can have a rating somebody actually gave.
+ *
+ * The fixture board has exactly one account with an id — every other post is
+ * attributed to a deleted one — and a member cannot rate themselves. Past the
+ * seeded ids so it does not collide, and the sequence is advanced past it with
+ * everything else.
+ */
+const RATER_ID = 9001
+
 const BADGE_KEYS = {
   light: 'group/3/badge-light-11111111-1111-1111-1111-111111111111.png',
   dark: 'group/3/badge-dark-22222222-2222-2222-2222-222222222222.png',
@@ -283,6 +293,20 @@ function seedSql(): string {
    */
   const settings = [
     { key: 'antispam.min_form_seconds', value: '0', group_key: 'antispam' },
+    /*
+     * The post-count floor, off. It defaults to 5, and every spec that needs a
+     * session registers through the form — so its member has posted nothing and
+     * is below it, and the Thanks button would be correctly refused for a
+     * reason that has nothing to do with what is being tested. The floor is a
+     * spam defence with its own unit tests in `@meith/reputation`; making six
+     * specs post five times each to clear it would be a slower suite proving
+     * nothing extra.
+     *
+     * `comment_required` and `allow_negative` are left at their defaults — off
+     * and off — because that *is* the board worth pinning in a browser: the one
+     * where the Thanks button is the whole rating control.
+     */
+    { key: 'reputation.min_posts_to_give', value: '0', group_key: 'reputation' },
   ]
 
   /*
@@ -309,8 +333,49 @@ function seedSql(): string {
        badge_image_light = ${literal(BADGE_KEYS.light)},
        badge_image_dark = ${literal(BADGE_KEYS.dark)}
      where id = 3;`,
-    /* A reputation the postbit can show, distinguishable from "none". */
-    'update users set reputation = 42 where id = 1;',
+    /*
+     * A reputation the postbit can show — as a **row**, not as a number written
+     * into the column.
+     *
+     * `users.reputation` is derived: F62 recomputes it from the live ratings
+     * inside every transaction that changes them, precisely so that a
+     * withdrawal cannot leave the total drifting. Writing the column with no
+     * rows behind it is the corruption that design exists to repair, and it
+     * repairs it — the first press of any Thanks button recounts the total to
+     * what the rows actually say and the seeded number vanishes. That is the
+     * feature working, and it made a browser test fail in a way that looked
+     * like the button was broken.
+     *
+     * So the seed states the truth instead: one member, one rating, and a
+     * column that agrees with it.
+     */
+    insert('users', [
+      {
+        id: RATER_ID,
+        username: 'wellwisher',
+        username_lower: 'wellwisher',
+        email: 'wellwisher@example.test',
+        email_lower: 'wellwisher@example.test',
+        password_hash: 'x',
+        password_algo: 'argon2id',
+        primary_group_id: 2,
+        post_count: 0,
+        created_at: new Date('2026-01-02T00:00:00Z'),
+      },
+    ]),
+    insert('user_group_memberships', [{ user_id: RATER_ID, group_id: 2 }]),
+    insert('reputation', [
+      {
+        user_id: 1,
+        given_by_user_id: RATER_ID,
+        post_id: null,
+        points: 1,
+        comment: 'Runs a good board.',
+        created_at: new Date('2026-02-01T00:00:00Z'),
+        updated_at: new Date('2026-02-01T00:00:00Z'),
+      },
+    ]),
+    'update users set reputation = (select coalesce(sum(points), 0) from reputation where user_id = 1) where id = 1;',
   ]
 
   return [

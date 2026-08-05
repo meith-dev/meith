@@ -127,6 +127,37 @@ export interface ReputationRepository {
     readonly postId: number | null
   }): Promise<ReputationRow | null>
 
+  /**
+   * What this rater has already said about each of these posts.
+   *
+   * The batch form of `existing`, and it exists for one page: a thread renders
+   * a Thanks control per post, and each one has to know whether this reader has
+   * already used it. Asking per post is the N+1 on the board's heaviest page —
+   * the same reason signatures, avatars and group standing are all resolved for
+   * the whole page in one query.
+   *
+   * Keyed by post id. A post this rater has not rated is simply absent, which
+   * is the same answer `existing` gives as `null`.
+   */
+  existingForPosts(input: {
+    readonly givenByUserId: number
+    readonly postIds: readonly number[]
+  }): Promise<ReadonlyMap<number, ReputationRow>>
+
+  /**
+   * How many people have rated each of these posts positively.
+   *
+   * The number beside a Thanks control, which is the reason to press it — a
+   * rating whose effect is invisible is a button into a void. Positive only:
+   * this counts thanks, and netting a negative off against it would show "2"
+   * on a post three people thanked and one disagreed with, which is not what
+   * either of them said.
+   *
+   * A post nobody has thanked is absent rather than zero, so the caller's
+   * fallback is the same shape as every other map on a thread page.
+   */
+  thanksForPosts(postIds: readonly number[]): Promise<ReadonlyMap<number, number>>
+
   /** How many ratings this member has given since `since`. */
   givenSince(givenByUserId: number, since: Date): Promise<number>
 

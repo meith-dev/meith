@@ -51,6 +51,18 @@ export interface PostCapabilities {
   readonly canWarn: boolean
   /** F62's global `reputation.give`, and the board setting behind it. */
   readonly canRate?: boolean
+  /**
+   * Whether the rating *form* offers anything the Thanks button does not.
+   *
+   * True when the board requires a comment, or allows negative ratings, or
+   * both. False when it allows neither — on that board the form is one useful
+   * button, the postbit already has it, and a link to a page for pressing the
+   * same thing is furniture.
+   *
+   * Optional and defaulting to *true*, so a caller that has not been taught
+   * about the Thanks control still gets the link it always got.
+   */
+  readonly ratingNeedsForm?: boolean
 }
 
 const NO_CAPABILITIES: PostCapabilities = {
@@ -63,6 +75,7 @@ const NO_CAPABILITIES: PostCapabilities = {
   canReport: false,
   canWarn: false,
   canRate: false,
+  ratingNeedsForm: true,
 }
 
 function withinEditWindow(
@@ -317,9 +330,22 @@ function post(
        * service, so a link to it would only ever lead to a refusal — nor on a
        * post whose author no longer exists, nor on a hidden one: the reader
        * chose not to read it, and inviting them to rate it is absurd.
+       *
+       * **And not offered when there is nothing on the form the Thanks button
+       * cannot do.** A board that requires no comment and allows no negatives
+       * is a board whose rating form has exactly one useful button on it, and
+       * the postbit already has that button — a "Rate" link beside it leads to
+       * a page to press the same thing more slowly. That board is the default
+       * (`reputation.allow_negative` is off out of the box) and the setting
+       * describes itself as making reputation "a thanks button", so this is
+       * the shape it was always meant to have.
        */
       rateHref:
-        capabilities.canRate === true && !isOwn && post.authorUserId !== null && !hidden
+        capabilities.canRate === true &&
+        !isOwn &&
+        post.authorUserId !== null &&
+        !hidden &&
+        (capabilities.ratingNeedsForm !== false)
           ? `/member/${post.authorUserId}/reputation?post=${post.id}`
           : null,
       moderateHref: null,

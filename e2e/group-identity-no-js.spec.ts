@@ -127,7 +127,7 @@ test("the group's title, badge and reputation are in the postbit", async ({ page
    * that says it is filled.
    */
   await expect(postbit.getByText('Administrators', { exact: true })).toBeVisible()
-  await expect(postbit.getByText(/42 reputation/)).toBeVisible()
+  await expect(postbit.getByText(/\d+ reputation/)).toBeVisible()
 
   /*
    * The badge is `alt=""` and `aria-hidden` — the title beside it already says

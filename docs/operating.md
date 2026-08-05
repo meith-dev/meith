@@ -412,6 +412,44 @@ is safe to delete and a sticky thread is not.
 
 Dates are entered in UTC.
 
+## Reputation
+
+`/admin/settings` under **Reputation**. Four switches, and the first two decide
+what the feature *is* on your board.
+
+**Allow negative ratings** — off by default. Off, reputation is a thanks
+button: every post carries **Thanks**, one press gives the author a point, and
+pressing it again takes it back. The **Rate** link is not shown, because with
+negatives off the rating form has nothing on it the button has not.
+
+Turn it on and the Rate link comes back beside the Thanks button, leading to a
+form that can also rate somebody down and say why. Both controls are then
+offered, because they are then two different things.
+
+**Require a comment** — off by default, and turning it on removes the Thanks
+button. One press cannot carry a reason, so a board that requires one is a board
+where every rating goes through the form. That is the right trade for a board
+that allows negatives — a criticism with no reason attached is the part of
+reputation people argue about — and the wrong one for a board that only allows
+thanks, which is why the default is off.
+
+> If you are upgrading, this default **changed**: it used to be on. See
+> [Upgrading](./upgrading.md#settings-whose-defaults-have-changed).
+
+**Posts required before rating** — 5 by default. A spam defence: registering
+takes seconds, posting five times on a moderated board does not. 0 turns it off.
+
+**Ratings per day** is per *group*, on the group's own screen, not here — it is
+a number that should differ between a new member and a moderator, and every
+numeric permission on this board lives with the group (0 means unlimited).
+
+A member's total is **derived**, not counted up: it is recomputed from the live
+ratings every time one is written, changed or withdrawn. So a withdrawn rating
+really leaves, and a total that has somehow drifted repairs itself the next time
+anybody rates that member. Editing `users.reputation` by hand therefore does
+nothing lasting — use **Recount & rebuild** on `/admin/system` if you need it
+corrected.
+
 ## Spam
 
 Registration questions are at `/admin/antispam`; the numbers are in
