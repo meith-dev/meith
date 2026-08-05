@@ -146,6 +146,23 @@ That applies **core migrations only** — the same thing step 1 does. Plugin
 migrations run through `forum upgrade`, which needs your `forum.config.ts` to
 know which plugins are installed.
 
+## Settings whose defaults have changed
+
+A board setting is stored only once somebody changes it, so a **default** that
+moves applies to every board that never touched that switch. There is no
+migration to run and nothing to undo; the point of listing them is that
+behaviour changed without anybody on your board doing anything.
+
+| Setting | Was | Is | What changes on a board that never set it |
+|---|---|---|---|
+| `reputation.comment_required` | on | off | Posts gain a one-press **Thanks** button. A rating no longer has to carry a reason — a click is the whole interaction, which is what makes thanking an answer worth doing. |
+
+Set it back from **Admin → Settings → Reputation** if your board wants every
+rating to say why. That is the right choice for a board that allows negative
+ratings, and it is why the two switches are worth reading together: a criticism
+with no reason attached is the part of reputation people argue about, and a
+thanks is not.
+
 ## What the CLI cannot do
 
 > [!NOTE]

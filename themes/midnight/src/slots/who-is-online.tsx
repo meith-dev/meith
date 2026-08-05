@@ -1,5 +1,7 @@
 import type { WhoIsOnlineModel } from '@meith/theme-kit'
 
+import { UserRef } from '../shared'
+
 /**
  * Who is online.
  *
@@ -35,13 +37,7 @@ export function WhoIsOnline({
           members.map((member, index) => (
             <span key={member.username}>
               {index > 0 && ', '}
-              {member.profileHref === null ? (
-                member.username
-              ) : (
-                <a href={member.profileHref} className="text-primary hover:underline">
-                  {member.username}
-                </a>
-              )}
+              <UserRef user={member} className="text-primary hover:underline" />
               {member.isInvisible && (
                 <span className="ml-1 font-mono text-muted-foreground">(hidden)</span>
               )}

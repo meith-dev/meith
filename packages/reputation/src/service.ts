@@ -157,6 +157,25 @@ export class ReputationService {
     })
   }
 
+  /**
+   * What this rater has already said about each of a page of posts.
+   *
+   * One query per page rather than one per post — see the port. Used by the
+   * thread page to decide whether each post's Thanks control reads "Thanks" or
+   * "Thanked", which it cannot know without asking.
+   */
+  existingForPosts(input: {
+    readonly givenByUserId: number
+    readonly postIds: readonly number[]
+  }): Promise<ReadonlyMap<number, ReputationRow>> {
+    return this.repository.existingForPosts(input)
+  }
+
+  /** How many people have thanked each of these posts. See the port. */
+  thanksForPosts(postIds: readonly number[]): Promise<ReadonlyMap<number, number>> {
+    return this.repository.thanksForPosts(postIds)
+  }
+
   /** How many this member has given today, for showing what is left. */
   givenToday(givenByUserId: number): Promise<number> {
     return this.repository.givenSince(givenByUserId, startOfDay(this.now()))

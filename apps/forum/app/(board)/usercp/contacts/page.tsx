@@ -7,7 +7,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { RemoveRelationForm } from '@/components/account/relation-forms'
 import { getActor } from '@/server/context'
 import { relationService } from '@/server/relations'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildContactsView, contactsNotice, type ContactRowView } from '@/view/contacts'
 
@@ -57,7 +57,7 @@ export default async function ContactsPage({
     timeZone: preferences.timezone,
   })
 
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = contactsNotice(query)
 
   return (

@@ -2,7 +2,7 @@ import { currentRequestId } from '@meith/core/logger'
 import { requireSlot } from '@meith/theme-kit'
 
 import { filterView } from '@/server/plugin-view'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 
 /**
  * F80 wires `view.error-notice` here, and it is the one filter worth arguing
@@ -16,7 +16,7 @@ import { activeTheme } from '@/server/theme'
  * the database is unavailable (see `ErrorNotice`'s own contract note).
  */
 export default async function NotFound() {
-  const ErrorNotice = requireSlot(activeTheme, 'ErrorNotice')
+  const ErrorNotice = requireSlot(await currentTheme(), 'ErrorNotice')
 
   const model = await filterView(
     'view.error-notice',

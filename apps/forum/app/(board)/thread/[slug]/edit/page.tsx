@@ -9,7 +9,7 @@ import {
   RestorePostForm,
 } from '@/components/content/edit-post-form'
 import { resolvePostScope } from '@/server/post-scope'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { buildEditView } from '@/view/post-form'
 
 export const metadata: Metadata = { title: 'Edit post' }
@@ -75,7 +75,7 @@ export default async function EditPostPage({
     isDeleted,
   })
 
-  const PostForm = requireSlot(activeTheme, 'PostForm')
+  const PostForm = requireSlot(await currentTheme(), 'PostForm')
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">

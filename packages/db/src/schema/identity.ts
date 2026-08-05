@@ -45,9 +45,44 @@ export const usergroups = pgTable(
 
     /**
      * Presentation for the group badge (F33). Stored as a token *name* from the
-     * R7 set, never a colour literal, so a theme override can restyle it.
+     * R7 set, never a colour literal, so a theme override could restyle it.
+     *
+     * **Written, never read.** The idea was sound and the shape was not: the
+     * token list is compiled into the stylesheet, so it is fixed at four
+     * group tokens, while groups are rows. A board with two moderator tiers
+     * cannot name a token that does not exist and cannot add one. `0033`
+     * added the two columns below instead; this stays because the column is
+     * populated on real boards and dropping a column in the same change that
+     * admits it did not work out is how a rollback loses data.
      */
     badgeToken: text('badge_token'),
+
+    /**
+     * The colour this group's members' names are shown in, per colour scheme.
+     *
+     * Two columns for the reason the theme editor has two fields per token: a
+     * colour picked against a white page is often unreadable on a black one.
+     * Null means "no colour in that scheme" and the name renders in the
+     * ordinary text colour, which is what every name did before this existed.
+     *
+     * A colour literal rather than a token name, deliberately — see
+     * `badgeToken` above for the version that was not. It is validated as a CSS
+     * colour before it is stored and again before it reaches a stylesheet.
+     */
+    nameColorLight: text('name_color_light'),
+    nameColorDark: text('name_color_dark'),
+
+    /**
+     * A badge image shown beside a member's name, per colour scheme.
+     *
+     * File-store keys, written by an upload and never by hand — the board
+     * logo's arrangement, for the same reasons and through the same code. This
+     * is what `badgeToken` was reaching for and could not hold: a badge is a
+     * picture somebody drew, and a token name can only ever be one of four
+     * colours the stylesheet already knows about.
+     */
+    badgeImageLight: text('badge_image_light'),
+    badgeImageDark: text('badge_image_dark'),
 
     /** Sort order in the ACP and in "staff" listings. */
     displayOrder: integer('display_order').notNull().default(0),

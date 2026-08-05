@@ -1,7 +1,7 @@
 import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 import type { PostBitSlotModel } from '@meith/theme-kit'
 
-import { LINK, MUTED_LINK, NUMERIC, Stamp } from '../shared'
+import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
 
 /**
  * One post (F31) — the board's load-bearing surface.
@@ -68,6 +68,45 @@ function StatusBanner({ visibility }: { visibility: PostBitSlotModel['post']['vi
 }
 
 /**
+ * The board's mark for this member's group, beside the group's name.
+ *
+ * `alt=""` and `aria-hidden`, because the title is right next to it in text: a
+ * badge that announced "Moderator" would make a screen reader say the word
+ * twice, and the badge is the decorative half of the pair.
+ *
+ * A `<picture>` only where the server genuinely could not decide — the reader is
+ * on "system" and the board uploaded two images. Everywhere else `darkSrc` is
+ * `null` and this is one element and one request, the same rule the header's
+ * logo follows.
+ */
+function GroupBadge({ badge }: { badge: NonNullable<PostBitSlotModel['post']['author']['badge']> }) {
+  const image = (
+    <img
+      src={badge.src}
+      alt=""
+      aria-hidden="true"
+      /*
+       * Height-constrained with the width left to follow, because a badge is
+       * whatever shape its board drew it. `max-w-full` so a wide one shrinks to
+       * the author column instead of pushing it open.
+       */
+      className="h-4 w-auto max-w-full object-contain"
+      loading="lazy"
+      decoding="async"
+    />
+  )
+
+  if (badge.darkSrc === null) return image
+
+  return (
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcSet={badge.darkSrc} />
+      {image}
+    </picture>
+  )
+}
+
+/**
  * Who wrote it.
  *
  * `isOnline` is a dot *and* the word, for the reason every state on this board
@@ -86,15 +125,27 @@ function AuthorBlock({
       <Avatar src={author.avatarUrl} name={author.username} size={48} className="sm:self-center" />
 
       <div className="min-w-0 flex-1 sm:flex-none">
+        {/*
+          Through `UserRef` rather than a ternary written out here, which is
+          what carries the group colour: `nameClass` is applied in one place for
+          the whole theme, so a name is the same colour in the postbit, in a
+          listing and in "who is online" without three call sites remembering.
+        */}
         <p className="truncate text-sm">
-          {author.profileHref === null ? (
-            <span className="font-semibold text-foreground">{author.username}</span>
-          ) : (
-            <a href={author.profileHref} className={`font-semibold text-foreground ${LINK}`}>
-              {author.username}
-            </a>
-          )}
+          <UserRef user={author} className="font-semibold text-foreground" />
         </p>
+
+        {/*
+          The badge on its own line rather than inline with the title. The
+          author column is 11rem, a badge is as wide as its board drew it, and
+          sharing the line turned "Administrators" into "Administra…" for a
+          badge that was only 64 pixels across. Stacked, each gets the column.
+        */}
+        {author.badge != null && (
+          <p className="mt-1 flex sm:justify-center">
+            <GroupBadge badge={author.badge} />
+          </p>
+        )}
 
         {author.title !== null && (
           <p className="truncate text-xs text-muted-foreground">{author.title}</p>
@@ -122,6 +173,22 @@ function AuthorBlock({
               <dd>
                 Joined <Stamp at={author.joinedAt} />
               </dd>
+            </div>
+          )}
+          {/*
+            F62's reputation, which the board has been keeping on `users` since
+            reputation shipped and showing nowhere a reader looks. `null` means
+            the board has reputation switched off — different from `0`, which
+            means nobody has rated this member yet, and the two must not render
+            the same way.
+
+            The label is spelled out rather than `sr-only` like the two above,
+            because "412" beside "9,130 posts" is a number with no noun.
+          */}
+          {author.reputation != null && (
+            <div className="flex gap-1 sm:justify-center">
+              <dt className="sr-only">Reputation</dt>
+              <dd>{author.reputation.toLocaleString('en')} reputation</dd>
             </div>
           )}
         </dl>

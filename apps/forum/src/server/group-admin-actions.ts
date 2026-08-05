@@ -19,6 +19,7 @@ import { drivers } from '@meith/drivers'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { promotionService, requireGroupAdmin } from './group-admin'
+import { assertSafeCssValue } from './theme-style'
 import type { FormState } from './auth-form-state'
 
 /** How many members one press of the button moves. */
@@ -50,6 +51,25 @@ async function invalidatePermissions(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.permissions()])
 }
 
+/**
+ * One of the two name colours, validated exactly as a theme token is.
+ *
+ * The same function the theme editor uses and the render path re-runs, because
+ * this value lands in the same kind of `<style>` block from the same kind of
+ * database column. A second opinion here would eventually accept something the
+ * renderer refuses, and a board finds that out by going blank.
+ *
+ * Empty is `null` — "no colour in this scheme" — rather than an empty
+ * declaration, on the theme editor's rule: a blank field is "use the default",
+ * and storing it would write `color:;` into a rule.
+ */
+function groupColour(form: FormData, field: string): string | null {
+  const value = text(form, field)
+  if (value === '') return null
+  assertSafeCssValue(`group colour "${field}"`, value)
+  return value
+}
+
 export async function saveGroupIdentityAction(
   _prev: FormState,
   form: FormData,
@@ -72,6 +92,8 @@ export async function saveGroupIdentityAction(
       displayOrder: order,
       isStaffGroup: checkbox(form, 'isStaffGroup'),
       badgeToken: text(form, 'badgeToken') === '' ? null : text(form, 'badgeToken'),
+      nameColorLight: groupColour(form, 'nameColorLight'),
+      nameColorDark: groupColour(form, 'nameColorDark'),
     })
 
     /*

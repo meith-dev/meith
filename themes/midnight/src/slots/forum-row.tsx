@@ -1,5 +1,7 @@
 import type { ForumRowSlotModel } from '@meith/theme-kit'
 
+import { UserRef } from '../shared'
+
 /**
  * One forum, as a table row.
  *
@@ -65,13 +67,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
               {forum.lastPost.threadTitle}
             </a>
             <span>
-              {forum.lastPost.author.profileHref === null ? (
-                forum.lastPost.author.username
-              ) : (
-                <a href={forum.lastPost.author.profileHref} className="hover:text-foreground">
-                  {forum.lastPost.author.username}
-                </a>
-              )}
+              <UserRef user={forum.lastPost.author} className="hover:text-foreground" />
               {' · '}
               <time dateTime={forum.lastPost.at.iso}>{forum.lastPost.at.label}</time>
             </span>

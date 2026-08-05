@@ -13,6 +13,7 @@ import { PollForm } from '@/components/content/poll'
 import { ThreadRatingForm } from '@/components/content/thread-rating'
 import { ReplyForm } from '@/components/content/reply-form'
 import { MultiQuoteButton } from '@/components/content/multiquote-button'
+import { ThanksButton } from '@/components/content/thanks-button'
 import { QuoteInPlace } from '@/components/content/quote-in-place'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 
@@ -21,10 +22,10 @@ import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { postbitProfileFields } from '@/server/profile-fields'
 import { viewerIgnoredIds } from '@/server/relations'
-import { reputationSettings } from '@/server/reputation'
+import { reputationSettings, thanksForPosts } from '@/server/reputation'
 import { signaturesFor } from '@/server/signatures'
 import { moderatorTargetFor } from '@/server/modcp'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import {
   INLINE_FORM_ID,
   anyInlineTool,
@@ -34,6 +35,7 @@ import {
 import { attachmentsByPost } from '@/view/attachments'
 import { attachmentsForPosts } from '@/server/attachments'
 import { avatarsFor } from '@/server/avatars'
+import { identitiesFor } from '@/server/group-identity'
 import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
 import { getSettings } from '@/server/settings'
 import { buildBreadcrumb } from '@/view/breadcrumb'
@@ -298,6 +300,12 @@ export default async function ThreadPage({
    * link that leads to a 404 is worse than no link at all.
    */
   const writable = postWrites !== null
+  /*
+   * Read once. Three things below ask the board what it has decided about
+   * reputation, and three separate awaits of a cached read is three chances for
+   * one of them to be asking a different question than it looks like.
+   */
+  const reputation = await reputationSettings()
   const capabilities = {
     viewerUserId: actor.userId,
     editOwn: writable && authorizer.can(actor, 'post.editOwn', own),
@@ -320,8 +328,25 @@ export default async function ThreadPage({
     canRate:
       getContainer().reputation !== null &&
       authorizer.can(actor, 'reputation.give') &&
-      (await reputationSettings()).enabled,
+      reputation.enabled,
+    /*
+     * Whether the form has anything the Thanks button has not. On a board that
+     * requires no comment and allows no negatives it does not, and the link
+     * beside the button would lead to a page for pressing the same thing.
+     */
+    ratingNeedsForm: reputation.commentRequired || reputation.allowNegative,
   }
+
+  /*
+   * The Thanks state for the page, in two queries rather than two per post.
+   * Only asked for where the control will actually be offered — a guest, a
+   * board with reputation off, and a board that requires a comment all skip it.
+   */
+  const thanksOffered =
+    capabilities.canRate === true && !reputation.commentRequired && actor.userId !== null
+  const thanks = thanksOffered
+    ? await thanksForPosts(postPage.rows.map((row) => row.id))
+    : new Map()
 
   /*
    * F50's tools, and the only place on a reading page that resolves appointment
@@ -446,6 +471,14 @@ export default async function ThreadPage({
   /* F58. Same one-query-per-page shape as the signatures above. */
   const avatars = await avatarsFor(authorIds)
 
+  /*
+   * The group standing behind every name on the page — title, colour, badge and
+   * reputation — in one query, for the same reason. This is what fills
+   * `PostAuthorModel.title`, which has been in the theme contract since F27 and
+   * hardcoded `null` at the only place that builds it.
+   */
+  const identities = await identitiesFor(authorIds)
+
   const attachments = attachmentsByPost(
     await attachmentsForPosts(postPage.rows.map((row) => row.id)),
   )
@@ -475,6 +508,7 @@ export default async function ThreadPage({
     signatures,
     attachments,
     avatars,
+    identities,
     ignoredIds,
     revealedPostIds: revealedFrom(query.reveal),
     /*
@@ -504,12 +538,12 @@ export default async function ThreadPage({
     now: new Date(),
   }).modes
 
-  const ThreadView = requireSlot(activeTheme, 'ThreadView')
-  const Navigation = requireSlot(activeTheme, 'Navigation')
-  const Notice = requireSlot(activeTheme, 'Notice')
-  const PostBit = requireSlot(activeTheme, 'PostBit')
-  const PostActions = requireSlot(activeTheme, 'PostActions')
-  const Pagination = requireSlot(activeTheme, 'Pagination')
+  const ThreadView = requireSlot(await currentTheme(), 'ThreadView')
+  const Navigation = requireSlot(await currentTheme(), 'Navigation')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
+  const PostBit = requireSlot(await currentTheme(), 'PostBit')
+  const PostActions = requireSlot(await currentTheme(), 'PostActions')
+  const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
   const notice =
     query.replied === 'race'
@@ -607,6 +641,28 @@ export default async function ThreadPage({
              */
             actions: (
               <PostActions {...actions}>
+                {/*
+                  Thanks first, because it is the one control on this row most
+                  readers will ever press. Offered on the same terms the Rate
+                  link used to carry alone — not your own post, not a deleted
+                  author, not a post you have chosen to hide — plus one more:
+                  the board must not require a comment, because one press
+                  cannot carry a reason. Where it does, the Rate link is still
+                  here and is the honest affordance.
+                */}
+                {thanksOffered &&
+                post.author.userId !== null &&
+                post.author.userId !== actor.userId &&
+                post.ignored === null &&
+                post.visibility === 'visible' ? (
+                  <ThanksButton
+                    postId={post.id}
+                    authorUserId={post.author.userId}
+                    returnTo={`/thread/${thread.id}-${thread.slug}`}
+                    thanked={thanks.get(post.id)?.thanked ?? false}
+                    count={thanks.get(post.id)?.count ?? 0}
+                  />
+                ) : null}
                 {post.actions.quoteHref === null ? null : (
                   <MultiQuoteButton postId={post.id} />
                 )}

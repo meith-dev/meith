@@ -12,7 +12,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Reports' }
@@ -55,7 +55,7 @@ export default async function ReportsPage({
   const reportedMessages = await reportedPrivateMessages(page.rows)
 
   const now = new Date()
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice =
     query.closed === 'resolved'
       ? 'Report resolved.'

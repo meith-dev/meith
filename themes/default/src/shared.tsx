@@ -86,13 +86,27 @@ export const MUTED_LINK = `text-muted-foreground transition-colors hover:text-fo
  * See this file's header. `profileHref` is `null` for a deleted account and the
  * name is still shown, because a thread whose author was deleted is still a
  * thread somebody wrote.
+ *
+ * ## `nameClass`, and why the colour is not on the model
+ *
+ * A member's group colour has to differ between light and dark, and a value on
+ * the model could only carry one of them — the server does not know which
+ * scheme a reader on "system" is in. So the app emits one CSS rule per coloured
+ * group into `<head>` and the model carries the *class name* that selects it.
+ * The theme's job is to put it on the element, which is this one function
+ * because every username on the board comes through here.
+ *
+ * The rule the app emits is written to outrank a utility class on its own
+ * (see `server/group-identity.ts`), so a caller passing `text-muted-foreground`
+ * here still gets the group's colour rather than a coin toss.
  */
 export function UserRef({ user, className }: { user: UserRefModel; className?: string }) {
+  const classes = cn('font-medium', className, user.nameClass)
   if (user.profileHref === null) {
-    return <span className={cn('font-medium', className)}>{user.username}</span>
+    return <span className={classes}>{user.username}</span>
   }
   return (
-    <a href={user.profileHref} className={cn('font-medium', LINK, className)}>
+    <a href={user.profileHref} className={cn(LINK, classes)}>
       {user.username}
     </a>
   )

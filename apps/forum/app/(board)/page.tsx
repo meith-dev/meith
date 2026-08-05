@@ -8,8 +8,10 @@ import { liveAnnouncements } from "@/server/announcements"
 import { getContainer } from "@/server/container"
 import { getActor } from "@/server/context"
 import { getViewerPreferences } from "@/server/viewer-preferences"
-import { activeTheme } from "@/server/theme"
+import { currentTheme } from "@/server/theme"
 import { buildBoardIndexView } from "@/view/board-index"
+import { identitiesFor } from "@/server/group-identity"
+import { distinctUserIds } from "@/view/member-identity"
 import { presenceRepository, readOnline } from "@/server/presence"
 import { readTotals } from "@/server/stats"
 import { buildBoardStatsModel, buildWhoIsOnlineModel } from "@/view/presence"
@@ -69,6 +71,20 @@ export default async function BoardIndexPage() {
     presenceRepository()?.readRecord() ?? Promise.resolve({ count: 0, at: null }),
   ])
 
+  /*
+   * The group colour behind every name the index shows: one last-poster per
+   * forum, the newest member, and everybody in "who is online". One query for
+   * all three rather than one per panel — they overlap heavily on a busy board,
+   * and `identitiesFor` dedupes the ids before it asks.
+   */
+  const identities = await identitiesFor(
+    distinctUserIds([
+      ...rows.map((row) => row.lastPost?.userId ?? null),
+      totals?.newestUserId ?? null,
+      ...(online?.members ?? []).map((member) => member.userId),
+    ]),
+  )
+
   const view = buildBoardIndexView({
     rows,
     visibleForumIds: new Set(visible),
@@ -81,6 +97,7 @@ export default async function BoardIndexPage() {
      */
     now,
     timeZone: preferences.timezone,
+    identities,
   })
 
   /*
@@ -94,12 +111,12 @@ export default async function BoardIndexPage() {
     timeZone: preferences.timezone,
   })
 
-  const Announcement = requireSlot(activeTheme, "Announcement")
-  const BoardIndex = requireSlot(activeTheme, "BoardIndex")
-  const CategoryBlock = requireSlot(activeTheme, "CategoryBlock")
-  const ForumRow = requireSlot(activeTheme, "ForumRow")
-  const BoardStats = requireSlot(activeTheme, "BoardStats")
-  const WhoIsOnline = requireSlot(activeTheme, "WhoIsOnline")
+  const Announcement = requireSlot(await currentTheme(), "Announcement")
+  const BoardIndex = requireSlot(await currentTheme(), "BoardIndex")
+  const CategoryBlock = requireSlot(await currentTheme(), "CategoryBlock")
+  const ForumRow = requireSlot(await currentTheme(), "ForumRow")
+  const BoardStats = requireSlot(await currentTheme(), "BoardStats")
+  const WhoIsOnline = requireSlot(await currentTheme(), "WhoIsOnline")
 
   /*
    * F80. `view.forum-row` runs once per row, which is the reason its purpose
@@ -136,7 +153,12 @@ export default async function BoardIndexPage() {
       ? null
       : await filterView(
           'view.board-stats',
-          buildBoardStatsModel({ ...totals, now, timeZone: preferences.timezone }),
+          buildBoardStatsModel({
+            ...totals,
+            now,
+            timeZone: preferences.timezone,
+            identities,
+          }),
           pluginContext,
         )
 
@@ -152,6 +174,7 @@ export default async function BoardIndexPage() {
             recordAt: record.at,
             now,
             timeZone: preferences.timezone,
+            identities,
           }),
           pluginContext,
         )

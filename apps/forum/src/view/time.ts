@@ -164,6 +164,42 @@ export function formatTime(
 }
 
 /**
+ * Format an instant as a **calendar date**, with no clock on it.
+ *
+ * For the dates where the time of day is not information: when somebody joined,
+ * when a group was created, when a ban expires. `formatTime` is the wrong tool
+ * for those and was being used for them — a postbit read "Joined 1 Jan, 00:00",
+ * and the `00:00` is not a fact about the member, it is the seed's midnight
+ * showing through. Nobody has ever wanted to know the minute an account was
+ * registered.
+ *
+ * ## Why the year is always here
+ *
+ * `formatTime` drops it inside the current year, which is right for activity —
+ * a reader scanning "who replied last" is looking at this week, and the year
+ * would be noise on every row. A join date is the opposite: it is read once, to
+ * answer "how long has this person been here", and that question is exactly the
+ * one the year answers. "12 Mar" tells a reader nothing they wanted to know.
+ *
+ * ## Why it is not the viewer's locale
+ *
+ * Same reason the rest of this module is not: a locale resolved in the browser
+ * renders a different string from the one the server sent, and the mismatch
+ * only appears for readers outside the server's settings — so it survives
+ * review and CI. The board picks one order, says which zone it is in, and uses
+ * it everywhere. Day-month-year with a named month is chosen because it is
+ * unambiguous in every region: `03/04` is two different days depending on who
+ * is reading, and `3 Apr` is not.
+ */
+export function formatDate(at: Date, timeZone: string = DEFAULT_TIMEZONE): TimeModel {
+  const when = partsIn(at, timeZone)
+  return {
+    iso: at.toISOString(),
+    label: `${when.day} ${MONTHS[when.month - 1]} ${when.year}`,
+  }
+}
+
+/**
  * How a zone is named in the footer.
  *
  * The IANA id with its underscores removed reads better than the raw value

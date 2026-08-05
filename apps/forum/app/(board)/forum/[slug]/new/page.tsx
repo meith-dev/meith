@@ -7,7 +7,7 @@ import { NewThreadForm } from '@/components/content/new-thread-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { buildNewThreadView } from '@/view/post-form'
 
 export const metadata: Metadata = { title: 'New thread' }
@@ -68,7 +68,7 @@ export default async function NewThreadPage({
         : 'This forum is closed to new threads.',
   })
 
-  const PostForm = requireSlot(activeTheme, 'PostForm')
+  const PostForm = requireSlot(await currentTheme(), 'PostForm')
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">

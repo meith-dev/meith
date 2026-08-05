@@ -11,12 +11,14 @@ import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getViewerPreferences } from '@/server/viewer-preferences'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { decodeForumCursor, encodeForumCursor } from '@/view/forum-cursor'
 import { FollowForm } from '@/components/account/subscription-forms'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { buildBreadcrumb } from '@/view/breadcrumb'
 import { buildForumDisplayView } from '@/view/forum-display'
+import { identitiesFor } from '@/server/group-identity'
+import { distinctUserIds } from '@/view/member-identity'
 import { canonicalPath } from '@/view/metadata'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 import {
@@ -226,6 +228,16 @@ export default async function ForumPage({
         },
       )
 
+  /*
+   * Two names per row — who started the thread, and who posted in it last — in
+   * one query for the page rather than one per row.
+   */
+  const identities = await identitiesFor(
+    distinctUserIds(
+      threadPage.rows.flatMap((row) => [row.authorUserId, row.lastPost?.userId ?? null]),
+    ),
+  )
+
   const view = buildForumDisplayView({
     forum,
     newThreadHref: canPost ? `/forum/${id}-${forum.slug}/new` : null,
@@ -239,6 +251,7 @@ export default async function ForumPage({
     markReadAction: read === null ? null : `/api/read/forum/${id}`,
     now: new Date(),
     timeZone: preferences.timezone,
+    identities,
   })
 
   /* F56, same shape as the thread page's control. */
@@ -268,13 +281,13 @@ export default async function ForumPage({
     timeZone: preferences.timezone,
   })
 
-  const Announcement = requireSlot(activeTheme, 'Announcement')
-  const ForumDisplay = requireSlot(activeTheme, 'ForumDisplay')
-  const Navigation = requireSlot(activeTheme, 'Navigation')
-  const Notice = requireSlot(activeTheme, 'Notice')
-  const ThreadRow = requireSlot(activeTheme, 'ThreadRow')
-  const SubforumList = requireSlot(activeTheme, 'SubforumList')
-  const Pagination = requireSlot(activeTheme, 'Pagination')
+  const Announcement = requireSlot(await currentTheme(), 'Announcement')
+  const ForumDisplay = requireSlot(await currentTheme(), 'ForumDisplay')
+  const Navigation = requireSlot(await currentTheme(), 'Navigation')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
+  const ThreadRow = requireSlot(await currentTheme(), 'ThreadRow')
+  const SubforumList = requireSlot(await currentTheme(), 'SubforumList')
+  const Pagination = requireSlot(await currentTheme(), 'Pagination')
 
   const notice =
     query.posted === 'moderated'

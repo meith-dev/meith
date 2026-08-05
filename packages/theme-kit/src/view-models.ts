@@ -154,6 +154,20 @@ export interface UserRefModel {
   readonly userId: number | null
   readonly username: string
   readonly profileHref: string | null
+  /**
+   * A class carrying this member's group colour, or `null` for most members.
+   *
+   * **A theme should put this on whatever renders the name**, wherever a name
+   * appears. It is a class rather than a colour because the value has to differ
+   * between light and dark, and a `style` attribute cannot hold two answers — a
+   * reader on "system" has no `.dark` class at all, so the only place both can
+   * live is the stylesheet the app emits into `<head>`.
+   *
+   * A theme that ignores it renders the name in the ordinary text colour and is
+   * still correct, which is what makes the field additive. It will simply not
+   * show the board's own hierarchy, which most boards will notice.
+   */
+  readonly nameClass?: string | null | undefined
 }
 
 /** The last post in a forum or thread, as a listing shows it. */
@@ -249,8 +263,29 @@ export interface PaginationModel {
 /** The author block beside a post. */
 export interface PostAuthorModel extends UserRefModel {
   readonly avatarUrl: string | null
-  /** Usergroup title or custom user title. */
+  /**
+   * The display group's title, or a custom user title.
+   *
+   * Was `null` on every post the board has ever rendered — the field was in the
+   * contract from the start and nothing populated it, so every theme's postbit
+   * had a place for a member's standing and nothing to put in it. It comes from
+   * `users.display_group_id`, falling back to the primary group.
+   */
   readonly title: string | null
+  /**
+   * The board's badge for this member's group, or `null`.
+   *
+   * Shaped exactly like `LogoModel` and for the same reason: the app has
+   * already chosen which of the two images this reader gets, so `darkSrc` is
+   * non-null only for a reader on "system", where the server cannot know.
+   */
+  readonly badge?: LogoModel | null | undefined
+  /**
+   * This member's reputation, or `null` when the board has it switched off.
+   *
+   * A denormalised counter on `users`, so it costs the postbit nothing.
+   */
+  readonly reputation?: number | null | undefined
   readonly postCount: number
   readonly joinedAt: TimeModel | null
   /** Pre-rendered Markdown. Trusted output of the board's own renderer. */
@@ -404,11 +439,50 @@ export interface ShellModel {
 }
 
 /** `children` is the user panel, so a theme decides where in the header it sits. */
+/**
+ * A board's logo, already resolved for this reader's colour scheme.
+ *
+ * Optional, and absent on most boards: a board with no logo renders its name in
+ * text, which is what every board did before this field existed.
+ *
+ * **The app resolves the scheme, not the theme.** A theme cannot do it, and the
+ * obvious attempt is wrong in the commonest case: `dark:hidden` matches the
+ * `.dark` class, and a reader who has chosen "system" has no class — their dark
+ * mode comes from a media query. They would get the light logo on a black page,
+ * which is the exact failure two images exist to prevent. The server knows the
+ * answer, so it gives one.
+ */
+export interface LogoModel {
+  /** The image to render. Already the right one for a forced colour scheme. */
+  readonly src: string
+  /**
+   * A dark-scheme source, or `null`.
+   *
+   * Non-null means "wrap it in a `<picture>` and put this behind
+   * `(prefers-color-scheme: dark)`" — the reader is on "system" and has two
+   * images to choose between. Null covers three different situations a theme
+   * does not need to tell apart: one image, or a reader who has forced a
+   * scheme, in which case `src` is already the right one.
+   */
+  readonly darkSrc: string | null
+  /** Never empty — the board's name when the operator has set nothing. */
+  readonly alt: string
+}
+
 export interface HeaderModel {
   readonly boardTitle: string
   readonly homeHref: string
   readonly viewer: ViewerModel
   readonly navigation: readonly LinkModel[]
+  /**
+   * The board's logo, when it has one.
+   *
+   * A theme that ignores this renders the board's name and is still correct —
+   * which is what makes the field additive rather than breaking. A theme that
+   * uses it should keep the name as the link's accessible content when there is
+   * no logo, because the header is the only link home on most pages.
+   */
+  readonly logo?: LogoModel | undefined
   readonly children?: ReactNode
 }
 

@@ -72,6 +72,7 @@ export type {
   ForumRowModel,
   ForumRowSlotModel,
   HeaderModel,
+  LogoModel,
   LastPostModel,
   LinkModel,
   MemberProfileModel,

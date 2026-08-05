@@ -69,6 +69,7 @@ const GROUP_LABELS: Record<SettingGroup, string> = {
   reputation: 'Reputation',
   security: 'Security',
   antispam: 'Anti-spam',
+  privacy: 'Privacy',
 }
 
 /** The order the tabs appear in: the order an operator sets a board up. */
@@ -81,6 +82,12 @@ const GROUP_ORDER: readonly SettingGroup[] = [
   'reputation',
   'mail',
   'security',
+  /*
+   * Beside security rather than at the end: it is a question about the board's
+   * obligations to its readers, and an operator answering it is usually
+   * answering security's questions in the same sitting.
+   */
+  'privacy',
   /*
    * Last, because it is the tab an operator reaches for when something is
    * already wrong rather than while setting a board up — and because every
@@ -133,6 +140,14 @@ export function buildAdminSettingsModel(input: {
     for (const definition of SETTING_DEFINITIONS) {
       if (definition.group !== group) continue
       if (!matches(definition, query)) continue
+
+      /*
+       * A `managed` setting has a screen of its own — the logo's storage key is
+       * written by an upload, not typed — so the generated form does not draw
+       * it at all. Not even under "advanced": advanced means "hidden until you
+       * ask", and this is "not editable here at any point".
+       */
+      if (definition.ui?.managed === true) continue
 
       const advanced = definition.ui?.advanced === true
       if (advanced && !showAdvanced) {

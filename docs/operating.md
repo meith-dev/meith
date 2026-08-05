@@ -32,6 +32,33 @@ a value the running board reads, so it can change without a deploy.
 | `APP_URL` | For mail and feeds | Absolute, no trailing slash. A digest sent from the worker has no request to be relative to. |
 | `DATA_SOURCE` | No | `postgres` or `fixture`. Defaults to `fixture` when `DATABASE_URL` is unset. |
 | `ADMIN_IP_ALLOWLIST` | No | Comma-separated address prefixes. Empty allows everything. |
+| `FILESTORE_DRIVER` | On serverless | `local` or `s3`. Defaults to `local`. See below — the default is wrong on Vercel. |
+
+### Where uploads go
+
+Avatars, attachments and the board logo all share one store, chosen by
+`FILESTORE_DRIVER`.
+
+| Deployment | Setting | Why |
+|---|---|---|
+| **Local development** | nothing to set | `local`, writing to `.uploads` beside the app. |
+| **Self-hosted (Docker)** | nothing to set | The image creates `/app/.uploads`, declares it a volume and points `UPLOADS_DIR` at it; compose mounts the same named volume into the web and worker services so both see the same files. |
+| **Vercel, or any serverless host** | `FILESTORE_DRIVER=s3` | The filesystem is per-instance and ephemeral. |
+
+**On serverless, local disk does not fail — it loses.** The write succeeds, the
+file is served back from the same warm instance, and it is a 404 for every other
+visitor and for you tomorrow. An administrator uploading a logo sees it work.
+The board **refuses to boot** on Vercel with `FILESTORE_DRIVER=local` for that
+reason; on a serverless host it cannot detect, this table is what you have.
+
+`s3` needs `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID` and
+`S3_SECRET_ACCESS_KEY`, and boot fails naming any that are missing. Add
+`S3_ENDPOINT` for anything S3-compatible — Cloudflare R2, MinIO, DigitalOcean
+Spaces — which switches the client to path-style addressing.
+
+On local disk, the uploads directory is the second thing to back up; on an
+object store the bucket has its own backup story. See
+[Backup and restore](#backup-and-restore).
 
 ### Settings from the command line
 
@@ -91,6 +118,39 @@ change is previewed cell by cell before it applies.
 `admincp.access`. Super-moderator and administrator bypasses apply everywhere
 else, and every use of one is logged.
 
+### How a group looks
+
+`/admin/groups/[id]` carries a group's appearance as well as its rights. Three
+things, and all three are optional — a board that sets none of them looks
+exactly as it did before they existed.
+
+- **A name colour**, set separately for **light and dark**. Both are worth
+  filling in: a colour that reads well on white is usually unreadable on a dark
+  page, and the board will not guess a second one for you. Set one and the other
+  is simply not applied in that scheme.
+- **A badge**, as two uploads, light and dark, on the same terms as the board
+  logo — the bytes decide the format rather than the file name, and SVG is
+  accepted. Upload one and it is used in both schemes. It appears beside the
+  group's title in the postbit.
+- **The title**, which is what shows under a member's name on every post.
+
+A member's group is their **display group** where they have chosen one, and
+their primary group otherwise — so a moderator who prefers to post as an
+ordinary member is shown as one.
+
+The colour reaches **every** username: the postbit, who started a thread, who
+posted last, the profile heading, who is online. It is delivered as a stylesheet
+rule rather than a colour on each name, which is why it works for a reader whose
+dark mode comes from their operating system rather than from the board's own
+control — that reader's page carries no dark-mode class for a theme to match on.
+
+> **Check the contrast.** Nothing stops you setting a pale yellow no reader can
+> make out on a white page. Beneath each picker is a sample of the name on the
+> surface it will really be on — light beside dark, both painted from the
+> board's own palette rather than inherited from the screen you are looking at,
+> so the light sample is light even if your machine is set to dark mode. It is
+> there to be looked at.
+
 ## Themes
 
 A theme is an npm package named in `forum.config.ts`. Installing one is three
@@ -109,25 +169,130 @@ export default { theme: midnight }
 
 Then redeploy.
 
-> [!NOTE]
-> There is deliberately no "switch theme" button. The active theme is resolved
-> once at module load; a control that appeared to switch it would either not work
-> or would cost every first paint a database read.
+> [!IMPORTANT]
+> **A member picks a whole theme, components included.** `midnight` renders its
+> forum listings as tables, and a member who picks it gets tables. The choice is
+> a cookie the server reads, so the page arrives already correct — no flash, no
+> second paint — and the control works with JavaScript turned off.
+>
+> `defaultTheme` in `forum.config.ts` is now the *fallback*: what the board
+> renders when its `themes` table says nothing, and what a palette-only theme
+> borrows its markup from. Changing it is still a deploy; changing what members
+> see is not.
+
+### The board's name, and its logo
+
+The name in the header, in every `<title>`, and in outgoing mail is
+`board.name` under Settings → Board. There is nowhere else it is written down.
+
+`/admin/themes` takes a **logo** to show in place of that name, as two uploads:
+
+- **Light** — used on a light page, and everywhere if there is no dark one.
+- **Dark** — used when the reader is in dark mode.
+
+Two images because one that reads on a white page usually disappears on a black
+one. Which one a reader gets is decided on the server from their colour-scheme
+cookie, so a member who has forced dark on a light machine still gets the dark
+logo — a board doing this in CSS gets that case wrong, and gets it wrong for the
+commonest reader of all, the one on "system".
+
+PNG, JPEG, WebP or SVG, up to 512 KiB. **The contents decide the format, not the
+file name**: markup uploaded as `logo.png` is refused. SVG is accepted and is
+usually what you want for a wordmark; one containing a `<script>`, an event
+handler or a `javascript:` URL is refused, and the served response is sandboxed
+besides.
+
+The alt text — what a screen reader announces instead of the image — is
+**Logo alt text** under Settings → Board. Leave it empty and it becomes the
+board's name, which is usually what the logo says anyway. It is worth setting
+only when the logo says something the name does not.
+
+With no logo the header shows the board's name in text, which is where every
+board starts and where most stay.
 
 ### What you can change without a deploy
 
 `/admin/themes` holds the parts that are data rather than code:
 
-- **Token values** — colours, radius, density.
-- **Custom CSS.**
+- **On or off.** A theme that is on appears in the appearance control at the
+  foot of every page, and any member — signed in or not — can pick it. The theme
+  the board is built with can never be turned off; neither can the default,
+  which has to be moved first. With one theme enabled the menu is not rendered
+  at all — a board with one look does not carry a control for choosing between
+  it and itself — and the light/dark buttons still work on their own.
+- **The default** — what a member who has chosen nothing sees. It need not be
+  the theme the board is built with: setting `midnight` as the default gives
+  every visitor midnight, without a deploy.
+- **Token values** — colours, corner radius, spacing step, monospace stack.
+  Grouped and described on the screen, with the platform colour picker beside
+  each one, and **separate light and dark values**: a page background set to
+  white no longer follows you into dark mode. The sample repaints as you drag,
+  in both schemes at once.
+- **Custom CSS.** On a board with more than one theme enabled this is nested
+  under that theme's own selector, so it stops applying when a member picks
+  another one. A rule aimed at `:root` will not match there — target `body` or a
+  class.
 - **Export and import** — an exact JSON round-trip, so a look can be moved
-  between boards.
+  between boards. Documents written before per-scheme overrides existed
+  (`"version": 1`) still import; their values apply to both schemes.
 
-**Reset** deletes the override row rather than writing empty values. The two look
-identical to every reader, and only one leaves the board as a fresh install.
+A member's choice lives in a cookie (`meith_theme`, `meith_scheme`), not on the
+account: it works for readers who are not signed in, and it does not follow
+anyone between browsers. It is read on the server, which is what lets the theme
+decide the markup rather than only the colours — and why the switcher needs no
+JavaScript at all.
+
+A theme that is turned off stops rendering immediately for the members who had
+chosen it. The cookie is validated against the enabled list on every request, so
+nobody has to clear anything.
+
+**Reset** clears that theme's colours and custom CSS. It deletes the row when
+nothing else is left in it — a row that is enabled and not the default — because
+"no overrides" and "no row" look identical to every reader and only the delete
+leaves the board as a fresh install. It keeps the row when the board has turned
+the theme off, because putting colours back must not put a theme back in
+everybody's switcher.
 
 Writing a theme: [The theme API](./theme-api.md). Every slot and view model:
 [Theme slots](./theme-slots.md).
+
+## Cookies and consent
+
+The board sets five cookies of its own and no third-party ones:
+
+| Cookie | What it is for |
+|---|---|
+| session, remember-me | signing in |
+| CSRF | protecting the forms of that session |
+| `meith_theme`, `meith_scheme` | the appearance controls, written only when a member presses one |
+| `meith_consent` | the answer to the notice below |
+
+Under the ePrivacy Directive all of those are either strictly necessary or set
+in direct response to something the reader explicitly asked for, so none of them
+is what a consent notice is about. **The notice is about the optional analytics**
+— the one thing here a reader has a genuine interest in refusing — and refusing
+means the script is never rendered, not that it loads and is asked to be quiet.
+
+`privacy.cookie_consent` (Settings → Privacy) decides who is asked:
+
+| Setting | Behaviour |
+|---|---|
+| **Where required** (default) | Asks in the EEA, the UK and Switzerland — and asks when the visitor's country is unknown |
+| **Everywhere** | Asks every visitor |
+| **Never ask** | Shows no notice, and analytics run for everyone |
+
+The country comes from whatever header the CDN in front of the board sets —
+`x-vercel-ip-country` on Vercel, `cf-ipcountry` behind Cloudflare. A board behind
+neither has no such header, and "unknown" is treated as in scope on purpose: a
+notice somebody did not need is a smaller mistake than processing a European
+reader's data without asking. If that is not the trade you want, say so in the
+setting rather than living with the guess.
+
+Accepting and refusing are one click each, side by side, and the choice can be
+changed afterwards from the appearance strip at the foot of any page.
+
+> This is a mechanism, not legal advice. What your board must ask and record
+> depends on what it does with the data, which is yours to decide.
 
 ## Plugins
 
@@ -246,6 +411,44 @@ on its own date, and removing it removes nothing anybody wrote — which is why 
 is safe to delete and a sticky thread is not.
 
 Dates are entered in UTC.
+
+## Reputation
+
+`/admin/settings` under **Reputation**. Four switches, and the first two decide
+what the feature *is* on your board.
+
+**Allow negative ratings** — off by default. Off, reputation is a thanks
+button: every post carries **Thanks**, one press gives the author a point, and
+pressing it again takes it back. The **Rate** link is not shown, because with
+negatives off the rating form has nothing on it the button has not.
+
+Turn it on and the Rate link comes back beside the Thanks button, leading to a
+form that can also rate somebody down and say why. Both controls are then
+offered, because they are then two different things.
+
+**Require a comment** — off by default, and turning it on removes the Thanks
+button. One press cannot carry a reason, so a board that requires one is a board
+where every rating goes through the form. That is the right trade for a board
+that allows negatives — a criticism with no reason attached is the part of
+reputation people argue about — and the wrong one for a board that only allows
+thanks, which is why the default is off.
+
+> If you are upgrading, this default **changed**: it used to be on. See
+> [Upgrading](./upgrading.md#settings-whose-defaults-have-changed).
+
+**Posts required before rating** — 5 by default. A spam defence: registering
+takes seconds, posting five times on a moderated board does not. 0 turns it off.
+
+**Ratings per day** is per *group*, on the group's own screen, not here — it is
+a number that should differ between a new member and a moderator, and every
+numeric permission on this board lives with the group (0 means unlimited).
+
+A member's total is **derived**, not counted up: it is recomputed from the live
+ratings every time one is written, changed or withdrawn. So a withdrawn rating
+really leaves, and a total that has somehow drifted repairs itself the next time
+anybody rates that member. Editing `users.reputation` by hand therefore does
+nothing lasting — use **Recount & rebuild** on `/admin/system` if you need it
+corrected.
 
 ## Spam
 

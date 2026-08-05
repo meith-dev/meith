@@ -8,7 +8,7 @@ import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 import { runSearch, type SearchFilters } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { filterView, viewerRef } from '@/server/plugin-view'
 
 export const metadata: Metadata = { title: 'Search' }
@@ -67,7 +67,7 @@ export default async function SearchPage({
   const forum = value(FIELDS.forum)
   const sort = value(FIELDS.sort)
 
-  const SearchForm = requireSlot(activeTheme, 'SearchForm')
+  const SearchForm = requireSlot(await currentTheme(), 'SearchForm')
 
   /* Only run when something was actually submitted. */
   if (terms !== '') {

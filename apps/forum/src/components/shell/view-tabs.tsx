@@ -61,7 +61,34 @@ export function ViewTabs({
       aria-label={label}
       className={cn('flex items-center gap-x-4 border-b border-border', className)}
     >
-      <ul className="flex min-w-0 flex-1 items-center gap-x-4 overflow-x-auto">
+      {/*
+        `py-1.5 -my-1.5` is not spacing. It is what makes this a scroll
+        container that does not scroll vertically and does not clip a focus
+        ring, and both of those were visibly broken without it.
+
+        `overflow-x-auto` does not mean "scroll horizontally only". CSS says an
+        `overflow-y` of `visible` paired with a non-`visible` `overflow-x`
+        computes to `auto`, so this element is a scroll container in **both**
+        axes. Two consequences, and neither shows up on a Mac, which is how they
+        survived:
+
+          - the `-mb-px` on each tab below puts its bottom border exactly one
+            pixel past the content box, and one pixel of vertical overflow is
+            still overflow. A browser with classic scrollbars — most Windows and
+            Linux installs — draws a full-height bar down the side of a tab row
+            holding two words.
+          - a scroll container clips at its padding box, and the tabs filled
+            theirs exactly. `focus-visible:outline-offset-2` therefore drew
+            outside the clip, so a keyboard user tabbing to "Top rated" got two
+            vertical ticks either side of it and no ring.
+
+        Six pixels of padding is what the 2px offset plus the 2px outline needs,
+        with room for that stray pixel; the negative margin gives all of it
+        straight back to the layout, so the `<ul>`'s margin box is the height it
+        always was, the nav's rule does not move, and the current tab's border
+        still lands on it. Drop either half and one of the three regresses.
+      */}
+      <ul className="-my-1.5 flex min-w-0 flex-1 items-center gap-x-4 overflow-x-auto py-1.5">
         {tabs.map((tab) => (
           <li key={tab.href} className="shrink-0">
             <a

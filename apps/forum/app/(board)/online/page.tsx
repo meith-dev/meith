@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { getActor } from '@/server/context'
 import { readOnline, presenceRepository } from '@/server/presence'
 import { getViewerPreferences } from '@/server/viewer-preferences'
+import { identitiesFor } from '@/server/group-identity'
 import { locationOf } from '@/view/presence'
 import { formatTime } from '@/view/time'
 
@@ -41,6 +42,12 @@ export default async function OnlinePage() {
     )
   }
 
+  /*
+   * The group colours for everyone on the list, in one query. Read after the
+   * empty-snapshot return above, so a board that tracks nobody asks nothing.
+   */
+  const identities = await identitiesFor(snapshot.members.map((member) => member.userId))
+
   return (
     <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 flex-1">
       <div className="flex flex-col gap-1">
@@ -72,7 +79,9 @@ export default async function OnlinePage() {
                 <span className="text-sm font-medium">
                   <a
                     href={`/member/${member.userId}`}
-                    className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                    className={`font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground ${
+                      identities.get(member.userId)?.nameClass ?? ''
+                    }`}
                   >
                     {member.username}
                   </a>

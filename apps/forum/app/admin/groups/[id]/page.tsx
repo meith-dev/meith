@@ -6,8 +6,12 @@ import {
   GroupIdentityForm,
   GroupPermissionsForm,
 } from '@/components/admin/group-forms'
+import { BadgeUploadForm } from '@/components/admin/badge-forms'
 import { requireAdmin } from '@/server/admin'
+import { badgeKey, badgeSrc } from '@/server/group-badge'
+import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { buildGroupPermissionView, groupAdminRepository } from '@/server/group-admin'
+import { boardSampleSurfaces } from '@/server/theme-admin'
 
 export const metadata: Metadata = { title: 'Group' }
 
@@ -40,6 +44,16 @@ export default async function AdminGroupPage({
   /* For the "move its members to" list on the delete form. */
   const groups = (await groupAdminRepository()?.list()) ?? []
 
+  /* The badges as they stand, so each control shows what the board is using. */
+  const [lightBadge, darkBadge] = await Promise.all([
+    badgeKey(view.group.id, 'light'),
+    badgeKey(view.group.id, 'dark'),
+  ])
+  const badges = {
+    light: lightBadge === null ? null : badgeSrc(view.group.id, 'light', lightBadge),
+    dark: darkBadge === null ? null : badgeSrc(view.group.id, 'dark', darkBadge),
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
       <div className="flex flex-col gap-1">
@@ -64,8 +78,44 @@ export default async function AdminGroupPage({
             displayOrder: view.group.displayOrder,
             isStaffGroup: view.group.isStaffGroup,
             badgeToken: view.group.badgeToken ?? '',
+            nameColorLight: view.group.nameColorLight ?? '',
+            nameColorDark: view.group.nameColorDark ?? '',
           }}
+          surfaces={await boardSampleSurfaces()}
         />
+      </section>
+
+      {/*
+        Its own section, and its own forms. An upload is a different kind of
+        write from a text field — it cannot be part of a form that also carries
+        the title, or saving a rename would re-post whatever the file inputs
+        happened to be holding.
+      */}
+      <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <h2 className="font-serif text-lg font-semibold">Badge</h2>
+        <p className="text-sm text-muted-foreground">
+          A small image shown beside a member&rsquo;s name. Two of them, for the
+          reason the colours have two: an icon drawn for a white page usually
+          disappears on a black one. Upload only the light one and it is used in
+          both.
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <BadgeUploadForm
+            groupId={view.group.id}
+            scheme="light"
+            label="Light"
+            src={badges.light}
+            maxKib={MAX_IMAGE_BYTES / 1024}
+          />
+          <BadgeUploadForm
+            groupId={view.group.id}
+            scheme="dark"
+            label="Dark"
+            src={badges.dark}
+            maxKib={MAX_IMAGE_BYTES / 1024}
+          />
+        </div>
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">

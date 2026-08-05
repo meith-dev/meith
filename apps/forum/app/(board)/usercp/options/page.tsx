@@ -7,7 +7,7 @@ import { OptionsForm } from '@/components/account/usercp-forms'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 import { getSettings } from '@/server/settings'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { availableTimezones, optionsFormValues, userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your options' }
@@ -37,7 +37,7 @@ export default async function OptionsPage({
   const board = await getSettings()
   const values = optionsFormValues(settings)
   const notice = userCpNotice(query)
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">

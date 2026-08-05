@@ -3,26 +3,65 @@
 /**
  * F68's forms.
  *
- * One form covers the tokens, the custom CSS and the preview, because they are
- * one edit: previewing a colour without the CSS that uses it would preview
- * something the board will never look like. The preview button and the save
- * button are two submits on the same form — with no JavaScript, that is exactly
- * how a browser behaves.
+ * ## What was wrong with the version this replaces
+ *
+ * It was thirty-eight text boxes. Each was labelled with a token name, each was
+ * prefilled with an OKLCH triple, each applied to light *and* dark at once, and
+ * the only way to see the result was to press a button that posted the whole
+ * form back. Every part of that is defensible as data entry and none of it is
+ * defensible as choosing a colour: an operator who wanted a blue "post reply"
+ * button had to know that the token was called `primary`, that OKLCH is
+ * lightness-chroma-hue, and that setting it would also change dark mode.
+ *
+ * So: the tokens are grouped and described in English, a colour token gets the
+ * platform's own colour picker beside its text box, light and dark are separate
+ * fields, the sample repaints as the picker moves, and five one-click brand
+ * palettes cover the case almost every board actually has.
+ *
+ * ## The picker speaks OKLCH, because the palette does
+ *
+ * The first version of this screen put the platform's own `<input type="color">`
+ * beside each field. That was better than a bare text box and still wrong: the
+ * native control speaks six-digit hex, every token this board ships is
+ * `oklch()`, and handed one it shows black *and reports black when read* — so
+ * opening the editor and saving without touching anything rewrote the palette.
+ * It also cannot do the two things an operator actually wants, "the same colour
+ * but lighter" and "the same lightness, another hue", which are one slider each
+ * in OKLCH and a guess in a hex wheel.
+ *
+ * `OklchPicker` is that control. The text box is still the field that posts —
+ * an empty box is "use the theme's value", which no slider position can
+ * express, and it accepts what the sliders cannot.
+ *
+ * ## It still works with JavaScript off
+ *
+ * The live sample is an enhancement. With scripting off the fields are ordinary
+ * inputs, "Preview without saving" is a second submit on the same form, and the
+ * server renders a sample from values it has validated exactly as a save would
+ * (D06).
  */
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 
 import {
   importThemeAction,
   previewThemeAction,
   resetThemeAction,
   saveThemeAction,
+  setDefaultThemeAction,
+  setThemeEnabledAction,
 } from "@/server/theme-admin-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
+import { BRAND_PRESETS, groupTokens, type TokenKind } from "@/view/theme-tokens"
+
+import { OklchPicker } from "./oklch-picker"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
 
 const INPUT =
   "w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+
+const GHOST_BUTTON =
+  "inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 
 function Saved({ when, children }: { when: boolean; children: React.ReactNode }) {
   if (!when) return null
@@ -35,39 +74,104 @@ function Saved({ when, children }: { when: boolean; children: React.ReactNode })
 
 export interface TokenValue {
   readonly name: string
+  readonly label: string
+  readonly hint: string
+  readonly kind: TokenKind
   readonly light: string
   readonly dark: string
-  readonly override: string
+  readonly overrideLight: string
+  readonly overrideDark: string
+}
+
+/** Every field name the form posts, and what is in it right now. */
+type Draft = Record<string, string>
+
+type Scheme = "light" | "dark" | "both"
+
+function field(name: string, scheme: Scheme): string {
+  return `token.${scheme}.${name}`
+}
+
+/** A token that means the same thing in both schemes posts one value. */
+function schemesFor(token: TokenValue): readonly Scheme[] {
+  return token.kind === "colour" ? ["light", "dark"] : ["both"]
+}
+
+function initialDraft(tokens: readonly TokenValue[], restored: Draft | undefined): Draft {
+  const draft: Draft = {}
+  for (const token of tokens) {
+    for (const scheme of schemesFor(token)) {
+      const stored = scheme === "dark" ? token.overrideDark : token.overrideLight
+      draft[field(token.name, scheme)] = restored?.[field(token.name, scheme)] ?? stored
+    }
+  }
+  return draft
 }
 
 /**
- * A sample of real board chrome, painted with whatever the preview supplied.
+ * The palette the live sample paints with, for one scheme.
+ *
+ * The **whole** palette, not just the overrides. The sample sits inside the
+ * control panel, which is painted by `:root` — so an alternate theme previewed
+ * with only its overrides declared would show the *board's* colours everywhere
+ * it had not overridden one, which is precisely the mistake this screen exists
+ * to prevent an operator making.
+ *
+ * Set through React's `style` prop rather than a generated `<style>` block, so
+ * a half-typed value is a property the browser drops rather than a string this
+ * component has to sanitise. The saved values still go through F26's validator
+ * on the server; nothing here is load-bearing for safety.
+ */
+function paletteFor(
+  tokens: readonly TokenValue[],
+  draft: Draft,
+  scheme: "light" | "dark",
+): React.CSSProperties {
+  const style: Record<string, string> = {}
+  for (const token of tokens) {
+    const key = token.kind === "colour" ? scheme : "both"
+    const override = draft[field(token.name, key)]?.trim() ?? ""
+    style[`--${token.name}`] =
+      override === "" ? (scheme === "dark" ? token.dark : token.light) : override
+  }
+  return style as React.CSSProperties
+}
+
+/**
+ * A sample of real board chrome, painted with whatever is in the form.
  *
  * Real elements rather than colour swatches: an operator is choosing whether
- * their board is readable, and a row of squares cannot answer that. It carries
- * `data-theme-preview` so the style block the action produced applies here and
- * nowhere else — previewing an unreadable colour must not make the form that
- * changes it back unreadable too.
+ * their board is readable, and a row of squares cannot answer that. Both
+ * schemes are shown at once because they are one decision — the commonest way
+ * to ruin a board from this screen is to pick a colour that works on white and
+ * never look at it on black.
+ *
+ * `data-theme-preview` is for the no-JavaScript path, whose style block the
+ * server scopes to that attribute so a preview cannot restyle the form around
+ * it.
  */
-function PreviewSample({ css }: { css: string }) {
+function PreviewSample({
+  palette,
+  dark,
+  label,
+}: {
+  palette: React.CSSProperties
+  dark?: boolean
+  label: string
+}) {
   return (
-    <div className="flex flex-col gap-3">
-      {/*
-        The block is the action's own output, built from values F26's validator
-        has already accepted — the same function the render path runs. It is the
-        one place in this screen markup is inserted rather than escaped.
-      */}
-      <style dangerouslySetInnerHTML={{ __html: css }} />
-
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <div
         data-theme-preview
-        className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4 text-foreground"
+        style={palette}
+        className={`flex flex-col gap-3 rounded-lg border border-border bg-background p-4 text-foreground ${
+          dark === true ? "dark" : ""
+        }`}
       >
         <div className="rounded-md border border-border bg-card p-3 text-card-foreground">
           <p className="font-serif text-base font-semibold">A forum</p>
-          <p className="text-xs text-muted-foreground">
-            Last post by a member, a moment ago
-          </p>
+          <p className="text-xs text-muted-foreground">Last post by a member, a moment ago</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -82,10 +186,92 @@ function PreviewSample({ css }: { css: string }) {
           </span>
         </div>
 
-        <p className="text-sm">
-          Body text, with <a href="#preview" className="font-medium text-foreground underline decoration-border underline-offset-2">a link</a> and{" "}
-          <span className="text-muted-foreground">muted secondary text</span>.
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <span className="font-medium text-forum-unread">Unread forum</span>
+          <span className="text-forum-read">Read forum</span>
+          <span className="text-thread-pinned">Pinned</span>
+          <span className="text-thread-locked">Locked</span>
+          <span className="text-group-admin">Administrator</span>
+        </div>
+
+        <p className="rounded-md bg-post-highlight p-2 text-sm">
+          A highlighted post, with{" "}
+          <span className="text-muted-foreground">muted secondary text</span> beside it.
         </p>
+      </div>
+    </div>
+  )
+}
+
+/** One token: what it is, and the one or two values that decide it. */
+function TokenRow({
+  token,
+  draft,
+  onChange,
+}: {
+  token: TokenValue
+  draft: Draft
+  onChange: (name: string, value: string) => void
+}) {
+  const shipped = (scheme: Scheme): string => (scheme === "dark" ? token.dark : token.light)
+
+  const touched = schemesFor(token).some(
+    (scheme) => (draft[field(token.name, scheme)] ?? "") !== "",
+  )
+
+  return (
+    <div className="flex flex-col gap-2 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="text-sm font-medium">{token.label}</span>
+        <span className="font-mono text-xs text-muted-foreground">{token.name}</span>
+      </div>
+      {token.hint !== "" && <p className="text-xs text-muted-foreground">{token.hint}</p>}
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        {schemesFor(token).map((scheme) => {
+          const name = field(token.name, scheme)
+          const value = draft[name] ?? ""
+          return (
+            <label key={scheme} className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="text-xs text-muted-foreground">
+                {scheme === "both" ? "Both schemes" : scheme === "dark" ? "Dark" : "Light"}
+              </span>
+              {token.kind === "colour" ? (
+                <OklchPicker
+                  name={name}
+                  value={value}
+                  shipped={shipped(scheme)}
+                  onChange={(next) => onChange(name, next)}
+                />
+              ) : (
+                <input
+                  name={name}
+                  value={value}
+                  onChange={(event) => onChange(name, event.target.value)}
+                  placeholder={shipped(scheme)}
+                  className={INPUT}
+                />
+              )}
+            </label>
+          )
+        })}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-muted-foreground">
+          {touched ? "Overridden by this board." : "Using the theme’s own value."}
+        </span>
+        {touched && (
+          <button
+            type="button"
+            onClick={() => {
+              for (const scheme of schemesFor(token)) onChange(field(token.name, scheme), "")
+            }}
+            className="text-xs font-medium underline decoration-border underline-offset-2 hover:decoration-foreground"
+          >
+            Use the theme&rsquo;s value
+          </button>
+        )}
       </div>
     </div>
   )
@@ -103,12 +289,22 @@ export function ThemeEditorForm({
   const [state, action] = useActionState(saveThemeAction, EMPTY_STATE)
   const [preview, previewAction] = useActionState(previewThemeAction, EMPTY_STATE)
 
-  /* The pending values win, so a preview does not throw away what was typed. */
-  const valueFor = (name: string): string =>
-    preview.values?.[`token.${name}`] ??
-    tokens.find((token) => token.name === name)?.override ??
-    ""
-  const cssValue = preview.values?.customCss ?? customCss
+  /* The post-back's values seed the fields, so a no-JS preview keeps them. */
+  const [draft, setDraft] = useState<Draft>(() => initialDraft(tokens, preview.values))
+  const [css, setCss] = useState(preview.values?.customCss ?? customCss)
+
+  const set = (name: string, value: string): void =>
+    setDraft((current) => ({ ...current, [name]: value }))
+
+  const applyPreset = (preset: (typeof BRAND_PRESETS)[number]): void =>
+    setDraft((current) => {
+      const next = { ...current }
+      for (const [name, value] of Object.entries(preset.light)) next[field(name, "light")] = value
+      for (const [name, value] of Object.entries(preset.dark)) next[field(name, "dark")] = value
+      return next
+    })
+
+  const groups = groupTokens(tokens)
 
   return (
     <div className="flex flex-col gap-6">
@@ -117,52 +313,99 @@ export function ThemeEditorForm({
         Saved. The board is rendering these values now.
       </Saved>
 
-      {preview.preview !== undefined && (
-        <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
           <h3 className="font-serif text-base font-semibold">Preview</h3>
           <p className="text-xs text-muted-foreground">
-            Nothing has been saved. This is what a save would paint.
+            Nothing has been saved. Both schemes are shown because they are one
+            decision — a colour that works on white often disappears on black.
+            Custom CSS is not painted here; &ldquo;Preview without saving&rdquo;
+            includes it.
           </p>
-          <PreviewSample css={preview.preview} />
+        </div>
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <PreviewSample label="Light" palette={paletteFor(tokens, draft, "light")} />
+          <PreviewSample label="Dark" palette={paletteFor(tokens, draft, "dark")} dark />
+        </div>
+      </section>
+
+      {preview.preview !== undefined && (
+        <section className="flex flex-col gap-3">
+          <h3 className="font-serif text-base font-semibold">Validated preview</h3>
+          <p className="text-xs text-muted-foreground">
+            Rendered by the board from values it has validated exactly as a save
+            would, custom CSS included. Light only — the dark values are in the
+            live sample above.
+          </p>
+          {/*
+            The block is the action's own output, built from values F26's
+            validator has already accepted — the same function the render path
+            runs. It is the one place in this screen markup is inserted rather
+            than escaped.
+          */}
+          <style dangerouslySetInnerHTML={{ __html: preview.preview }} />
+          <PreviewSample label="As the board would render it" palette={{}} />
         </section>
       )}
 
-      <form action={action} className="flex flex-col gap-4" noValidate>
+      <form action={action} className="flex flex-col gap-6" noValidate>
         <input type="hidden" name="key" value={themeKey} />
 
         <fieldset className="flex flex-col gap-3">
-          <legend className="text-sm font-medium">Tokens</legend>
+          <legend className="text-sm font-medium">Brand palettes</legend>
           <p className="text-xs text-muted-foreground">
-            Leave a box empty to use the value the theme ships with — shown
-            beside it. A token set here applies in both light and dark.
+            Sets the accent colour, the text on it and the focus ring, for both
+            schemes at once — the three tokens that brand a board whose default
+            palette holds no hue at all. Nothing is saved until you press Save.
           </p>
-
-          <div className="flex flex-col divide-y divide-border">
-            {tokens.map((token) => (
-              <label key={token.name} className="flex flex-col gap-1 py-2 text-sm">
-                <span className="font-mono text-xs font-medium">{token.name}</span>
-                <input
-                  name={`token.${token.name}`}
-                  defaultValue={valueFor(token.name)}
-                  placeholder={token.light}
-                  className={INPUT}
+          <div className="flex flex-wrap gap-2">
+            {BRAND_PRESETS.map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className={GHOST_BUTTON}
+              >
+                <span
+                  aria-hidden
+                  className="mr-2 inline-block size-3 rounded-full border border-border"
+                  style={{ background: preset.light.primary }}
                 />
-                <span className="text-xs text-muted-foreground">
-                  ships as {token.light}
-                  {token.dark !== token.light && ` — dark: ${token.dark}`}
-                </span>
-              </label>
+                {preset.title}
+              </button>
             ))}
           </div>
         </fieldset>
 
+        {groups.map((group) => (
+          <fieldset key={group.title} className="flex flex-col gap-2">
+            <legend className="text-sm font-medium">{group.title}</legend>
+            <p className="text-xs text-muted-foreground">{group.blurb}</p>
+            <div className="flex flex-col divide-y divide-border">
+              {group.tokens.map((token) => (
+                <TokenRow key={token.name} token={token} draft={draft} onChange={set} />
+              ))}
+            </div>
+          </fieldset>
+        ))}
+
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Custom CSS</span>
-          <textarea name="customCss" rows={10} defaultValue={cssValue} className={INPUT} />
+          <textarea
+            name="customCss"
+            rows={10}
+            value={css}
+            onChange={(event) => setCss(event.target.value)}
+            className={INPUT}
+          />
           <span className="text-xs text-muted-foreground">
-            Appended after the theme&rsquo;s own styles. `@import`, `url(` and a
-            closing style tag are refused — those are how a stylesheet stops
-            being a stylesheet.
+            Appended after the theme&rsquo;s own styles. <code>@import</code>,{" "}
+            <code>url(</code> and a closing style tag are refused — those are how
+            a stylesheet stops being a stylesheet. When more than one theme is
+            enabled this is nested under the theme&rsquo;s own selector, so it
+            stops applying the moment a member picks a different one; a rule
+            aimed at <code>:root</code> will not match there, so target{" "}
+            <code>body</code> or a class instead.
           </span>
         </label>
 
@@ -228,5 +471,67 @@ export function ImportThemeForm({ themeKey }: { themeKey: string }) {
         <SubmitButton>Import</SubmitButton>
       </div>
     </form>
+  )
+}
+
+/**
+ * Turn a theme on or off, and choose the board's default.
+ *
+ * One-button forms rather than a checkbox that saves on change: a control that
+ * acts on `onChange` does nothing at all with scripting off, and this screen
+ * decides what every member of the board can see.
+ */
+export function ThemeStateForms({
+  themeKey,
+  enabled,
+  isDefault,
+  isBuildTheme,
+}: {
+  themeKey: string
+  enabled: boolean
+  isDefault: boolean
+  isBuildTheme: boolean
+}) {
+  const [enabledState, enabledAction] = useActionState(setThemeEnabledAction, EMPTY_STATE)
+  const [defaultState, defaultAction] = useActionState(setDefaultThemeAction, EMPTY_STATE)
+
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-2">
+      <FormError message={enabledState.error ?? defaultState.error} />
+
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {!isDefault && enabled && (
+          <form action={defaultAction}>
+            <input type="hidden" name="key" value={themeKey} />
+            <button type="submit" className={GHOST_BUTTON}>
+              Make default
+            </button>
+          </form>
+        )}
+
+        {/*
+          The build's theme has no toggle at all rather than a disabled one: its
+          components are what every page renders, so "off" is not a state this
+          board can be in, and a control that refuses is a worse answer than a
+          control that is not there. The reason is written beside it in the list.
+        */}
+        {!isBuildTheme && !isDefault && (
+          <form action={enabledAction}>
+            <input type="hidden" name="key" value={themeKey} />
+            <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
+            <button type="submit" className={GHOST_BUTTON}>
+              {enabled ? "Turn off" : "Turn on"}
+            </button>
+          </form>
+        )}
+
+        <a
+          href={`/admin/themes/${themeKey}`}
+          className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
+        >
+          Customise
+        </a>
+      </div>
+    </div>
   )
 }

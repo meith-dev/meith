@@ -8,7 +8,7 @@ import { ReplyForm } from '@/components/content/reply-form'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { buildReplyView } from '@/view/post-form'
 
 export const metadata: Metadata = { title: 'Reply' }
@@ -79,7 +79,7 @@ export default async function ReplyPage({
     errorMessage: locked ? 'This thread is locked.' : null,
   })
 
-  const PostForm = requireSlot(activeTheme, 'PostForm')
+  const PostForm = requireSlot(await currentTheme(), 'PostForm')
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">

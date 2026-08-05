@@ -4,7 +4,7 @@ import 'server-only'
  * F79 at the app layer — the board's one plugin host.
  *
  * Built once at module load from `forum.config.ts`, for the same reason
- * `activeTheme` is: the registry is static, so constructing a host per request
+ * the resolved theme map is: the registry is static, so constructing a host per request
  * would sort the same handler lists into the same order on every page.
  *
  * ## Disabled plugins are never passed in

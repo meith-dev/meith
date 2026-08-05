@@ -14,7 +14,7 @@ import {
   reputationSettings,
   viewerRaterLimits,
 } from '@/server/reputation'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildReputationView, reputationLabel, reputationNotice } from '@/view/reputation'
 
@@ -109,7 +109,7 @@ export default async function ReputationPage({
     timeZone: preferences.timezone,
   })
 
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = reputationNotice(query)
   const returnTo = `/member/${id}/reputation`
 

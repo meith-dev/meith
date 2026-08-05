@@ -5,7 +5,7 @@ import { readUnsubscribeToken } from '@meith/subscriptions'
 import { requireSlot } from '@meith/theme-kit'
 
 import { UnsubscribeConfirmForm } from '@/components/account/subscription-forms'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { unsubscribeNotice } from '@/view/subscriptions'
 
 export const metadata: Metadata = { title: 'Unsubscribe' }
@@ -43,7 +43,7 @@ export default async function UnsubscribePage({
   const claim =
     token === '' || secret === undefined ? null : readUnsubscribeToken(token, secret)
 
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">

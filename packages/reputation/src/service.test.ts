@@ -72,6 +72,25 @@ class FakeRepository implements ReputationRepository {
     return null
   }
 
+  async existingForPosts(input: { givenByUserId: number; postIds: readonly number[] }) {
+    const ids = new Set(input.postIds)
+    return new Map(
+      this.rows
+        .filter((row) => row.givenByUserId === input.givenByUserId && row.postId !== null)
+        .filter((row) => ids.has(row.postId as number))
+        .map((row) => [row.postId as number, row] as const),
+    )
+  }
+
+  async thanksForPosts(postIds: readonly number[]) {
+    const counts = new Map<number, number>()
+    for (const row of this.rows) {
+      if (row.postId === null || row.points <= 0 || !postIds.includes(row.postId)) continue
+      counts.set(row.postId, (counts.get(row.postId) ?? 0) + 1)
+    }
+    return counts
+  }
+
   async givenSince() {
     return 0
   }

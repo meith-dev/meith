@@ -7,7 +7,7 @@ import { ProfileForm } from '@/components/account/usercp-forms'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 import { profileFieldService, viewerFieldContext } from '@/server/profile-fields'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { customFieldInputs, profileFormValues, userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your profile' }
@@ -48,7 +48,7 @@ export default async function ProfileSettingsPage({
       ? []
       : customFieldInputs(await fields.editableFor(actor.userId, context))
   const notice = userCpNotice(query)
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
 
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">

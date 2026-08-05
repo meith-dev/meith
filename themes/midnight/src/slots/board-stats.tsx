@@ -1,5 +1,7 @@
 import type { BoardStatsModel } from '@meith/theme-kit'
 
+import { UserRef } from '../shared'
+
 /**
  * Board totals, as a definition list rather than a sentence.
  *
@@ -41,12 +43,8 @@ export function BoardStats({
           <dd>
             {newestMember === null ? (
               '—'
-            ) : newestMember.profileHref === null ? (
-              newestMember.username
             ) : (
-              <a href={newestMember.profileHref} className="text-primary hover:underline">
-                {newestMember.username}
-              </a>
+              <UserRef user={newestMember} className="text-primary hover:underline" />
             )}
           </dd>
         </div>

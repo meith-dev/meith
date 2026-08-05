@@ -7,7 +7,7 @@ import { requireSlot } from '@meith/theme-kit'
 import { AvatarForm } from '@/components/account/avatar-form'
 import { avatarFor, canUploadAvatar } from '@/server/avatars'
 import { getActor } from '@/server/context'
-import { activeTheme } from '@/server/theme'
+import { currentTheme } from '@/server/theme'
 import { userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Your avatar' }
@@ -31,7 +31,7 @@ export default async function AvatarPage({
   if (actor.userId === null || !canUploadAvatar(actor)) notFound()
 
   const avatar = await avatarFor(actor.userId)
-  const Notice = requireSlot(activeTheme, 'Notice')
+  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = userCpNotice(query)
 
   /*

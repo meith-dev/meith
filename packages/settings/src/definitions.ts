@@ -32,6 +32,13 @@ export type SettingGroup =
    * about passwords are nine settings they do not find.
    */
   | 'antispam'
+  /**
+   * What the board asks its readers before processing anything optional. Its
+   * own group rather than a corner of 'board', because an operator looking for
+   * it is answering a question somebody else asked them — a regulator, a
+   * customer, their own legal advice — and will look for the word.
+   */
+  | 'privacy'
 
 interface SettingDefinitionBase<T> {
   readonly key: string
@@ -77,13 +84,46 @@ interface SettingDefinitionBase<T> {
      * click "advanced" first, which defeats it.
      */
     readonly advanced?: boolean
+    /**
+     * Owned by a screen of its own, so the generated form does not draw it.
+     *
+     * For a value that is real configuration but is not *typed* by an operator:
+     * the board logo's storage key is written by an upload and read by the
+     * header, and rendering it as a text box would invite somebody to paste a
+     * path at it and get a broken image with no explanation.
+     *
+     * It stays in this registry rather than moving somewhere private, because
+     * everything else the registry gives it is still wanted — a declared type,
+     * a default, cache invalidation on write, and `settings:get` from the CLI
+     * when a board is broken and the panel is not reachable.
+     */
+    readonly managed?: boolean
   }
 }
 
 export type SettingDefinition<T = unknown> = SettingDefinitionBase<T>
 
 /** Helper preserving the literal value type through the definition. */
-function define<T>(d: SettingDefinitionBase<T>): SettingDefinition<T> {
+/**
+ * Attach the type, and **keep the key literal**.
+ *
+ * The `K` is the entire point of the second type parameter. Without it the
+ * return type widens `key` to `string`, which is what this signature used to
+ * do — and the consequence was silent and total: `SettingKey` became `string`,
+ * so any key at all type-checked, and `SettingValue<K>` became `never`, because
+ * `Extract<{ key: string, … }, { key: 'board.name' }>` matches nothing.
+ *
+ * `never` is assignable to everything, so nothing complained. Every
+ * `settings.get('board.name')` on the board was typed `never` and every
+ * assignment of one still compiled. It surfaced the first time somebody called
+ * a method on the result rather than assigning it.
+ *
+ * `definitions.type-test.ts` is the deliberate violation that keeps this
+ * honest — put the old signature back and it fails loudly (D10).
+ */
+function define<T, K extends string>(
+  d: SettingDefinitionBase<T> & { readonly key: K },
+): SettingDefinition<T> & { readonly key: K } {
   return d
 }
 
@@ -256,15 +296,109 @@ export const SETTING_DEFINITIONS = [
     invalidates: ['settings'],
     ui: { min: 5, max: 100 },
   }),
+  /*
+   * `display.default_theme_id` used to be here, and it never did anything.
+   *
+   * It came from the build plan, which assumed MyBB's numeric theme ids. Themes
+   * here are keyed by the string they are registered under in
+   * `forum.config.ts`, so nothing could ever have read it — and now that the
+   * board default is a real control (the `themes` table's `is_default`, set
+   * from /admin/themes), an inert setting labelled "Default theme" is worse
+   * than a missing one: it is a control an operator would reasonably use and
+   * then wonder why the board ignored them.
+   *
+   * Removed rather than deprecated. A setting with no reader has no stored
+   * value worth migrating, and `SettingsSnapshot` ignores a row whose key is not
+   * in the registry, so an old row on an upgraded board is inert either way.
+   */
+
+  /*
+   * The board's logo, in two schemes.
+   *
+   * Storage keys rather than URLs, and written by the upload on /admin/themes
+   * rather than typed — hence `managed`. Two of them because a logo that reads
+   * on a white page usually disappears on a black one, which is the same reason
+   * the token editor has two colour fields per token rather than one.
+   *
+   * Empty means "no logo", and the header falls back to the board's name in
+   * text. That is the state every board starts in and most boards stay in, so
+   * it is the state the code treats as ordinary rather than as an error.
+   */
   define({
-    key: 'display.default_theme_id',
-    group: 'display',
-    label: 'Default theme',
-    description: 'Used for guests and users who have not chosen a theme.',
-    schema: z.number().int().positive(),
-    default: 1,
-    invalidates: ['settings', 'theme', 'layout'],
-    ui: { min: 1, advanced: true },
+    key: 'board.logo_light',
+    group: 'board',
+    label: 'Logo (light)',
+    description: 'Shown in the header in place of the board name. Uploaded, not typed.',
+    schema: z.string().max(300),
+    default: '',
+    invalidates: ['settings', 'layout'],
+    ui: { managed: true },
+  }),
+  define({
+    key: 'board.logo_dark',
+    group: 'board',
+    label: 'Logo (dark)',
+    description: 'Used when the reader is in dark mode. Falls back to the light one.',
+    schema: z.string().max(300),
+    default: '',
+    invalidates: ['settings', 'layout'],
+    ui: { managed: true },
+  }),
+  /*
+   * Not `managed`: this one *is* typed, and it is the only part of a logo a
+   * screen reader ever gets. Left empty it becomes the board's name, which is
+   * right far more often than it is wrong — a logo is nearly always a wordmark
+   * of the thing it belongs to, and `alt=""` on the only link home is a
+   * navigation dead end.
+   */
+  define({
+    key: 'board.logo_alt',
+    group: 'board',
+    label: 'Logo alt text',
+    description:
+      'What a screen reader announces in place of the logo. Leave empty to use ' +
+      'the board name, which is usually what the logo says anyway.',
+    schema: z.string().max(200),
+    default: '',
+    invalidates: ['settings', 'layout'],
+  }),
+
+  /* ------------------------------ privacy ------------------------------ */
+  /*
+   * `auto` by default, which asks in the EEA, the UK and Switzerland — and asks
+   * when the board cannot tell where a request came from, which is every
+   * self-hosted board without a CDN in front of it.
+   *
+   * Defaulting to "ask when unsure" is the only defensible way round. The cost
+   * of a false positive is a notice somebody did not need; the cost of a false
+   * negative is a European reader's data reaching a third party without their
+   * being asked. An operator who knows their audience turns it off in one
+   * setting, and one who wants it everywhere says so.
+   *
+   * What the answer actually gates is the analytics script. The board's own
+   * cookies — session, remember-me, CSRF, and the two appearance preferences a
+   * member sets by pressing a control — are strictly necessary or explicitly
+   * requested, and are not part of the question. `src/view/consent.ts` has the
+   * long version.
+   */
+  define({
+    key: 'privacy.cookie_consent',
+    group: 'privacy',
+    label: 'Ask before optional analytics',
+    description:
+      'Shows a notice before any analytics run. “Where required” asks in the ' +
+      'EEA, the UK and Switzerland, and asks when the visitor’s country is ' +
+      'unknown. Sign-in and appearance cookies are never part of the question.',
+    schema: z.enum(['auto', 'always', 'off']),
+    default: 'auto',
+    invalidates: ['settings'],
+    ui: {
+      options: [
+        { value: 'auto', label: 'Where required' },
+        { value: 'always', label: 'Everywhere' },
+        { value: 'off', label: 'Never ask' },
+      ],
+    },
   }),
 
   /* ------------------------------- search ------------------------------ */
@@ -356,7 +490,9 @@ export const SETTING_DEFINITIONS = [
     label: 'Allow negative ratings',
     description:
       'Members can rate somebody down as well as up. Off makes reputation a ' +
-      'thanks button, which is what most boards actually want.',
+      'thanks button, which is what most boards actually want — and takes the ' +
+      'Rate link off posts, since the Thanks button on each one is then the ' +
+      'whole of what the rating form could offer.',
     schema: z.boolean(),
     default: false,
     invalidates: ['settings'],
@@ -367,9 +503,12 @@ export const SETTING_DEFINITIONS = [
     label: 'Require a comment',
     description:
       'A rating must say why. A number with no reason attached is the part of ' +
-      'reputation people argue about.',
+      'reputation people argue about — but it also removes the one-press ' +
+      'Thanks button from posts, because one press cannot carry a reason. Off ' +
+      'by default: thanking an answer that helped should be a single click, ' +
+      'and it is negative ratings that need explaining.',
     schema: z.boolean(),
-    default: true,
+    default: false,
     invalidates: ['settings'],
   }),
   define({

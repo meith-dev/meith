@@ -5,6 +5,7 @@ import type { ForumRow } from '@meith/forums'
 import type { PostListingRow } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
 
+import type { MemberIdentity } from './member-identity'
 import { buildThreadView, revealedFrom } from './thread-view'
 
 const forum: ForumRow = {
@@ -535,5 +536,159 @@ describe('revealedFrom', () => {
     /* The query string is anybody's to write. */
     expect([...revealedFrom('4,nonsense,-1,0')]).toEqual([4])
     expect([...revealedFrom(undefined)]).toEqual([])
+  })
+})
+
+/**
+ * The author's standing: their group, its colour, its badge, their reputation.
+ *
+ * Every one of these has a producer and, until now, no consumer — `title` has
+ * been in the theme contract since F27 and was hardcoded `null` right here, so
+ * a board's whole hierarchy was invisible on the page that most needs it. What
+ * is worth pinning is the *shape* of the deal each field strikes with F61's
+ * ignore, because that is the part a later change can quietly get wrong.
+ */
+describe('the author\'s group standing', () => {
+  const IDENTITY: MemberIdentity = {
+    groupId: 3,
+    title: 'Moderator',
+    nameClass: 'gname-3',
+    badge: { src: '/group/3/badge/light?v=abc', darkSrc: null, alt: 'Moderator' },
+    reputation: 42,
+  }
+
+  function authorOf(options: {
+    identities?: ReadonlyMap<number, MemberIdentity>
+    ignoredIds?: ReadonlySet<number>
+  }) {
+    const view = buildThreadView({
+      thread,
+      forum,
+      capabilities: {
+        viewerUserId: 9,
+        editOwn: false,
+        editOthers: false,
+        softDelete: false,
+        editWindowMinutes: 0,
+        bypassesWindow: false,
+        canWarn: false,
+        canReport: false,
+      },
+      page: {
+        rows: [
+          {
+            id: 4,
+            threadId: 3,
+            forumId: 2,
+            number: 1,
+            authorUserId: 7,
+            authorUsername: 'ada',
+            authorPostCount: 1,
+            authorJoinedAt: null,
+            message: 'body',
+            messageHtml: null,
+            renderVersion: 0,
+            bodyFormat: BodyFormat.Markdown,
+            editedAt: null,
+            editedByUsername: null,
+            editReason: null,
+            isFirstPost: false,
+            visibility: 'visible',
+            createdAt: new Date('2026-07-30T08:41:00Z'),
+          },
+        ],
+        nextAfterId: null,
+      },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date('2026-07-30T09:00:00Z'),
+      ...options,
+    })
+    return view.posts[0]!.author
+  }
+
+  /*
+   * The state every page outside the thread view is still in, and the one a
+   * board on sample data is in permanently. It has to render as "no standing",
+   * not as a crash and not as an empty badge.
+   */
+  it('is absent when the page resolved nothing', () => {
+    expect(authorOf({})).toMatchObject({
+      title: null,
+      nameClass: null,
+      badge: null,
+      reputation: null,
+    })
+  })
+
+  it('carries the group through when the page resolved it', () => {
+    expect(authorOf({ identities: new Map([[7, IDENTITY]]) })).toMatchObject({
+      title: 'Moderator',
+      nameClass: 'gname-3',
+      reputation: 42,
+    })
+  })
+
+  /*
+   * A deleted account keeps its posts and its name (F29) and has no user id to
+   * look a group up by. The read has to fall back rather than assert.
+   */
+  it('is absent for a post whose author was deleted', () => {
+    const view = buildThreadView({
+      thread,
+      forum,
+      identities: new Map([[7, IDENTITY]]),
+      page: {
+        rows: [
+          {
+            id: 4,
+            threadId: 3,
+            forumId: 2,
+            number: 1,
+            authorUserId: null,
+            authorUsername: 'departed',
+            authorPostCount: 0,
+            authorJoinedAt: null,
+            message: 'body',
+            messageHtml: null,
+            renderVersion: 0,
+            bodyFormat: BodyFormat.Markdown,
+            editedAt: null,
+            editedByUsername: null,
+            editReason: null,
+            isFirstPost: true,
+            visibility: 'visible',
+            createdAt: new Date('2026-07-30T08:41:00Z'),
+          },
+        ],
+        nextAfterId: null,
+      },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+
+    expect(view.posts[0]!.author.title).toBeNull()
+  })
+
+  /*
+   * F61 withholds the author's *own* material — the body, the signature, the
+   * avatar they chose. The group's title and badge are the board's labelling,
+   * uploaded by an administrator, and reputation is a number about an account
+   * like `postCount` beside it. Hiding the board's own marking on a post a
+   * reader has chosen to skim is the wrong trade, and this is the line that
+   * says which side each field is on.
+   */
+  it('survives an ignore, unlike the avatar and the signature', () => {
+    const author = authorOf({
+      identities: new Map([[7, IDENTITY]]),
+      ignoredIds: new Set([7]),
+    })
+
+    expect(author.avatarUrl).toBeNull()
+    expect(author.signatureHtml).toBeNull()
+    expect(author.title).toBe('Moderator')
+    expect(author.badge).not.toBeNull()
+    expect(author.reputation).toBe(42)
   })
 })

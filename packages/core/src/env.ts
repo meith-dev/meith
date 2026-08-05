@@ -47,6 +47,20 @@ const envSchema = z
     NEXT_PHASE: z.string().optional(),
 
     /**
+     * Set by Vercel, and by nothing else. Not application configuration either:
+     * it is how this schema tells a serverless host apart from a machine with a
+     * disk it will still have tomorrow.
+     *
+     * The rule it feeds is below, with `FILESTORE_DRIVER`. There is no
+     * equivalent for every other serverless platform, and that is a real gap
+     * rather than a hidden one — the check catches the host this project ships
+     * a deploy button for, and an operator on a different one still has the
+     * documentation. A wrong *positive* would refuse to boot a board that was
+     * fine, so it detects rather than guesses.
+     */
+    VERCEL: z.string().optional(),
+
+    /**
      * Which repository implementation backs the domain packages.
      * `fixture` is an in-memory, deterministically seeded implementation used for
      * local development and the test suite; `postgres` uses Drizzle + postgres.js.
@@ -216,6 +230,37 @@ const envSchema = z
             message: "is required in production",
           })
         }
+      }
+
+      /*
+       * The same failure as the memory queue, in a different resource, and it
+       * had the same fix everywhere except in the code.
+       *
+       * A serverless filesystem is ephemeral and per-instance. `local` there
+       * does not error — it writes the file, reports success, and serves it
+       * back from the same warm instance — so an administrator uploads a logo,
+       * watches it appear, and it is a 404 for every other visitor and for them
+       * tomorrow. Avatars and attachments fail the same way and less visibly.
+       *
+       * `local-file-store.ts` has said "env validation warns when this is
+       * selected alongside a serverless deployment" since it was written. It
+       * did not. A comment describing a guard that does not exist is worse than
+       * no comment, because it is the reason nobody goes looking (D10) — so
+       * this is the guard, and it refuses rather than warns, on the memory
+       * queue's reasoning: a warning in a deploy log is read after the files
+       * are already gone.
+       */
+      if (value.FILESTORE_DRIVER === "local" && value.VERCEL) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["FILESTORE_DRIVER"],
+          message:
+            "cannot be 'local' on Vercel — the filesystem is per-instance and " +
+            "ephemeral, so uploads are lost as soon as another instance serves " +
+            "the request. Set FILESTORE_DRIVER=s3 with S3_BUCKET, S3_REGION, " +
+            "S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY (S3_ENDPOINT too for R2, " +
+            "MinIO or Spaces).",
+        })
       }
     }
   })
