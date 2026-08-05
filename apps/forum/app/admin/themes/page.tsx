@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 
+import { LogoUploadForm } from '@/components/admin/branding-forms'
 import { ThemeStateForms } from '@/components/admin/theme-forms'
 import { requireAdmin } from '@/server/admin'
+import { MAX_LOGO_BYTES, logoKey, logoSrc } from '@/server/branding'
 import { themeListing } from '@/server/theme-admin'
 import { formatTime } from '@/view/time'
 
@@ -31,6 +33,7 @@ export default async function AdminThemesPage() {
   await requireAdmin()
 
   const themes = await themeListing()
+  const [lightKey, darkKey] = await Promise.all([logoKey('light'), logoKey('dark')])
   const now = new Date()
 
   return (
@@ -43,6 +46,54 @@ export default async function AdminThemesPage() {
           what a member who has picked nothing sees.
         </p>
       </div>
+
+      {/*
+        Branding above the theme list, because it is the thing an operator came
+        here to change. A board's own mark belongs to the board rather than to
+        any one theme — it does not move when a member picks a different look —
+        so it sits outside the list rather than inside a row of it.
+      */}
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="font-serif text-lg font-semibold">Logo</h2>
+          <p className="text-sm text-muted-foreground">
+            Shown in the header instead of the board&rsquo;s name. Two images,
+            because one that reads on a white page usually disappears on a black
+            one — upload only the light one and it is used in both. With none,
+            the header shows the name, which is what it does today.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <LogoUploadForm
+            maxKib={MAX_LOGO_BYTES / 1024}
+            slot={{
+              scheme: 'light',
+              label: 'Light',
+              hint: 'Used on a light page, and everywhere if there is no dark one.',
+              src: lightKey === null ? null : logoSrc('light', lightKey),
+            }}
+          />
+          <LogoUploadForm
+            maxKib={MAX_LOGO_BYTES / 1024}
+            slot={{
+              scheme: 'dark',
+              label: 'Dark',
+              hint: 'Used when the reader is in dark mode.',
+              src: darkKey === null ? null : logoSrc('dark', darkKey),
+            }}
+          />
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          What a screen reader announces in place of the logo is{' '}
+          <strong>Logo alt text</strong> under Settings → Board. Left empty it
+          becomes the board&rsquo;s name, which is usually what a logo says
+          anyway.
+        </p>
+      </section>
+
+      <h2 className="font-serif text-lg font-semibold">Installed themes</h2>
 
       <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
         {themes.map((theme) => (

@@ -141,6 +141,14 @@ export function buildAdminSettingsModel(input: {
       if (definition.group !== group) continue
       if (!matches(definition, query)) continue
 
+      /*
+       * A `managed` setting has a screen of its own — the logo's storage key is
+       * written by an upload, not typed — so the generated form does not draw
+       * it at all. Not even under "advanced": advanced means "hidden until you
+       * ask", and this is "not editable here at any point".
+       */
+      if (definition.ui?.managed === true) continue
+
       const advanced = definition.ui?.advanced === true
       if (advanced && !showAdvanced) {
         hiddenAdvanced += 1

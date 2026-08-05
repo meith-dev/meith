@@ -14,7 +14,14 @@
  */
 
 import type { Actor } from '@meith/authorization'
-import type { FooterModel, HeaderModel, LinkModel, UserPanelModel, ViewerModel } from '@meith/theme-kit'
+import type {
+  FooterModel,
+  HeaderModel,
+  LinkModel,
+  LogoModel,
+  UserPanelModel,
+  ViewerModel,
+} from '@meith/theme-kit'
 
 import { memberHref } from './member-profile'
 import { timezoneLabel } from './time'
@@ -91,12 +98,20 @@ export function buildHeaderModel(
   viewer: ViewerModel,
   navigation: readonly LinkModel[] = [],
   boardTitle: string = BOARD_TITLE,
+  /*
+   * Resolved by the caller, because deciding *which* logo a reader sees needs
+   * the colour-scheme cookie and this module is a pure builder. Defaulted to
+   * null so every existing call site — the auth screens and the error shell,
+   * which render before there is a board to have a logo — keeps working.
+   */
+  logo: LogoModel | null = null,
 ): HeaderModel {
   return {
     boardTitle,
     homeHref: '/',
     viewer,
     navigation,
+    ...(logo === null ? {} : { logo }),
   }
 }
 

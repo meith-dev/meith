@@ -3,6 +3,7 @@ import type { Actor } from '@meith/authorization'
 import { currentRequestId } from '@meith/core/logger'
 
 import { LogoutForm } from '@/components/account/logout-form'
+import { currentLogo } from '@/server/branding'
 import { ThemeSwitcher } from '@/components/shell/theme-switcher'
 import { getContainer } from '@/server/container'
 import { unreadMessageCount } from '@/server/messages'
@@ -113,7 +114,17 @@ export async function PageShell({
     canAccessModCp: actor.global.canAccessModCp === true,
     avatarUrl: ownAvatar,
   })
-  const header = buildHeaderModel(viewer, buildBoardNavigation(viewer), boardTitle)
+  /*
+   * The logo, resolved against this reader's colour scheme. One settings read
+   * that the shell has already made, and `null` on every board that has not
+   * uploaded one — which is the state the header renders the board's name in.
+   */
+  const header = buildHeaderModel(
+    viewer,
+    buildBoardNavigation(viewer),
+    boardTitle,
+    await currentLogo(boardTitle),
+  )
 
   /*
    * F55's badge. One count per page render for a signed-in member — the reason

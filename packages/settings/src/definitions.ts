@@ -84,6 +84,20 @@ interface SettingDefinitionBase<T> {
      * click "advanced" first, which defeats it.
      */
     readonly advanced?: boolean
+    /**
+     * Owned by a screen of its own, so the generated form does not draw it.
+     *
+     * For a value that is real configuration but is not *typed* by an operator:
+     * the board logo's storage key is written by an upload and read by the
+     * header, and rendering it as a text box would invite somebody to paste a
+     * path at it and get a broken image with no explanation.
+     *
+     * It stays in this registry rather than moving somewhere private, because
+     * everything else the registry gives it is still wanted — a declared type,
+     * a default, cache invalidation on write, and `settings:get` from the CLI
+     * when a board is broken and the panel is not reachable.
+     */
+    readonly managed?: boolean
   }
 }
 
@@ -297,6 +311,57 @@ export const SETTING_DEFINITIONS = [
    * value worth migrating, and `SettingsSnapshot` ignores a row whose key is not
    * in the registry, so an old row on an upgraded board is inert either way.
    */
+
+  /*
+   * The board's logo, in two schemes.
+   *
+   * Storage keys rather than URLs, and written by the upload on /admin/themes
+   * rather than typed — hence `managed`. Two of them because a logo that reads
+   * on a white page usually disappears on a black one, which is the same reason
+   * the token editor has two colour fields per token rather than one.
+   *
+   * Empty means "no logo", and the header falls back to the board's name in
+   * text. That is the state every board starts in and most boards stay in, so
+   * it is the state the code treats as ordinary rather than as an error.
+   */
+  define({
+    key: 'board.logo_light',
+    group: 'board',
+    label: 'Logo (light)',
+    description: 'Shown in the header in place of the board name. Uploaded, not typed.',
+    schema: z.string().max(300),
+    default: '',
+    invalidates: ['settings', 'layout'],
+    ui: { managed: true },
+  }),
+  define({
+    key: 'board.logo_dark',
+    group: 'board',
+    label: 'Logo (dark)',
+    description: 'Used when the reader is in dark mode. Falls back to the light one.',
+    schema: z.string().max(300),
+    default: '',
+    invalidates: ['settings', 'layout'],
+    ui: { managed: true },
+  }),
+  /*
+   * Not `managed`: this one *is* typed, and it is the only part of a logo a
+   * screen reader ever gets. Left empty it becomes the board's name, which is
+   * right far more often than it is wrong — a logo is nearly always a wordmark
+   * of the thing it belongs to, and `alt=""` on the only link home is a
+   * navigation dead end.
+   */
+  define({
+    key: 'board.logo_alt',
+    group: 'board',
+    label: 'Logo alt text',
+    description:
+      'What a screen reader announces in place of the logo. Leave empty to use ' +
+      'the board name, which is usually what the logo says anyway.',
+    schema: z.string().max(200),
+    default: '',
+    invalidates: ['settings', 'layout'],
+  }),
 
   /* ------------------------------ privacy ------------------------------ */
   /*

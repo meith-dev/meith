@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v1.4.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
+**theme-kit v1.5.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -78,6 +78,7 @@ Props: `HeaderModel`
 | `homeHref` | `string` |  |
 | `viewer` | `ViewerModel` |  |
 | `navigation` | `readonly LinkModel[]` |  |
+| `logo` | `LogoModel \| undefined` | optional — The board's logo, when it has one. A theme that ignores this renders the board's name and is still correct — which is what makes the field additive rather than breaking. A theme that uses it should keep the name as the link's accessible content when there is no logo, because the header is the only link home on most pages. |
 | `children` | `ReactNode` | optional |
 
 ### UserPanel
@@ -508,6 +509,16 @@ A resolved link. Themes never build hrefs; the app owns URL shape.
 | `label` | `string` |  |
 | `href` | `string` |  |
 
+### LogoModel
+
+A board's logo, already resolved for this reader's colour scheme. Optional, and absent on most boards: a board with no logo renders its name in text, which is what every board did before this field existed. **The app resolves the scheme, not the theme.** A theme cannot do it, and the obvious attempt is wrong in the commonest case: `dark:hidden` matches the `.dark` class, and a reader who has chosen "system" has no class — their dark mode comes from a media query. They would get the light logo on a black page, which is the exact failure two images exist to prevent. The server knows the answer, so it gives one.
+
+| Field | Type | Notes |
+|---|---|---|
+| `src` | `string` | The image to render. Already the right one for a forced colour scheme. |
+| `darkSrc` | `string \| null` | A dark-scheme source, or `null`. Non-null means "wrap it in a `<picture>` and put this behind `(prefers-color-scheme: dark)`" — the reader is on "system" and has two images to choose between. Null covers three different situations a theme does not need to tell apart: one image, or a reader who has forced a scheme, in which case `src` is already the right one. |
+| `alt` | `string` | Never empty — the board's name when the operator has set nothing. |
+
 ### OnlineMemberModel
 
 One visitor in the online list. `location` is **already resolved against the reader**: a forum they may not see arrives as the bare label, never as a title with a link. The theme renders what it is given and cannot leak what it was not.
@@ -665,5 +676,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v1.4. Nothing can be: this is the first
+Nothing is deprecated in v1.5. Nothing can be: this is the first
 frozen version, so there is no earlier promise to withdraw.

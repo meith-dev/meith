@@ -120,6 +120,36 @@ Then redeploy.
 > borrows its markup from. Changing it is still a deploy; changing what members
 > see is not.
 
+### The board's name, and its logo
+
+The name in the header, in every `<title>`, and in outgoing mail is
+`board.name` under Settings → Board. There is nowhere else it is written down.
+
+`/admin/themes` takes a **logo** to show in place of that name, as two uploads:
+
+- **Light** — used on a light page, and everywhere if there is no dark one.
+- **Dark** — used when the reader is in dark mode.
+
+Two images because one that reads on a white page usually disappears on a black
+one. Which one a reader gets is decided on the server from their colour-scheme
+cookie, so a member who has forced dark on a light machine still gets the dark
+logo — a board doing this in CSS gets that case wrong, and gets it wrong for the
+commonest reader of all, the one on "system".
+
+PNG, JPEG, WebP or SVG, up to 512 KiB. **The contents decide the format, not the
+file name**: markup uploaded as `logo.png` is refused. SVG is accepted and is
+usually what you want for a wordmark; one containing a `<script>`, an event
+handler or a `javascript:` URL is refused, and the served response is sandboxed
+besides.
+
+The alt text — what a screen reader announces instead of the image — is
+**Logo alt text** under Settings → Board. Leave it empty and it becomes the
+board's name, which is usually what the logo says anyway. It is worth setting
+only when the logo says something the name does not.
+
+With no logo the header shows the board's name in text, which is where every
+board starts and where most stay.
+
 ### What you can change without a deploy
 
 `/admin/themes` holds the parts that are data rather than code:

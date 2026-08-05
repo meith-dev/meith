@@ -404,11 +404,50 @@ export interface ShellModel {
 }
 
 /** `children` is the user panel, so a theme decides where in the header it sits. */
+/**
+ * A board's logo, already resolved for this reader's colour scheme.
+ *
+ * Optional, and absent on most boards: a board with no logo renders its name in
+ * text, which is what every board did before this field existed.
+ *
+ * **The app resolves the scheme, not the theme.** A theme cannot do it, and the
+ * obvious attempt is wrong in the commonest case: `dark:hidden` matches the
+ * `.dark` class, and a reader who has chosen "system" has no class — their dark
+ * mode comes from a media query. They would get the light logo on a black page,
+ * which is the exact failure two images exist to prevent. The server knows the
+ * answer, so it gives one.
+ */
+export interface LogoModel {
+  /** The image to render. Already the right one for a forced colour scheme. */
+  readonly src: string
+  /**
+   * A dark-scheme source, or `null`.
+   *
+   * Non-null means "wrap it in a `<picture>` and put this behind
+   * `(prefers-color-scheme: dark)`" — the reader is on "system" and has two
+   * images to choose between. Null covers three different situations a theme
+   * does not need to tell apart: one image, or a reader who has forced a
+   * scheme, in which case `src` is already the right one.
+   */
+  readonly darkSrc: string | null
+  /** Never empty — the board's name when the operator has set nothing. */
+  readonly alt: string
+}
+
 export interface HeaderModel {
   readonly boardTitle: string
   readonly homeHref: string
   readonly viewer: ViewerModel
   readonly navigation: readonly LinkModel[]
+  /**
+   * The board's logo, when it has one.
+   *
+   * A theme that ignores this renders the board's name and is still correct —
+   * which is what makes the field additive rather than breaking. A theme that
+   * uses it should keep the name as the link's accessible content when there is
+   * no logo, because the header is the only link home on most pages.
+   */
+  readonly logo?: LogoModel | undefined
   readonly children?: ReactNode
 }
 
