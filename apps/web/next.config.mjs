@@ -36,6 +36,13 @@ const nextConfig = {
    * fail — which is the correct direction for that mistake to fail in.
    */
   outputFileTracingExcludes: {
+    /*
+     * The landing page joined this list when it started quoting figures. It
+     * reads the generated references through `src/content/facts.ts` for the
+     * numbers it prints — slots, hooks, endpoints, measured p95s — which makes
+     * it a build-time reader of `docs/` exactly like the pages below it.
+     */
+    "/": ["**"],
     "/docs": ["**"],
     "/docs/[...slug]": ["**"],
     "/docs/search-index.json": ["**"],

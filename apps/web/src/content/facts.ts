@@ -1,0 +1,246 @@
+/**
+ * The figures the landing page quotes, read from the documents that generate
+ * them.
+ *
+ * Every number on the front page is a claim about the software, and a claim on a
+ * marketing page is the one kind that nobody re-reads. "27 slots" was true when
+ * somebody typed it; a slot added six months later makes it a lie that no test
+ * covers, no reviewer notices and no reader can check.
+ *
+ * Four of the documents in `docs/` are written by scripts from the code itself,
+ * and each opens by counting what it contains — `**93 hooks** — 48 filters, 45
+ * events`, `7 endpoints, 8 scopes`, a table of measured p95s. Those sentences are
+ * machine-written and therefore stable, so this module reads them at build time
+ * and hands the page the numbers. The chain is: code → generated document →
+ * landing page, with `pnpm verify` failing at the first link when it is stale.
+ *
+ * **It throws rather than guesses.** A pattern that no longer matches fails
+ * `pnpm site:build` with the file, the expectation and what to do — because the
+ * alternative is a front page quietly claiming last year's numbers. That is the
+ * same trade `chrome.test.ts` makes for the two colours it cannot express as
+ * tokens, and the same one `scripts/site-docs.mjs` makes for the manifest.
+ *
+ * Prose documents are deliberately not read here. `operating.md` is written by
+ * hand and its sentences are meant to be edited; a regex over them would fail the
+ * build for a rewording. Claims that come from a hand-written document stay in
+ * `site.ts`, where they are visibly somebody's copy.
+ */
+
+import { readFile } from "node:fs/promises"
+import { join } from "node:path"
+import { cache } from "react"
+
+import { DOCS_DIRECTORY } from "../workspace"
+
+export interface ThemeFacts {
+  /** `1.6`, from the theme-kit version the reference was generated against. */
+  readonly version: string
+  readonly slots: number
+  readonly stable: number
+  readonly provisional: number
+  readonly deprecated: number
+}
+
+export interface PluginFacts {
+  readonly hooks: number
+  readonly filters: number
+  readonly events: number
+  readonly regions: number
+  /** Hooks something in the board actually fires today. */
+  readonly wired: number
+}
+
+export interface ApiFacts {
+  readonly endpoints: number
+  readonly scopes: number
+  /** `/api/v1`. */
+  readonly basePath: string
+}
+
+export interface Scenario {
+  /** The page, exactly as the reference names it. */
+  readonly page: string
+  readonly budgetMs: number
+  readonly p95Ms: number
+  /** Percentage of the budget the measurement used. */
+  readonly used: number
+}
+
+export interface PerformanceFacts {
+  readonly posts: number
+  readonly threads: number
+  readonly longestThread: number
+  /** ISO date the recorded run was taken. */
+  readonly measured: string
+  readonly scenarios: readonly Scenario[]
+}
+
+export interface Facts {
+  readonly theme: ThemeFacts
+  readonly plugins: PluginFacts
+  readonly api: ApiFacts
+  readonly performance: PerformanceFacts
+}
+
+/**
+ * One capture, or a build failure that says how to fix it.
+ *
+ * The message names the file and the sentence, because the person who sees it
+ * will not be the person who wrote this — it will be whoever regenerated the
+ * reference and changed the wording of a line they had no reason to think
+ * anything read.
+ */
+function capture(file: string, source: string, pattern: RegExp, expected: string): RegExpMatchArray {
+  const match = source.match(pattern)
+  if (!match) {
+    throw new Error(
+      `docs/${file} no longer states ${expected}, so the landing page cannot quote it.\n` +
+        `Expected to match: ${pattern}\n` +
+        "This file is generated from the code. If the wording changed on purpose, " +
+        "update the pattern in apps/web/src/content/facts.ts to match it.",
+    )
+  }
+  return match
+}
+
+/** `2,343,847` as it appears in a table cell, as a number. */
+function count(text: string): number {
+  return Number(text.replaceAll(",", ""))
+}
+
+async function read(file: string): Promise<string> {
+  return readFile(join(DOCS_DIRECTORY, file), "utf8")
+}
+
+async function themeFacts(): Promise<ThemeFacts> {
+  const file = "theme-slots.md"
+  const source = await read(file)
+  const [, version = "", slots = "", stable = "", provisional = "", deprecated = ""] = capture(
+    file,
+    source,
+    /\*\*theme-kit v([\d.]+)\.\*\*\s+(\d+)\s+slots:\s*(\d+)\s+stable,\s*(\d+)\s+provisional,\s*(\d+)\s+deprecated/,
+    "its slot count (“**theme-kit v1.6.** 27 slots: 25 stable, 2 provisional, 0 deprecated.”)",
+  )
+
+  return {
+    version,
+    slots: count(slots),
+    stable: count(stable),
+    provisional: count(provisional),
+    deprecated: count(deprecated),
+  }
+}
+
+async function pluginFacts(): Promise<PluginFacts> {
+  const file = "plugin-hooks.md"
+  const source = await read(file)
+  const [, hooks = "", filters = "", events = "", regions = "", wired = ""] = capture(
+    file,
+    source,
+    /\*\*(\d+)\s+hooks\*\*\s*[—–-]\s*(\d+)\s+filters,\s*(\d+)\s+events\s*[—–-]\s*and\s+(\d+)\s+UI regions\.\s*\*\*(\d+)\s+are wired\*\*/,
+    "its hook count (“**93 hooks** — 48 filters, 45 events — and 6 UI regions. **23 are wired**”)",
+  )
+
+  return {
+    hooks: count(hooks),
+    filters: count(filters),
+    events: count(events),
+    regions: count(regions),
+    wired: count(wired),
+  }
+}
+
+async function apiFacts(): Promise<ApiFacts> {
+  const file = "rest-api.md"
+  const source = await read(file)
+  const [, endpoints = "", scopes = "", basePath = ""] = capture(
+    file,
+    source,
+    /(\d+)\s+endpoints,\s*(\d+)\s+scopes\.\s*Base path:\s*`([^`]+)`/,
+    "its endpoint count (“7 endpoints, 8 scopes. Base path: `/api/v1`.”)",
+  )
+
+  return { endpoints: count(endpoints), scopes: count(scopes), basePath }
+}
+
+async function performanceFacts(): Promise<PerformanceFacts> {
+  const file = "performance.md"
+  const source = await read(file)
+
+  const row = (label: string, expected: string) =>
+    capture(file, source, new RegExp(`^\\|\\s*${label}\\s*\\|\\s*([\\d,]+)`, "m"), expected)[1] ?? ""
+
+  const posts = row("Posts", "the size of the board it was measured against (“| Posts | 2,343,847 |”)")
+  const threads = row("Threads", "its thread count (“| Threads | 100,030 |”)")
+  const longest = row("Longest thread", "its longest thread (“| Longest thread | 14,741 posts |”)")
+  const [, measured = ""] = capture(
+    file,
+    source,
+    /^\|\s*Measured\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|/m,
+    "the date of the recorded run (“| Measured | 2026-08-04 |”)",
+  )
+
+  /*
+   * Every row of the budget table, rather than the handful the page shows. The
+   * page names the ones it wants and `findScenario` fails when one is gone —
+   * which is the failure worth catching, because a scenario is dropped from the
+   * runner far more often than the table's shape changes.
+   */
+  const scenarios: Scenario[] = []
+  const rows = source.matchAll(
+    /^\|\s*([^|]+?)\s*\|\s*([\d.]+)\s*ms\s*\|[^|]*\|\s*([\d.]+)\s*ms\s*\|[^|]*\|[^|]*\|\s*(\d+)%\s*\|/gm,
+  )
+  for (const [, page = "", budget = "", p95 = "", used = ""] of rows) {
+    scenarios.push({
+      page,
+      budgetMs: Number(budget),
+      p95Ms: Number(p95),
+      used: Number(used),
+    })
+  }
+
+  if (scenarios.length === 0) {
+    throw new Error(
+      `docs/${file} has no rows in the shape “| Thread, page 1 | 50 ms | target | 3.3 ms | … | 7% |”, ` +
+        "so the landing page has no measurements to show.\n" +
+        "This file is generated by `pnpm perf:docs`. If the table changed shape, update the " +
+        "pattern in apps/web/src/content/facts.ts to match it.",
+    )
+  }
+
+  return {
+    posts: count(posts),
+    threads: count(threads),
+    longestThread: count(longest),
+    measured,
+    scenarios,
+  }
+}
+
+/**
+ * `cache()` for the same reason `loadDocument` uses it: scoped to one render
+ * pass, so a build reads each file once and a dev server does not hold them.
+ */
+export const readFacts = cache(async (): Promise<Facts> => {
+  const [theme, plugins, api, performance] = await Promise.all([
+    themeFacts(),
+    pluginFacts(),
+    apiFacts(),
+    performanceFacts(),
+  ])
+
+  return { theme, plugins, api, performance }
+})
+
+/** One measured scenario by the name the reference gives it, or a build failure. */
+export function findScenario(performance: PerformanceFacts, page: string): Scenario {
+  const scenario = performance.scenarios.find((entry) => entry.page === page)
+  if (!scenario) {
+    throw new Error(
+      `docs/performance.md no longer measures “${page}”, which the landing page shows.\n` +
+        `It measures: ${performance.scenarios.map((entry) => entry.page).join(", ")}.\n` +
+        "Name a scenario that exists, in apps/web/src/content/site.ts.",
+    )
+  }
+  return scenario
+}

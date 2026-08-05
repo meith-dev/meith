@@ -18,13 +18,13 @@
  * fails to render should fail the build rather than 404 in production.
  */
 
-import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
-import { dirname, join, normalize, resolve } from "node:path"
+import { dirname, join, normalize } from "node:path"
 import { cache } from "react"
 
 import { renderMarkdown, type RenderedMarkdown, type ResolvedLink } from "../markdown/render"
 import { site } from "../content/site"
+import { DOCS_DIRECTORY } from "../workspace"
 import {
   documents,
   findDocument,
@@ -32,34 +32,6 @@ import {
   isInternalFile,
   type DocEntry,
 } from "./registry"
-
-/**
- * The workspace root, found by walking up for the file that defines it.
- *
- * Not `../../` from this module: this file is bundled, and the bundle's location
- * is not a stable distance from the root. Not `process.cwd()` on its own either
- * — that is `apps/web` under `pnpm dev` and could be the repository root under a
- * task runner. Walking up for `pnpm-workspace.yaml` is right in both cases and
- * fails loudly rather than reading nothing.
- */
-function workspaceRoot(): string {
-  let directory = resolve(process.cwd())
-
-  for (;;) {
-    if (existsSync(join(directory, "pnpm-workspace.yaml"))) return directory
-    const parent = dirname(directory)
-    if (parent === directory) {
-      throw new Error(
-        "Could not find the workspace root above " +
-          `${process.cwd()}. The documentation is read from docs/ there; the site ` +
-          "cannot be built from outside the repository.",
-      )
-    }
-    directory = parent
-  }
-}
-
-const DOCS_DIRECTORY = join(workspaceRoot(), "docs")
 
 /** A document's canonical URL in the repository, for links the site does not host. */
 function repositoryHref(pathFromRoot: string, anchor: string): string {

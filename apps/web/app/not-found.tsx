@@ -11,9 +11,9 @@ import { docHref, documentsInSection, sections } from "../src/docs/registry"
  */
 export default function NotFound() {
   return (
-    <div className="mx-auto w-[min(72rem,100%-2.5rem)] py-24">
-      <p className="eyebrow">404</p>
-      <h1 className="display mt-2 max-w-[18ch] text-huge leading-[1.02]">
+    <div className="shell py-24">
+      <p className="eyebrow eyebrow-rule">404</p>
+      <h1 className="display mt-4 max-w-[18ch] text-huge leading-[1.02]">
         That field is not one of ours.
       </h1>
       <p className="mt-5 max-w-[38rem] text-mid leading-[1.45] text-ink-soft">
@@ -39,7 +39,7 @@ export default function NotFound() {
       </div>
 
       <p className="mt-10">
-        <Link href="/" className="textlink">
+        <Link href="/" className="btn">
           Back to the start
         </Link>
       </p>

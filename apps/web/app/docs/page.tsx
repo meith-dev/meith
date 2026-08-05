@@ -27,8 +27,8 @@ export const metadata: Metadata = {
 export default function DocsIndexPage() {
   return (
     <div className="max-w-[46rem]">
-      <p className="eyebrow">Documentation</p>
-      <h1 className="display mt-2 text-huge leading-[1.02]">
+      <p className="eyebrow eyebrow-rule">Documentation</p>
+      <h1 className="display mt-4 text-huge leading-[1.02]">
         Each document has one audience and one job.
       </h1>
       <p className="mt-5 text-mid leading-[1.45] text-ink-soft text-pretty">
@@ -44,21 +44,28 @@ export default function DocsIndexPage() {
             <h2 className="font-display text-large font-semibold tracking-[-0.015em] text-ink">
               {section.title}
             </h2>
-            <p className="mt-1 text-micro text-ink-faint">{section.blurb}</p>
+            <p className="mt-1 text-micro text-ink-faint text-pretty">{section.blurb}</p>
 
             <ul className="mt-5 flex flex-col border-t border-wall">
               {documentsInSection(section.id).map((doc) => (
                 <li key={doc.slug} className="border-b border-wall">
-                  <Link href={docHref(doc.slug)} className="group flex flex-col gap-1 py-4">
+                  {/*
+                    The whole row is the target, and the arrow is what says so —
+                    it sits in a column of its own so the titles stay aligned
+                    whether or not a document also carries the generated chip.
+                  */}
+                  <Link href={docHref(doc.slug)} className="group row-link">
                     <span className="flex flex-wrap items-baseline gap-3">
                       <span className="text-mid text-ink transition-colors group-hover:text-gorse">
                         {doc.title}
                       </span>
-                      {doc.generated ? (
-                        <span className="border border-wall px-1.5 py-0.5 font-mono text-[0.7rem] tracking-[0.1em] text-ink-faint uppercase">
-                          generated
-                        </span>
-                      ) : null}
+                      {doc.generated ? <span className="chip">generated</span> : null}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="font-mono text-micro text-ink-faint transition-colors group-hover:text-gorse"
+                    >
+                      →
                     </span>
                     <span className="text-micro text-pretty text-ink-soft">{doc.blurb}</span>
                   </Link>
