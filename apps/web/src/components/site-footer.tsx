@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { footer, site } from "../content/site"
+import { footer, licence, licenceHref, site } from "../content/site"
 import {
   docHref,
   documentsInSection,
@@ -82,6 +82,14 @@ export function SiteFooter() {
                 </li>
                 <li>
                   <a
+                    href={licenceHref}
+                    className="text-micro text-ink-soft transition-colors hover:text-gorse"
+                  >
+                    Licence
+                  </a>
+                </li>
+                <li>
+                  <a
                     href="/llms.txt"
                     className="font-mono text-micro text-ink-soft transition-colors hover:text-gorse"
                   >
@@ -93,9 +101,21 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <p className="mt-12 max-w-[46rem] border-t border-wall pt-6 text-micro leading-[1.6] text-ink-faint text-pretty">
-          {footer.colophon}
-        </p>
+        <div className="mt-12 flex flex-wrap items-baseline justify-between gap-x-10 gap-y-3 border-t border-wall pt-6">
+          <p className="max-w-[42rem] text-micro leading-[1.6] text-ink-faint text-pretty">
+            {footer.colophon}
+          </p>
+          {/*
+            The licence, where somebody looks for it. Naming the version rather
+            than saying "open source" — the phrase that sends a reader hunting
+            through the repository is the vague one.
+          */}
+          <p className="font-mono text-micro text-ink-faint">
+            <a className="transition-colors hover:text-gorse" href={licenceHref}>
+              {licence.spdx}
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   )

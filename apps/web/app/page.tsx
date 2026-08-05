@@ -13,6 +13,9 @@ import {
   hero,
   install,
   installCommand,
+  licence,
+  licenceHref,
+  licensing,
   migration,
   performance,
   proof,
@@ -327,8 +330,50 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the name ─────────────────────────────────────────────────── */}
+      {/* ── the licence ──────────────────────────────────────────────── */}
       <section className="border-b border-wall bg-ground-deep">
+        <div className="shell py-16 sm:py-20">
+          <div className="grid gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
+            <div>
+              <p className="eyebrow eyebrow-rule">{licensing.eyebrow}</p>
+              <h2 className="display mt-4 text-large leading-[1.15]">{licensing.heading}</h2>
+            </div>
+
+            <div className="flex max-w-[36rem] flex-col gap-6 lg:pt-1">
+              <p className="text-ink-soft text-pretty">{licensing.body}</p>
+
+              <dl className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
+                {licensing.points.map((point) => (
+                  <div key={point.title}>
+                    <dt className="text-ink">{point.title}</dt>
+                    <dd className="mt-1 text-micro leading-[1.6] text-ink-soft text-pretty">
+                      {point.body}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+
+              <p className="border-l-2 border-gorse pl-4 text-ink text-pretty">
+                {licensing.emphasis}
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <p>
+                  <a className="textlink text-micro" href={licenceHref}>
+                    {licensing.link} — {licence.name}
+                  </a>
+                </p>
+                <p className="text-micro leading-[1.6] text-ink-faint text-pretty">
+                  {licensing.note}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── the name ─────────────────────────────────────────────────── */}
+      <section className="border-b border-wall">
         <div className="shell py-16 sm:py-24">
           <p className="eyebrow eyebrow-rule">{story.eyebrow}</p>
 
@@ -354,7 +399,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ── the documentation ────────────────────────────────────────── */}
-      <section className="border-b border-wall">
+      <section className="border-b border-wall bg-ground-deep">
         <div className="shell py-16 sm:py-24">
           <header className="max-w-[44rem]">
             <p className="eyebrow eyebrow-rule">{documentation.eyebrow}</p>
@@ -394,7 +439,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ── the ask ──────────────────────────────────────────────────── */}
-      <section className="bg-ground-deep">
+      <section>
         <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
           <div className="flex flex-col items-start gap-6">
             <h2 className="display max-w-[30ch] text-large leading-[1.15]">{closing.heading}</h2>

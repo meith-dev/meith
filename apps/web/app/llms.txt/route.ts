@@ -1,4 +1,4 @@
-import { site } from "../../src/content/site"
+import { licence, site } from "../../src/content/site"
 import { readDocumentSource } from "../../src/docs/load"
 import { documents, findSection, readingOrder, sections } from "../../src/docs/registry"
 
@@ -24,6 +24,13 @@ export async function GET() {
     "",
     `Source: ${site.repository}`,
     `Documentation: ${site.url}/docs`,
+    /*
+     * Stated here because "may I use this, and how" is among the first things
+     * anybody asks about a piece of software, and a model handed this file has
+     * nowhere else in it to find the answer.
+     */
+    `Licence: ${licence.spdx} — ${licence.name}, in ${licence.file} in the repository ` +
+      `above. It incorporates the GNU GPL v3, which is in ${licence.incorporates}.`,
     "",
     "This file is the published documentation, concatenated. Each document below",
     "is the exact contents of a file under `docs/` in the repository above, which",

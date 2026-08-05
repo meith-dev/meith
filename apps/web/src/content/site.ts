@@ -35,8 +35,29 @@ export const site = {
 /** The line the hero offers to copy, and the only place it is spelled out. */
 export const installCommand = "npx create-meith my-board"
 
+/**
+ * The licence, and where to read it.
+ *
+ * Every link from this site goes to `LICENSE.md`, which is the LGPLv3 text
+ * itself. `COPYING` is named alongside it wherever there is room, because LGPLv3
+ * is not a standalone licence — it is a set of additional permissions on top of
+ * the GNU GPL, which it incorporates by reference — so a reader who has only the
+ * Lesser text has permissions modifying a document they have not got.
+ */
+export const licence = {
+  spdx: "LGPL-3.0-or-later",
+  short: "LGPL-3.0",
+  name: "GNU Lesser General Public License v3",
+  /** The licence text, and where every link on this site points. */
+  file: "LICENSE.md",
+  /** The GPL text it incorporates, which travels with it. */
+  incorporates: "COPYING",
+} as const
+
+export const licenceHref = `${site.repository}/blob/main/${licence.file}`
+
 export const hero = {
-  eyebrow: "Open source · self-hosted or serverless · Postgres",
+  eyebrow: "Open source, LGPL-3.0 · self-hosted or serverless · Postgres",
   headline: { before: "Many hands, ", emphasis: "one field." },
   /*
    * Kept in full. This paragraph is the one piece of copy on the site that does
@@ -323,6 +344,55 @@ export const migration = {
     "And every place a Meith board behaves differently from the one you are leaving is " +
     "written down, with the reason — read it before you promise anyone a like-for-like move.",
   link: "The parity decisions",
+} as const
+
+/**
+ * The licence, as an argument rather than a footnote.
+ *
+ * It earns a band of its own because for this audience it is not boilerplate.
+ * Anybody who has run a community for long enough has watched the software
+ * underneath it get bought, relicensed or shut down, and "which licence" is a
+ * question they ask early and are usually made to hunt for.
+ *
+ * The claim in `emphasis` is stated the careful way on purpose. Copyleft does
+ * not stop a copyright holder relicensing what they publish *next*; what it
+ * guarantees is that the version already released stays free and stays forkable,
+ * which is the assurance actually being offered.
+ */
+export const licensing = {
+  eyebrow: "The licence",
+  heading: "Yours to keep.",
+  body:
+    "Meith is free software under the GNU Lesser General Public License v3. Run a board on it " +
+    "for anything, commercially included, without publishing a line of your configuration or a " +
+    "word your members wrote.",
+  points: [
+    {
+      title: "Themes and plugins are yours",
+      body:
+        "Both fill an interface this software provides, which is the case the Lesser GPL exists " +
+        "to allow. License yours however you like — it is not obliged to be LGPL because the " +
+        "board it runs in is.",
+    },
+    {
+      title: "Changes to Meith come back",
+      body:
+        "Modify the board itself and those changes carry the same licence to whoever you hand " +
+        "the modified version to. That is the copyleft, and it is the whole of what is asked.",
+    },
+  ],
+  emphasis:
+    "Which is the point of choosing it: the version you are running stays free software " +
+    "whatever anybody decides later, and anybody can carry it on.",
+  link: "Read the licence",
+  /*
+   * Stated rather than left implicit. Somebody who opens the Lesser text alone
+   * finds a document that modifies another one, and it is not obvious from
+   * inside it where that other one is.
+   */
+  note:
+    "LGPLv3 is additional permissions on top of the GNU GPL, which it incorporates. Both texts " +
+    "are in the repository, and both travel with any copy you pass on.",
 } as const
 
 export const story = {
