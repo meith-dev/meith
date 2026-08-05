@@ -176,17 +176,7 @@ export default async function RootLayout({
       <head>
         <ThemeRuntimeStyle />
       </head>
-      {/*
-        The notice is fixed to the bottom of the viewport, so the page needs
-        room under it or it sits on top of whatever the last thing on the page
-        is — which, on this board, is the appearance controls. Padding rather
-        than a spacer element: a spacer would be in the reading order.
-      */}
-      <body
-        className={`font-sans antialiased ${
-          consent.required && consent.choice === null ? "pb-40 sm:pb-28" : ""
-        }`}
-      >
+      <body className="font-sans antialiased">
         {children}
         <CookieNotice />
         {/*

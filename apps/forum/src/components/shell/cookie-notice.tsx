@@ -28,13 +28,32 @@ const BUTTON =
  * choice anybody is offering. Saying so is what makes the question that *is*
  * being asked worth reading.
  *
- * ## Its position in the document
+ * ## Its position in the document, and why it is not fixed to the viewport
  *
- * Last in `<body>` and fixed to the bottom of the viewport. Last so that it
- * comes after the page in reading order for a screen reader and for a browser
- * with no CSS — an interstitial a keyboard user has to tab through before
- * reaching the board is the accessible-in-theory version of a modal nobody can
- * close.
+ * Last in `<body>`, in the ordinary flow. Last so that it comes after the page
+ * in reading order for a screen reader and for a browser with no CSS — an
+ * interstitial a keyboard user has to tab through before reaching the board is
+ * the accessible-in-theory version of a modal nobody can close.
+ *
+ * It **was** `fixed inset-x-0 bottom-0`, which is what a cookie banner
+ * conventionally is, and it was wrong here in a way worth recording: a bar
+ * pinned to the bottom of the viewport sits on top of whatever the page has at
+ * the bottom of the viewport. On this board that is the appearance strip on
+ * every single page, and — the one that mattered — the "Post reply" button at
+ * the foot of a reply form. The board's own e2e suite caught it by failing to
+ * click a button a member could not have clicked either.
+ *
+ * Padding the body to make room does not fix it. It reserves space at the
+ * *end* of the document, and a fixed bar covers whatever is at the bottom of
+ * the *viewport*, which on a long page is the middle of the thread.
+ *
+ * In flow it covers nothing, needs no z-index, no scroll padding and no
+ * compensating margin anywhere else. What it costs is prominence: on a long
+ * page a reader has to reach the foot to see it. That is an acceptable trade
+ * and arguably the honest one — nothing optional runs until the answer is
+ * *yes*, so a notice nobody scrolls to is a notice whose default answer is the
+ * conservative one. A banner that blocks the board to extract that answer
+ * faster is the pattern this whole feature was written to avoid.
  */
 export async function CookieNotice() {
   const { required, choice } = await getConsentState()
@@ -43,7 +62,7 @@ export async function CookieNotice() {
   return (
     <aside
       aria-label="Cookies"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card text-card-foreground shadow-lg"
+      className="border-t border-border bg-card text-card-foreground"
     >
       {/* On the board's measure, so the notice lines up with the page under it. */}
       <div
