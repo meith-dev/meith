@@ -78,8 +78,14 @@ import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
  * follow them. Asking somebody to rate a discussion above its first post, or
  * to subscribe to a forum above its thread list, is asking for a verdict on
  * something they have not read.
+ *
+ * **1.7** added the optional `FooterModel.poweredBy`, so the board can say what
+ * it runs on and link to it. Additive under 1.1's rule — a theme written against
+ * any earlier minor renders exactly what it did before. It is a `LinkModel`
+ * rather than a string each theme hardcodes because the app owns the words and
+ * the URL, which is the same reason `links` is one.
  */
-export const THEME_API_VERSION = '1.6'
+export const THEME_API_VERSION = '1.7'
 
 /**
  * How much of a promise a slot carries.

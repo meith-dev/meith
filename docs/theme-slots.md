@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v1.6.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
+**theme-kit v1.7.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -122,6 +122,7 @@ Props: `FooterModel`
 | `boardTitle` | `string` |  |
 | `links` | `readonly LinkModel[]` |  |
 | `timezoneLabel` | `string` | Which zone `TimeModel.label`s were formatted in, for the footer note. |
+| `poweredBy` | `LinkModel` | optional — What the board runs on, and where to read about it (v1.7). A `LinkModel` and not a hardcoded string in each theme, for the reason every other piece of footer text is one: the app owns the words and the URL, so they are written once and a theme that wants to place the attribution somewhere else in its layout can, without owning a copy of them. Optional, which is what makes it a minor rather than a major: a theme written against 1.6 compiles and runs unchanged, and simply does not render it. The two themes in this repository do. |
 
 ### Notice
 
@@ -681,5 +682,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v1.6. Nothing can be: this is the first
+Nothing is deprecated in v1.7. Nothing can be: this is the first
 frozen version, so there is no earlier promise to withdraw.
