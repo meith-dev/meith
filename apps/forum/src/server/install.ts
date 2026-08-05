@@ -17,7 +17,12 @@ import 'server-only'
  * why the step order in `INSTALL_STEPS` is not a suggestion.
  */
 
-import { IdentityService, DEFAULT_AUTH_POLICY, type AuthConfig } from '@meith/accounts'
+import {
+  IdentityService,
+  DEFAULT_AUTH_POLICY,
+  resolveAuthPolicy,
+  type AuthConfig,
+} from '@meith/accounts'
 import { PostgresAdminRepository } from '@meith/db'
 import {
   countUsers,
@@ -31,6 +36,7 @@ import {
   runMigrations,
 } from '@meith/db'
 import { env, logger } from '@meith/core'
+import { SettingsSnapshot } from '@meith/settings'
 import {
   INSTALL_STEPS,
   defaultForumSlug,
@@ -173,13 +179,30 @@ export async function runInstall(input: InstallInput): Promise<readonly StepOutc
         throw new Error('The usergroup ladder is missing. Migrations did not seed it.')
       }
 
+      /*
+       * The board's own rules, such as they are on a board being installed.
+       *
+       * Nothing has overridden anything yet, so in practice this resolves to
+       * the registry's defaults — and that is the point: the registry asks for
+       * a minimum password length of 10 where `DEFAULT_AUTH_POLICY` carries 8,
+       * so an installer built on the const alone would accept a founding
+       * administrator whose password the board it is installing would refuse.
+       */
+      const stored = SettingsSnapshot.fromOverrides(await settings.loadAll())
+
       const config: AuthConfig = {
         ...DEFAULT_AUTH_POLICY,
+        ...resolveAuthPolicy((key) => stored.get(key as never), {
+          ...DEFAULT_AUTH_POLICY,
+          activationMethod: 'none',
+        }),
         /*
          * 'none', for the same reason the CLI uses it: an e-mail round trip
          * cannot be a prerequisite for the account that would have to activate
          * it. The first administrator would otherwise be unable to log in to
-         * activate themselves.
+         * activate themselves — and at this point in the install there is no
+         * mail driver configured to send them anything. Applied after the
+         * spread, so it overrules the resolved value rather than racing it.
          */
         activationMethod: 'none',
         defaultMemberGroupId: registered.id,

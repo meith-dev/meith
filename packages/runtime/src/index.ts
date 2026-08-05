@@ -20,7 +20,7 @@
  */
 export { buildSchedulerBundle, type SchedulerBundle } from './scheduler-bundle'
 export { buildEventRegistry, type EventHandlerDeps } from './event-handlers'
-export { resolveMailBrand, DEFAULT_THEME_KEY } from './mail-brand'
+export { resolveMailBrand, resolveSenderName, DEFAULT_THEME_KEY } from './mail-brand'
 export { pluginTasks } from './plugin-tasks'
 export { taskWorkers, defaultPromotionGuards, type TaskWorkerDeps } from './task-workers'
 export { SEED_GROUP } from './groups'

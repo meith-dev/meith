@@ -310,21 +310,21 @@ function seedSql(): string {
     /*
      * Registration completes without a confirmation link.
      *
-     * The registry default is `'email'`, and since F18's activation half was
-     * wired it is honoured — so a board that stores nothing asks every new
-     * account to follow a link, and `MAIL_DRIVER` here is `log`, which sends
-     * none. Every spec that needs a session registers through the form, so
-     * without this row the whole suite signs up into `awaiting_activation` and
-     * cannot log in.
+     * This agrees with the registry default, and is stated anyway. Every spec
+     * that needs a session registers through the form, so a board that asked
+     * for a confirmation link would strand the whole suite at
+     * `awaiting_activation` with no way to log in — `MAIL_DRIVER` here is
+     * `log`, which sends nothing. That is not a dependency to leave implicit in
+     * a default: it broke every sign-up spec once already, when the setting
+     * gained a reader and the default was still `email`.
      *
-     * Set explicitly rather than worked around, because it is what an operator
-     * running a board with no mail configured does, and because the alternative
-     * — teaching six specs to redeem a token out of the log — would make every
-     * one of them a test of activation rather than of what it is named for.
-     * Activation itself is covered where its rules live: the domain suite, the
-     * adapter suite and `auth-actions.test.ts`.
+     * Activation itself is covered where its rules live — the domain suite, the
+     * adapter suite and `auth-actions.test.ts`. Teaching six specs to fish a
+     * token out of the log would make each of them a test of activation rather
+     * than of what it is named for.
+     *
+     * Stored bare: `serialise` writes a string setting verbatim, not as JSON.
      */
-    /* Stored bare: `serialise` writes a string setting verbatim, not as JSON. */
     { key: 'registration.method', value: 'none', group_key: 'registration' },
   ]
 

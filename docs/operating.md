@@ -540,14 +540,18 @@ tick is stale; see [Nothing happens on a schedule](#nothing-happens-on-a-schedul
 ### The sender name and the sender address are different settings
 
 `MAIL_FROM` (environment) is the address. `mail.from_name` in `/admin/settings`
-is meant to be the display name beside it, and the split surprises people: one
-is a deploy-time variable and the other is a row in the database.
+is the display name beside it, and the split surprises people: one is a
+deploy-time variable and the other is a row in the database. Together they
+become `"The Townland" <noreply@yourdomain.com>`; leave the name empty — the
+default — and messages go out as the bare address.
 
-> [!NOTE]
-> `mail.from_name` is **not yet applied** — the HTTP driver sends `MAIL_FROM`
-> verbatim as the `From` header, so setting a name changes nothing today. It is
-> recorded in [`plan-status.md`](./plan-status.md) rather than left to be
-> discovered.
+The reason for the split is deliverability. The address has to be on a domain
+you verified with your provider, which makes it a deployment fact; the name is
+just what people see in their inbox, and changing it should not need a redeploy.
+
+It is read **per message**, not once at startup, so renaming your board changes
+the next message rather than the next restart — a worker process can outlive
+several settings changes.
 
 ### Activation and mail are one decision
 
@@ -561,11 +565,15 @@ before it can sign in:
 | `admin` | The account waits for an administrator. No mail involved. |
 | `both` | The link first, then an administrator. |
 
-> [!WARNING]
-> **Upgrading an existing board?** This setting had no effect until recently:
-> every account was created as though it said `none`, whatever the dropdown
-> showed. It is honoured now, and a board that never changed it is on the
-> registry default of `email`. See
+The default is `none`, and it is `none` because `MAIL_DRIVER` defaults to `log`:
+a board that asked for confirmation out of the box would mint links it cannot
+send. Choosing anything else is a decision to make *after* mail works.
+
+> [!NOTE]
+> **Upgrading an existing board?** This setting had no effect until recently —
+> whatever the dropdown showed, accounts were created as though it said `none`.
+> A board that stored `admin` or `both` gets the vetting it asked for as soon as
+> it upgrades. See
 > [Settings that gained a reader](./upgrading.md#settings-that-gained-a-reader).
 
 **`email` or `both` over `MAIL_DRIVER=log` is a board nobody can join.** The

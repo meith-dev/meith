@@ -2,6 +2,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 
 import { ResetConfirmForm } from "@/components/auth/reset-confirm-form"
+import { boardAuthConfig } from "@/server/auth-config"
 
 export const metadata: Metadata = { title: "Choose a new password" }
 
@@ -32,7 +33,7 @@ export default async function ResetConfirmPage({
         <h1 className="font-serif text-2xl font-semibold text-foreground">Choose a new password</h1>
         <p className="text-sm text-muted-foreground">Enter a new password for your account.</p>
       </div>
-      <ResetConfirmForm token={token} />
+      <ResetConfirmForm token={token} minLength={(await boardAuthConfig()).minPasswordLength} />
     </div>
   )
 }

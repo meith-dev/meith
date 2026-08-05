@@ -358,7 +358,14 @@ export async function confirmResetAction(
     return { error: 'The two passwords do not match.', values: { token } }
   }
 
-  const { identity } = getContainer()
+  /*
+   * The configured service, not the container's: `redeemPasswordReset` enforces
+   * the minimum password length, and that is a setting now. Taking the static
+   * policy here would let a reset set a password shorter than the board's own
+   * registration form accepts — the rule would hold everywhere except on the
+   * one screen somebody reaches while locked out.
+   */
+  const identity = await configuredIdentity()
   try {
     await identity.redeemPasswordReset(token, password)
   } catch (err) {

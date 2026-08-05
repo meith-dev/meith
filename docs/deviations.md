@@ -7954,3 +7954,52 @@ the change is made, and an entry in F70's health view, which exists for exactly
 this class of silent failure. Development is excluded, because the log driver is
 the deliberate default there and a warning that fires on every developer's
 machine is one nobody reads on the board where it matters.
+
+#### The three settings beside it, and the two defaults that had to move
+
+`registration.method` was not alone. `registration.min_password_length`,
+`registration.username_min` and `registration.username_max` were registered in
+the same group, shown on the same screen, and read by nothing — all three served
+from `DEFAULT_AUTH_POLICY`. `resolveAuthPolicy` resolves the four together and
+lives in `@meith/accounts` rather than in the app, because the app is one of
+**three** callers: the installer creates a founding administrator (whose
+password the registry would have held to 10 characters while the const held it
+to 8) and `forum user:create` creates accounts the board must accept. That is
+the drift `policy.ts` was written to prevent, and it had quietly reappeared as
+soon as the app read a setting the CLI did not.
+
+The enforcement had to follow everywhere, not only at registration. The UserCP
+password change and the *reset* redemption both took the static policy, and the
+second is the sharper one: the reset screen is where somebody sets a password
+while locked out, so a rule that held everywhere except there is not a rule.
+
+**The default moved with it.** `registration.method` defaulted to `email` and
+`MAIL_DRIVER` defaults to `log`, which sends nothing — so switching the reader
+on made every new board unjoinable out of the box, and every upgraded board that
+had stored nothing. Since a value equal to its default is *deleted* rather than
+stored, "chose `email` when it did nothing" and "never opened the screen" are
+the same absent row, so there was no way to honour the first without breaking
+the second. The default now matches what every board actually did. The browser
+suite is what found this: it runs on Postgres, stored no value, and every
+sign-up spec failed at once.
+
+#### `mail.from_name`, and why the name travels but the address does not
+
+The same shape a third time: stored, editable, read by nothing. The fix is not
+symmetrical, and the asymmetry is the interesting part. The **address** is
+`MAIL_FROM`, a deployment fact tied to a domain verified with the provider, and
+the driver holds it from boot. The **name** is a database row somebody can
+change at 3pm, and the driver is a singleton that outlives the change — so a
+name resolved at construction would sign every message for the rest of the
+process's life with whatever the board was called then. It is therefore a field
+on `OutgoingMail`, resolved per send beside the board name each sender already
+reads.
+
+It is also the only operator-supplied string on the mail path that reaches a
+header, so `formatSender` sanitises rather than trusts: control characters
+stripped — CR and LF above all, since a newline in a header value is header
+injection wherever this string reaches SMTP, and the fact that JSON would escape
+it on *this* transport is a property of one driver rather than a reason to hand
+a provider a name with a line break in it — quotes and backslashes escaped, and
+the name always quoted, because an unquoted display name may not contain `.`,
+`,` or `@` and "Board Admin, Ltd." is an ordinary thing to type.

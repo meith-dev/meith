@@ -44,8 +44,19 @@ function boardOrigin(): string | null {
   return origin === '' ? null : origin
 }
 
-async function boardName(): Promise<string> {
-  return (await getSettings()).get('board.name') || 'the forum'
+/**
+ * What the board calls itself in a message, and who the message is from.
+ *
+ * One read for both, because every sender needs both and they come from the
+ * same snapshot. `mail.from_name` is the display name beside `MAIL_FROM`; empty
+ * — the default — means the bare address.
+ */
+async function boardIdentity(): Promise<{ name: string; fromName: string }> {
+  const settings = await getSettings()
+  return {
+    name: settings.get('board.name') || 'the forum',
+    fromName: settings.get('mail.from_name'),
+  }
 }
 
 function linkTo(path: string, token: string): string | null {
@@ -65,7 +76,7 @@ export async function sendVerificationEmail(input: {
   readonly email: string
   readonly username: string
 }): Promise<void> {
-  const name = await boardName()
+  const { name, fromName } = await boardIdentity()
   const link = linkTo(VERIFY_PATH, input.token)
 
   const lines = [
@@ -97,6 +108,7 @@ export async function sendVerificationEmail(input: {
       to: input.email,
       subject: `[${name}] Confirm your account`,
       text: lines.join('\n'),
+      ...(fromName === '' ? {} : { fromName }),
     })
   } catch (err) {
     logger({ module: 'auth' }).error({ err }, 'could not send a verification e-mail')
@@ -117,7 +129,7 @@ export async function sendPasswordResetEmail(input: {
   readonly email: string
   readonly username: string
 }): Promise<void> {
-  const name = await boardName()
+  const { name, fromName } = await boardIdentity()
   const link = linkTo(RESET_PATH, input.token)
 
   const lines = [
@@ -140,6 +152,7 @@ export async function sendPasswordResetEmail(input: {
       to: input.email,
       subject: `[${name}] Reset your password`,
       text: lines.join('\n'),
+      ...(fromName === '' ? {} : { fromName }),
     })
   } catch (err) {
     /* The error object, never the message body — see this function's note. */

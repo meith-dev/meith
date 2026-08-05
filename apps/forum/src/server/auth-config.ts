@@ -11,7 +11,7 @@ import 'server-only'
  * `defaultMemberGroupId` and `reservedUsernames` mirror the seed board so a
  * fixture registration lands the new user in the same group a Postgres one would.
  */
-import { DEFAULT_AUTH_POLICY, type AuthConfig } from '@meith/accounts'
+import { DEFAULT_AUTH_POLICY, resolveAuthPolicy, type AuthConfig } from '@meith/accounts'
 import { env } from '@meith/core'
 
 import { SEED_GROUP } from './seed-board'
@@ -39,51 +39,40 @@ export const AUTH_CONFIG: AuthConfig = {
 }
 
 /**
- * The board's auth policy with the one field an operator actually chooses
- * resolved from F08's registry (F13).
+ * The board's auth policy with the fields an operator actually chooses resolved
+ * from F08's registry (F13).
  *
- * `AUTH_CONFIG` is a static const shared by three composition roots, and it has
- * to stay one — the password rules and the default group are decisions of the
- * *build*, and re-reading them per request would buy nothing. `registration.method`
- * is the opposite: it is a dropdown in the ACP, and until this function existed
- * changing it changed nothing at all, because every caller took the hardcoded
- * `'none'`. So the policy stays static and the one runtime value is resolved at
- * the point of use, the same way `usercp-mail.ts` resolves the board name.
+ * `AUTH_CONFIG` is a static const shared by three composition roots, and most of
+ * it has to stay one — the lockout window, the session lifetime and the default
+ * group are decisions of the *build*, and re-reading them per request would buy
+ * nothing.
+ *
+ * Four of them are the opposite: they are fields in the ACP, and until this
+ * function existed moving any of them changed nothing at all, because every
+ * caller took the const. The activation method, the minimum password length and
+ * the two username bounds are resolved at the point of use, the same way
+ * `usercp-mail.ts` resolves the board name. `resolveAuthPolicy` is in
+ * `@meith/accounts` rather than here because the CLI and the installer resolve
+ * the same four, and three implementations of one mapping is three ways for the
+ * CLI to create an account the board would have refused.
  *
  * Async, and therefore only usable from a Server Action or a route — which is
- * exactly where accounts are created, and is why `getContainer()` keeps handing
- * out a service built on the static config for everything else.
+ * where accounts are created and passwords are chosen, and is why
+ * `getContainer()` keeps handing out a service built on the static config for
+ * everything else.
  */
 export async function boardAuthConfig(): Promise<AuthConfig> {
   /*
-   * Fixture mode has no settings table, so `getSettings()` would hand back the
-   * registry default — 'email' — as though somebody had chosen it. Nobody did,
-   * and nobody on a sample-data board *can*: there is nowhere to store the
-   * change. The demo's documented one-step registration stands rather than
-   * being broken by a value no operator picked and none can unpick.
+   * Fixture mode has no settings table, so `getSettings()` would hand back
+   * registry defaults as though somebody had chosen them. Nobody did, and
+   * nobody on a sample-data board *can*: there is nowhere to store the change.
+   * The demo keeps the const it has always run on.
    */
   if (env.DATA_SOURCE !== 'postgres') return AUTH_CONFIG
 
-  const stored = (await getSettings()).get('registration.method')
+  const settings = await getSettings()
   return {
     ...AUTH_CONFIG,
-    activationMethod: isActivationMethod(stored) ? stored : AUTH_CONFIG.activationMethod,
+    ...resolveAuthPolicy((key) => settings.get(key as never), AUTH_CONFIG),
   }
-}
-
-/** The four the registry's schema allows, as a value this file can check. */
-const ACTIVATION_METHODS = ['none', 'email', 'admin', 'both'] as const satisfies
-  readonly AuthConfig['activationMethod'][]
-
-/**
- * Narrow the stored string to the union `AuthConfig` promises.
- *
- * The registry already validates the value against the same four names, so this
- * can only fail for a row written around it. It falls back rather than throwing
- * for that case: a board with one bad settings row should still be able to
- * register people, and the safe direction is the *stricter* policy the const
- * carries, not the looser one.
- */
-function isActivationMethod(value: string): value is AuthConfig['activationMethod'] {
-  return (ACTIVATION_METHODS as readonly string[]).includes(value)
 }

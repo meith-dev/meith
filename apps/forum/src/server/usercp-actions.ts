@@ -25,7 +25,7 @@ import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core
 import { drivers } from '@meith/drivers'
 import { prepareSignature } from '@meith/signatures'
 
-import { AUTH_CONFIG } from './auth-config'
+import { boardAuthConfig } from './auth-config'
 import { adminService } from './admin'
 import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
 import { getActor } from './context'
@@ -158,7 +158,8 @@ export async function changePasswordAction(
       userId,
       currentPassword: text(form, 'currentPassword'),
       newPassword: next,
-      minLength: AUTH_CONFIG.minPasswordLength,
+      /* The board's configured minimum (F13), not the built-in one. */
+      minLength: (await boardAuthConfig()).minPasswordLength,
     })
 
     /*

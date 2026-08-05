@@ -24,9 +24,13 @@ vi.mock('@meith/drivers', () => ({
   }),
 }))
 
-/** The board name comes from the settings registry; the value is all we need. */
+/** Both values this file reads come from the registry; the mock supplies them. */
+const settings = vi.hoisted(() => ({
+  values: { 'board.name': 'The Townland', 'mail.from_name': '' } as Record<string, string>,
+}))
+
 vi.mock('./settings', () => ({
-  getSettings: async () => ({ get: () => 'The Townland' }),
+  getSettings: async () => ({ get: (key: string) => settings.values[key] }),
 }))
 
 const { sendPasswordResetEmail, sendVerificationEmail } = await import('./auth-mail')
@@ -49,6 +53,7 @@ async function withOrigin<T>(origin: string | undefined, body: () => Promise<T>)
 beforeEach(() => {
   sent.mail.length = 0
   sent.fail = false
+  settings.values = { 'board.name': 'The Townland', 'mail.from_name': '' }
 })
 
 describe('sendVerificationEmail', () => {
@@ -87,6 +92,25 @@ describe('sendVerificationEmail', () => {
     // so "/verify?token=…" would be a dead string rather than a link.
     expect(text).not.toContain('/verify?token=')
     expect(text).toContain('resend confirmation')
+  })
+
+  it('carries the board\u2019s sender name when one is set', async () => {
+    settings.values['mail.from_name'] = 'The Townland'
+
+    await withOrigin('https://board.example', () =>
+      sendVerificationEmail({ ...RECIPIENT, token: 'tok' }),
+    )
+
+    // The name only. The address is `MAIL_FROM` and belongs to the driver,
+    // which is what composes the two into a From header.
+    expect(sent.mail[0]?.fromName).toBe('The Townland')
+  })
+
+  it('omits the sender name when the board has not set one', async () => {
+    await withOrigin('https://board.example', () =>
+      sendVerificationEmail({ ...RECIPIENT, token: 'tok' }),
+    )
+    expect(sent.mail[0]?.fromName).toBeUndefined()
   })
 
   it('reports a send failure to its caller', async () => {

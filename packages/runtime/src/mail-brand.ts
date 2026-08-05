@@ -82,11 +82,21 @@ export async function resolveMailBrand(deps: {
   const themeKey = deps.themeKey ?? DEFAULT_THEME_KEY
 
   let boardName = ''
+  let fromName = ''
   let accent: string | null = null
 
   try {
     const overrides = await new PostgresSettingsRepository(deps.db).loadAll()
-    boardName = SettingsSnapshot.fromOverrides(new Map(overrides)).get('board.name')
+    const settings = SettingsSnapshot.fromOverrides(new Map(overrides))
+    boardName = settings.get('board.name')
+    /*
+     * The sender's display name (`mail.from_name`), resolved here with the
+     * board name and for the same reason: it is a setting, this runs per
+     * delivery, and a worker that resolved it once at startup would sign every
+     * message for the rest of its life with whatever the board was called then.
+     * The *address* is `MAIL_FROM` and belongs to the driver.
+     */
+    fromName = settings.get('mail.from_name')
   } catch (err) {
     logger({ module: 'mail-brand' }).warn({ err }, 'could not read board name for mail')
   }
@@ -100,7 +110,29 @@ export async function resolveMailBrand(deps: {
 
   return {
     boardName,
+    fromName,
     boardUrl: env.APP_URL ?? '',
     accent: accent ?? FALLBACK_ACCENT,
+  }
+}
+
+/**
+ * The sender's display name alone (`mail.from_name`).
+ *
+ * For callers that need the name and nothing else — mass mail, which has its
+ * own subject and body and no use for the accent colour or the board URL.
+ * Reading the whole brand there would pull in the theme repository once per
+ * recipient to answer a question nobody asked.
+ *
+ * Degrades to the bare address on a failed read, like everything else here: a
+ * missing display name is a cosmetic loss, and losing the message is not.
+ */
+export async function resolveSenderName(db: Database): Promise<string> {
+  try {
+    const overrides = await new PostgresSettingsRepository(db).loadAll()
+    return SettingsSnapshot.fromOverrides(new Map(overrides)).get('mail.from_name')
+  } catch (err) {
+    logger({ module: 'mail-brand' }).warn({ err }, 'could not read the sender name for mail')
+    return ''
   }
 }
