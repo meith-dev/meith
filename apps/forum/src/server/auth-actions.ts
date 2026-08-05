@@ -27,8 +27,9 @@ import {
 
 import { foldIdentifier } from '@meith/accounts'
 
-import { verifyChallenge } from './antispam'
-import { getContainer } from './container'
+import { spendResendLimit, verifyChallenge } from './antispam'
+import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
+import { configuredIdentity, getContainer } from './container'
 import {
   profileFieldService,
   registrationFieldContext,
@@ -87,7 +88,16 @@ export async function registerAction(
   const password = field(form, 'password')
   const values = { username, email }
 
-  const { identity } = getContainer()
+  /*
+   * Built from the *configured* activation method rather than from the static
+   * policy: `registration.method` is the one auth setting an operator actually
+   * chooses, and this is the request where it decides something.
+   */
+  const identity = await configuredIdentity()
+
+  /** Set when the board asked for the address to be proven. */
+  let verification: { token: string; email: string; username: string } | null = null
+
   try {
     /*
      * F46, checked **before** anything else — before the profile fields, before
@@ -125,14 +135,102 @@ export async function registerAction(
      * anybody.
      */
     if (fields !== null) await fields.applyRegistration(result.account.id, fieldValues)
+
+    if (result.verificationToken !== undefined) {
+      verification = {
+        token: result.verificationToken,
+        email: result.account.email,
+        username: result.account.username,
+      }
+    }
   } catch (err) {
     return toFormState(err, values)
   }
 
-  // activationMethod is 'none' in the current config, so the account is usable
-  // immediately — send them to login with a success hint rather than auto-
-  // authenticating, which keeps register and login as separate credentials tests.
+  if (verification !== null) {
+    /*
+     * **A failed send must not fail the registration**, and that is a different
+     * call from the one `usercp-actions.ts` makes about an e-mail change. There
+     * the member is signed in and can simply ask again; here the account exists,
+     * is at `awaiting_activation`, and cannot sign in — reporting "registration
+     * failed" would be a lie about a state the person now has to live with.
+     *
+     * So the error is swallowed and logged, and the screen they land on is the
+     * one that can fix it: it names the address and offers to send again. That
+     * screen is also why the two outcomes are indistinguishable from the
+     * browser, which is the right shape — whether the provider was up is not
+     * something a registration form should be reporting to whoever filled it in.
+     */
+    try {
+      await sendVerificationEmail(verification)
+    } catch (err) {
+      logger({ module: 'auth-actions' }).error(
+        { err },
+        'could not send a verification e-mail; the account exists and can ask for another',
+      )
+    }
+    redirect(`/verify/resend?email=${encodeURIComponent(verification.email)}&sent=1`)
+  }
+
+  // Nothing further to prove, so the account is usable immediately — send them
+  // to login with a success hint rather than auto-authenticating, which keeps
+  // register and login as separate credentials tests.
   redirect('/login?registered=1')
+}
+
+/**
+ * Ask for another verification link (F18).
+ *
+ * Everything about this action is shaped by the same rule `requestResetAction`
+ * follows: **one notice on every path**. An unknown address, an account that is
+ * already active, a refused rate limit and a successful send all return the same
+ * sentence, because any difference between them is an oracle that answers "does
+ * this address have an account here?" to anybody with a form.
+ */
+export async function resendVerificationAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const email = field(form, 'email')
+  const values = { email }
+
+  const notice =
+    'If that address has an account waiting to be confirmed, a new link has been sent.'
+
+  try {
+    /*
+     * Spent *before* the lookup, so the refusal cannot be provoked for one
+     * address and not another. `limitMessage` is deliberately not returned as
+     * an error here: a refused resend still says the same thing as a successful
+     * one, and adding "you have done that too many times" would be a signal
+     * that only appears for addresses somebody keeps retrying.
+     */
+    const limit = await spendResendLimit(foldIdentifier(email))
+    if (limit !== null && !limit.allowed) return { notice, values }
+
+    const identity = await configuredIdentity()
+    const resent = await identity.resendVerification(email)
+
+    if (resent.token !== null && resent.account !== null) {
+      try {
+        await sendVerificationEmail({
+          token: resent.token,
+          email: resent.account.email,
+          username: resent.account.username,
+        })
+      } catch (err) {
+        /* Same call as registration: the token is issued either way. */
+        logger({ module: 'auth-actions' }).error(
+          { err },
+          'could not resend a verification e-mail',
+        )
+      }
+    }
+
+    return { notice, values }
+  } catch (err) {
+    return toFormState(err, values)
+  }
 }
 
 export async function loginAction(
@@ -197,7 +295,33 @@ export async function requestResetAction(
     'If an account exists for that email, a password reset link has been sent.'
 
   try {
-    const { token } = await identity.requestPasswordReset(email)
+    const { token, userId } = await identity.requestPasswordReset(email)
+
+    if (token !== null && userId !== null) {
+      /*
+       * Sent directly rather than queued, and a failure does not change what
+       * the screen says. The notice above is already identical for "no such
+       * account" — reporting a provider outage here would make a failed send
+       * distinguishable from an address nobody has, which is the enumeration
+       * oracle this whole action is built to avoid.
+       */
+      const account = await getContainer().accountStore.accounts.findById(userId)
+      if (account !== null) {
+        try {
+          await sendPasswordResetEmail({
+            token,
+            email: account.email,
+            username: account.username,
+          })
+        } catch (err) {
+          /* The error, never the token or a URL built from it. */
+          logger({ module: 'auth-actions' }).error(
+            { err },
+            'could not send a password reset e-mail',
+          )
+        }
+      }
+    }
 
     /*
      * The token is a bearer credential: whoever holds it owns the account. It
@@ -234,7 +358,14 @@ export async function confirmResetAction(
     return { error: 'The two passwords do not match.', values: { token } }
   }
 
-  const { identity } = getContainer()
+  /*
+   * The configured service, not the container's: `redeemPasswordReset` enforces
+   * the minimum password length, and that is a setting now. Taking the static
+   * policy here would let a reset set a password shorter than the board's own
+   * registration form accepts — the rule would hold everywhere except on the
+   * one screen somebody reaches while locked out.
+   */
+  const identity = await configuredIdentity()
   try {
     await identity.redeemPasswordReset(token, password)
   } catch (err) {

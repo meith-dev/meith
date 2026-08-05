@@ -897,6 +897,49 @@ members who filled in two.
 schema migration every time an operator adds a field, which is the trade MyBB
 made and this does not.
 
+### Registration confirmation and password reset never say whether an address exists
+
+**MyBB:** the lost-password form answers "the e-mail address you entered was not
+found" for an address it has no account for, and the resend-activation form says
+so when an account is already active.
+
+**Here:** one sentence on every path. An unknown address, an account that is
+already active, a send that failed and a link that really went out all produce
+the same notice, and the rate limit is spent *before* the account is looked up so
+that its refusal cannot be provoked for one address and not another.
+
+**Why:** a form that answers "is there an account for this address?" answers it
+for anybody, one submission at a time — including for a list of addresses
+somebody bought. That is a membership list the board did not intend to publish,
+and on a board where membership itself is sensitive it is the whole game.
+
+**Cost:** somebody who mistypes their own address is told a link was sent and no
+link arrives, with nothing on screen to say why. The resend screen names the
+address it used, which is the one place the typo becomes visible.
+
+### An unconfirmed account is a state on the row, not a usergroup
+
+**MyBB:** an account waiting for activation is a *member of the "Awaiting
+Activation" usergroup*, so its permissions come from that group and activating
+somebody means moving them between groups.
+
+**Here:** `users.state` carries `awaiting_activation`, the group is whatever the
+board's default is, and confirming an address stamps `users.email_verified_at`.
+Under the `both` method the stamp is what says "the address is proven, an
+administrator has not looked yet" — the state does not change until they do.
+
+**Why:** a group is how permissions are decided (R4.1), and lifecycle is not a
+permission. Modelling it as one means every permission question on the board
+silently depends on account state, and it means a ban — which F23 implements by
+capturing and restoring the group — cannot be reasoned about independently. It
+also means the two facts stay separable: an account can be proven and unapproved,
+which the `both` method needs and a single group membership cannot express.
+
+**Cost:** an operator cannot grant unactivated accounts a different permission
+set by editing a group, because there is no group to edit. Restricting what an
+unactivated account may do is not a MyBB feature people use — they cannot log in
+at all — but it is a knob that exists there and does not here.
+
 ## Private messages
 
 ### A private message is stored once, not once per recipient

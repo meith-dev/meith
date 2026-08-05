@@ -23,6 +23,15 @@ export interface AccountRecord {
   readonly passwordHash: string | null
   readonly passwordAlgo: string | null
   readonly state: AccountState
+  /**
+   * When the address was last proven, or null if it never was (F18).
+   *
+   * Part of the identity subset rather than of the profile because identity
+   * *decides* on it: a resend of a verification link is refused for an address
+   * that is already proven, which under the `both` policy is the difference
+   * between "we never heard from you" and "you are waiting on an administrator".
+   */
+  readonly emailVerifiedAt: Date | null
   readonly primaryGroupId: number | null
 }
 
@@ -45,6 +54,28 @@ export interface AccountRepository {
   /** Replace the credential and record which algorithm produced it (F17 upgrade). */
   updatePassword(userId: number, passwordHash: string, passwordAlgo: string): Promise<void>
   setState(userId: number, state: AccountState): Promise<void>
+  /**
+   * Redeem a proven e-mail address (F18): stamp `email_verified_at`, and move
+   * the account to `active` **iff** `activate` is asked for *and* the row is
+   * still `awaiting_activation`.
+   *
+   * The state condition lives inside the write, not in a read the caller does
+   * first. A prior read would let an administrator's ban land between the check
+   * and the update, and the follow-up write would then hand a banned account
+   * back to its owner — the one outcome activation must never produce.
+   *
+   * Returns the state the row held **before** the write, or null when there is
+   * no such row. The caller needs that to say *which* thing happened (activated
+   * / already active / banned) and cannot get it from a second read, which
+   * would be racing the same way.
+   *
+   * `activate` is false under the `both` policy, where confirming the address is
+   * only the first of two gates: the stamp records that the address is proven
+   * and the account stays `awaiting_activation` for an administrator. That split
+   * is why this is one method with a flag rather than two — the stamp and the
+   * state change must not be two writes that can half-happen.
+   */
+  markEmailVerified(userId: number, at: Date, activate: boolean): Promise<AccountState | null>
   /**
    * Record that this member is here, at most once per `windowSeconds` (F61).
    *

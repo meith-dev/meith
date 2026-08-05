@@ -38,6 +38,47 @@ export class MemoryMailDriver implements MailDriver {
 }
 
 /**
+ * Compose an RFC 5322 `From` value from the board's address and its display
+ * name.
+ *
+ * The name is operator-supplied text (`mail.from_name`) on its way into a
+ * header, so it is **sanitised rather than trusted**:
+ *
+ *  - Control characters go, CR and LF above all. A newline in a header value is
+ *    header injection wherever this string reaches SMTP, and the fact that JSON
+ *    would escape it on *this* transport is a property of one driver rather
+ *    than a reason to hand a provider a name with a line break in it.
+ *  - `\` and `"` are escaped, because the name is emitted as a quoted string —
+ *    a name containing a quote would otherwise close it early and leave the
+ *    rest to be parsed as address syntax.
+ *  - Always quoted, never bare. An unquoted display name may not contain `.`,
+ *    `,` or `@`, and "Board Admin, Ltd." is an ordinary thing to type.
+ *
+ * A name that is empty once trimmed yields the bare address — the same header
+ * every message carried before this field existed.
+ */
+export function formatSender(address: string, name?: string): string {
+  const cleaned = stripControlCharacters(name ?? '').trim()
+  if (cleaned === '') return address
+
+  const escaped = cleaned.replace(/([\\"])/g, '\\$1')
+  return `"${escaped}" <${address}>`
+}
+
+/**
+ * Drop every C0/C1 control character and DEL.
+ *
+ * The class is written as escapes rather than as literal characters: a raw
+ * control character in source is invisible in every editor and diff, which is
+ * why the workspace guard bans one — and this is the file where naming them is
+ * the whole point.
+ */
+function stripControlCharacters(value: string): string {
+  // eslint-disable-next-line no-control-regex -- matching control characters is this function's job
+  return value.replace(/[\u0000-\u001f\u007f-\u009f]/g, '')
+}
+
+/**
  * Generic transactional-mail HTTP driver (Resend, Postmark, Mailgun...).
  *
  * HTTP rather than SMTP by default because SMTP's long-lived sockets are a poor
@@ -67,7 +108,7 @@ export class HttpMailDriver implements MailDriver {
           authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          from: this.from,
+          from: formatSender(this.from, mail.fromName),
           to: mail.to,
           subject: mail.subject,
           text: mail.text,

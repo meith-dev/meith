@@ -101,6 +101,29 @@ Self-hosting instead? Build the standalone Docker image, which runs the web
 server, the worker and migrations from one image so the three cannot drift
 apart. See [Running a board](./operating.md).
 
+## 6. Configure mail before you invite anybody
+
+> [!IMPORTANT]
+> A board that has never had `MAIL_DRIVER` set **sends no mail at all**. The
+> default writes each message to the server log and stops. Password reset fails
+> silently, and if the activation method asks for a confirmation link, nobody can
+> finish registering.
+
+Two variables and one setting are all it takes:
+
+```sh
+MAIL_DRIVER=http
+MAIL_HTTP_ENDPOINT=https://api.resend.com/emails
+MAIL_HTTP_TOKEN=re_…
+MAIL_FROM=noreply@yourdomain.com   # must be on a domain verified with the provider
+APP_URL=https://yourboard.example  # without it, links in mail cannot be built
+```
+
+Then check `registration.method` in `/admin/settings` — it decides whether new
+members need a confirmation link at all. The full picture, including what to do
+with another provider, is in
+[Running a board § Mail](./operating.md#mail).
+
 ## If the install fails halfway
 
 The run stops at the first failed step and names it, with the error. Later steps

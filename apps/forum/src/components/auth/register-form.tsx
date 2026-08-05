@@ -21,9 +21,24 @@ export interface ChallengeInput {
   readonly issuedAt: number
 }
 
+/**
+ * The board's own limits, so the form asks for what the server will accept.
+ *
+ * Passed in rather than imported: they are settings now (F13), and a hint that
+ * says "at least 8 characters" on a board that refuses anything under 16 is a
+ * form that rejects what it just asked for. The server is still the only
+ * enforcement — these are `minLength` attributes and words.
+ */
+export interface RegistrationLimits {
+  readonly minPasswordLength: number
+  readonly usernameMin: number
+  readonly usernameMax: number
+}
+
 export function RegisterForm({
   customFields = [],
   challenge,
+  limits,
 }: {
   /**
    * F59's fields the operator marked required at registration, already
@@ -32,6 +47,7 @@ export function RegisterForm({
   customFields?: readonly CustomFieldInput[]
   /** F46. Absent on a board with nothing switched on. */
   challenge?: ChallengeInput
+  limits: RegistrationLimits
 }) {
   const [state, action] = useActionState(registerAction, EMPTY_STATE)
   return (
@@ -41,9 +57,10 @@ export function RegisterForm({
         label="Username"
         name="username"
         autoComplete="username"
-        minLength={3}
+        minLength={limits.usernameMin}
+        maxLength={limits.usernameMax}
         defaultValue={state.values?.username}
-        hint="3–30 characters: letters, numbers, and _ - ."
+        hint={`${limits.usernameMin}–${limits.usernameMax} characters: letters, numbers, and _ - .`}
       />
       <Field
         label="Email"
@@ -57,8 +74,8 @@ export function RegisterForm({
         name="password"
         type="password"
         autoComplete="new-password"
-        minLength={8}
-        hint="At least 8 characters."
+        minLength={limits.minPasswordLength}
+        hint={`At least ${limits.minPasswordLength} characters.`}
       />
       {/*
         Below the credentials rather than above: an applicant is here to make an

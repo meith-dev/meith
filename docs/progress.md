@@ -821,6 +821,64 @@ since. Two summaries were then written from *this* file rather than from that
 row, which is how the error propagated; the rule at the top of this page exists
 for exactly that and points the other way. Audit the row, not the prose.
 
+- **The auth flows reach the mail driver** (F18/F19). `registration.method` had
+  no reader, `register()`'s `verificationToken` had no consumer, and
+  `requestResetAction` generated a live reset token that went nowhere outside
+  development — three halves of two features that were complete apart from the
+  part that reaches a person. `boardAuthConfig()` resolves the one runtime auth
+  setting at the point of use, `/verify` and `/verify/resend` redeem and reissue,
+  and both messages are sent **directly** rather than queued, for the reason
+  F57's e-mail-change confirmation is: a person is waiting, and a reset token in
+  the outbox is a bearer credential sitting in a table. `'both'` is represented
+  by `users.email_verified_at` — a column that has existed since `0000` with two
+  readers already — rather than by a fourth `AccountState`, which would have cost
+  a migration and an audit of every `awaiting_activation` call site to record the
+  same fact. `MAIL_DRIVER=log` with an activation method that needs mail is an
+  unusable board, and it cannot be a boot check (the driver is boot-time, the
+  setting is a row), so it is a loud warning on the registration settings screen
+  and an entry in F70's health view. `docs/operating.md` gained the Mail section
+  it never had (D104).
+
+- **The four settings that had no reader now have one.** `registration.method`
+  was the headline, but `registration.min_password_length`,
+  `registration.username_min` and `registration.username_max` were the same bug
+  in the same group — every one of them served from `DEFAULT_AUTH_POLICY`, so
+  the ACP fields moved and the registration form went on enforcing 8, 3 and 30.
+  `resolveAuthPolicy` lives in `@meith/accounts` rather than in the app because
+  **three** composition roots resolve them: a `forum user:create` still
+  enforcing the built-in minimum on a board that asked for sixteen characters is
+  a way to create accounts weaker than the board's own rule, which is the exact
+  drift `policy.ts` was written to prevent. Both enforcement paths that were
+  reading the const followed — the UserCP password change and, more sharply,
+  the *reset* redemption, which is the one screen somebody reaches while locked
+  out. The forms' hints are passed in from the same resolved config, so a board
+  asking for sixteen no longer prints "at least 8 characters" above a box that
+  will refuse it. Values are re-checked rather than trusted: `NaN` survives a
+  `typeof === 'number'` test and makes every comparison false, so a hand-edited
+  row would have removed the check rather than loosened it. A minimum username
+  length above the maximum is satisfiable by nothing, so both revert together.
+
+- **`registration.method` defaults to `none`.** The registry said `email`, and
+  `MAIL_DRIVER` defaults to `log` — so the moment the setting gained a reader,
+  every fresh board minted confirmation links it could not send, and so did every
+  upgraded board that had never stored a value. Since a value equal to its
+  default is *deleted* rather than stored, that included every operator who had
+  chosen `email` back when choosing it did nothing. The default now matches the
+  behaviour every board actually had; a board that wants confirmed addresses says
+  so, and the say-so works. `auth-config.test.ts` pins the pairing, because the
+  two defaults live in files that cannot see each other.
+
+- **`mail.from_name` is applied.** It was stored, shown in the ACP and read by
+  nothing: `HttpMailDriver` sent `MAIL_FROM` verbatim. The name now travels on
+  `OutgoingMail` — per message, because it is a setting and a worker outlives
+  several settings changes, while the *address* stays the driver's — and the
+  driver composes the header. It is the one operator-supplied string on the mail
+  path that reaches a header, so it is sanitised rather than trusted: control
+  characters stripped (CR and LF above all, which is header injection wherever
+  this reaches SMTP), quotes and backslashes escaped, and always quoted, because
+  an unquoted display name may not contain `.`, `,` or `@` and "Board Admin,
+  Ltd." is an ordinary thing to type.
+
 **Outstanding release task:** nothing is published to npm, so a scaffolded
 project cannot yet `npm install`.
 
@@ -969,7 +1027,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D102). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D104). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

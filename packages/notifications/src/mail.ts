@@ -37,6 +37,12 @@ import type { NotificationView } from './render'
 /** The board, as an e-mail is allowed to know it. */
 export interface MailBrand {
   readonly boardName: string
+  /**
+   * Display name for the sender, from `mail.from_name`. Empty means the bare
+   * `MAIL_FROM` address — the address itself is the driver's and never travels
+   * with a message.
+   */
+  readonly fromName?: string
   /** Absolute origin, no trailing slash. Empty when none is configured. */
   readonly boardUrl: string
   /**

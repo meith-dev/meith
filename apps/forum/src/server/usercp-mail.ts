@@ -29,6 +29,8 @@ export async function sendEmailChangeConfirmation(input: {
 }): Promise<void> {
   const settings = await getSettings()
   const boardName = settings.get('board.name') || 'the forum'
+  /* The display name beside `MAIL_FROM`. Empty — the default — means bare. */
+  const fromName = settings.get('mail.from_name')
 
   /*
    * No origin configured means no link — F55's rule, and it matters more here:
@@ -66,6 +68,7 @@ export async function sendEmailChangeConfirmation(input: {
       to: input.email,
       subject: `[${boardName}] Confirm your new e-mail address`,
       text: lines.join('\n'),
+      ...(fromName === '' ? {} : { fromName }),
     })
   } catch (err) {
     logger({ module: 'usercp' }).error({ err }, 'could not send an e-mail change confirmation')

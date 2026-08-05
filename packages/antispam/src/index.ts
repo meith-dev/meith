@@ -23,11 +23,14 @@
  */
 
 export {
+  FIXED_RATE_LIMIT_SCOPES,
   RATE_LIMIT_SCOPES,
   RateLimiter,
   isRateLimitScope,
   subjectFor,
   windowStartFor,
+  type ConfiguredRateLimitScope,
+  type FixedRateLimitScope,
   type RateLimitOutcome,
   type RateLimitRule,
   type RateLimitScope,

@@ -163,6 +163,78 @@ ratings, and it is why the two switches are worth reading together: a criticism
 with no reason attached is the part of reputation people argue about, and a
 thanks is not.
 
+## Settings that gained a reader
+
+A setting can also change behaviour by starting to be *read*. That is not a
+default moving, and there is nothing to run — but it is worth knowing which
+switches on your board were, until now, decorative.
+
+### `registration.method` now decides what a new account has to do
+
+`registration.method` had been a setting since F13 with no reader: the dropdown
+moved, the value was stored, and every account was created as though it said
+`none`. It is now honoured everywhere the board creates an account.
+
+**Its default moved to `none` in the same release**, which is what keeps this
+from changing anything under you. Read the two together:
+
+| Your board stored | Before | Now |
+|---|---|---|
+| Nothing (never opened the screen, *or* chose `email` while it did nothing) | Accounts active immediately | Accounts active immediately — unchanged |
+| `none` | Accounts active immediately | Unchanged |
+| `admin` | Accounts active immediately, **contrary to the setting** | Accounts wait for an administrator |
+| `both` | Accounts active immediately, **contrary to the setting** | A confirmation link, then an administrator |
+
+The first row is the one that needs explaining: **a value equal to its default
+is not stored**, so an operator who selected `email` back when it did nothing
+has no row, and is indistinguishable from somebody who never opened the screen.
+Defaulting to `email` would have switched confirmation on for both of them — on
+boards where `MAIL_DRIVER` is very often still `log`, which sends nothing and
+would have left them unable to register anybody. The default follows the
+behaviour every board actually had.
+
+**If you did want confirmed addresses, you now have to say so** — and this time
+saying so works. Set it in **Admin → Settings → Registration**, after
+configuring a mail driver ([Mail](./operating.md#mail)). The last two rows of
+the table are the boards that get a real behaviour change: they asked for
+vetting, and now they get it.
+
+> [!IMPORTANT]
+> `email` or `both` with `MAIL_DRIVER` unset or `log` is a board nobody can
+> join: the links are minted, written to the log, and never sent. The
+> registration settings screen and `/admin/system` both say so for as long as it
+> is true, so this is not a thing you find out from your members.
+
+Accounts stuck at *awaiting activation* can be activated by hand from their
+member screen under **Admin → Members**, and anybody who never received a link
+can ask for another at `/verify/resend`.
+
+The CLI and the installer are deliberately unaffected: `forum user:create` and
+the founding administrator are still created active, because an operator at a
+terminal cannot follow a link in somebody else's mailbox, and an unactivatable
+first administrator is a board with no way in.
+
+### The password and username rules now come from the settings screen
+
+`registration.min_password_length`, `registration.username_min` and
+`registration.username_max` were registered settings with no reader either —
+every one of them served from a constant, so the fields moved and the
+registration form went on enforcing 8, 3 and 30.
+
+They are read now, by the board **and by `forum user:create`**, which matters
+more than it sounds: a CLI that enforced different rules is a way to create
+accounts the board itself would have rejected.
+
+The registry defaults are 10, 3 and 30. A board that never touched them gets a
+**minimum password length of 10 rather than 8** — the one change here that can
+surprise somebody, and it applies to new passwords only. Existing passwords are
+untouched and no one is locked out; F17 rehashes on next login regardless.
+
+> [!NOTE]
+> A minimum username length above the maximum is impossible to satisfy, so it is
+> ignored rather than enforced: both fall back to the built-in 3 and 30, and the
+> board keeps registering people. Fix the pair on the settings screen.
+
 ## What the CLI cannot do
 
 > [!NOTE]

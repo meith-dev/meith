@@ -24,11 +24,14 @@ export {
 
 export {
   IdentityService,
+  VERIFICATION_TTL_HOURS,
+  type ActivationOutcome,
   type IdentityDeps,
   type RegisterInput,
   type RegisterResult,
   type RequestContext,
   type LoginResult,
+  type ResendVerification,
   type ResetRequest,
 } from './service'
 
@@ -43,7 +46,14 @@ export { createMemoryStore } from './memory-repos'
 
 export { foldIdentifier } from './case-fold'
 
-export { DEFAULT_AUTH_POLICY, type AuthPolicy } from './policy'
+export {
+  AUTH_SETTING_KEYS,
+  DEFAULT_AUTH_POLICY,
+  resolveAuthPolicy,
+  type AuthPolicy,
+  type ResolvedAuthSettings,
+  type SettingReader,
+} from './policy'
 
 export {
   BAN_FILTER_TYPES,

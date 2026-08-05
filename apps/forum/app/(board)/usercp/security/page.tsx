@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { requireSlot } from '@meith/theme-kit'
 
 import { EmailForm, PasswordForm } from '@/components/account/usercp-forms'
-import { AUTH_CONFIG } from '@/server/auth-config'
+import { boardAuthConfig } from '@/server/auth-config'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
 import { currentTheme } from '@/server/theme'
@@ -55,7 +55,7 @@ export default async function SecurityPage({
           </p>
         </div>
 
-        <PasswordForm minLength={AUTH_CONFIG.minPasswordLength} />
+        <PasswordForm minLength={(await boardAuthConfig()).minPasswordLength} />
         <EmailForm email={settings.email} />
       </div>
     </main>

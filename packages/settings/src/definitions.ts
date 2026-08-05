@@ -189,7 +189,29 @@ export const SETTING_DEFINITIONS = [
       '"none" logs the user straight in. "email" requires a link. "admin" ' +
       'queues the account for manual approval. "both" requires e-mail then admin.',
     schema: z.enum(['none', 'email', 'admin', 'both']),
-    default: 'email',
+    /*
+     * `none`, and the reason is the pairing rather than the value.
+     *
+     * `MAIL_DRIVER` defaults to `log`, which sends nothing, so a board that
+     * defaulted to `email` here would mint a confirmation link for every new
+     * account, print it to the server log, and be unjoinable out of the box —
+     * the exact failure `/admin/system` warns about, as the *installed state of
+     * every new board*. A default that needs a second, unrelated variable set
+     * before the board works is not a safe default; it is a trap with a warning
+     * next to it.
+     *
+     * It is also what every existing board already does. This setting had no
+     * reader until F18's activation half was wired: whatever the dropdown said,
+     * accounts were created as though it said `none`. Defaulting to `email`
+     * would have changed behaviour on every board that never stored a value —
+     * and since a value equal to the default is *deleted* rather than stored,
+     * that includes every operator who chose `email` back when choosing it did
+     * nothing. Boards that stored `none`, `admin` or `both` keep what they
+     * stored either way.
+     *
+     * A board that wants confirmed addresses says so, and the say-so now works.
+     */
+    default: 'none',
     invalidates: ['settings'],
     ui: {
       options: [

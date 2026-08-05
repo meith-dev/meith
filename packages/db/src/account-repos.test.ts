@@ -65,6 +65,74 @@ describe('Postgres account repositories', () => {
     })
   })
 
+  /**
+   * The activation write, in the only place its guarantee is real: the state
+   * condition is a `case` inside one statement, so these prove SQL semantics
+   * rather than a branch the in-memory store could also have got right.
+   */
+  describe('AccountRepository.markEmailVerified', () => {
+    /** A second account, so the shared seeded one keeps its state. */
+    async function waitingAccount(email: string): Promise<number> {
+      const created = await store.accounts.create({
+        username: email,
+        usernameLower: email,
+        email,
+        emailLower: email,
+        passwordHash: 'hash',
+        passwordAlgo: 'argon2id',
+        state: 'awaiting_activation',
+        primaryGroupId: 2,
+      })
+      return created.id
+    }
+
+    it('activates a waiting account and reports the state it replaced', async () => {
+      const id = await waitingAccount('waiting@example.com')
+      const at = new Date('2026-02-02T10:00:00Z')
+
+      expect(await store.accounts.markEmailVerified(id, at, true)).toBe('awaiting_activation')
+
+      const after = (await store.accounts.findById(id))!
+      expect(after.state).toBe('active')
+      expect(after.emailVerifiedAt?.toISOString()).toBe(at.toISOString())
+    })
+
+    it('leaves a banned account banned', async () => {
+      const id = await waitingAccount('banned@example.com')
+      await store.accounts.setState(id, 'banned')
+
+      expect(await store.accounts.markEmailVerified(id, new Date(), true)).toBe('banned')
+      expect((await store.accounts.findById(id))?.state).toBe('banned')
+    })
+
+    it('stamps without activating when asked not to (the "both" policy)', async () => {
+      const id = await waitingAccount('both@example.com')
+
+      expect(await store.accounts.markEmailVerified(id, new Date(), false)).toBe(
+        'awaiting_activation',
+      )
+      const after = (await store.accounts.findById(id))!
+      expect(after.state).toBe('awaiting_activation')
+      expect(after.emailVerifiedAt).not.toBeNull()
+    })
+
+    it('keeps the first proof rather than overwriting it', async () => {
+      const id = await waitingAccount('twice@example.com')
+      const first = new Date('2026-02-02T10:00:00Z')
+
+      await store.accounts.markEmailVerified(id, first, false)
+      await store.accounts.markEmailVerified(id, new Date('2026-03-03T10:00:00Z'), true)
+
+      expect((await store.accounts.findById(id))?.emailVerifiedAt?.toISOString()).toBe(
+        first.toISOString(),
+      )
+    })
+
+    it('returns null for an account that no longer exists', async () => {
+      expect(await store.accounts.markEmailVerified(999_999, new Date(), true)).toBeNull()
+    })
+  })
+
   describe('CredentialTokenRepository.consume — single-use guard', () => {
     const future = new Date(Date.now() + 60_000)
     const now = () => new Date()

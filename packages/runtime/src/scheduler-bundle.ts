@@ -43,7 +43,7 @@ import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/t
 
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
-import { resolveMailBrand } from './mail-brand'
+import { resolveMailBrand, resolveSenderName } from './mail-brand'
 import { pluginTasks } from './plugin-tasks'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 import { visibleForumSource } from './visible-forums'
@@ -184,10 +184,19 @@ export function buildSchedulerBundle(deps: {
                       massMailId,
                     )
                     if (campaign === null) return
+                    /*
+                     * The sender's display name, read per message like the
+                     * campaign itself. A mass mail is one job per recipient, so
+                     * this is a second small read alongside one that already
+                     * happens — and it is the only way a name changed mid-send
+                     * reaches the rest of the run.
+                     */
+                    const fromName = await resolveSenderName(db)
                     await mail.send({
                       to: email,
                       subject: campaign.subject,
                       text: campaign.body,
+                      ...(fromName === '' ? {} : { fromName }),
                     })
                   },
                 },

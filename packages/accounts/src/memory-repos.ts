@@ -54,6 +54,8 @@ class MemoryAccounts implements AccountRepository {
       passwordHash: input.passwordHash,
       passwordAlgo: input.passwordAlgo,
       state: input.state,
+      /* A brand-new account has proven nothing yet, whatever its state. */
+      emailVerifiedAt: null,
       // F20 sanctioned per-line disable (promised in D13). This copies a
       // persisted column verbatim into the record so the actor builder in
       // @meith/authorization can read it — it is transport, not an authorization
@@ -73,6 +75,30 @@ class MemoryAccounts implements AccountRepository {
   async setState(userId: number, state: AccountState): Promise<void> {
     const cur = this.byId.get(userId)
     if (cur) this.byId.set(userId, { ...cur, state })
+  }
+
+  async markEmailVerified(
+    userId: number,
+    at: Date,
+    activate: boolean,
+  ): Promise<AccountState | null> {
+    const cur = this.byId.get(userId)
+    if (cur === undefined) return null
+
+    this.byId.set(userId, {
+      ...cur,
+      /* First proof wins, as the Postgres `coalesce` does. */
+      emailVerifiedAt: cur.emailVerifiedAt ?? at,
+      /*
+       * The condition the port promises lives in the write. Only an account
+       * still waiting is activated: a banned one keeps its state, and so does
+       * one an administrator already activated.
+       */
+      state: activate && cur.state === 'awaiting_activation' ? 'active' : cur.state,
+    })
+
+    /* The state as it was *before* this write — see the port. */
+    return cur.state
   }
 
   /** Last activity per user, for the `touchLastActive` throttle. */

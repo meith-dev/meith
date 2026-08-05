@@ -104,6 +104,7 @@ function build(rows: OutboxRecord[], withMail = true) {
                   mail,
                   brand: {
                     boardName: 'Test Board',
+                    fromName: 'The Test Board',
                     boardUrl: 'https://board.example',
                     accent: '#123456',
                   },
@@ -141,6 +142,12 @@ describe('the notification mail path', () => {
     expect(mail.sent).toHaveLength(1)
     expect(mail.sent[0]?.to).toBe('ivan@example.test')
     expect(mail.sent[0]?.subject).toBe('[Test Board] You have been warned: Spamming')
+    /*
+     * `mail.from_name`, carried per message. The driver turns it into the From
+     * header; the *address* never travels with a message, being the driver's
+     * own `MAIL_FROM`.
+     */
+    expect(mail.sent[0]?.fromName).toBe('The Test Board')
     expect(sentIds).toEqual([55])
   })
 

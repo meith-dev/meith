@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 
 import { RegisterForm } from "@/components/auth/register-form"
 import { issueChallenge } from "@/server/antispam"
+import { boardAuthConfig } from "@/server/auth-config"
 import { registrationFields } from "@/server/profile-fields"
 
 export const metadata: Metadata = { title: "Create account" }
@@ -15,6 +16,13 @@ export default async function RegisterPage() {
    */
   /* F46. Issued per render, so the fill-time stamp is this visitor's. */
   const issued = await issueChallenge()
+
+  /*
+   * The board's own limits (F13), so the form asks for exactly what
+   * `registerAction` will accept. Both come from `boardAuthConfig`, which is
+   * what stops the hint and the rule drifting apart.
+   */
+  const { minPasswordLength, usernameMin, usernameMax } = await boardAuthConfig()
 
   const customFields = (await registrationFields()).map((field) => ({
     ...field,
@@ -30,6 +38,7 @@ export default async function RegisterPage() {
       </div>
       <RegisterForm
         customFields={customFields}
+        limits={{ minPasswordLength, usernameMin, usernameMax }}
         challenge={{
           prompt: issued.challenge?.prompt ?? null,
           token: issued.challenge?.token ?? '',

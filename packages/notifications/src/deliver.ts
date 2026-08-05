@@ -60,11 +60,14 @@ export async function deliverNotificationEmail(deps: {
    * worth retrying, and F05's drivers deliberately contain no retry logic of
    * their own because the queue's backoff is the retry mechanism.
    */
+  const fromName = deps.brand.fromName ?? ''
+
   await deps.mail.send({
     to: deliverable.recipient.email,
     subject: mail.subject,
     text: mail.text,
     html: mail.html,
+    ...(fromName === '' ? {} : { fromName }),
   })
 
   await deps.notifications.markEmailSent(

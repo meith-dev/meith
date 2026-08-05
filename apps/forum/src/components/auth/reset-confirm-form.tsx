@@ -7,7 +7,18 @@ import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import { Field, FormError, SubmitButton } from "./form-controls"
 
-export function ResetConfirmForm({ token }: { token: string }) {
+/**
+ * `minLength` is the board's configured minimum (F13), passed from the page.
+ * The server enforces it; this only stops the form asking for a password it is
+ * about to refuse.
+ */
+export function ResetConfirmForm({
+  token,
+  minLength,
+}: {
+  token: string
+  minLength: number
+}) {
   const [state, action] = useActionState(confirmResetAction, EMPTY_STATE)
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
@@ -18,15 +29,15 @@ export function ResetConfirmForm({ token }: { token: string }) {
         name="password"
         type="password"
         autoComplete="new-password"
-        minLength={8}
-        hint="At least 8 characters."
+        minLength={minLength}
+        hint={`At least ${minLength} characters.`}
       />
       <Field
         label="Confirm new password"
         name="confirm"
         type="password"
         autoComplete="new-password"
-        minLength={8}
+        minLength={minLength}
       />
       <SubmitButton>Set new password</SubmitButton>
     </form>

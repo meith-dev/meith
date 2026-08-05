@@ -37,11 +37,31 @@
  * became the board's largest table.
  */
 
-/** What is being limited. One of the five F46 names, and no free text. */
+/**
+ * What an operator can set an allowance for. One of the five F46 names, and no
+ * free text — each has a setting, and a sixth name with no setting would be a
+ * limit nobody can find or turn off.
+ */
 export const RATE_LIMIT_SCOPES = ['post', 'search', 'message', 'report', 'upload'] as const
-export type RateLimitScope = (typeof RATE_LIMIT_SCOPES)[number]
+export type ConfiguredRateLimitScope = (typeof RATE_LIMIT_SCOPES)[number]
 
-export function isRateLimitScope(value: string): value is RateLimitScope {
+/**
+ * Scopes the limiter counts under a **fixed** rule rather than a setting.
+ *
+ * `verify_resend` is here rather than above because it is not a nuisance
+ * control an operator tunes: it bounds how much mail one address can be made to
+ * receive, and an operator who set it to zero would be switching off a
+ * protection for other people's mailboxes rather than loosening one of their
+ * own. Same storage, same atomic `consume`; only the rule's origin differs.
+ */
+export const FIXED_RATE_LIMIT_SCOPES = ['verify_resend'] as const
+export type FixedRateLimitScope = (typeof FIXED_RATE_LIMIT_SCOPES)[number]
+
+/** Everything the store can count, however the rule was arrived at. */
+export type RateLimitScope = ConfiguredRateLimitScope | FixedRateLimitScope
+
+/** Whether a string names a scope an operator configures. */
+export function isRateLimitScope(value: string): value is ConfiguredRateLimitScope {
   return (RATE_LIMIT_SCOPES as readonly string[]).includes(value)
 }
 

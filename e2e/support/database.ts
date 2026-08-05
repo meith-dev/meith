@@ -307,6 +307,25 @@ function seedSql(): string {
      * where the Thanks button is the whole rating control.
      */
     { key: 'reputation.min_posts_to_give', value: '0', group_key: 'reputation' },
+    /*
+     * Registration completes without a confirmation link.
+     *
+     * This agrees with the registry default, and is stated anyway. Every spec
+     * that needs a session registers through the form, so a board that asked
+     * for a confirmation link would strand the whole suite at
+     * `awaiting_activation` with no way to log in — `MAIL_DRIVER` here is
+     * `log`, which sends nothing. That is not a dependency to leave implicit in
+     * a default: it broke every sign-up spec once already, when the setting
+     * gained a reader and the default was still `email`.
+     *
+     * Activation itself is covered where its rules live — the domain suite, the
+     * adapter suite and `auth-actions.test.ts`. Teaching six specs to fish a
+     * token out of the log would make each of them a test of activation rather
+     * than of what it is named for.
+     *
+     * Stored bare: `serialise` writes a string setting verbatim, not as JSON.
+     */
+    { key: 'registration.method', value: 'none', group_key: 'registration' },
   ]
 
   /*
