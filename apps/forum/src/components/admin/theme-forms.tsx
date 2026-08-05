@@ -18,15 +18,20 @@
  * fields, the sample repaints as the picker moves, and five one-click brand
  * palettes cover the case almost every board actually has.
  *
- * ## The text box is still the field that is submitted
+ * ## The picker speaks OKLCH, because the palette does
  *
- * The colour picker carries no `name`. It drives the text box beside it, and
- * the text box is what posts. Two reasons, and the second is the important one:
- * a native colour input always submits *something*, so letting it post would
- * turn "I did not touch this" into an override of every colour on the board;
- * and the text box accepts what the picker cannot express — `oklch()`, a named
- * colour, a `color-mix()` — which is what keeps this screen from being a
- * downgrade for somebody who knew what they were doing.
+ * The first version of this screen put the platform's own `<input type="color">`
+ * beside each field. That was better than a bare text box and still wrong: the
+ * native control speaks six-digit hex, every token this board ships is
+ * `oklch()`, and handed one it shows black *and reports black when read* — so
+ * opening the editor and saving without touching anything rewrote the palette.
+ * It also cannot do the two things an operator actually wants, "the same colour
+ * but lighter" and "the same lightness, another hue", which are one slider each
+ * in OKLCH and a guess in a hex wheel.
+ *
+ * `OklchPicker` is that control. The text box is still the field that posts —
+ * an empty box is "use the theme's value", which no slider position can
+ * express, and it accepts what the sliders cannot.
  *
  * ## It still works with JavaScript off
  *
@@ -46,7 +51,9 @@ import {
   setThemeEnabledAction,
 } from "@/server/theme-admin-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
-import { BRAND_PRESETS, groupTokens, pickerValue, type TokenKind } from "@/view/theme-tokens"
+import { BRAND_PRESETS, groupTokens, type TokenKind } from "@/view/theme-tokens"
+
+import { OklchPicker } from "./oklch-picker"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
 
@@ -72,8 +79,6 @@ export interface TokenValue {
   readonly kind: TokenKind
   readonly light: string
   readonly dark: string
-  readonly lightHex: string | null
-  readonly darkHex: string | null
   readonly overrideLight: string
   readonly overrideDark: string
 }
@@ -209,8 +214,6 @@ function TokenRow({
   onChange: (name: string, value: string) => void
 }) {
   const shipped = (scheme: Scheme): string => (scheme === "dark" ? token.dark : token.light)
-  const shippedHex = (scheme: Scheme): string | null =>
-    scheme === "dark" ? token.darkHex : token.lightHex
 
   const touched = schemesFor(token).some(
     (scheme) => (draft[field(token.name, scheme)] ?? "") !== "",
@@ -233,16 +236,14 @@ function TokenRow({
               <span className="text-xs text-muted-foreground">
                 {scheme === "both" ? "Both schemes" : scheme === "dark" ? "Dark" : "Light"}
               </span>
-              <span className="flex items-center gap-2">
-                {token.kind === "colour" && (
-                  <input
-                    type="color"
-                    aria-label={`${token.label}, ${scheme} colour picker`}
-                    value={pickerValue(value, shippedHex(scheme))}
-                    onChange={(event) => onChange(name, event.target.value)}
-                    className="h-9 w-10 shrink-0 cursor-pointer rounded-md border border-border bg-background p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  />
-                )}
+              {token.kind === "colour" ? (
+                <OklchPicker
+                  name={name}
+                  value={value}
+                  shipped={shipped(scheme)}
+                  onChange={(next) => onChange(name, next)}
+                />
+              ) : (
                 <input
                   name={name}
                   value={value}
@@ -250,7 +251,7 @@ function TokenRow({
                   placeholder={shipped(scheme)}
                   className={INPUT}
                 />
-              </span>
+              )}
             </label>
           )
         })}

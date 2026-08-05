@@ -1,42 +1,14 @@
 /**
- * The token descriptions the editor is built from, and the one conversion the
- * colour picker cannot do without.
+ * The token descriptions the editor is built from.
+ *
+ * The colour conversions that used to live here went with the native hex
+ * control they existed for; `@/view/oklch` and its own tests replaced both.
  */
 import { describe, expect, it } from 'vitest'
 
 import { LIGHT_TOKENS, TOKEN_NAMES } from '@meith/theme-default'
 
-import {
-  BRAND_PRESETS,
-  PICKER_FALLBACK,
-  groupTokens,
-  isSchemeIndependent,
-  pickerValue,
-  tokenMeta,
-} from './theme-tokens'
-
-describe('pickerValue', () => {
-  it('takes the first candidate the platform control can show', () => {
-    expect(pickerValue('', '#AABBCC')).toBe('#aabbcc')
-    expect(pickerValue('#123456', '#aabbcc')).toBe('#123456')
-  })
-
-  it('expands the three-digit form, which the control does not accept', () => {
-    expect(pickerValue('#abc')).toBe('#aabbcc')
-  })
-
-  /*
-   * The failure this exists to prevent. Handed `oklch(…)` a native colour input
-   * silently shows black *and reports black when read*, so a token the operator
-   * never touched would come back as an explicit black on the next save. Kills
-   * the mutant that passes its argument through.
-   */
-  it('falls back rather than handing the control something it will misread', () => {
-    expect(pickerValue('oklch(0.205 0 0)')).toBe(PICKER_FALLBACK)
-    expect(pickerValue('rebeccapurple')).toBe(PICKER_FALLBACK)
-    expect(pickerValue(null, undefined, '')).toBe(PICKER_FALLBACK)
-  })
-})
+import { BRAND_PRESETS, groupTokens, isSchemeIndependent, tokenMeta } from './theme-tokens'
 
 describe('groupTokens', () => {
   const tokens = TOKEN_NAMES.map((name) => ({ name }))

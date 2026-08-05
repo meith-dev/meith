@@ -29,7 +29,7 @@ import forumConfig from '../../forum.config'
 import { tokenMeta, type TokenKind } from '@/view/theme-tokens'
 
 import { getContainer } from './container'
-import { colorToHex, validateTokenOverrides, type TokenOverrides } from './theme-style'
+import { validateTokenOverrides, type TokenOverrides } from './theme-style'
 
 export function themeAdminRepository(): PostgresThemeAdminRepository | null {
   return getContainer().dataSource === 'postgres'
@@ -56,18 +56,6 @@ export interface TokenRow {
   /** The compiled value, light and dark, straight from the theme package. */
   readonly light: string
   readonly dark: string
-  /**
-   * The same two as sRGB hex, or `null` for a token that is not a colour.
-   *
-   * The editor's colour picker cannot be handed `oklch(0.205 0 0)` — the
-   * platform control speaks hex and nothing else — so the conversion happens
-   * here, on the server, with the same function `<meta name="theme-color">` has
-   * always used. A token whose shipped value this cannot convert simply gets a
-   * text box, which is the honest outcome for a theme that expressed a colour
-   * in a form the picker cannot show.
-   */
-  readonly lightHex: string | null
-  readonly darkHex: string | null
   /** This board's override per scheme, or `''` for "use the theme's". */
   readonly overrideLight: string
   readonly overrideDark: string
@@ -218,8 +206,6 @@ export async function buildThemeAdminView(key: string): Promise<ThemeAdminView |
         kind: meta.kind,
         light,
         dark,
-        lightHex: meta.kind === 'colour' ? colorToHex(light) : null,
-        darkHex: meta.kind === 'colour' ? colorToHex(dark) : null,
         overrideLight: overrides.light[name] ?? '',
         overrideDark: overrides.dark[name] ?? '',
       }

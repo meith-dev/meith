@@ -28,6 +28,8 @@
  * must not be.
  */
 
+import { colourToHex } from '@/view/oklch'
+
 export interface ThemeTokens {
   readonly light: Readonly<Record<string, string>>
   readonly dark: Readonly<Record<string, string>>
@@ -173,52 +175,15 @@ export function validateCustomCss(value: string | null): string | null {
   return value
 }
 
-function clamp(value: number): number {
-  return Math.min(1, Math.max(0, value))
-}
-
-function hexByte(value: number): string {
-  return Math.round(clamp(value) * 255)
-    .toString(16)
-    .padStart(2, '0')
-}
-
-/** Converts the CSS colours accepted for `background` into browser-safe hex. */
-export function colorToHex(value: string): string | null {
-  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value.trim())
-  if (hex) {
-    const digits = hex[1]!
-    return `#${digits.length === 3 ? [...digits].map((digit) => digit + digit).join('') : digits}`.toLowerCase()
-  }
-
-  const match = /^oklch\(\s*([+-]?(?:\d+\.?\d*|\.\d+))\s+([+-]?(?:\d+\.?\d*|\.\d+))\s+([+-]?(?:\d+\.?\d*|\.\d+))\s*\)$/i.exec(
-    value.trim(),
-  )
-  if (!match) return null
-
-  const lightness = Number(match[1])
-  const chroma = Number(match[2])
-  const hue = (Number(match[3]) * Math.PI) / 180
-  if (![lightness, chroma, hue].every(Number.isFinite)) return null
-
-  const a = chroma * Math.cos(hue)
-  const b = chroma * Math.sin(hue)
-  const l = lightness + 0.3963377774 * a + 0.2158037573 * b
-  const m = lightness - 0.1055613458 * a - 0.0638541728 * b
-  const s = lightness - 0.0894841775 * a - 1.291485548 * b
-  const l3 = l * l * l
-  const m3 = m * m * m
-  const s3 = s * s * s
-  const linear = [
-    4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3,
-    -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3,
-    -0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3,
-  ]
-  const srgb = linear.map((channel) =>
-    channel <= 0.0031308 ? 12.92 * channel : 1.055 * channel ** (1 / 2.4) - 0.055,
-  )
-  return `#${srgb.map(hexByte).join('')}`
-}
+/**
+ * Any colour this board accepts, as sRGB hex.
+ *
+ * The arithmetic moved to `@/view/oklch` when the theme editor grew a real
+ * OKLCH picker: the same conversions are needed in the browser, and two copies
+ * of a colour-space matrix is two chances to transpose a coefficient. This name
+ * stays because it is what the render path and its tests have always called.
+ */
+export const colorToHex = colourToHex
 
 function declarations(values: Readonly<Record<string, string>>): string {
   return Object.entries(values)

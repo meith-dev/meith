@@ -24,45 +24,6 @@
 
 export type TokenKind = 'colour' | 'length' | 'text'
 
-/**
- * Where a colour picker points when it has nothing to point at.
- *
- * A native `<input type="color">` has no empty state — it is always showing
- * some colour — so a token whose value the picker cannot represent still needs
- * a position for the control. Mid grey is chosen because it is obviously not a
- * decision: nothing in the default palette is this colour, so an operator
- * seeing it knows the picker is showing them nothing rather than showing them
- * the token.
- *
- * It lives here rather than in the component because a literal colour in a
- * `.tsx` file is banned outright (guard `no-hardcoded-colour`), and rightly:
- * this is the one kind of colour a component may legitimately need — a control's
- * own state, not the board's appearance — and putting it in the token module
- * keeps the guard's promise intact.
- */
-export const PICKER_FALLBACK = '#808080'
-
-/**
- * The value to hand a native colour input.
- *
- * The control speaks six-digit hex and nothing else: given `oklch(…)`, a colour
- * name, or an empty string it silently falls back to black and *reports* black
- * when read, which would turn "I did not touch this" into "I set it to black"
- * on the next save. So anything it cannot represent is converted by the caller
- * beforehand, and anything still unrepresentable lands on the fallback above.
- */
-export function pickerValue(...candidates: readonly (string | null | undefined)[]): string {
-  for (const candidate of candidates) {
-    if (typeof candidate !== 'string') continue
-    const trimmed = candidate.trim()
-    if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed.toLowerCase()
-    if (/^#[0-9a-f]{3}$/i.test(trimmed)) {
-      return `#${[...trimmed.slice(1)].map((digit) => digit + digit).join('')}`.toLowerCase()
-    }
-  }
-  return PICKER_FALLBACK
-}
-
 export interface TokenMeta {
   readonly label: string
   readonly hint: string
