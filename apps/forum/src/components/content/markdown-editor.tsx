@@ -48,20 +48,27 @@ import { cn } from "@meith/ui"
 
 import { renderPreviewAction, type PreviewScope } from "@/server/content-actions"
 
-/** What a toolbar button does to the text. */
+import {
+  fenceEdit,
+  linkEdit,
+  listContinuation,
+  pasteAsLink,
+  toggleWrap,
+  togglePrefix,
+  type Edit,
+  type LineMarker,
+  type WrapSyntax,
+} from "./markdown-syntax"
+
+/** What a toolbar button does to the text. `markdown-syntax.ts` decides how. */
 type Command =
-  /** Wrap the selection: `**bold**`. Pressing it again unwraps. */
-  | { readonly kind: "wrap"; readonly before: string; readonly after: string; readonly placeholder: string }
-  /** Prefix every selected line: `> `, `- `, `## `. Pressing it again strips. */
-  | { readonly kind: "prefix"; readonly marker: string | ((index: number) => string) }
-  /** A link, built around whatever is selected. */
+  | { readonly kind: "wrap"; readonly syntax: WrapSyntax }
+  | { readonly kind: "prefix"; readonly marker: LineMarker }
   | { readonly kind: "link" }
-  /** A fenced block, on its own lines. */
   | { readonly kind: "fence" }
 
 interface Tool {
   readonly label: string
-  readonly hint: string
   /** Drawn as text, not an icon font: the glyph *is* the syntax it inserts. */
   readonly glyph: string
   readonly shortcut?: string
@@ -71,187 +78,72 @@ interface Tool {
 const TOOLS: readonly Tool[] = [
   {
     label: "Bold",
-    hint: "Bold",
     glyph: "B",
     shortcut: "b",
-    command: { kind: "wrap", before: "**", after: "**", placeholder: "bold text" },
+    command: { kind: "wrap", syntax: { marker: "*", length: 2, placeholder: "bold text" } },
   },
   {
     label: "Italic",
-    hint: "Italic",
     glyph: "I",
     shortcut: "i",
     /*
-     * `_` rather than `*`, so that pressing Bold and then Italic on the same
-     * words produces `**_x_**` instead of a run of five asterisks nobody can
-     * count — the single most common way a Markdown toolbar produces output its
-     * own parser reads wrongly.
+     * `*`, not `_`, and this is the one place the two are not interchangeable.
+     * CommonMark forbids `_` from opening or closing **inside a word** — the
+     * rule that keeps `snake_case_name` out of italics — so a member who
+     * selects three letters in the middle of a word and presses an underscore
+     * Italic button gets `con_cat_enate`, rendered as the literal underscores
+     * it is. The button would appear to do nothing, on the one input where a
+     * toolbar is more useful than typing.
+     *
+     * `*` works everywhere a reader can put a selection. The `**`/`*` collision
+     * it invites is handled by counting the run; see `toggleWrap`.
      */
-    command: { kind: "wrap", before: "_", after: "_", placeholder: "italic text" },
+    command: { kind: "wrap", syntax: { marker: "*", length: 1, placeholder: "italic text" } },
   },
   {
     label: "Strikethrough",
-    hint: "Strikethrough",
     glyph: "S",
-    command: { kind: "wrap", before: "~~", after: "~~", placeholder: "struck out" },
+    command: { kind: "wrap", syntax: { marker: "~", length: 2, placeholder: "struck out" } },
   },
-  {
-    label: "Link",
-    hint: "Link",
-    glyph: "Link",
-    shortcut: "k",
-    command: { kind: "link" },
-  },
-  {
-    label: "Quote",
-    hint: "Quote",
-    glyph: "“”",
-    command: { kind: "prefix", marker: "> " },
-  },
-  {
-    label: "Code",
-    hint: "Code block",
-    glyph: "</>",
-    command: { kind: "fence" },
-  },
-  {
-    label: "Bulleted list",
-    hint: "Bulleted list",
-    glyph: "•",
-    command: { kind: "prefix", marker: "- " },
-  },
+  { label: "Link", glyph: "Link", shortcut: "k", command: { kind: "link" } },
+  /*
+   * No shortcut on Quote. `Ctrl`/`Cmd`+Q closes the browser on two of the three
+   * platforms this board runs on, and a page cannot intercept it — the member
+   * would lose the post they were writing to a key the toolbar advertised.
+   */
+  { label: "Quote", glyph: "“”", command: { kind: "prefix", marker: "> " } },
+  { label: "Code", glyph: "</>", command: { kind: "fence" } },
+  { label: "Bulleted list", glyph: "•", command: { kind: "prefix", marker: "- " } },
   {
     label: "Numbered list",
-    hint: "Numbered list",
     glyph: "1.",
     command: { kind: "prefix", marker: (index: number) => `${index + 1}. ` },
   },
-  {
-    label: "Heading",
-    hint: "Heading",
-    glyph: "H",
-    command: { kind: "prefix", marker: "## " },
-  },
+  { label: "Heading", glyph: "H", command: { kind: "prefix", marker: "## " } },
 ]
 
-/** A list marker at the start of a line, for Return-continues-the-list. */
-const CONTINUES = /^(\s*)(?:([-*+])\s+(?:\[[ xX]\]\s+)?|(\d{1,9})([.)])\s+|(>)\s?)/
-
-const URL_ONLY = /^(https?:\/\/|mailto:)\S+$/i
-
-interface Selection {
-  readonly start: number
-  readonly end: number
-  readonly value: string
-}
-
-/** Replace `[start, end)` and leave the caret where the caller asks. */
-function splice(
-  field: HTMLTextAreaElement,
-  start: number,
-  end: number,
-  text: string,
-  select: { readonly start: number; readonly end: number },
-): void {
-  /*
-   * `setRangeText` rather than assigning `.value`, because it is what keeps the
-   * browser's own undo stack intact — a toolbar that broke Ctrl-Z would be
-   * worse than no toolbar.
-   */
-  field.setRangeText(text, start, end, "end")
-  field.setSelectionRange(select.start, select.end)
+/**
+ * Apply an `Edit` to the box.
+ *
+ * `setRangeText` rather than assigning `.value`, because it is what keeps the
+ * browser's own undo stack intact — a toolbar that broke Ctrl-Z would be worse
+ * than no toolbar. The `input` event is dispatched by hand because a scripted
+ * edit fires none, and the box sizes itself on one.
+ */
+function apply(field: HTMLTextAreaElement, edit: Edit): void {
+  field.setRangeText(edit.text, edit.from, edit.to, "end")
+  field.setSelectionRange(edit.selectionStart, edit.selectionEnd)
   field.focus()
   field.dispatchEvent(new Event("input", { bubbles: true }))
 }
 
-/** The line range containing `[start, end)`. */
-function lineRange(value: string, start: number, end: number): { from: number; to: number } {
-  const from = value.lastIndexOf("\n", start - 1) + 1
-  const lineEnd = value.indexOf("\n", end)
-  return { from, to: lineEnd === -1 ? value.length : lineEnd }
-}
-
-function applyWrap(field: HTMLTextAreaElement, selection: Selection, command: Extract<Command, { kind: "wrap" }>): void {
-  const { start, end, value } = selection
-  const selected = value.slice(start, end)
-
-  /* Already wrapped? Then the button is an off switch. */
-  const before = value.slice(Math.max(0, start - command.before.length), start)
-  const after = value.slice(end, end + command.after.length)
-  if (before === command.before && after === command.after) {
-    splice(field, start - command.before.length, end + command.after.length, selected, {
-      start: start - command.before.length,
-      end: end - command.before.length,
-    })
-    return
-  }
-
-  const body = selected === "" ? command.placeholder : selected
-  splice(field, start, end, `${command.before}${body}${command.after}`, {
-    start: start + command.before.length,
-    end: start + command.before.length + body.length,
-  })
-}
-
-function applyPrefix(
-  field: HTMLTextAreaElement,
-  selection: Selection,
-  command: Extract<Command, { kind: "prefix" }>,
-): void {
-  const { from, to } = lineRange(selection.value, selection.start, selection.end)
-  const lines = selection.value.slice(from, to).split("\n")
-  const markerFor = (index: number): string =>
-    typeof command.marker === "string" ? command.marker : command.marker(index)
-
-  /* Every line already marked means the button removes it. */
-  const marked = lines.every((line, index) => line.startsWith(markerFor(index)))
-  const next = lines
-    .map((line, index) => (marked ? line.slice(markerFor(index).length) : `${markerFor(index)}${line}`))
-    .join("\n")
-
-  splice(field, from, to, next, { start: from, end: from + next.length })
-}
-
-function applyLink(field: HTMLTextAreaElement, selection: Selection): void {
-  const { start, end, value } = selection
-  const selected = value.slice(start, end)
-
-  /* A selected URL becomes the destination; selected words become the label. */
-  if (URL_ONLY.test(selected)) {
-    const text = "link text"
-    splice(field, start, end, `[${text}](${selected})`, { start: start + 1, end: start + 1 + text.length })
-    return
-  }
-
-  const text = selected === "" ? "link text" : selected
-  const inserted = `[${text}](url)`
-  splice(field, start, end, inserted, {
-    start: start + text.length + 3,
-    end: start + text.length + 6,
-  })
-}
-
-function applyFence(field: HTMLTextAreaElement, selection: Selection): void {
-  const { from, to } = lineRange(selection.value, selection.start, selection.end)
-  const body = selection.value.slice(from, to)
-  const lead = from === 0 ? "" : "\n"
-  const inserted = `${lead}\`\`\`\n${body === "" ? "code" : body}\n\`\`\``
-  splice(field, from, to, inserted, {
-    start: from + lead.length + 4,
-    end: from + lead.length + 4 + (body === "" ? 4 : body.length),
-  })
-}
-
 function run(field: HTMLTextAreaElement, command: Command): void {
-  const selection: Selection = {
-    start: field.selectionStart,
-    end: field.selectionEnd,
-    value: field.value,
-  }
-  if (command.kind === "wrap") applyWrap(field, selection, command)
-  else if (command.kind === "prefix") applyPrefix(field, selection, command)
-  else if (command.kind === "link") applyLink(field, selection)
-  else applyFence(field, selection)
+  const { value, selectionStart: start, selectionEnd: end } = field
+
+  if (command.kind === "wrap") apply(field, toggleWrap(value, start, end, command.syntax))
+  else if (command.kind === "prefix") apply(field, togglePrefix(value, start, end, command.marker))
+  else if (command.kind === "link") apply(field, linkEdit(value, start, end))
+  else apply(field, fenceEdit(value, start, end))
 }
 
 export interface MarkdownEditorProps {
@@ -372,51 +264,26 @@ export function MarkdownEditor({
 
     if (event.key !== "Enter" || event.shiftKey) return
 
-    /*
-     * Return continues a list. On an item with nothing in it, Return *ends* the
-     * list instead — which is the behaviour every editor that does this has
-     * settled on, and the reason the feature is not infuriating.
-     */
-    const { from } = lineRange(element.value, element.selectionStart, element.selectionStart)
-    const line = element.value.slice(from, element.selectionStart)
-    const match = CONTINUES.exec(line)
-    if (match === null) return
-
-    const marker = match[0]
-    if (line.length === marker.length) {
-      event.preventDefault()
-      splice(element, from, element.selectionStart, "", { start: from, end: from })
-      return
-    }
-
-    const indent = match[1] ?? ""
-    const ordered = match[3]
-    const next =
-      ordered === undefined
-        ? marker
-        : `${indent}${Number(ordered) + 1}${match[4] ?? "."} `
+    const edit = listContinuation(element.value, element.selectionStart)
+    if (edit === null) return
 
     event.preventDefault()
-    splice(element, element.selectionStart, element.selectionEnd, `\n${next}`, {
-      start: element.selectionStart + next.length + 1,
-      end: element.selectionStart + next.length + 1,
-    })
+    apply(element, edit)
   }
 
   function onPaste(event: React.ClipboardEvent<HTMLTextAreaElement>): void {
     const element = event.currentTarget
-    const pasted = event.clipboardData.getData("text/plain")
-    if (!URL_ONLY.test(pasted.trim())) return
-    if (element.selectionStart === element.selectionEnd) return
-
     /* A URL pasted over selected words is a link around those words. */
+    const edit = pasteAsLink(
+      element.value,
+      element.selectionStart,
+      element.selectionEnd,
+      event.clipboardData.getData("text/plain"),
+    )
+    if (edit === null) return
+
     event.preventDefault()
-    const start = element.selectionStart
-    const text = element.value.slice(start, element.selectionEnd)
-    splice(element, start, element.selectionEnd, `[${text}](${pasted.trim()})`, {
-      start: start + text.length + 3 + pasted.trim().length,
-      end: start + text.length + 3 + pasted.trim().length,
-    })
+    apply(element, edit)
   }
 
   function onTabKey(event: React.KeyboardEvent<HTMLDivElement>): void {
@@ -505,7 +372,11 @@ export function MarkdownEditor({
               onClick={() => {
                 if (field.current !== null) run(field.current, tool.command)
               }}
-              title={tool.shortcut === undefined ? tool.hint : `${tool.hint} (Ctrl+${tool.shortcut.toUpperCase()})`}
+              title={
+                tool.shortcut === undefined
+                  ? tool.label
+                  : `${tool.label} (Ctrl+${tool.shortcut.toUpperCase()})`
+              }
               aria-label={tool.label}
               {...(tool.shortcut === undefined ? {} : { "aria-keyshortcuts": `Control+${tool.shortcut}` })}
               className="min-w-8 rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -592,7 +463,7 @@ export function MarkdownEditor({
 function FormattingHelp({ scope }: { scope: PreviewScope }) {
   const inline: readonly (readonly [string, string])[] = [
     ["**bold**", "bold"],
-    ["_italic_", "italic"],
+    ["*italic*", "italic"],
     ["~~struck~~", "struck out"],
     ["[text](https://…)", "a link"],
     ["`code`", "code, inline"],

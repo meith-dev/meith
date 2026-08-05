@@ -40,6 +40,8 @@ export {
 export { escapeHtml, escapeAttribute } from './escape'
 export { safeUrl, safeImageUrl, type UrlPolicy } from './url'
 export { bbcodeToMarkdown } from './bbcode'
+export { escapeMarkdownText, plainAuthorName } from './escape-source'
+export { quoteBlock, type QuoteInput } from './quote'
 export {
   applyWordFilter,
   compileWordFilter,

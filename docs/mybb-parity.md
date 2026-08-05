@@ -147,6 +147,27 @@ Markdown resolves the ambiguity that made it refusable: a bare URL ends at
 whitespace and gives back the trailing punctuation that belongs to the sentence,
 which is a rule that can be written down and tested rather than guessed.
 
+### Quoting fills the box you are looking at
+
+**MyBB** quotes by navigating to the reply page, and offers multiquote for
+collecting several posts first.
+
+**We** do both of those and, with JavaScript on, neither navigates: clicking
+**Quote** puts the quote in the quick reply already on the thread page, opens
+it, and puts the caret under the quote. Multiquote works the same way — the
+selections are spent the moment the reply form loads.
+
+**The quote comes from the server, by post id.** That is worth stating because
+the alternative is what most boards do: read the post out of the page and turn
+it back into markup in the browser. This asks for the post instead, through the
+same visibility lookup the reply page uses, so a reader cannot quote something
+they were never shown and a moderator cannot republish a deleted post by
+quoting it.
+
+**Cost:** one request per quote, where a board doing it in the browser makes
+none. With scripting off, or on a page with no composer, the Quote link is a
+link to the reply page exactly as it always was.
+
 **A directive is not MyBB's custom MyCode.** MyBB's takes a *replacement
 pattern* — a regular expression and the HTML to put in its place — so an
 administrator can produce any markup they like from a form. Ours chooses a
@@ -1017,18 +1038,19 @@ the sender without betraying the recipient.
 **Cost:** a sender cannot tell "they blocked me" from "their group cannot use
 PMs". That ambiguity is the feature.
 
-### A signature's forbidden tags render as text rather than refusing the save
+### A signature's forbidden constructs render as text rather than refusing the save
 
 **MyBB:** per-group switches for images, links and HTML in signatures, enforced
 by stripping or by refusing.
 
-**Here:** signatures render with a **narrower tag registry** — bold, italic,
-underline, strikethrough, colour, links, e-mail. `[img]`, `[quote]`, `[size]`,
-`[code]` and `[list]` are not in it, so they come out as literal text.
+**Here:** a signature is parsed with a **narrower set of constructs** — emphasis,
+strong, strikethrough, code spans and links. Images, headings, quotes, lists,
+tables, rules and code blocks are off, so they come out as the characters
+somebody typed.
 
-**Why:** it cannot be bypassed by a tag this build does not know about, and it
-degrades — somebody pasting a signature from another board gets most of it
-rather than an error. `[img]` is the one that matters: a remote image under
+**Why:** it cannot be bypassed by a construct this build does not know about,
+and it degrades — somebody pasting a signature from another board gets most of
+it rather than an error. The image is the one that matters: a remote image under
 every post is a tracking beacon reporting each reader's IP to whoever hosts it.
 
 **Cost:** an imported MyBB signature that used images loses them, visibly, as

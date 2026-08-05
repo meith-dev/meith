@@ -796,6 +796,18 @@ budget — 5,486 ms to 98 ms.
   `:spoiler[…]`), and F45's toolbar became a composer that still degrades to a
   bare textarea with scripting off.
 
+- **Quoting by id, and the composer's italics** (D102). A reverse parser that
+  turned rendered HTML back into Markdown was written and then deleted: it was
+  a second implementation of `render.ts`'s mapping, and its failure mode was a
+  quote that kept a passage's words and silently lost its links. A post has an
+  **id**, and the id resolves to the source through the same permission-checked
+  lookup the reply page uses — so quoting asks the server and the page supplies
+  nothing. Clicking Quote now fills the composer already on the screen instead
+  of navigating, by intercepting the link the theme already rendered. Italics
+  became `*`, because `_` cannot open inside a word and the button did nothing
+  when somebody italicised part of one; the bold/italic collision that invites
+  is handled by counting the delimiter run rather than matching strings.
+
 **Nothing on the plan is outstanding.** 86 `DONE`, 3 green `GATE`, no `PARTIAL`
 and no `TODO`. That is the roadmap finished, not the project: what remains is
 the release task below, the standing gaps under *Still outstanding and worth
@@ -957,7 +969,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D101). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D102). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

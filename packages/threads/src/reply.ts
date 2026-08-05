@@ -12,6 +12,7 @@
  * domain needs to know about.
  */
 import { RateLimitedError, ValidationError } from '@meith/core'
+import { quoteBlock } from '@meith/markdown'
 
 import {
   MESSAGE_MIN,
@@ -229,10 +230,7 @@ export class ReplyComposer {
  *
  * Markdown, so what lands in the composer is exactly what an author would have
  * typed themselves — which is the point of choosing a markup language people
- * already know. `>` on every line, including the blank ones, because a
- * blockquote ends at the first line without the marker and a quote of a
- * two-paragraph post would otherwise become one quoted paragraph followed by
- * the second one shouted in the author's own voice.
+ * already know.
  *
  * The attribution names the author and does **not** link to the post. BBCode
  * carried `pid='12'` here and the renderer dropped it, for a reason that has
@@ -241,18 +239,16 @@ export class ReplyComposer {
  * quote header that 404s for half the board is worse than one without a link.
  *
  * The quoted body is inserted verbatim: it is somebody's post, already stored
- * as raw text, and escaping it here would corrupt the quote of a post that
- * itself contained markup. Rendering is where escaping belongs.
+ * as source, and escaping it here would corrupt the quote of a post that itself
+ * contained markup. Rendering is where escaping belongs.
+ *
+ * The trailing blank line is this function's only addition to `quoteBlock`, and
+ * it is what puts the replier's caret on a fresh paragraph under the quote
+ * rather than inside it.
  */
 export function quotePrefill(quoted: {
-  readonly postId: number
   readonly authorUsername: string
   readonly message: string
 }): string {
-  const author = quoted.authorUsername.replace(/[*_[\]`\\]/g, '')
-  const body = quoted.message
-    .split('\n')
-    .map((line) => `> ${line}`.trimEnd())
-    .join('\n')
-  return `> **${author} wrote:**\n>\n${body}\n\n`
+  return `${quoteBlock({ author: quoted.authorUsername, markdown: quoted.message })}\n\n`
 }

@@ -32,7 +32,7 @@ import { useActionState, useEffect } from "react"
 
 import { Alert, AlertDescription, Disclosure, buttonVariants, cn } from "@meith/ui"
 
-import { createReplyAction } from "@/server/content-actions"
+import { createReplyAction, quotePostAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import type { UploadLimits } from "@meith/attachments/limits"
@@ -66,29 +66,36 @@ export function ReplyForm({
   collapsible?: boolean
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)
+
+  /*
+   * F45's multiquote, collected on the thread page and spent here.
+   *
+   * The ids are what travelled, not the text: `quotePostAction` re-reads each
+   * post through the same visibility lookup the reply page uses, so a selection
+   * carried in `sessionStorage` cannot become a quote of something the reader
+   * was never shown — and cannot go stale if a post was deleted between
+   * collecting it and replying.
+   */
   useEffect(() => {
-    const field = document.getElementById("post-message") as HTMLTextAreaElement | null
-    const quotes = JSON.parse(sessionStorage.getItem("multiquote") ?? "[]") as Array<{
-      author: string
-      message: string
-    }>
-    if (field === null || quotes.length === 0) return
-    field.value = `${field.value}${field.value ? "\n\n" : ""}${quotes
-      .map((quote) => {
-        /*
-         * Every line marked, blank ones included: a blockquote ends at the
-         * first line without a `>`, so a two-paragraph quote would otherwise
-         * put its second half in the replier's own voice.
-         */
-        const body = quote.message
-          .split("\n")
-          .map((line) => `> ${line}`.trimEnd())
-          .join("\n")
-        return `> **${quote.author.replace(/[*_[\]`\\]/g, "")} wrote:**\n>\n${body}`
-      })
-      .join("\n\n")}`
+    const field = document.getElementById("post-message")
+    const ids = (JSON.parse(sessionStorage.getItem("multiquote") ?? "[]") as unknown[])
+      .map(Number)
+      .filter((id) => Number.isSafeInteger(id) && id > 0)
+    if (!(field instanceof HTMLTextAreaElement) || ids.length === 0) return
     sessionStorage.removeItem("multiquote")
-  }, [])
+
+    void (async () => {
+      const quotes = (await Promise.all(ids.map((id) => quotePostAction(threadId, id)))).filter(
+        (quote): quote is string => quote !== null,
+      )
+      if (quotes.length === 0) return
+      const existing = field.value.replace(/\s+$/, "")
+      field.value = `${existing === "" ? "" : `${existing}\n\n`}${quotes.join("\n\n")}\n\n`
+      field.setSelectionRange(field.value.length, field.value.length)
+      /* The composer sizes itself on `input`, and setting `.value` fires none. */
+      field.dispatchEvent(new Event("input", { bubbles: true }))
+    })()
+  }, [threadId])
 
   /*
    * No `encType` on the form: React renders a Server Action form as

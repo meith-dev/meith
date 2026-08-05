@@ -13,6 +13,7 @@ import { PollForm } from '@/components/content/poll'
 import { ThreadRatingForm } from '@/components/content/thread-rating'
 import { ReplyForm } from '@/components/content/reply-form'
 import { MultiQuoteButton } from '@/components/content/multiquote-button'
+import { QuoteInPlace } from '@/components/content/quote-in-place'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 
 import { getContainer } from '@/server/container'
@@ -607,10 +608,7 @@ export default async function ThreadPage({
             actions: (
               <PostActions {...actions}>
                 {post.actions.quoteHref === null ? null : (
-                  <MultiQuoteButton
-                    author={post.author.username}
-                    message={post.quoteSource}
-                  />
+                  <MultiQuoteButton postId={post.id} />
                 )}
               </PostActions>
             ),
@@ -653,20 +651,30 @@ export default async function ThreadPage({
     authorizer.can(actor, 'thread.rate', { forumId: forum.id, forum: matrix })
   const replyTarget = { forumId: forum.id, forum: matrix }
   const quickReply = !canReply ? null : (
-    <ReplyForm
-      threadId={thread.id}
-      seenLastPostId={thread.lastPost?.postId ?? null}
-      prefill=""
-      canSubscribe={authorizer.can(actor, 'forum.subscribe', replyTarget)}
-      attachmentLimits={canAttach(actor, replyTarget) ? attachmentLimits(replyTarget) : null}
-      draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, forum.id, thread.id)}
-      /*
-       * Folded and shrunk, because inline this is the quick reply rather than
-       * the page — see `ReplyForm`. `/thread/…/reply` passes nothing and gets
-       * the full-size, always-open form.
-       */
-      collapsible
-    />
+    <>
+      {/*
+        Turns every `?quote=` link on the page into an in-place quote — see
+        `quote-in-place.tsx`. It renders nothing; it is here rather than beside
+        the posts because it is only useful when there is a box for the quote to
+        land in. A reader who cannot reply still gets the link, and the link
+        still works.
+      */}
+      <QuoteInPlace threadId={thread.id} />
+      <ReplyForm
+        threadId={thread.id}
+        seenLastPostId={thread.lastPost?.postId ?? null}
+        prefill=""
+        canSubscribe={authorizer.can(actor, 'forum.subscribe', replyTarget)}
+        attachmentLimits={canAttach(actor, replyTarget) ? attachmentLimits(replyTarget) : null}
+        draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, forum.id, thread.id)}
+        /*
+         * Folded and shrunk, because inline this is the quick reply rather than
+         * the page — see `ReplyForm`. `/thread/…/reply` passes nothing and gets
+         * the full-size, always-open form.
+         */
+        collapsible
+      />
+    </>
   )
 
   /*

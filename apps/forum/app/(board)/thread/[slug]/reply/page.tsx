@@ -68,7 +68,6 @@ export default async function ReplyPage({
     const quoted = await posts.findQuotable(id, quoteId)
     if (quoted) {
       prefill = quotePrefill({
-        postId: quoted.id,
         authorUsername: quoted.authorUsername,
         message: quoted.message,
       })

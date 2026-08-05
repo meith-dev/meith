@@ -12,24 +12,31 @@
  * it, so the row it sits in reads as part of the postbit rather than as
  * something that failed to load.
  *
- * The behaviour is unchanged and still enhancement-only: the selection lives in
- * `sessionStorage` and the reply form reads it on mount, so with scripting off
- * nothing renders and the per-post "Quote" link — a real link to the reply page
- * — is how quoting works.
+ * Enhancement-only: the selection lives in `sessionStorage` and the reply form
+ * reads it on mount, so with scripting off nothing renders and the per-post
+ * "Quote" link — a real link to the reply page — is how quoting works.
+ *
+ * ## What is stored is the **id**, and nothing else
+ *
+ * It used to store the post's source text, which meant the page had to ship
+ * every quotable post's Markdown to every reader for a button most of them
+ * never press, and a quote collected an hour ago was still whatever the post
+ * said an hour ago. An id is small, and the reply form resolves it through the
+ * server — the same lookup the reply page uses, so what comes back is current
+ * and is something this reader may actually see.
  */
 
 import { buttonVariants } from '@meith/ui'
 
-export function MultiQuoteButton({ author, message }: { author: string; message: string }) {
+export function MultiQuoteButton({ postId }: { postId: number }) {
   return (
     <button
       type="button"
       onClick={() => {
-        const quotes = JSON.parse(sessionStorage.getItem('multiquote') ?? '[]') as Array<{
-          author: string
-          message: string
-        }>
-        sessionStorage.setItem('multiquote', JSON.stringify([...quotes, { author, message }]))
+        const ids = JSON.parse(sessionStorage.getItem('multiquote') ?? '[]') as unknown[]
+        /* Collecting the same post twice is a slip, not an instruction. */
+        const next = [...new Set([...ids.map(Number), postId])]
+        sessionStorage.setItem('multiquote', JSON.stringify(next))
       }}
       className={buttonVariants({ variant: 'ghost', size: 'sm' })}
     >

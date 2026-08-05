@@ -33,6 +33,9 @@
  * as Markdown so it is never converted again. Nothing converts on write.
  */
 
+import { escapeMarkdownText } from './escape-source'
+import { quoteBlock } from './quote'
+
 /** Tags whose body is verbatim: the scanner must not look for tags inside. */
 const RAW_TAGS = new Set(['code', 'php'])
 
@@ -171,20 +174,6 @@ function parseBBCode(source: string): Node[] {
   return root.children
 }
 
-/** Every character Markdown would read as syntax, made literal. */
-function escapeMarkdown(value: string): string {
-  return value
-    .replace(/([\\`*_[\]<>|~])/g, '\\$1')
-    .split('\n')
-    /*
-     * Line-leading markers only matter at the start of a line, and escaping
-     * them everywhere would litter a converted post with backslashes in front
-     * of every hyphen anybody ever typed mid-sentence.
-     */
-    .map((line) => line.replace(/^(\s*)(:::|[#>+=-]|\d+[.)])/, '$1\\$2'))
-    .join('\n')
-}
-
 /** The quoted author in `[quote='Bob' pid='42']`. The pid is dropped. */
 function quoteAuthor(attribute: string | null): string | null {
   if (attribute === null) return null
@@ -221,7 +210,7 @@ function convertNodes(nodes: readonly Node[]): string {
 }
 
 function convertNode(node: Node): string {
-  if (node.kind === 'text') return escapeMarkdown(node.value)
+  if (node.kind === 'text') return escapeMarkdownText(node.value)
 
   if (node.kind === 'raw') {
     const body = node.value.replace(/^\r?\n/, '').replace(/\s+$/, '')
@@ -265,11 +254,13 @@ function convertNode(node: Node): string {
       return source === '' ? inner : `![](${source})`
     }
 
-    case 'quote': {
-      const author = quoteAuthor(node.attribute)
-      const heading = author === null ? '' : `**${escapeMarkdown(author)} wrote:**\n\n`
-      return `\n\n${prefixLines(`${heading}${inner.trim()}`, '> ')}\n\n`
-    }
+    case 'quote':
+      /*
+       * The same builder the reply button uses, so a converted quote and a
+       * freshly written one are the same shape — including the marker on the
+       * blank line, which is what keeps a two-paragraph quote one quote.
+       */
+      return `\n\n${quoteBlock({ author: quoteAuthor(node.attribute), markdown: inner.trim() })}\n\n`
 
     case 'list': {
       const ordered = node.attribute !== null && node.attribute.trim() !== ''
@@ -292,7 +283,7 @@ function convertNode(node: Node): string {
        * A tag this build never had — a custom one from the old board, or a typo.
        * Its source is kept, escaped, so nothing is lost and nothing formats.
        */
-      return escapeMarkdown(`[${node.tag}${node.attribute === null ? '' : `=${node.attribute}`}]`) + inner + escapeMarkdown(`[/${node.tag}]`)
+      return escapeMarkdownText(`[${node.tag}${node.attribute === null ? '' : `=${node.attribute}`}]`) + inner + escapeMarkdownText(`[/${node.tag}]`)
   }
 }
 

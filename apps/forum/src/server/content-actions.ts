@@ -14,7 +14,7 @@
  */
 import { redirect } from 'next/navigation'
 
-import { SIGNATURE_FEATURES, renderMarkdown, vocabularyOptions } from '@meith/markdown'
+import { SIGNATURE_FEATURES, quoteBlock, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import {
   ForbiddenError,
   ValidationError,
@@ -92,6 +92,49 @@ export async function renderPreviewAction(
     typeof message === 'string' ? message : '',
     scope === 'signature' ? 'signature' : 'post',
   )
+}
+
+/**
+ * A post, as a quote block, resolved from its **id**.
+ *
+ * What makes this the whole of the quoting mechanism, rather than a convenience
+ * on top of one: the source comes from the database, not from the page. The
+ * caller sends two numbers; everything about what may be quoted is decided
+ * here, by the same lookup `/thread/…/reply?quote=` has always used —
+ * `thread.view` on the forum, then a thread-scoped read that only ever returns
+ * a *publicly visible* post.
+ *
+ * That closes both holes the obvious client-side version leaves open. A reader
+ * cannot quote a post they were never shown, because this never trusts what is
+ * in their DOM; and a moderator cannot accidentally republish a deleted post by
+ * quoting it, because `findQuotable` refuses to return one.
+ *
+ * A post that cannot be quoted returns `null` rather than throwing. The caller
+ * is a button on a page the reader is already reading, and its fallback is the
+ * plain `?quote=` link beside it — which is also what happens with scripting
+ * off, and is the reason this is enhancement rather than mechanism.
+ */
+export async function quotePostAction(
+  threadId: number,
+  postId: number,
+): Promise<string | null> {
+  if (!Number.isSafeInteger(threadId) || !Number.isSafeInteger(postId)) return null
+
+  const actor = await getActor()
+  const { authorizer, posts, threadWrites } = getContainer()
+
+  /* A board on fixture data has no writer, and therefore no thread to resolve. */
+  const target = threadWrites === null ? null : await threadWrites.replyTarget(threadId)
+  if (target === null) return null
+
+  const forumId = target.forum.id
+  const scope = { forumId, forum: await authorizer.forumMatrix(actor, forumId) }
+  if (!authorizer.can(actor, 'thread.view', scope)) return null
+
+  const quoted = await posts.findQuotable(threadId, postId)
+  if (quoted === null) return null
+
+  return quoteBlock({ author: quoted.authorUsername, markdown: quoted.message })
 }
 
 function field(form: FormData, name: string): string {

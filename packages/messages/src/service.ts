@@ -30,6 +30,7 @@
 import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
 import {
   EMPTY_VOCABULARY,
+  quoteBlock,
   renderMarkdown,
   sourceAsMarkdown,
   vocabularyOptions,
@@ -494,20 +495,16 @@ function prefixed(prefix: string, subject: string): string {
 /**
  * The original, as a Markdown quote block.
  *
- * `>` on every line including the blank ones, because a blockquote ends at the
- * first line without the marker — so quoting a two-paragraph message would
- * otherwise put its second paragraph in the replier's own voice.
+ * The same builder a post's reply uses, so a quoted message and a quoted post
+ * are the same shape — including the marker on the blank line, which is what
+ * keeps a two-paragraph quote one quote.
  *
- * The author's name is stripped of the characters Markdown reads as syntax. The
- * renderer escapes what it produces, but the *source* is what a member then
- * edits, and a name that half-italicised the attribution line would stay that
- * way forever.
+ * The trailing blank line is this function's own: it puts the replier's caret
+ * on a fresh paragraph under the quote rather than inside it.
  */
 function quoted(message: PrivateMessage): string {
-  const author = message.authorUsername.replace(/[*_[\]`\\]/g, '')
-  const body = sourceAsMarkdown(message.message, message.bodyFormat)
-    .split('\n')
-    .map((line) => `> ${line}`.trimEnd())
-    .join('\n')
-  return `> **${author} wrote:**\n>\n${body}\n\n`
+  return `${quoteBlock({
+    author: message.authorUsername,
+    markdown: sourceAsMarkdown(message.message, message.bodyFormat),
+  })}\n\n`
 }

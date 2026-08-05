@@ -63,8 +63,16 @@ describe('the v1 contract', () => {
     expect([...provisional].sort()).toEqual(['EditorToolbar', 'QuickReply'])
   })
 
-  it('ships nothing deprecated at v1', () => {
-    expect(DEPRECATIONS).toEqual([])
+  /*
+   * No *slot* is deprecated, which is the load-bearing half: a slot going away
+   * is work for every theme, and a field a theme was told never to render is
+   * not. The schedule itself is checked by `assertDeprecationPolicy` below —
+   * this asserts what is on it, so adding an entry is a deliberate edit to a
+   * test rather than a line nobody reviewed.
+   */
+  it('deprecates one field and no slot', () => {
+    expect(DEPRECATIONS.map((entry) => entry.name)).toEqual(['PostBitModel.quoteSource'])
+    expect(DEPRECATIONS.every((entry) => entry.kind === 'field')).toBe(true)
     expect(SLOT_NAMES.filter((name) => SLOT_STABILITY[name] === 'deprecated')).toEqual([])
   })
 

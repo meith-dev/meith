@@ -319,7 +319,15 @@ export interface PostBitModel {
   readonly author: PostAuthorModel
   /** Pre-rendered Markdown. */
   readonly bodyHtml: string
-  /** Source used only by the client multiquote button; themes never render it. */
+  /**
+   * @deprecated Since theme API 1.4, removed in 2.0. Use `post.id`.
+   *
+   * It existed so the client could assemble a quote out of the page. Quoting
+   * asks the server for a post **by id** now, which re-checks who may see it
+   * and cannot hand back what a deleted post used to say — so this is a copy of
+   * every post's source in the HTML of every thread page, for nobody. Still
+   * populated, because a theme could have read it; see `DEPRECATIONS`.
+   */
   readonly quoteSource: string
   readonly postedAt: TimeModel
   /** "Last edited by X on Y", already assembled, or `null`. */

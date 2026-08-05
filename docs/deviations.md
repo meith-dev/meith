@@ -7757,3 +7757,74 @@ page runs, with the same board vocabulary. A client-side parser would be faster
 and would drift from the server's the first time either was fixed; the round trip
 buys a preview that is the render rather than an impression of it. With scripting
 off the form's own `intent=preview` submit reaches the same function.
+
+### D102 — Quoting resolves a post by id, and the composer's italics use `*`
+
+Two follow-ons to D101, and the first is a decision that was made twice before
+it was made correctly.
+
+#### The reverse parser that is not here
+
+Quoting in place needs Markdown, and what a reader is looking at is HTML. The
+obvious implementation walks the selected nodes and writes source back out —
+and it was written, tested, and deleted, because it is a **second
+implementation of the mapping between source and output**. `render.ts` decides
+what a construct looks like; a walker decides what it looked like; and the day
+a construct is added to one and not the other, quoting keeps a passage's words
+and silently loses its links. Nothing fails. The board's own rule about the
+smiley pass (D99) says the same thing about a weaker second implementation, and
+it applies here with more force, because this one would have run on input a
+reader chose.
+
+The board never needed to guess. **A post has an id**, the id resolves to the
+source it was rendered from, and that lookup already re-checks who may see it —
+it is the same `findQuotable` the `?quote=` link has used since F40. So
+`quotePostAction` takes a thread and a post and returns a quote block, and the
+page supplies neither the text nor the permission.
+
+Two holes close as a side effect of asking the server rather than the DOM. A
+reader cannot quote a post they were never shown, because nothing trusts what is
+in their document. And a moderator cannot republish a deleted post by quoting
+it, because `findQuotable` will not return one — a client-side walker would
+happily have quoted the copy on screen.
+
+#### The link is the mechanism; the island only intercepts it
+
+There is no new control and no theme change. The island listens for clicks on
+the thread and handles any link whose href carries `?quote=<id>` — so a theme
+that renders its quote link differently, and a plugin that adds one, are both
+enhanced by the same rule, because the rule is about the *href*.
+
+Everything about the fallback follows. Scripting off, the click is a
+navigation to the reply page, exactly as before. A modifier key held, it is a
+navigation — somebody opening a quote in a new tab means it. The action
+returning `null`, it is a navigation, because the reply page's answer is the
+honest one. There is no state in which the button stops working.
+
+Multiquote moved to ids for the same reason and gained the same two properties.
+It also stopped needing `PostBitModel.quoteSource`, which shipped **every
+quotable post's full Markdown source** in the HTML of every thread page so that
+a button most readers never press could assemble a quote locally. The field is
+now scheduled for removal in theme API 2.0 — the first entry `DEPRECATIONS` has
+ever carried, and the first time that machinery has run on something real.
+
+#### Italics are `*`, and the toggle counts the run
+
+The composer inserted `_italic_`. It reads well and it is what several editors
+use, and it is **wrong for a toolbar**: CommonMark forbids `_` from opening or
+closing inside a word — the rule that keeps `snake_case_name` out of italics —
+so a member who selects three letters in the middle of a word and presses
+Italic got `con_cat_enate`, which renders as the underscores it is. The button
+appeared to do nothing, on the one input where a toolbar is more use than
+typing. `*` has no such restriction.
+
+That invites the collision `_` was chosen to avoid, and the fix is to stop
+comparing strings and **count the delimiter run**: emphasis toggles on an odd
+run, strong on a run of two or more. Pressing Italic inside `**bold**` now adds
+a level and gives `***both***`; a string comparison saw the innermost asterisk,
+called it italic, and turned the bold *off* on a keystroke meant to add to it.
+
+The edits moved to `markdown-syntax.ts` — pure functions returning a
+replacement and a caret position — because that bug is invisible in review,
+obvious in use, and had nowhere to be tested while it lived inside a client
+component. Twenty-six cases now cover it.
