@@ -724,6 +724,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../markdown
       '@meith/polls':
         specifier: workspace:*
         version: link:../polls
