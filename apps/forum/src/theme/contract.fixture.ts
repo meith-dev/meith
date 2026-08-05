@@ -256,7 +256,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     /*
      * The zone the timestamps were formatted in; without it every time is a
      * guess. `poweredBy` is deliberately *not* required: it arrived as an
-     * optional field in v1.7, and requiring it here would make an attribution
+     * optional field in 0.8, and requiring it here would make an attribution
      * that no licence asks for into something a theme cannot leave out.
      */
     requires: ['Europe/London', '/contact'],

@@ -3,7 +3,7 @@
  * F77 — the theme API reference, generated from the code that is the API.
  *
  * `docs/theme-slots.md` is the document a theme author reads instead of the
- * source: every slot, its kind, its stability under the v1 freeze, and the exact
+ * source: every slot, its kind, its stability under the freeze, and the exact
  * fields of the model it is handed. It is generated, and `--check` fails the
  * build when it disagrees with the code.
  *
@@ -458,7 +458,7 @@ function render({ slots, freeze, models, slotModels }) {
     '',
     'What the marks mean, and how something is removed, is in',
     '[`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its',
-    'model do not change before v2; a **provisional** slot is named but not yet rendered',
+    'model do not change before the next major; a **provisional** slot is named but not yet rendered',
     'by any page, so its model may change in a minor release; a **deprecated** slot still',
     'works and has a removal scheduled below.',
     '',
@@ -534,7 +534,7 @@ function render({ slots, freeze, models, slotModels }) {
   if (freeze.deprecations.length === 0) {
     push(
       `Nothing is deprecated in v${freeze.version}. Nothing can be: this is the first`,
-      'frozen version, so there is no earlier promise to withdraw.',
+      'frozen contract, so there is no earlier promise to withdraw.',
       '',
     )
   } else {

@@ -28,7 +28,7 @@
  * the list of what is missing, rather than throwing. Pages ask for the slots
  * they need and get a clear error naming the slot if a theme has not filled it.
  *
- * `assertComplete` is the strict form, for F77's v1 freeze and for any board
+ * `assertComplete` is the strict form, for F77's freeze and for any board
  * that wants installation to fail loudly rather than at first render.
  */
 
@@ -260,7 +260,7 @@ export function hasSlot(theme: ResolvedTheme, name: SlotName): boolean {
  *
  * Not called during Phase 2: slots exist for pages that are not built, so no
  * theme can be complete yet and a hard check here would make the registry
- * unusable. F77 turns this on at the v1 freeze, and a board that prefers a loud
+ * unusable. F77 turns this on at the freeze, and a board that prefers a loud
  * install to a late 500 can call it itself.
  */
 export function assertComplete(theme: ResolvedTheme): SlotImplementations {

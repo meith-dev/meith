@@ -79,7 +79,7 @@ describe('the fixture set', () => {
 })
 
 describe.each(themes)('theme "$key"', ({ definition }) => {
-  it('satisfies the v1 contract', () => {
+  it('satisfies the slot contract', () => {
     expect(assertThemeContract(resolveTheme(definition)).missing).toEqual([])
   })
 

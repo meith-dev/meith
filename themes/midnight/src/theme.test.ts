@@ -19,7 +19,7 @@ import { DARK_TOKENS, LIGHT_TOKENS } from './tokens'
  * slots that have to be overridden together.
  */
 describe('the midnight theme', () => {
-  it('satisfies theme-kit v1', () => {
+  it('satisfies the theme-kit contract', () => {
     expect(assertThemeContract(resolveTheme(midnightTheme)).missing).toEqual([])
   })
 
@@ -28,7 +28,7 @@ describe('the midnight theme', () => {
   })
 
   /*
-   * The point of inheriting. theme-kit v1 promises a minor release may add a
+   * The point of inheriting. The theme-kit contract promises a minor release may add a
    * slot; midnight fills nineteen and gets the rest from its parent, so a slot
    * added tomorrow renders here without this package being touched. A copy would
    * have a hole in it and nothing would say so.

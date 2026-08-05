@@ -85,7 +85,7 @@ if (buildTheme === undefined) {
  * runs at module load, so the same mistake is a boot failure with the whole
  * list in one message.
  *
- * It asks for the **v1 contract**, not for completeness: two slots belong to
+ * It asks for the **slot contract**, not for completeness: two slots belong to
  * F45 and no theme can fill them. See `SLOT_STABILITY`.
  */
 for (const theme of RESOLVED.values()) assertThemeContract(theme)

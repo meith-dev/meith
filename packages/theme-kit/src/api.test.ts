@@ -19,7 +19,7 @@ import { SLOT_NAMES, type SlotName } from './slots'
 /**
  * Fixtures, not the shipped list.
  *
- * `DEPRECATIONS` is empty at v1 and will be for some time. A policy engine whose
+ * `DEPRECATIONS` is empty today and will be for some time. A policy engine whose
  * only input is `[]` has never run, so every rule below is exercised against a
  * deliberately wrong schedule — which is also the only way the rule's mutant can
  * be killed (D10).
@@ -47,7 +47,7 @@ function themeFilling(names: readonly SlotName[]) {
   return { key: 'fixture', slots }
 }
 
-describe('the v1 contract', () => {
+describe('the slot contract', () => {
   it('classifies every slot, and nothing that is not a slot', () => {
     expect(Object.keys(SLOT_STABILITY).sort()).toEqual([...SLOT_NAMES].sort())
   })

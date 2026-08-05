@@ -1,4 +1,4 @@
-# The plugin API, v1
+# The plugin API
 
 `@meith/plugin-kit` is the contract between the board and a plugin.
 
@@ -15,7 +15,7 @@ A plugin is a module that calls `definePlugin` and is registered in
 export const greeter = definePlugin({
   key: "greeter",
   name: "Greeter",
-  version: "1.0.0",
+  version: "0.1.0",
   hooks: {
     // A filter: what it returns replaces the value.
     "view.footer": (footer) => ({

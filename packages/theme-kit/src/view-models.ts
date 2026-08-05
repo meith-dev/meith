@@ -3,7 +3,7 @@
  *
  * These types are the **public API for themes**. Per docs/nextjs-conventions.md
  * adding a field is a minor change; renaming or removing one needs a deprecation
- * cycle. F77 freezes them as theme-kit v1.
+ * cycle. F77 freezes them as the theme-kit slot contract.
  *
  * ## The rule: view models are plain JSON-shaped data
  *
@@ -515,7 +515,7 @@ export interface FooterModel {
   /** Which zone `TimeModel.label`s were formatted in, for the footer note. */
   readonly timezoneLabel: string
   /**
-   * What the board runs on, and where to read about it (v1.7).
+   * What the board runs on, and where to read about it (0.8).
    *
    * A `LinkModel` and not a hardcoded string in each theme, for the reason every
    * other piece of footer text is one: the app owns the words and the URL, so
@@ -523,7 +523,7 @@ export interface FooterModel {
    * somewhere else in its layout can, without owning a copy of them.
    *
    * Optional, which is what makes it a minor rather than a major: a theme
-   * written against 1.6 compiles and runs unchanged, and simply does not render
+   * written against 0.7 compiles and runs unchanged, and simply does not render
    * it. The two themes in this repository do.
    */
   readonly poweredBy?: LinkModel
@@ -570,9 +570,9 @@ export interface BoardIndexModel {
      * The `index.footer` region: whatever plugins contributed, already
      * rendered and ordered by the host.
      *
-     * Optional, which is what makes this a **minor** addition under the v1
-     * policy — a theme written against 1.0 keeps compiling and simply does not
-     * render plugin output. Every region field below follows the same rule.
+     * Optional, which is what makes this a **minor** addition under the
+     * versioning policy — a theme written against 0.1 keeps compiling and simply
+     * does not render plugin output. Every region field below follows the same rule.
      */
     readonly plugins?: ReactNode
     /**
@@ -651,8 +651,8 @@ export interface ForumDisplayModel {
      * with nothing yet to say what it filtered. A control belongs after the
      * thing it acts on has been named.
      *
-     * Optional, which is what makes it a **minor** addition under the v1
-     * policy — a theme written against 1.2 keeps compiling.
+     * Optional, which is what makes it a **minor** addition under the
+     * versioning policy — a theme written against 0.3 keeps compiling.
      *
      * Only what acts on the listing *below* it belongs here. Following the
      * forum is in `afterContent`, for the reason given there.
@@ -709,8 +709,8 @@ export interface ThreadViewModel {
      * poll, which is content rather than a control. Rating and following are
      * in `afterContent`.
      *
-     * Optional under the v1 policy: a theme written against 1.2 compiles and
-     * simply does not offer them.
+     * Optional under the versioning policy: a theme written against 0.3 compiles
+     * and simply does not offer them.
      */
     readonly tools?: ReactNode
     /** One `PostBit` per post on this page. */
@@ -818,7 +818,7 @@ export interface MemberProfileModel {
 }
 
 /**
- * The search form, reshaped at the v1 freeze.
+ * The search form, reshaped at the slot-contract freeze.
  *
  * It was originally declared as `{ action, query, forums: LinkModel[], errorMessage }`
  * and never rendered — F73 shipped its own form inside the page, so the slot was
@@ -981,7 +981,7 @@ export interface PostActionsSlotModel {
    * used as a parking space, and a visible band of furniture per post as the
    * price.
    *
-   * Additive under the v1 policy, and `children` is already exempt from the
+   * Additive under the versioning policy, and `children` is already exempt from the
    * plain-data rule.
    */
   readonly children?: ReactNode

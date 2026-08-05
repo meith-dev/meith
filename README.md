@@ -37,7 +37,7 @@ its worker. Both are first-class.
 - **A real permission model.** Around 45 permission fields resolved per actor
   per forum, not a three-tier guess. Search, feeds and the API all answer to it,
   so there is no path that reads around the rules.
-- **Themes that cannot break the board.** A frozen v1 slot contract, documented
+- **Themes that cannot break the board.** A frozen slot contract, documented
   and generated from the registry, so a theme is replaceable rather than a fork.
 - **Plugins with contained failures.** Hooks with typed payloads; a plugin that
   throws does not take a page down with it.
@@ -126,7 +126,7 @@ legal advice:
   to publish your configuration, your members' data, or a word anybody wrote on
   your board. Running the software is not distributing it.
 - **Write a theme or a plugin, and licence that however you like.** A theme fills
-  the frozen v1 slot contract; a plugin listens on typed hooks. Both use an
+  the frozen slot contract; a plugin listens on typed hooks. Both use an
   interface Meith provides rather than becoming part of Meith, which is the case
   the *Lesser* GPL exists to allow. Yours is not obliged to be LGPL because the
   board it runs in is.

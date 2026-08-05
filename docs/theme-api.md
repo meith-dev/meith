@@ -1,7 +1,7 @@
-# The theme API, v1
+# The theme API
 
-`@meith/theme-kit` is the contract between the board and a theme, frozen as
-**v1.0**.
+`@meith/theme-kit` is the contract between the board and a theme, frozen since
+**0.1** and currently at **0.8**.
 
 This document is the policy — what the freeze covers, what it does not, and how
 something is removed from it. The reference (every slot, every field) is
@@ -88,7 +88,7 @@ Worth knowing before they fire.
 >   `ForumRow` and `CategoryBlock` together is now a rule a *member* can trip
 >   over, not only an operator.
 
-## What v1 covers
+## What the freeze covers
 
 | Covered | Not covered |
 |---|---|
@@ -128,6 +128,16 @@ There is no patch component. This is a type-level contract with no runtime
 behaviour of its own; a bug fixed in `resolveTheme` is a package version.
 
 > [!NOTE]
+> **The major is `0`, and the freeze is still real.** Meith has not been
+> released, so nothing here has ever been somebody else's dependency and there is
+> no installed board for a rename to break. Every rule in this document is
+> enforced by code in `packages/theme-kit/src/api.ts` and has been since the
+> freeze — but the major those rules count toward is `1.0`, which ships with the
+> product rather than ahead of it. Practically: write a theme against `0.8` and a
+> later `0.9` will not break it, because a minor is additive whatever the major
+> says.
+
+> [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even
 > though nothing is removed — the app is the only producer of these models, and a
 > theme cannot fail to supply one. In practice new fields are added as optional
@@ -135,7 +145,7 @@ behaviour of its own; a bug fixed in `resolveTheme` is a package version.
 
 ## Deprecation
 
-Nothing is deprecated in v1.0; there is no earlier promise to withdraw. The
+Nothing is deprecated yet; there is no earlier promise to withdraw. The
 mechanism exists anyway, and it is machinery rather than prose.
 
 1. **Mark and schedule.** The slot is marked `deprecated` in `SLOT_STABILITY`,

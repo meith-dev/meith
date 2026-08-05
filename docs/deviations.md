@@ -5648,7 +5648,7 @@ removed.
 
 ### D83 — A freeze is machinery, not a paragraph; a slot nothing renders is not a contract (F77)
 
-theme-kit v1. Four things fell out of freezing it, and two of them were bugs the
+The theme-kit slot contract, frozen. Four things fell out of freezing it, and two of them were bugs the
 freeze found rather than decisions it made.
 
 #### `SearchForm` was documented, exported, typed — and rendered by nothing
@@ -5675,7 +5675,7 @@ theme is the app's URL contract hardcoded into markup the app does not own, the
 same rule `LinkModel` exists to enforce, broken from the other end.
 
 **The general point:** the freeze is only worth something for slots that are
-actually rendered. Every stable slot in v1 has a page rendering it and a theme
+actually rendered. Every stable slot in the freeze has a page rendering it and a theme
 filling it. The two that do not — `QuickReply` and `EditorToolbar`, F45's editor
 islands — are marked `provisional` and explicitly excluded, rather than frozen
 optimistically and broken later.
@@ -5704,7 +5704,7 @@ classifying it is a type error naming the slot — so a new slot cannot arrive
 quietly as "stable", which is what any default would have allowed. The same
 trick as `SlotModels`, in a different dimension.
 
-`DEPRECATIONS` is empty at v1, correctly: this is the first frozen version, so
+`DEPRECATIONS` is empty, correctly: this is the first frozen contract, so
 there is no earlier promise to withdraw. The machinery around it is not empty,
 and it is tested against fixtures rather than against the shipped list — a
 policy engine whose only input is `[]` has never run (D10). Five refusals, each
@@ -5803,7 +5803,7 @@ way round inverts F26's rule while looking identical in review.
 #### It extends the default theme, and that is not laziness
 
 A copy stops receiving fixes the moment it is made, and — more to the point
-under a freeze — it stops receiving *slots*. theme-kit v1 promises that a minor
+under a freeze — it stops receiving *slots*. The theme-kit contract promises that a minor
 release may add one. An inheriting theme renders the parent's implementation of
 a new slot and keeps working; a copy has a hole in it and nothing says so.
 
@@ -5856,7 +5856,7 @@ to be different would have failed every case.
 
 ### D85 — Filters and events are two kinds because one of them can corrupt what it watches (F79)
 
-plugin-kit v1: 91 typed hooks, six UI regions, a declarative manifest, and a
+plugin-kit: 91 typed hooks, six UI regions, a declarative manifest, and a
 host that is the only thing which ever calls a plugin. Six decisions worth
 recording, and one API-quality bug the tests found.
 
@@ -6052,7 +6052,7 @@ It also keeps the thing under test the *host*. A reference plugin that logged, o
 wrote a row, or called out would need a fixture for each of those before any of
 it could be asserted.
 
-#### theme-kit 1.0 → 1.1, which is the versioning policy having its first real use
+#### theme-kit 0.1 → 0.2, which is the versioning policy having its first real use
 
 Plugin regions need somewhere to render, and four of the six are inside a theme's
 markup rather than between slots. So the models gained optional region fields —
@@ -7466,7 +7466,7 @@ put the wrong name on a board-wide notice; and an edit deliberately does not
 rewrite it, because an administrator fixing a typo in somebody else's notice
 should not become its author.
 
-#### theme-kit 1.1 → 1.2, and four ratchets that fired
+#### theme-kit 0.2 → 0.3, and four ratchets that fired
 
 The `Announcement` slot is the first *new slot* the versioning policy has
 covered — 1.1 was optional fields. Additive by construction: no theme can have

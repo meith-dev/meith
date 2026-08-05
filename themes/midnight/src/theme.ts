@@ -12,7 +12,7 @@
  * ## It extends rather than copies
  *
  * A copy stops receiving fixes the moment it is made, and — more importantly
- * here — it stops receiving *slots*. theme-kit v1 promises that a minor release
+ * here — it stops receiving *slots*. The theme-kit contract promises that a minor release
  * may add a slot; a theme that inherits gets the default's implementation of the
  * new one and keeps rendering, while a copy silently has a hole in it until
  * somebody notices the page is missing a region.

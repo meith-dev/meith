@@ -20,7 +20,7 @@
  * So the app states its measure once, here, and the shipped theme agrees with
  * it. **That agreement is a convention, not a guarantee**: a theme that picks a
  * different width will see these strips misalign, and the real fix is a contract
- * that lets a theme declare its measure — which is a v1.1 conversation, not a
+ * that lets a theme declare its measure — which is a later-minor conversation, not a
  * thing to fake with a CSS variable nobody documented.
  *
  * Stated as a constant rather than repeated so that conversation is one edit

@@ -8,11 +8,11 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v1.7.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.8.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
-model do not change before v2; a **provisional** slot is named but not yet rendered
+model do not change before the next major; a **provisional** slot is named but not yet rendered
 by any page, so its model may change in a minor release; a **deprecated** slot still
 works and has a removal scheduled below.
 
@@ -122,7 +122,7 @@ Props: `FooterModel`
 | `boardTitle` | `string` |  |
 | `links` | `readonly LinkModel[]` |  |
 | `timezoneLabel` | `string` | Which zone `TimeModel.label`s were formatted in, for the footer note. |
-| `poweredBy` | `LinkModel` | optional — What the board runs on, and where to read about it (v1.7). A `LinkModel` and not a hardcoded string in each theme, for the reason every other piece of footer text is one: the app owns the words and the URL, so they are written once and a theme that wants to place the attribution somewhere else in its layout can, without owning a copy of them. Optional, which is what makes it a minor rather than a major: a theme written against 1.6 compiles and runs unchanged, and simply does not render it. The two themes in this repository do. |
+| `poweredBy` | `LinkModel` | optional — What the board runs on, and where to read about it (0.8). A `LinkModel` and not a hardcoded string in each theme, for the reason every other piece of footer text is one: the app owns the words and the URL, so they are written once and a theme that wants to place the attribution somewhere else in its layout can, without owning a copy of them. Optional, which is what makes it a minor rather than a major: a theme written against 0.7 compiles and runs unchanged, and simply does not render it. The two themes in this repository do. |
 
 ### Notice
 
@@ -165,7 +165,7 @@ Props: `BoardIndexModel`
 | Field | Type | Notes |
 |---|---|---|
 | `markAllReadAction` | `string \| null` | The "mark all read" target — a form target, not a client handler. |
-| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * The `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the v1 * policy — a theme written against 1.0 keeps compiling and simply does not * render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode /** * Live announcements, already rendered — one `Announcement` per row, * or absent when there are none. * * Optional for the same reason the plugin region is, and under the same * policy: a theme written against an earlier minor compiles and simply does * not show them. */ readonly announcements?: ReactNode }` |  |
+| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * The `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the * versioning policy — a theme written against 0.1 keeps compiling and simply * does not render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode /** * Live announcements, already rendered — one `Announcement` per row, * or absent when there are none. * * Optional for the same reason the plugin region is, and under the same * policy: a theme written against an earlier minor compiles and simply does * not show them. */ readonly announcements?: ReactNode }` |  |
 
 ### CategoryBlock
 
@@ -238,7 +238,7 @@ Props: `ForumDisplayModel`
 | `forum` | `ForumRowModel` |  |
 | `newThreadHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` |  |
-| `regions` | `{ /** * Controls scoped to this forum — the thread ordering, and the follow * form for a member who may subscribe. Rendered by the route because both * carry a Server Action or a URL contract the theme does not own. * * **A theme renders this under its heading, not above it.** That placement * is the reason the field exists: these were app-rendered strips stacked * *before* `ForumDisplay`, so the first thing on a forum page was a filter * with nothing yet to say what it filtered. A control belongs after the * thing it acts on has been named. * * Optional, which is what makes it a **minor** addition under the v1 * policy — a theme written against 1.2 keeps compiling. * * Only what acts on the listing *below* it belongs here. Following the * forum is in `afterContent`, for the reason given there. */ readonly tools?: ReactNode readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * This forum's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode /** * Controls for somebody who has finished with the page — today, the form * that follows this forum. * * A theme renders it after the listing. "Do you want to hear about this * forum?" is a question you can only answer once you have seen what is in * it, and asked above the threads it is a panel between a reader and the * thing they came for. The ordering tabs stay at the top in `tools`, * because those act on the list underneath them. */ readonly afterContent?: ReactNode }` |  |
+| `regions` | `{ /** * Controls scoped to this forum — the thread ordering, and the follow * form for a member who may subscribe. Rendered by the route because both * carry a Server Action or a URL contract the theme does not own. * * **A theme renders this under its heading, not above it.** That placement * is the reason the field exists: these were app-rendered strips stacked * *before* `ForumDisplay`, so the first thing on a forum page was a filter * with nothing yet to say what it filtered. A control belongs after the * thing it acts on has been named. * * Optional, which is what makes it a **minor** addition under the * versioning policy — a theme written against 0.3 keeps compiling. * * Only what acts on the listing *below* it belongs here. Following the * forum is in `afterContent`, for the reason given there. */ readonly tools?: ReactNode readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * This forum's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode /** * Controls for somebody who has finished with the page — today, the form * that follows this forum. * * A theme renders it after the listing. "Do you want to hear about this * forum?" is a question you can only answer once you have seen what is in * it, and asked above the threads it is a panel between a reader and the * thing they came for. The ordering tabs stay at the top in `tools`, * because those act on the list underneath them. */ readonly afterContent?: ReactNode }` |  |
 
 ### ThreadRow
 
@@ -295,7 +295,7 @@ Props: `ThreadViewModel`
 | `forum` | `LinkModel` |  |
 | `replyHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` | A native POST target for the last visible post on this page. |
-| `regions` | `{ /** * Controls scoped to this thread — following it, rating it, its poll, and * the moderator's thread tools. Rendered by the route, for the reason * every app-rendered region exists: each one carries a Server Action. * * **A theme renders this under its heading, not above it**, and the same * history is behind this field as behind `ForumDisplayModel`'s. Four of * these strips used to stack before `ThreadView`, so a thread opened on a * phone began with a follow control, a star rating and a poll, and the * title of the thing being followed, rated and voted on was a screen * further down. * * Only what belongs *before* the posts: the moderator's bar, and the * poll, which is content rather than a control. Rating and following are * in `afterContent`. * * Optional under the v1 policy: a theme written against 1.2 compiles and * simply does not offer them. */ readonly tools?: ReactNode /** One `PostBit` per post on this page. */ readonly posts: ReactNode readonly pagination: ReactNode /** * Controls for a reader who has reached the end — rating the thread, and * following it. * * A theme renders it after the posts and **before** the quick reply, which * is the order the two are wanted in: somebody who has just read fifty * posts is deciding what they think and whether to keep hearing about it, * and then whether to answer. Both used to be above the first post, where * they were asking for a verdict on something the reader had not read yet. */ readonly afterContent?: ReactNode /** * The quick-reply island, or `null` when the viewer may not reply — in which * case nothing is rendered and no island bytes are shipped. */ readonly quickReply: ReactNode }` |  |
+| `regions` | `{ /** * Controls scoped to this thread — following it, rating it, its poll, and * the moderator's thread tools. Rendered by the route, for the reason * every app-rendered region exists: each one carries a Server Action. * * **A theme renders this under its heading, not above it**, and the same * history is behind this field as behind `ForumDisplayModel`'s. Four of * these strips used to stack before `ThreadView`, so a thread opened on a * phone began with a follow control, a star rating and a poll, and the * title of the thing being followed, rated and voted on was a screen * further down. * * Only what belongs *before* the posts: the moderator's bar, and the * poll, which is content rather than a control. Rating and following are * in `afterContent`. * * Optional under the versioning policy: a theme written against 0.3 compiles * and simply does not offer them. */ readonly tools?: ReactNode /** One `PostBit` per post on this page. */ readonly posts: ReactNode readonly pagination: ReactNode /** * Controls for a reader who has reached the end — rating the thread, and * following it. * * A theme renders it after the posts and **before** the quick reply, which * is the order the two are wanted in: somebody who has just read fifty * posts is deciding what they think and whether to keep hearing about it, * and then whether to answer. Both used to be above the first post, where * they were asking for a verdict on something the reader had not read yet. */ readonly afterContent?: ReactNode /** * The quick-reply island, or `null` when the viewer may not reply — in which * case nothing is rendered and no island bytes are shipped. */ readonly quickReply: ReactNode }` |  |
 
 ### PostBit
 
@@ -323,7 +323,7 @@ Props: `PostActionsSlotModel`
 |---|---|---|
 | `actions` | `PostActionsModel` |  |
 | `postId` | `number` |  |
-| `children` | `ReactNode` | optional — App-rendered controls that belong beside the post's own actions — today, F45's multi-quote island. It is `children` for the reason logging out is: the button is a client island holding browser state, and neither a component nor a handler can cross this contract as data. Before this field the page had nowhere to put it but `PostBitModel.regions.pluginFooter`, so every post on the board carried a second bordered row containing one control — the plugin region used as a parking space, and a visible band of furniture per post as the price. Additive under the v1 policy, and `children` is already exempt from the plain-data rule. |
+| `children` | `ReactNode` | optional — App-rendered controls that belong beside the post's own actions — today, F45's multi-quote island. It is `children` for the reason logging out is: the button is a client island holding browser state, and neither a component nor a handler can cross this contract as data. Before this field the page had nowhere to put it but `PostBitModel.regions.pluginFooter`, so every post on the board carried a second bordered row containing one control — the plugin region used as a parking space, and a visible band of furniture per post as the price. Additive under the versioning policy, and `children` is already exempt from the plain-data rule. |
 
 ### QuickReply
 
@@ -682,5 +682,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v1.7. Nothing can be: this is the first
-frozen version, so there is no earlier promise to withdraw.
+Nothing is deprecated in v0.8. Nothing can be: this is the first
+frozen contract, so there is no earlier promise to withdraw.

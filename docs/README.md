@@ -32,7 +32,7 @@ and most of them guess the roadmap.
 
 | Document | What it answers |
 |---|---|
-| [`theme-api.md`](./theme-api.md) | The v1 contract: what the freeze covers, what a theme may do, how to write one. Policy, hand-written. |
+| [`theme-api.md`](./theme-api.md) | The slot contract: what the freeze covers, what a theme may do, how to write one. Policy, hand-written. |
 | [`theme-slots.md`](./theme-slots.md) | Every slot and every view model. *Generated — do not edit.* |
 
 ## Plugins
