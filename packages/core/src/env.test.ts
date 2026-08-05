@@ -66,6 +66,49 @@ describe('production rules', () => {
     )
   })
 
+  /*
+   * The same class of failure as the memory queue, and the one that had a
+   * comment claiming a guard nobody had written: `local-file-store.ts` said env
+   * validation warned about this, and it did not. These are the tests that make
+   * the claim true — the first proves the guard fires, and the three after it
+   * prove it is not merely "refuse everything", which is the way a guard passes
+   * its own test while being useless (D10).
+   */
+  it('refuses to boot a Vercel deployment writing uploads to local disk', () => {
+    expect(() =>
+      parseEnv({ ...base, FILESTORE_DRIVER: 'local', VERCEL: '1' }),
+    ).toThrow(/FILESTORE_DRIVER/)
+  })
+
+  it('says what to do about it, because the default is the broken one', () => {
+    /*
+     * `local` is the *default*, so an operator hits this without having chosen
+     * anything — the message has to name the way out rather than the mistake.
+     */
+    expect(() => parseEnv({ ...base, FILESTORE_DRIVER: 'local', VERCEL: '1' })).toThrow(
+      /FILESTORE_DRIVER=s3/,
+    )
+  })
+
+  it('allows local disk everywhere else, which is where it is correct', () => {
+    /* The self-hosted image mounts a volume at UPLOADS_DIR. Nothing to refuse. */
+    const env = parseEnv({ ...base, FILESTORE_DRIVER: 'local' })
+    expect(env.FILESTORE_DRIVER).toBe('local')
+  })
+
+  it('allows an object store on Vercel, which is the whole point', () => {
+    const env = parseEnv({
+      ...base,
+      VERCEL: '1',
+      FILESTORE_DRIVER: 's3',
+      S3_BUCKET: 'board',
+      S3_REGION: 'auto',
+      S3_ACCESS_KEY_ID: 'key',
+      S3_SECRET_ACCESS_KEY: 'secret',
+    })
+    expect(env.FILESTORE_DRIVER).toBe('s3')
+  })
+
   it('requires AUTH_SECRET and TICK_SECRET in production', () => {
     expect(() => parseEnv({ ...base, AUTH_SECRET: undefined })).toThrow(/AUTH_SECRET/)
     expect(() => parseEnv({ ...base, TICK_SECRET: undefined })).toThrow(/TICK_SECRET/)

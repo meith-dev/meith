@@ -32,6 +32,33 @@ a value the running board reads, so it can change without a deploy.
 | `APP_URL` | For mail and feeds | Absolute, no trailing slash. A digest sent from the worker has no request to be relative to. |
 | `DATA_SOURCE` | No | `postgres` or `fixture`. Defaults to `fixture` when `DATABASE_URL` is unset. |
 | `ADMIN_IP_ALLOWLIST` | No | Comma-separated address prefixes. Empty allows everything. |
+| `FILESTORE_DRIVER` | On serverless | `local` or `s3`. Defaults to `local`. See below — the default is wrong on Vercel. |
+
+### Where uploads go
+
+Avatars, attachments and the board logo all share one store, chosen by
+`FILESTORE_DRIVER`.
+
+| Deployment | Setting | Why |
+|---|---|---|
+| **Local development** | nothing to set | `local`, writing to `.uploads` beside the app. |
+| **Self-hosted (Docker)** | nothing to set | The image creates `/app/.uploads`, declares it a volume and points `UPLOADS_DIR` at it; compose mounts the same named volume into the web and worker services so both see the same files. |
+| **Vercel, or any serverless host** | `FILESTORE_DRIVER=s3` | The filesystem is per-instance and ephemeral. |
+
+**On serverless, local disk does not fail — it loses.** The write succeeds, the
+file is served back from the same warm instance, and it is a 404 for every other
+visitor and for you tomorrow. An administrator uploading a logo sees it work.
+The board **refuses to boot** on Vercel with `FILESTORE_DRIVER=local` for that
+reason; on a serverless host it cannot detect, this table is what you have.
+
+`s3` needs `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID` and
+`S3_SECRET_ACCESS_KEY`, and boot fails naming any that are missing. Add
+`S3_ENDPOINT` for anything S3-compatible — Cloudflare R2, MinIO, DigitalOcean
+Spaces — which switches the client to path-style addressing.
+
+On local disk, the uploads directory is the second thing to back up; on an
+object store the bucket has its own backup story. See
+[Backup and restore](#backup-and-restore).
 
 ### Settings from the command line
 

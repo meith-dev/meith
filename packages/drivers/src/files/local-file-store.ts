@@ -1,9 +1,16 @@
 /**
  * Disk-backed file store for self-hosting and tests.
  *
- * Unsuitable for serverless: the filesystem is ephemeral and per-instance, so an
- * avatar uploaded on one instance is missing from the next. Env validation warns
- * when this is selected alongside a serverless deployment.
+ * Unsuitable for serverless: the filesystem is ephemeral and per-instance, so a
+ * file written on one instance is missing from the next — and nothing errors at
+ * the time, because the write really did succeed on the instance that took it.
+ *
+ * This header used to claim env validation warned about that. It did not, for
+ * the whole life of the file. `assertEnv` now **refuses to boot** a Vercel
+ * deployment configured this way, which is the memory queue's rule applied to
+ * the same class of failure; see the `FILESTORE_DRIVER` check in
+ * `packages/core/src/env.ts`. On a host this cannot detect, `docs/operating.md`
+ * is what an operator has.
  */
 
 import { createHash } from 'node:crypto'
