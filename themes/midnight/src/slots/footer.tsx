@@ -1,7 +1,7 @@
 import type { FooterModel } from '@meith/theme-kit'
 
 /** A one-line rule at the bottom. The timezone note is not optional: every timestamp on the board was formatted in it. */
-export function Footer({ boardTitle, links, timezoneLabel }: FooterModel) {
+export function Footer({ boardTitle, links, timezoneLabel, poweredBy }: FooterModel) {
   return (
     <footer className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border bg-secondary px-4 py-2 font-mono text-xs text-muted-foreground">
       <span>{boardTitle}</span>
@@ -12,7 +12,14 @@ export function Footer({ boardTitle, links, timezoneLabel }: FooterModel) {
           </a>
         ))}
       </div>
-      <span>all times {timezoneLabel}</span>
+      <span className="flex flex-wrap gap-3">
+        <span>all times {timezoneLabel}</span>
+        {poweredBy && (
+          <a href={poweredBy.href} className="hover:text-foreground">
+            {poweredBy.label}
+          </a>
+        )}
+      </span>
     </footer>
   )
 }

@@ -215,6 +215,22 @@ export function buildUserPanelModel(
   }
 }
 
+/**
+ * What the board runs on, in the footer of every page.
+ *
+ * Here rather than in each theme because the app owns the words and the URL, the
+ * same as it owns every other href a theme is handed — `themes/default` and
+ * `themes/midnight` would otherwise carry a copy each, and a third theme a
+ * third.
+ *
+ * The URL is spelled out rather than imported. `apps/web` is the site at the
+ * other end of it and holds the same string in `src/content/site.ts`, but it
+ * shares no package with the board — it depends on `next`, `react`, `marked` and
+ * `shiki`, and nothing in this workspace — so a shared constant would mean
+ * making the marketing site a dependent of the forum to save one literal.
+ */
+const POWERED_BY: LinkModel = { label: 'Powered by Meith', href: 'https://meith.dev' }
+
 export function buildFooterModel(
   links: readonly LinkModel[] = [],
   boardTitle: string = BOARD_TITLE,
@@ -225,5 +241,6 @@ export function buildFooterModel(
     boardTitle,
     links,
     timezoneLabel: timezoneLabel(zone),
+    poweredBy: POWERED_BY,
   }
 }

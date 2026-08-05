@@ -112,6 +112,32 @@ no second place to update when a document changes.
 
 ## Licence
 
-Meith is open source. **A licence file has not been added yet** — until one is,
-the default is all rights reserved, which is not what an open-source release
-means. Pick one and add it before announcing.
+Meith is free software under the **GNU Lesser General Public License, version 3
+or later** — [`LICENSE.md`](./LICENSE.md).
+
+LGPLv3 is not a standalone licence: it is a set of additional permissions layered
+on top of the GNU GPL, which it incorporates by reference. That text is
+[`COPYING`](./COPYING), and the two files together are the terms.
+
+What it means in practice — a summary with no legal effect of its own, and not
+legal advice:
+
+- **Run a board on it, for anything, including commercially.** Nothing asks you
+  to publish your configuration, your members' data, or a word anybody wrote on
+  your board. Running the software is not distributing it.
+- **Write a theme or a plugin, and licence that however you like.** A theme fills
+  the frozen v1 slot contract; a plugin listens on typed hooks. Both use an
+  interface Meith provides rather than becoming part of Meith, which is the case
+  the *Lesser* GPL exists to allow. Yours is not obliged to be LGPL because the
+  board it runs in is.
+- **Change Meith itself, and those changes carry the same licence** to whoever
+  you hand the modified version to, along with the source and a note of what you
+  changed. That is the copyleft, and it is the whole of what is asked in return.
+- **There is no warranty.** Sections 15 and 16 of `COPYING` say so at length.
+
+The FSF also recommends a notice at the top of each source file. Meith does not
+carry them yet; the licence applies to the whole work either way. The boilerplate
+is at the end of `COPYING` — insert "Lesser" before "General" in all three places
+to refer to the LGPL rather than the GPL.
+
+Copyright (C) 2026 the Meith contributors.

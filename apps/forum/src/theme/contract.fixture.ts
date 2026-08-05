@@ -251,8 +251,14 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       boardTitle: 'The Bike Shed',
       links: [{ label: 'Contact', href: '/contact' }],
       timezoneLabel: 'Europe/London',
+      poweredBy: { label: 'Powered by Meith', href: 'https://meith.dev' },
     },
-    /* The zone the timestamps were formatted in; without it every time is a guess. */
+    /*
+     * The zone the timestamps were formatted in; without it every time is a
+     * guess. `poweredBy` is deliberately *not* required: it arrived as an
+     * optional field in v1.7, and requiring it here would make an attribution
+     * that no licence asks for into something a theme cannot leave out.
+     */
     requires: ['Europe/London', '/contact'],
   },
 

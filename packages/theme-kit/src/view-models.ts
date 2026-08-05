@@ -514,6 +514,19 @@ export interface FooterModel {
   readonly links: readonly LinkModel[]
   /** Which zone `TimeModel.label`s were formatted in, for the footer note. */
   readonly timezoneLabel: string
+  /**
+   * What the board runs on, and where to read about it (v1.7).
+   *
+   * A `LinkModel` and not a hardcoded string in each theme, for the reason every
+   * other piece of footer text is one: the app owns the words and the URL, so
+   * they are written once and a theme that wants to place the attribution
+   * somewhere else in its layout can, without owning a copy of them.
+   *
+   * Optional, which is what makes it a minor rather than a major: a theme
+   * written against 1.6 compiles and runs unchanged, and simply does not render
+   * it. The two themes in this repository do.
+   */
+  readonly poweredBy?: LinkModel
 }
 
 export interface NoticeModel {

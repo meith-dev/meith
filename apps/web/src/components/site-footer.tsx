@@ -1,7 +1,14 @@
 import Link from "next/link"
 
-import { footer, site } from "../content/site"
-import { docHref, documentsInSection, sections } from "../docs/registry"
+import { footer, licence, licenceHref, site } from "../content/site"
+import {
+  docHref,
+  documentsInSection,
+  sections,
+  type DocEntry,
+  type DocSection,
+} from "../docs/registry"
+import { FieldMark } from "./field-mark"
 
 /**
  * The footer, built from the same manifest as the sidebar.
@@ -9,51 +16,106 @@ import { docHref, documentsInSection, sections } from "../docs/registry"
  * It lists the primary document of each section rather than a hand-written set
  * of links — the previous static page listed four documents by hand, and two of
  * them had been renamed by the time anyone looked.
+ *
+ * Grouped now, rather than run together. Eleven monospaced links in one
+ * unbroken line is a list nobody reads to the end of: the eye has nothing to
+ * stop on, and the two that are not documents at all — the source and
+ * `llms.txt` — sat in the middle of it looking like two more.
  */
 export function SiteFooter() {
   const primaries = sections
-    .map((section) => documentsInSection(section.id).find((doc) => doc.primary))
-    .filter((doc) => doc !== undefined)
+    .map((section) => {
+      const doc = documentsInSection(section.id).find((entry) => entry.primary)
+      return doc ? { section, doc } : null
+    })
+    .filter((pair): pair is { section: DocSection; doc: DocEntry } => pair !== null)
 
   return (
-    <footer className="border-t border-wall">
-      <div className="mx-auto flex w-[min(72rem,100%-2.5rem)] flex-col gap-8 pt-12 pb-16">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-12 gap-y-6">
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2">
-            <a
-              href={site.repository}
-              className="font-mono text-micro tracking-[0.06em] text-ink-soft transition-colors hover:text-gorse"
-            >
-              Source
-            </a>
-            <Link
-              href="/docs"
-              className="font-mono text-micro tracking-[0.06em] text-ink-soft transition-colors hover:text-gorse"
-            >
-              Docs
+    <footer className="border-t border-wall bg-ground-deep">
+      <div className="shell pt-14 pb-12">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-16">
+          <div className="flex flex-col gap-3">
+            <Link href="/" className="flex items-center gap-2.5">
+              <FieldMark lit className="h-6 w-6 shrink-0" />
+              <b className="font-display text-mid font-semibold tracking-[-0.015em]">{site.name}</b>
             </Link>
-            {primaries.map((doc) => (
-              <Link
-                key={doc.slug}
-                href={docHref(doc.slug)}
-                className="font-mono text-micro tracking-[0.06em] text-ink-soft transition-colors hover:text-gorse"
-              >
-                {doc.title}
-              </Link>
-            ))}
-            <a
-              href="/llms.txt"
-              className="font-mono text-micro tracking-[0.06em] text-ink-soft transition-colors hover:text-gorse"
-            >
-              llms.txt
-            </a>
-          </nav>
+            <p className="max-w-[24rem] text-micro leading-[1.6] text-ink-soft text-pretty">
+              {site.tagline}
+            </p>
+          </div>
+
+          <div className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_11rem]">
+            <nav aria-label="Documentation">
+              <p className="eyebrow">Documentation</p>
+              <ul className="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-2">
+                {primaries.map(({ section, doc }) => (
+                  <li key={section.id}>
+                    <Link
+                      href={docHref(doc.slug)}
+                      className="text-micro text-ink-soft transition-colors hover:text-gorse"
+                    >
+                      {section.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <nav aria-label="Project">
+              <p className="eyebrow">Project</p>
+              <ul className="mt-4 flex flex-col gap-2">
+                <li>
+                  <a
+                    href={site.repository}
+                    className="text-micro text-ink-soft transition-colors hover:text-gorse"
+                  >
+                    Source
+                  </a>
+                </li>
+                <li>
+                  <Link
+                    href="/docs"
+                    className="text-micro text-ink-soft transition-colors hover:text-gorse"
+                  >
+                    All documents
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href={licenceHref}
+                    className="text-micro text-ink-soft transition-colors hover:text-gorse"
+                  >
+                    Licence
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/llms.txt"
+                    className="font-mono text-micro text-ink-soft transition-colors hover:text-gorse"
+                  >
+                    llms.txt
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </div>
 
-        <p className="font-mono text-micro tracking-[0.06em] text-ink-faint">
-          <span className="font-display text-gorse italic">{footer.proverb}</span>{" "}
-          {footer.translation}
-        </p>
+        <div className="mt-12 flex flex-wrap items-baseline justify-between gap-x-10 gap-y-3 border-t border-wall pt-6">
+          <p className="max-w-[42rem] text-micro leading-[1.6] text-ink-faint text-pretty">
+            {footer.colophon}
+          </p>
+          {/*
+            The licence, where somebody looks for it. Naming the version rather
+            than saying "open source" — the phrase that sends a reader hunting
+            through the repository is the vague one.
+          */}
+          <p className="font-mono text-micro text-ink-faint">
+            <a className="transition-colors hover:text-gorse" href={licenceHref}>
+              {licence.spdx}
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   )

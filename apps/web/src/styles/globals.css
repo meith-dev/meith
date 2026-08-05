@@ -24,15 +24,32 @@
 :root {
   --ground: #eef0e8;
   --ground-deep: #e3e7db;
+  /*
+   * A third surface, and the only one added since the identity was set: the
+   * panels that carry the board sketch and the install transcript have to read
+   * as sitting *above* the page, and `--ground-deep` reads as cut into it. In
+   * light the raised surface is nearer white than the ground; in dark it is
+   * nearer the ink. Both are the direction a light source implies.
+   */
+  --ground-raise: #f7f8f2;
   --ink: #191e19;
   --ink-soft: #4a5347;
   --ink-faint: #78826f;
   --gorse: #c8901a;
   --gorse-flat: #e4b024;
+  /*
+   * What is legible *on* gorse, which neither --ink nor --ground can be in both
+   * schemes: light gorse wants the dark ink, dark gorse wants the dark ground.
+   * A filled gorse button is the only place it is used, and without it that
+   * button reads at about 2.5:1 in one scheme or the other.
+   */
+  --on-gorse: #191e19;
   --lichen: #77896c;
   --wall: #cbd1c0;
   --field-a: #dde3d2;
   --field-b: #e6eadd;
+  --lift: 0 1px 1px color-mix(in srgb, var(--ink) 4%, transparent),
+    0 20px 44px -28px color-mix(in srgb, var(--ink) 42%, transparent);
 
   --measure: 34rem;
   --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
@@ -51,44 +68,61 @@
   :root {
     --ground: #14180f;
     --ground-deep: #0e1109;
+    --ground-raise: #1c2216;
     --ink: #e8ebe0;
     --ink-soft: #aeb8a4;
     --ink-faint: #7c8873;
     --gorse: #efc245;
     --gorse-flat: #e9bc3a;
+    --on-gorse: #14180f;
     --lichen: #8fa283;
     --wall: #404d33;
     --field-a: #242d18;
     --field-b: #1b2213;
+    --lift: 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent),
+      0 24px 48px -30px #000;
   }
 }
 
 :root[data-theme="light"] {
   --ground: #eef0e8;
   --ground-deep: #e3e7db;
+  --ground-raise: #f7f8f2;
   --ink: #191e19;
   --ink-soft: #4a5347;
   --ink-faint: #78826f;
   --gorse: #c8901a;
   --gorse-flat: #e4b024;
+  /*
+   * What is legible *on* gorse, which neither --ink nor --ground can be in both
+   * schemes: light gorse wants the dark ink, dark gorse wants the dark ground.
+   * A filled gorse button is the only place it is used, and without it that
+   * button reads at about 2.5:1 in one scheme or the other.
+   */
+  --on-gorse: #191e19;
   --lichen: #77896c;
   --wall: #cbd1c0;
   --field-a: #dde3d2;
   --field-b: #e6eadd;
+  --lift: 0 1px 1px color-mix(in srgb, var(--ink) 4%, transparent),
+    0 20px 44px -28px color-mix(in srgb, var(--ink) 42%, transparent);
 }
 
 :root[data-theme="dark"] {
   --ground: #14180f;
   --ground-deep: #0e1109;
+  --ground-raise: #1c2216;
   --ink: #e8ebe0;
   --ink-soft: #aeb8a4;
   --ink-faint: #7c8873;
   --gorse: #efc245;
   --gorse-flat: #e9bc3a;
+  --on-gorse: #14180f;
   --lichen: #8fa283;
   --wall: #404d33;
   --field-a: #242d18;
   --field-b: #1b2213;
+  --lift: 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent), 0 24px 48px -30px #000;
 }
 
 /*
@@ -99,11 +133,13 @@
 @theme inline {
   --color-ground: var(--ground);
   --color-ground-deep: var(--ground-deep);
+  --color-ground-raise: var(--ground-raise);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
   --color-gorse: var(--gorse);
   --color-gorse-flat: var(--gorse-flat);
+  --color-on-gorse: var(--on-gorse);
   --color-lichen: var(--lichen);
   --color-wall: var(--wall);
   --color-field-a: var(--field-a);
@@ -199,6 +235,236 @@ body {
 }
 
 /*
+ * The one measure every band on the site is set to. It was written out as
+ * `w-[min(72rem,100%-2.5rem)]` in eleven places, which is a number nobody can
+ * change once — and the docs shell quietly used a different one, so the header
+ * above a documentation page did not line up with the page under it.
+ */
+.shell {
+  width: min(72rem, 100% - 2.5rem);
+  margin-inline: auto;
+}
+
+/* The documentation, which carries a sidebar and a table of contents beside it. */
+.shell-wide {
+  width: min(80rem, 100% - 2.5rem);
+  margin-inline: auto;
+}
+
+/*
+ * An eyebrow with a rule leading into it. The plain `.eyebrow` is still there
+ * for labels inside a component; this one opens a section, and the rule is what
+ * makes a page of eleven sections scan as eleven rather than as one long column.
+ */
+.eyebrow-rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.eyebrow-rule::before {
+  content: "";
+  width: 1.75rem;
+  height: 1px;
+  background: var(--gorse);
+}
+
+/* ── things you can press ─────────────────────────────────────────────── */
+
+/*
+ * The site had no button at all: every call to action was an underlined word,
+ * which is the correct weight for "source" and the wrong one for the single
+ * thing the page wants you to do. One filled button per screen, and the filled
+ * one is gorse — the colour that has to mean something every time it appears.
+ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--wall);
+  border-radius: 3px;
+  padding: 0.72rem 1.15rem;
+  font-size: var(--step-0);
+  line-height: 1.1;
+  color: var(--ink);
+  background: var(--ground-raise);
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.btn:hover {
+  border-color: var(--gorse);
+  color: var(--gorse);
+}
+
+.btn-primary {
+  background: var(--gorse);
+  border-color: var(--gorse);
+  color: var(--on-gorse);
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--gorse-flat);
+  border-color: var(--gorse-flat);
+  color: var(--on-gorse);
+}
+
+/* The arrow moves, the button does not. Motion at the size of the affordance. */
+.btn .btn-arrow {
+  transition: transform 0.15s ease;
+}
+
+.btn:hover .btn-arrow {
+  transform: translateX(0.2rem);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--wall);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ── surfaces ─────────────────────────────────────────────────────────── */
+
+/*
+ * Raised, not cut in. Used for the two things on the page that are meant to be
+ * looked *at* rather than read past — the board sketch and the install
+ * transcript — and nowhere else, because a page where everything is raised is a
+ * page where nothing is.
+ */
+.panel {
+  background: var(--ground-raise);
+  border: 1px solid var(--wall);
+  border-radius: 4px;
+  box-shadow: var(--lift);
+}
+
+/* ── the numbers ──────────────────────────────────────────────────────── */
+
+/*
+ * The display face rather than the body face, which is the opposite of the
+ * usual dashboard advice and right here: this site's headline voice *is* the
+ * serif, so a sans figure under a serif headline reads as a widget somebody
+ * pasted in. Proportional figures, not tabular — `tabular-nums` gives every
+ * digit the width of a zero, which looks loose at this size. The table further
+ * down the page wants the opposite, and asks for it there.
+ */
+.stat-value {
+  font-family: var(--display);
+  font-size: var(--step-2);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+/*
+ * A budget and what was measured against it, as a bar.
+ *
+ * One series, so no legend and no palette to validate: the fill is gorse, the
+ * track is gorse at low alpha — a lighter step of the same ramp, so the whole
+ * bar reads as one measurement rather than as two colours. The number is beside
+ * it in text, because a bar alone is not a value.
+ */
+.meter {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gorse) 16%, transparent);
+  overflow: hidden;
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  min-width: 0.4rem;
+  border-radius: 999px;
+  background: var(--gorse);
+}
+
+/* ── the install transcript ───────────────────────────────────────────── */
+
+.terminal {
+  overflow: hidden;
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--wall);
+  background: color-mix(in srgb, var(--ground-deep) 55%, var(--ground-raise));
+}
+
+.terminal-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--wall);
+}
+
+.terminal-body {
+  padding: 1.1rem 1.2rem;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  line-height: 1.95;
+  white-space: pre;
+}
+
+.terminal-body b {
+  color: var(--gorse);
+  font-weight: 400;
+  user-select: none;
+}
+
+.terminal-body i {
+  color: var(--ink-faint);
+  font-style: normal;
+}
+
+/* ── the board sketch ─────────────────────────────────────────────────── */
+
+.sketch-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--wall);
+  background: color-mix(in srgb, var(--ground-deep) 55%, var(--ground-raise));
+}
+
+.sketch-row {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.85rem;
+  padding: 0.8rem 1rem;
+}
+
+.sketch-row + .sketch-row {
+  border-top: 1px solid color-mix(in srgb, var(--wall) 65%, transparent);
+}
+
+.sketch-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--wall);
+  background: color-mix(in srgb, var(--ground-deep) 40%, var(--ground-raise));
+}
+
+/*
  * A grid of bordered cells whose last row may be short.
  *
  * The obvious way to draw this — `gap-px` over a background the colour of the
@@ -217,10 +483,49 @@ body {
 .cell-grid > * {
   border-right: 1px solid var(--wall);
   border-bottom: 1px solid var(--wall);
-  padding: 1.5rem;
+  padding: 1.6rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  transition: background-color 0.15s ease;
+}
+
+/*
+ * A cell that is a link is a link *everywhere*, not just on the words at the
+ * bottom of it. The tint is what says so — without it the whole-cell target is
+ * invisible, and a reader aims at the four underlined words instead.
+ */
+.cell-grid > a:hover {
+  background: color-mix(in srgb, var(--gorse) 7%, transparent);
+}
+
+.cell-grid > a:hover .cell-arrow {
+  color: var(--gorse);
+}
+
+.cell-arrow {
+  transition: color 0.15s ease;
+}
+
+/*
+ * A whole row that is a link — the documentation index, where the title, the
+ * blurb and the arrow are one target. The same tint as a linked cell, so the two
+ * lists on this site that behave this way look like they behave this way.
+ */
+.row-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 1rem;
+  row-gap: 0.25rem;
+  margin-inline: -0.75rem;
+  padding: 1rem 0.75rem;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.row-link:hover {
+  background: color-mix(in srgb, var(--gorse) 7%, transparent);
 }
 
 /*
@@ -228,16 +533,30 @@ body {
  * townland has to stay legible at the right-hand edge, where there is no text
  * over it, and disappear under the headline, where there is.
  */
+/*
+ * The wash over the hero canvas. Two gradients rather than one, because the
+ * townland now has to do two different things in two directions.
+ *
+ * Across: it disappears under the headline, where there is text over it, and
+ * survives on the right, where the board sketch sits — but only as far as
+ * texture. Raw canvas beside an opaque panel competes with it, so the far edge
+ * keeps a quarter of the ground rather than none of it.
+ *
+ * Down: it fades out at the foot, so the hero ends in the page rather than
+ * against a hard line where the fields stop being drawn.
+ */
 .hero-wash {
   position: absolute;
   inset: 0;
   z-index: -10;
-  background: linear-gradient(
-    105deg,
-    var(--ground) 30%,
-    color-mix(in srgb, var(--ground) 62%, transparent) 68%,
-    transparent
-  );
+  background:
+    linear-gradient(to top, var(--ground), transparent 28%),
+    linear-gradient(
+      105deg,
+      var(--ground) 30%,
+      color-mix(in srgb, var(--ground) 66%, transparent) 66%,
+      color-mix(in srgb, var(--ground) 28%, transparent)
+    );
 }
 
 /* ── the rendered documents ───────────────────────────────────────────── */
@@ -615,6 +934,55 @@ body {
 
 .doc-table code {
   white-space: nowrap;
+}
+
+/*
+ * The budget table on the landing page: the documentation's table, with three
+ * differences. The first column is prose rather than a value, so it reads at
+ * body size; the two numeric columns align on their right edge, which is the
+ * only way a column of milliseconds is comparable at a glance; and the rows are
+ * centred, because the last cell contains a bar rather than a line of text.
+ *
+ * After `.doc-table` in the file on purpose — the two selectors have the same
+ * specificity, so this one wins by being second, and moving it above would
+ * silently stop it applying.
+ */
+.perf-table th,
+.perf-table td {
+  vertical-align: middle;
+}
+
+/*
+ * The page name does not wrap. On a phone it otherwise broke into four lines
+ * beside a one-line measurement, and the bar in the last column was squeezed to
+ * nothing rather than the table scrolling — which is what `.doc-table` is set up
+ * to do, and the honest behaviour for a table that does not fit.
+ */
+.perf-table td:first-child {
+  font-size: var(--step-0);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.perf-table th:nth-child(4),
+.perf-table td:nth-child(4) {
+  min-width: 9rem;
+}
+
+.perf-table th:nth-child(2),
+.perf-table th:nth-child(3),
+.perf-table td:nth-child(2),
+.perf-table td:nth-child(3) {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.perf-table td:nth-child(2) {
+  color: var(--ink);
+}
+
+.perf-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .doc-body blockquote {
