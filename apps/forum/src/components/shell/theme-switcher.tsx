@@ -1,4 +1,5 @@
 import { ConsentToggle } from '@/components/shell/cookie-notice'
+import { BOARD_MEASURE } from '@/components/shell/measure'
 import {
   MonitorIcon,
   MoonIcon,
@@ -98,7 +99,16 @@ export async function ThemeSwitcher() {
 
   return (
     <div className="border-t border-border bg-card text-card-foreground">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-end gap-x-4 gap-y-2 px-4 py-2 sm:px-6">
+      {/*
+        `BOARD_MEASURE`, not a width of its own. This strip sits directly under
+        the forum jump box, which is a *theme* slot on the theme's measure — so a
+        strip on any other width is one whose controls stop short of the page
+        they belong to, which is exactly what a hand-written `max-w-5xl` here
+        did. The constant is the app's half of that agreement and it already
+        existed; see `measure.ts` for why it is a convention rather than a
+        guarantee.
+      */}
+      <div className={`${BOARD_MEASURE} flex flex-wrap items-center justify-end gap-x-4 gap-y-2 py-2`}>
         {/*
           A landmark, not decoration. This strip is the last thing on every page
           and holds the only controls outside the board's own navigation, so it

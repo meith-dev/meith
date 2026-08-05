@@ -1,3 +1,4 @@
+import { BOARD_MEASURE } from '@/components/shell/measure'
 import { setConsentAction } from '@/server/consent-actions'
 import { getConsentState } from '@/server/consent'
 import { ESSENTIAL_PROCESSING, OPTIONAL_PROCESSING } from '@/view/consent'
@@ -44,7 +45,10 @@ export async function CookieNotice() {
       aria-label="Cookies"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card text-card-foreground shadow-lg"
     >
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-6">
+      {/* On the board's measure, so the notice lines up with the page under it. */}
+      <div
+        className={`${BOARD_MEASURE} flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8`}
+      >
         <div className="flex min-w-0 flex-col gap-2">
           <p className="text-sm">
             This site stores what it needs in order to work. May we also collect{' '}
