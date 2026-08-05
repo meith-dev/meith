@@ -75,6 +75,51 @@ export interface ResetRequest {
   readonly userId: number | null
 }
 
+/**
+ * How long a verification link lives.
+ *
+ * Exported because the message carrying the link has to say the same number.
+ * A mail that promises 24 hours over a token that expires in one is a support
+ * ticket, and the only way to keep the two honest is to have one of them.
+ */
+export const VERIFICATION_TTL_HOURS = 24
+
+/**
+ * What redeeming a verification link did (F18).
+ *
+ * A discriminated outcome rather than a boolean, because the screen has four
+ * different things to say and `false` says none of them. The *copy* still
+ * merges `invalid` with an expired link — see the route — but that is a
+ * deliberate choice made where the words are written, not a distinction thrown
+ * away here where it is still known.
+ */
+export type ActivationOutcome =
+  /** The account was waiting and is now usable. */
+  | 'activated'
+  /**
+   * The address is proven and the account stays `awaiting_activation`: the
+   * `both` policy has a second gate, and only an administrator opens it.
+   */
+  | 'awaiting-approval'
+  /** No such token, already used, or expired. */
+  | 'invalid'
+  /** The token was good, but somebody had already activated the account. */
+  | 'already-active'
+  /** The token was good and the account is banned. It stays banned. */
+  | 'banned'
+
+/**
+ * Result of asking for another verification link.
+ *
+ * Shaped like `ResetRequest` and for the same reason: the caller must show one
+ * notice whether or not anything was sent, so "nothing to send" is a null token
+ * rather than an error it could accidentally surface.
+ */
+export interface ResendVerification {
+  readonly token: string | null
+  readonly account: AccountRecord | null
+}
+
 const USERNAME_RE = /^[\p{L}\p{N}][\p{L}\p{N} ._-]*$/u
 
 export class IdentityService {
@@ -137,21 +182,100 @@ export class IdentityService {
       primaryGroupId: this.config.defaultMemberGroupId,
     })
 
-    if (
-      this.config.activationMethod === 'email' ||
-      this.config.activationMethod === 'both'
-    ) {
-      const token = generateToken()
-      await this.store.tokens.issue({
-        tokenHash: await hashToken(token),
-        userId: account.id,
-        purpose: 'email_verification',
-        expiresAt: new Date(this.now().getTime() + 24 * 60 * 60 * 1000),
-      })
-      return { account, verificationToken: token }
+    if (this.verifiesEmail()) {
+      return { account, verificationToken: await this.issueVerification(account.id) }
     }
 
     return { account }
+  }
+
+  /** Whether this board's policy asks a new account to prove its address. */
+  private verifiesEmail(): boolean {
+    return (
+      this.config.activationMethod === 'email' ||
+      this.config.activationMethod === 'both'
+    )
+  }
+
+  /** Mint a verification token for an account. The caller e-mails it. */
+  private async issueVerification(userId: number): Promise<string> {
+    const token = generateToken()
+    await this.store.tokens.issue({
+      tokenHash: await hashToken(token),
+      userId,
+      purpose: 'email_verification',
+      expiresAt: new Date(
+        this.now().getTime() + VERIFICATION_TTL_HOURS * 60 * 60 * 1000,
+      ),
+    })
+    return token
+  }
+
+  /**
+   * Redeem a verification link (F18).
+   *
+   * Two rules carry this method, and both are properties of a *write* rather
+   * than of the code around it:
+   *
+   *  - `consume` is single-use and atomic, so a link followed twice — by the
+   *    member and by their mail client's prefetch, say — activates once and
+   *    reports `invalid` the second time.
+   *  - `markEmailVerified` only activates an account still `awaiting_activation`.
+   *    A banned account that redeems a link it was sent before the ban stays
+   *    banned; the ban is the more recent decision and it wins.
+   *
+   * Under `both` the address is stamped and the state is left alone: confirming
+   * the address is the first of two gates and an administrator holds the other.
+   */
+  async activateAccount(token: string): Promise<ActivationOutcome> {
+    const redeemed = await this.store.tokens.consume(
+      await hashToken(token),
+      'email_verification',
+      this.now(),
+    )
+    if (!redeemed) return 'invalid'
+
+    const needsApproval = this.config.activationMethod === 'both'
+    const previous = await this.store.accounts.markEmailVerified(
+      redeemed.userId,
+      this.now(),
+      !needsApproval,
+    )
+
+    /*
+     * The token was valid but its account is gone. Nothing to activate, and the
+     * screen has nothing truthful to offer beyond "this link no longer works".
+     */
+    if (previous === null) return 'invalid'
+    if (previous === 'banned') return 'banned'
+    if (previous === 'active') return 'already-active'
+    return needsApproval ? 'awaiting-approval' : 'activated'
+  }
+
+  /**
+   * Issue a fresh verification link, invalidating any outstanding one.
+   *
+   * Returns a null token — not an error — for every case where nothing should
+   * be sent: no such address, an account that is already active, one that is
+   * banned, and one whose address is already proven and is merely waiting for
+   * an administrator under `both`. The caller shows the same notice on all of
+   * them, which is what stops this becoming an address oracle, and it can only
+   * do that if "nothing to do" looks like success from here.
+   *
+   * Outstanding tokens are revoked first, for the reason
+   * `requestPasswordReset` gives: only the newest link should work, or asking
+   * twice leaves two live credentials in two mailboxes.
+   */
+  async resendVerification(email: string): Promise<ResendVerification> {
+    if (!this.verifiesEmail()) return { token: null, account: null }
+
+    const account = await this.store.accounts.findByEmailLower(foldIdentifier(email))
+    if (!account) return { token: null, account: null }
+    if (account.state !== 'awaiting_activation') return { token: null, account: null }
+    if (account.emailVerifiedAt !== null) return { token: null, account: null }
+
+    await this.store.tokens.revokeAllForUser(account.id, 'email_verification')
+    return { token: await this.issueVerification(account.id), account }
   }
 
   /**

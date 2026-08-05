@@ -7876,3 +7876,81 @@ static `<h1>` and no data access reproduces it, so nothing in this board's
 not-found page is responsible. It is recorded here because the fix above moves
 these four addresses from *broken for everyone* to *the same as every other 404
 on the board*, which is worth having and is not the same as done.
+
+### D104 — The auth flows send their own mail, and `both` is a timestamp rather than a fourth state
+
+Three things were built and never connected: `registration.method` was a
+registered setting with no reader, `IdentityService.register()` minted an
+`email_verification` token nothing consumed, and `requestResetAction` generated a
+live reset token that reached the browser in development and went nowhere at all
+outside it. Each of them looked finished from its own side.
+
+#### The setting is resolved at the point of use, not in the const
+
+`AUTH_CONFIG` is shared by three composition roots — the app, the installer and
+the CLI — and most of it *should* be static: password rules and the default group
+are decisions of the build. `activationMethod` is the one field an operator picks
+from a dropdown, so `boardAuthConfig()` resolves it per call and leaves the rest
+alone, the same way `usercp-mail.ts` resolves the board name.
+
+The installer and the CLI keep their hardcoded `'none'`, now with the reason
+written beside it: an operator at a terminal cannot click a link in somebody
+else's mailbox, and a founding administrator created before mail exists would be
+an unactivatable board with no way to recover it. Fixture mode keeps `'none'`
+too, and that one needed arguing: the registry default is `'email'`, a sample
+board has no settings table to overrule it, and applying a value nobody chose and
+nobody *can* change would break the demo's documented one-step registration.
+
+#### `both` does not get a fourth `AccountState`
+
+Under `both` an account has to be proven *and* approved, and `AccountState` has
+exactly three values. The obvious move — add `awaiting_approval` — costs a
+migration and an audit of every `awaiting_activation` call site, of which there
+are several across login, the admin filters and the member editor.
+
+It is not needed. `users.email_verified_at` has existed since `0000`, is already
+read by the member screen and by mass mail's audience filter, and is already
+stamped by F57's e-mail-change confirmation. Confirming an address under `both`
+stamps it and leaves the state alone, which says exactly the thing the fourth
+state would have said — *proven, not yet approved* — using a column two features
+already depend on. It also gives the resend path a real answer: an account whose
+address is proven and which is merely waiting on a person is not sent another
+link.
+
+The stamp and the state change are **one write**. `markEmailVerified` is a single
+`UPDATE` whose `case` is the condition, so a ban landing between the token being
+consumed and the account being activated wins; it returns the state the row held
+*before* the write, because `RETURNING` reports the new one and the screen needs
+to know which of four things happened. A prior read would have decided
+`awaiting_activation` and handed a banned account back to whoever held the link.
+
+#### Both messages are sent directly, not queued
+
+Notification and mass mail are queued through F07's outbox and leave on the tick.
+Verification and password reset are not, for two reasons. A person is sitting in
+front of the screen and will retry within seconds, so up to a full tick interval
+of delay is the wrong trade. And a queued reset would put a live bearer
+credential in the `outbox` table as readable JSON until the relay drained it —
+`user.password_reset_requested` was declared for exactly that design, had no
+emitter and no handler, and is deleted rather than left as a shape somebody might
+later implement.
+
+A send failure never fails the thing that caused it. That is F57's rule, but the
+consequence differs: an e-mail-change failure leaves a signed-in member who can
+ask again, whereas a verification failure strands a brand-new account at
+`awaiting_activation` with no link and no way to sign in. So registration
+swallows and logs the error, and redirects to a screen that names the address and
+offers to send another — which is why `/verify/resend` is not optional.
+
+#### The unusable configuration is a warning, not a refusal
+
+`MAIL_DRIVER=smtp` throws at boot rather than downgrading to `log`. The same
+reasoning applies to `registration.method: 'email'` over the log driver — every
+account is stuck and nothing errors — but the refusal cannot take the same form:
+the driver is fixed at boot and the method is a row somebody edits on a running
+board, so a process that refused to start would refuse the *next deploy*, long
+after the change. It is a loud alert on the registration settings screen, where
+the change is made, and an entry in F70's health view, which exists for exactly
+this class of silent failure. Development is excluded, because the log driver is
+the deliberate default there and a warning that fires on every developer's
+machine is one nobody reads on the board where it matters.

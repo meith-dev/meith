@@ -450,6 +450,158 @@ anybody rates that member. Editing `users.reputation` by hand therefore does
 nothing lasting — use **Recount & rebuild** on `/admin/system` if you need it
 corrected.
 
+## Mail
+
+> [!IMPORTANT]
+> **The default driver sends nothing.** `MAIL_DRIVER=log` writes each message to
+> the server log and stops there. It is the right default — a board booted for
+> the first time should not be able to e-mail strangers — but until you change
+> it, password reset silently fails and nobody can confirm a registration.
+
+### What sends mail
+
+| What | When | How it goes out |
+|---|---|---|
+| Notification e-mail | A member's notification, when they asked for it by mail | Queued — leaves on the **tick** |
+| Mass mail | An administrator sends one from `/admin/users/mail` | Queued — leaves on the **tick** |
+| E-mail change confirmation | A member changes their address in the UserCP | Sent during the request |
+| Registration confirmation | A registration, when the activation method asks for one | Sent during the request |
+| Password reset | Somebody uses the "forgot your password" form | Sent during the request |
+
+The split is not arbitrary. The first two go to members the board already knows,
+in volume, and can wait a minute. The last three each go to somebody sitting in
+front of a screen who will retry within seconds if nothing arrives, and two of
+the three go to an address the board has not proven yet — a queued job cannot
+be a notification to an account that may not be reachable.
+
+### Choosing a driver
+
+| `MAIL_DRIVER` | What it does |
+|---|---|
+| `log` (default) | Writes `mail (not actually sent)` to the log with the recipient and subject. Sends nothing. |
+| `http` | Posts to a transactional-mail provider's HTTP API. This is the one to use. |
+| `smtp` | **Not implemented.** The board refuses to boot rather than downgrading to `log`, because an operator who configured SMTP and saw no errors would assume mail was being delivered. |
+
+### Resend, copy-pasteable
+
+```sh
+MAIL_DRIVER=http
+MAIL_HTTP_ENDPOINT=https://api.resend.com/emails
+MAIL_HTTP_TOKEN=re_…
+MAIL_FROM=noreply@yourdomain.com
+```
+
+All four are required together; boot fails naming whichever is missing.
+
+Two things will bite you before the first message arrives:
+
+1. **Verify the sending domain with the provider first.** Every provider
+   requires it, and the board cannot do it for you.
+2. **`MAIL_FROM` must be an address on that verified domain.** If it is not,
+   every message is rejected with a 4xx — which the driver reports as a
+   *configuration error* and does not retry, because it would fail identically
+   on every attempt.
+
+### Other providers
+
+The driver is generic HTTP, not a Resend client. It posts JSON with a Bearer
+token:
+
+```json
+{ "from": "…", "to": "…", "subject": "…", "text": "…", "html": "…", "reply_to": "…" }
+```
+
+Resend's `POST /emails` takes exactly that, which is why it works with no
+adapter. **Postmark and Mailgun do not** — Postmark uses `From`/`To`/`TextBody`
+and an `X-Postmark-Server-Token` header, Mailgun takes form-encoded fields on a
+per-domain URL. Both need a change to `packages/drivers/src/mail`, which is a
+small file. Do not assume any provider URL will work here because it is "an
+HTTP mail API"; the field names are the contract.
+
+### `APP_URL` is not optional if you want working links
+
+This is the single most likely misconfiguration on a new board. Every message
+that carries a link — confirm your address, reset your password, a notification
+pointing at a post — builds it from `APP_URL`, because nothing in a queued job
+or a mail template knows the request that caused it.
+
+With `APP_URL` unset the board does **not** emit a relative link, which would be
+a dead string in a mail client. It degrades to written instructions instead. The
+mail arrives, it is polite, and it is useless. Set `APP_URL` to the absolute
+public origin, with no trailing slash.
+
+### Queued mail needs the tick
+
+Notification and mass mail are delivered by a job that runs inside
+`/api/system/tick`. No cron means no mail, and **no error anywhere** — the
+messages sit in the queue looking fine. `/admin/system` says loudly when the
+tick is stale; see [Nothing happens on a schedule](#nothing-happens-on-a-schedule).
+
+### The sender name and the sender address are different settings
+
+`MAIL_FROM` (environment) is the address. `mail.from_name` in `/admin/settings`
+is meant to be the display name beside it, and the split surprises people: one
+is a deploy-time variable and the other is a row in the database.
+
+> [!NOTE]
+> `mail.from_name` is **not yet applied** — the HTTP driver sends `MAIL_FROM`
+> verbatim as the `From` header, so setting a name changes nothing today. It is
+> recorded in [`plan-status.md`](./plan-status.md) rather than left to be
+> discovered.
+
+### Activation and mail are one decision
+
+`registration.method` in `/admin/settings` chooses what a new account has to do
+before it can sign in:
+
+| Method | What happens |
+|---|---|
+| `none` | The account works immediately. |
+| `email` | A confirmation link is sent. Until it is followed, the account cannot sign in. |
+| `admin` | The account waits for an administrator. No mail involved. |
+| `both` | The link first, then an administrator. |
+
+> [!WARNING]
+> **Upgrading an existing board?** This setting had no effect until recently:
+> every account was created as though it said `none`, whatever the dropdown
+> showed. It is honoured now, and a board that never changed it is on the
+> registry default of `email`. See
+> [Settings that gained a reader](./upgrading.md#settings-that-gained-a-reader).
+
+**`email` or `both` over `MAIL_DRIVER=log` is a board nobody can join.** The
+links are minted, printed to the log, and never delivered. This cannot be a boot
+check — the driver is fixed at boot and the method is a row you can change on a
+running board — so instead the registration settings screen and `/admin/system`
+both say so, loudly, while it is true.
+
+An account already stuck at "awaiting activation" can be activated by hand from
+its member screen in `/admin/users`. Somebody who never received their link can
+ask for another at `/verify/resend`, which is linked from the sign-in page.
+
+### Checking that it works
+
+- Register a throwaway account, or use the "forgot your password" form on one
+  you own. Both send during the request, so there is nothing to wait for.
+- On the `log` driver, watch for `mail (not actually sent)` in the log — it
+  prints `to` and `subject`, which is enough to prove the flow reached the
+  driver.
+- `/admin/system` shows the resolved driver and activation method together.
+
+### What happens when a provider fails
+
+- **4xx** (bad address, unverified domain, bad token) is treated as
+  configuration and **not retried** — it would fail identically every time.
+- **5xx and 429** are retried by the queue's backoff, for queued mail. A direct
+  send has no retry: the member asks again.
+- Drivers hold no retry logic of their own. The queue is the retry mechanism,
+  deliberately, so there is one place that decides how often to try again.
+- Every send has a **10-second timeout**. Without it a hung provider would hold
+  a job's lease open for its full duration and consume the tick's whole budget.
+- A failed send never fails the thing that caused it. A registration whose
+  confirmation could not be sent still created the account — reporting
+  "registration failed" would be a lie about a state you now have to live with —
+  and the screen it lands on offers to send the link again.
+
 ## Spam
 
 Registration questions are at `/admin/antispam`; the numbers are in
@@ -498,6 +650,10 @@ Check `/admin/antispam` first.
   rather than refusing everybody. That is deliberate, and the screen says so.
 - A **minimum fill time** set to a minute quietly turns away most real
   applicants. This is the usual culprit.
+
+If registrations are *created* but nobody can sign in afterwards, it is not
+anti-spam — it is the activation method waiting for mail the board cannot send.
+See [Activation and mail are one decision](#activation-and-mail-are-one-decision).
 
 ### No hosted captcha
 
@@ -620,6 +776,11 @@ and nothing errors, because nothing ran.*
 2. Check `TICK_SECRET` is set.
 3. Check your platform's cron is actually calling `/api/system/tick`. On Vercel
    that is `vercel.json`, which the scaffold commits.
+
+Notification and mass mail are delivered on this tick, so a stopped one is also
+a board that has stopped sending them — see [Mail](#mail). Verification and
+password-reset links do not wait for it; if *those* are missing, the driver is
+the thing to check.
 
 ### "Too many connections"
 

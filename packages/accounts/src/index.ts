@@ -24,11 +24,14 @@ export {
 
 export {
   IdentityService,
+  VERIFICATION_TTL_HOURS,
+  type ActivationOutcome,
   type IdentityDeps,
   type RegisterInput,
   type RegisterResult,
   type RequestContext,
   type LoginResult,
+  type ResendVerification,
   type ResetRequest,
 } from './service'
 

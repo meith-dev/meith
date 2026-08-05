@@ -26,7 +26,17 @@
 export interface DomainEventMap {
   'user.registered': { userId: number; email: string; requiresActivation: boolean }
   'user.activated': { userId: number }
-  'user.password_reset_requested': { userId: number; email: string; token: string }
+  /*
+   * There is deliberately no `user.password_reset_requested`.
+   *
+   * It was declared here from the start with no emitter and no handler, on the
+   * assumption that a reset mail would be queued like every other message. F19
+   * sends it directly instead (see `auth-mail.ts`): the queued path adds up to a
+   * full tick interval to a flow where people retry within seconds, and it would
+   * mean a live reset token sitting in the outbox as readable JSON — a bearer
+   * credential in a table an operator can select from, for as long as the tick
+   * takes to drain it.
+   */
   'user.group_changed': { userId: number; addedGroupIds: number[]; removedGroupIds: number[] }
 
   'thread.created': { threadId: number; forumId: number; authorId: number | null }

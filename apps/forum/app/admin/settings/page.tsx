@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { requireAdmin } from '@/server/admin'
+import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
 import { buildAdminSettingsModel, settingsHref } from '@/view/admin-settings'
 
@@ -34,6 +35,15 @@ export default async function AdminSettingsPage({
     group: query.group,
     advanced: query.advanced === '1',
   })
+
+  /*
+   * The one setting on this screen that can be turned into an unusable board.
+   * Checked only while the registration group is on screen, which is where the
+   * dropdown that causes it lives — the same warning on the theme tab would be
+   * noise, and F70's health view is where it is stated unconditionally.
+   */
+  const mail =
+    model.activeGroup === 'registration' ? await assessMailReadiness() : null
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
@@ -120,6 +130,31 @@ export default async function AdminSettingsPage({
           </>
         )}
       </p>
+
+      {mail?.unactivatable && (
+        <section
+          role="alert"
+          className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
+        >
+          <h2 className="font-serif text-lg font-semibold text-destructive">
+            Nobody can finish registering
+          </h2>
+          <p className="text-sm">
+            The activation method is{' '}
+            <strong className="font-medium">{mail.activationMethod}</strong>, so a new
+            account waits for a confirmation link — but <code>MAIL_DRIVER</code> is{' '}
+            <code>log</code>, which writes messages to the server log and sends nothing.
+            Every account created while this is true is stuck: it cannot sign in, and the
+            link that would release it never arrives.
+          </p>
+          <p className="text-sm">
+            Either set the activation method to <strong className="font-medium">none</strong>{' '}
+            or <strong className="font-medium">admin</strong>, or configure a mail driver.
+            The driver is an environment variable and takes a restart; see the Mail section
+            of the operator handbook.
+          </p>
+        </section>
+      )}
 
       <AdminSettingsForm groups={model.groups} />
     </div>

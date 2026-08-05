@@ -821,6 +821,37 @@ since. Two summaries were then written from *this* file rather than from that
 row, which is how the error propagated; the rule at the top of this page exists
 for exactly that and points the other way. Audit the row, not the prose.
 
+- **The auth flows reach the mail driver** (F18/F19). `registration.method` had
+  no reader, `register()`'s `verificationToken` had no consumer, and
+  `requestResetAction` generated a live reset token that went nowhere outside
+  development — three halves of two features that were complete apart from the
+  part that reaches a person. `boardAuthConfig()` resolves the one runtime auth
+  setting at the point of use, `/verify` and `/verify/resend` redeem and reissue,
+  and both messages are sent **directly** rather than queued, for the reason
+  F57's e-mail-change confirmation is: a person is waiting, and a reset token in
+  the outbox is a bearer credential sitting in a table. `'both'` is represented
+  by `users.email_verified_at` — a column that has existed since `0000` with two
+  readers already — rather than by a fourth `AccountState`, which would have cost
+  a migration and an audit of every `awaiting_activation` call site to record the
+  same fact. `MAIL_DRIVER=log` with an activation method that needs mail is an
+  unusable board, and it cannot be a boot check (the driver is boot-time, the
+  setting is a row), so it is a loud warning on the registration settings screen
+  and an entry in F70's health view. `docs/operating.md` gained the Mail section
+  it never had (D104).
+
+**Adjacent, and deliberately not fixed in that pass:** three more registered
+settings still have no reader. `registration.min_password_length`,
+`registration.username_min` and `registration.username_max` are all served from
+`DEFAULT_AUTH_POLICY`, so the ACP's fields move and nothing changes — the same
+bug class, and the same fix (resolve them in `boardAuthConfig()`), with one
+wrinkle: the CLI and the installer share that policy and would need the values
+threaded to them rather than read from a settings table they may not have yet.
+`mail.from_name` is a fourth: `HttpMailDriver` sends `MAIL_FROM` verbatim as the
+`From` header, so the display name is stored and never applied. Applying it means
+carrying a per-send sender name through `OutgoingMail`, since the setting is
+runtime and the driver is constructed at boot. Both are noted in
+`operating.md` rather than left to be discovered.
+
 **Outstanding release task:** nothing is published to npm, so a scaffolded
 project cannot yet `npm install`.
 
@@ -969,7 +1000,7 @@ in `beforeEach`. Reuse this for any DB-touching test.
 
 ## Deviations index
 
-Full detail in `docs/deviations.md` (D1–D102). Recurring themes: (a) inert or
+Full detail in `docs/deviations.md` (D1–D104). Recurring themes: (a) inert or
 wrong guards found and fixed (boundary lint, missing ESLint config, absent
 `process.env` rule, untested ACP invariant, and now the schema-drift step
 pointed at a directory that does not exist — D41); (b) runtime-only bugs a

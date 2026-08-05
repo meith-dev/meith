@@ -307,6 +307,25 @@ function seedSql(): string {
      * where the Thanks button is the whole rating control.
      */
     { key: 'reputation.min_posts_to_give', value: '0', group_key: 'reputation' },
+    /*
+     * Registration completes without a confirmation link.
+     *
+     * The registry default is `'email'`, and since F18's activation half was
+     * wired it is honoured — so a board that stores nothing asks every new
+     * account to follow a link, and `MAIL_DRIVER` here is `log`, which sends
+     * none. Every spec that needs a session registers through the form, so
+     * without this row the whole suite signs up into `awaiting_activation` and
+     * cannot log in.
+     *
+     * Set explicitly rather than worked around, because it is what an operator
+     * running a board with no mail configured does, and because the alternative
+     * — teaching six specs to redeem a token out of the log — would make every
+     * one of them a test of activation rather than of what it is named for.
+     * Activation itself is covered where its rules live: the domain suite, the
+     * adapter suite and `auth-actions.test.ts`.
+     */
+    /* Stored bare: `serialise` writes a string setting verbatim, not as JSON. */
+    { key: 'registration.method', value: 'none', group_key: 'registration' },
   ]
 
   /*

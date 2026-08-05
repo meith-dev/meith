@@ -13,7 +13,7 @@
  * gets a row back and the other gets nothing. A read-then-write would let both
  * observe "unconsumed" and both succeed; that bug is designed out here.
  */
-import { and, eq, gt, isNull, lt, or } from 'drizzle-orm'
+import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm'
 
 import type {
   AccountRecord,
@@ -32,6 +32,7 @@ import type {
 } from '@meith/accounts'
 
 import type { Database } from './client'
+import { resultRows } from './result-rows'
 import {
   credentialTokens,
   loginAttempts,
@@ -50,6 +51,7 @@ function toAccountRecord(row: {
   passwordHash: string | null
   passwordAlgo: string | null
   state: string
+  emailVerifiedAt: Date | null
   primaryGroupId: number | null
 }): AccountRecord {
   return {
@@ -61,6 +63,7 @@ function toAccountRecord(row: {
     passwordHash: row.passwordHash,
     passwordAlgo: row.passwordAlgo,
     state: row.state as AccountState,
+    emailVerifiedAt: row.emailVerifiedAt,
     // eslint-disable-next-line no-restricted-properties -- F20: reading a column to transport into the record, not a decision
     primaryGroupId: row.primaryGroupId,
   }
@@ -75,6 +78,7 @@ const ACCOUNT_COLUMNS = {
   passwordHash: users.passwordHash,
   passwordAlgo: users.passwordAlgo,
   state: users.state,
+  emailVerifiedAt: users.emailVerifiedAt,
   // eslint-disable-next-line no-restricted-properties -- F20: selecting a column to transport, not a decision
   primaryGroupId: users.primaryGroupId,
 } as const
@@ -140,6 +144,53 @@ export class PostgresAccountRepository implements AccountRepository {
 
   async setState(userId: number, state: AccountState): Promise<void> {
     await this.db.update(users).set({ state }).where(eq(users.id, userId))
+  }
+
+  /**
+   * Stamp the address as proven and — when asked — activate, in **one**
+   * statement.
+   *
+   * The `case` is the port's condition, evaluated inside the write: only a row
+   * that is still `awaiting_activation` moves to `active`, so a ban that lands
+   * between the token being consumed and this update wins, and a redeemed link
+   * can never hand a banned account back to whoever holds it. Doing it as a
+   * read then an update would lose that race in the direction that matters.
+   *
+   * The `before` CTE exists because `RETURNING` reports the *new* row and the
+   * caller needs the old state to say which thing happened. It is the same
+   * snapshot the `case` reads, so the answer and the decision cannot disagree.
+   *
+   * `coalesce` keeps the first proof: a second redemption is not a fresher
+   * verification, and overwriting would quietly rewrite when the address was
+   * confirmed. The stamp is written even for a banned account — it records that
+   * the address was proven, which stays true regardless of the ban.
+   */
+  async markEmailVerified(
+    userId: number,
+    at: Date,
+    activate: boolean,
+  ): Promise<AccountState | null> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        with before as (
+          select id, state from users where id = ${userId} for update
+        )
+        update users u
+           set email_verified_at = coalesce(u.email_verified_at, ${at}),
+               state = case
+                         when ${activate}::boolean and b.state = 'awaiting_activation'
+                           then 'active'
+                         else u.state
+                       end,
+               updated_at = now()
+          from before b
+         where u.id = b.id
+        returning b.state as previous_state
+      `),
+    ) as Array<{ previous_state: string }>
+
+    const previous = rows[0]?.previous_state
+    return previous === undefined ? null : (previous as AccountState)
   }
 
   async touchLastActive(userId: number, now: Date, windowSeconds: number): Promise<boolean> {

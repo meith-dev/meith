@@ -163,6 +163,49 @@ ratings, and it is why the two switches are worth reading together: a criticism
 with no reason attached is the part of reputation people argue about, and a
 thanks is not.
 
+## Settings that gained a reader
+
+A setting can also change behaviour by starting to be *read*. That is not a
+default moving — the value on your board is the one you already chose — but the
+effect on the board is the same as if it had, because until now the choice did
+nothing.
+
+### `registration.method` now decides what a new account has to do
+
+> [!WARNING]
+> **If your board has never changed the activation method, it is `email`** — the
+> registry default — and new registrations now wait for a confirmation link.
+> **If `MAIL_DRIVER` is unset or `log`, nothing sends that link, and nobody can
+> finish registering.**
+
+`registration.method` has been a setting since F13 with no reader: the dropdown
+moved, the value was stored, and every account was created as though it said
+`none`. It is now honoured everywhere an account is created from the board.
+
+Two boards are affected differently, and which one you are depends on a rule
+worth knowing: **a value equal to its default is not stored**. So a board whose
+operator chose `email` back when it did nothing has no row at all, and is
+indistinguishable from one that never opened the screen.
+
+| Your board | What to do |
+|---|---|
+| No mail configured (`MAIL_DRIVER` unset or `log`) | Either configure a driver — see [Mail](./operating.md#mail) — or set the activation method to `none` or `admin` in **Admin → Settings → Registration**. |
+| Mail configured, and you want confirmation | Nothing. It works now, which it did not before. |
+| Mail configured, and you do not | Set the method to `none`. |
+
+You will not have to find this out from your members. The registration settings
+screen and `/admin/system` both say so, in as many words, for as long as the
+board is asking for mail it cannot send.
+
+Accounts already stuck at *awaiting activation* can be activated by hand from
+their member screen under **Admin → Members**, and anybody who never received a
+link can ask for another at `/verify/resend`.
+
+The CLI and the installer are deliberately unaffected: `forum user:create` and
+the founding administrator are still created active, because an operator at a
+terminal cannot follow a link in somebody else's mailbox and an unactivatable
+first administrator is a board with no way in.
+
 ## What the CLI cannot do
 
 > [!NOTE]

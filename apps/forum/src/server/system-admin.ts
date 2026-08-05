@@ -28,6 +28,7 @@ import {
 } from '@meith/db'
 
 import { getContainer } from './container'
+import { assessMailReadiness, type MailReadiness } from './mail-health'
 
 export function systemHealthRepository(): PostgresSystemHealthRepository | null {
   return getContainer().dataSource === 'postgres'
@@ -57,6 +58,15 @@ export interface SystemHealthView {
   /** F72's index coverage. Pending is what a backfill still has to do. */
   readonly searchIndex: { readonly indexed: number; readonly pending: number }
   readonly scheduler: SchedulerHealth
+  /**
+   * Whether the board can send the mail its settings promise.
+   *
+   * On this screen for the same reason the stale tick is: nothing *fails* when
+   * a board asks for e-mail activation over the log driver. Registrations
+   * succeed, the log fills with messages nobody receives, and the only symptom
+   * is members who never come back.
+   */
+  readonly mail: MailReadiness
   readonly runs: readonly TaskRunRow[]
   readonly recount: readonly RecountStateRow[]
   readonly volumes: BoardVolumes
@@ -68,18 +78,21 @@ export async function buildSystemHealthView(now: Date): Promise<SystemHealthView
   if (repository === null) return null
 
   const maintenance = new PostgresMaintenanceRepository(getDb())
-  const [tasks, runs, recount, volumes, prunableSessions, searchIndex] = await Promise.all([
-    repository.taskHealth(),
-    repository.recentRuns(20),
-    repository.recountState(),
-    repository.volumes(),
-    maintenance.countPrunableSessions(now),
-    new PostgresSearchRepository(getDb()).indexProgress(),
-  ])
+  const [tasks, runs, recount, volumes, prunableSessions, searchIndex, mail] =
+    await Promise.all([
+      repository.taskHealth(),
+      repository.recentRuns(20),
+      repository.recountState(),
+      repository.volumes(),
+      maintenance.countPrunableSessions(now),
+      new PostgresSearchRepository(getDb()).indexProgress(),
+      assessMailReadiness(),
+    ])
 
   return {
     scheduler: assessScheduler(tasks, now),
     searchIndex,
+    mail,
     runs,
     recount,
     volumes,

@@ -29,8 +29,8 @@ import {
   type CaptchaProvider,
   type Challenge,
   type ChallengeVerdict,
+  type ConfiguredRateLimitScope,
   type RateLimitOutcome,
-  type RateLimitScope,
 } from '@meith/antispam'
 import type { Actor } from '@meith/authorization'
 import { env, logger, truncateIp } from '@meith/core'
@@ -52,9 +52,19 @@ const LIMIT_SETTING = {
   message: 'antispam.message_per_hour',
   report: 'antispam.report_per_hour',
   upload: 'antispam.upload_per_hour',
-} as const satisfies Record<RateLimitScope, string>
+} as const satisfies Record<ConfiguredRateLimitScope, string>
 
 const HOUR = 3600
+
+/**
+ * How many verification links one address may be sent per hour.
+ *
+ * Fixed rather than a setting, for the reason `FIXED_RATE_LIMIT_SCOPES` gives:
+ * the thing being protected is somebody's mailbox, not the board's quiet.
+ * Three is enough for a member who typed the wrong address, deleted the first
+ * mail, and then found it in spam.
+ */
+const RESEND_PER_HOUR = 3
 
 export function rateLimitStore(): PostgresRateLimitBucketStore | null {
   return getContainer().dataSource === 'postgres'
@@ -80,7 +90,7 @@ export function captchaQuestionRepository(): PostgresCaptchaQuestionRepository |
  * flooding should not have to say it twice in two vocabularies.
  */
 export async function spendLimit(input: {
-  readonly scope: RateLimitScope
+  readonly scope: ConfiguredRateLimitScope
   readonly actor: Actor
   readonly settings?: SettingsSnapshot
   readonly cost?: number
@@ -110,6 +120,38 @@ export async function spendLimit(input: {
   } catch (error) {
     /* See this file's header: a nuisance control does not take the board down. */
     logger().warn({ err: String(error), scope: input.scope }, 'rate limit unavailable')
+    return null
+  }
+}
+
+/**
+ * Spend one verification resend against an address's hourly allowance (F18).
+ *
+ * Counted by **address**, because the address is what is being protected: a
+ * script hammering the resend form is trying to fill one mailbox, and an
+ * attacker who rotates addresses instead gets nothing — a resend for an unknown
+ * or already-active account sends no mail at all.
+ *
+ * The spend happens before the account is looked up, and that ordering is the
+ * enumeration defence: the refusal a caller can provoke by asking four times is
+ * identical whether or not anybody has that address.
+ *
+ * Returns null when nothing was counted (no store), which fails open exactly as
+ * `spendLimit` does and for the reason in this file's header.
+ */
+export async function spendResendLimit(emailLower: string): Promise<RateLimitOutcome | null> {
+  const store = rateLimitStore()
+  if (store === null) return null
+
+  try {
+    return await new RateLimiter(store).consume({
+      scope: 'verify_resend',
+      /* Prefixed so it can never collide with `subjectFor`'s `u:`/`ip:` keys. */
+      subject: `e:${emailLower}`,
+      rule: { max: RESEND_PER_HOUR, windowSeconds: HOUR },
+    })
+  } catch (error) {
+    logger().warn({ err: String(error) }, 'resend rate limit unavailable')
     return null
   }
 }

@@ -106,7 +106,7 @@ import { drivers } from '@meith/drivers'
 
 import forumConfig from '../../forum.config'
 
-import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS } from './auth-config'
+import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS, boardAuthConfig } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
 import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
@@ -607,4 +607,21 @@ export function getContainer(): Container {
 /** Convenience: the shared Authorizer. */
 export function getAuthorizer(): Authorizer {
   return getContainer().authorizer
+}
+
+/**
+ * The identity service built over the board's *configured* activation method
+ * (F13), rather than over the static policy `getContainer()` hands out.
+ *
+ * Only the three paths that turn on that setting need it — registering,
+ * redeeming a verification link, and resending one — and they are all async
+ * already, so the cost of the settings read lands exactly where the decision is
+ * made. Everything else (login, logout, reset) is untouched by the method and
+ * keeps using `getContainer().identity`, which stays synchronous.
+ */
+export async function configuredIdentity(): Promise<IdentityService> {
+  return new IdentityService({
+    store: getContainer().accountStore,
+    config: await boardAuthConfig(),
+  })
 }

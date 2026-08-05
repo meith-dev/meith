@@ -100,6 +100,10 @@ class MemoryAccounts implements AccountRepository {
     this.passwords.push({ userId, hash: passwordHash })
   }
   async setState() {}
+  /** F18's activation writer. Never exercised here; present to satisfy the port. */
+  async markEmailVerified(): Promise<null> {
+    return null
+  }
 }
 
 class MemorySessions {
@@ -157,6 +161,7 @@ beforeEach(async () => {
     passwordHash: await hashPassword(PASSWORD),
     passwordAlgo: 'argon2id',
     state: 'active',
+    emailVerifiedAt: null,
     primaryGroupId: 2,
   }
 

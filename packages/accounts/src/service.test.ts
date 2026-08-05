@@ -12,7 +12,7 @@ import { rejectionMessage } from './test-support.fixture'
 import { hashToken } from './crypto/tokens'
 import { createMemoryStore } from './memory-repos'
 import { MemoryBanFilters } from './memory-bans'
-import { IdentityService } from './service'
+import { IdentityService, VERIFICATION_TTL_HOURS } from './service'
 import type { AccountStore, AuthConfig } from './ports'
 
 const BASE_CONFIG: AuthConfig = {
@@ -295,6 +295,184 @@ describe('password reset', () => {
     await expect(
       service.redeemPasswordReset(second.token!, 'a brand new password'),
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('activation (F18)', () => {
+  let store: AccountStore
+
+  /** Register under a policy that mints a verification token. */
+  async function registerAwaiting(
+    method: 'email' | 'both' = 'email',
+    clock = fixedClock(),
+  ) {
+    const { service } = makeService(store, { activationMethod: method }, clock)
+    const { account, verificationToken } = await service.register({
+      username: 'Alice',
+      email: 'alice@example.com',
+      password: 'correct horse battery',
+    })
+    return { service, clock, account, token: verificationToken! }
+  }
+
+  beforeEach(() => {
+    store = createMemoryStore()
+  })
+
+  it('activates a waiting account and lets it sign in', async () => {
+    const { service, token, account } = await registerAwaiting()
+
+    // Before: login is refused for the reason F19 gives.
+    await expect(
+      service.login('alice', 'correct horse battery', 'alice'),
+    ).rejects.toThrow(/not yet activated/i)
+
+    expect(await service.activateAccount(token)).toBe('activated')
+
+    const after = (await store.accounts.findById(account.id))!
+    expect(after.state).toBe('active')
+    expect(after.emailVerifiedAt).not.toBeNull()
+    await expect(
+      service.login('alice', 'correct horse battery', 'alice2'),
+    ).resolves.toBeTruthy()
+  })
+
+  it('refuses the same token twice', async () => {
+    const { service, token } = await registerAwaiting()
+
+    expect(await service.activateAccount(token)).toBe('activated')
+    // Single-use is a property of `consume`, and this is the assertion that
+    // holds it: a replayed link must not re-activate anything.
+    expect(await service.activateAccount(token)).toBe('invalid')
+  })
+
+  it('never moves a banned account to active', async () => {
+    const { service, token, account } = await registerAwaiting()
+
+    // The ban lands after the link was sent — the case the conditional write
+    // exists for. A prior read would have decided "awaiting_activation" and
+    // handed the account back.
+    await store.accounts.setState(account.id, 'banned')
+
+    expect(await service.activateAccount(token)).toBe('banned')
+    expect((await store.accounts.findById(account.id))!.state).toBe('banned')
+    await expect(
+      service.login('alice', 'correct horse battery', 'alice'),
+    ).rejects.toThrow(/banned/i)
+  })
+
+  it('reports an account somebody already activated', async () => {
+    const { service, token, account } = await registerAwaiting()
+    await store.accounts.setState(account.id, 'active')
+
+    expect(await service.activateAccount(token)).toBe('already-active')
+  })
+
+  it('rejects an expired token', async () => {
+    const clock = fixedClock()
+    const { service, token } = await registerAwaiting('email', clock)
+
+    clock.advance((VERIFICATION_TTL_HOURS * 60 + 1) * 60_000)
+    expect(await service.activateAccount(token)).toBe('invalid')
+  })
+
+  it('under "both", proves the address and leaves the account waiting', async () => {
+    const { service, token, account } = await registerAwaiting('both')
+
+    expect(await service.activateAccount(token)).toBe('awaiting-approval')
+
+    const after = (await store.accounts.findById(account.id))!
+    expect(after.state).toBe('awaiting_activation')
+    expect(after.emailVerifiedAt).not.toBeNull()
+    // Still not a usable account: the administrator's gate is the second one.
+    await expect(
+      service.login('alice', 'correct horse battery', 'alice'),
+    ).rejects.toThrow(/not yet activated/i)
+  })
+
+  it('treats a token for a vanished account as invalid', async () => {
+    const { service, token } = await registerAwaiting()
+    expect(await service.activateAccount('not-a-token')).toBe('invalid')
+    expect(await service.activateAccount(token)).toBe('activated')
+  })
+})
+
+describe('resending a verification link (F18)', () => {
+  let store: AccountStore
+
+  beforeEach(() => {
+    store = createMemoryStore()
+  })
+
+  async function register(method: 'none' | 'email' | 'both') {
+    const { service } = makeService(store, { activationMethod: method })
+    const result = await service.register({
+      username: 'Alice',
+      email: 'alice@example.com',
+      password: 'correct horse battery',
+    })
+    return { service, account: result.account }
+  }
+
+  it('issues a fresh token and invalidates the old one', async () => {
+    const { service } = makeService(store, { activationMethod: 'email' })
+    const registered = await service.register({
+      username: 'Alice',
+      email: 'alice@example.com',
+      password: 'correct horse battery',
+    })
+
+    const resent = await service.resendVerification('alice@example.com')
+    expect(resent.token).toBeTypeOf('string')
+    expect(resent.account?.username).toBe('Alice')
+
+    // Only the newest link works — the same rule password reset applies.
+    expect(await service.activateAccount(registered.verificationToken!)).toBe('invalid')
+    expect(await service.activateAccount(resent.token!)).toBe('activated')
+  })
+
+  it('sends nothing for an account that is already active', async () => {
+    const { service } = await register('none')
+
+    // The account is usable; a "confirm your address" mail would be a message
+    // about nothing, and re-issuing a credential for it is worse than useless.
+    const resent = await service.resendVerification('alice@example.com')
+    expect(resent.token).toBeNull()
+    expect(resent.account).toBeNull()
+  })
+
+  it('sends nothing for an unknown address (no enumeration)', async () => {
+    const { service } = await register('email')
+    const resent = await service.resendVerification('nobody@example.com')
+    expect(resent.token).toBeNull()
+  })
+
+  it('sends nothing for a banned account', async () => {
+    const { service, account } = await register('email')
+    await store.accounts.setState(account.id, 'banned')
+
+    expect((await service.resendVerification('alice@example.com')).token).toBeNull()
+  })
+
+  it('under "both", stops once the address is proven', async () => {
+    const { service, account } = await register('both')
+    await store.accounts.markEmailVerified(account.id, new Date(), false)
+
+    // Still `awaiting_activation`, but waiting on a person rather than on a
+    // link — another link would confirm what is already confirmed.
+    expect((await store.accounts.findById(account.id))!.state).toBe('awaiting_activation')
+    expect((await service.resendVerification('alice@example.com')).token).toBeNull()
+  })
+
+  it('sends nothing when the board does not verify addresses at all', async () => {
+    const { account } = await register('email')
+    await store.accounts.setState(account.id, 'awaiting_activation')
+
+    // An `admin` board holds accounts for a person to approve, and there is no
+    // link to resend — a verification token issued here would redeem into
+    // nothing.
+    const noVerification = makeService(store, { activationMethod: 'admin' }).service
+    expect((await noVerification.resendVerification('alice@example.com')).token).toBeNull()
   })
 })
 
