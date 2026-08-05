@@ -13,7 +13,7 @@ import { defaultTheme } from './theme'
  * than the app, which is where the fix goes.
  */
 describe('the default theme', () => {
-  it('satisfies theme-kit v1', () => {
+  it('satisfies the theme-kit contract', () => {
     const report = assertThemeContract(resolveTheme(defaultTheme))
     expect(report.missing).toEqual([])
   })

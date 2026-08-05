@@ -6,7 +6,7 @@
  * binding to its module to check which side of the server/client boundary the
  * implementation is on, and a slot map assembled dynamically cannot be checked.
  *
- * **This theme satisfies theme-kit v1 (F77) and is still not complete**, and the
+ * **This theme satisfies the theme-kit contract (F77) and is still not complete**, and the
  * difference is the freeze: it fills every `stable` slot, and leaves the two
  * `provisional` ones — `QuickReply` and `EditorToolbar` — unimplemented, because
  * F45 does not exist and a placeholder island would look like a feature.

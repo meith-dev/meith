@@ -119,7 +119,7 @@ async function themeFacts(): Promise<ThemeFacts> {
     file,
     source,
     /\*\*theme-kit v([\d.]+)\.\*\*\s+(\d+)\s+slots:\s*(\d+)\s+stable,\s*(\d+)\s+provisional,\s*(\d+)\s+deprecated/,
-    "its slot count (“**theme-kit v1.6.** 27 slots: 25 stable, 2 provisional, 0 deprecated.”)",
+    "its slot count (“**theme-kit v0.8.** 27 slots: 25 stable, 2 provisional, 0 deprecated.”)",
   )
 
   return {

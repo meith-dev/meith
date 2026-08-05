@@ -1,7 +1,7 @@
 /**
  * `@meith/theme-kit` — the contract between the app and a theme (F25).
  *
- * Three things, frozen as **v1** by F77:
+ * Three things, frozen as the **slot contract** by F77:
  *
  *  - `SLOTS` — every replaceable region, each declaring server or client kind;
  *  - `SlotModels` — the JSON-shaped props each slot is handed;

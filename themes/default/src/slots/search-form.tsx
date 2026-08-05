@@ -12,7 +12,7 @@ import {
 import type { OptionModel, SearchFormModel } from '@meith/theme-kit'
 
 /**
- * The search form (F73), moved into the theme at the v1 freeze (F77).
+ * The search form (F73), moved into the theme at the slot-contract freeze (F77).
  *
  * It lived in `app/(board)/search/page.tsx` until then, which made `SearchForm`
  * the one slot in the registry that no page rendered — a documented contract with

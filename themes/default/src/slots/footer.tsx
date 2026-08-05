@@ -36,7 +36,7 @@ export function Footer({ boardTitle, links, timezoneLabel, poweredBy }: FooterMo
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:justify-end sm:text-right">
           <span>Times are shown in {timezoneLabel}</span>
           {/*
-            Optional in the model (v1.7), so a theme built against 1.6 is
+            Optional in the model (0.8), so a theme built against 0.7 is
             unaffected — and rendered here quietly. An attribution that shouts
             is an advert; one that sits beside the timezone note is a fact about
             the board, which is what it is.

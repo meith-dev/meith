@@ -1,5 +1,5 @@
 /**
- * F77 — the v1 freeze, stated as data rather than as a promise.
+ * F77 — the slot-contract freeze, stated as data rather than as a promise.
  *
  * Phases 2–7 built the slot registry and the view models opportunistically: a
  * page needed a region, a region needed a model, and both were free to change
@@ -10,14 +10,14 @@
  * A freeze that is only a paragraph in a document is not a freeze. What is here
  * is the machinery that makes the promise checkable:
  *
- *  - `SLOT_STABILITY` says, **for every slot**, whether v1 covers it. The record
+ *  - `SLOT_STABILITY` says, **for every slot**, whether the freeze covers it. The record
  *    is exhaustive over `SlotName`, so adding a slot without classifying it fails
  *    `pnpm typecheck` — a new slot cannot arrive quietly as "stable".
  *  - `DEPRECATIONS` is the machine-readable removal schedule, and
  *    `assertDeprecationPolicy` refuses a schedule that contradicts itself or has
  *    fallen due. A deprecation notice nobody acts on is how an API accumulates
  *    twelve years of "will be removed in the next major".
- *  - `checkThemeContract` answers whether a theme satisfies v1, which is what
+ *  - `checkThemeContract` answers whether a theme satisfies the contract, which is what
  *    `apps/forum` asserts at boot and what the ACP's theme screen can show.
  *  - `scripts/theme-api-docs.mjs` renders all of it to `docs/theme-slots.md` and
  *    fails the build when the file and the code disagree, so a contract change
@@ -53,46 +53,55 @@ import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
  * Not a patch component: this is a type-level contract with no runtime behaviour
  * to fix. A bug in `resolveTheme` is a package version, not an API version.
  *
- * **1.1** added the optional plugin-region fields F80 needs
+ * **Why the major is still `0`.** Meith has not been released. Nothing in here
+ * has ever been somebody else's dependency, and there is no installed board in
+ * the world for a rename to break. The freeze below is real — every rule it
+ * states is enforced by the code in this file and has been since F77 — but the
+ * major it counts toward is `1.0`, and that lands with the product rather than
+ * ahead of it. A `1` shipped before the first release is a compatibility promise
+ * made to nobody, and the first thing it costs is the removal that has to break
+ * it.
+ *
+ * **0.2** added the optional plugin-region fields F80 needs
  * (`BoardIndexModel.regions.plugins` and its siblings). Optional, additive, no
- * slot renamed and none removed — a theme written against 1.0 compiles and runs
+ * slot renamed and none removed — a theme written against 0.1 compiles and runs
  * unchanged, which is the promise a minor is. It is also the first exercise of
  * this policy on something real rather than on a fixture.
  *
- * **1.2** added F71's `Announcement` slot and the two optional
+ * **0.3** added F71's `Announcement` slot and the two optional
  * `regions.announcements` fields that place it. A new slot is additive by
  * construction — no theme is required to have implemented one that did not
- * exist — and the region fields follow 1.1's rule. The second exercise of the
+ * exist — and the region fields follow 0.2's rule. The second exercise of the
  * policy, and the first time it covered a new *slot* rather than a new field.
  *
- * **1.3** added the optional `regions.tools` on `ThreadViewModel` and
- * `ForumDisplayModel`. Same rule as 1.1's, and it is worth saying what it
+ * **0.4** added the optional `regions.tools` on `ThreadViewModel` and
+ * `ForumDisplayModel`. Same rule as 0.2's, and it is worth saying what it
  * bought: the thread-scoped controls a route renders — follow, rate, vote,
  * moderate — had nowhere in the contract to go, so they were stacked *above*
  * the slot, which put four widgets ahead of the `<h1>` naming the thread they
  * acted on. A region is what lets a theme place them where they belong.
  *
- * **1.4** added `regions.afterContent` beside it on both, because "where they
+ * **0.5** added `regions.afterContent` beside it on both, because "where they
  * belong" turned out to be two places rather than one. A poll and a
  * moderator's bar precede the posts; rating a thread and following a forum
  * follow them. Asking somebody to rate a discussion above its first post, or
  * to subscribe to a forum above its thread list, is asking for a verdict on
  * something they have not read.
  *
- * **1.7** added the optional `FooterModel.poweredBy`, so the board can say what
- * it runs on and link to it. Additive under 1.1's rule — a theme written against
+ * **0.8** added the optional `FooterModel.poweredBy`, so the board can say what
+ * it runs on and link to it. Additive under 0.2's rule — a theme written against
  * any earlier minor renders exactly what it did before. It is a `LinkModel`
  * rather than a string each theme hardcodes because the app owns the words and
  * the URL, which is the same reason `links` is one.
  */
-export const THEME_API_VERSION = '1.7'
+export const THEME_API_VERSION = '0.8'
 
 /**
  * How much of a promise a slot carries.
  *
- * `stable` — v1 covers it. Its name, its kind and its model's existing fields
- * do not change before v2, and a change to any of them goes through
- * `DEPRECATIONS` first.
+ * `stable` — the freeze covers it. Its name, its kind and its model's existing
+ * fields do not change before the next major, and a change to any of them goes
+ * through `DEPRECATIONS` first.
  *
  * `provisional` — named and documented, outside the promise. It exists so themes
  * can see what is coming and so the registry is not retrofitted onto finished
@@ -109,7 +118,7 @@ export const THEME_API_VERSION = '1.7'
 export type Stability = 'stable' | 'provisional' | 'deprecated'
 
 /**
- * Every slot's place in v1.
+ * Every slot's place in the freeze.
  *
  * Exhaustive by construction — `Record<SlotName, Stability>` — which is the
  * mechanism, not the annotation. Adding a slot to `SLOTS` and not to this map is
@@ -189,8 +198,8 @@ export const DEPRECATIONS: readonly Deprecation[] = [
   {
     kind: 'field',
     name: 'PostBitModel.quoteSource',
-    since: '1.4',
-    removeIn: '2.0',
+    since: '0.5',
+    removeIn: '1.0',
     replacement: 'PostBitModel.post.id',
     reason:
       'It carried a post’s Markdown source to the client so the multiquote ' +
@@ -340,10 +349,10 @@ export function deprecationsFor(
 }
 
 /* ------------------------------------------------------------------ *
- * What v1 asks of a theme
+ * What the contract asks of a theme
  * ------------------------------------------------------------------ */
 
-/** Slots a theme must fill to satisfy v1, in registry order. */
+/** Slots a theme must fill to satisfy the contract, in registry order. */
 export function requiredSlots(
   stability: Readonly<Record<string, Stability>> = SLOT_STABILITY,
 ): readonly SlotName[] {
@@ -362,7 +371,7 @@ export interface ThemeContractReport {
 }
 
 /**
- * Measure a resolved theme against v1.
+ * Measure a resolved theme against the contract.
  *
  * Deliberately a *report* rather than a throw. Three callers want three
  * different reactions to the same facts: the app fails to boot, the ACP's theme
@@ -399,7 +408,7 @@ export function checkThemeContract(
 }
 
 /**
- * Throw unless a theme satisfies v1.
+ * Throw unless a theme satisfies the contract.
  *
  * This is what `assertComplete` was reserved for and is not quite the same
  * thing: completeness means every slot, and two of them belong to a feature that

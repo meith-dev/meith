@@ -77,7 +77,7 @@ import {
  * `header.notice` region is app-rendered: *whether a board offers a theme
  * switcher* is the application's decision, not one each theme should be able to
  * make — a theme that forgot to render it would strand every member who had
- * chosen a different one, in that theme, with no way back. The v1 slot contract
+ * chosen a different one, in that theme, with no way back. The slot contract
  * is frozen (F77) and this adds nothing to it.
  */
 
