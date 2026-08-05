@@ -9,7 +9,7 @@
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
-import type { WordFilterRule } from '@meith/bbcode'
+import type { WordFilterRule } from '@meith/markdown'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -27,7 +27,7 @@ export interface SmileyRow {
   readonly enabled: boolean
 }
 
-export interface CustomTagRow {
+export interface DirectiveRow {
   readonly id: number
   readonly name: string
   readonly block: boolean
@@ -187,7 +187,7 @@ export class PostgresContentAdminRepository {
   }
 
   /* ---------------------------------------------------------------- *
-   * The board's BBCode vocabulary (F71)
+   * The board's markup vocabulary (F71)
    * ---------------------------------------------------------------- */
 
   /**
@@ -200,7 +200,7 @@ export class PostgresContentAdminRepository {
   async vocabularyRevision(): Promise<number> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select version from cache_versions where key = 'bbcode_vocabulary'
+        select version from cache_versions where key = 'markdown_vocabulary'
       `),
     ) as Array<{ version: number }>
 
@@ -222,7 +222,7 @@ export class PostgresContentAdminRepository {
    */
   async bumpVocabulary(): Promise<void> {
     await this.db.execute(sql`
-      insert into cache_versions (key, version) values ('bbcode_vocabulary', 1)
+      insert into cache_versions (key, version) values ('markdown_vocabulary', 1)
       on conflict (key) do update
          set version = cache_versions.version + 1, bumped_at = now()
     `)
@@ -292,10 +292,10 @@ export class PostgresContentAdminRepository {
     await this.bumpVocabulary()
   }
 
-  async listCustomTags(): Promise<readonly CustomTagRow[]> {
+  async listDirectives(): Promise<readonly DirectiveRow[]> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select id, name, block, description, enabled from custom_bbcode order by name
+        select id, name, block, description, enabled from custom_directives order by name
       `),
     ) as Array<Record<string, unknown>>
 
@@ -308,14 +308,14 @@ export class PostgresContentAdminRepository {
     }))
   }
 
-  async createCustomTag(input: {
+  async createDirective(input: {
     readonly name: string
     readonly block: boolean
     readonly description: string | null
   }): Promise<number> {
     const rows = resultRows(
       await this.db.execute(sql`
-        insert into custom_bbcode (name, block, description)
+        insert into custom_directives (name, block, description)
         values (${input.name}, ${input.block}, ${input.description})
         returning id
       `),
@@ -325,7 +325,7 @@ export class PostgresContentAdminRepository {
     return Number(rows[0]?.id)
   }
 
-  async updateCustomTag(
+  async updateDirective(
     id: number,
     input: {
       readonly name: string
@@ -336,7 +336,7 @@ export class PostgresContentAdminRepository {
   ): Promise<void> {
     const rows = resultRows(
       await this.db.execute(sql`
-        update custom_bbcode
+        update custom_directives
            set name = ${input.name}, block = ${input.block},
                description = ${input.description}, enabled = ${input.enabled}
          where id = ${id}
@@ -344,22 +344,21 @@ export class PostgresContentAdminRepository {
       `),
     ) as Array<{ id: number }>
 
-    if (rows[0] === undefined) throw new ValidationError('No such BBCode tag.')
+    if (rows[0] === undefined) throw new ValidationError('No such directive.')
     await this.bumpVocabulary()
   }
 
   /**
-   * Delete a custom tag.
+   * Delete a directive.
    *
    * Same argument as a smiley, with one more consequence to be honest about:
-   * `[spoiler]x[/spoiler]` in a post whose tag has been removed renders as that
-   * literal text, because the parser demotes an unknown tag rather than
-   * dropping it (F36). Nothing is lost and nothing breaks — the post shows the
-   * markup its author typed, which is the least surprising of the available
-   * failures.
+   * `:spoiler[x]` in a post whose directive has been removed renders as that
+   * literal text, because the parser only opens a directive it has been told
+   * about (F36). Nothing is lost and nothing breaks — the post shows the markup
+   * its author typed, which is the least surprising of the available failures.
    */
-  async deleteCustomTag(id: number): Promise<void> {
-    await this.db.execute(sql`delete from custom_bbcode where id = ${id}`)
+  async deleteDirective(id: number): Promise<void> {
+    await this.db.execute(sql`delete from custom_directives where id = ${id}`)
     await this.bumpVocabulary()
   }
 }

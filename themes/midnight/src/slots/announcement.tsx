@@ -15,8 +15,8 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
       <h2 className="font-serif text-lg font-semibold text-foreground">{title}</h2>
 
       <div
-        className="prose-bb text-sm text-foreground"
-        /* Trusted: `@meith/bbcode`'s own output, same contract as a post body. */
+        className="prose-md text-sm text-foreground"
+        /* Trusted: `@meith/markdown`'s own output, same contract as a post body. */
         dangerouslySetInnerHTML={{ __html: bodyHtml }}
       />
 

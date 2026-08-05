@@ -77,7 +77,7 @@ export function compileWordFilter(rules: readonly WordFilterRule[]): CompiledWor
  * The scan is deliberately simple: everything from `<` to the next `>` is
  * markup and is copied through untouched; everything else is text and is
  * substituted. That is sound for this input because the HTML being filtered is
- * the renderer's *own* output — `@meith/bbcode` produces a fixed, sanitised
+ * the renderer's *own* output — `@meith/markdown` produces a fixed, sanitised
  * tag set with no raw `<` surviving in text (it is escaped to `&lt;`), so a
  * bare angle bracket in a post cannot desynchronise the scanner.
  */

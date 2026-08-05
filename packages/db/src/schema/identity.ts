@@ -148,14 +148,16 @@ export const users = pgTable(
     warningPoints: smallint('warning_points').notNull().default(0),
 
     /*
-     * F58's signature. Raw BBCode plus F36's render pair, for the third time
+     * F58's signature. Raw Markdown plus F36's render pair, for the third time
      * (`posts`, `private_messages`, now here) — a signature is member-written
-     * BBCode under every one of their posts, so a renderer security fix has to
+     * markup under every one of their posts, so a renderer security fix has to
      * reach it the same way it reaches everything else.
      */
     signature: text('signature').notNull().default(''),
     signatureHtml: text('signature_html'),
     signatureRenderVersion: smallint('signature_render_version').notNull().default(0),
+    /** `BodyFormat`; see `posts.bodyFormat`. */
+    signatureFormat: smallint('signature_format').notNull().default(1),
     /** Locked by a moderator: kept, not rendered, not editable. */
     signatureLocked: boolean('signature_locked').notNull().default(false),
     signatureLockedReason: text('signature_locked_reason'),

@@ -173,7 +173,7 @@ export interface MessageView {
   readonly subject: string
   readonly author: string
   readonly at: TimeModel
-  /** Trusted HTML from `@meith/bbcode`, exactly as a post body is (F36). */
+  /** Trusted HTML from `@meith/markdown`, exactly as a post body is (F36). */
   readonly bodyHtml: string
   readonly folder: MessageFolder
   readonly participants: readonly ParticipantView[]

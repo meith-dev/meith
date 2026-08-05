@@ -291,9 +291,16 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         await tx.execute(sql`
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, subject, message,
-             message_html, render_version, visibility, is_first_post, created_at)
+             message_html, render_version, vocab_version, body_format, visibility,
+             is_first_post, created_at)
           select ${newThreadId}, ${input.toForumId}, p.author_user_id, p.author_username,
                  p.subject, p.message, p.message_html, p.render_version,
+                 /*
+                  * Both stamps travel with the body. A copy that claimed to be
+                  * Markdown because the column defaults that way would be a post
+                  * whose BBCode the backfill has been told it already converted.
+                  */
+                 p.vocab_version, p.body_format,
                  'visible', p.is_first_post, p.created_at
             from posts p
            where p.thread_id = ${input.threadId} and p.visibility = 'visible'

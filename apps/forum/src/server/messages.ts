@@ -15,7 +15,7 @@ import 'server-only'
  */
 import { MessageService, type MessageNotifierPort, type MessagePolicy } from '@meith/messages'
 
-import { EMPTY_VOCABULARY } from '@meith/bbcode'
+import { EMPTY_VOCABULARY } from '@meith/markdown'
 
 import { activeVocabulary } from './content-admin'
 import { getContainer } from './container'

@@ -23,7 +23,7 @@ function makePlugin(key: string, hooks: PluginHooks): PluginDefinition {
 describe('filters', () => {
   it('returns the value unchanged when nothing is listening', async () => {
     const host = new PluginHost({ plugins: [] })
-    expect(await host.applyFilter('bbcode.render.html', '<p>hi</p>', { ...VIEWER, source: 'post' })).toBe(
+    expect(await host.applyFilter('markdown.render.html', '<p>hi</p>', { ...VIEWER, source: 'post' })).toBe(
       '<p>hi</p>',
     )
   })
@@ -31,12 +31,12 @@ describe('filters', () => {
   it('chains: each plugin sees what the last one returned', async () => {
     const host = new PluginHost({
       plugins: [
-        makePlugin('alpha', { 'bbcode.render.html': (value) => `${value}A` }),
-        makePlugin('bravo', { 'bbcode.render.html': (value) => `${value}B` }),
+        makePlugin('alpha', { 'markdown.render.html': (value) => `${value}A` }),
+        makePlugin('bravo', { 'markdown.render.html': (value) => `${value}B` }),
       ],
     })
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xAB')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xAB')
   })
 
   /*
@@ -47,27 +47,27 @@ describe('filters', () => {
   it('orders by priority, then by plugin key — never by registration order', async () => {
     const host = new PluginHost({
       plugins: [
-        makePlugin('zulu', { 'bbcode.render.html': (value) => `${value}Z` }),
-        makePlugin('alpha', { 'bbcode.render.html': (value) => `${value}A` }),
+        makePlugin('zulu', { 'markdown.render.html': (value) => `${value}Z` }),
+        makePlugin('alpha', { 'markdown.render.html': (value) => `${value}A` }),
         makePlugin('mike', {
-          'bbcode.render.html': { handler: (value) => `${value}M`, priority: 10 },
+          'markdown.render.html': { handler: (value) => `${value}M`, priority: 10 },
         }),
       ],
     })
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xMAZ')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xMAZ')
   })
 
   it('awaits an async filter', async () => {
     const host = new PluginHost({
       plugins: [
         makePlugin('alpha', {
-          'bbcode.render.html': async (value) => Promise.resolve(`${value}!`),
+          'markdown.render.html': async (value) => Promise.resolve(`${value}!`),
         }),
       ],
     })
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
   })
 
   /*
@@ -82,15 +82,15 @@ describe('filters', () => {
       logger,
       plugins: [
         makePlugin('alpha', {
-          'bbcode.render.html': () => {
+          'markdown.render.html': () => {
             throw new Error('boom')
           },
         }),
-        makePlugin('bravo', { 'bbcode.render.html': (value) => `${value}B` }),
+        makePlugin('bravo', { 'markdown.render.html': (value) => `${value}B` }),
       ],
     })
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xB')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xB')
     expect(logger.errors).toHaveLength(1)
   })
 
@@ -98,12 +98,12 @@ describe('filters', () => {
     const host = new PluginHost({
       plugins: [
         makePlugin('alpha', {
-          'bbcode.render.html': async () => Promise.reject(new Error('boom')),
+          'markdown.render.html': async () => Promise.reject(new Error('boom')),
         }),
       ],
     })
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
   })
 
   /*
@@ -113,10 +113,10 @@ describe('filters', () => {
    */
   it('keeps the previous value when a filter returns nothing', async () => {
     const host = new PluginHost({
-      plugins: [makePlugin('alpha', { 'bbcode.render.html': (() => undefined) as never })],
+      plugins: [makePlugin('alpha', { 'markdown.render.html': (() => undefined) as never })],
     })
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
   })
 
   /* `null` is a legitimate value for the hooks whose payload is nullable. */
@@ -175,7 +175,7 @@ describe('failure isolation and auto-disable', () => {
       'post.created': () => {
         throw new Error('always')
       },
-      'bbcode.render.html': (value) => `${value}!`,
+      'markdown.render.html': (value) => `${value}!`,
     })
 
   const fire = async (host: PluginHost, times: number): Promise<void> => {
@@ -206,19 +206,19 @@ describe('failure isolation and auto-disable', () => {
   it('stops calling the plugin’s other hooks once it is disabled', async () => {
     const host = new PluginHost({ plugins: [throwing('alpha')], failureThreshold: 2 })
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
     await fire(host, 2)
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
   })
 
   it('leaves a healthy plugin running when another one is disabled', async () => {
     const host = new PluginHost({
-      plugins: [throwing('alpha'), makePlugin('bravo', { 'bbcode.render.html': (v) => `${v}B` })],
+      plugins: [throwing('alpha'), makePlugin('bravo', { 'markdown.render.html': (v) => `${v}B` })],
       failureThreshold: 1,
     })
 
     await fire(host, 1)
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xB')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('xB')
   })
 
   /*
@@ -232,7 +232,7 @@ describe('failure isolation and auto-disable', () => {
       failureThreshold: 1,
       plugins: [
         makePlugin('alpha', {
-          'bbcode.render.html': (value) => {
+          'markdown.render.html': (value) => {
             if (failing) throw new Error('transient')
             return `${value}!`
           },
@@ -240,18 +240,18 @@ describe('failure isolation and auto-disable', () => {
       ],
     })
 
-    await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })
+    await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })
     failing = false
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
   })
 
   it('an operator disabling a plugin reaches the same state', async () => {
     const host = new PluginHost({
-      plugins: [makePlugin('alpha', { 'bbcode.render.html': (v) => `${v}!` })],
+      plugins: [makePlugin('alpha', { 'markdown.render.html': (v) => `${v}!` })],
     })
 
     host.disable('alpha', 'operator')
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
     expect(host.health()[0]?.disabledReason).toBe('operator')
   })
 })
@@ -273,12 +273,12 @@ describe('timing', () => {
 
   it('counts calls and accumulates time per plugin', async () => {
     const host = new PluginHost({
-      plugins: [makePlugin('alpha', { 'bbcode.render.html': (v) => `${v}!` })],
+      plugins: [makePlugin('alpha', { 'markdown.render.html': (v) => `${v}!` })],
       now: clockAdvancing(10),
     })
 
-    await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })
-    await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })
+    await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })
+    await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })
 
     const health = host.health()[0]
     expect(health?.calls).toBe(2)
@@ -289,12 +289,12 @@ describe('timing', () => {
     const logger = silentLogger()
     const host = new PluginHost({
       logger,
-      plugins: [makePlugin('alpha', { 'bbcode.render.html': (v) => `${v}!` })],
+      plugins: [makePlugin('alpha', { 'markdown.render.html': (v) => `${v}!` })],
       now: clockAdvancing(500),
       slowCallMs: 100,
     })
 
-    await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })
+    await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })
     expect(host.health()[0]?.slowCalls).toBe(1)
     expect(logger.warns).toHaveLength(1)
   })

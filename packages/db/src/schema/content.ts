@@ -187,11 +187,22 @@ export const posts = pgTable(
 
     /** Optional per-post subject; most posts inherit the thread title. */
     subject: text('subject'),
-    /** Raw BBCode as typed. The source of truth; the columns below cache it. */
+    /** Raw Markdown as typed. The source of truth; the columns below cache it. */
     message: text('message').notNull(),
 
     /**
-     * `message` rendered by `@meith/bbcode`, and the renderer version that did
+     * Which markup language `message` is written in (`BodyFormat`).
+     *
+     * `0` is BBCode and exists only for rows written before Markdown landed;
+     * `1` is Markdown and is what every write path stores. The backfill
+     * converts a legacy row's source once and stamps it `1`, so this column
+     * counts down to a single value and then stays there. See
+     * `migrations/0031_markdown.sql` for why the default is what it is.
+     */
+    bodyFormat: smallint('body_format').notNull().default(1),
+
+    /**
+     * `message` rendered by `@meith/markdown`, and the renderer version that did
      * it (F36).
      *
      * Null, or a version other than the current one, means "render it live" —
@@ -207,12 +218,12 @@ export const posts = pgTable(
      * Which board vocabulary produced `message_html` (F71).
      *
      * The second half of "which renderer made this". `render_version` covers
-     * the *code*; this covers the smilies and custom tags an operator has
+     * the *code*; this covers the smilies and directives an operator has
      * configured, which are equally part of what the renderer does — a smiley
-     * is expanded from a text node and a custom tag changes how the source
+     * is expanded from a text node and a directive changes how the source
      * parses, so both are baked in here rather than applied on the way out.
      *
-     * Compared against `cache_versions['bbcode_vocabulary']`. A mismatch means
+     * Compared against `cache_versions['markdown_vocabulary']`. A mismatch means
      * the same thing a stale `render_version` does: render live, and let the
      * backfill rewrite it behind the read path. Never an error, and never a
      * reason to hide a post.
@@ -709,7 +720,7 @@ export const wordFilters = pgTable('word_filters', {
  *
  * Unlike a word filter, this is baked into the stored render — a smiley is
  * expanded from a text node while the document is being rendered — so editing
- * this table bumps `cache_versions['bbcode_vocabulary']` and every stored
+ * this table bumps `cache_versions['markdown_vocabulary']` and every stored
  * render on the board goes stale. See `posts.vocabVersion`.
  */
 export const smilies = pgTable(
@@ -718,7 +729,7 @@ export const smilies = pgTable(
     id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
     /** Literal source text such as `:)`. Longest match wins at render time. */
     code: text('code').notNull(),
-    /** Put through the same image-URL policy as `[img]` before it is rendered. */
+    /** Put through the same image-URL policy as an inline image before it renders. */
     src: text('src').notNull(),
     /** Shown when the image cannot be. Defaults to the code itself. */
     alt: text('alt'),
@@ -735,19 +746,22 @@ export const smilies = pgTable(
 )
 
 /**
- * Custom BBCode tags (F71), over F37's `createTagRegistry`.
+ * Custom directives (F71), over F37's `createDirectiveRegistry`.
  *
- * **The columns are the safety argument.** A tag chooses a name and whether it
+ * The board's own additions to the markup language, spelled the way Markdown
+ * spells an extension: `:::spoiler` … `:::` for a block, `:spoiler[…]` for a
+ * span. Until this release they were custom BBCode tags; the table changed its
+ * name in `0031_markdown.sql` and kept every column, because the safety
+ * argument did not change.
+ *
+ * **The columns are that argument.** A directive chooses a name and whether it
  * is inline or block; there is no template, no replacement pattern, no renderer
  * and no HTML, because a field that chose output markup would be a second
  * markup language administered through a web form — which is how every board
  * with "custom MyCode" acquired a permanent XSS surface.
- *
- * A name that already exists in the core tag set is refused: changing what
- * `[url]` does must be a code review, not a setting.
  */
-export const customBbcode = pgTable(
-  'custom_bbcode',
+export const customDirectives = pgTable(
+  'custom_directives',
   {
     id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
     /** 1–16 letters or digits, starting with a letter. Stored lower-cased. */
@@ -761,7 +775,7 @@ export const customBbcode = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex('custom_bbcode_name_key').on(t.name)],
+  (t) => [uniqueIndex('custom_directives_name_key').on(t.name)],
 )
 
 /**
@@ -793,8 +807,10 @@ export const announcements = pgTable(
      */
     forumId: integer('forum_id').references(() => forums.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
-    /** BBCode source. Rendered on read, with whatever vocabulary is current. */
+    /** Markdown source. Rendered on read, with whatever vocabulary is current. */
     message: text('message').notNull(),
+    /** `BodyFormat`; see `posts.bodyFormat`. Announcements have no stored render. */
+    bodyFormat: smallint('body_format').notNull().default(1),
     authorUserId: integer('author_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),

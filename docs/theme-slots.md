@@ -147,7 +147,7 @@ Props: `AnnouncementModel`
 | Field | Type | Notes |
 |---|---|---|
 | `title` | `string` |  |
-| `bodyHtml` | `string` | Trusted HTML, from `@meith/bbcode`'s own renderer — the same contract as a post body, and the reason a theme inserts it rather than escaping it. |
+| `bodyHtml` | `string` | Trusted HTML, from `@meith/markdown`'s own renderer — the same contract as a post body, and the reason a theme inserts it rather than escaping it. |
 | `postedBy` | `UserRefModel \| null` |  |
 | `postedAt` | `TimeModel` |  |
 | `forum` | `LinkModel \| null` | The forum it belongs to, or `null` when it is board-wide. |
@@ -360,7 +360,7 @@ Props: `PostFormModel`
 
 `client` · provisional
 
-BBCode buttons, preview, attachment picker. Mounted beside the textarea; removing it must leave a working plain-textarea form.
+Formatting toolbar, preview, attachment picker. Mounted beside the textarea; removing it must leave a working plain-textarea form.
 
 Props: `EditorToolbarModel`
 
@@ -571,7 +571,7 @@ The author block beside a post.
 | `title` | `string \| null` | Usergroup title or custom user title. |
 | `postCount` | `number` |  |
 | `joinedAt` | `TimeModel \| null` |  |
-| `signatureHtml` | `string \| null` | Pre-rendered BBCode. Trusted output of the sanitising renderer. |
+| `signatureHtml` | `string \| null` | Pre-rendered Markdown. Trusted output of the board's own renderer. |
 | `isOnline` | `boolean` |  |
 | `fields` | `readonly { readonly label: string; readonly value: string }[]` | Custom profile fields, for the ones an operator marked for the postbit and this viewer may see. The same `{label, value}` shape `MemberProfileModel.fields` uses, and **plain text** for the same reason: it is rendered as text by the theme, and a field that could carry markup is stored XSS on the board's heaviest page. Empty on a board with no custom fields, which is most of them. |
 
@@ -583,8 +583,8 @@ The author block beside a post.
 | `number` | `number` | Position within the thread, 1-based. What "#12" in the corner means. |
 | `permalink` | `string` |  |
 | `author` | `PostAuthorModel` |  |
-| `bodyHtml` | `string` | Pre-rendered BBCode. |
-| `quoteSource` | `string` | Source used only by the client multiquote button; themes never render it. |
+| `bodyHtml` | `string` | Pre-rendered Markdown. |
+| `quoteSource` | `string` | @deprecated Since theme API 1.4, removed in 2.0. Use `post.id`. It existed so the client could assemble a quote out of the page. Quoting asks the server for a post **by id** now, which re-checks who may see it and cannot hand back what a deleted post used to say — so this is a copy of every post's source in the HTML of every thread page, for nobody. Still populated, because a theme could have read it; see `DEPRECATIONS`. |
 | `postedAt` | `TimeModel` |  |
 | `editedNote` | `string \| null` | "Last edited by X on Y", already assembled, or `null`. |
 | `isFirstPost` | `boolean` |  |

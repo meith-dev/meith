@@ -115,9 +115,6 @@ importers:
       '@meith/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
-      '@meith/bbcode':
-        specifier: workspace:*
-        version: link:../../packages/bbcode
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -142,6 +139,9 @@ importers:
       '@meith/install':
         specifier: workspace:*
         version: link:../../packages/install
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../../packages/markdown
       '@meith/messages':
         specifier: workspace:*
         version: link:../../packages/messages
@@ -356,8 +356,6 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/bbcode: {}
-
   packages/core:
     dependencies:
       pino:
@@ -392,9 +390,6 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
-      '@meith/bbcode':
-        specifier: workspace:*
-        version: link:../bbcode
       '@meith/core':
         specifier: workspace:*
         version: link:../core
@@ -410,6 +405,9 @@ importers:
       '@meith/groups':
         specifier: workspace:*
         version: link:../groups
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../markdown
       '@meith/messages':
         specifier: workspace:*
         version: link:../messages
@@ -531,14 +529,16 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  packages/markdown: {}
+
   packages/messages:
     dependencies:
-      '@meith/bbcode':
-        specifier: workspace:*
-        version: link:../bbcode
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../markdown
 
   packages/moderation:
     dependencies:
@@ -548,12 +548,12 @@ importers:
 
   packages/notifications:
     dependencies:
-      '@meith/bbcode':
-        specifier: workspace:*
-        version: link:../bbcode
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../markdown
 
   packages/plugin-kit:
     dependencies:
@@ -666,12 +666,12 @@ importers:
 
   packages/signatures:
     dependencies:
-      '@meith/bbcode':
-        specifier: workspace:*
-        version: link:../bbcode
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../markdown
 
   packages/subscriptions:
     dependencies:
@@ -724,6 +724,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../core
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../markdown
       '@meith/polls':
         specifier: workspace:*
         version: link:../polls

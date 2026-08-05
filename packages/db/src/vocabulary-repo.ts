@@ -1,5 +1,5 @@
 /**
- * F71 — reading the board's BBCode vocabulary, for the paths that must render
+ * F71 — reading the board's markup vocabulary, for the paths that must render
  * with it.
  *
  * A free function rather than a method on `PostgresContentAdminRepository`,
@@ -26,7 +26,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { EMPTY_VOCABULARY, compileVocabulary, type BoardVocabulary } from '@meith/bbcode'
+import { EMPTY_VOCABULARY, compileVocabulary, type BoardVocabulary } from '@meith/markdown'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -43,7 +43,7 @@ import { resultRows } from './result-rows'
 export async function readBoardVocabulary(db: Database): Promise<BoardVocabulary> {
   const source = await db.transaction(async (tx) => {
     const revision = resultRows(
-      await tx.execute(sql`select version from cache_versions where key = 'bbcode_vocabulary'`),
+      await tx.execute(sql`select version from cache_versions where key = 'markdown_vocabulary'`),
     ) as Array<{ version: number }>
 
     /*
@@ -57,8 +57,8 @@ export async function readBoardVocabulary(db: Database): Promise<BoardVocabulary
       await tx.execute(sql`select code, src, alt from smilies where enabled = true order by id`),
     ) as Array<Record<string, unknown>>
 
-    const customTags = resultRows(
-      await tx.execute(sql`select name, block from custom_bbcode where enabled = true order by name`),
+    const directives = resultRows(
+      await tx.execute(sql`select name, block from custom_directives where enabled = true order by name`),
     ) as Array<Record<string, unknown>>
 
     return {
@@ -68,7 +68,7 @@ export async function readBoardVocabulary(db: Database): Promise<BoardVocabulary
         src: String(row.src),
         ...(row.alt === null ? {} : { alt: String(row.alt) }),
       })),
-      customTags: customTags.map((row) => ({
+      directives: directives.map((row) => ({
         name: String(row.name),
         block: row.block === true,
       })),

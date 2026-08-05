@@ -9,6 +9,7 @@
  */
 import { sql } from 'drizzle-orm'
 
+import { BodyFormat } from '@meith/markdown'
 import type { StoredSignature } from '@meith/signatures'
 
 import type { Database } from './client'
@@ -18,6 +19,7 @@ interface RawSignature {
   signature: string
   signature_html: string | null
   signature_render_version: number
+  signature_format: number
   signature_locked: boolean
   signature_locked_reason: string | null
 }
@@ -27,13 +29,14 @@ function toSignature(row: RawSignature): StoredSignature {
     signature: row.signature,
     signatureHtml: row.signature_html,
     signatureRenderVersion: Number(row.signature_render_version),
+    signatureFormat: Number(row.signature_format),
     locked: row.signature_locked === true,
     lockedReason: row.signature_locked_reason,
   }
 }
 
 const COLUMNS = sql`
-  signature, signature_html, signature_render_version,
+  signature, signature_html, signature_render_version, signature_format,
   signature_locked, signature_locked_reason
 `
 
@@ -94,7 +97,13 @@ export class PostgresSignatureRepository {
         update users
            set signature = ${input.signature},
                signature_html = ${input.signatureHtml},
-               signature_render_version = ${input.renderVersion}
+               signature_render_version = ${input.renderVersion},
+               /*
+                * A save is what takes a member off the legacy format for good:
+                * what they just typed in the composer is Markdown, whatever the
+                * row said a moment ago.
+                */
+               signature_format = ${BodyFormat.Markdown}
          where id = ${input.userId} and signature_locked = false
         returning id
       `),

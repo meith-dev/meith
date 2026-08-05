@@ -1,25 +1,25 @@
 "use client"
 
-/** F71's forms: word filters, thread prefixes, smilies and custom BBCode. */
+/** F71's forms: word filters, thread prefixes, smilies and custom directives. */
 import { useActionState } from "react"
 
 import {
   createAnnouncementAction,
   createCaptchaQuestionAction,
-  createCustomTagAction,
+  createDirectiveAction,
   createPrefixAction,
   createSmileyAction,
   createWordFilterAction,
   deleteAnnouncementAction,
   deleteAttachmentAction,
   deleteCaptchaQuestionAction,
-  deleteCustomTagAction,
+  deleteDirectiveAction,
   deletePrefixAction,
   deleteSmileyAction,
   deleteWordFilterAction,
   updateAnnouncementAction,
   updateCaptchaQuestionAction,
-  updateCustomTagAction,
+  updateDirectiveAction,
   updateSmileyAction,
   updateWordFilterAction,
 } from "@/server/content-admin-actions"
@@ -204,7 +204,7 @@ export function NewPrefixForm() {
 }
 
 /* ------------------------------------------------------------------ *
- * The board's BBCode vocabulary
+ * The board's markup vocabulary
  * ------------------------------------------------------------------ */
 
 export interface SmileyValues {
@@ -310,7 +310,7 @@ export function NewSmileyForm() {
   )
 }
 
-export interface CustomTagValues {
+export interface DirectiveValues {
   readonly id: number
   readonly name: string
   readonly block: boolean
@@ -318,9 +318,9 @@ export interface CustomTagValues {
   readonly enabled: boolean
 }
 
-export function CustomTagRowForm({ tag }: { tag: CustomTagValues }) {
-  const [state, action] = useActionState(updateCustomTagAction, EMPTY_STATE)
-  const [removeState, removeAction] = useActionState(deleteCustomTagAction, EMPTY_STATE)
+export function DirectiveRowForm({ directive }: { directive: DirectiveValues }) {
+  const [state, action] = useActionState(updateDirectiveAction, EMPTY_STATE)
+  const [removeState, removeAction] = useActionState(deleteDirectiveAction, EMPTY_STATE)
 
   return (
     <div className="flex flex-col gap-2 py-3">
@@ -328,16 +328,16 @@ export function CustomTagRowForm({ tag }: { tag: CustomTagValues }) {
       <Saved when={state.notice === "saved"}>Saved.</Saved>
 
       <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
-        <input type="hidden" name="id" value={tag.id} />
+        <input type="hidden" name="id" value={directive.id} />
 
         <label className="flex w-36 flex-col gap-1 text-sm">
-          <span className="font-medium">Tag</span>
-          <input name="name" defaultValue={tag.name} className={INPUT} required />
+          <span className="font-medium">Name</span>
+          <input name="name" defaultValue={directive.name} className={INPUT} required />
         </label>
 
         <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
           <span className="font-medium">Note</span>
-          <input name="description" defaultValue={tag.description ?? ""} className={INPUT} />
+          <input name="description" defaultValue={directive.description ?? ""} className={INPUT} />
         </label>
 
         <label className="flex items-center gap-2 text-sm">
@@ -345,7 +345,7 @@ export function CustomTagRowForm({ tag }: { tag: CustomTagValues }) {
             type="checkbox"
             name="block"
             value="1"
-            defaultChecked={tag.block}
+            defaultChecked={directive.block}
             className="size-4"
           />
           <span>Block</span>
@@ -356,7 +356,7 @@ export function CustomTagRowForm({ tag }: { tag: CustomTagValues }) {
             type="checkbox"
             name="enabled"
             value="1"
-            defaultChecked={tag.enabled}
+            defaultChecked={directive.enabled}
             className="size-4"
           />
           <span>Enabled</span>
@@ -368,7 +368,7 @@ export function CustomTagRowForm({ tag }: { tag: CustomTagValues }) {
       </form>
 
       <form action={removeAction}>
-        <input type="hidden" name="id" value={tag.id} />
+        <input type="hidden" name="id" value={directive.id} />
         <button type="submit" className="text-xs text-destructive hover:underline">
           Remove
         </button>
@@ -377,8 +377,8 @@ export function CustomTagRowForm({ tag }: { tag: CustomTagValues }) {
   )
 }
 
-export function NewCustomTagForm() {
-  const [state, action] = useActionState(createCustomTagAction, EMPTY_STATE)
+export function NewDirectiveForm() {
+  const [state, action] = useActionState(createDirectiveAction, EMPTY_STATE)
 
   return (
     <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
@@ -386,9 +386,12 @@ export function NewCustomTagForm() {
       <Saved when={state.notice === "saved"}>Added.</Saved>
 
       <label className="flex w-36 flex-col gap-1 text-sm">
-        <span className="font-medium">Tag</span>
+        <span className="font-medium">Name</span>
         <input name="name" className={INPUT} placeholder="spoiler" required />
-        <span className="text-xs text-muted-foreground">1–16 letters or digits.</span>
+        <span className="text-xs text-muted-foreground">
+          1–16 letters or digits. Written <code>:::spoiler</code> as a block, or{" "}
+          <code>:spoiler[…]</code> inline.
+        </span>
       </label>
 
       <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
@@ -486,8 +489,8 @@ function AnnouncementFields({
           required
         />
         <span className="text-xs text-muted-foreground">
-          BBCode, rendered the same way a post is — including this board&rsquo;s
-          smilies and custom tags.
+          Markdown, rendered the same way a post is — including this board&rsquo;s
+          smilies and directives.
         </span>
       </label>
 

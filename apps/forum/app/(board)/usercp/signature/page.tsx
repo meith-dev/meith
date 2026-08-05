@@ -77,7 +77,7 @@ export default async function SignaturePage({
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-medium">How it looks</h2>
           {/*
-            Trusted HTML from `@meith/bbcode`, exactly as a post body is — and
+            Trusted HTML from `@meith/markdown`, exactly as a post body is — and
             produced by the same call the postbit makes, so this preview cannot
             disagree with what other people see.
           */}

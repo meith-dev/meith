@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: 'Your profile' }
  *
  * They are public by definition: this is the *public* profile, and a member who
  * fills them in is publishing them. They render as plain text on `/member/[id]`
- * — a signature is F58's BBCode and a genuinely different thing, because that
+ * — a signature is F58's Markdown and a genuinely different thing, because that
  * one is markup, group-limited and moderated.
  */
 export default async function ProfileSettingsPage({

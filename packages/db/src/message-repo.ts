@@ -16,6 +16,7 @@
  */
 import { sql } from 'drizzle-orm'
 
+import { BodyFormat } from '@meith/markdown'
 import type {
   FolderCounts,
   MessageDetail,
@@ -53,6 +54,7 @@ interface RawMessage {
   message: string
   message_html: string | null
   render_version: number
+  body_format: number
   vocab_version: number
   reply_to_id: number | null
   receipt_requested: boolean
@@ -68,6 +70,7 @@ function toMessage(row: RawMessage): PrivateMessage {
     message: row.message,
     messageHtml: row.message_html,
     renderVersion: Number(row.render_version),
+    bodyFormat: Number(row.body_format),
     vocabVersion: Number(row.vocab_version),
     replyToId: row.reply_to_id === null ? null : Number(row.reply_to_id),
     receiptRequested: row.receipt_requested === true,
@@ -77,7 +80,7 @@ function toMessage(row: RawMessage): PrivateMessage {
 
 const MESSAGE_COLUMNS = sql`
   m.id, m.author_user_id, m.author_username, m.subject, m.message,
-  m.message_html, m.render_version, m.vocab_version, m.reply_to_id,
+  m.message_html, m.render_version, m.body_format, m.vocab_version, m.reply_to_id,
   m.receipt_requested, m.sent_at
 `
 
@@ -312,11 +315,12 @@ export class PostgresMessageRepository implements MessageRepository {
         await tx.execute(sql`
           insert into private_messages
                  (author_user_id, author_username, subject, message, message_html,
-                  render_version, vocab_version, reply_to_id, receipt_requested, sent_at)
+                  render_version, body_format, vocab_version, reply_to_id,
+                  receipt_requested, sent_at)
           values (${input.authorUserId}, ${input.authorUsername}, ${input.subject},
                   ${input.message}, ${input.messageHtml}, ${input.renderVersion},
-                  ${input.vocabVersion}, ${input.replyToId}, ${input.receiptRequested},
-                  ${input.at})
+                  ${BodyFormat.Markdown}, ${input.vocabVersion}, ${input.replyToId},
+                  ${input.receiptRequested}, ${input.at})
           returning id
         `),
       ) as Array<{ id: number }>

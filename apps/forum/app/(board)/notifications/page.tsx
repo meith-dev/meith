@@ -122,7 +122,7 @@ export default async function NotificationsPage({
 
                 {/*
                   Plain text, never markup. A notification body is assembled by
-                  the board from captured facts, and rendering it as BBCode
+                  the board from captured facts, and rendering it as Markdown
                   would give a username capabilities it was never granted.
                 */}
                 {row.body !== '' && (

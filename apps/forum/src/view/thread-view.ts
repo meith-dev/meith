@@ -4,7 +4,7 @@ import {
   postBodyHtml,
   type BoardVocabulary,
   type CompiledWordFilter,
-} from '@meith/bbcode'
+} from '@meith/markdown'
 import { suppress } from '@meith/relations'
 import type { ForumRow } from '@meith/forums'
 import type {
@@ -187,11 +187,11 @@ function post(
     },
     /*
      * The only place a post body becomes markup (F36). `postBodyHtml` prefers
-     * the render stored with the post and falls back to rendering the raw
-     * BBCode here when that render is missing or was produced by an older
-     * version of the renderer — so a body is never shown by a renderer other
-     * than the current one, and never fails to be shown because a task has not
-     * caught up.
+     * the render stored with the post and falls back to rendering the source
+     * here when that render is missing, was produced by an older version of the
+     * renderer, or belongs to a body still stored as BBCode — so a body is
+     * never shown by a renderer other than the current one, and never fails to
+     * be shown because a task has not caught up.
      */
     /*
      * F71's word filter runs here, on the rendered markup, and never on what is
@@ -204,7 +204,7 @@ function post(
     /*
      * F71's vocabulary goes *into* `postBodyHtml` and the word filter is
      * applied *after* it, and the order is the difference between the two
-     * features. Smilies and custom tags decide what the stored render contains,
+     * features. Smilies and directives decide what the stored render contains,
      * so they are part of the question "is this render current"; the filter is
      * a view of finished markup, which is what makes it reversible.
      */

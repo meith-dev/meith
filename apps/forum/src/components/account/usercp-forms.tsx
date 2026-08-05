@@ -23,6 +23,8 @@ import {
 } from "@/server/usercp-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
+import { MarkdownEditor } from "../content/markdown-editor"
+
 import { FormError } from "../auth/form-controls"
 import { CustomField, type CustomFieldInput } from "../profile/custom-field"
 
@@ -349,21 +351,21 @@ export function SignatureForm({
     <form action={action} className={CARD}>
       <FormError message={state.error} />
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Signature</span>
-        <textarea
-          name="signature"
-          defaultValue={signature}
-          className={FIELD}
-          rows={4}
-          maxLength={maxLength}
-        />
-        <span className="text-xs text-muted-foreground">
-          Up to {maxLength} characters. Bold, italic, underline, strikethrough,
-          colour and links are allowed; images, quotes, code and sizes are not —
-          a signature repeats under every post you have ever made.
-        </span>
-      </label>
+      {/*
+        The same composer a post gets, narrowed to what a signature may use. The
+        hint names the omissions rather than only the allowances, because the
+        surprising half is what silently renders as text.
+      */}
+      <MarkdownEditor
+        id="signature-body"
+        name="signature"
+        scope="signature"
+        label="Signature"
+        rows={4}
+        maxLength={maxLength}
+        defaultValue={signature}
+        hint={`Up to ${maxLength} characters. Bold, italic, strikethrough, code and links are allowed; headings, quotes, lists, tables and images are not — a signature repeats under every post you have ever made, and anything that changes its height changes every thread page.`}
+      />
 
       <div>
         <button type="submit" className={BUTTON}>

@@ -10,6 +10,7 @@
  *  - `readMany` answers a whole page in one query, which is why the postbit is
  *    not an N+1.
  */
+import { BodyFormat } from '@meith/markdown'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -57,6 +58,8 @@ describe('reading and writing', () => {
   it('starts empty and unlocked', async () => {
     expect(await repo.read(ADA)).toEqual({
       signature: '',
+      /* New rows are Markdown; the column's default says so. */
+      signatureFormat: BodyFormat.Markdown,
       signatureHtml: null,
       signatureRenderVersion: 0,
       locked: false,

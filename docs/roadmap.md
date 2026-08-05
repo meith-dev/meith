@@ -62,7 +62,7 @@ parity decision when the feature changes one of those public contracts.
 | Serverless default | `DATABASE_URL` + deploy to Vercel; `/install` creates the board/admin. Postgres queue/cache/files/mail drivers support this profile without Redis. |
 | Self-hosted | Standalone Docker image plus worker loop runs the same task code; CI boots the image so this path remains real. |
 | Rendering | Server-rendered board, form-first mutations, serializable client props, conservative tagged cache policy. Cache Components adoption remains an explicit human decision. |
-| Security | Argon2id, opaque rotating sessions/remember tokens, Postgres-backed rate limits, permission checks in every route/action, sanitised BBCode, attachment magic-byte validation, and audit logs. |
+| Security | Argon2id, opaque rotating sessions/remember tokens, Postgres-backed rate limits, permission checks in every route/action, a Markdown renderer that constructs its output rather than sanitising it, attachment magic-byte validation, and audit logs. |
 | Data scale | Schema/indexes and deterministic seeding support a target of 50 forums, 100k threads, 2M posts, and 20k users; hot lists have measured query budgets. |
 | Themes/plugins | Default plus materially different second theme; runtime override cascade; typed hook registry, generated slot/hook docs, reference plugin, and safe hook isolation. |
 | Ship promise | Scaffold → deploy → install in five minutes; upgrades, MyBB import, legacy passwords/URLs, backup/restore docs, and published p95s. |
@@ -137,8 +137,8 @@ JavaScript. Theme database changes take effect on refresh.
 
 | ID | Depends on | Deliverable and acceptance |
 |---|---|---|
-| F36 | F11 | Tokeniser/AST/renderer/sanitizer BBCode with limits, fuzz corpus, safe cached HTML, and lazy render invalidation/backfill. |
-| F37 | F36 | Smilies plus declarative custom BBCode, per-forum capability toggles and code exclusion; never admin-supplied regex or unsanitized output. |
+| F36 | F11 | Block/inline parser, AST and renderer for Markdown, with limits, a corpus, safe cached HTML, and lazy render invalidation/backfill. |
+| F37 | F36 | Smilies plus declarative custom directives, per-forum capability toggles and code exclusion; never admin-supplied regex or unsanitized output. |
 | F38 | F28/F07 | Atomic content counters, outbox ancestor roll-up, buffered views, and batched resumable recount for every counter. |
 | F39 | F38/F36/F21 | No-JS new-thread form with auth recheck, prefixes/subscription/preview/flood/moderation, and correct author/forum/ancestor counters. |
 | F40 | F39 | No-JS reply and quote with attribution, race notice, and F39 counter guarantees. |
@@ -175,7 +175,7 @@ counter-correct.
 | F55 | F05/F07 | Queued, themed mail and no-JS notification centre/preferences; failures become admin notifications. |
 | F56 | F55 | Thread/forum subscriptions, instant/daily/weekly catch-up digests, management, and no-login/no-JS unsubscribe. |
 | F57 | F19/F55 | No-JS UserCP: profile/options/theme/timezone/paging/invisible mode, re-auth email/password changes, drafts/subscriptions. |
-| F58 | F42/F57 | Safe avatar upload/remote URL and group-limited, moderated signature BBCode; no SSRF/tracking vector. |
+| F58 | F42/F57 | Safe avatar upload/remote URL and group-limited, moderated signature Markdown; no SSRF/tracking vector. |
 | F59 | F57 | Typed custom fields with per-group visibility/edit/registration requirements and themed profile/postbit slots. |
 | F60 | F55/F36 | No-JS private messages: multiple recipients, folders/tracking/receipts/quota/forward/reply/mass actions/reporting. |
 | F61 | F60 | Server-side ignore (reveal link, PM block, stable pagination/counts) and online buddy state. |
@@ -196,7 +196,7 @@ notifications, reputation, and social controls without JavaScript.
 | F68 | F63/F26 | Theme selection and approachable token/layout/custom-CSS editor with live preview, reset, exact JSON export/import. |
 | F69 | F63 **+ F79** | Configured plugin enable/disable/migrations/settings/ACP pages, hook health, and honest install/redeploy instructions. *Corrected during Phase 6: only the inventory and the install instructions were buildable before F79 defined the plugin lifecycle — the other five deliverables had nothing to operate on (D75). Completed after F79/F80 landed; see D98.* |
 | F70 | F63/F38 | Cache/tasks/logs/prune, resumable Recount & Rebuild, and System Health including loud stale-tick warning. |
-| F71 | F63/F37/F42 | Attachment/smilie/custom BBCode/word-filter/prefix/announcement administration; reversible render-time word filter. *The word filter is render-time and therefore reversible; the vocabulary cannot be, because it decides what a stored render contains — see D99.* |
+| F71 | F63/F37/F42 | Attachment/smilie/custom directive/word-filter/prefix/announcement administration; reversible render-time word filter. *The word filter is render-time and therefore reversible; the vocabulary cannot be, because it decides what a stored render contains — see D99.* |
 
 **Checkpoint 6:** an admin can configure, re-skin, moderate, repair, and
 observe the board without shell access or redeploy.
@@ -236,7 +236,7 @@ contracts without reading core source.
 | F84 | F83 | Core/plugin upgrade command, dependency order, version/ACP notice, documented two-version no-data-loss upgrade. |
 | F85 | F83 | Chunked, resumable, idempotent MyBB import preserving legacy IDs across all supported content; fixture round trip/report/counter proof. |
 | F86 | F85 | Legacy hash verify-and-upgrade plus toggleable, table-tested 301s for every MyBB URL form. |
-| F87 | F85 | Real MyBB BBCode corpus parity pass; every difference becomes a documented parity decision. |
+| F87 | F85 | Real MyBB BBCode corpus conversion pass; every difference becomes a documented parity decision. |
 | F88 | F82–F87 | Install/config/permissions/theme/plugin/migration/backup/restore/pooling troubleshooting documentation usable by a new operator. |
 | F89 | F88 | Hot-page 2M-post load tests, documented p95 budgets, and remediation of budget violations. |
 

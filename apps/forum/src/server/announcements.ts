@@ -26,7 +26,7 @@ import 'server-only'
  * staleness predicate and a third backfill — including one for this feature's
  * own vocabulary, which would otherwise have to invalidate this table too.
  */
-import { renderBBCode, vocabularyOptions, type BoardVocabulary } from '@meith/bbcode'
+import { renderMarkdown, vocabularyOptions, type BoardVocabulary } from '@meith/markdown'
 import { env, logger } from '@meith/core'
 import { PostgresAnnouncementRepository, getDb, type AnnouncementRow } from '@meith/db'
 import type { AnnouncementModel } from '@meith/theme-kit'
@@ -82,7 +82,7 @@ function toModel(
   return {
     title: row.title,
     /* Trusted HTML, this package's own construction — same as a post body. */
-    bodyHtml: renderBBCode(row.message, vocabularyOptions(vocabulary)).html,
+    bodyHtml: renderMarkdown(row.message, vocabularyOptions(vocabulary)).html,
     postedBy:
       row.authorUsername === ''
         ? null

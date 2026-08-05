@@ -43,10 +43,12 @@ export interface PrivateMessage {
   /** Captured, so a deleted account's message stays readable. */
   readonly authorUsername: string
   readonly subject: string
-  /** Raw BBCode. `messageHtml`/`renderVersion` are F36's cache of it. */
+  /** Raw Markdown. `messageHtml`/`renderVersion` are F36's cache of it. */
   readonly message: string
   readonly messageHtml: string | null
   readonly renderVersion: number
+  /** Which markup language `message` is in (`BodyFormat`). */
+  readonly bodyFormat: number
   /** The board vocabulary that cache was made with (F71). */
   readonly vocabVersion: number
   readonly replyToId: number | null

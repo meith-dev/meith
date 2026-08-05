@@ -74,34 +74,19 @@ function stripControl(value: string): string {
 }
 
 /**
- * A summary, flattened out of BBCode source.
+ * A summary, flattened out of the Markdown source.
  *
  * The **source**, not the rendered HTML, and that is a decision. Feed readers
  * sanitise inbound HTML with wildly different rules and several strip it
  * entirely; more to the point, the board's rendered HTML carries quote blocks,
- * spoilers and attachment markup whose meaning is lost outside the page. Tags
- * are removed rather than rendered, so what a reader gets is the text somebody
- * typed, truncated on a word boundary.
+ * directives and attachment markup whose meaning is lost outside the page. So
+ * what a reader gets is the text somebody typed, truncated on a word boundary.
+ *
+ * Re-exported rather than reimplemented: `@meith/markdown` flattens a body by
+ * running the real parser, which is the only way to be sure a summary says what
+ * the post says.
  */
-export function summarise(source: string | null, limit = 300): string {
-  if (source === null) return ''
-
-  const flat = source
-    /* BBCode tags, including the ones with arguments: `[url=…]`, `[quote=…]`. */
-    .replace(/\[\/?[a-zA-Z*][^\]]*\]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  if (flat.length <= limit) return flat
-
-  const cut = flat.slice(0, limit)
-  const lastSpace = cut.lastIndexOf(' ')
-  /*
-   * Break on a word, unless the "word" is longer than the whole budget — a
-   * pasted URL with no spaces would otherwise truncate to nothing at all.
-   */
-  return `${lastSpace > limit / 2 ? cut.slice(0, lastSpace) : cut}…`
-}
+export { summarise } from '@meith/markdown'
 
 /** RFC 822, which RSS 2.0 requires and `toUTCString` already produces. */
 function rfc822(at: Date): string {

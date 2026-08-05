@@ -3,6 +3,7 @@ import { and, asc, eq, gt, sql, type SQL } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 import { PUBLIC_CONTENT, type ContentScope } from '@meith/core'
+import { sourceAsMarkdown } from '@meith/markdown'
 import type {
   PostListingRow,
   PostPage,
@@ -28,6 +29,7 @@ function toPost(row: {
   message: string
   messageHtml: string | null
   renderVersion: number
+  bodyFormat: number
   isFirstPost: boolean
   visibility: string
   createdAt: Date
@@ -47,6 +49,7 @@ function toPost(row: {
     message: row.message,
     messageHtml: row.messageHtml,
     renderVersion: Number(row.renderVersion),
+    bodyFormat: Number(row.bodyFormat),
     isFirstPost: row.isFirstPost,
     visibility: row.visibility as PostListingRow['visibility'],
     createdAt: row.createdAt,
@@ -66,6 +69,7 @@ export class PostgresPostRepository implements PostRepository {
         id: posts.id,
         authorUsername: posts.authorUsername,
         message: posts.message,
+        bodyFormat: posts.bodyFormat,
       })
       .from(posts)
       .where(
@@ -82,7 +86,20 @@ export class PostgresPostRepository implements PostRepository {
       )
       .limit(1)
 
-    return rows[0] ?? null
+    const row = rows[0]
+    if (row === undefined) return null
+    /*
+     * Converted here, because what this returns is pasted into a composer. A
+     * quote of a post the backfill has not reached yet must arrive as the
+     * Markdown the replier is about to post, not as the BBCode it is still
+     * stored as — otherwise quoting an old post writes new BBCode into a new
+     * post, and the migration would never finish.
+     */
+    return {
+      id: row.id,
+      authorUsername: row.authorUsername,
+      message: sourceAsMarkdown(row.message, Number(row.bodyFormat)),
+    }
   }
 
   async findVisibleById(threadId: number, postId: number): Promise<number | null> {
@@ -137,6 +154,7 @@ export class PostgresPostRepository implements PostRepository {
         message: posts.message,
         messageHtml: posts.messageHtml,
         renderVersion: posts.renderVersion,
+        bodyFormat: posts.bodyFormat,
         isFirstPost: posts.isFirstPost,
         visibility: posts.visibility,
         createdAt: posts.createdAt,

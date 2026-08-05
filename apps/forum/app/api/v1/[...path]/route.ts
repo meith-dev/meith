@@ -8,6 +8,7 @@ import {
   rateLimitHeaders,
   type RouteSpec,
 } from '@meith/api'
+import { sourceAsMarkdown } from '@meith/markdown'
 import { isAppError, statusForError, toPublicError } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import { isRunnable, parseSearchInput, type SearchCursor } from '@meith/search'
@@ -375,11 +376,17 @@ async function dispatch(
             authorUserId: post.authorUserId,
             authorUsername: post.authorUsername,
             /*
-             * The stored BBCode, not `bodyHtml`. A caller wants the source it
+             * The Markdown source, not `bodyHtml`. A caller wants the text it
              * could post back; the rendered form is a *theme's* output and
              * shipping it would make the renderer's markup an API contract.
+             *
+             * Converted here when a row is still stored as BBCode, for the same
+             * reason the quote button converts: what this endpoint hands out
+             * has to be something a caller can POST straight back, and a board
+             * whose backfill has not caught up would otherwise be handing out a
+             * language its own write path no longer accepts.
              */
-            message: post.message,
+            message: sourceAsMarkdown(post.message, post.bodyFormat),
             visibility: post.visibility,
             postedAt: post.createdAt.toISOString(),
           })),

@@ -20,7 +20,7 @@ import { deletePostAction, editPostAction, restorePostAction } from "@/server/co
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import { FormError, SubmitButton } from "../auth/form-controls"
-import { EditorToolbar } from "./editor-toolbar"
+import { MarkdownEditor } from "./markdown-editor"
 
 export function EditPostForm({
   threadId,
@@ -38,49 +38,18 @@ export function EditPostForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      {state.notice === "preview" && (
-        <section
-          aria-label="Preview"
-          className="rounded-md border border-border bg-muted/40 px-3 py-2"
-        >
-          <h2 className="mb-1 text-sm font-medium text-muted-foreground">Preview</h2>
-          <div
-            className="text-sm leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: state.preview ?? "" }}
-          />
-        </section>
-      )}
-
       <input type="hidden" name="threadId" value={threadId} />
       {/* Both ids are re-resolved by the action against the actor's matrix, so
           tampering with either buys a permission check, not a bypass. */}
       <input type="hidden" name="postId" value={postId} />
 
-      {/*
-        `htmlFor`, not a `<label>` wrapped around the whole group.
-
-        A label's control is its **first labelable descendant**, and a
-        `<button>` is labelable — so with the toolbar inside it, this label
-        named the *Bold button* "Message" and left the textarea with no
-        accessible name at all. It rendered identically, which is why it stood
-        for as long as it did; the browser suite could not see it either,
-        because the specs that reach a composer were being refused at
-        registration by the anti-spam timing floor (see `e2e/support/database.ts`).
-      */}
-      <div className="flex flex-col gap-1 text-sm">
-        <label htmlFor="post-message" className="font-medium">
-          Message
-        </label>
-        <EditorToolbar />
-        <textarea
-          id="post-message"
-          name="message"
-          rows={12}
-          required
-          defaultValue={state.values?.message ?? message}
-          className="rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        />
-      </div>
+      {/* See `markdown-editor.tsx`. The `intent=preview` button below is the
+          no-JavaScript route to the same render. */}
+      <MarkdownEditor
+        required
+        defaultValue={state.values?.message ?? message}
+        preview={state.notice === "preview" ? (state.preview ?? "") : undefined}
+      />
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Reason for editing (optional)</span>

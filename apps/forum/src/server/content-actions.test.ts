@@ -584,13 +584,13 @@ describe('F41 post actions', () => {
       expect(postWrites.edits).toHaveLength(0)
     })
 
-    it('renders a preview through the BBCode renderer and writes nothing', async () => {
+    it('renders a preview through the board renderer and writes nothing', async () => {
       const state = await editPostAction(
         EMPTY_STATE,
-        form({ ...EDIT, message: 'a [b]bold[/b] draft', intent: 'preview' }),
+        form({ ...EDIT, message: 'a **bold** draft', intent: 'preview' }),
       )
 
-      expect(state.preview).toBe('a <strong>bold</strong> draft')
+      expect(state.preview).toBe('<p>a <strong>bold</strong> draft</p>')
       expect(postWrites.edits).toHaveLength(0)
     })
 

@@ -13,7 +13,7 @@ test('the fixture board, registration, and login work without JavaScript', async
   /*
    * F36 in the browser, and specifically through the *live* render path: the
    * fixture board stores no rendered HTML, so what is on screen here was
-   * produced by `@meith/bbcode` while the page was being rendered. Asserting
+   * produced by `@meith/markdown` while the page was being rendered. Asserting
    * the tags rather than the words is the point — a renderer that emitted its
    * input verbatim would still show the sentence.
    */
@@ -40,10 +40,11 @@ test('the fixture board, registration, and login work without JavaScript', async
 test('a quoted reply renders as a quote block, not as its own markup', async ({ page }) => {
   await page.goto('/thread/21-show-us-your-desk-setup')
 
-  const quote = page.locator('#post-132 blockquote.bb-quote')
-  await expect(quote.locator('cite')).toHaveText('admin wrote:')
+  const quote = page.locator('#post-132 blockquote.md-quote')
+  await expect(quote).toContainText('admin wrote:')
   await expect(quote).toContainText('Show us the place where you make things.')
-  await expect(page.locator('#post-132')).not.toContainText('[quote')
+  /* The marker itself never reaches the page — that is the whole assertion. */
+  await expect(page.locator('#post-132')).not.toContainText('> **admin')
 })
 
 /**
@@ -105,16 +106,52 @@ test('the jump box is reachable and operable from the keyboard', async ({ page }
 })
 
 /**
- * The jump route re-checks the permission, so a typed id is not an oracle.
+ * The jump page re-checks the permission, so a typed id is not an oracle.
  *
  * The box only lists what the viewer may see, which makes it tempting to trust
  * the submitted id. But the id arrives in a query string that anybody can type,
- * and a route that redirected on it would answer "does forum 42 exist, and what
+ * and a page that redirected on it would answer "does forum 42 exist, and what
  * is it called" for every id on the board.
+ *
+ * **The body is asserted, not just the status.** This was a route handler until
+ * it was found to answer 404 with *nothing* — no bytes and no `Content-Type`,
+ * because `notFound()` in a route handler has no React tree to render and Next
+ * ends the response at the status line. The status alone could not see it: the
+ * number was always right. What a browser does with a bodiless error response is
+ * its own business, and Chromium ≥ 126 refuses the navigation outright, so the
+ * symptom was `ERR_HTTP_RESPONSE_CODE_FAILURE` — `page.goto` threw here rather
+ * than returning a response to assert on.
+ *
+ * The heading is deliberately *not* asserted, and the reason is worth writing
+ * down: on Next 16 a `notFound()` thrown from a page ships the not-found tree as
+ * an RSC payload without server-rendering it, so every page-level 404 on this
+ * board — `/member/…`, `/thread/…`, all ninety of them — is blank with
+ * JavaScript off. That is a real gap against R5 and it is not this route's:
+ * asserting a heading here would fail for a reason that has nothing to do with
+ * the jump box, and would pass again the day the framework changes underneath.
  */
 test('jumping to a forum id that does not exist is a 404, not a redirect', async ({ page }) => {
   const response = await page.goto('/jump?forum=99999')
   expect(response?.status()).toBe(404)
+  expect(response?.headers()['content-type']).toContain('text/html')
+  expect(await response?.text()).not.toBe('')
+})
+
+/**
+ * The legacy MyBB URLs 404 the same way, and for the same reason.
+ *
+ * `board.legacy_redirects` is off on a board that was never imported into, and
+ * an off feature must answer exactly as any unknown path would — otherwise
+ * `/showthread.php` is a fingerprint of software this board is not running.
+ * They shared the route-handler bug, so they share the regression test.
+ */
+test('a legacy MyBB URL 404s with a page, not an empty response', async ({ page }) => {
+  for (const url of ['/showthread.php?tid=1', '/forumdisplay.php?fid=1', '/member.php?uid=1']) {
+    const response = await page.goto(url)
+    expect(response?.status(), url).toBe(404)
+    expect(response?.headers()['content-type'], url).toContain('text/html')
+    expect(await response?.text(), url).not.toBe('')
+  }
 })
 
 test('jumping with no selection goes to the index rather than erroring', async ({ page }) => {

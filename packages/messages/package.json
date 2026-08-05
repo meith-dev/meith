@@ -6,7 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@meith/bbcode": "workspace:*",
+    "@meith/markdown": "workspace:*",
     "@meith/core": "workspace:*"
   }
 }

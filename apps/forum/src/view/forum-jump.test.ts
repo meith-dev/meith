@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildForumJumpModel, type ForumJumpRow } from './forum-jump'
+import { buildForumJumpModel, parseJumpTarget, type ForumJumpRow } from './forum-jump'
 
 /**
  * F27 — the jump box's view model.
@@ -139,5 +139,57 @@ describe('the contract with the theme', () => {
     for (const forum of build(all).forums) {
       expect(forum.value).toMatch(/^\d+$/)
     }
+  })
+})
+
+/**
+ * What the page does with what the box submitted.
+ *
+ * The page itself cannot be unit-tested — every branch ends in `redirect` or
+ * `notFound`, both of which throw — so the decision it makes lives here.
+ */
+describe('parseJumpTarget', () => {
+  it('reads a submitted id', () => {
+    expect(parseJumpTarget('42')).toBe(42)
+  })
+
+  /*
+   * Nothing chosen is the index, not an error. This is what "Go" does when
+   * somebody presses it without touching the select.
+   */
+  it('treats an absent selection as no selection', () => {
+    expect(parseJumpTarget(undefined)).toBeNull()
+    expect(parseJumpTarget('')).toBeNull()
+  })
+
+  /*
+   * Anything that is not digits is a typed URL rather than a submission, and it
+   * goes to the index for the same reason: the alternative distinguishes
+   * malformed from unauthorised, which is half an oracle.
+   */
+  it('refuses anything that is not a plain id', () => {
+    for (const raw of ['-1', '1.5', '1e3', ' 1', '1 ', 'four', '0x2a', '٤٢']) {
+      expect(parseJumpTarget(raw)).toBeNull()
+    }
+  })
+
+  /*
+   * `?forum=3&forum=9` reaches a page as an array where it reached the old
+   * route handler as `URLSearchParams.get` — first value. Same answer, now on
+   * purpose.
+   */
+  it('takes the first value when the parameter is repeated', () => {
+    expect(parseJumpTarget(['3', '9'])).toBe(3)
+    expect(parseJumpTarget([])).toBeNull()
+    expect(parseJumpTarget(['nope', '9'])).toBeNull()
+  })
+
+  /*
+   * Zero is not a forum id, but it is digits — so it parses, and the
+   * authorisation check is what rejects it. Recorded because a reader can
+   * reasonably expect this function to have refused it.
+   */
+  it('leaves ids that parse but cannot exist to the permission check', () => {
+    expect(parseJumpTarget('0')).toBe(0)
   })
 })

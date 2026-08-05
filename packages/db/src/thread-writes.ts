@@ -9,7 +9,7 @@
  */
 import { sql } from 'drizzle-orm'
 
-import { renderBBCode, vocabularyOptions } from '@meith/bbcode'
+import { BodyFormat, renderMarkdown, vocabularyOptions } from '@meith/markdown'
 import type { NewPoll } from '@meith/polls'
 
 import type {
@@ -96,17 +96,18 @@ export class PostgresThreadWriteRepository
       ) as Array<{ id: number }>
       const threadId = Number(threadRows[0]!.id)
 
-      const body = renderBBCode(record.message, vocabularyOptions(vocabulary))
+      const body = renderMarkdown(record.message, vocabularyOptions(vocabulary))
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
-             message_html, render_version, vocab_version, visibility, is_first_post,
-             created_at, search_vector)
+             message_html, render_version, vocab_version, body_format, visibility,
+             is_first_post, created_at, search_vector)
           values
             (${threadId}, ${record.forumId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
-             ${body.version}, ${vocabulary.revision}, ${record.visibility}, true,
+             ${body.version}, ${vocabulary.revision}, ${BodyFormat.Markdown},
+             ${record.visibility}, true,
              ${record.createdAt},
              ${searchVectorSql(sql`${null}`, sql`${record.message}`)})
           returning id
@@ -237,17 +238,18 @@ export class PostgresThreadWriteRepository
     const vocabulary = await readBoardVocabulary(this.db)
 
     return this.db.transaction(async (tx) => {
-      const body = renderBBCode(record.message, vocabularyOptions(vocabulary))
+      const body = renderMarkdown(record.message, vocabularyOptions(vocabulary))
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
-             message_html, render_version, vocab_version, visibility, is_first_post,
-             created_at, search_vector)
+             message_html, render_version, vocab_version, body_format, visibility,
+             is_first_post, created_at, search_vector)
           values
             (${record.threadId}, ${record.forumId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
-             ${body.version}, ${vocabulary.revision}, ${record.visibility}, false,
+             ${body.version}, ${vocabulary.revision}, ${BodyFormat.Markdown},
+             ${record.visibility}, false,
              ${record.createdAt},
              ${searchVectorSql(sql`${null}`, sql`${record.message}`)})
           returning id

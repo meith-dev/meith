@@ -79,7 +79,7 @@ describe('the hook registry', () => {
    * a filter, or a plugin can register against it and silently do nothing.
    */
   it('keeps the transforming hooks as filters', () => {
-    for (const name of ['bbcode.render.html', 'view.post-bit', 'mail.send.before'] as const) {
+    for (const name of ['markdown.render.html', 'view.post-bit', 'mail.send.before'] as const) {
       expect(hookKind(name)).toBe('filter')
     }
   })

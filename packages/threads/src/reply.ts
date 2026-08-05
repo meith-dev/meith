@@ -12,6 +12,7 @@
  * domain needs to know about.
  */
 import { RateLimitedError, ValidationError } from '@meith/core'
+import { quoteBlock } from '@meith/markdown'
 
 import {
   MESSAGE_MIN,
@@ -227,22 +228,27 @@ export class ReplyComposer {
 /**
  * The quoted-post prefill.
  *
- * Emits BBCode even though nothing renders it yet. F36 is the renderer and
- * post bodies are stored raw and rendered at read time, so a quote written
- * today displays as its own markup until then and becomes a real quote block
- * the moment the parser lands — whereas a plain-text convention (`> …`) would
- * be wrong forever, and would have to be migrated. The attributes match MyBB's
- * so F87's corpus pass and F85's importer see one format.
+ * Markdown, so what lands in the composer is exactly what an author would have
+ * typed themselves — which is the point of choosing a markup language people
+ * already know.
+ *
+ * The attribution names the author and does **not** link to the post. BBCode
+ * carried `pid='12'` here and the renderer dropped it, for a reason that has
+ * not changed: turning a post id into a link needs the thread it lives in, and
+ * a post id alone can address a post in a forum the *reader* cannot see. A
+ * quote header that 404s for half the board is worse than one without a link.
  *
  * The quoted body is inserted verbatim: it is somebody's post, already stored
- * as raw text, and escaping it here would corrupt the quote of a post that
- * itself contained markup. Rendering is where escaping belongs.
+ * as source, and escaping it here would corrupt the quote of a post that itself
+ * contained markup. Rendering is where escaping belongs.
+ *
+ * The trailing blank line is this function's only addition to `quoteBlock`, and
+ * it is what puts the replier's caret on a fresh paragraph under the quote
+ * rather than inside it.
  */
 export function quotePrefill(quoted: {
-  readonly postId: number
   readonly authorUsername: string
   readonly message: string
 }): string {
-  const author = quoted.authorUsername.replace(/'/g, '')
-  return `[quote='${author}' pid='${quoted.postId}']${quoted.message}[/quote]\n\n`
+  return `${quoteBlock({ author: quoted.authorUsername, markdown: quoted.message })}\n\n`
 }

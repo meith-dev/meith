@@ -173,15 +173,27 @@ export interface Deprecation {
 }
 
 /**
- * Everything scheduled for removal. **Empty at v1**, which is the correct
- * content for a freeze and not a placeholder: nothing has been deprecated
- * because nothing has been frozen before now.
+ * Everything scheduled for removal.
  *
- * The machinery around it is not empty, and is tested against fixtures rather
- * than against this list — a check that only ever runs on `[]` is a check that
- * has never run. See `api.test.ts`.
+ * The machinery around it is tested against fixtures rather than against this
+ * list — a check that only ever runs on the real schedule is a check that has
+ * never seen a violation. See `api.test.ts`.
  */
-export const DEPRECATIONS: readonly Deprecation[] = []
+export const DEPRECATIONS: readonly Deprecation[] = [
+  {
+    kind: 'field',
+    name: 'PostBitModel.quoteSource',
+    since: '1.4',
+    removeIn: '2.0',
+    replacement: 'PostBitModel.post.id',
+    reason:
+      'It carried a post’s Markdown source to the client so the multiquote ' +
+      'button could assemble a quote in the browser. Quoting resolves a post ' +
+      'by id on the server now — which re-checks who may see it and cannot go ' +
+      'stale — so this ships every post’s full source to every reader for ' +
+      'nobody. No theme has ever rendered it; the field says so itself.',
+  },
+]
 
 /* ------------------------------------------------------------------ *
  * Versions

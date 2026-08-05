@@ -44,7 +44,7 @@ const HEALTHY: PluginHealth = {
 
 const host = {
   health: (): readonly PluginHealth[] => [HEALTHY],
-  listeners: () => ({ 'post.created': ['alpha'], 'bbcode.render.html': [] }),
+  listeners: () => ({ 'post.created': ['alpha'], 'markdown.render.html': [] }),
 }
 /*
  * Partial: the real `configuredPlugins` is the thing under test here as much as

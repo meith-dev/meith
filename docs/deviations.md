@@ -1598,7 +1598,7 @@ the stated price of not counting.
 
 Post bodies were stored raw and rendered by `plainTextHtml` in
 `src/view/thread-view.ts` — a deliberate placeholder, and the only place raw
-text became markup. `@meith/bbcode` replaces it. Four decisions are worth
+text became markup. `@meith/markdown` replaces it. Four decisions are worth
 recording, and one of them is the reason the package is a scanner rather than
 the obvious pile of regular expressions.
 
@@ -1705,7 +1705,7 @@ one.
   than one without a link.
 - **Bare URLs are not auto-linked.** MyBB linkifies loose `http://…` in post
   text. Recorded as a parity decision rather than done quietly — see
-  `mybb-parity.md#bbcode-coverage`.
+  `mybb-parity.md#the-markup-language-is-markdown-not-bbcode`.
 
 ### D45 — Editing, deleting, and the counters that have to come back (F41)
 
@@ -1839,7 +1839,7 @@ reads as a bug on every thread that has ever been moderated.
   relied on: a current-version render is *trusted*, so until the sweep ran every
   reader would be served the pre-edit body.
 - **Previews now render.** F36 shipped without wiring the composer preview to
-  the renderer; all three forms now show `@meith/bbcode`'s own output, produced
+  the renderer; all three forms now show `@meith/markdown`'s own output, produced
   on the server by the same function that renders the post, so the preview
   cannot drift from the result.
 
@@ -2880,7 +2880,7 @@ window — claiming before sending would turn a rare duplicate into a lost
 message, which is the wrong trade for something a member is meant to read.
 
 The HTML is assembled from tag literals plus `escapeHtml`/`escapeAttribute`
-imported from `@meith/bbcode` — F36's safety argument and F36's actual
+imported from `@meith/markdown` — F36's safety argument and F36's actual
 functions, not a second copy. The test asserts the same property F36 does: every
 `<` in the output is one this package wrote.
 
@@ -5002,7 +5002,7 @@ This runs on rendered HTML, so a naive `replace` rewrites the inside of
 broken link, silently, with nothing about the post looking wrong. The scanner
 walks tag by tag and substitutes only in the spans between them.
 
-That is sound *because the input is the renderer's own output*: `@meith/bbcode`
+That is sound *because the input is the renderer's own output*: `@meith/markdown`
 emits a fixed sanitised tag set and escapes `<` in text to `&lt;`, so a bare
 angle bracket in a post cannot desynchronise the scan. An unterminated tag —
 which cannot arise from that renderer — is copied through rather than filtered,
@@ -7660,3 +7660,219 @@ describe — the number of distinct groups, and one task per worker supplied.
 The reason for the change rather than an edit: the fix for that kind of failure
 is *always* to update the number, so the assertion stops being a claim and
 becomes a record of the last time somebody ran it.
+
+### D101 — Markdown replaces BBCode, and the source is converted rather than dual-rendered
+
+**Plan:** F36/F37 specify a BBCode renderer and BBCode extensions.
+
+**Implemented:** `@meith/markdown` — a Markdown parser and renderer with the same
+architecture and the same guarantees — and `@meith/bbcode` is gone. Not deprecated,
+not kept behind a flag: **deleted**. Six decisions are worth recording, and the
+first is the one everything else follows from.
+
+#### There is exactly one markup language on a board at a time
+
+The alternative was keeping the BBCode renderer for old rows and writing Markdown
+for new ones. It is the cheaper change and it is the wrong one, permanently: two
+renderers means two security surfaces, two sets of escaping rules to keep in
+step, two answers to "what does `[b]` do", and a members' guide that has to
+explain which posts obey which. Every board that has taken that path still has
+both a decade later.
+
+So the **source** is converted. `bbcodeToMarkdown` in `packages/markdown/src/bbcode.ts`
+is a parser, not a regex sweep — the same reason F36 gave for the original
+tokeniser — and it runs in exactly two places: the importer marks what MyBB hands
+over as BBCode, and the render backfill converts a row the first time it touches
+it. Nothing converts on write, and nothing converts twice.
+
+#### `body_format` exists so the conversion can be resumable and idempotent
+
+`posts.body_format` (and the same column on `private_messages`, `users`,
+`announcements`, `post_drafts`) says which language a row's source is in. It is
+added with `DEFAULT 0` and then re-defaulted to `1` in the same migration — the
+first statement is metadata-only, so it stamps every existing row BBCode without
+rewriting the largest table on the board, and the second makes every future row
+Markdown.
+
+The asymmetry is deliberate and it is the one thing in this migration that could
+not be undone. A **BBCode** row mislabelled as **Markdown** shows a few `[b]`
+tags until somebody notices. A **Markdown** row mislabelled as **BBCode** is run
+through the converter, comes back with its asterisks escaped, and there is no way
+afterwards to tell that it happened. Every default in the code and in the SQL is
+chosen for that direction: `sourceAsMarkdown` treats an absent format as
+Markdown, and only a caller that *knows* a row is old says so.
+
+#### The renderer's version number does the invalidation, as it was always meant to
+
+`RENDER_VERSION` went from 1 to 2, so every stored render on the board is stale
+from the moment the release deploys and is re-rendered behind the read path by
+F36's existing backfill. That mechanism was built for "an escaping fix must reach
+two million posts without a migration"; a change of markup language is the same
+event, larger. Nothing new was needed for it.
+
+#### `[u]`, `[color]` and `[size]` lose their styling, and this is recorded rather than papered over
+
+Markdown has no spelling for underline, colour or size. The converter keeps the
+text and drops the presentation. The alternative — three board-only directives —
+would be BBCode again under a different syntax, on a board that had just changed
+language to stop having one. It is a real loss on an imported board, it is the
+only one, and `mybb-parity.md` says so where an operator will read it before
+promising anyone a like-for-like move.
+
+#### Custom tags became directives; a smiley did not change at all
+
+`[spoiler]…[/spoiler]` has no Markdown spelling either, so F37's custom tags are
+now **directives** — `:::spoiler` for a block, `:spoiler[…]` for a span — which is
+the syntax the CommonMark community settled on for exactly this. The table was
+renamed (`custom_bbcode` → `custom_directives`) and every column kept, because
+the safety argument did not change: a name and inline-or-block, never markup.
+Smilies were already literal codes and images, and are untouched.
+
+#### Three deviations from CommonMark, each with a forum's reason
+
+- **A single newline is a line break.** CommonMark folds it into a space, which is
+  right for documents and wrong for a message box. A member who has to type two
+  trailing spaces to get a line break will type them once, see nothing happen,
+  and ask for BBCode back.
+- **No indented code blocks.** Four spaces of indent is what a pasted, wrapped or
+  hand-aligned paragraph looks like, and turning that into a code block is the
+  single most common "Markdown ate my post" complaint. Fenced code is the one
+  way, and it is what the composer's toolbar inserts.
+- **No raw HTML**, which CommonMark says should pass through. That would need a
+  sanitiser, and a sanitiser is a blocklist — the thing this package has never
+  had. Reference links are also absent, for a smaller reason: in a post they read
+  as a broken link to everyone who cannot see the definition.
+
+#### The composer is a textarea, and the preview is a round trip
+
+R5 decides this before taste does: a board that posts with scripting off cannot
+have an editor that *replaces* the textarea, which rules out every WYSIWYG. What
+is added on top is enhancement in the strict sense — the toolbar and the
+Write/Preview tabs are rendered **after mount**, so nobody with scripting off is
+shown a button that does nothing, and every shortcut inserts something the member
+could have typed.
+
+The preview calls a Server Action that runs the same `renderMarkdown` the thread
+page runs, with the same board vocabulary. A client-side parser would be faster
+and would drift from the server's the first time either was fixed; the round trip
+buys a preview that is the render rather than an impression of it. With scripting
+off the form's own `intent=preview` submit reaches the same function.
+
+### D102 — Quoting resolves a post by id, and the composer's italics use `*`
+
+Two follow-ons to D101, and the first is a decision that was made twice before
+it was made correctly.
+
+#### The reverse parser that is not here
+
+Quoting in place needs Markdown, and what a reader is looking at is HTML. The
+obvious implementation walks the selected nodes and writes source back out —
+and it was written, tested, and deleted, because it is a **second
+implementation of the mapping between source and output**. `render.ts` decides
+what a construct looks like; a walker decides what it looked like; and the day
+a construct is added to one and not the other, quoting keeps a passage's words
+and silently loses its links. Nothing fails. The board's own rule about the
+smiley pass (D99) says the same thing about a weaker second implementation, and
+it applies here with more force, because this one would have run on input a
+reader chose.
+
+The board never needed to guess. **A post has an id**, the id resolves to the
+source it was rendered from, and that lookup already re-checks who may see it —
+it is the same `findQuotable` the `?quote=` link has used since F40. So
+`quotePostAction` takes a thread and a post and returns a quote block, and the
+page supplies neither the text nor the permission.
+
+Two holes close as a side effect of asking the server rather than the DOM. A
+reader cannot quote a post they were never shown, because nothing trusts what is
+in their document. And a moderator cannot republish a deleted post by quoting
+it, because `findQuotable` will not return one — a client-side walker would
+happily have quoted the copy on screen.
+
+#### The link is the mechanism; the island only intercepts it
+
+There is no new control and no theme change. The island listens for clicks on
+the thread and handles any link whose href carries `?quote=<id>` — so a theme
+that renders its quote link differently, and a plugin that adds one, are both
+enhanced by the same rule, because the rule is about the *href*.
+
+Everything about the fallback follows. Scripting off, the click is a
+navigation to the reply page, exactly as before. A modifier key held, it is a
+navigation — somebody opening a quote in a new tab means it. The action
+returning `null`, it is a navigation, because the reply page's answer is the
+honest one. There is no state in which the button stops working.
+
+Multiquote moved to ids for the same reason and gained the same two properties.
+It also stopped needing `PostBitModel.quoteSource`, which shipped **every
+quotable post's full Markdown source** in the HTML of every thread page so that
+a button most readers never press could assemble a quote locally. The field is
+now scheduled for removal in theme API 2.0 — the first entry `DEPRECATIONS` has
+ever carried, and the first time that machinery has run on something real.
+
+#### Italics are `*`, and the toggle counts the run
+
+The composer inserted `_italic_`. It reads well and it is what several editors
+use, and it is **wrong for a toolbar**: CommonMark forbids `_` from opening or
+closing inside a word — the rule that keeps `snake_case_name` out of italics —
+so a member who selects three letters in the middle of a word and presses
+Italic got `con_cat_enate`, which renders as the underscores it is. The button
+appeared to do nothing, on the one input where a toolbar is more use than
+typing. `*` has no such restriction.
+
+That invites the collision `_` was chosen to avoid, and the fix is to stop
+comparing strings and **count the delimiter run**: emphasis toggles on an odd
+run, strong on a run of two or more. Pressing Italic inside `**bold**` now adds
+a level and gives `***both***`; a string comparison saw the innermost asterisk,
+called it italic, and turned the bold *off* on a keystroke meant to add to it.
+
+The edits moved to `markdown-syntax.ts` — pure functions returning a
+replacement and a caret position — because that bug is invisible in review,
+obvious in use, and had nowhere to be tested while it lived inside a client
+component. Twenty-six cases now cover it.
+
+### D103 — `/jump` and the legacy MyBB URLs are pages, because a route handler cannot 404
+
+Four addresses — `/jump`, `/showthread.php`, `/forumdisplay.php`, `/member.php`
+— were route handlers, and every one of them answered **404 with no body at
+all**: zero bytes, no `Content-Type`, `Transfer-Encoding: chunked` and nothing
+in it.
+
+`notFound()` in a route handler has nothing to render with. A route handler is
+not a React tree, so Next ends the response at the status line. The status was
+always right, which is why every test passed and why this survived a feature
+that exists *for* its 404s: D97 makes an unauthorised jump indistinguishable
+from a nonexistent one, and F86 refuses to soft-404 a legacy link, and both were
+delivering their careful answer as an empty response.
+
+What a browser does with a bodiless error response is its own business.
+Chromium ≥ 126 refuses the navigation outright with
+`ERR_HTTP_RESPONSE_CODE_FAILURE`, so a member who typed a forum id got a browser
+network error page; older Chromium and Firefox render blank. The board never got
+to say no.
+
+**A page is the whole fix.** `notFound()` from a page is caught by
+`app/not-found.tsx`, the status is still 404 — so this stays an honest answer to
+a crawler rather than becoming a redirect to an error page, which is the soft
+404 F86 exists to avoid — and the response is a real HTML document. The four
+files keep their shape: three lines each for the legacy scripts, and
+`serveLegacyUrl` still holds the setting check so it cannot differ between them.
+It takes the script name and `searchParams` now, because a page is not handed a
+request; `parseJumpTarget` moved to `forum-jump.ts` for the same reason, and
+being pure it is finally testable — a page whose every branch throws has nothing
+to assert on.
+
+#### What this does not fix
+
+On Next 16 a `notFound()` thrown from a page ships the not-found tree as an RSC
+payload **without server-rendering it**: the body is
+`<div hidden><!--$--><!--/$--></div>` and the notice is drawn on the client. So
+every page-level 404 on this board — `/member/…`, `/thread/…`, `/forum/…`, some
+ninety call sites — is blank with scripting off, and these four now join them
+rather than escaping it. Only the router-level 404, the one for a path with no
+route, is server-rendered.
+
+That is a real gap against R5 and it is not this change's: it was measured
+against `next start` as well as `next dev`, and a `not-found.tsx` containing one
+static `<h1>` and no data access reproduces it, so nothing in this board's
+not-found page is responsible. It is recorded here because the fix above moves
+these four addresses from *broken for everyone* to *the same as every other 404
+on the board*, which is worth having and is not the same as done.

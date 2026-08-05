@@ -19,6 +19,7 @@
  * a metadata builder is ever called, so there is no private title in scope for
  * one of these to describe.
  */
+import { summarise } from '@meith/markdown'
 
 export interface CanonicalInput {
   /** The route's own path, with no query string. */
@@ -61,26 +62,18 @@ export function pageLinks(input: CanonicalInput & { readonly hasNext: boolean })
 }
 
 /**
- * A description for a card, out of BBCode source.
+ * A description for a card, out of the Markdown source.
  *
  * Shorter than the feed's summary because the platforms truncate around 200
  * characters and a description cut mid-word by somebody else's renderer reads
- * worse than one cut on a word here.
+ * worse than one cut on a word here. The flattening is the renderer's own
+ * (`@meith/markdown`), so a description can never claim something the post does
+ * not say.
  */
 export function cardDescription(source: string | null, fallback: string): string {
   if (source === null) return fallback
-
-  const flat = source
-    .replace(/\[\/?[a-zA-Z*][^\]]*\]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  if (flat === '') return fallback
-  if (flat.length <= 200) return flat
-
-  const cut = flat.slice(0, 200)
-  const lastSpace = cut.lastIndexOf(' ')
-  return `${lastSpace > 100 ? cut.slice(0, lastSpace) : cut}…`
+  const flat = summarise(source, 200)
+  return flat === '' ? fallback : flat
 }
 
 export interface ThreadJsonLd {

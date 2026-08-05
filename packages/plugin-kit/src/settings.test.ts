@@ -150,14 +150,14 @@ describe('the host’s operator switch', () => {
     key: 'demo',
     name: 'Demo',
     version: '1.0.0',
-    hooks: { 'bbcode.render.html': (value) => `${value}!` },
+    hooks: { 'markdown.render.html': (value) => `${value}!` },
   })
 
   it('stops the handler being called, and reports itself separately', async () => {
     const host = new PluginHost({ plugins: [plugin] })
     host.setOperatorDisabled(['demo'])
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
     expect(host.health()[0]).toMatchObject({
       enabled: false,
       operatorDisabled: true,
@@ -170,7 +170,7 @@ describe('the host’s operator switch', () => {
     host.setOperatorDisabled(['demo'])
     host.setOperatorDisabled([])
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x!')
   })
 
   it('ignores a key naming a plugin this build does not have', () => {
@@ -191,7 +191,7 @@ describe('the host’s operator switch', () => {
     host.setOperatorDisabled(['demo'])
     host.setOperatorDisabled([])
 
-    expect(await host.applyFilter('bbcode.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
+    expect(await host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })).toBe('x')
     expect(host.health()[0]).toMatchObject({
       enabled: false,
       operatorDisabled: false,

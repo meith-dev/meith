@@ -14,7 +14,7 @@ import {
   compileWordFilter,
   type BoardVocabulary,
   type CompiledWordFilter,
-} from '@meith/bbcode'
+} from '@meith/markdown'
 import {
   PostgresAttachmentAdminRepository,
   PostgresContentAdminRepository,
@@ -62,12 +62,12 @@ export async function activeWordFilter(): Promise<CompiledWordFilter | undefined
 }
 
 /**
- * The board's BBCode vocabulary, for the render path (F71).
+ * The board's markup vocabulary, for the render path (F71).
  *
  * Cached under its own tag, like the filters, and for a stronger reason: this
  * one is read by *every* page that renders a body, and a board's smilies change
  * about as often as its name. Every write in `PostgresContentAdminRepository`'s
- * vocabulary section bumps `cache_versions['bbcode_vocabulary']`, so the ACP's
+ * vocabulary section bumps `cache_versions['markdown_vocabulary']`, so the ACP's
  * invalidation and the stored renders' staleness are the same fact rather than
  * two that can disagree.
  *
@@ -78,8 +78,8 @@ export async function activeWordFilter(): Promise<CompiledWordFilter | undefined
  */
 const loadVocabulary = unstable_cache(
   async () => readBoardVocabulary(getDb()),
-  ['bbcode-vocabulary'],
-  { tags: [CacheTags.bbcodeVocabulary()] },
+  ['markdown-vocabulary'],
+  { tags: [CacheTags.markdownVocabulary()] },
 )
 
 export async function activeVocabulary(): Promise<BoardVocabulary | undefined> {

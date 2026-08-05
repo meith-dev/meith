@@ -17,6 +17,8 @@ import { useActionState } from "react"
 import { messageBulkAction, sendMessageAction } from "@/server/message-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
+import { MarkdownEditor } from "../content/markdown-editor"
+
 import { FormError } from "../auth/form-controls"
 
 const FIELD =
@@ -88,19 +90,19 @@ export function ComposeForm({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Message</span>
-        <textarea
-          name="message"
-          defaultValue={values["message"] ?? message}
-          className={FIELD}
-          rows={12}
-          required
-        />
-        <span className="text-xs text-muted-foreground">
-          BBCode is supported, the same as in a post.
-        </span>
-      </label>
+      {/*
+        The same composer a post gets — toolbar, preview tab, formatting help —
+        because a private message is written the same way and by the same
+        people. `id` is distinct so a page holding both a message form and a
+        reply form does not label one control twice.
+      */}
+      <MarkdownEditor
+        id="message-body"
+        required
+        rows={12}
+        defaultValue={values["message"] ?? message}
+        hint="Markdown, the same as in a post."
+      />
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="receipt" className="size-4 rounded border-border" />

@@ -13,7 +13,7 @@ import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresContentAdminRepository } from './content-admin-repo'
 import { readBoardVocabulary } from './vocabulary-repo'
-import { customTagNames } from '@meith/bbcode'
+import { directiveNames } from '@meith/markdown'
 
 let harness: TestDb
 let db: Database
@@ -198,11 +198,11 @@ describe('thread prefixes', () => {
  * filter: it is baked into a stored render, so every write has to invalidate
  * them all.
  */
-describe('the BBCode vocabulary', () => {
+describe('the markup vocabulary', () => {
   beforeEach(async () => {
     await db.execute(sql`delete from smilies`)
-    await db.execute(sql`delete from custom_bbcode`)
-    await db.execute(sql`delete from cache_versions where key = 'bbcode_vocabulary'`)
+    await db.execute(sql`delete from custom_directives`)
+    await db.execute(sql`delete from cache_versions where key = 'markdown_vocabulary'`)
   })
 
   it('starts at revision zero, which is what every row is already stamped with', async () => {
@@ -230,10 +230,10 @@ describe('the BBCode vocabulary', () => {
     await repo.deleteSmiley(smileyId)
     expect(await repo.vocabularyRevision()).toBe(3)
 
-    const tagId = await repo.createCustomTag({ name: 'spoiler', block: true, description: null })
+    const directiveId = await repo.createDirective({ name: 'spoiler', block: true, description: null })
     expect(await repo.vocabularyRevision()).toBe(4)
 
-    await repo.updateCustomTag(tagId, {
+    await repo.updateDirective(directiveId, {
       name: 'spoiler',
       block: false,
       description: null,
@@ -241,7 +241,7 @@ describe('the BBCode vocabulary', () => {
     })
     expect(await repo.vocabularyRevision()).toBe(5)
 
-    await repo.deleteCustomTag(tagId)
+    await repo.deleteDirective(directiveId)
     expect(await repo.vocabularyRevision()).toBe(6)
   })
 
@@ -252,10 +252,10 @@ describe('the BBCode vocabulary', () => {
     ).rejects.toThrow()
   })
 
-  it('refuses a duplicate tag name at the source', async () => {
-    await repo.createCustomTag({ name: 'spoiler', block: false, description: null })
+  it('refuses a duplicate directive name at the source', async () => {
+    await repo.createDirective({ name: 'spoiler', block: false, description: null })
     await expect(
-      repo.createCustomTag({ name: 'spoiler', block: true, description: null }),
+      repo.createDirective({ name: 'spoiler', block: true, description: null }),
     ).rejects.toThrow()
   })
 
@@ -264,8 +264,8 @@ describe('the BBCode vocabulary', () => {
       repo.updateSmiley(9999, { code: ':)', src: '/x.png', alt: null, enabled: true }),
     ).rejects.toThrow(/No such smiley/)
     await expect(
-      repo.updateCustomTag(9999, { name: 'x', block: false, description: null, enabled: true }),
-    ).rejects.toThrow(/No such BBCode tag/)
+      repo.updateDirective(9999, { name: 'x', block: false, description: null, enabled: true }),
+    ).rejects.toThrow(/No such directive/)
   })
 
   it('lists everything for the editor, disabled rows included', async () => {
@@ -282,8 +282,8 @@ describe('the BBCode vocabulary', () => {
 describe('the compiled vocabulary the renderer reads', () => {
   beforeEach(async () => {
     await db.execute(sql`delete from smilies`)
-    await db.execute(sql`delete from custom_bbcode`)
-    await db.execute(sql`delete from cache_versions where key = 'bbcode_vocabulary'`)
+    await db.execute(sql`delete from custom_directives`)
+    await db.execute(sql`delete from cache_versions where key = 'markdown_vocabulary'`)
   })
 
   /*
@@ -304,13 +304,13 @@ describe('the compiled vocabulary the renderer reads', () => {
     await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
     const off = await repo.createSmiley({ code: ':(', src: '/frown.png', alt: null })
     await repo.updateSmiley(off, { code: ':(', src: '/frown.png', alt: null, enabled: false })
-    await repo.createCustomTag({ name: 'spoiler', block: true, description: null })
+    await repo.createDirective({ name: 'spoiler', block: true, description: null })
 
     const vocabulary = await readBoardVocabulary(db)
 
     expect(vocabulary.revision).toBeGreaterThan(0)
     expect(vocabulary.smilies?.entries.map((entry) => entry.code)).toEqual([':)'])
-    expect(customTagNames(vocabulary)).toEqual(['spoiler'])
+    expect(directiveNames(vocabulary.directives)).toEqual(['spoiler'])
   })
 
   /*

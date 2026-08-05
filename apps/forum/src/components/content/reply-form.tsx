@@ -32,14 +32,14 @@ import { useActionState, useEffect } from "react"
 
 import { Alert, AlertDescription, Disclosure, buttonVariants, cn } from "@meith/ui"
 
-import { createReplyAction } from "@/server/content-actions"
+import { createReplyAction, quotePostAction } from "@/server/content-actions"
 import { EMPTY_STATE } from "@/server/auth-form-state"
 
 import type { UploadLimits } from "@meith/attachments/limits"
 import type { Draft } from "@meith/drafts"
 
 import { AttachmentField } from "./attachment-field"
-import { EditorToolbar } from "./editor-toolbar"
+import { MarkdownEditor } from "./markdown-editor"
 import { FormError, SubmitButton } from "../auth/form-controls"
 
 export function ReplyForm({
@@ -66,16 +66,36 @@ export function ReplyForm({
   collapsible?: boolean
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)
+
+  /*
+   * F45's multiquote, collected on the thread page and spent here.
+   *
+   * The ids are what travelled, not the text: `quotePostAction` re-reads each
+   * post through the same visibility lookup the reply page uses, so a selection
+   * carried in `sessionStorage` cannot become a quote of something the reader
+   * was never shown — and cannot go stale if a post was deleted between
+   * collecting it and replying.
+   */
   useEffect(() => {
-    const field = document.getElementById("post-message") as HTMLTextAreaElement | null
-    const quotes = JSON.parse(sessionStorage.getItem("multiquote") ?? "[]") as Array<{
-      author: string
-      message: string
-    }>
-    if (field === null || quotes.length === 0) return
-    field.value = `${field.value}${field.value ? "\n\n" : ""}${quotes.map((quote) => `[quote=${quote.author}]${quote.message}[/quote]`).join("\n\n")}`
+    const field = document.getElementById("post-message")
+    const ids = (JSON.parse(sessionStorage.getItem("multiquote") ?? "[]") as unknown[])
+      .map(Number)
+      .filter((id) => Number.isSafeInteger(id) && id > 0)
+    if (!(field instanceof HTMLTextAreaElement) || ids.length === 0) return
     sessionStorage.removeItem("multiquote")
-  }, [])
+
+    void (async () => {
+      const quotes = (await Promise.all(ids.map((id) => quotePostAction(threadId, id)))).filter(
+        (quote): quote is string => quote !== null,
+      )
+      if (quotes.length === 0) return
+      const existing = field.value.replace(/\s+$/, "")
+      field.value = `${existing === "" ? "" : `${existing}\n\n`}${quotes.join("\n\n")}\n\n`
+      field.setSelectionRange(field.value.length, field.value.length)
+      /* The composer sizes itself on `input`, and setting `.value` fires none. */
+      field.dispatchEvent(new Event("input", { bubbles: true }))
+    })()
+  }, [threadId])
 
   /*
    * No `encType` on the form: React renders a Server Action form as
@@ -94,26 +114,6 @@ export function ReplyForm({
         </Alert>
       )}
 
-      {state.notice === "preview" && (
-        <section
-          aria-label="Preview"
-          className="rounded-md border border-border bg-muted/40 px-3 py-2"
-        >
-          <h2 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            Preview
-          </h2>
-          {/*
-            The renderer's own output (F36), produced on the server by the same
-            function that renders the post — so what the preview shows is what
-            the thread will show, rather than an approximation that drifts.
-          */}
-          <div
-            className="prose-bb text-sm"
-            dangerouslySetInnerHTML={{ __html: state.preview ?? "" }}
-          />
-        </section>
-      )}
-
       <input type="hidden" name="threadId" value={threadId} />
       {/*
         What the author had seen when this form was rendered. The action
@@ -130,35 +130,23 @@ export function ReplyForm({
       )}
 
       {/*
-        `htmlFor`, not a `<label>` wrapped around the whole group.
-
-        A label's control is its **first labelable descendant**, and a
-        `<button>` is labelable — so with the toolbar inside it, this label
-        named the *Bold button* "Message" and left the textarea with no
-        accessible name at all. It rendered identically, which is why it stood
-        for as long as it did; the browser suite could not see it either,
-        because the specs that reach a composer were being refused at
-        registration by the anti-spam timing floor (see `e2e/support/database.ts`).
+        The composer owns its own label, toolbar and preview tab — see
+        `markdown-editor.tsx`, and in particular why the toolbar is not rendered
+        until the component has mounted. The `intent=preview` button below is
+        what still works with scripting off, and `preview` is where its result
+        comes back in.
       */}
-      <div className="flex flex-col gap-1.5 text-sm">
-        <label htmlFor="post-message" className="font-medium">
-          Message
-        </label>
-        <EditorToolbar />
-        <textarea
-          id="post-message"
-          name="message"
-          /*
-           * Six rows inline against twelve on the reply page. A quick reply is
-           * a paragraph, the box scrolls, and the thread above it is the thing
-           * somebody came to read.
-           */
-          rows={collapsible ? 6 : 12}
-          required
-          defaultValue={state.values?.message ?? draft?.message ?? prefill}
-          className="rounded-md border border-input bg-card px-3 py-2 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        />
-      </div>
+      <MarkdownEditor
+        /*
+         * Six rows inline against twelve on the reply page. A quick reply is a
+         * paragraph, the box grows as it is typed into, and the thread above it
+         * is the thing somebody came to read.
+         */
+        rows={collapsible ? 6 : 12}
+        required
+        defaultValue={state.values?.message ?? draft?.message ?? prefill}
+        preview={state.notice === "preview" ? (state.preview ?? "") : undefined}
+      />
 
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}
 

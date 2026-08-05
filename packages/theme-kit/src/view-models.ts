@@ -253,7 +253,7 @@ export interface PostAuthorModel extends UserRefModel {
   readonly title: string | null
   readonly postCount: number
   readonly joinedAt: TimeModel | null
-  /** Pre-rendered BBCode. Trusted output of the sanitising renderer. */
+  /** Pre-rendered Markdown. Trusted output of the board's own renderer. */
   readonly signatureHtml: string | null
   readonly isOnline: boolean
   /**
@@ -317,9 +317,17 @@ export interface PostBitModel {
   readonly number: number
   readonly permalink: string
   readonly author: PostAuthorModel
-  /** Pre-rendered BBCode. */
+  /** Pre-rendered Markdown. */
   readonly bodyHtml: string
-  /** Source used only by the client multiquote button; themes never render it. */
+  /**
+   * @deprecated Since theme API 1.4, removed in 2.0. Use `post.id`.
+   *
+   * It existed so the client could assemble a quote out of the page. Quoting
+   * asks the server for a post **by id** now, which re-checks who may see it
+   * and cannot hand back what a deleted post used to say — so this is a copy of
+   * every post's source in the HTML of every thread page, for nobody. Still
+   * populated, because a theme could have read it; see `DEPRECATIONS`.
+   */
   readonly quoteSource: string
   readonly postedAt: TimeModel
   /** "Last edited by X on Y", already assembled, or `null`. */
@@ -453,7 +461,7 @@ export interface NoticeModel {
 export interface AnnouncementModel {
   readonly title: string
   /**
-   * Trusted HTML, from `@meith/bbcode`'s own renderer — the same contract as a
+   * Trusted HTML, from `@meith/markdown`'s own renderer — the same contract as a
    * post body, and the reason a theme inserts it rather than escaping it.
    */
   readonly bodyHtml: string
@@ -670,7 +678,7 @@ export interface PostFormModel {
    * There is no `previewHtml` here yet, and its absence is deliberate. Preview
    * state belongs to the submitted form — it is what the author just typed —
    * so it renders inside the form region, where the action's result actually
-   * lands. Once BBCode is turned into HTML on the server, the rendered
+   * lands. Once Markdown is turned into HTML on the server, the rendered
    * preview becomes a slot concern and this model gains the field. Carrying it
    * now would be a prop no theme could ever fill.
    */

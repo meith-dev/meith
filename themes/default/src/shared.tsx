@@ -40,7 +40,7 @@ const PAGE_WIDTH = 'max-w-6xl'
  * `max-w-6xl` rather than the `5xl` this theme used to be. A forum listing is
  * four columns wide — marker, title, counters, last post — and at 1024px the
  * last two were being squeezed until the last-post author wrapped under its own
- * timestamp. Prose is kept narrow where prose actually is (`.prose-bb` caps a
+ * timestamp. Prose is kept narrow where prose actually is (`.prose-md` caps a
  * post body at 72ch); a table of rows is not prose and does not want a
  * paragraph's measure.
  */

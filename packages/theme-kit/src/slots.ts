@@ -203,7 +203,7 @@ export const SLOTS = {
     kind: 'client',
     feature: 'F45',
     purpose:
-      'BBCode buttons, preview, attachment picker. Mounted beside the ' +
+      'Formatting toolbar, preview, attachment picker. Mounted beside the ' +
       'textarea; removing it must leave a working plain-textarea form.',
   },
 

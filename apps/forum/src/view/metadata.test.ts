@@ -80,12 +80,12 @@ describe('cardDescription', () => {
   it('falls back when the post is gone or empty', () => {
     expect(cardDescription(null, 'fallback')).toBe('fallback')
     expect(cardDescription('   ', 'fallback')).toBe('fallback')
-    /* BBCode that renders to nothing is also nothing. */
-    expect(cardDescription('[b][/b]', 'fallback')).toBe('fallback')
+    /* Markup that renders to nothing is also nothing. */
+    expect(cardDescription('****', 'fallback')).toBe('fallback')
   })
 
-  it('strips BBCode rather than showing it', () => {
-    expect(cardDescription('[b]Hello[/b] there', 'x')).toBe('Hello there')
+  it('strips the markup rather than showing it', () => {
+    expect(cardDescription('**Hello** there', 'x')).toBe('Hello there')
   })
 
   it('truncates on a word boundary at the platforms’ limit', () => {

@@ -30,10 +30,12 @@
 import { ForbiddenError, NotFoundError, ValidationError } from '@meith/core'
 import {
   EMPTY_VOCABULARY,
-  renderBBCode,
+  quoteBlock,
+  renderMarkdown,
+  sourceAsMarkdown,
   vocabularyOptions,
   type BoardVocabulary,
-} from '@meith/bbcode'
+} from '@meith/markdown'
 
 import {
   BODY_MAX,
@@ -218,7 +220,7 @@ export class MessageService {
     await this.assertRoomFor(input.authorUserId, recipients)
 
     const vocabulary = await this.vocabulary()
-    const rendered = renderBBCode(message, vocabularyOptions(vocabulary))
+    const rendered = renderMarkdown(message, vocabularyOptions(vocabulary))
     const at = this.now()
 
     const messageId = await this.repository.send({
@@ -491,14 +493,18 @@ function prefixed(prefix: string, subject: string): string {
 }
 
 /**
- * The original, as a quote block.
+ * The original, as a Markdown quote block.
  *
- * The author name is embedded in a `[quote='…']` attribute, so a username
- * containing a quote character would break out of it — hence the strip. The
- * renderer escapes what it produces, but the *source* is what a member then
- * edits, and a mangled tag there is a mangled tag forever.
+ * The same builder a post's reply uses, so a quoted message and a quoted post
+ * are the same shape — including the marker on the blank line, which is what
+ * keeps a two-paragraph quote one quote.
+ *
+ * The trailing blank line is this function's own: it puts the replier's caret
+ * on a fresh paragraph under the quote rather than inside it.
  */
 function quoted(message: PrivateMessage): string {
-  const author = message.authorUsername.replace(/['"[\]]/g, '')
-  return `[quote='${author}']${message.message}[/quote]\n\n`
+  return `${quoteBlock({
+    author: message.authorUsername,
+    markdown: sourceAsMarkdown(message.message, message.bodyFormat),
+  })}\n\n`
 }

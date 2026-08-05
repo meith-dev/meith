@@ -4,7 +4,7 @@
  * ## Safe by construction, like F36
  *
  * The HTML part is assembled from tag literals plus values that have been
- * through `escapeHtml`/`escapeAttribute` — the same argument `@meith/bbcode`
+ * through `escapeHtml`/`escapeAttribute` — the same argument `@meith/markdown`
  * makes, reusing the same two functions rather than restating them. There is no
  * step at which attacker markup exists in this output to be cleaned, which
  * matters more here than on the board: a username reaches a mail client that
@@ -30,7 +30,7 @@
  * configured (`APP_URL` unset), the message goes out **without** its link
  * rather than with a broken one, and says where to look instead.
  */
-import { escapeAttribute, escapeHtml } from '@meith/bbcode'
+import { escapeAttribute, escapeHtml } from '@meith/markdown'
 
 import type { NotificationView } from './render'
 
