@@ -150,10 +150,23 @@ describe('updateIdentity', () => {
       displayOrder: 5,
       isStaffGroup: false,
       badgeToken: 'badge-member',
+      nameColorLight: 'oklch(0.49 0.13 250)',
+      nameColorDark: 'oklch(0.69 0.12 250)',
     })
 
     const group = (await repo.list()).find((row) => row.id === REGISTERED)
-    expect(group).toMatchObject({ title: 'Members', displayOrder: 5, badgeToken: 'badge-member' })
+    expect(group).toMatchObject({
+      title: 'Members',
+      displayOrder: 5,
+      badgeToken: 'badge-member',
+      /*
+       * Both schemes round-trip. A write that stored one and dropped the other
+       * would leave half the board's names uncoloured at night, which is the
+       * failure two columns exist to prevent.
+       */
+      nameColorLight: 'oklch(0.49 0.13 250)',
+      nameColorDark: 'oklch(0.69 0.12 250)',
+    })
     expect(await repo.readPermissions(REGISTERED)).toEqual(permissionsBefore)
     expect(await permissionVersion()).toBe(before + 1)
   })

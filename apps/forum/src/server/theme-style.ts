@@ -74,15 +74,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** CSS values only: never let a token smuggle a second declaration or markup. */
-function assertSafeTokenValue(name: string, value: string): void {
+/**
+ * CSS values only: never let a stored value smuggle a second declaration or
+ * markup into the style block it is about to be written into.
+ *
+ * Exported because tokens are no longer the only thing that reaches a
+ * `<style>` from a database column — a usergroup's name colour does too, from a
+ * different table, through a different screen. One check, so the two cannot
+ * drift into disagreeing about what a safe CSS value is.
+ */
+export function assertSafeCssValue(name: string, value: string): void {
   if (
     value.length === 0 ||
     value.length > 256 ||
     /[;{}<>]/.test(value) ||
     !/^[a-zA-Z0-9#%(),.\s'"/+*=-]+$/.test(value)
   ) {
-    throw new Error(`Theme token "${name}" has an unsafe CSS value.`)
+    throw new Error(`Theme ${name} has an unsafe CSS value.`)
   }
 }
 
@@ -123,7 +131,7 @@ function validateScheme(
     if (typeof value !== 'string') {
       throw new Error(`Theme token "${name}" must have a string value.`)
     }
-    assertSafeTokenValue(name, value)
+    assertSafeCssValue(`token "${name}"`, value)
     if (name === 'background' && colorToHex(value) === null) {
       throw new Error('Theme token "background" must be an sRGB hex or OKLCH colour.')
     }
@@ -253,7 +261,7 @@ function differing(
   const out: Record<string, string> = {}
   for (const [name, value] of Object.entries(values)) {
     if (against[name] !== value) {
-      assertSafeTokenValue(name, value)
+      assertSafeCssValue(`token "${name}"`, value)
       out[name] = value
     }
   }

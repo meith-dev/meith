@@ -232,6 +232,13 @@
       "when": 1785740226974,
       "tag": "0032_theme_enablement",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1785740227974,
+      "tag": "0033_group_identity",
+      "breakpoints": true
     }
   ]
 }

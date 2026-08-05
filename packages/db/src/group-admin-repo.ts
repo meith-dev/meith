@@ -40,6 +40,12 @@ export interface GroupSummaryRow {
   readonly isSystem: boolean
   readonly isStaffGroup: boolean
   readonly badgeToken: string | null
+  /** The colour this group's members' names are shown in, per scheme. */
+  readonly nameColorLight: string | null
+  readonly nameColorDark: string | null
+  /** File-store keys for the badge image, per scheme. */
+  readonly badgeImageLight: string | null
+  readonly badgeImageDark: string | null
   /** How many members hold it as their primary group. */
   readonly memberCount: number
 }
@@ -50,6 +56,15 @@ export interface GroupIdentityInput {
   readonly displayOrder: number
   readonly isStaffGroup: boolean
   readonly badgeToken: string | null
+  /**
+   * CSS colours, or null for "no colour in that scheme".
+   *
+   * **Validated by the caller**, with the same function that validates a theme
+   * token — these end up in a `<style>` block, and a second opinion here would
+   * eventually disagree with the one that renders.
+   */
+  readonly nameColorLight: string | null
+  readonly nameColorDark: string | null
 }
 
 /** How far a chunked membership run got, and whether there is more. */
@@ -75,6 +90,8 @@ export class PostgresGroupAdminRepository {
       await this.db.execute(sql`
         select g.id, g.key, g.title, g.description, g.display_order,
                g.is_system, g.is_staff_group, g.badge_token,
+               g.name_color_light, g.name_color_dark,
+               g.badge_image_light, g.badge_image_dark,
                (select count(*) from users u where u.primary_group_id = g.id)::int
                  as member_count
           from usergroups g
@@ -91,6 +108,10 @@ export class PostgresGroupAdminRepository {
       isSystem: row.is_system === true,
       isStaffGroup: row.is_staff_group === true,
       badgeToken: row.badge_token === null ? null : String(row.badge_token),
+      nameColorLight: row.name_color_light === null ? null : String(row.name_color_light),
+      nameColorDark: row.name_color_dark === null ? null : String(row.name_color_dark),
+      badgeImageLight: row.badge_image_light === null ? null : String(row.badge_image_light),
+      badgeImageDark: row.badge_image_dark === null ? null : String(row.badge_image_dark),
       memberCount: Number(row.member_count),
     }))
   }
@@ -114,6 +135,8 @@ export class PostgresGroupAdminRepository {
                display_order = ${input.displayOrder},
                is_staff_group = ${input.isStaffGroup},
                badge_token = ${input.badgeToken},
+               name_color_light = ${input.nameColorLight},
+               name_color_dark = ${input.nameColorDark},
                updated_at = now()
          where id = ${groupId}
       `)

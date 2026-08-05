@@ -36,6 +36,10 @@ export { PostgresImportSink } from './import-sink'
 export { PostgresMemberProfileRepository } from './member-profile-repo'
 export { PostgresSettingsRepository } from './settings-repo'
 export {
+  PostgresGroupIdentityRepository,
+  type GroupIdentity,
+} from './group-identity-repo'
+export {
   PostgresThemeRepository,
   type ThemeRuntimeRecord,
   type ThemeRuntimeState,
