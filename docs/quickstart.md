@@ -16,9 +16,12 @@ else can post on.
 | **A domain** | With an `A` record already pointing at the server's IP. The certificate step needs it resolving. |
 | **SSH** | Root, once, to install the panel. Everything after that is a browser. |
 
-Prefer no panel? [Self-hosting § Docker Compose](./self-hosting.md#b-docker-compose-directly)
-is the same board from the same image, run by hand. Just want to poke at the
-code? [Running it locally](#running-it-locally) is at the end.
+Prefer no panel? [Deploying by hand](./self-hosting.md) is the same board from
+the same image, with a `.env` you write and a proxy you run. It is the advanced
+route, and it is a fair bit more work.
+
+Only want to read the code or write a theme? [Development](./development.md)
+runs it on your laptop in two commands.
 
 ## 1. Install Coolify
 
@@ -161,8 +164,8 @@ machine:
   does **not** include it, and finding that out during a restore is the worst
   possible time.
 
-[Self-hosting § Backups](./self-hosting.md#backups) has the commands for both,
-and the order they have to go back in.
+[Backup and restore](./operating.md#backup-and-restore) has the commands for
+both, and the order they have to go back in.
 
 A backup nobody has restored is a file, not a backup.
 
@@ -183,8 +186,8 @@ and retry. What to do depends on how far it got:
   If the board is genuinely yours to reset, recover at the database: restore the
   empty database, or drop and recreate it, and start again. If the only thing
   missing is administrator access on a board that otherwise works, do not
-  reinstall — use the [operator CLI](./self-hosting.md#the-operator-cli):
-  `forum user:promote`.
+  reinstall — use the
+  [operator CLI](./operating.md#the-operator-cli): `forum user:promote`.
 
 ## When something else goes wrong
 
@@ -198,34 +201,17 @@ and retry. What to do depends on how far it got:
 | Password reset "sent" and never arrives | `MAIL_DRIVER` is still `log`. The message is sitting in the web container's log. |
 | Nothing happens on a schedule | The `worker` container is not running. Every catch-up operation is on that loop, and when it stops **nothing errors** — see `/admin` → System health. |
 
-[Self-hosting](./self-hosting.md) has the longer table and both shapes.
-
-## Running it locally
-
-To read the code, write a theme or send a patch — not to run a board anybody
-else can reach:
-
-```sh
-git clone https://github.com/meith-dev/meith.git
-cd meith
-pnpm install
-docker compose -f docker-compose.dev.yml up -d    # Postgres on 55432
-pnpm forum migrate
-pnpm dev
-```
-
-Then `http://localhost:3000/install`. With no `DATABASE_URL` at all it runs on
-deterministic in-memory sample data instead, which is enough to click through
-every reading surface without a database.
-
-Node 22 or newer, and pnpm 10.
+[Running a board § Troubleshooting](./operating.md#troubleshooting) covers the
+failures that are about the board rather than about the deploy.
 
 ## Next
 
 | You want to | Read |
 |---|---|
-| The other way to deploy it, and day-two operations | [Self-hosting](./self-hosting.md) |
 | Run this board day to day | [Running a board](./operating.md) |
+| Take it from one version to the next | [Upgrading a board](./upgrading.md) |
+| Deploy it without a panel | [Deploying by hand](./self-hosting.md) |
 | Change how it looks | [The theme API](./theme-api.md) |
 | Add behaviour | [The plugin API](./plugin-api.md) |
 | Move a MyBB community here | [MyBB parity](./mybb-parity.md) |
+| Work on Meith itself | [Development](./development.md) |

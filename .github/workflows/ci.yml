@@ -404,7 +404,7 @@ jobs:
 
       # ── the other shape ──────────────────────────────────────────────────
       #
-      # docs/self-hosting.md tells an operator to point Coolify at this file and
+      # docs/quickstart.md tells an operator to point Coolify at this file and
       # expect a working board that asks them for nothing. The magic variables
       # are supplied here the way Coolify supplies them, which is the only part
       # of that promise CI can stand in for — but it is the part that breaks:

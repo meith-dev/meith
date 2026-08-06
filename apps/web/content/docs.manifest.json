@@ -22,6 +22,11 @@
       "blurb": "From a bare server to a board that has been up long enough to go wrong."
     },
     {
+      "id": "advanced",
+      "title": "Advanced deployment",
+      "blurb": "The same board without the panel: the compose file, a reverse proxy you run, and what you take on for it."
+    },
+    {
       "id": "themes",
       "title": "Themes",
       "blurb": "The frozen v1 slot contract, and every slot a theme may fill."
@@ -42,9 +47,9 @@
       "blurb": "Where a Meith board behaves differently from the one you are leaving, and why."
     },
     {
-      "id": "contributing",
-      "title": "Working on Meith",
-      "blurb": "The conventions and the decisions that would otherwise be re-argued in every pull request."
+      "id": "development",
+      "title": "Development",
+      "blurb": "Running it on your own machine, the workspace, and the conventions this codebase holds to."
     }
   ],
   "documents": [
@@ -67,15 +72,6 @@
       "primary": false
     },
     {
-      "slug": "self-hosting",
-      "file": "self-hosting.md",
-      "section": "running",
-      "title": "Self-hosting",
-      "blurb": "A board on your own server, two ways: Coolify for a guided deploy, or Docker Compose directly. Certificates, backups, upgrades and the operator CLI.",
-      "generated": false,
-      "primary": false
-    },
-    {
       "slug": "upgrading",
       "file": "upgrading.md",
       "section": "running",
@@ -92,6 +88,15 @@
       "blurb": "The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board.",
       "generated": true,
       "primary": false
+    },
+    {
+      "slug": "self-hosting",
+      "file": "self-hosting.md",
+      "section": "advanced",
+      "title": "Deploying by hand",
+      "blurb": "The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Advanced — the Quickstart is the route most boards should take.",
+      "generated": false,
+      "primary": true
     },
     {
       "slug": "theme-api",
@@ -148,13 +153,22 @@
       "primary": true
     },
     {
+      "slug": "development",
+      "file": "development.md",
+      "section": "development",
+      "title": "Development",
+      "blurb": "Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request.",
+      "generated": false,
+      "primary": true
+    },
+    {
       "slug": "nextjs-conventions",
       "file": "nextjs-conventions.md",
-      "section": "contributing",
+      "section": "development",
       "title": "Next.js conventions",
       "blurb": "Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request.",
       "generated": false,
-      "primary": true
+      "primary": false
     }
   ],
   "internal": [

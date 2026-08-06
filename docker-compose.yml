@@ -3,8 +3,9 @@
 #
 # `docker compose up -d --build` should produce a working forum with no other
 # setup, which is the parity claim against MyBB's "upload and run" story. This
-# is the deployment route this project supports; docs/self-hosting.md is the
-# walkthrough, and everything below is meant to be read as well as run.
+# is the deployment route this project supports, in its by-hand shape;
+# docs/self-hosting.md is the walkthrough, docs/quickstart.md is the guided
+# one, and everything below is meant to be read as well as run.
 #
 # Four containers, and each earns its place: Postgres holds the board, `migrate`
 # runs to completion before anything serves so the schema is never behind the

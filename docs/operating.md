@@ -50,8 +50,8 @@ filesystem is per-instance and ephemeral, `local` does not fail — it *loses*.
 The write succeeds, the file is served back from the same warm instance, and it
 is a 404 for every other visitor and for you tomorrow. An administrator
 uploading a logo sees it work. That is one of the reasons
-[self-hosting on a VPS](./self-hosting.md) is the route this project documents:
-a real disk, mounted as a volume, and nothing to think about.
+a board on your own server — the route this project documents — has a real
+disk, mounted as a volume, and nothing to think about.
 
 `s3` needs `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID` and
 `S3_SECRET_ACCESS_KEY`, and boot fails naming any that are missing. Add
@@ -68,10 +68,49 @@ object store the bucket has its own backup story. See
 which is usually the moment you need it.
 
 ```sh
-npm run forum -- settings:list          # the whole registry, with defaults
-npm run forum -- settings:get board.name
-npm run forum -- settings:set board.name "The Townland"
+forum settings:list          # the whole registry, with defaults
+forum settings:get board.name
+forum settings:set board.name "The Townland"
 ```
+
+## The operator CLI
+
+Everything you should not need a browser for: migrations, users, forums,
+settings, scheduled tasks, search reindexing. It ships **inside the image**, so
+a deployed board needs no checkout, no toolchain and no Node on the host.
+
+How you reach it depends on how the board was deployed:
+
+| | |
+|---|---|
+| **Coolify** | Open the `web` container's terminal in the panel, then `node apps/cli/cli.cjs <command>`. |
+| **Docker Compose** | `docker compose run --rm --no-deps web node apps/cli/cli.cjs <command>` |
+| **A checkout** | `pnpm forum <command>` |
+
+`--rm` matters on Compose: without it every invocation leaves a stopped
+container behind. `--no-deps` matters too — without it, each command re-runs the
+whole migration container first, which is harmless and slow enough to be
+confusing.
+
+The rest of this page writes **`forum <command>`**, which is worth making true
+on a Compose board:
+
+```sh
+alias forum='docker compose -f ~/meith/docker-compose.yml run --rm --no-deps web node apps/cli/cli.cjs'
+```
+
+```sh
+forum --help                     # everything it can do
+forum env:check                  # is the environment valid, and can it connect?
+forum user:create --admin        # a second administrator, or the first if /install is sealed
+forum user:promote               # administrator access on a board that already works
+forum task:run                   # run the tick once, by hand
+forum search:reindex             # after a large import
+```
+
+The commands that exist are the ones `--help` lists. This project does not
+document a command it has not written, so one you expected and cannot find is
+missing rather than hidden.
 
 ## Permissions
 
@@ -155,21 +194,28 @@ control — that reader's page carries no dark-mode class for a theme to match o
 
 ## Themes
 
-A theme is an npm package named in `forum.config.ts`. Installing one is three
-steps:
+A theme is a package named in `apps/forum/forum.config.ts`. Installing one is
+three steps, in your checkout of the board:
 
 ```sh
-npm install @meith/theme-midnight
+pnpm --filter @meith/web add @meith/theme-midnight
 ```
 
 ```ts
-// forum.config.ts
+// apps/forum/forum.config.ts
 import midnight from "@meith/theme-midnight"
 
 export default { theme: midnight }
 ```
 
-Then redeploy.
+Then commit, push, and redeploy — the image is rebuilt from your repository, so
+an installed theme is a commit rather than a state the server drifts into.
+
+> [!NOTE]
+> This is why there is no upload-a-zip path and will not be one. A theme has to
+> be visible to the bundler at build time; a production build contains only what
+> the bundler could see, so a theme discovered at runtime works in development
+> and is absent in production.
 
 > [!IMPORTANT]
 > **A member picks a whole theme, components included.** `midnight` renders its
@@ -298,7 +344,7 @@ changed afterwards from the appearance strip at the foot of any page.
 
 ## Plugins
 
-Same shape as a theme: `npm install`, a line in `forum.config.ts`, a redeploy.
+Same shape as a theme: add the package, a line in `forum.config.ts`, a redeploy.
 
 > [!NOTE]
 > There is no upload-a-zip path, and there will not be one. A plugin discovered
@@ -336,7 +382,7 @@ the server that handled the click, and it survives a redeploy. Reach for it when
 a plugin is misbehaving — you do not need to deploy to stop one.
 
 **The panel never runs migrations.** It tells you which are outstanding;
-`npm run forum -- upgrade` applies them.
+`forum upgrade` applies them.
 
 > [!WARNING]
 > A plugin with unapplied migrations is running against a schema that does not
@@ -682,8 +728,8 @@ some migrations cannot be reversed at all, so a "roll back" that worked for half
 of them and silently did nothing for the rest would be worse than its absence.
 
 ```sh
-npm run forum -- migrate      # core only
-npm run forum -- upgrade      # core, then plugins, then record the version
+forum migrate      # core only
+forum upgrade      # core, then plugins, then record the version
 ```
 
 The admin panel shows a notice when the deployed code is ahead of the database.
@@ -707,14 +753,35 @@ Two things, and only one of them is the database.
 2. **Uploaded files**, if your file driver is local disk. On S3 or a compatible
    store the files are already elsewhere and the bucket has its own backup story.
 
-The code is in git. `.env` values are in your platform's environment — keep a
-copy somewhere you can reach when the platform is the thing that is broken.
+The code is in git. `.env` values — or the secrets your panel generated — are
+worth a copy somewhere you can reach when the machine is the thing that is
+broken.
+
+> [!WARNING]
+> **A scheduled database backup is not a backup of the board.** Coolify's
+> per-resource schedule dumps Postgres and does not touch the uploads volume, so
+> a restore from it gives you every post and a broken image in each of them.
+> Whatever takes the database, something has to take the volume too.
 
 ### Taking one
 
 ```sh
 pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL" > board.dump
 ```
+
+From a container deployment, where `pg_dump` is in the database container rather
+than on the host:
+
+```sh
+docker compose exec -T postgres pg_dump -U forum forum | gzip > board-$(date +%F).sql.gz
+docker run --rm -v meith_uploads:/u -v "$PWD":/out alpine \
+  tar czf /out/uploads-$(date +%F).tar.gz -C /u .
+```
+
+Check the volume's real name with `docker volume ls` first — Compose prefixes it
+with the project directory, and Coolify with the resource's UUID. Then put both
+in a cron and **copy them off the machine**: a backup on the server is a backup
+of the thing most likely to fail.
 
 `--format=custom` restores selectively and compresses. `--no-owner` and
 `--no-privileges` because the role names on a managed platform are not the ones
@@ -739,7 +806,7 @@ Then check three things, in this order:
 
 1. `select count(*) from posts;` — is the content there?
 2. Sign in as an administrator — did the credentials survive?
-3. `npm run forum -- migrate` — is the schema at the version the code expects?
+3. `forum migrate` — is the schema at the version the code expects?
 
 ### Rehearse it
 
@@ -845,10 +912,10 @@ map.
 The CLI does not need the web app:
 
 ```sh
-npm run forum -- env:check       # is the environment valid, and can it connect?
-npm run forum -- settings:list   # what the board thinks its settings are
-npm run forum -- task:list       # what is scheduled, and when each last ran
-npm run forum -- migrate         # is the schema behind the code?
+forum env:check       # is the environment valid, and can it connect?
+forum settings:list   # what the board thinks its settings are
+forum task:list       # what is scheduled, and when each last ran
+forum migrate         # is the schema behind the code?
 ```
 
 `forum --help` lists everything. The commands that exist are the ones listed

@@ -16,7 +16,7 @@
 #    scheme, which is what `APP_URL` wants.
 #
 # Requires Coolify v4.0.0-beta.411 or newer — magic variables in a compose file
-# from a Git source arrived in that release. See docs/self-hosting.md.
+# from a Git source arrived in that release. See docs/quickstart.md.
 
 services:
   postgres:

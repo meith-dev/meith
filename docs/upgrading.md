@@ -5,14 +5,21 @@ far you can jump.
 
 ## The short version
 
+Deploy the new code, then run the upgrade:
+
 ```sh
-npm install @meith/web@latest @meith/cli@latest
-npm run forum -- upgrade --dry-run   # read what it will do
-npm run forum -- upgrade
+forum upgrade --dry-run   # read what it will do
+forum upgrade
 ```
 
-Deploy the new code **first**, then run the upgrade. The admin panel shows a
-notice until you do.
+On the documented deployments the *core* migrations are already applied by then
+— the `migrate` container runs to completion before anything serves — so
+`upgrade` is what carries plugin migrations and records the version. The admin
+panel shows a notice until you run it.
+
+`forum` is the operator CLI, and how you invoke it depends on how the board was
+deployed; [Running a board § The operator CLI](./operating.md#the-operator-cli)
+has the three spellings.
 
 ## Take a backup first
 
@@ -91,12 +98,13 @@ every migration must remain correct against every schema that ever existed — a
 promise nobody can test, and therefore one that should not be made. Two majors is
 what the migration set is exercised against, so two majors is what is claimed.
 
-A board further behind is not stuck. Upgrade in stages:
+A board further behind is not stuck. Upgrade in stages — check out each major
+in turn, deploy it, and run the upgrade before moving on:
 
 ```sh
-npm install @meith/web@2 @meith/cli@2      && npm run forum -- upgrade
-npm install @meith/web@3 @meith/cli@3      && npm run forum -- upgrade
-npm install @meith/web@latest @meith/cli@latest && npm run forum -- upgrade
+git checkout v2 && docker compose up -d --build && forum upgrade
+git checkout v3 && docker compose up -d --build && forum upgrade
+git checkout main && docker compose up -d --build && forum upgrade
 ```
 
 Each stage is an ordinary upgrade with an ordinary backup in front of it.
@@ -116,7 +124,7 @@ corrupts something a week later.
 
 ## On your own server
 
-Under [Coolify](./self-hosting.md#a-coolify), the upgrade is the **Redeploy**
+Under [Coolify](./quickstart.md), the upgrade is the **Redeploy**
 button — or nothing at all, if you have enabled the webhook and a push to `main`
 deploys itself.
 
@@ -136,11 +144,9 @@ backup covers Postgres; the uploads volume is a second thing, and yours.
 
 That applies **core migrations only**. Plugin migrations run through
 `forum upgrade`, which needs your `forum.config.ts` to know which plugins are
-installed:
-
-```sh
-docker compose run --rm --no-deps web node apps/cli/cli.cjs upgrade
-```
+installed — see
+[the operator CLI](./operating.md#the-operator-cli) for how to run it on your
+deployment.
 
 ## When the deploy and the migration are separate events
 

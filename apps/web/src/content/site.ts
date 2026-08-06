@@ -358,16 +358,16 @@ export const deployment = {
         "at the repository and it generates both secrets and the database password, issues the " +
         "certificate, tells the board its own URL, and redeploys on push. Nothing is typed in.",
       note: "About twenty minutes, start to finish.",
-      action: { label: "Deploy it with Coolify", doc: "self-hosting" },
+      action: { label: "The quickstart", doc: "quickstart" },
     },
     {
-      title: "Or the compose file, directly",
+      title: "Or by hand, if you would rather",
       body:
-        "Four containers: Postgres, a one-shot migration the others wait on, the web server, " +
-        "and the worker that runs the background tick. A clone, a `.env`, one command, and a " +
-        "reverse proxy you already run.",
+        "The same four containers without the panel: Postgres, a one-shot migration the others " +
+        "wait on, the web server, and the worker that runs the tick. A clone, a `.env`, one " +
+        "command, and a reverse proxy you already run. The advanced route.",
       note: "Postgres and nothing else — no Redis, no broker, no search cluster.",
-      action: { label: "Deploy it yourself", doc: "self-hosting" },
+      action: { label: "Deploying by hand", doc: "self-hosting" },
     },
   ],
   link: "The operator handbook",

@@ -219,10 +219,12 @@ minute, somewhere to keep uploads that survives a restart, and a process that
 outlives a request.
 
 The walkthrough is
-[docs/self-hosting.md](${repositoryUrl}/blob/main/docs/self-hosting.md): Docker
-and Compose on a fresh server, four containers, a reverse proxy in front for
-TLS, then \`/install\` on your own domain. Set \`DATABASE_URL\`, \`AUTH_SECRET\`
-and \`TICK_SECRET\` and the rest is defaults.
+[docs/quickstart.md](${repositoryUrl}/blob/main/docs/quickstart.md): Coolify on
+a fresh server, pointed at the repository, four containers, a certificate, then
+\`/install\` on your own domain. Without a panel,
+[docs/self-hosting.md](${repositoryUrl}/blob/main/docs/self-hosting.md) is the
+same thing by hand. Set \`DATABASE_URL\`, \`AUTH_SECRET\` and \`TICK_SECRET\`
+and the rest is defaults.
 
 Run the installer **against the database you are going to keep**: it seals
 itself when it finishes, and \`/install\` answers 404 from then on.
