@@ -7,25 +7,28 @@
  * inspected by running it and looking at a directory is a generator nobody
  * tests. `cli.ts` is the thin part that writes the map.
  *
- * ## What the acceptance criterion actually demands
+ * ## What a generated project has to get right
  *
- * "Push-to-deploy works without manual build configuration." That is not "a
- * README that explains what to configure" — it is that the generated repository,
- * pushed to a Vercel project with `DATABASE_URL` set, deploys and runs. Three
- * things have to be right for that, and each has been wrong in this repository
- * at some point:
+ * Three things, and each has been wrong in this repository at some point:
  *
- *  - **the build must not need a database.** `next build` prerenders, and a build
- *    that opens a connection fails on a preview deployment with no database
- *    attached. The generated app builds in `fixture` mode, exactly as CI does.
- *  - **the cron must be declared in the repository.** Every catch-up operation on
- *    this board runs on the tick — bans expire, digests send, counters
- *    reconcile — and when it does not run, *nothing fails*. A `vercel.json`
- *    committed by the scaffold is the difference between a board that works and
- *    one that silently stops doing anything a month later (F70).
+ *  - **the build must not need a database.** `next build` prerenders, and a
+ *    build that opens a connection fails wherever the build runs before the
+ *    database is reachable. The generated app builds in `fixture` mode, exactly
+ *    as CI does.
+ *  - **the tick has to be somebody's job.** Every catch-up operation runs on it
+ *    — bans expire, digests send, counters reconcile, queued mail leaves — and
+ *    when it does not run, *nothing fails*. The generated README says which
+ *    process runs it, because a board that silently stops doing anything a
+ *    month later is the failure this project cares most about (F70).
  *  - **the secrets must be named where somebody will see them.** `AUTH_SECRET`
  *    and `TICK_SECRET` are required at startup and have no sensible default, so
  *    they are in `.env.example` with the command that generates one.
+ *
+ * There is no platform configuration file in the generated tree. There was one
+ * — a `vercel.json` carrying a cron — and it went with the serverless route it
+ * belonged to: a board needs a process that outlives a request, and a project
+ * that shipped a schedule for a host that cannot run one was describing a board
+ * that half worked.
  */
 
 export interface ScaffoldOptions {
@@ -33,11 +36,11 @@ export interface ScaffoldOptions {
   readonly name: string
   /** Pinned so a scaffold produces the same tree twice. */
   readonly version: string
-  /** The repository a Deploy button points at. */
+  /** The repository the generated README points at, so a fork can say so. */
   readonly repositoryUrl: string
 }
 
-export const DEFAULT_REPOSITORY_URL = 'https://github.com/jouwdan/forum-software'
+export const DEFAULT_REPOSITORY_URL = 'https://github.com/meith-dev/meith'
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,213}$/
 
@@ -104,8 +107,9 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
  *
  * Everything installable is named here, statically, so the bundler can see it
  * and the compiler can check it. Nothing is discovered by scanning a directory
- * at runtime — on a serverless platform a directory walked at request time is
- * empty, so a plugin "installed" that way is not there in production.
+ * at runtime — a production build contains only what the bundler could see, so a
+ * directory walked at request time is empty and a plugin "installed" that way is
+ * not there at all.
  *
  * Adding a theme or a plugin is: \`npm install\` it, add a line here, redeploy.
  */
@@ -139,18 +143,19 @@ export default defineForumConfig({
     '.env.example',
     `# ${name} — environment.
 #
-# Copy to .env.local for development. On Vercel these are project environment
-# variables; nothing here belongs in git.
+# Copy to .env.local for development. On the server this is \`.env\` beside the
+# compose file; nothing here belongs in git.
 
 # ─── Required ────────────────────────────────────────────────────────────────
 
-# The TRANSACTION-MODE POOLER connection string, not the direct one.
+# Your Postgres connection string.
 #
-# This matters more than any other line in this file. A serverless function
-# opens its own connection and Postgres' default limit is around 100, so a board
-# on the direct string works in testing and starts refusing connections under
-# the first real traffic — with an error that names the database rather than the
-# cause.
+# If it is a managed database that offers a TRANSACTION-MODE POOLER string, use
+# that rather than the direct one — Neon, Supabase and their kind hand out both,
+# and on the direct string a board works in testing and starts refusing
+# connections under the first real traffic, with an error that names the
+# database rather than the cause. Your own Postgres, with a fixed number of
+# processes in front of it, does not need one.
 DATABASE_URL=
 
 # Session and token signing. No default, deliberately: a shipped default is a
@@ -159,7 +164,7 @@ DATABASE_URL=
 #   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 AUTH_SECRET=
 
-# The shared secret the cron caller presents to POST /api/system/tick. Generate
+# The shared secret the tick caller presents to GET /api/system/tick. Generate
 # it the same way. Without it the tick is unauthenticated, and the tick is how
 # bans expire and digests send.
 TICK_SECRET=
@@ -167,40 +172,25 @@ TICK_SECRET=
 # ─── Optional ────────────────────────────────────────────────────────────────
 
 # fixture = deterministic in-memory sample data, no database needed. This is
-# what \`npm run build\` uses, and what a preview deployment with no database
-# attached falls back to.
+# what \`npm run build\` uses, and what a checkout with no database falls back to.
 DATA_SOURCE=postgres
 
 # Absolute, no trailing slash. Used in mail, feeds and canonical URLs — every
 # place a relative URL cannot work because there is no request to be relative to.
-PUBLIC_URL=
+APP_URL=
 
-# Keep comfortably below the platform's function timeout, so the tick finishes
-# its batch and reports rather than being killed mid-way.
+# Mail. The default writes each message to the server log and SENDS NOTHING, so
+# password reset fails silently until this is configured. All three are required
+# together once MAIL_DRIVER=http.
+# MAIL_DRIVER=http
+# MAIL_HTTP_ENDPOINT=https://api.resend.com/emails
+# MAIL_HTTP_TOKEN=
+# MAIL_FROM=noreply@yourdomain.com
+
+# How long a tick may spend before it yields and finishes the backlog next time.
 TICK_DEADLINE_MS=50000
 TICK_MAX_JOBS=25
 `,
-  )
-
-  files.set(
-    'vercel.json',
-    `${JSON.stringify(
-      {
-        $schema: 'https://openapi.vercel.sh/vercel.json',
-        /*
-         * Committed by the scaffold rather than left as a documented step.
-         *
-         * Every catch-up operation runs on this tick — bans expire, digests
-         * send, counters reconcile, uploads are swept, queued mail is
-         * delivered — and when it stops, none of them *fail*. They simply do
-         * not happen, with no error anywhere, until somebody notices a ban that
-         * should have ended last month.
-         */
-        crons: [{ path: '/api/system/tick', schedule: '* * * * *' }],
-      },
-      null,
-      2,
-    )}\n`,
   )
 
   files.set(
@@ -219,25 +209,31 @@ TICK_MAX_JOBS=25
     'README.md',
     `# ${name}
 
-A forum, built on [forum-software](${repositoryUrl}).
+A forum, built on [Meith](${repositoryUrl}).
 
 ## Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=${encodeURIComponent(
-      repositoryUrl,
-    )})
+On a machine you control — a VPS from any provider, from about four euros a
+month. A board needs three things from wherever it runs, and this is the shape
+that gives all three: a scheduler that goes off every minute, somewhere to keep
+uploads that survives a restart, and a process that outlives a request.
 
-Set \`DATABASE_URL\`, \`AUTH_SECRET\` and \`TICK_SECRET\` in the project's
-environment, push, and open \`/install\`.
+The walkthrough is
+[docs/self-hosting.md](${repositoryUrl}/blob/main/docs/self-hosting.md): Docker
+and Compose on a fresh server, four containers, a reverse proxy in front for
+TLS, then \`/install\` on your own domain. Set \`DATABASE_URL\`, \`AUTH_SECRET\`
+and \`TICK_SECRET\` and the rest is defaults.
 
-**Use the transaction-mode pooler connection string.** A serverless function
-opens its own connection; on the direct string a board works in testing and
-starts refusing connections under the first real traffic.
+Run the installer **against the database you are going to keep**: it seals
+itself when it finishes, and \`/install\` answers 404 from then on.
 
-The cron that drives every catch-up operation is already declared in
-\`vercel.json\` — bans expiring, digests sending, counters reconciling. It is
-committed rather than documented because when it does not run, nothing fails:
-the work simply does not happen.
+Two things nothing configures for you:
+
+- **Mail.** Until \`MAIL_DRIVER\` and its three settings exist, every message is
+  written to the log and delivered to nobody, so password reset fails silently.
+- **The tick.** It runs in the worker process, which the compose file starts
+  beside the web server. Deploy this some other way and something has to run
+  \`forum task:run\` every minute, or nothing catches up and nothing errors.
 
 ## Local
 

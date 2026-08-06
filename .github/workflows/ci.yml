@@ -218,7 +218,7 @@ jobs:
             -e DATA_SOURCE=postgres \
             -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
             -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
-            -e PUBLIC_URL=http://127.0.0.1:3000 \
+            -e APP_URL=http://127.0.0.1:3000 \
             forum:ci
           for i in $(seq 1 40); do
             if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
@@ -240,9 +240,18 @@ jobs:
       # The worker role — F04's "the same image runs the worker with a flag".
       # A worker that starts, registers its tasks and survives a tick is the
       # claim; anything less is a container that exits zero and does nothing.
+      #
+      # Ninety seconds, and "worker started" **exactly once**, because twenty
+      # seconds was not long enough to see the bug this now guards. Between
+      # ticks the sleep's two timers were the only handles holding the event
+      # loop; both were unref'd, Postgres closed its idle connection at about
+      # twenty seconds, the loop emptied and Node exited 0 in the middle of a
+      # `while (!stopping)` loop that had not stopped. Under a restart policy
+      # that reads as a working board whose log says "worker started" forever,
+      # so counting the line matters more than finding it.
       - name: Boot the worker role
         run: |
-          docker run -d --name forum-worker --network host \
+          docker run -d --name forum-worker --network host --restart=no \
             -e FORUM_ROLE=worker \
             -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
             -e DATA_SOURCE=postgres \
@@ -250,12 +259,20 @@ jobs:
             -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
             -e QUEUE_DRIVER=postgres -e CACHE_DRIVER=memory \
             forum:ci
-          sleep 20
+          sleep 90
           docker logs forum-worker
           docker ps --filter name=forum-worker --filter status=running | grep -q forum-worker \
             || { echo "::error::the worker exited instead of looping"; exit 1; }
-          docker logs forum-worker 2>&1 | grep -q 'worker started' \
-            || { echo "::error::the worker never reported starting"; exit 1; }
+
+          starts=$(docker logs forum-worker 2>&1 | grep -c 'worker started' || true)
+          test "$starts" = "1" \
+            || { echo "::error::expected one 'worker started', saw $starts — it is restarting"; exit 1; }
+
+          # And the image agrees it is healthy. The single web-shaped healthcheck
+          # this replaced reported every worker unhealthy for its whole life.
+          state=$(docker inspect -f '{{.State.Health.Status}}' forum-worker)
+          test "$state" = "healthy" \
+            || { echo "::error::worker health is $state"; exit 1; }
 
       # It registered its tasks, which is the difference between a loop that
       # runs and a loop that works.
@@ -269,6 +286,103 @@ jobs:
       - name: Stop
         if: always()
         run: docker rm -f forum-web forum-worker 2>/dev/null || true
+
+  compose:
+    name: The documented deployment comes up
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # docs/self-hosting.md tells an operator to write a `.env` and run one
+      # command. This job is that, verbatim, because three separate bugs got
+      # into this repository behind a compose file nothing ever started:
+      # `migrate` was never passed the two secrets so the stack could not come
+      # up at all; the worker's sleep unref'd its timers so it exited every
+      # twenty seconds; and the image's healthcheck was web-shaped, so the
+      # worker was permanently unhealthy. Each was found by running this and
+      # none by reading it.
+      - name: Write the .env the guide writes
+        run: |
+          cat > .env <<EOF
+          # hex, not base64: the password is substituted into a postgres:// URL
+          # and base64 can contain `/`, which is a TypeError from the migration.
+          POSTGRES_PASSWORD=$(openssl rand -hex 32)
+          AUTH_SECRET=$(openssl rand -base64 32)
+          TICK_SECRET=$(openssl rand -base64 32)
+          APP_URL=http://127.0.0.1:3000
+          PORT=127.0.0.1:3000
+          EOF
+
+      - name: Bring the stack up
+        run: docker compose up -d --build --wait --wait-timeout 600
+
+      # `migrate` runs to completion and the other two wait on it, so the code
+      # never serves against a schema behind it. A non-zero exit here is the
+      # stack refusing to start rather than starting wrong, which is the whole
+      # point of the service.
+      - name: The migration succeeded and exited
+        run: |
+          code=$(docker compose ps -a --format json migrate | head -1 \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["ExitCode"])')
+          test "$code" = "0" \
+            || { echo "::error::migrate exited $code"; docker compose logs migrate; exit 1; }
+
+      - name: The board answers, and renders
+        run: |
+          curl -fsS http://127.0.0.1:3000/api/health >/dev/null \
+            || { echo "::error::no health"; docker compose logs web; exit 1; }
+          curl -fsS http://127.0.0.1:3000/ | grep -q '<main' \
+            || { echo "::error::the board did not render"; docker compose logs web; exit 1; }
+
+      # The guide says bind to localhost so the reverse proxy is the only way
+      # in. Docker writes its own iptables rules, so a board published on all
+      # interfaces is plaintext on 3000 whatever ufw says — worth asserting the
+      # file honours PORT rather than trusting the sentence.
+      - name: Nothing is published beyond the proxy's port
+        run: |
+          docker compose port web 3000 | grep -q '^127\.0\.0\.1:' \
+            || { echo "::error::web is not bound to localhost"; docker compose port web 3000; exit 1; }
+          test -z "$(docker compose port worker 3000 2>/dev/null)" \
+            || { echo "::error::the worker publishes a port"; exit 1; }
+
+      # Sixty seconds is one tick interval, so a worker that dies between ticks
+      # dies inside this window.
+      - name: The worker is still there a tick later
+        run: |
+          sleep 60
+          for service in web worker; do
+            count=$(docker compose ps --format json "$service" | head -1 \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin)["State"])')
+            test "$count" = "running" \
+              || { echo "::error::$service is $count"; docker compose logs "$service"; exit 1; }
+          done
+          starts=$(docker compose logs worker 2>&1 | grep -c 'worker started' || true)
+          test "$starts" = "1" \
+            || { echo "::error::expected one 'worker started', saw $starts"; exit 1; }
+
+      # Both processes write to and read from the same uploads volume. Separate
+      # volumes is the silent failure: an avatar written by a queued job in the
+      # worker is a 404 in the web server, and nothing errors.
+      - name: Web and worker share the uploads volume
+        run: |
+          docker compose exec -T worker sh -c 'echo probe > /app/.uploads/ci-probe'
+          docker compose exec -T web sh -c 'cat /app/.uploads/ci-probe' | grep -q probe \
+            || { echo "::error::web and worker do not share uploads"; exit 1; }
+
+      # The operator CLI ships inside the image, so a server needs no checkout
+      # and no toolchain. The guide's alias is this command.
+      - name: The operator CLI runs from the image
+        run: |
+          docker compose run --rm --no-deps web node apps/cli/cli.cjs --help | grep -qi 'usage' \
+            || { echo "::error::the operator CLI is not in the image"; exit 1; }
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Down
+        if: always()
+        run: docker compose down -v
 
   e2e:
     name: No-JS and accessibility browser checks

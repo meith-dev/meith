@@ -25,12 +25,32 @@ cp .env.example .env.local    # fill in DATABASE_URL and AUTH_SECRET
 npm run dev
 ```
 
-Then open `/install`. The full walkthrough, including deployment and what to do
-when the install fails halfway, is in the
-[Quickstart](./docs/quickstart.md).
+Then open `/install`. The full walkthrough, including what to do when the install
+fails halfway, is in the [Quickstart](./docs/quickstart.md).
 
-Deploy it serverlessly on Vercel, or self-host the standalone Docker image with
-its worker. Both are first-class.
+## Deploying it
+
+**On a server you rent**, from about €4 a month, with nothing between you and
+the board. [Self-hosting on a VPS](./docs/self-hosting.md) is the walkthrough:
+a fresh Ubuntu box to a board on your own domain in about half an hour.
+
+```sh
+git clone https://github.com/meith-dev/meith.git && cd meith
+cp .env.example .env          # three secrets, generated not typed
+docker compose up -d --build
+```
+
+Four containers, from [`docker-compose.yml`](./docker-compose.yml): Postgres, a
+one-shot migration that the other two wait on, the web server, and the worker
+that runs the background tick. Put Caddy or nginx in front for the certificate,
+open `/install`, and that is a board.
+
+That is the only deployment route this project supports, and it is a decision
+rather than an omission. A board asks three things of wherever it runs — a
+scheduler that goes off every minute, a disk that survives a restart, and a
+process that outlives a request. A plain server gives you all three without
+being asked; a serverless host gives you none, and the third has no workaround
+at any price.
 
 ## What you get
 
@@ -68,6 +88,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 |---|---|---|
 | Running a board | [`quickstart.md`](./docs/quickstart.md) | From an empty directory to a working board, in five steps. About ten minutes, most of it waiting for npm install. |
 | Running a board | [`operating.md`](./docs/operating.md) | The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
+| Running a board | [`self-hosting.md`](./docs/self-hosting.md) | A board on a server you rent: Docker Compose, a reverse proxy, backups, upgrades and the operator CLI. The way this project is deployed. |
 | Running a board | [`upgrading.md`](./docs/upgrading.md) | How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
 | Themes | [`theme-api.md`](./docs/theme-api.md) | What the freeze covers, what a theme may do, and how to write one. |

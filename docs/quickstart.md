@@ -15,8 +15,8 @@ npm install
 ```
 
 You now have a normal Node project: your own `package.json`, a `forum.config.ts`
-listing the installed theme and plugins, a `vercel.json` with the scheduled job
-already wired, and a `.env.example`.
+listing the installed theme and plugins, and a `.env.example` naming every
+variable the board reads.
 
 ## 2. Point it at a database
 
@@ -38,10 +38,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
 > [!IMPORTANT]
-> If your database is on a serverless platform such as Supabase or Neon, use the
-> **transaction-mode pooler** connection string — on Supabase, port `6543`
-> rather than `5432`. A board on the direct string works perfectly until it is
-> busy, then starts refusing connections. See
+> Pointing at a *managed* database — Supabase, Neon and their kind? Use the
+> **transaction-mode pooler** connection string, on Supabase port `6543` rather
+> than `5432`. A board on the direct string works perfectly until it is busy,
+> then starts refusing connections. Your own Postgres needs none of this. See
 > [connection pooling](./operating.md#connection-pooling).
 
 ## 3. Start it
@@ -78,16 +78,22 @@ That is a board. Sign in and go to `/admin`.
 
 ## 5. Deploy it
 
-The scaffold's `vercel.json` already schedules the background tick, so deploying
-is a git push and three environment variables.
+On a server you rent. **[Self-hosting on a VPS](./self-hosting.md)** is the
+walkthrough — from a fresh Ubuntu box to a board on your own domain in about
+half an hour, at around €4 a month.
 
-Set these on the platform **before** the first deploy:
+The short version: clone the repository on the server, write three secrets into
+a `.env`, `docker compose up -d --build`, and put Caddy in front for the
+certificate. Four containers come up — Postgres, a one-shot migration, the web
+server and the worker — and the worker is what runs the background tick.
+
+Three variables have no default and must be set wherever this runs:
 
 | Variable | Why |
 |---|---|
-| `DATABASE_URL` | The pooler string. |
-| `AUTH_SECRET` | Same as local, or a new one — changing it signs everyone out. |
-| `TICK_SECRET` | Without it the scheduled job refuses every call, and nothing fails visibly. |
+| `DATABASE_URL` | Where the board lives. |
+| `AUTH_SECRET` | Signs sessions. Changing it later signs everyone out. |
+| `TICK_SECRET` | Without it the tick refuses every call, and nothing fails visibly. |
 
 Then run the installer **from the deployed URL**, against the production
 database.
@@ -96,10 +102,6 @@ database.
 > Do not install production from your laptop. The installer seals itself when it
 > finishes, and sealing it against a database you will not serve leaves you with a
 > board that cannot be installed and an `/install` that 404s.
-
-Self-hosting instead? Build the standalone Docker image, which runs the web
-server, the worker and migrations from one image so the three cannot drift
-apart. See [Running a board](./operating.md).
 
 ## 6. Configure mail before you invite anybody
 

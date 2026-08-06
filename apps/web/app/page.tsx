@@ -299,6 +299,16 @@ export default async function LandingPage() {
                 <p className="mt-auto pt-3 font-mono text-micro leading-[1.5] text-ink-faint">
                   {option.note}
                 </p>
+                {/*
+                  Each card ends somewhere. The band used to carry one link
+                  under both cards, which made the second card an assertion with
+                  nowhere to check it.
+                */}
+                <p className="pt-3">
+                  <Link className="textlink text-micro" href={docHref(option.action.doc)}>
+                    {option.action.label}
+                  </Link>
+                </p>
               </div>
             ))}
           </div>

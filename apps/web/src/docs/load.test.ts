@@ -48,6 +48,24 @@ describe("linkResolver", () => {
     expect(fromDocs("./README.md")).toEqual({ href: "/docs", external: false })
   })
 
+  /*
+   * The self-hosting guide links to the files an operator is about to run —
+   * `docker-compose.yml`, the Dockerfile, `.env.example` — and those sit at the
+   * repository root, outside `docs/`. Before this they resolved to
+   * `…/tree/main/docs/../docker-compose.yml`, which renders as a link and 404s
+   * when followed.
+   */
+  it("sends a link that climbs out of docs/ to the repository root", () => {
+    expect(fromDocs("../docker-compose.yml")).toEqual({
+      href: `${site.repository}/blob/main/docker-compose.yml`,
+      external: true,
+    })
+    expect(fromDocs("../.env.example")).toEqual({
+      href: `${site.repository}/blob/main/.env.example`,
+      external: true,
+    })
+  })
+
   it("sends an unpublished document to the repository rather than to a 404", () => {
     /*
      * The roadmap and the progress log are deliberately not on this site. A link

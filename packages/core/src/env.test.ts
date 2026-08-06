@@ -37,6 +37,58 @@ describe('derived defaults', () => {
   })
 })
 
+/**
+ * The shape a container actually receives.
+ *
+ * `docker-compose.yml` forwards the optional variables as `${MAIL_FROM:-}` so
+ * an operator can set them later without editing the file. Until they do, the
+ * container gets empty strings — and the strict schema read those as *present
+ * and malformed*, so a board with no mail configured refused to boot, naming
+ * variables nobody had set. Caught by running the compose file rather than by
+ * reading it.
+ */
+describe('an empty variable is an unset one', () => {
+  const asCompose = {
+    NODE_ENV: 'production',
+    DATA_SOURCE: 'postgres',
+    DATABASE_URL: 'postgres://forum:pw@postgres:5432/forum',
+    AUTH_SECRET: 'a'.repeat(40),
+    TICK_SECRET: 'b'.repeat(40),
+    QUEUE_DRIVER: 'postgres',
+    CACHE_DRIVER: 'next',
+    FILESTORE_DRIVER: 'local',
+    MAIL_DRIVER: 'log',
+    MAIL_HTTP_ENDPOINT: '',
+    MAIL_HTTP_TOKEN: '',
+    MAIL_FROM: '',
+  } satisfies NodeJS.ProcessEnv
+
+  it('boots a board whose optional features are simply not configured', () => {
+    const env = parseEnv(asCompose)
+    expect(env.MAIL_DRIVER).toBe('log')
+    expect(env.MAIL_FROM).toBeUndefined()
+    expect(env.MAIL_HTTP_ENDPOINT).toBeUndefined()
+  })
+
+  it('treats whitespace as empty, since that is a paste with a newline in it', () => {
+    expect(parseEnv({ ...asCompose, APP_URL: '  ' }).APP_URL).toBeUndefined()
+  })
+
+  /*
+   * The message matters as much as the refusal. "Required" sends somebody to
+   * set it; "too small" sends them to look at a value they never wrote.
+   */
+  it('still refuses a required secret, and calls it missing rather than malformed', () => {
+    expect(() => parseEnv({ ...asCompose, AUTH_SECRET: '' })).toThrow(/AUTH_SECRET.*is required/)
+  })
+
+  it('does not excuse a value that is genuinely wrong', () => {
+    expect(() =>
+      parseEnv({ ...asCompose, MAIL_FROM: 'not-an-address', MAIL_DRIVER: 'http' }),
+    ).toThrow(/MAIL_FROM/)
+  })
+})
+
 describe('cross-field rules', () => {
   it('names the offending variable, not just "invalid config"', () => {
     expect(() => parseEnv({ NODE_ENV: 'development', DATA_SOURCE: 'postgres' })).toThrow(

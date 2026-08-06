@@ -321,10 +321,41 @@ interface LoadOptions {
   readonly ignoreBuildPhase?: boolean
 }
 
+/**
+ * An environment variable set to nothing is not set.
+ *
+ * A compose file forwarding `MAIL_FROM=${MAIL_FROM:-}` so an operator *can* set
+ * it later hands the container `""` until they do, and that is the ordinary
+ * shape of every deployment this project documents.
+ *
+ * Without this, those arrive as *present and malformed* — and the schema is
+ * strict, so a board with no mail configured refused to boot with "MAIL_FROM:
+ * Invalid email address", naming three variables nobody had set. That is the
+ * opposite of what F02's fail-fast is for: a startup crash caused by *not*
+ * configuring an optional feature. Found by bringing the stack up, not by
+ * reading this file.
+ *
+ * Whitespace counts as empty, because a value pasted with a stray newline is
+ * the same mistake wearing a different hat. Anything genuinely set still has to
+ * satisfy its rule.
+ */
+function withoutEmptyValues(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  /*
+   * Built by deletion rather than accumulation: under the app's TypeScript
+   * configuration `NodeJS.ProcessEnv` requires `NODE_ENV`, so an empty literal
+   * is not one. A copy either way — this must not mutate `process.env`.
+   */
+  const kept: NodeJS.ProcessEnv = { ...source }
+  for (const [key, value] of Object.entries(kept)) {
+    if (typeof value === "string" && value.trim() === "") delete kept[key]
+  }
+  return kept
+}
+
 function load(rawSource: NodeJS.ProcessEnv, options: LoadOptions = {}): Env {
   // `withDerivedDefaults` returns a fresh object, so this never mutates the
   // caller's environment.
-  const source = withDerivedDefaults(rawSource)
+  const source = withDerivedDefaults(withoutEmptyValues(rawSource))
   if (options.ignoreBuildPhase) delete source.NEXT_PHASE
 
   const parsed = envSchema.safeParse(source)

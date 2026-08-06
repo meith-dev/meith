@@ -114,16 +114,38 @@ corrupts something a week later.
 | You deployed a version you did not mean to | Deploy the newer one again |
 | The newer one is broken | Restore the backup |
 
-## Serverless: deploy, then upgrade
+## On your own VPS
 
-On Vercel the two are separate events, and the gap between them is real. The
-board runs the new code as soon as the deployment is live; the schema does not
-change until you run the command.
+The documented deployment upgrades in two commands, and the ordering is handled
+for you:
+
+```sh
+git pull
+docker compose up -d --build
+```
+
+`migrate` runs to completion first and `web` and `worker` wait for it, so the
+new code never serves against the old schema. Take a backup before the pull —
+migrations are forward-only, and recovery is by restore.
+
+That applies **core migrations only**. Plugin migrations run through
+`forum upgrade`, which needs your `forum.config.ts` to know which plugins are
+installed:
+
+```sh
+docker compose run --rm web node apps/cli/cli.cjs upgrade
+```
+
+## When the deploy and the migration are separate events
+
+Deploy some other way, and the two come apart: the board runs the new code as
+soon as the deployment is live, and the schema does not change until you run the
+command. Between them, new logic is talking to an old schema.
 
 That window is why the admin notice exists. It names both versions and the number
-of migrations waiting — so the failure mode (new logic against an old schema,
-surfacing as "column does not exist" in whichever request touches it first)
-becomes a sentence somebody read before it happened.
+of migrations waiting — so the failure mode (surfacing as "column does not exist"
+in whichever request touches it first) becomes a sentence somebody read before it
+happened.
 
 For a board with real traffic:
 
@@ -133,18 +155,6 @@ For a board with real traffic:
 | Removes or renames | Two-step: ship code that tolerates both shapes, migrate, then ship code that assumes the new one |
 
 Releases say which kind they are.
-
-## Self-hosted
-
-The standalone image runs the migrate role:
-
-```sh
-docker run --rm -e FORUM_ROLE=migrate -e DATABASE_URL=… forum:latest
-```
-
-That applies **core migrations only** — the same thing step 1 does. Plugin
-migrations run through `forum upgrade`, which needs your `forum.config.ts` to
-know which plugins are installed.
 
 ## Settings whose defaults have changed
 

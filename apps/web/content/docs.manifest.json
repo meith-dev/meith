@@ -67,6 +67,15 @@
       "primary": false
     },
     {
+      "slug": "self-hosting",
+      "file": "self-hosting.md",
+      "section": "running",
+      "title": "Self-hosting on a VPS",
+      "blurb": "A board on a server you rent: Docker Compose, a reverse proxy, backups, upgrades and the operator CLI. The way this project is deployed.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "upgrading",
       "file": "upgrading.md",
       "section": "running",

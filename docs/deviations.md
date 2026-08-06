@@ -8003,3 +8003,102 @@ it on *this* transport is a property of one driver rather than a reason to hand
 a provider a name with a line break in it — quotes and backslashes escaped, and
 the name always quoted, because an unquoted display name may not contain `.`,
 `,` or `@` and "Board Admin, Ltd." is an ordinary thing to type.
+
+
+### D105 — One deployment route, and it is a server you rent (F04, F82)
+
+**Plan:** two first-class deployments — serverless (Vercel, with a committed
+`vercel.json` cron) and a self-hosted Docker image.
+
+**Implemented:** one. `docker-compose.yml` on a machine you control, walked
+through in [`self-hosting.md`](./self-hosting.md). `apps/forum/vercel.json` is
+deleted, the scaffold no longer writes one, and no page offers a serverless
+host.
+
+**Why:** a board asks three things of wherever it runs, and only two of them can
+be bought.
+
+| What a board needs | What a function gives you | What filling the gap costs |
+|---|---|---|
+| A scheduler that runs every minute | A cron whose cadence is a plan feature | A second account, or the paid tier |
+| A disk that survives a restart | A filesystem that is per-instance and gone at the next request | An object store, and its bill |
+| A process that outlives a request | A timeout | Nothing you can buy |
+
+The third is why this is a deletion rather than a caveat. `TICK_DEADLINE_MS` has
+to stay under the platform's function timeout, so a backlog drains across
+several ticks instead of one; a large MyBB import cannot hold a function open at
+all and has to be driven from an operator's laptop against the production
+database; and the migration stops being part of the deploy, so between the code
+going live and somebody running the command, new logic is talking to an old
+schema.
+
+None of that is fatal on its own. Together they describe a board that half
+works, and the readers least able to tell which half are exactly the ones a
+one-click route attracts. Two documented routes also meant every operational
+sentence in `operating.md` had to name which one it applied to, and the
+serverless branch of each was the one nothing tested.
+
+**Consequence:** `FILESTORE_DRIVER` is back to `local | s3` with `local` as the
+plain default, since the documented deployment always has a disk. The
+`VERCEL`-detection rule that refused to boot with `local` on an ephemeral
+filesystem stays — somebody will still deploy there, and an upload that succeeds
+and then disappears is the worst failure this project has — but it is now a
+guard rather than part of a supported path.
+
+**What this cost, and it is real:** there is no zero-cost tier any more. The
+cheapest board is a €4 VPS rather than a free plan, and an operator now takes on
+backups, host updates and a certificate. The certificate is a solved problem
+(Caddy), the updates are `unattended-upgrades`, and the backups were always
+theirs — a free plan that loses your uploads is not cheaper.
+
+### D106 — The deployment bugs were all found by running it, not by reading it
+
+Four defects sat in the self-hosted path, each behind a compose file that
+nothing in CI had ever started. They are recorded together because they share a
+cause rather than a mechanism.
+
+1. **`migrate` was never passed `AUTH_SECRET` or `TICK_SECRET`.** F02 is one
+   environment contract with no per-role exemptions, so the migrator exits
+   naming both before it opens a connection — meaning `docker compose up` could
+   not bring the stack up at all. The fix is two lines in the compose file
+   rather than a carve-out in the schema, because a carve-out would eventually
+   let the *web* server start without them.
+
+2. **The worker exited every twenty seconds.** `sleep()` unref'd both its
+   timers, on the reasoning that a sleep about to be abandoned should not hold
+   the process open. Between ticks those two handles were the only thing holding
+   the event loop; Postgres closes its idle connection at about twenty seconds,
+   the loop emptied, and Node exited 0 in the middle of a `while (!stopping)`
+   loop that had not stopped. Under `restart: unless-stopped` the container came
+   straight back and ticked, so the board *worked* and the log read
+   `worker started` forever. The 250ms shutdown poll already provides the
+   promptness the unref was reaching for.
+
+3. **The image's healthcheck was web-shaped.** It fetched `/api/health`, which a
+   worker does not serve, so every worker container was unhealthy from its first
+   probe to its last — and `docker compose up --wait` never finished.
+   `docker-healthcheck.sh` asks a different question per role: the route for
+   `web`, the process for `worker`, and nothing for `migrate`, whose exit code is
+   the verdict.
+
+4. **An empty variable was not an unset one.** The compose file forwards
+   `MAIL_FROM=${MAIL_FROM:-}` so it can be configured in `.env` without editing
+   the file; until it is, the container gets `""`, and the strict schema read
+   that as present and malformed. A board with no mail configured refused to
+   boot with "Invalid email address", naming three variables nobody had set —
+   the exact inverse of what fail-fast is for. `withoutEmptyValues` drops
+   empty-and-whitespace values before parsing.
+
+A fifth turned up in the *documentation* the same way: the guide generated
+`POSTGRES_PASSWORD` with `openssl rand -base64`, whose alphabet includes `/`,
+and that password is substituted into a `postgres://` URL — so roughly one board
+in three died with `TypeError: Invalid URL` and a stack trace naming nothing
+that would send you to the password. It is `openssl rand -hex 32` now, with the
+reason written beside it in three places.
+
+**Consequence:** CI has a `compose` job that writes the `.env` the guide writes
+and runs the command the guide runs, then asserts the things each of these broke
+— migrate's exit code, one `worker started` and not two, the health status of
+both containers, the shared uploads volume, and that nothing is published beyond
+the proxy's port. A deployment route with no job behind it is a route that is
+documented rather than supported.

@@ -29,7 +29,7 @@ export const site = {
   tagline: "Forum software for communities that want to build something together.",
   description:
     "Meith is open-source forum software named for the meitheal: neighbours coming " +
-    "together for a shared task. Self-host it or deploy it serverlessly.",
+    "together for a shared task. Run it on a server you rent, from about €4 a month.",
 } as const
 
 /** The line the hero offers to copy, and the only place it is spelled out. */
@@ -57,7 +57,7 @@ export const licence = {
 export const licenceHref = `${site.repository}/blob/main/${licence.file}`
 
 export const hero = {
-  eyebrow: "Open source, LGPL-3.0 · self-hosted or serverless · Postgres",
+  eyebrow: "Open source, LGPL-3.0 · self-hosted on your own server · Postgres",
   headline: { before: "Many hands, ", emphasis: "one field." },
   /*
    * Kept in full. This paragraph is the one piece of copy on the site that does
@@ -310,27 +310,43 @@ export const performance = {
   link: "Every scenario, and why",
 } as const
 
+/**
+ * Where it runs, and the shorter list this became.
+ *
+ * There were two options here and one of them was serverless. It went, and the
+ * reason is worth keeping written down: a board needs a scheduler that goes off
+ * every minute, a disk that survives a restart, and a process that outlives a
+ * request. A server gives you all three by existing. A function gives you none,
+ * and the third cannot be bought — so offering it as a route meant offering a
+ * board that half worked, to the readers least equipped to notice which half.
+ *
+ * So this band no longer chooses for the reader. It says what the one route is,
+ * what it costs, and what an operator takes on in exchange.
+ */
 export const deployment = {
-  eyebrow: "Two ways to run it",
-  heading: "Serverless or your own metal. Both first-class.",
+  eyebrow: "Where it runs",
+  heading: "A server you rent, and nothing between you and the board.",
   options: [
     {
-      title: "On Vercel",
+      title: "One machine, four containers",
       body:
-        "The scaffold ships a vercel.json with the background tick already scheduled, so " +
-        "deploying is a git push and three environment variables. Run the installer from the " +
-        "deployed URL, against the production database.",
-      note: "Use your provider's transaction-mode pooler string.",
+        "Postgres, a one-shot migration the others wait on, the web server, and the worker " +
+        "that runs the background tick. `docker compose up -d --build` on a fresh box, a " +
+        "reverse proxy in front for the certificate, and that is a board.",
+      note: "About half an hour, from €4 a month.",
+      action: { label: "The walkthrough", doc: "self-hosting" },
     },
     {
-      title: "On your own server",
+      title: "Postgres, and nothing else",
       body:
-        "One standalone Docker image runs the web server, the worker and the migrations, so " +
-        "the three cannot drift apart between deploys. Postgres is the only thing beside it.",
-      note: "No Redis, no queue broker, no search cluster.",
+        "No Redis, no queue broker, no search cluster, no object store. Search is Postgres " +
+        "full-text; the queue is a table; uploads are a volume. Every one of those can be " +
+        "swapped later, and none of them has to be swapped first.",
+      note: "You take on backups and updates. You give up no capability.",
+      action: { label: "Backup, restore and upgrades", doc: "operating" },
     },
   ],
-  link: "Deployment, backup and restore",
+  link: "The operator handbook",
 } as const
 
 export const migration = {
