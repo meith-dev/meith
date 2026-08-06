@@ -213,10 +213,10 @@ A forum, built on [Meith](${repositoryUrl}).
 
 ## Deploy
 
-On a machine you control — a VPS from any provider, from about four euros a
-month. A board needs three things from wherever it runs, and this is the shape
-that gives all three: a scheduler that goes off every minute, somewhere to keep
-uploads that survives a restart, and a process that outlives a request.
+On your own server, anywhere. A board needs three things from wherever it runs,
+and this is the shape that gives all three: a scheduler that goes off every
+minute, somewhere to keep uploads that survives a restart, and a process that
+outlives a request.
 
 The walkthrough is
 [docs/self-hosting.md](${repositoryUrl}/blob/main/docs/self-hosting.md): Docker

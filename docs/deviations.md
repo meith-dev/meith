@@ -8005,7 +8005,7 @@ the name always quoted, because an unquoted display name may not contain `.`,
 `,` or `@` and "Board Admin, Ltd." is an ordinary thing to type.
 
 
-### D105 — One deployment route, and it is a server you rent (F04, F82)
+### D105 — One deployment route, and it is your own server (F04, F82)
 
 **Plan:** two first-class deployments — serverless (Vercel, with a committed
 `vercel.json` cron) and a self-hosted Docker image.

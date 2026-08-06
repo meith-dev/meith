@@ -1,8 +1,8 @@
 # Running a board on your own server
 
-One machine you rent, four containers, and nothing between you and the board.
-From roughly **€4 a month** at Hetzner, DigitalOcean, Vultr, Scaleway or whoever
-you already use — the board is not fussy about whose machine it is.
+One machine, four containers, and nothing between you and the board. Hetzner,
+DigitalOcean, Vultr, Scaleway, a box in a cupboard — the board is not fussy
+about whose machine it is.
 
 Two shapes, and they deploy the same four containers from the same image. Pick
 on how much you want to operate by hand.
@@ -16,9 +16,9 @@ on how much you want to operate by hand.
 | You should pick it if | You would rather click than SSH | You already run a proxy, or you want no extra moving parts |
 | Setup | ~20 minutes | ~30 minutes |
 
-Coolify is the simpler one and is still entirely your machine — it is software
-you install on the same server, not a service you sign up to. Nothing about the
-board knows which shape deployed it.
+Coolify is the simpler one and is still entirely your own server — it is
+software you install on the same machine, not a service you sign up to. Nothing
+about the board knows which shape deployed it.
 
 > [!NOTE]
 > These are the only deployment routes this project supports, and that is a
@@ -31,7 +31,7 @@ board knows which shape deployed it.
 
 | | |
 |---|---|
-| **A server** | 2 GB RAM, 2 vCPU, 20 GB disk. Ubuntu 24.04 LTS below; any distro with Docker is fine. Coolify wants 2 GB of its own, so 4 GB is more comfortable there. |
+| **A server** | Your own, anywhere. 2 GB RAM, 2 vCPU, 20 GB disk. Ubuntu 24.04 LTS below; any distro with Docker is fine. Coolify wants 2 GB of its own, so 4 GB is more comfortable there. |
 | **A domain** | Pointed at the server's IP with an `A` record, before you start — certificates need it resolving. |
 | **Half an hour** | And a terminal. |
 
@@ -489,5 +489,5 @@ the code going live and you running the command, new code is talking to an old
 schema.
 
 You can run this board on a function, and this project does not test it, ship a
-configuration for it, or answer for it. A €4 server does all three things by
+configuration for it, or answer for it. Your own server does all three things by
 existing, which is why it is the only route documented here.

@@ -19,7 +19,7 @@
     {
       "id": "running",
       "title": "Running a board",
-      "blurb": "From an empty directory to a board that has been up long enough to go wrong."
+      "blurb": "From a bare server to a board that has been up long enough to go wrong."
     },
     {
       "id": "themes",
@@ -53,7 +53,7 @@
       "file": "quickstart.md",
       "section": "running",
       "title": "Quickstart",
-      "blurb": "From an empty directory to a working board, in five steps. About ten minutes, most of it waiting for npm install.",
+      "blurb": "From nothing to a board people can reach, on your own server with Coolify. About half an hour, most of it waiting for a build.",
       "generated": false,
       "primary": true
     },
@@ -71,7 +71,7 @@
       "file": "self-hosting.md",
       "section": "running",
       "title": "Self-hosting",
-      "blurb": "A board on a server you rent, two ways: Coolify for a guided deploy, or Docker Compose directly. Certificates, backups, upgrades and the operator CLI.",
+      "blurb": "A board on your own server, two ways: Coolify for a guided deploy, or Docker Compose directly. Certificates, backups, upgrades and the operator CLI.",
       "generated": false,
       "primary": false
     },

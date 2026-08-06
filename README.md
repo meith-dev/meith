@@ -17,28 +17,22 @@ niche hobby, Meith gives them the space to gather and grow.
 
 ## Getting started
 
+**On your own server**, with nothing between you and the board. The
+[Quickstart](./docs/quickstart.md) goes from a fresh Ubuntu box to a board on
+your own domain, over HTTPS, in about half an hour.
+
+**[Coolify](https://coolify.io) is the short way**, and it is still entirely
+your own server — a panel you install on the same machine, not a service you
+sign up to:
+
 ```sh
-npx create-meith my-board
-cd my-board
-npm install
-cp .env.example .env.local    # fill in DATABASE_URL and AUTH_SECRET
-npm run dev
+curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
 ```
 
-Then open `/install`. The full walkthrough, including what to do when the install
-fails halfway, is in the [Quickstart](./docs/quickstart.md).
-
-## Deploying it
-
-**On a server you rent**, from about €4 a month, with nothing between you and
-the board. [Self-hosting](./docs/self-hosting.md) walks through both shapes — a
-fresh Ubuntu box to a board on your own domain in about half an hour either way.
-
-**[Coolify](https://coolify.io) is the simpler one**, and it is still entirely
-your machine: a panel you install on the same server, pointed at this repository
-and [`docker-compose.coolify.yml`](./docker-compose.coolify.yml). It generates
-both secrets and the database password, issues the certificate, tells the board
-its own URL, and redeploys on push. Nothing is typed in.
+Then point it at this repository and
+[`docker-compose.coolify.yml`](./docker-compose.coolify.yml). It generates both
+secrets and the database password, issues the certificate, tells the board its
+own URL, and redeploys on push. Nothing is typed in.
 
 **Or the compose file directly**, if you already run a proxy:
 
@@ -52,6 +46,8 @@ The same four containers either way, from
 [`docker-compose.yml`](./docker-compose.yml): Postgres, a one-shot migration
 that the other two wait on, the web server, and the worker that runs the
 background tick. Certificate in front, open `/install`, and that is a board.
+[Self-hosting](./docs/self-hosting.md) is the reference for both shapes, plus
+backups, upgrades and the operator CLI.
 
 Those are the only deployment routes this project supports, and that is a
 decision rather than an omission. A board asks three things of wherever it runs — a
@@ -94,9 +90,9 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 
 | Section | Document | What it answers |
 |---|---|---|
-| Running a board | [`quickstart.md`](./docs/quickstart.md) | From an empty directory to a working board, in five steps. About ten minutes, most of it waiting for npm install. |
+| Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board people can reach, on your own server with Coolify. About half an hour, most of it waiting for a build. |
 | Running a board | [`operating.md`](./docs/operating.md) | The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
-| Running a board | [`self-hosting.md`](./docs/self-hosting.md) | A board on a server you rent, two ways: Coolify for a guided deploy, or Docker Compose directly. Certificates, backups, upgrades and the operator CLI. |
+| Running a board | [`self-hosting.md`](./docs/self-hosting.md) | A board on your own server, two ways: Coolify for a guided deploy, or Docker Compose directly. Certificates, backups, upgrades and the operator CLI. |
 | Running a board | [`upgrading.md`](./docs/upgrading.md) | How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
 | Themes | [`theme-api.md`](./docs/theme-api.md) | What the freeze covers, what a theme may do, and how to write one. |

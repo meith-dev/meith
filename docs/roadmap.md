@@ -63,7 +63,7 @@ parity decision when the feature changes one of those public contracts.
 | Area | Required outcome |
 |---|---|
 | ~~Serverless default~~ | **Superseded by D105** — the serverless route was removed. The *constraints* it imposed are kept, because they are what makes the board portable: no in-process scheduler assumed, no unbounded request operation, Postgres queue/cache/files/mail drivers with no Redis dependency. |
-| Self-hosted | **The one deployment route.** Compose on a machine you rent: Postgres, a one-shot migration, the web server and the worker loop, all from one image so the roles cannot drift. CI brings the documented stack up so this path stays real. |
+| Self-hosted | **The one deployment route.** Compose on your own server: Postgres, a one-shot migration, the web server and the worker loop, all from one image so the roles cannot drift. CI brings the documented stack up so this path stays real. |
 | Rendering | Server-rendered board, form-first mutations, serializable client props, conservative tagged cache policy. Cache Components adoption remains an explicit human decision. |
 | Security | Argon2id, opaque rotating sessions/remember tokens, Postgres-backed rate limits, permission checks in every route/action, a Markdown renderer that constructs its output rather than sanitising it, attachment magic-byte validation, and audit logs. |
 | Data scale | Schema/indexes and deterministic seeding support a target of 50 forums, 100k threads, 2M posts, and 20k users; hot lists have measured query budgets. |

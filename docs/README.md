@@ -11,8 +11,9 @@ and most of them guess the roadmap.
 | You are | Read |
 |---|---|
 | Setting up a board for the first time | [Quickstart](./quickstart.md) |
+| Setting one up without a panel | [Self-hosting](./self-hosting.md#b-docker-compose-directly) |
 | Running one | [Running a board](./operating.md) |
-| Deploying one on a server you rent | [Self-hosting](./self-hosting.md) |
+| Deploying one on your own server | [Self-hosting](./self-hosting.md) |
 | Upgrading one | [Upgrading a board](./upgrading.md) |
 | Writing a theme | [The theme API](./theme-api.md) |
 | Writing a plugin | [The plugin API](./plugin-api.md) |
@@ -24,8 +25,8 @@ and most of them guess the roadmap.
 
 | Document | What it answers |
 |---|---|
-| [`quickstart.md`](./quickstart.md) | Empty directory to working board, in five steps. |
-| [`self-hosting.md`](./self-hosting.md) | **Deploying it.** A server you rent, two ways: Coolify for a guided deploy, or Docker Compose directly. TLS, backups, upgrades and the operator CLI. |
+| [`quickstart.md`](./quickstart.md) | Nothing to a board people can reach, on your own server with Coolify. Start here. |
+| [`self-hosting.md`](./self-hosting.md) | **Deploying it.** Your own server, two ways: Coolify for a guided deploy, or Docker Compose directly. TLS, backups, upgrades and the operator CLI. |
 | [`operating.md`](./operating.md) | **The operator handbook.** Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
 | [`upgrading.md`](./upgrading.md) | Taking a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
 | [`performance.md`](./performance.md) | The p95 budgets for hot pages, and what the last recorded run measured on a full-scale board. *Generated — do not edit.* |

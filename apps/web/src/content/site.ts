@@ -29,12 +29,23 @@ export const site = {
   tagline: "Forum software for communities that want to build something together.",
   description:
     "Meith is open-source forum software named for the meitheal: neighbours coming " +
-    "together for a shared task. Run it on a server you rent — guided by Coolify, or " +
-    "from the compose file — for about €4 a month.",
+    "together for a shared task. Runs on your own server — guided by Coolify, or " +
+    "straight from the compose file.",
 } as const
 
-/** The line the hero offers to copy, and the only place it is spelled out. */
-export const installCommand = "npx create-meith my-board"
+/**
+ * The line the hero offers to copy, and the only place it is spelled out.
+ *
+ * It was `npx create-meith my-board` for as long as this page has existed, and
+ * that command does not work: `create-meith` is not published, and the project
+ * it scaffolds pins `@meith/web`, `@meith/cli` and `@meith/theme-default`, none
+ * of which are on npm either. A copy button is a promise that what it hands you
+ * runs, and the first thing anybody does with a landing page is paste the one
+ * command on it — so this is the clone, which does.
+ *
+ * It goes back when the packages are published, and not before.
+ */
+export const installCommand = "git clone https://github.com/meith-dev/meith.git"
 
 /**
  * The licence, and where to read it.
@@ -58,7 +69,7 @@ export const licence = {
 export const licenceHref = `${site.repository}/blob/main/${licence.file}`
 
 export const hero = {
-  eyebrow: "Open source, LGPL-3.0 · self-hosted on your own server · Postgres",
+  eyebrow: "Open source, LGPL-3.0 · runs on your own server · Postgres",
   headline: { before: "Many hands, ", emphasis: "one field." },
   /*
    * Kept in full. This paragraph is the one piece of copy on the site that does
@@ -237,28 +248,39 @@ export const capabilities: readonly Capability[] = [
  * Getting to a board.
  *
  * The steps are the quickstart's, in its order, and the transcript is the same
- * five lines the README opens with. Both are here rather than written twice: the
+ * four lines the README opens with. Both are here rather than written twice: the
  * page is a pointer at that document, not a second copy of it.
+ *
+ * The transcript used to be the `npx create-meith` flow, which nobody could run
+ * — see `installCommand`. These four are the deployment, and they are the same
+ * four whether the machine is a laptop you are trying it on or the server it
+ * ends up living on, which is the argument for showing them rather than a
+ * scaffold that only ever led here anyway.
  */
 export const install = {
   eyebrow: "Ten minutes",
-  heading: "An empty directory to a board people can post on.",
+  heading: "A machine with Docker to a board people can post on.",
   lede:
-    "You need Node 22 or newer and a Postgres you can connect to. Nothing else — no " +
-    "container to build first, no account to open, no key to wait for.",
+    "You need Docker, and a domain if this is the board you are keeping. Nothing else — " +
+    "Postgres comes up beside it, there is no account to open and no key to wait for.",
   transcript: [
-    "npx create-meith my-board",
-    "cd my-board",
-    "npm install",
-    "cp .env.example .env.local   # DATABASE_URL, AUTH_SECRET",
-    "npm run dev",
+    "git clone https://github.com/meith-dev/meith.git",
+    "cd meith",
+    "cp .env.example .env         # three secrets, generated not typed",
+    "docker compose up -d --build",
   ],
   steps: [
     {
-      title: "Open /install",
+      title: "Four containers come up",
       body:
-        "The installer checks your environment before it offers you a form, and separates " +
-        "what blocks the install from what will be wrong later.",
+        "Postgres, a one-shot migration the other two wait on, the web server, and the worker " +
+        "that runs the background tick. Then open /install.",
+    },
+    {
+      title: "The installer checks first",
+      body:
+        "It reports your environment before it offers you a form, and separates what blocks " +
+        "the install from what will be wrong later.",
     },
     {
       title: "Five named steps",
@@ -327,7 +349,7 @@ export const performance = {
  */
 export const deployment = {
   eyebrow: "Where it runs",
-  heading: "A server you rent. Guided, or by hand.",
+  heading: "Your own server. Guided, or by hand.",
   options: [
     {
       title: "Guided, with Coolify",
@@ -335,7 +357,7 @@ export const deployment = {
         "A panel you install on the same server — still your machine, not a service. Point it " +
         "at the repository and it generates both secrets and the database password, issues the " +
         "certificate, tells the board its own URL, and redeploys on push. Nothing is typed in.",
-      note: "About twenty minutes, from €4 a month.",
+      note: "About twenty minutes, start to finish.",
       action: { label: "Deploy it with Coolify", doc: "self-hosting" },
     },
     {
@@ -446,7 +468,7 @@ export const documentation = {
 export const closing = {
   heading: "Put the neighbourhood back.",
   body:
-    "A board of your own, on a database of your own, in about ten minutes. Read the source " +
+    "A board of your own, on a machine of your own, in about half an hour. Read the source " +
     "before you run it — all of it is there.",
   /*
    * What you actually need, beside the ask. Three rows rather than a paragraph,
@@ -454,9 +476,9 @@ export const closing = {
    * and the answer is short enough to be a list.
    */
   requirements: [
-    { label: "Runtime", value: "Node 22 or newer" },
-    { label: "Database", value: "Postgres, anywhere" },
-    { label: "Everything else", value: "Nothing" },
+    { label: "A machine", value: "Your own, with Docker" },
+    { label: "A domain", value: "Pointed at it" },
+    { label: "Everything else", value: "Comes up beside it" },
   ],
 } as const
 

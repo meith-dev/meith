@@ -1,68 +1,116 @@
 # Quickstart
 
-From an empty directory to a working board. About ten minutes, most of it
-waiting for `npm install`.
+From nothing to a board people can reach, on a domain, over HTTPS. About half an
+hour, most of it waiting for a build.
 
-**You need:** Node 22 or newer, and a Postgres database you can connect to.
-Nothing else.
+This is the guided route: [Coolify](https://coolify.io) on your own server. It
+is the shortest path to a real board, and a real board is the only kind worth
+setting up — a development server on `localhost:3000` is not something anybody
+else can post on.
 
-## 1. Create the project
+**You need:**
 
-```sh
-npx create-meith my-board
-cd my-board
-npm install
-```
-
-You now have a normal Node project: your own `package.json`, a `forum.config.ts`
-listing the installed theme and plugins, and a `.env.example` naming every
-variable the board reads.
-
-## 2. Point it at a database
-
-```sh
-cp .env.example .env.local
-```
-
-Fill in two values:
-
-| Variable | What it is |
+| | |
 |---|---|
-| `DATABASE_URL` | Your Postgres connection string. |
-| `AUTH_SECRET` | A random 32-byte secret that signs sessions. |
+| **A server** | Your own, anywhere. 4 GB RAM, 2 vCPU, 40 GB disk is comfortable. Ubuntu 24.04 LTS below; any distro Docker runs on is fine. |
+| **A domain** | With an `A` record already pointing at the server's IP. The certificate step needs it resolving. |
+| **SSH** | Root, once, to install the panel. Everything after that is a browser. |
 
-Generate the secret:
+Prefer no panel? [Self-hosting § Docker Compose](./self-hosting.md#b-docker-compose-directly)
+is the same board from the same image, run by hand. Just want to poke at the
+code? [Running it locally](#running-it-locally) is at the end.
+
+## 1. Install Coolify
+
+SSH into the server as root:
 
 ```sh
-node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
 ```
+
+It installs Docker if it is missing and serves its own UI on port **8000**.
+
+Open `http://your-server-ip:8000` and **create the first account straight away** —
+that registration page is open until somebody uses it.
+
+Then close the machine down to what is actually used:
+
+```sh
+ufw default deny incoming
+ufw allow OpenSSH
+ufw allow 80,443/tcp
+ufw allow 8000/tcp     # the panel; drop this once it is behind a domain
+ufw enable
+```
+
+Coolify can serve its own UI over HTTPS on a subdomain of yours, using the same
+proxy that will serve your board. Worth doing before you close 8000.
+
+> [!NOTE]
+> **Coolify v4.0.0-beta.411 or newer.** Magic environment variables in a compose
+> file from a Git source arrived in that release, and they are what make this
+> deploy ask you for nothing. The install script gives you the current version;
+> an older existing install needs updating first.
+
+## 2. Point it at the board
+
+In the panel: **New Resource → Docker Compose → Public Repository**.
+
+| Field | Value |
+|---|---|
+| Repository | `https://github.com/meith-dev/meith` |
+| Branch | `main` |
+| Compose file | `/docker-compose.coolify.yml` |
 
 > [!IMPORTANT]
-> Pointing at a *managed* database — Supabase, Neon and their kind? Use the
-> **transaction-mode pooler** connection string, on Supabase port `6543` rather
-> than `5432`. A board on the direct string works perfectly until it is busy,
-> then starts refusing connections. Your own Postgres needs none of this. See
-> [connection pooling](./operating.md#connection-pooling).
+> The compose file path is the one field worth checking twice. Coolify defaults
+> to `/docker-compose.yml`, which is the *other* shape — it publishes a port and
+> expects a `.env` you have not written, so it deploys, appears to succeed, and
+> is not reachable through the proxy.
 
-## 3. Start it
+## 3. Set your domain and deploy
 
-```sh
-npm run dev
-```
+Coolify offers a generated domain and accepts your own. Put yours in — the one
+whose `A` record you pointed at this server — and press deploy.
 
-Open <http://localhost:3000/install>.
+The first build takes five to ten minutes. Watch the log. Four containers come
+up, in order:
+
+| Container | What it does |
+|---|---|
+| `postgres` | The board. A named volume, so recreating the container keeps the data. |
+| `migrate` | Applies the schema and **exits 0**. The next two wait for it, so the code never talks to a schema behind it. |
+| `web` | The board itself. |
+| `worker` | The background tick, on its own one-minute loop. |
+
+Four things happen without your involvement, and they are the reason this route
+exists:
+
+- **The secrets are generated.** `AUTH_SECRET` and `TICK_SECRET` come from
+  Coolify's `SERVICE_BASE64_64_*`, filled in on the first deploy and kept for
+  the life of the resource. The database password comes from
+  `SERVICE_PASSWORD_POSTGRES`. All three are visible in the panel; none is typed.
+- **The board is told its own URL**, which is what every link in an e-mail is
+  absolute against.
+- **The certificate is issued and renewed** by Coolify's proxy.
+- **Nothing is published on the host**, so the proxy is the only way in.
 
 ## 4. Run the installer
 
-The installer checks your environment before it offers you a form. Read that
-report — nearly every way a new board fails is visible in it.
+Open `https://your-domain/install`.
+
+It checks your environment **before** it offers you a form, and separates two
+kinds of problem:
 
 | It says | It means |
 |---|---|
 | **Blocker** | Installing cannot succeed. A missing variable, or the database is unreachable. |
 | **Warning** | Installing will succeed and something will be wrong *later*. |
 
-Then it runs five steps and names each one before it runs it:
+Read the warnings. Nearly every way a new board disappoints somebody a month in
+is visible on that screen on day one.
+
+Then it runs five steps, naming each before it runs it:
 
 1. **Apply migrations** — every table, index and seeded usergroup.
 2. **Record the board's name** — the only setting it writes.
@@ -71,64 +119,52 @@ Then it runs five steps and names each one before it runs it:
 5. **Disable the installer**.
 
 > [!CAUTION]
-> Step 5 is irreversible. `/install` answers 404 from then on, on purpose. Do not
-> run the installer against a database you are not going to keep.
+> Step 5 is irreversible. `/install` answers 404 from then on, on purpose. You
+> are running this against the production database, which is the right place —
+> just do not do it twice against two different ones.
 
 That is a board. Sign in and go to `/admin`.
 
-## 5. Deploy it
-
-On a server you rent. **[Self-hosting](./self-hosting.md)** is the walkthrough —
-from a fresh Ubuntu box to a board on your own domain in about half an hour, at
-around €4 a month. Two shapes, and both are your machine:
-
-- **[Coolify](https://coolify.io)**, the simpler one: a panel you install on the
-  same server, pointed at this repository and `docker-compose.coolify.yml`. It
-  generates the secrets, issues the certificate and redeploys on push.
-- **The compose file directly**: clone, write three secrets into a `.env`,
-  `docker compose up -d --build`, and put Caddy in front for the certificate.
-
-The same four containers either way — Postgres, a one-shot migration, the web
-server and the worker — and the worker is what runs the background tick.
-
-Three variables have no default and must be set wherever this runs:
-
-| Variable | Why |
-|---|---|
-| `DATABASE_URL` | Where the board lives. |
-| `AUTH_SECRET` | Signs sessions. Changing it later signs everyone out. |
-| `TICK_SECRET` | Without it the tick refuses every call, and nothing fails visibly. |
-
-Then run the installer **from the deployed URL**, against the production
-database.
-
-> [!WARNING]
-> Do not install production from your laptop. The installer seals itself when it
-> finishes, and sealing it against a database you will not serve leaves you with a
-> board that cannot be installed and an `/install` that 404s.
-
-## 6. Configure mail before you invite anybody
+## 5. Configure mail, before you invite anybody
 
 > [!IMPORTANT]
 > A board that has never had `MAIL_DRIVER` set **sends no mail at all**. The
-> default writes each message to the server log and stops. Password reset fails
-> silently, and if the activation method asks for a confirmation link, nobody can
-> finish registering.
+> default writes each message to the container log and stops. Password reset
+> fails silently, and if registration asks for a confirmation link, nobody can
+> finish signing up. Nobody notices until the first member cannot get back in.
 
-Two variables and one setting are all it takes:
+In Coolify, these go in the resource's **environment variables**:
 
 ```sh
 MAIL_DRIVER=http
 MAIL_HTTP_ENDPOINT=https://api.resend.com/emails
 MAIL_HTTP_TOKEN=re_…
-MAIL_FROM=noreply@yourdomain.com   # must be on a domain verified with the provider
-APP_URL=https://yourboard.example  # without it, links in mail cannot be built
+MAIL_FROM=noreply@your-domain          # on a domain verified with the provider
 ```
 
-Then check `registration.method` in `/admin/settings` — it decides whether new
-members need a confirmation link at all. The full picture, including what to do
-with another provider, is in
-[Running a board § Mail](./operating.md#mail).
+Redeploy. All four are required together — the board refuses to boot naming
+whichever is missing, which is deliberate: a board that boots with mail
+half-configured is one that silently swallows every message.
+
+Then check `registration.method` in `/admin/settings`; it decides whether new
+members need a confirmation link at all. The full picture, including what
+another provider needs, is in [Running a board § Mail](./operating.md#mail).
+
+## 6. Set up backups
+
+Not optional, and not the panel's job alone. Two separate things live on that
+machine:
+
+- **The database.** Coolify schedules `pg_dump` per resource, with S3 as a
+  destination. Turn it on now.
+- **The uploads volume.** Avatars and attachments. Coolify's scheduled backup
+  does **not** include it, and finding that out during a restore is the worst
+  possible time.
+
+[Self-hosting § Backups](./self-hosting.md#backups) has the commands for both,
+and the order they have to go back in.
+
+A backup nobody has restored is a file, not a backup.
 
 ## If the install fails halfway
 
@@ -140,19 +176,55 @@ and retry. What to do depends on how far it got:
 
 - **It failed before the administrator was created.** Fix the cause and run it
   again. Migrations and the board-name setting are both safe to apply twice.
-- **It failed after the administrator was created.** The installer will refuse to
-  run again — its preflight blocks on *any* account existing, so a retry cannot
-  add a second administrator to a board that already has members.
+- **It failed after the administrator was created.** The installer will refuse
+  to run again — its preflight blocks on *any* account existing, so a retry
+  cannot add a second administrator to a board that already has members.
 
   If the board is genuinely yours to reset, recover at the database: restore the
   empty database, or drop and recreate it, and start again. If the only thing
   missing is administrator access on a board that otherwise works, do not
-  reinstall — run `npm run forum -- user:promote`.
+  reinstall — use the [operator CLI](./self-hosting.md#the-operator-cli):
+  `forum user:promote`.
+
+## When something else goes wrong
+
+| What you see | What it is |
+|---|---|
+| The deploy succeeds and the domain 404s | Almost always the wrong compose file. It has to be `/docker-compose.coolify.yml`. |
+| `AUTH_SECRET must be set` in the migrate log | Same cause: the other compose file expects a `.env` that does not exist here. |
+| `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
+| The worker logs `worker started` every few seconds | It is crash-looping; the throw is in the log above each restart. |
+| 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |
+| Password reset "sent" and never arrives | `MAIL_DRIVER` is still `log`. The message is sitting in the web container's log. |
+| Nothing happens on a schedule | The `worker` container is not running. Every catch-up operation is on that loop, and when it stops **nothing errors** — see `/admin` → System health. |
+
+[Self-hosting](./self-hosting.md) has the longer table and both shapes.
+
+## Running it locally
+
+To read the code, write a theme or send a patch — not to run a board anybody
+else can reach:
+
+```sh
+git clone https://github.com/meith-dev/meith.git
+cd meith
+pnpm install
+docker compose -f docker-compose.dev.yml up -d    # Postgres on 55432
+pnpm forum migrate
+pnpm dev
+```
+
+Then `http://localhost:3000/install`. With no `DATABASE_URL` at all it runs on
+deterministic in-memory sample data instead, which is enough to click through
+every reading surface without a database.
+
+Node 22 or newer, and pnpm 10.
 
 ## Next
 
 | You want to | Read |
 |---|---|
+| The other way to deploy it, and day-two operations | [Self-hosting](./self-hosting.md) |
 | Run this board day to day | [Running a board](./operating.md) |
 | Change how it looks | [The theme API](./theme-api.md) |
 | Add behaviour | [The plugin API](./plugin-api.md) |
