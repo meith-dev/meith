@@ -1,31 +1,150 @@
-# Running a board on your own VPS
+# Running a board on your own server
 
-The way this project is deployed. One machine you rent, four containers, a
-reverse proxy in front, and nothing between you and the board.
+One machine you rent, four containers, and nothing between you and the board.
+From roughly **€4 a month** at Hetzner, DigitalOcean, Vultr, Scaleway or whoever
+you already use — the board is not fussy about whose machine it is.
 
-About thirty minutes on a fresh server, most of it waiting for a Docker build.
-From roughly **€4 a month** at Hetzner, DigitalOcean, Vultr, Scaleway or
-whoever you already use — the board is not fussy about whose machine it is.
+Two shapes, and they deploy the same four containers from the same image. Pick
+on how much you want to operate by hand.
+
+| | [**Coolify**](#a-coolify) | [**Docker Compose**](#b-docker-compose-directly) |
+|---|---|---|
+| What it is | A self-hosted panel on your server that deploys, renews certificates and redeploys on push | The compose file, run by you |
+| Certificates | Handled | Caddy or nginx, yours to set up |
+| Secrets | Generated on first deploy, never typed | You generate them into a `.env` |
+| Upgrades | A button, or automatic on push | `git pull && docker compose up -d --build` |
+| You should pick it if | You would rather click than SSH | You already run a proxy, or you want no extra moving parts |
+| Setup | ~20 minutes | ~30 minutes |
+
+Coolify is the simpler one and is still entirely your machine — it is software
+you install on the same server, not a service you sign up to. Nothing about the
+board knows which shape deployed it.
 
 > [!NOTE]
-> This is the only deployment route this project supports, and that is a
+> These are the only deployment routes this project supports, and that is a
 > decision rather than an omission. A board asks three things of wherever it
 > runs: a scheduler that goes off every minute, a disk that survives a restart,
-> and a process that outlives a request. A plain server gives you all three
-> without being asked. See [Why not serverless](#why-not-serverless) at the end.
+> and a process that outlives a request. A server gives you all three without
+> being asked. See [Why not serverless](#why-not-serverless) at the end.
 
 ## What you need
 
 | | |
 |---|---|
-| **A server** | 2 GB RAM, 2 vCPU, 20 GB disk. Ubuntu 24.04 LTS below; any distro with Docker is fine. |
-| **A domain** | Pointed at the server's IP with an `A` record, before you start — the certificate step needs it resolving. |
-| **Twenty minutes** | And a terminal. |
+| **A server** | 2 GB RAM, 2 vCPU, 20 GB disk. Ubuntu 24.04 LTS below; any distro with Docker is fine. Coolify wants 2 GB of its own, so 4 GB is more comfortable there. |
+| **A domain** | Pointed at the server's IP with an `A` record, before you start — certificates need it resolving. |
+| **Half an hour** | And a terminal. |
 
 1 GB works for a quiet board and is tight during the build; if that is what you
 have, [build the image elsewhere](#building-somewhere-else) and pull it.
 
-## 1. Prepare the server
+---
+
+# A. Coolify
+
+A panel you install on your own server. It clones this repository, builds the
+image, runs the compose file, gets the certificate, and redeploys when you push.
+
+Requires **Coolify v4.0.0-beta.411 or newer** — magic environment variables in a
+compose file from a Git source arrived in that release, and they are what make
+this deploy ask you for nothing.
+
+## A1. Install Coolify
+
+On a fresh server, as root:
+
+```sh
+curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
+```
+
+It installs Docker if it is missing, then serves its own UI on port **8000**.
+Open `http://your-server-ip:8000` and create the first account immediately —
+that page is open until somebody registers on it.
+
+Then close the machine down to what is used:
+
+```sh
+ufw default deny incoming
+ufw allow OpenSSH
+ufw allow 80,443/tcp
+ufw allow 8000/tcp     # the panel; drop this once you have put it behind a domain
+ufw enable
+```
+
+Coolify can serve its own UI over HTTPS on a subdomain, which is worth doing
+before you close 8000 — its own documentation covers it, and it is the same
+proxy that will serve your board.
+
+## A2. Add the board as a resource
+
+In the panel: **New Resource → Docker Compose → Public Repository**.
+
+| Field | Value |
+|---|---|
+| Repository | `https://github.com/meith-dev/meith` |
+| Branch | `main` |
+| Compose file | `/docker-compose.coolify.yml` |
+
+The compose file path is the one thing worth checking twice. The default is
+`/docker-compose.yml`, which is the *other* shape — it publishes a port and
+expects a `.env` you have not written, so it deploys and then is not reachable
+through the proxy.
+
+Coolify's UI moves between releases, so treat those as the values rather than
+the click path.
+
+## A3. Set the domain, then deploy
+
+Coolify offers a generated domain and accepts your own. Set yours — an `A`
+record already pointing at the server — and press deploy.
+
+The first build takes five to ten minutes. What happens without your involvement:
+
+- **The secrets are generated.** `AUTH_SECRET` and `TICK_SECRET` come from
+  `SERVICE_BASE64_64_*`, filled in on the first deploy and kept for the life of
+  the resource. The database password comes from `SERVICE_PASSWORD_POSTGRES`.
+  All three are visible in the panel; none is typed.
+- **The board is told its own URL.** `SERVICE_FQDN_WEB_3000` asks for a domain
+  routed to port 3000 and `APP_URL` is that domain with a scheme. Every link in
+  an e-mail is absolute against it.
+- **The certificate is issued and renewed** by Coolify's proxy.
+- **Nothing is published on the host.** The compose file has no `ports:`, so the
+  proxy is the only way in — a published port would put the board on the host as
+  well, plaintext and around the certificate.
+
+Watch the deploy log. `migrate` runs to completion and exits `0`; `web` and
+`worker` wait for it, so the code never talks to a schema behind it.
+
+Now go to [Install the board](#install-the-board).
+
+## Day two, under Coolify
+
+**Upgrades** are the **Redeploy** button, or automatic — enable the webhook and
+a push to `main` deploys itself. `migrate` runs first either way. Take a backup
+first regardless: migrations are forward-only.
+
+**Backups** of Postgres are scheduled in the panel, per resource, with S3 as a
+destination. Do that, and then read [Backups](#backups) anyway — Coolify backs
+up the *database*, and the uploads volume is a second thing that has to be
+copied off the machine.
+
+**Mail** goes in the resource's environment variables rather than a `.env`:
+`MAIL_DRIVER`, `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN`, `MAIL_FROM`. See
+[Configure mail](#configure-mail-before-you-invite-anybody) — it is the one
+thing no deploy configures for you, and until it is done password reset fails
+silently.
+
+**Logs and a shell** are in the panel, per container. The
+[operator CLI](#the-operator-cli) runs from the terminal it gives you.
+
+---
+
+# B. Docker Compose directly
+
+No panel, no extra daemon. The compose file, a `.env`, and a reverse proxy you
+run yourself.
+
+## B1. Prepare the server
 
 SSH in as root, make a user, and give it Docker:
 
@@ -56,7 +175,7 @@ Log out and back in as `meith` — group membership only takes effect on a new
 session, and `docker ps` failing with a permissions error at this point is
 almost always that.
 
-## 2. Get the board
+## B2. Get the board
 
 ```sh
 git clone https://github.com/meith-dev/meith.git
@@ -66,7 +185,7 @@ cd meith
 A clone rather than a release tarball, because upgrading is `git pull` and a
 rebuild, and because the compose file is a file you are meant to read and edit.
 
-## 3. Write the environment
+## B3. Write the environment
 
 The compose file reads `.env` from beside it. Nothing in it belongs in git —
 `.gitignore` already covers it.
@@ -110,7 +229,7 @@ it is a safe thing to do if you think it leaked.
 [`.env.example`](../.env.example) at the repository root documents every other
 variable. The five above are the ones with no sensible default.
 
-## 4. Start it
+## B4. Start it
 
 ```sh
 docker compose up -d --build
@@ -137,7 +256,7 @@ The worker should log `worker started` **once**, and then nothing much — if th
 line repeats every few seconds, the container is crash-looping and the log above
 it says why.
 
-## 5. Put a proxy in front
+## B5. Put a proxy in front
 
 Caddy, because it gets a certificate and renews it without being asked. On the
 host, not in the compose file:
@@ -173,7 +292,11 @@ Prefer nginx? The equivalent is a `proxy_pass` to `127.0.0.1:3000` with
 `client_max_body_size 25m`, `proxy_set_header X-Forwarded-Proto https`, and
 certbot for the certificate. Nothing about the board cares which you pick.
 
-## 6. Install the board
+---
+
+# Both shapes, from here
+
+## Install the board
 
 Open `https://board.example/install`.
 
@@ -191,14 +314,15 @@ a first forum, and then it seals itself.
 [Quickstart](./quickstart.md#4-run-the-installer) walks through the installer
 screen by screen.
 
-## 7. Configure mail, before you invite anybody
+## Configure mail, before you invite anybody
 
 A board that has never had `MAIL_DRIVER` set **sends no mail at all**. The
 default writes each message to the container log and delivers nothing, so
 password reset and registration confirmation both fail silently. Nobody
 notices until the first member cannot get back in.
 
-Add four lines to `.env` and restart:
+Four settings, in the resource's environment variables under Coolify or in
+`.env` under Compose:
 
 ```sh
 MAIL_DRIVER=http
@@ -207,9 +331,7 @@ MAIL_HTTP_TOKEN=re_…
 MAIL_FROM=noreply@board.example
 ```
 
-```sh
-docker compose up -d
-```
+Then redeploy, or `docker compose up -d`.
 
 All four are required together; the board refuses to boot naming whichever is
 missing. Verify the sending domain with your provider first and keep `MAIL_FROM`
@@ -229,7 +351,10 @@ the server needs no toolchain, no checkout and no Node:
 docker compose run --rm --no-deps web node apps/cli/cli.cjs --help
 ```
 
-Worth an alias in `~/.bashrc`:
+Under Coolify, open the container's terminal from the panel and run
+`node apps/cli/cli.cjs --help` there.
+
+Worth an alias in `~/.bashrc` on a Compose board:
 
 ```sh
 alias forum='docker compose -f ~/meith/docker-compose.yml run --rm --no-deps web node apps/cli/cli.cjs'
@@ -252,6 +377,7 @@ to be confusing.
 ### Backups
 
 Two things to keep, and they are separate: the database and the uploads.
+Coolify's scheduled backups cover the first; the second is yours either way.
 
 ```sh
 docker compose exec -T postgres pg_dump -U forum forum | gzip > board-$(date +%F).sql.gz
@@ -260,7 +386,7 @@ docker run --rm -v meith_uploads:/u -v "$PWD":/out alpine \
 ```
 
 Check the volume's real name with `docker volume ls` — Compose prefixes it with
-the project directory, so a clone in `~/board` gives you `board_uploads`.
+the project directory, and Coolify prefixes it with the resource's UUID.
 
 Put both in a cron and **copy them off the machine**. A backup on the server is
 a backup of the thing most likely to fail.
@@ -275,6 +401,10 @@ into an empty database. Test it once, on a spare server, before you need it.
 and the order the two have to go back in.
 
 ### Upgrading
+
+Under Coolify: **Redeploy**, or push to `main` with the webhook enabled.
+
+Under Compose:
 
 ```sh
 cd ~/meith
@@ -296,29 +426,31 @@ docker compose logs -f web worker
 docker compose ps
 ```
 
-`/admin` → **System health** is the screen that matters. It reports each
-scheduled task against its own interval, and a stale tick is called out loudly
-there — because when the tick stops, nothing errors. Bans stop expiring, digests
-stop sending, counters drift, and the board looks fine.
+`/admin` → **System health** is the screen that matters, whichever shape you
+deployed. It reports each scheduled task against its own interval, and a stale
+tick is called out loudly there — because when the tick stops, nothing errors.
+Bans stop expiring, digests stop sending, counters drift, and the board looks
+fine.
 
 ### Building somewhere else
 
 On a 1 GB server the Next build can run out of memory. Build the image on your
-laptop or in CI, push it to a registry, and replace `build: .` with
-`image: your-registry/meith:latest` in the compose file. Everything else is
-unchanged.
+laptop or in CI, push it to a registry, and replace `build:` with
+`image: your-registry/meith:latest` in whichever compose file you are using.
+Everything else is unchanged.
 
 ## When it goes wrong
 
 | What you see | What it is |
 |---|---|
-| `AUTH_SECRET must be set` from `migrate` | `.env` is not beside the compose file, or you ran `docker compose` from another directory. |
+| `AUTH_SECRET must be set` from `migrate` | Compose: `.env` is not beside the compose file, or you ran `docker compose` from another directory. Coolify: it deployed `/docker-compose.yml` instead of `/docker-compose.coolify.yml`. |
 | `TypeError: Invalid URL` from `migrate` | A `/` or `+` in `POSTGRES_PASSWORD`. Generate it with `openssl rand -hex 32`. |
 | `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
 | Worker logs `worker started` every few seconds | It is crash-looping. `docker compose logs worker` shows the throw above each restart. |
-| 502 from the proxy | The web container is not up, or `PORT` is not `127.0.0.1:3000`. `curl -I http://127.0.0.1:3000/api/health` on the host settles which. |
-| 413 on an upload | The proxy's body limit, not the board's. See `max_size` above. |
-| Password reset "sent" and never arrives | `MAIL_DRIVER` is still `log`. Check `docker compose logs web` — the message is right there in it. |
+| The board deploys under Coolify and 404s at the domain | Almost always the wrong compose file — the ordinary one publishes a port and declares no `SERVICE_FQDN_WEB_3000`, so the proxy has nothing to route. |
+| 502 from the proxy | Compose: the web container is not up, or `PORT` is not `127.0.0.1:3000`. `curl -I http://127.0.0.1:3000/api/health` on the host settles which. |
+| 413 on an upload | The proxy's body limit, not the board's. See `max_size` above; under Coolify it is a Traefik label on the resource. |
+| Password reset "sent" and never arrives | `MAIL_DRIVER` is still `log`. Check the web container's log — the message is right there in it. |
 | `/install` returns 404 | It sealed itself. That is normal after the install. Use `forum user:create --admin`. |
 | Uploads vanish after a redeploy | The `uploads` volume is not mounted. `docker volume ls` and `docker compose config` will show it. |
 
@@ -327,14 +459,18 @@ themes, plugins, spam, imports and the failures that actually happen.
 
 ## What you are taking on
 
-Worth being plain about, because the alternative to a platform is you:
+Worth being plain about, because the alternative to a platform is you. Coolify
+takes on the certificate, the redeploy and a database backup schedule; the rest
+is yours in both shapes:
 
-- **Backups are yours.** Nobody else is taking one.
+- **Backups are yours.** Nobody else is taking one — and under Coolify, the
+  uploads volume is not in the scheduled backup.
 - **Security updates are yours.** `unattended-upgrades` for the host, and a
-  `git pull` and rebuild for the board.
+  redeploy for the board. Coolify itself also updates.
 - **Uptime is yours.** `restart: unless-stopped` covers a crash and a reboot; it
   does not cover a disk filling up.
-- **The certificate is yours**, though Caddy makes that a solved problem.
+- **The certificate** is Coolify's if you use it, and Caddy's if you do not.
+  Either way it is a solved problem.
 
 In exchange: no platform limits, no per-seat pricing, no vendor reading your
 members' posts, and a board you can move to another machine with a `pg_dump` and

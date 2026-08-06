@@ -8010,10 +8010,18 @@ the name always quoted, because an unquoted display name may not contain `.`,
 **Plan:** two first-class deployments — serverless (Vercel, with a committed
 `vercel.json` cron) and a self-hosted Docker image.
 
-**Implemented:** one. `docker-compose.yml` on a machine you control, walked
-through in [`self-hosting.md`](./self-hosting.md). `apps/forum/vercel.json` is
-deleted, the scaffold no longer writes one, and no page offers a serverless
-host.
+**Implemented:** one route, in two shapes, both of them a machine you control.
+[Coolify](https://coolify.io) reading `docker-compose.coolify.yml`, or
+`docker-compose.yml` run by hand — walked through together in
+[`self-hosting.md`](./self-hosting.md). `apps/forum/vercel.json` is deleted, the
+scaffold no longer writes one, and no page offers a serverless host.
+
+The two shapes are not two routes: same image, same four containers, same
+environment contract. Coolify is a panel you install on your own server, so what
+it removes is the certificate, the secret generation and the redeploy — not the
+machine. It exists here because "self-hosted" is otherwise read as "and you are
+on your own with Let's Encrypt", which is true of exactly one of these and puts
+people off the other.
 
 **Why:** a board asks three things of wherever it runs, and only two of them can
 be bought.
@@ -8096,9 +8104,12 @@ in three died with `TypeError: Invalid URL` and a stack trace naming nothing
 that would send you to the password. It is `openssl rand -hex 32` now, with the
 reason written beside it in three places.
 
-**Consequence:** CI has a `compose` job that writes the `.env` the guide writes
-and runs the command the guide runs, then asserts the things each of these broke
-— migrate's exit code, one `worker started` and not two, the health status of
-both containers, the shared uploads volume, and that nothing is published beyond
-the proxy's port. A deployment route with no job behind it is a route that is
-documented rather than supported.
+**Consequence:** CI has a `compose` job that brings up **both** shapes. For the
+plain one it writes the `.env` the guide writes and runs the command the guide
+runs; for the Coolify one it supplies the magic variables the way Coolify
+supplies them. Both then assert the things these bugs broke — migrate's exit
+code, one `worker started` and not two, container health, restart counts, the
+shared uploads volume, and that each shape publishes exactly the ports it should
+(localhost only for Compose, none at all for Coolify, whose proxy is meant to be
+the only way in). A deployment shape with no job behind it is one that is
+documented rather than supported, which is how all five of these got in.

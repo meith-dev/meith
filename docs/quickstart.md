@@ -78,13 +78,17 @@ That is a board. Sign in and go to `/admin`.
 
 ## 5. Deploy it
 
-On a server you rent. **[Self-hosting on a VPS](./self-hosting.md)** is the
-walkthrough — from a fresh Ubuntu box to a board on your own domain in about
-half an hour, at around €4 a month.
+On a server you rent. **[Self-hosting](./self-hosting.md)** is the walkthrough —
+from a fresh Ubuntu box to a board on your own domain in about half an hour, at
+around €4 a month. Two shapes, and both are your machine:
 
-The short version: clone the repository on the server, write three secrets into
-a `.env`, `docker compose up -d --build`, and put Caddy in front for the
-certificate. Four containers come up — Postgres, a one-shot migration, the web
+- **[Coolify](https://coolify.io)**, the simpler one: a panel you install on the
+  same server, pointed at this repository and `docker-compose.coolify.yml`. It
+  generates the secrets, issues the certificate and redeploys on push.
+- **The compose file directly**: clone, write three secrets into a `.env`,
+  `docker compose up -d --build`, and put Caddy in front for the certificate.
+
+The same four containers either way — Postgres, a one-shot migration, the web
 server and the worker — and the worker is what runs the background tick.
 
 Three variables have no default and must be set wherever this runs:

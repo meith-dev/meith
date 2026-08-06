@@ -114,26 +114,32 @@ corrupts something a week later.
 | You deployed a version you did not mean to | Deploy the newer one again |
 | The newer one is broken | Restore the backup |
 
-## On your own VPS
+## On your own server
 
-The documented deployment upgrades in two commands, and the ordering is handled
-for you:
+Under [Coolify](./self-hosting.md#a-coolify), the upgrade is the **Redeploy**
+button — or nothing at all, if you have enabled the webhook and a push to `main`
+deploys itself.
+
+Under Compose it is two commands:
 
 ```sh
 git pull
 docker compose up -d --build
 ```
 
+Either way the ordering is handled for you:
+
 `migrate` runs to completion first and `web` and `worker` wait for it, so the
-new code never serves against the old schema. Take a backup before the pull —
-migrations are forward-only, and recovery is by restore.
+new code never serves against the old schema. Take a backup before you start —
+migrations are forward-only, and recovery is by restore. Coolify's scheduled
+backup covers Postgres; the uploads volume is a second thing, and yours.
 
 That applies **core migrations only**. Plugin migrations run through
 `forum upgrade`, which needs your `forum.config.ts` to know which plugins are
 installed:
 
 ```sh
-docker compose run --rm web node apps/cli/cli.cjs upgrade
+docker compose run --rm --no-deps web node apps/cli/cli.cjs upgrade
 ```
 
 ## When the deploy and the migration are separate events

@@ -29,7 +29,8 @@ export const site = {
   tagline: "Forum software for communities that want to build something together.",
   description:
     "Meith is open-source forum software named for the meitheal: neighbours coming " +
-    "together for a shared task. Run it on a server you rent, from about €4 a month.",
+    "together for a shared task. Run it on a server you rent — guided by Coolify, or " +
+    "from the compose file — for about €4 a month.",
 } as const
 
 /** The line the hero offers to copy, and the only place it is spelled out. */
@@ -320,30 +321,31 @@ export const performance = {
  * and the third cannot be bought — so offering it as a route meant offering a
  * board that half worked, to the readers least equipped to notice which half.
  *
- * So this band no longer chooses for the reader. It says what the one route is,
- * what it costs, and what an operator takes on in exchange.
+ * What is left is one route in two shapes — a panel on your own server, or the
+ * compose file run by you — because "self-hosted" reads as "and you are on your
+ * own with the certificate", and for one of these that is simply not true.
  */
 export const deployment = {
   eyebrow: "Where it runs",
-  heading: "A server you rent, and nothing between you and the board.",
+  heading: "A server you rent. Guided, or by hand.",
   options: [
     {
-      title: "One machine, four containers",
+      title: "Guided, with Coolify",
       body:
-        "Postgres, a one-shot migration the others wait on, the web server, and the worker " +
-        "that runs the background tick. `docker compose up -d --build` on a fresh box, a " +
-        "reverse proxy in front for the certificate, and that is a board.",
-      note: "About half an hour, from €4 a month.",
-      action: { label: "The walkthrough", doc: "self-hosting" },
+        "A panel you install on the same server — still your machine, not a service. Point it " +
+        "at the repository and it generates both secrets and the database password, issues the " +
+        "certificate, tells the board its own URL, and redeploys on push. Nothing is typed in.",
+      note: "About twenty minutes, from €4 a month.",
+      action: { label: "Deploy it with Coolify", doc: "self-hosting" },
     },
     {
-      title: "Postgres, and nothing else",
+      title: "Or the compose file, directly",
       body:
-        "No Redis, no queue broker, no search cluster, no object store. Search is Postgres " +
-        "full-text; the queue is a table; uploads are a volume. Every one of those can be " +
-        "swapped later, and none of them has to be swapped first.",
-      note: "You take on backups and updates. You give up no capability.",
-      action: { label: "Backup, restore and upgrades", doc: "operating" },
+        "Four containers: Postgres, a one-shot migration the others wait on, the web server, " +
+        "and the worker that runs the background tick. A clone, a `.env`, one command, and a " +
+        "reverse proxy you already run.",
+      note: "Postgres and nothing else — no Redis, no broker, no search cluster.",
+      action: { label: "Deploy it yourself", doc: "self-hosting" },
     },
   ],
   link: "The operator handbook",

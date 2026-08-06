@@ -70,8 +70,8 @@
       "slug": "self-hosting",
       "file": "self-hosting.md",
       "section": "running",
-      "title": "Self-hosting on a VPS",
-      "blurb": "A board on a server you rent: Docker Compose, a reverse proxy, backups, upgrades and the operator CLI. The way this project is deployed.",
+      "title": "Self-hosting",
+      "blurb": "A board on a server you rent, two ways: Coolify for a guided deploy, or Docker Compose directly. Certificates, backups, upgrades and the operator CLI.",
       "generated": false,
       "primary": false
     },
