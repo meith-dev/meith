@@ -53,21 +53,30 @@ const GROUPS: readonly GroupSpec[] = [
   {
     title: 'Brand',
     blurb:
-      'The one loud control on a page. The rest of the default palette holds no ' +
-      'hue at all, so these are usually the only colours a board needs to set.',
+      'The accent, and the four things it marks: the one primary button, the ' +
+      'current item in a list, a link’s underline and the focus outline. The rest ' +
+      'of the palette holds no hue at all, so these four are the whole of making ' +
+      'the board yours. Set them together — a green button with a grey focus ring ' +
+      'looks like a board that was half rebranded.',
     tokens: [
-      ['primary', 'Button and link accent', 'The fill of “Post reply”, “Search” and every other primary button.'],
+      ['primary', 'Button and link accent', 'The fill of “Post reply”, “Search” and every other primary button, and the colour a link is underlined in.'],
+      ['primary-hover', 'Accent under the cursor', 'The same button while it is hovered. Usually a step darker than the accent in light mode and a step lighter in dark.'],
       ['primary-foreground', 'Text on the accent', 'Sits on top of the accent colour, so it needs to contrast with it — not with the page.'],
       ['ring', 'Focus outline', 'Drawn around whatever has keyboard focus. Keep it visible against both the page and the panels.'],
     ],
   },
   {
     title: 'Page and panels',
-    blurb: 'The surfaces everything else sits on, and the text that sits on them.',
+    blurb:
+      'The three surfaces everything else sits on, and the text that sits on them. ' +
+      'They are meant to be a stack: the page at the back, a band cut into it, a ' +
+      'panel raised off it. Keep them in that order of lightness and the board ' +
+      'keeps its depth.',
     tokens: [
       ['background', 'Page background', 'Behind the whole board. Also becomes the browser’s own toolbar colour on mobile.'],
       ['foreground', 'Body text', 'Ordinary text on the page background.'],
-      ['card', 'Panel background', 'Forum rows, post bodies, the header and the footer.'],
+      ['surface', 'Band background', 'The header, a table’s heading row, and a panel’s own toolbar. Sits between the page and a panel.'],
+      ['card', 'Panel background', 'Forum rows, post bodies and the footer.'],
       ['card-foreground', 'Text on panels', 'Ordinary text inside a panel.'],
       ['muted', 'Quiet surface', 'Table headers, disabled controls and other backgrounds that should recede.'],
       ['muted-foreground', 'Quiet text', 'Timestamps, counts and captions.'],
@@ -77,6 +86,7 @@ const GROUPS: readonly GroupSpec[] = [
       ['accent-foreground', 'Text on the hover surface', 'Usually the same as body text.'],
       ['border', 'Rules and outlines', 'The lines between rows and around panels.'],
       ['input', 'Field outline', 'Deliberately darker than a rule: a field’s edge is information, a rule between two rows is not.'],
+      ['shadow-tint', 'Panel shadow colour', 'The colour a panel’s shadow is drawn in. Needs to be far stronger in dark mode than in light — a faint shadow is invisible on a near-black page.'],
     ],
   },
   {
@@ -138,8 +148,10 @@ const GROUPS: readonly GroupSpec[] = [
       'Not colours, so these apply to light and dark alike — the editor shows one ' +
       'box rather than two.',
     tokens: [
-      ['radius', 'Corner rounding', 'A CSS length. `0px` for square corners, `0.375rem` for the default, `0.75rem` for soft ones.', 'length'],
+      ['radius', 'Corner rounding', 'A CSS length. `0px` for square corners, `0.5rem` for the default, `0.75rem` for softer ones.', 'length'],
       ['density-unit', 'Spacing step', 'Every gap on the board is a multiple of this. Lower it for a denser board.', 'length'],
+      ['elevation', 'Panel shadow', 'A CSS `box-shadow`, or `none` for a flat board with no shadows at all. Its colour is “Panel shadow colour” above, so this is only the geometry.', 'text'],
+      ['font-sans-stack', 'Body font', 'The face the whole board is read in. A CSS font stack — the browser uses the first name it has.', 'text'],
       ['font-mono-stack', 'Monospace font', 'Used for code blocks and token values. A CSS font stack.', 'text'],
     ],
   },
@@ -201,15 +213,37 @@ export function groupTokens<T extends { readonly name: string }>(
 }
 
 /**
+ * The tokens a brand preset must write, and the group they belong to.
+ *
+ * Exported because two places need to agree about it: the presets below, and
+ * the test that holds them to it. A preset that sets three of the four leaves a
+ * board with a blue button and a green focus ring — which is not a crash, is not
+ * a failing type, and is exactly the sort of thing that ships.
+ */
+export const BRAND_TOKENS = ['primary', 'primary-hover', 'primary-foreground', 'ring'] as const
+
+/**
  * One-click brand palettes.
  *
- * Three tokens each, which is the whole of branding a board built on a
- * colourless default: the fill of the loud control, the text on it, and the
- * focus ring. Every pair meets WCAG AA against its own fill in both schemes,
- * and the dark values are lighter fills with dark text rather than the same
- * colour reused — a colour that is legible on white is not legible on near
- * black, and applying one palette to both schemes is the mistake this feature
- * exists to stop an operator making by hand.
+ * Four tokens each, which is the whole of branding a board: the fill of the loud
+ * control, that fill under the cursor, the text on it, and the focus ring.
+ *
+ * **`primary-hover` is the one that used to be missing**, and it was missing
+ * because the button faded itself with `hover:opacity-90` instead — so a preset
+ * did not need to name a hover colour and the default did not have one. Fading a
+ * filled control toward the card behind it lightens the label along with the
+ * fill, which is the wrong direction at the exact moment somebody is aiming at
+ * it. Now that hover is a colour, every preset owes one.
+ *
+ * Every pair meets WCAG AA against its own fill in both schemes, and the dark
+ * values are lighter fills with dark text rather than the same colour reused — a
+ * colour that is legible on white is not legible on near black, and applying one
+ * palette to both schemes is the mistake this feature exists to stop an operator
+ * making by hand.
+ *
+ * The hover step goes *darker* in light and *lighter* in dark, for the same
+ * reason: hover has to move away from the page, and the page is in opposite
+ * directions in the two schemes.
  */
 export interface BrandPreset {
   readonly key: string
@@ -219,34 +253,105 @@ export interface BrandPreset {
 }
 
 export const BRAND_PRESETS: readonly BrandPreset[] = [
+  /*
+   * The board's own, listed first and named for what it is: pressing it after
+   * trying another undoes the experiment, which is otherwise a job of typing
+   * four colours back in from the documentation.
+   */
+  {
+    key: 'meith',
+    title: 'Meith green',
+    light: {
+      primary: '#047857',
+      'primary-hover': '#036045',
+      'primary-foreground': '#ffffff',
+      ring: '#047857',
+    },
+    dark: {
+      primary: '#34d399',
+      'primary-hover': '#5ee7b7',
+      'primary-foreground': '#04160f',
+      ring: '#34d399',
+    },
+  },
   {
     key: 'ocean',
     title: 'Ocean',
-    light: { primary: '#1d4ed8', 'primary-foreground': '#ffffff', ring: '#1d4ed8' },
-    dark: { primary: '#93c5fd', 'primary-foreground': '#0b1220', ring: '#93c5fd' },
+    light: {
+      primary: '#1d4ed8',
+      'primary-hover': '#1739a8',
+      'primary-foreground': '#ffffff',
+      ring: '#1d4ed8',
+    },
+    dark: {
+      primary: '#93c5fd',
+      'primary-hover': '#bfdbfe',
+      'primary-foreground': '#0b1220',
+      ring: '#93c5fd',
+    },
   },
   {
     key: 'forest',
     title: 'Forest',
-    light: { primary: '#15803d', 'primary-foreground': '#ffffff', ring: '#15803d' },
-    dark: { primary: '#86efac', 'primary-foreground': '#052e16', ring: '#86efac' },
+    light: {
+      primary: '#15803d',
+      'primary-hover': '#106430',
+      'primary-foreground': '#ffffff',
+      ring: '#15803d',
+    },
+    dark: {
+      primary: '#86efac',
+      'primary-hover': '#b2f5c9',
+      'primary-foreground': '#052e16',
+      ring: '#86efac',
+    },
   },
   {
     key: 'plum',
     title: 'Plum',
-    light: { primary: '#7e22ce', 'primary-foreground': '#ffffff', ring: '#7e22ce' },
-    dark: { primary: '#d8b4fe', 'primary-foreground': '#2e1065', ring: '#d8b4fe' },
+    light: {
+      primary: '#7e22ce',
+      'primary-hover': '#651ba4',
+      'primary-foreground': '#ffffff',
+      ring: '#7e22ce',
+    },
+    dark: {
+      primary: '#d8b4fe',
+      'primary-hover': '#e7d0fe',
+      'primary-foreground': '#2e1065',
+      ring: '#d8b4fe',
+    },
   },
   {
     key: 'rust',
     title: 'Rust',
-    light: { primary: '#b91c1c', 'primary-foreground': '#ffffff', ring: '#b91c1c' },
-    dark: { primary: '#fca5a5', 'primary-foreground': '#450a0a', ring: '#fca5a5' },
+    light: {
+      primary: '#b91c1c',
+      'primary-hover': '#961717',
+      'primary-foreground': '#ffffff',
+      ring: '#b91c1c',
+    },
+    dark: {
+      primary: '#fca5a5',
+      'primary-hover': '#fdc7c7',
+      'primary-foreground': '#450a0a',
+      ring: '#fca5a5',
+    },
   },
   {
     key: 'sand',
     title: 'Sand',
-    light: { primary: '#92400e', 'primary-foreground': '#ffffff', ring: '#92400e' },
-    dark: { primary: '#fcd34d', 'primary-foreground': '#3b2506', ring: '#fcd34d' },
+    light: {
+      primary: '#92400e',
+      'primary-hover': '#74330b',
+      'primary-foreground': '#ffffff',
+      ring: '#92400e',
+    },
+    dark: {
+      primary: '#fcd34d',
+      'primary-hover': '#fde28a',
+      'primary-foreground': '#3b2506',
+      ring: '#fcd34d',
+    },
   },
 ]

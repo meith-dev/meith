@@ -55,7 +55,7 @@ export function RateMemberForm({
       {postId === null ? null : <input type="hidden" name="postId" value={postId} />}
       <input type="hidden" name="returnTo" value={returnTo} />
 
-      <h2 className="font-serif text-lg font-semibold">
+      <h2 className="text-lg font-semibold tracking-tight">
         {existingPoints === null ? `Rate ${username}` : `Change your rating of ${username}`}
       </h2>
 

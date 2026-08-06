@@ -177,7 +177,7 @@ export function ForumPermissionRowForm({
     <form action={action} className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <FormError message={state.error} />
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-serif text-base font-semibold">{row.groupTitle}</h3>
+        <h3 className="text-base font-semibold tracking-tight">{row.groupTitle}</h3>
         {state.notice === "saved" && (
           <span className="text-xs text-muted-foreground">Saved.</span>
         )}
@@ -400,7 +400,7 @@ export function ModeratorsPanel({
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-serif text-lg font-semibold">Moderators</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Moderators</h2>
 
       <FormError message={removeState.error} />
       {moderators.length === 0 ? (

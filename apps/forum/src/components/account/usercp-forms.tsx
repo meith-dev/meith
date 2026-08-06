@@ -205,7 +205,7 @@ export function PasswordForm({ minLength }: { minLength: number }) {
 
   return (
     <form action={action} className={CARD}>
-      <h2 className="font-serif text-lg font-semibold">Change your password</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Change your password</h2>
       <FormError message={state.error} />
 
       <label className="flex flex-col gap-1 text-sm">
@@ -261,7 +261,7 @@ export function EmailForm({ email }: { email: string }) {
 
   return (
     <form action={action} className={CARD}>
-      <h2 className="font-serif text-lg font-semibold">Change your e-mail address</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Change your e-mail address</h2>
       <FormError message={state.error} />
 
       <p className="text-sm text-muted-foreground">
@@ -327,7 +327,7 @@ export function SignatureForm({
   if (locked) {
     return (
       <div className={CARD}>
-        <h2 className="font-serif text-lg font-semibold">Your signature is locked</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Your signature is locked</h2>
         <p className="text-sm text-muted-foreground">
           A moderator has stopped your signature from being shown or changed.
           {lockedReason === null ? null : (

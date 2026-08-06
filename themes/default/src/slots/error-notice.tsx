@@ -25,7 +25,7 @@ export function ErrorNotice({ status, title, message, homeHref, requestId }: Err
         <p className={`text-xs font-medium tracking-wide text-destructive uppercase ${NUMERIC}`}>
           Error {status}
         </p>
-        <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-balance">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">
           {title}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>

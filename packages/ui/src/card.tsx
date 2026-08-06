@@ -37,6 +37,15 @@ export interface CardProps extends React.ComponentProps<'section'> {
  * `overflow-hidden` is load-bearing rather than tidy: the header and the rows
  * inside a card have square corners, and without it they sit proud of the
  * card's rounded ones at exactly the two places a reader's eye goes first.
+ *
+ * ## The shadow is a token, which is what makes it safe to put here
+ *
+ * `shadow-elevation` resolves to `--elevation`, and a theme that wants a flat
+ * board sets that to `none` — which `midnight` does, because a terminal has no
+ * depth. So this line adds lift to the default theme and changes nothing at all
+ * for a theme that has said it does not want any, without either theme having to
+ * override `Card` to get the look it asked for. A literal `shadow-sm` here would
+ * have forced midnight to fork the component to remove it.
  */
 function Card({ as = 'section', className, ...props }: CardProps) {
   /*
@@ -51,7 +60,7 @@ function Card({ as = 'section', className, ...props }: CardProps) {
     <Component
       data-slot="card"
       className={cn(
-        'overflow-hidden rounded-lg border border-border bg-card text-card-foreground',
+        'overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-elevation',
         className,
       )}
       {...props}
@@ -59,13 +68,20 @@ function Card({ as = 'section', className, ...props }: CardProps) {
   )
 }
 
-/** The tinted bar at the top of a panel: a category name, a post's byline. */
+/**
+ * The tinted bar at the top of a panel: a category name, a post's byline.
+ *
+ * `bg-surface`, not `bg-muted`. They were the same shade of grey and they are
+ * not the same idea: `muted` also means "this control is disabled" and backs a
+ * hovered row, so an operator darkening their panel headings was also darkening
+ * every disabled button on the board. `surface` is the band and nothing else.
+ */
 function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-header"
       className={cn(
-        'flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border bg-muted px-4 py-2.5',
+        'flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border bg-surface px-4 py-2.5',
         className,
       )}
       {...props}
@@ -73,11 +89,20 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
+/**
+ * `tracking-tight` rather than a face of its own.
+ *
+ * This was `font-serif`, which put every panel heading on the board in
+ * Newsreader — a good display serif, and the voice of a marketing site that no
+ * longer exists in that form. The board reads in one face now; a heading is
+ * distinguished by weight and by a slightly tighter fit, which is what the sans
+ * scale is built for and what the redesigned site does.
+ */
 function CardTitle({ className, ...props }: React.ComponentProps<'h2'>) {
   return (
     <h2
       data-slot="card-title"
-      className={cn('font-serif text-base font-semibold text-foreground', className)}
+      className={cn('text-base font-semibold tracking-tight text-foreground', className)}
       {...props}
     />
   )

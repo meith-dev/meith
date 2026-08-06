@@ -95,15 +95,21 @@ export function Header({ boardTitle, homeHref, navigation, logo, children }: Hea
       <div className={`${PAGE} flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3`}>
         <a
           href={homeHref}
-          className={`inline-flex items-center font-serif text-xl font-semibold tracking-tight text-foreground ${LINK}`}
+          className={`inline-flex items-center text-xl font-semibold tracking-tight text-foreground ${LINK}`}
         >
           <BoardMark boardTitle={boardTitle} logo={logo} />
         </a>
         {children}
       </div>
 
+      {/*
+       * The nav row is the band, the row above it is the panel. Two tiers in the
+       * header rather than one flat block, which is what stops the board's name
+       * and its sections reading as a single undifferentiated slab — the same
+       * page/band/panel stack the listing below it uses.
+       */}
       {navigation.length > 0 && (
-        <nav aria-label="Board sections" className="border-t border-border">
+        <nav aria-label="Board sections" className="border-t border-border bg-surface">
           {/* The rule is full-bleed; the row inside it is on the measure. */}
           <div className={PAGE}>
             <ul className="-mx-4 flex items-stretch gap-1 overflow-x-auto px-4 text-sm sm:-mx-6 sm:px-6">

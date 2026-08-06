@@ -47,7 +47,7 @@ export function IssueWarningForm({
 
   return (
     <form action={action} className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5">
-      <h2 className="font-serif text-lg font-semibold">Warn {username}</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Warn {username}</h2>
       <FormError message={state.error} />
 
       <input type="hidden" name="userId" value={userId} />

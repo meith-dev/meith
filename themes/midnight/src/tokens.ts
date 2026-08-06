@@ -50,10 +50,19 @@ export const LIGHT_TOKENS: Record<string, string> = {
   /* "Light" here is dusk: paper the colour of a dimmed screen, not white. */
   background: 'oklch(0.9 0.008 240)',
   foreground: 'oklch(0.24 0.02 240)',
+  /*
+   * This theme's stack runs the other way. The default's page is darker than its
+   * panels — paper on a desk — and midnight's panels are *lighter* than its page
+   * in both schemes, because a terminal is a lit region on an unlit ground. So
+   * `surface` sits between the two here as it does there, and the direction it
+   * travels is opposite.
+   */
+  surface: 'oklch(0.92 0.008 240)',
   card: 'oklch(0.945 0.005 240)',
   'card-foreground': 'oklch(0.24 0.02 240)',
   primary: 'oklch(0.48 0.11 210)',
   'primary-foreground': 'oklch(0.97 0.005 240)',
+  'primary-hover': 'oklch(0.41 0.1 210)',
   secondary: 'oklch(0.87 0.012 240)',
   'secondary-foreground': 'oklch(0.28 0.02 240)',
   muted: 'oklch(0.885 0.008 240)',
@@ -65,10 +74,25 @@ export const LIGHT_TOKENS: Record<string, string> = {
   border: 'oklch(0.78 0.012 240)',
   input: 'oklch(0.82 0.012 240)',
   ring: 'oklch(0.6 0.13 195)',
+  /*
+   * Declared, and then not drawn — see `elevation` below. A theme has to name
+   * every token the default names, and a board that turns the shadow back on
+   * should get a colour somebody chose rather than the default theme's warm
+   * grey over this theme's blue-grey panels.
+   */
+  'shadow-tint': 'oklch(0.24 0.02 240 / 10%)',
   /* Square, not rounded: the single geometric decision that carries the look. */
   radius: '0rem',
   'density-unit': '0.2rem',
   'font-mono-stack': '"IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace',
+  'font-sans-stack': '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+  /*
+   * No shadows at all, which is the same decision `radius: 0rem` is. A terminal
+   * is flat: regions are separated by rules and by colour, never by pretending
+   * one sheet of paper is above another. This is the token that lets a theme say
+   * that in one word instead of overriding every panel.
+   */
+  elevation: 'none',
   'forum-unread': 'oklch(0.55 0.13 195)',
   'forum-read': 'oklch(0.6 0.012 240)',
   'forum-locked': 'oklch(0.52 0.1 20)',
@@ -92,10 +116,12 @@ export const LIGHT_TOKENS: Record<string, string> = {
 export const DARK_TOKENS: Record<string, string> = {
   background: 'oklch(0.14 0.012 250)',
   foreground: 'oklch(0.9 0.008 240)',
+  surface: 'oklch(0.157 0.013 250)',
   card: 'oklch(0.175 0.014 250)',
   'card-foreground': 'oklch(0.9 0.008 240)',
   primary: 'oklch(0.78 0.12 195)',
   'primary-foreground': 'oklch(0.14 0.012 250)',
+  'primary-hover': 'oklch(0.85 0.11 195)',
   secondary: 'oklch(0.22 0.016 250)',
   'secondary-foreground': 'oklch(0.88 0.008 240)',
   muted: 'oklch(0.2 0.014 250)',
@@ -107,9 +133,12 @@ export const DARK_TOKENS: Record<string, string> = {
   border: 'oklch(0.27 0.016 250)',
   input: 'oklch(0.3 0.018 250)',
   ring: 'oklch(0.8 0.13 195)',
+  'shadow-tint': 'oklch(0 0 0 / 50%)',
   radius: '0rem',
   'density-unit': '0.2rem',
   'font-mono-stack': '"IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace',
+  'font-sans-stack': '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+  elevation: 'none',
   'forum-unread': 'oklch(0.8 0.13 195)',
   'forum-read': 'oklch(0.44 0.014 250)',
   'forum-locked': 'oklch(0.62 0.12 20)',

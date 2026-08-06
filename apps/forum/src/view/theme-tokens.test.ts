@@ -8,7 +8,13 @@ import { describe, expect, it } from 'vitest'
 
 import { LIGHT_TOKENS, TOKEN_NAMES } from '@meith/theme-default'
 
-import { BRAND_PRESETS, groupTokens, isSchemeIndependent, tokenMeta } from './theme-tokens'
+import {
+  BRAND_PRESETS,
+  BRAND_TOKENS,
+  groupTokens,
+  isSchemeIndependent,
+  tokenMeta,
+} from './theme-tokens'
 
 describe('groupTokens', () => {
   const tokens = TOKEN_NAMES.map((name) => ({ name }))
@@ -48,14 +54,36 @@ describe('token kinds', () => {
    * not a thing anybody wants and offering them is two chances to disagree with
    * yourself.
    */
-  it('marks geometry and the font stack as scheme-independent', () => {
-    for (const name of ['radius', 'density-unit', 'font-mono-stack']) {
+  it('marks geometry, the font stacks and the shadow shape as scheme-independent', () => {
+    for (const name of [
+      'radius',
+      'density-unit',
+      'font-mono-stack',
+      'font-sans-stack',
+      'elevation',
+    ]) {
       expect(isSchemeIndependent(name), name).toBe(true)
     }
   })
 
+  /*
+   * The list above is this file's opinion; `SCHEME_INDEPENDENT_TOKENS` is the
+   * theme package's, and it decides what `.dark` may omit. They are checked
+   * against each other in `styles/tokens.test.ts` — the pair disagreeing is a
+   * silent failure in both directions, so it is asserted where both are already
+   * imported rather than duplicated here.
+   */
+
   it('marks every colour token as scheme-dependent', () => {
-    for (const name of ['primary', 'background', 'thread-locked', 'group-admin']) {
+    for (const name of [
+      'primary',
+      'primary-hover',
+      'surface',
+      'shadow-tint',
+      'background',
+      'thread-locked',
+      'group-admin',
+    ]) {
       expect(isSchemeIndependent(name), name).toBe(false)
     }
   })
@@ -83,11 +111,43 @@ describe('BRAND_PRESETS', () => {
    * Both schemes, always. The whole reason presets exist is that applying one
    * colour to light and dark alike is the mistake this editor was rebuilt to
    * stop somebody making by hand.
+   *
+   * Every brand token rather than `primary` alone: a preset that moved the fill
+   * and left the hover step identical across the schemes would pass the old
+   * spelling of this test while giving a dark-mode board a hover state that
+   * goes the wrong way.
    */
   it('sets a different value in each scheme', () => {
     for (const preset of BRAND_PRESETS) {
       expect(Object.keys(preset.dark), preset.key).toEqual(Object.keys(preset.light))
-      expect(preset.dark.primary, preset.key).not.toBe(preset.light.primary)
+      for (const name of BRAND_TOKENS) {
+        expect(preset.dark[name], `${preset.key}/${name}`).not.toBe(preset.light[name])
+      }
     }
+  })
+
+  /*
+   * A preset sets the *whole* brand or it is worse than no preset.
+   *
+   * `primary-hover` is why this exists. Before it was a token the filled button
+   * faded itself with `hover:opacity-90`, so a preset had three tokens to set
+   * and there was nothing to forget. Now there are four, and a preset missing
+   * one leaves a board whose button is the new brand and whose hover state is
+   * still the old one — visible only on hover, on one control, which is how it
+   * would have survived review.
+   */
+  it('sets every brand token', () => {
+    for (const preset of BRAND_PRESETS) {
+      for (const scheme of ['light', 'dark'] as const) {
+        expect(Object.keys(preset[scheme]).sort(), `${preset.key}/${scheme}`).toEqual(
+          [...BRAND_TOKENS].sort(),
+        )
+      }
+    }
+  })
+
+  it('has no duplicate keys', () => {
+    const keys = BRAND_PRESETS.map((preset) => preset.key)
+    expect(new Set(keys).size).toBe(keys.length)
   })
 })

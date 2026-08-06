@@ -169,14 +169,31 @@ function PreviewSample({
           dark === true ? "dark" : ""
         }`}
       >
-        <div className="rounded-md border border-border bg-card p-3 text-card-foreground">
-          <p className="font-serif text-base font-semibold">A forum</p>
-          <p className="text-xs text-muted-foreground">Last post by a member, a moment ago</p>
+        {/*
+          Page, band and panel together, in that order, because the three are
+          only a decision *relative to each other* — a `surface` an operator
+          picked while looking at it alone is routinely the same value as the
+          card beside it, and the band then disappears on the live board.
+        */}
+        <div className="overflow-hidden rounded-md border border-border shadow-elevation">
+          <p className="bg-surface px-3 py-2 text-xs font-medium">A category</p>
+          <div className="bg-card p-3 text-card-foreground">
+            <p className="text-base font-semibold">A forum</p>
+            <p className="text-xs text-muted-foreground">Last post by a member, a moment ago</p>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm text-primary-foreground">
             Post reply
+          </span>
+          {/*
+            The hover step shown as its own swatch rather than left to a real
+            hover: this sample is also rendered on a phone, where there is no
+            hover at all, and `primary-hover` is a field in the form above.
+          */}
+          <span className="inline-flex h-9 items-center rounded-md bg-primary-hover px-3 text-sm text-primary-foreground">
+            Hovered
           </span>
           <span className="inline-flex h-9 items-center rounded-md bg-secondary px-3 text-sm text-secondary-foreground">
             Preview
@@ -315,7 +332,7 @@ export function ThemeEditorForm({
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <h3 className="font-serif text-base font-semibold">Preview</h3>
+          <h3 className="text-base font-semibold tracking-tight">Preview</h3>
           <p className="text-xs text-muted-foreground">
             Nothing has been saved. Both schemes are shown because they are one
             decision — a colour that works on white often disappears on black.
@@ -331,7 +348,7 @@ export function ThemeEditorForm({
 
       {preview.preview !== undefined && (
         <section className="flex flex-col gap-3">
-          <h3 className="font-serif text-base font-semibold">Validated preview</h3>
+          <h3 className="text-base font-semibold tracking-tight">Validated preview</h3>
           <p className="text-xs text-muted-foreground">
             Rendered by the board from values it has validated exactly as a save
             would, custom CSS included. Light only — the dark values are in the
@@ -354,9 +371,12 @@ export function ThemeEditorForm({
         <fieldset className="flex flex-col gap-3">
           <legend className="text-sm font-medium">Brand palettes</legend>
           <p className="text-xs text-muted-foreground">
-            Sets the accent colour, the text on it and the focus ring, for both
-            schemes at once — the three tokens that brand a board whose default
-            palette holds no hue at all. Nothing is saved until you press Save.
+            Sets the accent, its hover step, the text on it and the focus ring,
+            for both schemes at once — the four tokens that brand a board whose
+            palette is otherwise colourless. The board ships with{" "}
+            <span className="font-medium">Meith green</span>; pressing it again
+            puts back the shipped accent after trying another. Nothing is saved
+            until you press Save.
           </p>
           <div className="flex flex-wrap gap-2">
             {BRAND_PRESETS.map((preset) => (

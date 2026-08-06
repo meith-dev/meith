@@ -96,8 +96,19 @@ describe('the midnight palette', () => {
       Object.keys(a).filter(
         (name) =>
           a[name] === b[name] &&
-          /* Geometry and the font stack are not colours; they may legitimately match. */
-          !['radius', 'density-unit', 'font-mono-stack'].includes(name),
+          /*
+           * Geometry, the font stacks and the shadow's *shape* are not colours;
+           * they may legitimately match. `shadow-tint` is deliberately not on
+           * this list — it is a colour, and two themes agreeing on it would be
+           * the same reskin-in-disguise the rest of this test is looking for.
+           */
+          ![
+            'radius',
+            'density-unit',
+            'font-mono-stack',
+            'font-sans-stack',
+            'elevation',
+          ].includes(name),
       )
 
     expect(shared(LIGHT_TOKENS, DEFAULT_LIGHT)).toEqual([])

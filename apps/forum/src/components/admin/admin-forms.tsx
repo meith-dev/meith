@@ -32,7 +32,7 @@ export function AdminSignInForm({
       action={action}
       className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-border bg-card p-6"
     >
-      <h1 className="font-serif text-xl font-semibold">Control panel</h1>
+      <h1 className="text-xl font-semibold tracking-tight">Control panel</h1>
 
       <p className="text-sm text-muted-foreground">
         {reason === "reauth"
