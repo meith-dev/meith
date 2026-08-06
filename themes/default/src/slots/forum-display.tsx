@@ -47,7 +47,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
     <div className={PAGE_BODY}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-balance">
+          <h1 className="text-2xl font-semibold tracking-tight text-balance">
             {forum.title}
           </h1>
           {forum.description !== null && (

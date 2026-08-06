@@ -47,7 +47,7 @@ export function AvatarForm({
   if (locked) {
     return (
       <div className={CARD}>
-        <h2 className="font-serif text-lg font-semibold">Your avatar is locked</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Your avatar is locked</h2>
         <p className="text-sm text-muted-foreground">
           A moderator has stopped your avatar from being shown or changed.
           {lockedReason === null ? null : (
@@ -64,7 +64,7 @@ export function AvatarForm({
   return (
     <div className="flex flex-col gap-4">
       <div className={CARD}>
-        <h2 className="font-serif text-lg font-semibold">Your avatar</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Your avatar</h2>
 
         {status === "pending" && (
           <p className="text-sm text-muted-foreground">

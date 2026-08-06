@@ -30,6 +30,7 @@ import {
   TOKEN_NAMES,
 } from '@meith/theme-default'
 import { colorToHex } from '../server/theme-style'
+import { isSchemeIndependent } from '../view/theme-tokens'
 
 const CSS = readFileSync(
   resolve(dirname(fileURLToPath(import.meta.url)), 'globals.css'),
@@ -54,8 +55,34 @@ function declaredTokens(selector: string): Map<string, string> {
   return tokens
 }
 
+/**
+ * The `prefers-color-scheme` fallback block's custom properties.
+ *
+ * `declaredTokens` cannot reach this one: its regex is anchored to column 0 —
+ * deliberately, so the fallback is not mistaken for `:root` — and this block is
+ * nested inside `@media`, indented. So it had no test at all, while being a
+ * hand-maintained third copy of every dark value.
+ *
+ * That is the copy that decides what a reader on "system dark" who has never
+ * touched the toggle actually sees, which is most readers in dark mode. A value
+ * updated in `.dark` and forgotten here does not fail anything: the board simply
+ * renders the *light* value for that one token, for that majority, and the two
+ * schemes disagree by exactly the token somebody just changed.
+ */
+function fallbackTokens(): Map<string, string> {
+  const media = /^@media \(prefers-color-scheme: dark\) \{(.*?)^\}/ms.exec(CSS)
+  expect(media, 'globals.css has no top-level prefers-color-scheme block').not.toBeNull()
+
+  const tokens = new Map<string, string>()
+  for (const match of media![1]!.matchAll(/^\s*--([a-z0-9-]+)\s*:\s*([^;]+);/gm)) {
+    tokens.set(match[1]!, match[2]!.trim())
+  }
+  return tokens
+}
+
 const cssLight = declaredTokens(':root')
 const cssDark = declaredTokens('.dark')
+const cssFallback = fallbackTokens()
 
 describe('token registry', () => {
   it('names exactly the custom properties :root declares', () => {
@@ -97,6 +124,42 @@ describe('dark values', () => {
   it('carries the light value for the scheme-independent tokens', () => {
     for (const name of SCHEME_INDEPENDENT_TOKENS) {
       expect(DARK_TOKENS[name]).toBe(LIGHT_TOKENS[name])
+    }
+  })
+})
+
+describe('the prefers-color-scheme fallback', () => {
+  /*
+   * Both directions and the values, in one assertion, because all three failure
+   * modes are the same bug: a token that is dark in one dark mode and light in
+   * the other. `.dark` is the reference rather than DARK_TOKENS so that the
+   * scheme-independent tokens are excluded for free — neither block declares
+   * them.
+   */
+  it('declares exactly what .dark declares, with the same values', () => {
+    expect(Object.fromEntries(cssFallback)).toEqual(Object.fromEntries(cssDark))
+  })
+})
+
+describe('scheme-independence', () => {
+  /*
+   * Two files answer "does this token differ between light and dark", and they
+   * have to agree.
+   *
+   * The theme package's `SCHEME_INDEPENDENT_TOKENS` decides what `.dark` is
+   * allowed to omit. The editor's `tokenMeta(...).kind` decides whether an
+   * operator is shown one field or two. Nothing connected them, and they fail in
+   * opposite, silent directions: a scheme-dependent token typed as a length gets
+   * one box whose value is written to *both* schemes — so a board setting a dark
+   * shadow gets it in light mode too — while a scheme-independent token typed as
+   * a colour offers a dark field that no stylesheet will ever read.
+   *
+   * Neither throws. Both look like the editor working.
+   */
+  it('agrees with the kind the theme editor infers', () => {
+    for (const name of TOKEN_NAMES) {
+      const independentInTheme = (SCHEME_INDEPENDENT_TOKENS as readonly string[]).includes(name)
+      expect(isSchemeIndependent(name), `--${name}`).toBe(independentInTheme)
     }
   })
 })

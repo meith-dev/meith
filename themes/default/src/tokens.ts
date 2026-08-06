@@ -12,22 +12,34 @@
  *     ignored
  *   - the token documentation page in the admin area
  *
- * ## The palette is neutral, and that is the point
+ * ## The ground is neutral; the accent is one colour
  *
- * Every greyscale token here is at **chroma zero**. The values that preceded
- * them were the Meith identity — a limewash green ground, a gorse-yellow accent,
- * bog rust for the destructive states — and they were a good palette for one
- * board and a poor default for every other. A default theme is worn by
- * communities that have never heard of us, and a board whose mark is blue should
- * not have to override eleven tokens to stop the walls being green.
+ * Every greyscale token here is at **chroma zero**. Values that preceded them
+ * were the Meith identity applied to the whole page — a limewash green ground, a
+ * gorse-yellow accent, bog rust for the destructive states — and they were a
+ * good palette for one board and a poor default for every other. A board whose
+ * mark is blue should not have to override eleven tokens to stop the walls being
+ * green. That part is unchanged, and the neutrals hold no hue at all.
  *
- * So the neutrals hold no hue at all, and `primary` is **ink**: near-black in
- * light, near-white in dark. The single loud control on a page — post, reply,
- * search — is the strongest thing on it by contrast rather than by colour, which
- * works on any board. An operator who wants a house colour sets `--primary` and
- * `--primary-foreground` from the control panel, and nothing else in the palette
- * argues with the result. That is what "neutral" is for here: not the absence of
- * a decision, but a decision that leaves the next one open.
+ * `primary` used to be **ink** — near-black in light, near-white in dark — so
+ * that the loud control was strongest by contrast rather than by colour. It is
+ * now the green the marketing site uses, because "no accent at all" turned out
+ * to be a worse default than the wrong accent: a board nobody had themed had a
+ * "post reply" button indistinguishable from every other dark rectangle on the
+ * page.
+ *
+ * The rule the accent follows is the marketing site's: it marks the one primary
+ * action, the current item in a list, a link's underline and the focus ring, and
+ * appears nowhere else. Branding is still the same one-group operation it was
+ * when the default was colourless — `primary`, `primary-hover`,
+ * `primary-foreground`, `ring`, or one press of a brand preset — and nothing
+ * else in the palette argues with the result, because nothing else has a hue to
+ * argue with.
+ *
+ * The two schemes carry different greens. The light scheme's pine clears 4.5:1
+ * on white; the emerald that works on near-black would sit at about 3.5:1 there.
+ * A single value cannot serve both, which is also why `primary-foreground` is a
+ * token rather than the word "white".
  *
  * The semantic tokens keep their hues, because they are not decoration —
  * `thread-locked` is the difference between a thread you can answer and one you
@@ -64,10 +76,12 @@
 export const TOKEN_NAMES = [
   'background',
   'foreground',
+  'surface',
   'card',
   'card-foreground',
   'primary',
   'primary-foreground',
+  'primary-hover',
   'secondary',
   'secondary-foreground',
   'muted',
@@ -79,9 +93,12 @@ export const TOKEN_NAMES = [
   'border',
   'input',
   'ring',
+  'shadow-tint',
   'radius',
   'density-unit',
   'font-mono-stack',
+  'font-sans-stack',
+  'elevation',
   'forum-unread',
   'forum-read',
   'forum-locked',
@@ -107,13 +124,31 @@ export type TokenName = (typeof TOKEN_NAMES)[number]
 /**
  * Tokens that do not change between light and dark.
  *
- * Geometry and the font stack are not scheme-dependent, so `globals.css` declares
- * them once in `:root` and the `.dark` block does not repeat them. `DARK_TOKENS`
- * carries the same value rather than omitting the key, so the record stays total
- * and no consumer has to handle a hole. The sync test uses this list to know
- * which absences from `.dark` are deliberate.
+ * Geometry and the font stacks are not scheme-dependent, so `globals.css`
+ * declares them once in `:root` and the `.dark` block does not repeat them.
+ * `DARK_TOKENS` carries the same value rather than omitting the key, so the
+ * record stays total and no consumer has to handle a hole. The sync test uses
+ * this list to know which absences from `.dark` are deliberate.
+ *
+ * `elevation` is on this list and its colour is not, which is the whole reason
+ * the shadow is split across two tokens. The geometry — how far a panel floats,
+ * how soft the edge is — is one decision in both schemes; the *tint* has to be
+ * 8% in light and 45% in dark or the shadow is invisible on a near-black page.
+ * Splitting them also means an operator can turn shadows off (`elevation: none`)
+ * without touching a colour, and restyle the tint without re-typing a
+ * two-stop `box-shadow`.
+ *
+ * It matters for the editor too: a scheme-independent token gets one field
+ * rather than two, and a single box for a value that genuinely differs between
+ * the schemes is a control that quietly cannot express the right answer.
  */
-export const SCHEME_INDEPENDENT_TOKENS = ['radius', 'density-unit', 'font-mono-stack'] as const
+export const SCHEME_INDEPENDENT_TOKENS = [
+  'radius',
+  'density-unit',
+  'font-mono-stack',
+  'font-sans-stack',
+  'elevation',
+] as const
 
 /**
  * Light-mode defaults. Verbatim from `:root` in globals.css.
@@ -129,10 +164,12 @@ export const SCHEME_INDEPENDENT_TOKENS = ['radius', 'density-unit', 'font-mono-s
 export const LIGHT_TOKENS: Record<TokenName, string> = {
   background: 'oklch(0.968 0 0)',
   foreground: 'oklch(0.205 0 0)',
+  surface: 'oklch(0.941 0 0)',
   card: 'oklch(1 0 0)',
   'card-foreground': 'oklch(0.205 0 0)',
-  primary: 'oklch(0.205 0 0)',
+  primary: 'oklch(0.508 0.105 165.6)',
   'primary-foreground': 'oklch(0.985 0 0)',
+  'primary-hover': 'oklch(0.434 0.089 165.6)',
   secondary: 'oklch(0.94 0 0)',
   'secondary-foreground': 'oklch(0.269 0 0)',
   muted: 'oklch(0.958 0 0)',
@@ -143,10 +180,13 @@ export const LIGHT_TOKENS: Record<TokenName, string> = {
   'destructive-foreground': 'oklch(0.985 0 0)',
   border: 'oklch(0.905 0 0)',
   input: 'oklch(0.64 0 0)',
-  ring: 'oklch(0.556 0 0)',
-  radius: '0.375rem',
+  ring: 'oklch(0.508 0.105 165.6)',
+  'shadow-tint': 'oklch(0.205 0 0 / 8%)',
+  radius: '0.5rem',
   'density-unit': '0.25rem',
   'font-mono-stack': 'ui-monospace, "SFMono-Regular", "Menlo", monospace',
+  'font-sans-stack': 'var(--font-inter), ui-sans-serif, system-ui, sans-serif',
+  elevation: '0 1px 2px var(--shadow-tint), 0 12px 32px -16px var(--shadow-tint)',
   'forum-unread': 'oklch(0.205 0 0)',
   'forum-read': 'oklch(0.556 0 0)',
   'forum-locked': 'oklch(0.554 0.135 32)',
@@ -171,10 +211,12 @@ export const LIGHT_TOKENS: Record<TokenName, string> = {
 export const DARK_TOKENS: Record<TokenName, string> = {
   background: 'oklch(0.15 0 0)',
   foreground: 'oklch(0.967 0 0)',
+  surface: 'oklch(0.17 0 0)',
   card: 'oklch(0.196 0 0)',
   'card-foreground': 'oklch(0.967 0 0)',
-  primary: 'oklch(0.967 0 0)',
-  'primary-foreground': 'oklch(0.196 0 0)',
+  primary: 'oklch(0.773 0.153 163.2)',
+  'primary-foreground': 'oklch(0.181 0.029 166.6)',
+  'primary-hover': 'oklch(0.84 0.139 166.8)',
   secondary: 'oklch(0.256 0 0)',
   'secondary-foreground': 'oklch(0.94 0 0)',
   muted: 'oklch(0.228 0 0)',
@@ -185,10 +227,13 @@ export const DARK_TOKENS: Record<TokenName, string> = {
   'destructive-foreground': 'oklch(0.18 0 0)',
   border: 'oklch(0.31 0 0)',
   input: 'oklch(0.52 0 0)',
-  ring: 'oklch(0.61 0 0)',
-  radius: '0.375rem',
+  ring: 'oklch(0.773 0.153 163.2)',
+  'shadow-tint': 'oklch(0 0 0 / 45%)',
+  radius: '0.5rem',
   'density-unit': '0.25rem',
   'font-mono-stack': 'ui-monospace, "SFMono-Regular", "Menlo", monospace',
+  'font-sans-stack': 'var(--font-inter), ui-sans-serif, system-ui, sans-serif',
+  elevation: '0 1px 2px var(--shadow-tint), 0 12px 32px -16px var(--shadow-tint)',
   'forum-unread': 'oklch(0.967 0 0)',
   'forum-read': 'oklch(0.6 0 0)',
   'forum-locked': 'oklch(0.708 0.13 34)',

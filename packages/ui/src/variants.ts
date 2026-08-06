@@ -61,7 +61,15 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'border-transparent bg-primary text-primary-foreground hover:opacity-90',
+        /*
+         * `hover:bg-primary-hover`, not `hover:opacity-90`. Fading a filled
+         * control blends it *and its label* into whatever is behind it — on a
+         * card that is white — so the one button the page exists for got paler
+         * and lower-contrast at the moment the reader aimed at it. A hover token
+         * moves in the right direction in both schemes, and a board that rebrands
+         * gets a hover step it chose rather than a wash of its own page.
+         */
+        primary: 'border-transparent bg-primary text-primary-foreground hover:bg-primary-hover',
         secondary:
           'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/70',
         outline: 'border-border bg-card text-foreground hover:bg-muted',

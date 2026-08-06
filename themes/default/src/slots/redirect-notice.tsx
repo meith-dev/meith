@@ -23,7 +23,7 @@ export function RedirectNotice({ message, targetHref, delaySeconds }: RedirectNo
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
           Redirecting
         </p>
-        <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight">Please wait</h1>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Please wait</h1>
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">

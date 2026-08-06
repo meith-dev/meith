@@ -64,7 +64,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
             {forum.label}
           </a>
 
-          <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-balance sm:mt-0">
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance sm:mt-0">
             {thread.title}
           </h1>
 

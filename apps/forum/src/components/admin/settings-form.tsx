@@ -115,7 +115,7 @@ export function AdminSettingsForm({ groups }: { groups: readonly SettingGroupMod
 
       {groups.map((group) => (
         <section key={group.group} className="flex flex-col gap-4">
-          <h2 className="font-serif text-lg font-semibold">{group.label}</h2>
+          <h2 className="text-lg font-semibold tracking-tight">{group.label}</h2>
           <div className="flex flex-col gap-5">
             {group.settings.map((setting) => (
               <div key={setting.key} className="flex flex-col gap-1">

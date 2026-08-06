@@ -29,21 +29,42 @@
  * `hsl(` literals in component files precisely so this file stays the only
  * place colour is decided.
  *
- * ## The palette is neutral, and that is the design decision
+ * ## The ground is neutral; the accent is one colour
  *
- * Every greyscale token here has **zero chroma**. Not "nearly grey" — zero. The
- * previous palette was the Meith identity (hedgerow green ground, gorse accent),
- * and it was a good palette for Meith and a bad default for everybody else: a
- * board with a blue mark, or a red one, had a green wall behind it and no way to
- * fix that short of overriding a dozen tokens by hand. A default theme is worn
- * by boards that have never heard of us, so it holds no opinion about hue.
+ * Every greyscale token here has **zero chroma**. Not "nearly grey" — zero. An
+ * earlier palette was the Meith identity applied to the whole page (hedgerow
+ * green ground, gorse accent), and it was a good palette for Meith and a bad
+ * default for everybody else: a board with a blue mark had a green wall behind
+ * it and no way to fix that short of overriding a dozen tokens by hand. The
+ * ground still holds no opinion about hue, and that part has not changed.
  *
- * `primary` is therefore **ink, not a colour**: near-black in light, near-white
- * in dark. A board's one loud control — post, reply, search — is the strongest
- * thing on the page by contrast rather than by hue, which is legible everywhere
- * and is one token away from being a brand. An operator who sets
- * `--primary` and `--primary-foreground` in the control panel has branded the
- * board, and nothing else in the palette fights the result.
+ * What changed is `primary`. It was **ink** — near-black in light, near-white in
+ * dark — on the reasoning that a board's one loud control should be strongest by
+ * contrast rather than by hue. That is a real argument and it had a real cost: a
+ * board that never opened the theme editor had no accent at all, so "post reply"
+ * looked exactly like every other dark rectangle on the page, and the
+ * marketing site and a live board shared no visual language whatsoever.
+ *
+ * So `primary` is now the green the marketing site uses, and the rule it follows
+ * is the one that site states: *the ground is greyscale, the accent is a single
+ * colour, and it is spent deliberately.* It marks the one primary action, the
+ * current item in a list, a link's underline and a focus ring — and nothing
+ * else. A page where six things are green is a page where the button does not
+ * stand out.
+ *
+ * The two schemes carry different greens, and that is not a slip. The light
+ * scheme's pine (`oklch(0.508 …)`) reads at 5.2:1 against white; the emerald
+ * that works on near-black would read at about 3.5:1 there, under the floor for
+ * the small text it marks. Each scheme carries the step of the ramp that clears
+ * AA against its own ground.
+ *
+ * **None of this costs an operator their brand.** Branding is still the same
+ * one-group operation it was when the default was colourless: set `--primary`,
+ * `--primary-hover`, `--primary-foreground` and `--ring` in the control panel —
+ * or press one of the brand presets, which write all four — and nothing else in
+ * the palette argues with the result, because nothing else in the palette has a
+ * hue to argue with. The default now has an opinion; it is still one click to
+ * replace it.
  *
  * ## The semantic tokens still carry hue, because they carry meaning
  *
@@ -69,10 +90,25 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /*
+   * The middle surface. `background` is the page, `card` is a panel raised off
+   * it, and `surface` is the band cut *into* it — a header, a table head, a
+   * panel's own toolbar. Those were `muted` before, which also means "a control
+   * that is disabled" and "the tint behind a hovered row"; one token doing three
+   * jobs is a token an operator cannot change without changing all three.
+   */
+  --color-surface: var(--surface);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  /*
+   * The filled control under the cursor. This was `hover:opacity-90`, which
+   * fades the button *and its label* toward whatever is behind it — on a card
+   * that is white, so the one control the page is for got lighter and lower
+   * contrast at exactly the moment the reader aimed at it.
+   */
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -105,15 +141,29 @@
   --color-group-mod: var(--group-mod);
   --color-group-banned: var(--group-banned);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   /*
-   * The fallbacks are the faces the marketing site actually uses, in its order:
-   * a visitor who lands on meith.dev and then opens a board should not watch the
-   * voice change if the webfont is slow or blocked.
+   * A token like the mono stack is, rather than a literal, so a board can change
+   * the face it reads in from the control panel. That was already true of code
+   * and false of everything else, which is backwards — the face a board is *read*
+   * in is the one an operator is most likely to have an opinion about.
    */
+  --font-sans: var(--font-sans-stack);
   --font-serif: var(--font-newsreader), "Hoefler Text", Baskerville, "Iowan Old Style", ui-serif,
     Georgia, serif;
   --font-mono: var(--font-mono-stack);
+
+  /*
+   * Panel lift. The board used to separate a panel from its page with a border
+   * and nothing else, which works and is why it survived this long — but a
+   * 1px rule is the only depth cue on the page, so a long listing reads as one
+   * flat sheet with lines ruled across it.
+   *
+   * Both stops are tinted with `--shadow-tint` rather than a literal black, so
+   * the dark scheme can carry a deeper shadow (a 5%-black shadow is invisible on
+   * a near-black page) and an operator can turn the whole thing off by setting
+   * `--elevation: none`.
+   */
+  --shadow-elevation: var(--elevation);
 
   --radius-sm: calc(var(--radius) * 0.5);
   --radius-md: calc(var(--radius) * 0.75);
@@ -137,12 +187,19 @@
    */
   --background: oklch(0.968 0 0);
   --foreground: oklch(0.205 0 0);
+  /* The band between page and panel: header, table head, a panel's toolbar. */
+  --surface: oklch(0.941 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.205 0 0);
 
-  /* Ink. See this file's header for why the default board has no house colour. */
-  --primary: oklch(0.205 0 0);
+  /*
+   * Pine, not emerald. See this file's header: the dark scheme's green reads at
+   * about 3.5:1 on white, and the small text this marks needs 4.5. This is the
+   * step of the same ramp that clears it — 5.2:1 on the page, 5.5:1 on a card.
+   */
+  --primary: oklch(0.508 0.105 165.6);
   --primary-foreground: oklch(0.985 0 0);
+  --primary-hover: oklch(0.434 0.089 165.6);
   --secondary: oklch(0.94 0 0);
   --secondary-foreground: oklch(0.269 0 0);
   --muted: oklch(0.958 0 0);
@@ -162,17 +219,31 @@
   --border: oklch(0.905 0 0);
   /* Darker than `border` on purpose: a field's edge is information. */
   --input: oklch(0.64 0 0);
-  --ring: oklch(0.556 0 0);
+  /*
+   * The ring follows the accent rather than staying grey. A focus outline is one
+   * of the four things the accent is spent on, and a neutral ring on a branded
+   * board looks like the board forgot to brand one thing.
+   */
+  --ring: oklch(0.508 0.105 165.6);
 
   /*
-   * 6px. The previous 2px was chosen to keep a dense board from reading as a
-   * stack of cards, and it worked by making everything look like a spreadsheet
-   * instead. The rounding that matters is on the *outer* panels; rows inside
-   * them are ruled, not boxed, so density survives without the hard edges.
+   * The shadow's colour, apart from its geometry, because only this half changes
+   * between the schemes. Tinted with the foreground rather than pure black: a
+   * neutral-black shadow over a warm surface reads as dirt.
    */
-  --radius: 0.375rem;
+  --shadow-tint: oklch(0.205 0 0 / 8%);
+
+  /*
+   * 8px, up from 6. The rounding that matters is on the *outer* panels; rows
+   * inside them are ruled, not boxed, so density survives the softer corner.
+   * `radius-sm` derives 4px from this for the things that must stay tight —
+   * badges, a code span — so the increase does not propagate to every chip.
+   */
+  --radius: 0.5rem;
   --density-unit: 0.25rem;
   --font-mono-stack: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  --font-sans-stack: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --elevation: 0 1px 2px var(--shadow-tint), 0 12px 32px -16px var(--shadow-tint);
 
   /*
    * Read state: unread is emphatic, read recedes. Both are neutral, so a board
@@ -219,11 +290,18 @@
    */
   --background: oklch(0.15 0 0);
   --foreground: oklch(0.967 0 0);
+  --surface: oklch(0.17 0 0);
   --card: oklch(0.196 0 0);
   --card-foreground: oklch(0.967 0 0);
 
-  --primary: oklch(0.967 0 0);
-  --primary-foreground: oklch(0.196 0 0);
+  /*
+   * Emerald, and a near-black label on it. A mid-tone accent cannot carry white
+   * text on one scheme and dark text on the other from a single value, which is
+   * why `primary-foreground` is a token and not `white`.
+   */
+  --primary: oklch(0.773 0.153 163.2);
+  --primary-foreground: oklch(0.181 0.029 166.6);
+  --primary-hover: oklch(0.84 0.139 166.8);
   --secondary: oklch(0.256 0 0);
   --secondary-foreground: oklch(0.94 0 0);
   --muted: oklch(0.228 0 0);
@@ -235,7 +313,15 @@
 
   --border: oklch(0.31 0 0);
   --input: oklch(0.52 0 0);
-  --ring: oklch(0.61 0 0);
+  --ring: oklch(0.773 0.153 163.2);
+
+  /*
+   * Far heavier than the light scheme's 8%. A shadow is the absence of light,
+   * and on a near-black page there is almost none to take away — the light
+   * value is literally invisible here, so a panel would lose its lift entirely
+   * in dark mode while keeping it in light.
+   */
+  --shadow-tint: oklch(0 0 0 / 45%);
 
   --forum-unread: oklch(0.967 0 0);
   --forum-read: oklch(0.6 0 0);
@@ -267,11 +353,13 @@
 
     --background: oklch(0.15 0 0);
     --foreground: oklch(0.967 0 0);
+    --surface: oklch(0.17 0 0);
     --card: oklch(0.196 0 0);
     --card-foreground: oklch(0.967 0 0);
 
-    --primary: oklch(0.967 0 0);
-    --primary-foreground: oklch(0.196 0 0);
+    --primary: oklch(0.773 0.153 163.2);
+    --primary-foreground: oklch(0.181 0.029 166.6);
+    --primary-hover: oklch(0.84 0.139 166.8);
     --secondary: oklch(0.256 0 0);
     --secondary-foreground: oklch(0.94 0 0);
     --muted: oklch(0.228 0 0);
@@ -283,7 +371,9 @@
 
     --border: oklch(0.31 0 0);
     --input: oklch(0.52 0 0);
-    --ring: oklch(0.61 0 0);
+    --ring: oklch(0.773 0.153 163.2);
+
+    --shadow-tint: oklch(0 0 0 / 45%);
 
     --forum-unread: oklch(0.967 0 0);
     --forum-read: oklch(0.6 0 0);
@@ -450,17 +540,31 @@
   margin-block: 0.75em;
 }
 
+/*
+ * A link keeps the body's colour and is marked by its *underline*, which is the
+ * accent's third job (see this file's header).
+ *
+ * Colouring the text itself is the obvious alternative and it is the one that
+ * breaks under branding: a board whose operator has set a pale yellow accent has
+ * just made every link in every post unreadable, and the post body is the one
+ * region where that is not survivable. An underline carries the affordance at
+ * any accent lightness, because the text under it never stopped being body text.
+ *
+ * `color-mix` rather than a second token: the rule is "this accent, quieter",
+ * and an operator who changes the accent should not have to remember to change
+ * its underline to match.
+ */
 .prose-md a {
   color: inherit;
   text-decoration-line: underline;
-  text-decoration-color: var(--border);
+  text-decoration-color: color-mix(in srgb, var(--primary) 45%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.2em;
   transition: text-decoration-color 120ms ease;
 }
 
 .prose-md a:hover {
-  text-decoration-color: currentColor;
+  text-decoration-color: var(--primary);
 }
 
 .prose-md strong,

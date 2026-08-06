@@ -59,7 +59,7 @@ export function MemberProfile({
               */}
               <h1
                 className={cn(
-                  'font-serif text-2xl font-semibold tracking-tight break-words',
+                  'text-2xl font-semibold tracking-tight break-words',
                   user.nameClass,
                 )}
               >

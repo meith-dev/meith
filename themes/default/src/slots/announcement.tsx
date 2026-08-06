@@ -21,7 +21,7 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
   return (
     <Card as="article" className="border-l-4 border-l-foreground">
       <CardContent className="flex flex-col gap-2 p-4">
-        <h2 className="font-serif text-lg font-semibold tracking-tight text-balance">{title}</h2>
+        <h2 className="text-lg font-semibold tracking-tight text-balance">{title}</h2>
 
         <div
           className="prose-md text-sm"

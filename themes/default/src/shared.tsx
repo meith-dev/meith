@@ -68,14 +68,27 @@ export function pageAt(width: 'max-w-3xl' | 'max-w-4xl'): string {
 /**
  * A link in running text or a listing.
  *
- * Underlined on hover rather than always, and never coloured. This theme's
- * `primary` is ink, so a coloured link would be indistinguishable from body
- * text — and colouring links in a board whose operator has just set their brand
- * to a pale yellow is how a board becomes unreadable in one settings save. The
- * affordance is the hover underline plus the pointer, which is what every
- * listing-heavy site settled on for the same reason.
+ * Underlined on hover rather than always, in the accent, and **the text itself
+ * is never coloured**. That last part is the rule that survived `primary`
+ * becoming a real colour, and it is the one worth stating: colouring link *text*
+ * on a board whose operator has just set their brand to a pale yellow is how a
+ * board becomes unreadable in one settings save. An underline carries the same
+ * affordance at any accent lightness, because the text under it is still body
+ * text at full contrast.
+ *
+ * `decoration-primary` is what changed. The underline used to be whatever colour
+ * the text was, which on a listing of forty rows is forty grey lines — legible,
+ * and saying nothing. In the accent it is the same signal the marketing site
+ * uses, and it costs nothing at all in contrast because it is not carrying the
+ * text.
+ *
+ * Still hover-only in listings: a forum index is mostly links, and underlining
+ * all of them at rest is a page of ruled lines rather than a page of titles.
+ * Post bodies are the opposite case and underline at rest — that is `.prose-md`
+ * in the app's stylesheet, where running prose needs links findable without a
+ * mouse hunt.
  */
-export const LINK = 'hover:underline underline-offset-2 decoration-1'
+export const LINK = 'hover:underline underline-offset-2 decoration-1 decoration-primary'
 
 /** A quiet link: navigation, metadata, anything that is not the row's subject. */
 export const MUTED_LINK = `text-muted-foreground transition-colors hover:text-foreground ${LINK}`
