@@ -1,45 +1,5 @@
 "use client"
 
-/**
- * F68's forms.
- *
- * ## What was wrong with the version this replaces
- *
- * It was thirty-eight text boxes. Each was labelled with a token name, each was
- * prefilled with an OKLCH triple, each applied to light *and* dark at once, and
- * the only way to see the result was to press a button that posted the whole
- * form back. Every part of that is defensible as data entry and none of it is
- * defensible as choosing a colour: an operator who wanted a blue "post reply"
- * button had to know that the token was called `primary`, that OKLCH is
- * lightness-chroma-hue, and that setting it would also change dark mode.
- *
- * So: the tokens are grouped and described in English, a colour token gets the
- * platform's own colour picker beside its text box, light and dark are separate
- * fields, the sample repaints as the picker moves, and five one-click brand
- * palettes cover the case almost every board actually has.
- *
- * ## The picker speaks OKLCH, because the palette does
- *
- * The first version of this screen put the platform's own `<input type="color">`
- * beside each field. That was better than a bare text box and still wrong: the
- * native control speaks six-digit hex, every token this board ships is
- * `oklch()`, and handed one it shows black *and reports black when read* — so
- * opening the editor and saving without touching anything rewrote the palette.
- * It also cannot do the two things an operator actually wants, "the same colour
- * but lighter" and "the same lightness, another hue", which are one slider each
- * in OKLCH and a guess in a hex wheel.
- *
- * `OklchPicker` is that control. The text box is still the field that posts —
- * an empty box is "use the theme's value", which no slider position can
- * express, and it accepts what the sliders cannot.
- *
- * ## It still works with JavaScript off
- *
- * The live sample is an enhancement. With scripting off the fields are ordinary
- * inputs, "Preview without saving" is a second submit on the same form, and the
- * server renders a sample from values it has validated exactly as a save would
- * (D06).
- */
 import { useActionState, useState } from "react"
 
 import {
@@ -83,7 +43,6 @@ export interface TokenValue {
   readonly overrideDark: string
 }
 
-/** Every field name the form posts, and what is in it right now. */
 type Draft = Record<string, string>
 
 type Scheme = "light" | "dark" | "both"
@@ -92,7 +51,6 @@ function field(name: string, scheme: Scheme): string {
   return `token.${scheme}.${name}`
 }
 
-/** A token that means the same thing in both schemes posts one value. */
 function schemesFor(token: TokenValue): readonly Scheme[] {
   return token.kind === "colour" ? ["light", "dark"] : ["both"]
 }
@@ -108,20 +66,6 @@ function initialDraft(tokens: readonly TokenValue[], restored: Draft | undefined
   return draft
 }
 
-/**
- * The palette the live sample paints with, for one scheme.
- *
- * The **whole** palette, not just the overrides. The sample sits inside the
- * control panel, which is painted by `:root` — so an alternate theme previewed
- * with only its overrides declared would show the *board's* colours everywhere
- * it had not overridden one, which is precisely the mistake this screen exists
- * to prevent an operator making.
- *
- * Set through React's `style` prop rather than a generated `<style>` block, so
- * a half-typed value is a property the browser drops rather than a string this
- * component has to sanitise. The saved values still go through F26's validator
- * on the server; nothing here is load-bearing for safety.
- */
 function paletteFor(
   tokens: readonly TokenValue[],
   draft: Draft,
@@ -137,19 +81,6 @@ function paletteFor(
   return style as React.CSSProperties
 }
 
-/**
- * A sample of real board chrome, painted with whatever is in the form.
- *
- * Real elements rather than colour swatches: an operator is choosing whether
- * their board is readable, and a row of squares cannot answer that. Both
- * schemes are shown at once because they are one decision — the commonest way
- * to ruin a board from this screen is to pick a colour that works on white and
- * never look at it on black.
- *
- * `data-theme-preview` is for the no-JavaScript path, whose style block the
- * server scopes to that attribute so a preview cannot restyle the form around
- * it.
- */
 function PreviewSample({
   palette,
   dark,
@@ -203,7 +134,6 @@ function PreviewSample({
   )
 }
 
-/** One token: what it is, and the one or two values that decide it. */
 function TokenRow({
   token,
   draft,
@@ -289,7 +219,6 @@ export function ThemeEditorForm({
   const [state, action] = useActionState(saveThemeAction, EMPTY_STATE)
   const [preview, previewAction] = useActionState(previewThemeAction, EMPTY_STATE)
 
-  /* The post-back's values seed the fields, so a no-JS preview keeps them. */
   const [draft, setDraft] = useState<Draft>(() => initialDraft(tokens, preview.values))
   const [css, setCss] = useState(preview.values?.customCss ?? customCss)
 
@@ -337,12 +266,7 @@ export function ThemeEditorForm({
             would, custom CSS included. Light only — the dark values are in the
             live sample above.
           </p>
-          {/*
-            The block is the action's own output, built from values F26's
-            validator has already accepted — the same function the render path
-            runs. It is the one place in this screen markup is inserted rather
-            than escaped.
-          */}
+          { }
           <style dangerouslySetInnerHTML={{ __html: preview.preview }} />
           <PreviewSample label="As the board would render it" palette={{}} />
         </section>
@@ -413,10 +337,7 @@ export function ThemeEditorForm({
           <span className="min-w-40">
             <SubmitButton>Save</SubmitButton>
           </span>
-          {/*
-            A second submit on the same form, with its own action. No JavaScript
-            is involved: this is what a browser does with two submit buttons.
-          */}
+          { }
           <button
             type="submit"
             formAction={previewAction}
@@ -474,13 +395,6 @@ export function ImportThemeForm({ themeKey }: { themeKey: string }) {
   )
 }
 
-/**
- * Turn a theme on or off, and choose the board's default.
- *
- * One-button forms rather than a checkbox that saves on change: a control that
- * acts on `onChange` does nothing at all with scripting off, and this screen
- * decides what every member of the board can see.
- */
 export function ThemeStateForms({
   themeKey,
   enabled,
@@ -509,12 +423,7 @@ export function ThemeStateForms({
           </form>
         )}
 
-        {/*
-          The build's theme has no toggle at all rather than a disabled one: its
-          components are what every page renders, so "off" is not a state this
-          board can be in, and a control that refuses is a worse answer than a
-          control that is not there. The reason is written beside it in the list.
-        */}
+        { }
         {!isBuildTheme && !isDefault && (
           <form action={enabledAction}>
             <input type="hidden" name="key" value={themeKey} />

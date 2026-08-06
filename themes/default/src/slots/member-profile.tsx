@@ -3,29 +3,6 @@ import type { MemberProfileModel } from '@meith/theme-kit'
 
 import { NUMERIC, Stamp, pageAt } from '../shared'
 
-/**
- * A member's profile (F33).
- *
- * `fields`, `signatureHtml` and `actions` were in the model from F25 and
- * rendered by nothing until F77's rendering-contract suite asked every theme to
- * render what it is handed. They had all three producers — F59 fills the custom
- * fields, F58 the signature, the page the actions — and no consumer, so a board
- * could define a "Location" field, watch members fill it in, and show it only in
- * the postbit. That is the failure mode a contract test exists to find: nothing
- * was broken, a feature was simply invisible.
- *
- * ## The actions are at the top now
- *
- * "Send a message", "Add as a friend", "Report this member" were a row of
- * outlined links at the bottom of the page, under the signature. Somebody
- * arrives on a profile from a post because they want to *do* something with the
- * person — and on a member with three custom fields and a long signature, every
- * one of those controls was below the fold. They sit beside the name, which is
- * both where they are looked for and where they are meaningful.
- *
- * The three headline figures are `<dl>` and lead with the number for the same
- * reason `BoardStats` does: this is a comparison, not a sentence.
- */
 export function MemberProfile({
   user,
   avatarUrl,
@@ -43,20 +20,11 @@ export function MemberProfile({
       <Card>
         <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            {/*
-              F58. Absent avatars render as the member's initial rather than as
-              a silhouette — see `@meith/ui`'s Avatar for why a board where
-              nobody has uploaded one should not be a column of identical
-              shapes.
-            */}
+            { }
             <Avatar src={avatarUrl} name={user.username} size={72} />
 
             <div className="min-w-0">
-              {/*
-                `nameClass` here as well as in every listing: this is the page a
-                reader lands on *from* a coloured name, and arriving to find it
-                plain would read as the wrong profile.
-              */}
+              { }
               <h1
                 className={cn(
                   'font-serif text-2xl font-semibold tracking-tight break-words',
@@ -109,11 +77,7 @@ export function MemberProfile({
         </dl>
       </Card>
 
-      {/*
-        F59's custom fields. Rendered as *text*, never as markup — the same rule
-        the postbit follows, and for the same reason: a field a member fills in
-        that could carry HTML is stored XSS on a page every member visits.
-      */}
+      { }
       {fields.length > 0 && (
         <Card aria-labelledby="profile-fields-heading">
           <CardHeader>
@@ -134,11 +98,7 @@ export function MemberProfile({
         </Card>
       )}
 
-      {/*
-        The signature is pre-rendered Markdown (F36) — the renderer's
-        own output, which is why it may be inserted as HTML here and nowhere a
-        theme composes a string itself.
-      */}
+      { }
       {signatureHtml !== null && (
         <Card aria-labelledby="profile-signature-heading">
           <CardHeader>
@@ -155,7 +115,7 @@ export function MemberProfile({
         </Card>
       )}
 
-      {/* F80's `profile.panel` region. */}
+      { }
       {regions?.plugins}
     </div>
   )

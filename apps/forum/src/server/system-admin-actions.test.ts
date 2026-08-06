@@ -1,17 +1,3 @@
-/**
- * F70's maintenance writes, at the app layer.
- *
- * Two claims:
- *
- *  - **every sweep is bounded and reports its count.** This panel runs inside a
- *    request, so a sweep that ran to completion over a large table would be
- *    killed by the platform's execution limit somewhere in the middle, leaving
- *    an operator with no idea how far it got. "Removed 0" and "removed 4,812"
- *    are different answers to the same press;
- *  - **clearing a cache is tag-scoped**, never a blanket flush — on a busy board
- *    that is a stampede, and the reason somebody reaches for it is almost always
- *    one stale thing they can name.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
@@ -113,11 +99,6 @@ describe('the admin gate', () => {
 
 describe('the sweeps', () => {
   it('are bounded, and say how much they removed', async () => {
-    /*
-     * Bounded because this runs in a request and the platform will kill a long
-     * one mid-sweep. Reporting the count is what lets an operator decide
-     * whether to press again. Kills the mutant that sweeps unbounded.
-     */
     const sessions = await pruneSessionsAction()
     expect(sessionSweeps[0]?.limit).toBeGreaterThan(0)
     expect(sessions.values?.removed).toBe('12')
@@ -138,11 +119,6 @@ describe('the sweeps', () => {
 
 describe('recountAction', () => {
   it('runs one bounded batch and reports what it corrected', async () => {
-    /*
-     * Resumable by construction — the phase and cursor are in the database — so
-     * one batch per press is the whole interaction. Kills the mutant that runs
-     * to completion, which on a large board is a request that never returns.
-     */
     const state = await recountAction()
 
     expect(recounts).toHaveLength(1)
@@ -161,11 +137,6 @@ describe('clearCacheAction', () => {
   })
 
   it('refuses anything it cannot name, rather than flushing everything', async () => {
-    /*
-     * The dangerous default. A blanket flush on a busy board sends every
-     * request that was being served from cache to the database at once. Kills
-     * the mutant that falls back to clearing all tags.
-     */
     const state = await clearCacheAction({}, form({ what: 'everything' }))
 
     expect(state.error).toBeDefined()

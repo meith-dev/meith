@@ -17,13 +17,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/docs" },
 }
 
-/**
- * The index.
- *
- * Organised by what the reader is trying to do rather than by filename, for the
- * reason `docs/README.md` gives: a documentation index whose entry point is a
- * directory listing makes every reader guess, and most of them guess wrong.
- */
 export default function DocsIndexPage() {
   return (
     <div className="max-w-[46rem]">
@@ -49,11 +42,7 @@ export default function DocsIndexPage() {
             <ul className="mt-5 flex flex-col border-t border-wall">
               {documentsInSection(section.id).map((doc) => (
                 <li key={doc.slug} className="border-b border-wall">
-                  {/*
-                    The whole row is the target, and the arrow is what says so —
-                    it sits in a column of its own so the titles stay aligned
-                    whether or not a document also carries the generated chip.
-                  */}
+                  { }
                   <Link href={docHref(doc.slug)} className="group row-link">
                     <span className="flex flex-wrap items-baseline gap-3">
                       <span className="text-mid text-ink transition-colors group-hover:text-gorse">
@@ -76,11 +65,7 @@ export default function DocsIndexPage() {
         ))}
       </div>
 
-      {/*
-        Naming what is *not* here, and where it is. A reader who has seen the
-        repository knows the roadmap and the progress log exist; leaving them
-        unmentioned reads as an omission rather than a decision.
-      */}
+      { }
       <section className="mt-16 rounded-sm border border-wall bg-ground-deep p-6">
         <h2 className="font-display text-mid font-semibold text-ink">Kept in the repository</h2>
         <p className="mt-1 text-micro text-ink-soft">

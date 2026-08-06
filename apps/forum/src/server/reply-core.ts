@@ -1,29 +1,5 @@
 import 'server-only'
 
-/**
- * F40/F81 — posting a reply, once, for both callers.
- *
- * The web form and `POST /api/v1/threads/:id/posts` must agree on every rule
- * that decides whether a reply is allowed: which thread may be known to exist,
- * who may add to it, the flood interval, the length cap, whether the author is
- * under a warning restriction, and whether the result lands in the moderation
- * queue. None of that is presentation, and a second copy of it in the API
- * handler would be a second thing to get wrong — with the failure mode being an
- * API that quietly skips the check the form applies.
- *
- * So the security-critical middle lives here and the two adapters keep only
- * what genuinely differs: the form has previews, drafts, attachments and a
- * redirect; the API has JSON and a status code.
- *
- * **Split in two on purpose.** `resolveReplyTarget` authorises and hands back
- * the scope; `submitReply` writes. The form needs the gap between them, because
- * attachments are staged against the resolved scope *before* the post exists
- * and attached to it afterwards. Collapsing the two would either lose
- * attachments or make the API carry a parameter it has no use for.
- *
- * Not a `'use server'` module: those may only export async actions, and these
- * are functions the API route calls directly.
- */
 import { ForbiddenError, ValidationError, type ForumPermissions } from '@meith/core'
 import type { Actor } from '@meith/authorization'
 import { ReplyComposer, type AuthorRestriction, type ReplyTarget } from '@meith/threads'
@@ -34,23 +10,12 @@ import { emitEvent, viewerRef } from './plugin-view'
 import { getContainer } from './container'
 import { getSettings } from './settings'
 
-/** What `resolveReplyTarget` proved, and what writing the reply needs. */
 export interface ResolvedReplyTarget {
   readonly target: ReplyTarget
   readonly forumId: number
-  /** The post scope, for the Authorizer and for staging attachments. */
   readonly scope: { readonly forumId: number; readonly forum: ForumPermissions }
 }
 
-/**
- * Find the thread and prove this actor may reply to it.
- *
- * Two permissions, in this order, and the order is the feature: `thread.view`
- * decides whether the thread may be *known to exist*, and its failure is
- * deliberately the same "that thread does not exist" a missing row produces.
- * Answering "you may not reply to that" would confirm the thread is real to
- * somebody who cannot see the forum it is in.
- */
 export async function resolveReplyTarget(
   actor: Actor,
   threadId: number,
@@ -84,16 +49,9 @@ export async function resolveReplyTarget(
 export interface SubmitReplyInput {
   readonly message: string
   readonly subscribe?: boolean
-  /** F32's unread watermark, so the author is not shown their own reply as new. */
   readonly seenLastPostId?: number | null
 }
 
-/**
- * Compose and write the reply, then announce it.
- *
- * Every bypass is a `can()` against the resolved scope rather than a flag the
- * caller passes, so neither adapter can hand itself a moderation exemption.
- */
 export async function submitReply(
   actor: Actor,
   resolved: ResolvedReplyTarget,
@@ -110,7 +68,6 @@ export async function submitReply(
   const settings = await getSettings()
   const { scope, target, forumId } = resolved
 
-  /* F46's hourly limit, beside F39's interval. See `content-actions.ts`. */
   const limited = await spendLimit({ scope: 'post', actor, settings })
   if (limited !== null && !limited.allowed) throw new ValidationError(limitMessage(limited))
 
@@ -132,20 +89,11 @@ export async function submitReply(
       seenLastPostId: input.seenLastPostId ?? null,
       bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', scope),
       bypassesFlood: authorizer.can(actor, 'flood.bypass'),
-      /*
-       * F46. The profile above is already loaded for the username, so the post
-       * count is free — which is why it is passed in rather than read again.
-       */
       heldAsNewMember: await holdsNewMember({
         actor,
         postCount: profile.postCount,
         settings,
       }),
-      /*
-       * Replying to a locked thread is a moderator act, and `content.viewDeleted`
-       * would be the wrong test — seeing removed content says nothing about
-       * writing to a closed thread.
-       */
       bypassesLock: authorizer.can(actor, 'content.viewUnapproved', scope),
       restriction: await authorRestriction(warnings, userId),
     },
@@ -162,7 +110,6 @@ export async function submitReply(
   return created
 }
 
-/** F53 — a warned author may be silenced or forced through the queue. */
 async function authorRestriction(
   warnings: ReturnType<typeof getContainer>['warnings'],
   userId: number,

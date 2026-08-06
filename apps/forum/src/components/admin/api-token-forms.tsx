@@ -1,14 +1,5 @@
 "use client"
 
-/**
- * F81's token controls.
- *
- * The issue form's result is the one screen on this board that shows a secret,
- * and it says so in as many words. There is deliberately no "reveal again"
- * anywhere: the board stores a hash, so the value on screen is the only copy
- * that will ever exist, and an interface that implied otherwise would teach
- * operators to close the panel expecting to come back to it.
- */
 import { useActionState } from "react"
 
 import { issueApiTokenAction, revokeApiTokenAction } from "@/server/api-token-actions"

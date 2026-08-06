@@ -1,15 +1,3 @@
-/**
- * F65's writes, against real Postgres.
- *
- * `forum_permissions` has had a reader since F21 and no writer at all, so every
- * claim about how a null round-trips is settled here for the first time:
- *
- *  - null means inherit and is *written*, not deleted;
- *  - a row all of whose columns are null is deleted, because that is what it
- *    means;
- *  - the subtree is a prefix match on `path`, and `10.2` does not match `10.20`;
- *  - a copy makes descendants **identical**, extra rows included.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -29,7 +17,6 @@ let repo: PostgresForumAdminRepository
 const ROOT = 10
 const CHILD = 20
 const GRANDCHILD = 30
-/* `10.2` would prefix-match `10.20` without the trailing dot. This is that. */
 const DECOY = 200
 
 const REGISTERED = 2
@@ -57,7 +44,6 @@ beforeEach(async () => {
   `)
 })
 
-/** Every forum-scoped key, all null but the ones given. */
 function values(over: Record<string, boolean | number | null> = {}) {
   const out: Record<string, boolean | number | null> = {}
   for (const field of FORUM_PERMISSION_FIELDS) out[field.key] = null
@@ -104,7 +90,6 @@ describe('updateOptions', () => {
       is_open: false,
       allow_threads: false,
       moderate_new_threads: true,
-      /* Position in the tree is `move`'s business, not this statement's. */
       path: '10.20',
       depth: 1,
     })
@@ -121,11 +106,6 @@ describe('overrides', () => {
   })
 
   it('leaves a null out of what it reads back, so the walk does not stop on it', async () => {
-    /*
-     * `ForumOverride.overrides` holds only the keys that are set. A
-     * present-but-null key would stop the resolver's ancestor walk at the wrong
-     * forum — which is the bug that makes a parent's change do nothing.
-     */
     await repo.saveOverrides(CHILD, REGISTERED, values({ canPostThreads: false }))
 
     const [override] = await repo.readOverrides([CHILD])
@@ -133,7 +113,6 @@ describe('overrides', () => {
   })
 
   it('writes a numeric zero rather than treating it as absent', async () => {
-    /* 0 is *unlimited* (R4.2), so it has to survive a round trip as a value. */
     await repo.saveOverrides(CHILD, REGISTERED, values({ maxAttachmentsPerPost: 0 }))
 
     const [override] = await repo.readOverrides([CHILD])
@@ -153,12 +132,6 @@ describe('overrides', () => {
   })
 
   it('deletes a row whose every cell is inherit', async () => {
-    /*
-     * A row that says nothing still costs the resolver a lookup on every
-     * permission check on every page — and an operator who cleared a forum's
-     * overrides would have no way to tell it worked. Kills the mutant that
-     * writes all-nulls.
-     */
     await repo.saveOverrides(CHILD, REGISTERED, values({ canPostThreads: false }))
     expect(await storedRowCount()).toBe(1)
 
@@ -192,11 +165,6 @@ describe('descendantIds', () => {
   })
 
   it('does not match a sibling whose path merely starts the same', async () => {
-    /*
-     * `10.20` and `10.200`. Without the trailing dot in the prefix, a copy from
-     * one forum would reach into another subtree entirely — silently, and with
-     * no undo. Kills the mutant that drops it.
-     */
     expect(await repo.descendantIds(CHILD)).toEqual([GRANDCHILD])
   })
 
@@ -207,12 +175,6 @@ describe('descendantIds', () => {
 
 describe('copyToDescendants', () => {
   it('makes a descendant identical, including clearing what it had', async () => {
-    /*
-     * "Copy" has to mean identical. A descendant that explicitly denied
-     * something the source inherits would otherwise keep denying it, and the
-     * operator would be looking at two forums they were told are the same.
-     * Kills the mutant that upserts without clearing.
-     */
     await repo.saveOverrides(CHILD, REGISTERED, values({ canPostThreads: false }))
     await repo.saveOverrides(GRANDCHILD, REGISTERED, values({ canPostReplies: false }))
 
@@ -320,11 +282,6 @@ describe('moderator appointments', () => {
   })
 
   it('replaces the rights of an existing appointment rather than duplicating it', async () => {
-    /*
-     * The partial unique indexes make this an upsert rather than a
-     * check-then-insert: appointing somebody twice is a rights change, and two
-     * administrators doing it at once must not leave two rows that disagree.
-     */
     await repo.appoint({
       forumId: CHILD,
       userId: 1,
@@ -347,11 +304,6 @@ describe('moderator appointments', () => {
   })
 
   it('refuses an appointment that names both a member and a group, or neither', async () => {
-    /*
-     * The table permits both columns to be set, and F48 would resolve such a
-     * row as two appointments that cannot be edited apart. Kills the mutant
-     * that trusts the caller.
-     */
     const base = { forumId: CHILD, cascadeToSubforums: false, rights: noRights }
     await expect(repo.appoint({ ...base, userId: 1, groupId: STAFF })).rejects.toThrow(
       /member or a group/,
@@ -370,11 +322,6 @@ describe('moderator appointments', () => {
   })
 
   it('removes one appointment, and only from the forum it belongs to', async () => {
-    /*
-     * The id comes from a form and is therefore attacker-supplied. Scoping the
-     * delete to the forum means an id from another forum matches nothing rather
-     * than being caught by a check somebody could forget.
-     */
     await repo.appoint({
       forumId: CHILD,
       userId: 1,

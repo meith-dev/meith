@@ -5,25 +5,8 @@ import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresImportSink } from './import-sink'
 import { resultRows } from './result-rows'
 
-/*
- * `resultRows`, not a cast. `db.execute` returns `{ rows }` under PGlite and
- * something array-like under postgres-js, and casting to an array gets empty
- * results from the first — silently, so every assertion becomes "expected [x],
- * got []". This file's first draft cast, and so did `import-repo.ts`, which is
- * how a latent bug in the shipped code was found by writing these tests.
- */
 const rowsOf = async <T>(query: Parameters<TestDb['db']['execute']>[0]): Promise<T[]> =>
   resultRows<T>(await harness.db.execute(query))
-
-/**
- * F85 — the sink, against real Postgres.
- *
- * Every property worth testing here is about the **second** run. An import is
- * chunked and resumable, which means the recovery instruction is "run it again",
- * which means every write in this file happens more than once in ordinary use.
- * A sink that is only correct the first time is a sink that corrupts a board on
- * the day something goes wrong — which is the only day it is resumed.
- */
 
 let harness: TestDb
 let sink: PostgresImportSink
@@ -104,12 +87,6 @@ const count = async (table: string): Promise<number> => {
 }
 
 describe('running it twice', () => {
-  /*
-   * The headline property. Not "it does not crash" — it must produce *the same
-   * board*, with the same ids, because F86's redirects are a lookup into
-   * `legacy_ids` and a second run that renumbered everything would break every
-   * inbound link the import existed to preserve.
-   */
   it('produces the same rows and the same ids', async () => {
     await seedTree()
     await sink.putPosts([post(4102, 91, 3, 1)])
@@ -126,11 +103,6 @@ describe('running it twice', () => {
     expect(second).toMatchObject({ inserted: 0, updated: 1 })
   })
 
-  /*
-   * `do update`, not `do nothing`. Re-running after fixing something on the
-   * source board has to carry the fix across, or "run it again" is useless as
-   * advice — which is the only advice a resumable importer gives.
-   */
   it('carries an edit made on the source board across', async () => {
     await seedTree()
     await sink.putPosts([post(4102, 91, 3, 1)])
@@ -150,11 +122,6 @@ describe('running it twice', () => {
 })
 
 describe('rows whose parent is missing', () => {
-  /*
-   * Skipped with a reason, never invented. A post attached to a placeholder
-   * thread is content on the board in a place its author did not choose, and an
-   * operator reading "thread 9912 not imported" can go and find out why.
-   */
   it('skips a post whose thread was never imported', async () => {
     await seedTree()
     const result = await sink.putPosts([post(4102, 9912, 3, 1)])
@@ -171,11 +138,6 @@ describe('rows whose parent is missing', () => {
     expect(result.skipped).toEqual([{ legacyId: 91, reason: 'forum 77 not imported' }])
   })
 
-  /*
-   * A child forum arriving before its parent is skipped rather than reparented
-   * to the root — and picked up on the next pass. MyBB's fid order usually puts
-   * parents first, and "usually" is not a thing to build a tree on.
-   */
   it('skips a child forum until its parent exists, then places it', async () => {
     const first = await sink.putForums([forum(9, 3)])
     expect(first.skipped).toEqual([{ legacyId: 9, reason: 'parent forum 3 not imported yet' }])
@@ -190,11 +152,6 @@ describe('rows whose parent is missing', () => {
     expect(rows[0]!.path).toMatch(/^\d+\.\d+$/)
   })
 
-  /*
-   * A missing *author* is different, and deliberately not fatal: MyBB sets
-   * `uid` to 0 for a deleted member but keeps the username on the row, which is
-   * exactly what a nullable author id beside a non-null username is for.
-   */
   it('keeps a post whose author was deleted on the old board', async () => {
     await sink.putUsers([user(1)])
     await sink.putForums([forum(3)])
@@ -212,10 +169,6 @@ describe('rows whose parent is missing', () => {
 })
 
 describe('users', () => {
-  /*
-   * A username on this board belongs to somebody, and it may not be the same
-   * person. Renaming them to `wren_2` invents an identity nobody agreed to.
-   */
   it('skips a username that already belongs to somebody else', async () => {
     await harness.db.execute(sql`
       insert into users (username, username_lower, email, email_lower, primary_group_id, display_group_id)
@@ -234,7 +187,6 @@ describe('users', () => {
     expect(result.skipped[0]!.reason).toMatch(/e-mail address already registered/)
   })
 
-  /* The collision check must not fire on the row's own previous import. */
   it('does not treat its own earlier import as a collision', async () => {
     await sink.putUsers([user(1)])
     const again = await sink.putUsers([user(1)])
@@ -243,10 +195,6 @@ describe('users', () => {
     expect(again.updated).toBe(1)
   })
 
-  /*
-   * MyBB's group ids are not this board's. Filing an imported member into a
-   * group by numeric coincidence would be a privilege grant made by accident.
-   */
   it('files every imported member into registered, whatever MyBB said', async () => {
     await sink.putUsers([{ ...user(1), legacyGroupId: 4 }])
 
@@ -269,12 +217,6 @@ describe('users', () => {
 })
 
 describe('the first post', () => {
-  /*
-   * By date, not by legacy id. A thread whose opening post was deleted has a
-   * lowest `pid` that is not its first post, and the board shows the first
-   * post's body wherever it shows an excerpt — so getting this wrong puts the
-   * wrong text under the thread title everywhere at once.
-   */
   it('marks the earliest post, not the lowest legacy id', async () => {
     await seedTree()
 
@@ -294,7 +236,6 @@ describe('the first post', () => {
     ])
   })
 
-  /* And it re-decides when an earlier post arrives in a later chunk. */
   it('moves the mark when an earlier post arrives in a later chunk', async () => {
     await seedTree()
     await sink.putPosts([post(5000, 91, 3, 1, '2015-06-01T00:00:00Z')])
@@ -307,11 +248,6 @@ describe('the first post', () => {
     expect(rows).toEqual([{ legacy_mybb_pid: 6000 }])
   })
 
-  /*
-   * The body is stored as BBCode with no rendered HTML. Baking HTML in at
-   * import time would freeze two million posts at whatever the renderer did on
-   * migration day, and F87's render version exists precisely so it does not.
-   */
   it('stores the body unrendered', async () => {
     await seedTree()
     await sink.putPosts([{ ...post(4102, 91, 3, 1), body: '[b]bold[/b]' }])
@@ -323,11 +259,6 @@ describe('the first post', () => {
 })
 
 describe('the legacy id map', () => {
-  /*
-   * The map is what F86's redirects read. An import that wrote the rows and not
-   * the map would be a one-way door: the content arrives and every inbound link
-   * a board accumulated over fifteen years 404s.
-   */
   it('records a mapping for every kind', async () => {
     await seedTree()
     await sink.putPosts([post(4102, 91, 3, 1)])
@@ -354,7 +285,6 @@ describe('the legacy id map', () => {
 })
 
 describe('an empty page', () => {
-  /* The runner calls with an empty page at the end of a table. */
   it.each(['putUsers', 'putForums', 'putThreads', 'putPosts'] as const)(
     '%s costs nothing and reports nothing',
     async (method) => {

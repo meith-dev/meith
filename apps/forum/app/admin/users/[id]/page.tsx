@@ -14,22 +14,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Member' }
 
-/**
- * F67 — one member.
- *
- * The ban section is the reason this screen exists at all. F23's mechanism has
- * been complete since Phase 2 and had no surface: F54 looked at putting one in
- * the ModCP and named the absence instead, because a create/lift screen needs
- * the member search that is this feature's. This is that screen, and it goes
- * through `BanService` rather than through the state column so there is one
- * place that knows how a ban captures and restores a group.
- *
- * The shared-network list is deliberately worded as a *network*. Only an IP
- * prefix is stored (F19 drops the last octet at write time), so it answers
- * "same network" and not "same machine" — a household, an office and a campus
- * all look like this, and an operator acting on it as proof of a second account
- * would be acting on something the data does not say.
- */
 export default async function AdminMemberPage({
   params,
 }: {
@@ -85,7 +69,6 @@ export default async function AdminMemberPage({
             id: member.id,
             username: member.username,
             email: member.email,
-            /* F20: handing the stored value to a form control, not deciding on it. */
             // eslint-disable-next-line no-restricted-properties -- F20: transporting the column into a form
             primaryGroupId: member.primaryGroupId,
             displayGroupId: member.displayGroupId,
@@ -105,7 +88,6 @@ export default async function AdminMemberPage({
           userId={member.id}
           groups={view.groups}
           selected={view.secondaryGroupIds}
-          /* F20: the id whose checkbox is suppressed, not a decision about it. */
           // eslint-disable-next-line no-restricted-properties -- F20: transporting the column into a form
           primaryGroupId={member.primaryGroupId}
         />

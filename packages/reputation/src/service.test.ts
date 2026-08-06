@@ -25,7 +25,6 @@ const LIMITS: RaterLimits = { canGive: true, maxPerDay: 10, postCount: 20 }
 
 class FakeRepository implements ReputationRepository {
   rows: ReputationRow[] = []
-  /** Set to make `give` report the cap as reached. */
   atCap = false
   given: Array<{ userId: number; points: number; comment: string; postId: number | null }> = []
 
@@ -144,10 +143,6 @@ describe('giving a rating', () => {
   })
 
   it('refuses rating yourself', async () => {
-    /*
-     * Left open this is the first thing anybody tries, and a profile showing
-     * self-awarded points makes the whole number meaningless.
-     */
     await expect(give({ userId: RATER })).rejects.toBeInstanceOf(ValidationError)
     expect(repo.given).toEqual([])
   })
@@ -159,9 +154,7 @@ describe('giving a rating', () => {
   })
 
   it('refuses an account below the post floor', async () => {
-    /* The spam defence: registering is free, posting five times is not. */
     await expect(give({ limits: { ...LIMITS, postCount: 4 } })).rejects.toThrow(/at least 5 posts/)
-    /* And admits it at exactly the floor. */
     await expect(give({ limits: { ...LIMITS, postCount: 5 } })).resolves.toBeUndefined()
   })
 
@@ -177,10 +170,6 @@ describe('giving a rating', () => {
   })
 
   it('refuses a negative rating rather than silently making it positive', async () => {
-    /*
-     * The mutant this kills is a clamp: quietly turning a criticism into praise
-     * is the worst possible reading of somebody's intent.
-     */
     await expect(
       give({ points: -1, settings: { ...SETTINGS, allowNegative: false } }),
     ).rejects.toThrow(/negative/)
@@ -199,10 +188,6 @@ describe('giving a rating', () => {
   })
 
   it('reports the daily cap when the write says it was reached', async () => {
-    /*
-     * The cap is reported *by the write* rather than checked before it: a prior
-     * read is a different transaction and would let two submits both pass.
-     */
     repo.atCap = true
     await expect(give()).rejects.toThrow(/as many ratings as you can today/)
   })

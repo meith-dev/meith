@@ -29,7 +29,6 @@ function definition(overrides: Partial<ProfileFieldDefinition> = {}): ProfileFie
   }
 }
 
-/** An in-memory repository, so every rule below is tested without a database. */
 class FakeRepository implements ProfileFieldRepository {
   fields: ProfileFieldDefinition[] = []
   rules: ProfileFieldGroupRule[] = []
@@ -80,7 +79,6 @@ beforeEach(() => {
   service = new ProfileFieldService({ fields: repo })
 })
 
-/** No group rules: every field resolves to its own defaults. */
 const OPEN = { applicable: [] as readonly ProfileFieldGroupRule[] }
 
 describe('save', () => {
@@ -97,11 +95,6 @@ describe('save', () => {
   })
 
   it('drops a submitted field the member may not edit, without saying so', async () => {
-    /*
-     * The refusal that matters: an error naming the field would confirm a
-     * staff-only field exists. Kills the mutant that keys the write off
-     * `submitted` instead of off the resolved-editable set.
-     */
     repo.fields = [definition({ key: 'staff_note', defaultEditable: false })]
 
     await service.save({
@@ -114,10 +107,6 @@ describe('save', () => {
   })
 
   it('leaves a field the form never offered alone', async () => {
-    /*
-     * A partial form must not wipe what it did not render. Kills the mutant
-     * that turns an absent key into an empty string.
-     */
     repo.fields = [definition({ id: 1, key: 'pronouns' }), definition({ id: 2, key: 'location' })]
 
     await service.save({
@@ -177,10 +166,6 @@ describe('validation', () => {
   })
 
   it('refuses a javascript: URL', async () => {
-    /*
-     * A profile field rendered as a link is an attacker-controlled href. This
-     * is the oldest stored-XSS vector there is, and it must fail closed.
-     */
     await expect(
       saveValue({ type: 'url' }, 'javascript:alert(document.cookie)'),
     ).rejects.toBeInstanceOf(ValidationError)
@@ -197,7 +182,6 @@ describe('validation', () => {
   })
 
   it('validates an unknown type as text rather than refusing every save', async () => {
-    /* A field written by a deploy that knew a type this build does not. */
     expect(await saveValue({ type: null }, 'anything at all')).toBe('anything at all')
   })
 })
@@ -229,10 +213,6 @@ describe('registration', () => {
   })
 
   it('returns the values to write, validated, without touching the repository', async () => {
-    /*
-     * The split that lets the caller refuse a registration before it creates an
-     * account: validation must not write.
-     */
     repo.fields = [
       definition({
         id: 1,

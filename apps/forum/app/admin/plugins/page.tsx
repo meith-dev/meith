@@ -6,29 +6,7 @@ import { hookListeners, pluginInventory } from '@/server/plugin-admin'
 
 export const metadata: Metadata = { title: 'Plugins' }
 
-/**
- * F69 — the plugin manager.
- *
- * The screen's shape follows the one thing that is genuinely hard about
- * administering plugins: **"is it on" has three answers and they are not
- * interchangeable.**
- *
- *  - *in the build* — `forum.config.ts`. Changing it is a redeploy.
- *  - *switched on* — this screen's button. Durable, immediate, reversible.
- *  - *running* — the host has not auto-disabled it for throwing.
- *
- * A row that showed one boolean would be wrong about the other two, and the
- * three have completely different things to do about them: redeploy, press the
- * button, read the error. So each row says which of the three is false, and the
- * disable button is only offered for the middle one — the only one this screen
- * can actually change.
- *
- * The hook table is at the bottom rather than per row because the question it
- * answers is a *cross-plugin* one — "two plugins filter the post body; which
- * one wins" — and the answer is the order they are listed in.
- */
 export default async function AdminPluginsPage() {
-  /* Re-run, because a layout is not a security boundary (see the ACP layout). */
   await requireAdmin()
 
   const { plugins, migrationsKnown } = await pluginInventory()
@@ -70,11 +48,7 @@ export default async function AdminPluginsPage() {
                     {plugin.key}
                   </span>
 
-                  {/*
-                    One line, and only when something is off. A row that always
-                    printed "running normally" would train an operator to skip
-                    the column that matters on the day it says otherwise.
-                  */}
+                  { }
                   {!plugin.hasDefinition ? (
                     <span className="text-xs text-muted-foreground">
                       Registered without a definition — a key, and no code.
@@ -110,12 +84,7 @@ export default async function AdminPluginsPage() {
                   >
                     Details
                   </a>
-                  {/*
-                    Offered only when the config allows the plugin at all.
-                    Switching on something the build does not contain would
-                    store a row that changes nothing, which is the "control over
-                    machinery that is not there" this screen used to be made of.
-                  */}
+                  { }
                   {plugin.configuredEnabled && plugin.hasDefinition && (
                     <PluginEnableForm pluginKey={plugin.key} enabled={plugin.operatorEnabled} />
                   )}

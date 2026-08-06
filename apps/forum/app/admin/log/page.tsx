@@ -4,33 +4,13 @@ import { requireAdmin } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { buildAdminLogView } from '@/view/admin-log'
 
-/*
- * Every other screen in the panel names itself; this one inherited the
- * layout's "Control panel", which is what the back button and a row of tabs
- * end up showing.
- */
 export const metadata: Metadata = { title: 'Admin log' }
 
-/**
- * F63 — the admin log.
- *
- * `admin_log` has had *writers* since F48 — every moderation action records a
- * row — and until now the only reader was the ModCP's view, which is scoped to
- * the forums one moderator covers. This is the unscoped one: an administrator
- * reading the audit log is reading everything, which is the point of there
- * being one.
- *
- * The detail column is rendered as **text**, never as markup and never as a
- * link: it is arbitrary JSON captured by whoever wrote the row, including rows
- * written by a previous deploy, and an audit log that fails to open because one
- * row is odd is an audit log that is absent exactly when it is needed.
- */
 export default async function AdminLogPage({
   searchParams,
 }: {
   searchParams: Promise<{ before?: string; action?: string }>
 }) {
-  /* Re-run, because a layout is not a security boundary (see the layout). */
   await requireAdmin()
 
   const query = await searchParams
@@ -58,10 +38,7 @@ export default async function AdminLogPage({
         </p>
       </div>
 
-      {/*
-        A GET form, because filtering is a read. It works with scripting off:
-        a native `<select>` and a submit button, no on-change handler.
-      */}
+      { }
       <form method="get" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Action</span>

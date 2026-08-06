@@ -1,69 +1,12 @@
-/**
- * F25 — the slot registry.
- *
- * Every point at which a theme may replace markup is named here, exactly once,
- * with the **kind** of component that is allowed to fill it. The registry is the
- * subject of three separate mechanisms, which is why it is data rather than
- * documentation:
- *
- *  - `SlotModels` (view-models.ts) gives each slot a typed, JSON-shaped props
- *    contract, and `tsc` fails if a slot here has no model or a model here has
- *    no slot;
- *  - `SlotComponent` (theme.ts) resolves each slot's kind to a *different*
- *    function type, so an `async` client slot does not compile;
- *  - `scripts/slot-kinds.mjs` reads this file and every theme manifest and fails
- *    the build if the module implementing a slot declares the wrong side of the
- *    server/client boundary.
- *
- * ## Why the kind is declared, and not merely documented
- *
- * A guest thread page must ship near-zero JavaScript. If `PostBit` ever becomes
- * a client component the entire post list — every post, every author block —
- * is serialised into the browser payload and hydrated, and the product's main
- * advantage over the PHP boards is gone. Nothing about that failure is visible
- * in review: the page renders identically, passes every test, and is simply
- * slow and heavy forever.
- *
- * So the boundary is declared per slot and checked mechanically. There are two
- * client slots in this list, both editor islands, and adding a third should feel
- * like a decision.
- *
- * ## Why the whole list exists before any page
- *
- * A slot API retrofitted over finished pages does not work — you get the slots
- * the pages happened to make convenient, not the ones a theme needs. Slots for
- * features that are not built yet (`WhoIsOnline`, F75) are named now and left
- * unimplemented; a theme fills in what it can and `resolveTheme` reports the
- * rest as missing rather than pretending.
- *
- * **The list is derived, not transcribed.** The plan's R6 names the slot list
- * and this repository does not carry the plan text, so these 25 are derived from
- * the pages Phases 2–3 actually build and cross-checked
- * against MyBB's template names. Where R6 disagrees, R6 wins and this file
- * changes — see docs/deviations.md D35, which records the divergence rather than
- * leaving it to be discovered.
- */
-
-/**
- * `server` — rendered on the server, may be `async`, ships no JavaScript.
- * `client` — a `"use client"` island. May hold state; costs bytes.
- */
 export type SlotKind = 'server' | 'client'
 
 export interface SlotSpec {
   readonly kind: SlotKind
-  /** The plan feature that builds the page this slot appears on. */
   readonly feature: string
-  /** What a theme is replacing when it fills this slot. */
   readonly purpose: string
 }
 
-/**
- * Every slot, with its kind. Declared `as const` so `SLOTS[K]['kind']` is a
- * literal type and `SlotComponent` can branch on it.
- */
 export const SLOTS = {
-  /* ---- Shell ---- */
   Shell: {
     kind: 'server',
     feature: 'F27',
@@ -110,7 +53,6 @@ export const SLOTS = {
       'just did — these are for everybody and last until they expire.',
   },
 
-  /* ---- Board index ---- */
   BoardIndex: {
     kind: 'server',
     feature: 'F29',
@@ -139,7 +81,6 @@ export const SLOTS = {
     purpose: 'The online list and its record.',
   },
 
-  /* ---- Forum display ---- */
   ForumDisplay: {
     kind: 'server',
     feature: 'F30',
@@ -163,7 +104,6 @@ export const SLOTS = {
       'JavaScript disabled, so this can never become an island.',
   },
 
-  /* ---- Thread view ---- */
   ThreadView: {
     kind: 'server',
     feature: 'F31',
@@ -191,7 +131,6 @@ export const SLOTS = {
       'reply page; it never becomes the only way to reply.',
   },
 
-  /* ---- Posting ---- */
   PostForm: {
     kind: 'server',
     feature: 'F39',
@@ -207,14 +146,12 @@ export const SLOTS = {
       'textarea; removing it must leave a working plain-textarea form.',
   },
 
-  /* ---- Members ---- */
   MemberProfile: {
     kind: 'server',
     feature: 'F33',
     purpose: 'A member’s profile page body: identity, stats, recent activity.',
   },
 
-  /* ---- Search ---- */
   SearchForm: {
     kind: 'server',
     feature: 'F73',
@@ -223,7 +160,6 @@ export const SLOTS = {
       'that can be linked and cached.',
   },
 
-  /* ---- Navigation ---- */
   ForumJump: {
     kind: 'server',
     feature: 'F27',
@@ -234,7 +170,6 @@ export const SLOTS = {
       'keyboard user to the first forum in the list.',
   },
 
-  /* ---- Errors and redirects ---- */
   RedirectNotice: {
     kind: 'server',
     feature: 'F34',
@@ -251,18 +186,14 @@ export const SLOTS = {
   },
 } as const satisfies Readonly<Record<string, SlotSpec>>
 
-/** Every slot name. The union, derived from the registry — never hand-written. */
 export type SlotName = keyof typeof SLOTS
 
-/** The registry as an iterable list. Ordered as declared, which is page order. */
 export const SLOT_NAMES = Object.keys(SLOTS) as readonly SlotName[]
 
-/** Narrow an arbitrary string to a slot name. Used when validating a manifest. */
 export function isSlotName(value: string): value is SlotName {
   return Object.hasOwn(SLOTS, value)
 }
 
-/** The declared kind of a slot. */
 export function slotKind(name: SlotName): SlotKind {
   return SLOTS[name].kind
 }

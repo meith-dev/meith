@@ -17,13 +17,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Reports' }
 
-/**
- * F49 — outstanding reports, in the forums this actor moderates.
- *
- * App-owned rather than a theme slot, for the reason D47 records for the queue:
- * a moderator tool is an operator surface, and the 25-slot registry freezes at
- * F77.
- */
 export default async function ReportsPage({
   searchParams,
 }: {
@@ -43,15 +36,6 @@ export default async function ReportsPage({
     service.countOpen(scope),
   ])
 
-  /*
-   * F60. A reported private message is the one target a moderator cannot open:
-   * `/messages/<id>` requires a copy, and staff hold none. So the message is
-   * fetched here, for the reported ids on this page only, and shown inline.
-   *
-   * That is the **entire** staff read path into private messages — there is no
-   * listing, no search, and no way to reach the message beside it. A report is
-   * the door, and it opens exactly one message.
-   */
   const reportedMessages = await reportedPrivateMessages(page.rows)
 
   const now = new Date()
@@ -111,7 +95,7 @@ export default async function ReportsPage({
                   </span>
                 </div>
 
-                {/* The reporter's words, as text. Never rendered as markup. */}
+                { }
                 <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">
                   {report.reason}
                 </p>
@@ -125,12 +109,7 @@ export default async function ReportsPage({
                             message.authorUsername === '' ? 'a deleted member' : message.authorUsername
                           }`}
                     </p>
-                    {/*
-                      The **source**, as plain text, not the rendered HTML. A
-                      moderator deciding what somebody sent should see what they
-                      actually typed — and a staff screen gains nothing from a
-                      second rendering surface for attacker-controlled markup.
-                    */}
+                    { }
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm">
                       {message?.message ?? 'This message has since been deleted by everybody who held it.'}
                     </p>
@@ -168,14 +147,6 @@ export default async function ReportsPage({
   )
 }
 
-/**
- * The bodies of the private messages this page's reports point at.
- *
- * Bounded by the page size, and only for reports that are actually about a
- * message — a page of post reports costs nothing. Failures are swallowed to an
- * absent entry rather than taking down the queue: a moderator with one
- * unreadable row can still work the other twenty-four.
- */
 async function reportedPrivateMessages(
   rows: readonly { kind: string; targetId: number }[],
 ): Promise<ReadonlyMap<number, { authorUsername: string; message: string }>> {

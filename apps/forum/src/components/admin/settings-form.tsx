@@ -1,19 +1,5 @@
 "use client"
 
-/**
- * F64 — the generated settings form.
- *
- * Every control here is chosen by `settingField`, so this file knows no setting
- * by name. That is the point of F08's registry, kept: adding a setting is one
- * entry in `definitions.ts`.
- *
- * **The hidden `keys` field is load-bearing.** It lists exactly the settings
- * this form is showing, and the action will touch no others. Without it a save
- * from a filtered screen would submit an unchecked box for every boolean on the
- * board and turn off every feature the operator could not see — because that is
- * what a checkbox's absence means, and a form cannot tell "off" from "not
- * here".
- */
 import { useActionState } from "react"
 
 import type { SettingFieldModel, SettingGroupModel } from "@/view/admin-settings"
@@ -109,8 +95,7 @@ export function AdminSettingsForm({ groups }: { groups: readonly SettingGroupMod
         </p>
       )}
 
-      {/* See this file's header: without this the action would touch settings
-          this screen is not showing. */}
+      { }
       <input type="hidden" name="keys" value={keys.join(",")} />
 
       {groups.map((group) => (

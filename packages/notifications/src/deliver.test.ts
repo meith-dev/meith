@@ -1,10 +1,3 @@
-/**
- * F55 — delivery, and the four answers it can give.
- *
- * Three of them send nothing and none of them throws, because a throw here is a
- * queue retry: retrying a decision that will be identical every time is how a
- * job reaches its dead letter for no reason at all.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MailDriver, OutgoingMail } from '@meith/core'
@@ -90,7 +83,6 @@ it('sends nothing a second time when a message already went', async () => {
 it('propagates a driver failure, because that is the one worth retrying', async () => {
   mail.fail = true
   await expect(deliver()).rejects.toThrow('provider down')
-  /* And does not claim it was sent, so the retry actually sends it. */
   expect(marked).toEqual([])
 })
 

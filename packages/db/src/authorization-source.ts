@@ -1,19 +1,3 @@
-/**
- * Postgres implementation of the `AuthorizationSource` port.
- *
- * The port is defined by `@meith/authorization` (the domain), and this is its
- * SQL adapter (the infrastructure) — the standard hexagonal arrangement where
- * persistence depends on the domain's interface, never the reverse. The
- * authorizer itself stays pure and database-free; this file is the only place
- * that turns its four questions into queries.
- *
- * Every method is bounded and indexed:
- *   - groupDefaults / forumOverrides use `IN (...)` over primary/foreign keys.
- *   - ancestorChain is a single-row read plus a string split, because the tree
- *     is stored as a materialised path (`forums.path = '1.4.9.12'`). F16
- *     requires "my ancestors" to cost one query regardless of depth; parsing my
- *     own path delivers exactly that, with no recursive CTE.
- */
 import { and, inArray, sql } from 'drizzle-orm'
 
 import type {
@@ -28,14 +12,6 @@ import { forumRowToOverride, groupRowToPermissionSet } from './permissions-map'
 import { resultRows } from './result-rows'
 import { forumPermissions, forums, usergroups } from './schema'
 
-/**
- * Parse a materialised path into ancestor IDs, nearest-first and inclusive.
- *
- *   '1.4.9.12'  ->  [12, 9, 4, 1]
- *
- * Nearest-first is the order the resolver's "first non-null wins" walk expects:
- * a forum's own override beats its parent's, which beats the grandparent's.
- */
 export function parseAncestorPath(path: string): number[] {
   const ids = path
     .split('.')
@@ -72,7 +48,7 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
       .limit(1)
 
     const row = rows[0]
-    if (!row) return [] // forum does not exist -> empty, per the port contract
+    if (!row) return []
     return parseAncestorPath(row.path)
   }
 
@@ -86,10 +62,6 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
       .select()
       .from(forumPermissions)
       .where(
-        // Both dimensions filtered in SQL. The (forum_id, group_id) index serves
-        // the forum_id prefix, and both sets are small (the groups of one user,
-        // the ancestors of one forum), so this stays a bounded index scan rather
-        // than pulling every row for a forum and discarding groups in JS.
         and(
           inArray(forumPermissions.forumId, [...forumIds]),
           inArray(forumPermissions.groupId, [...groupIds]),
@@ -108,14 +80,6 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
     return rows.map((r) => r.id)
   }
 
-  /**
-   * Every forum's ancestor chain, in one query.
-   *
-   * The materialised path makes this free: the chain is a parse of a string
-   * already on the row, so reading `(id, path)` for the whole board and
-   * splitting in memory costs exactly one statement no matter how deep or wide
-   * the tree is. Asking per forum is what made `visibleForumIds` an N+1.
-   */
   async allAncestorChains(): Promise<ReadonlyMap<number, readonly number[]>> {
     const rows = await this.db
       .select({ id: forums.id, path: forums.path })
@@ -123,27 +87,12 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
 
     return new Map(rows.map((r) => [r.id, parseAncestorPath(r.path)]))
   }
-  /**
-   * This actor's moderator appointments (F48).
-   *
-   * `forum_moderators` has existed since F21 with no reader at all, so until
-   * now an appointment was a row nothing consulted and "moderator" meant
-   * "member of a staff group". One query, by user or by any of the actor's
-   * groups; expansion through `cascade_to_subforums` happens in the Authorizer,
-   * which already holds the tree.
-   */
   async moderatorAppointments(
     userId: number | null,
     groupIds: readonly number[],
   ): Promise<readonly ModeratorAppointment[]> {
     if (userId === null && groupIds.length === 0) return []
 
-    /*
-     * An `in (…)` list, not `= any($1::int[])`: drizzle expands a JavaScript
-     * array in a template into a placeholder *list*, so `any(${groupIds})`
-     * compiles to `any(($1, $2))` and fails to parse. `in (null)` is the right
-     * reading of "no groups": never true.
-     */
     const groupList =
       groupIds.length === 0
         ? sql`(null)`
@@ -190,5 +139,4 @@ export class PostgresAuthorizationSource implements AuthorizationSource {
       canSplitThreads: row.can_split_threads,
     }))
   }
-
 }

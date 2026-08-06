@@ -1,6 +1,5 @@
 "use client"
 
-/** F71's forms: word filters, thread prefixes, smilies and custom directives. */
 import { useActionState } from "react"
 
 import {
@@ -203,10 +202,6 @@ export function NewPrefixForm() {
   )
 }
 
-/* ------------------------------------------------------------------ *
- * The board's markup vocabulary
- * ------------------------------------------------------------------ */
-
 export interface SmileyValues {
   readonly id: number
   readonly code: string
@@ -227,11 +222,7 @@ export function SmileyRowForm({ smiley }: { smiley: SmileyValues }) {
       <form action={action} className="flex flex-wrap items-end gap-3" noValidate>
         <input type="hidden" name="id" value={smiley.id} />
 
-        {/*
-          The image itself, at the size a post will show it. An operator
-          checking a URL they pasted should not have to open a thread to find
-          out whether it points at anything.
-        */}
+        { }
         <img
           src={smiley.src}
           alt={smiley.alt ?? smiley.code}
@@ -412,18 +403,6 @@ export function NewDirectiveForm() {
   )
 }
 
-/* ------------------------------------------------------------------ *
- * Attachments
- * ------------------------------------------------------------------ */
-
-/**
- * Remove one attachment.
- *
- * A bare button rather than a confirm dialog: a dialog is JavaScript, this
- * panel works without it, and the honest reassurance is the sentence beside the
- * list saying the post is unaffected — which is true, and is more use than a
- * prompt asking whether somebody is sure.
- */
 export function DeleteAttachmentForm({ attachmentId }: { attachmentId: number }) {
   const [state, action] = useActionState(deleteAttachmentAction, EMPTY_STATE)
 
@@ -438,16 +417,11 @@ export function DeleteAttachmentForm({ attachmentId }: { attachmentId: number })
   )
 }
 
-/* ------------------------------------------------------------------ *
- * Announcements
- * ------------------------------------------------------------------ */
-
 export interface AnnouncementValues {
   readonly id: number
   readonly forumId: number | null
   readonly title: string
   readonly message: string
-  /** Pre-formatted for `datetime-local`, in UTC. See the action for why. */
   readonly startsAtInput: string
   readonly endsAtInput: string
   readonly enabled: boolean
@@ -458,13 +432,6 @@ export interface ForumChoice {
   readonly label: string
 }
 
-/**
- * The fields both announcement forms share.
- *
- * One component rather than two copies, because the pair that has to stay in
- * step is the *field names* — the action reads them by name, so a rename in one
- * form and not the other is a save that silently drops half the values.
- */
 function AnnouncementFields({
   forums,
   values,
@@ -537,12 +504,7 @@ function AnnouncementFields({
         </label>
       </div>
 
-      {/*
-        Stated rather than converted. The control submits wall-clock text with
-        no zone, so the alternative to reading it as UTC is reading it as
-        whatever `TZ` the container happens to have — which gives a different
-        answer on a laptop and in production, silently.
-      */}
+      { }
       <p className="text-xs text-muted-foreground">Times are UTC.</p>
     </>
   )
@@ -618,10 +580,6 @@ export function NewAnnouncementForm({ forums }: { forums: readonly ForumChoice[]
     </form>
   )
 }
-
-/* ------------------------------------------------------------------ *
- * F46 — captcha questions
- * ------------------------------------------------------------------ */
 
 export interface CaptchaQuestionValues {
   readonly id: number

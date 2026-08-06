@@ -1,24 +1,7 @@
 "use client"
 
-/**
- * F58 — the avatar controls.
- *
- * Two independent forms rather than one with two buttons, because "replace" and
- * "remove" are different verbs with different confirmations and different
- * failure messages, and a single action that branched on which button was
- * pressed would have to reconstruct that.
- *
- * A locked avatar renders neither: it renders the moderator's reason. That
- * mirrors the signature screen exactly, and for the reason D61 gives — "your
- * avatar has been locked" with nothing else is how somebody concludes the board
- * is broken rather than that they broke a rule.
- */
 import { useActionState } from "react"
 
-/*
- * The leaf module, not the package barrel. This file runs in the browser and
- * the barrel reaches `@meith/core` -> `node:async_hooks`. See `limits.ts`.
- */
 import { AVATAR_BOX, AVATAR_MAX_BYTES } from "@meith/avatars/limits"
 
 import { removeAvatarAction, saveAvatarAction } from "@/server/usercp-actions"

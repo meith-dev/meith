@@ -1,12 +1,3 @@
-/**
- * Who gets asked about cookies, and who does not.
- *
- * The decision this file makes is the whole feature: get it wrong in one
- * direction and a board nags readers who never needed a notice; get it wrong in
- * the other and it processes a European reader's data without asking. The two
- * are not comparable mistakes, and the asymmetry is what most of these tests
- * pin.
- */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -18,7 +9,6 @@ import {
   isConsentChoice,
 } from './consent'
 
-/** A stand-in for the `Headers` the request carries. */
 function headers(values: Record<string, string>) {
   return { get: (name: string) => values[name.toLowerCase()] ?? null }
 }
@@ -36,12 +26,6 @@ describe('consentRequired', () => {
     }
   })
 
-  /*
-   * The asymmetry, stated as a test. A self-hosted board behind no CDN has no
-   * country header at all, and "we could not tell" must not resolve to "so we
-   * did not ask". Kills the mutant that treats null as out of scope, which
-   * every test above survives.
-   */
   it('asks when it cannot tell where the request came from', () => {
     expect(consentRequired('auto', null)).toBe(true)
   })
@@ -57,7 +41,6 @@ describe('consentRequired', () => {
   })
 
   it('covers the EEA rather than the EU', () => {
-    /* Iceland, Liechtenstein and Norway are in scope and are not EU members. */
     for (const country of ['IS', 'LI', 'NO']) {
       expect(CONSENT_REGIONS.has(country), country).toBe(true)
     }
@@ -74,11 +57,6 @@ describe('countryFrom', () => {
   })
 
   it('reads Cloudflare’s "unknown" markers as unknown, not as a country', () => {
-    /*
-     * `XX` is a client Cloudflare could not place and `T1` is Tor. Both look
-     * like country codes and neither is one — reading them literally would take
-     * a European reader out of scope on a technicality.
-     */
     expect(countryFrom(headers({ 'cf-ipcountry': 'XX' }))).toBeNull()
     expect(countryFrom(headers({ 'cf-ipcountry': 'T1' }))).toBeNull()
   })
@@ -94,19 +72,12 @@ describe('isConsentChoice', () => {
   it('accepts only an answer that was actually given', () => {
     expect(isConsentChoice('granted')).toBe(true)
     expect(isConsentChoice('denied')).toBe(true)
-    /* A cookie anybody can edit. "true" is not an answer this board wrote. */
     expect(isConsentChoice('true')).toBe(false)
     expect(isConsentChoice(undefined)).toBe(false)
   })
 })
 
 describe('what the notice describes', () => {
-  /*
-   * The notice and the toggle both read these lists rather than naming a
-   * feature, so that adding a second optional thing cannot leave a banner
-   * describing only the first. These tests are the cheap half of that promise;
-   * the expensive half is that nothing else in the app has its own list.
-   */
   it('separates what is always stored from what is asked about', () => {
     const essential = ESSENTIAL_PROCESSING.map((item) => item.key)
     const optional = OPTIONAL_PROCESSING.map((item) => item.key)
@@ -118,7 +89,6 @@ describe('what the notice describes', () => {
 
   it('describes each entry in words a reader could act on', () => {
     for (const item of [...ESSENTIAL_PROCESSING, ...OPTIONAL_PROCESSING]) {
-      /* A cookie name is not a description. */
       expect(item.label, item.key).not.toMatch(/meith_|cookie/i)
       expect(item.label.length, item.key).toBeGreaterThan(20)
     }

@@ -1,13 +1,5 @@
 "use client"
 
-/**
- * The queue's bulk form (F48).
- *
- * A client component only for `useActionState`. Everything it does works with
- * scripting off: native checkboxes named `item`, and two submit buttons whose
- * `name="decision"` carries which button was pressed — which is how a no-JS
- * form expresses "one form, two actions" without any script at all.
- */
 import { useActionState } from "react"
 
 import { moderateQueueAction } from "@/server/moderation-actions"
@@ -63,12 +55,7 @@ export function QueueForm({ rows }: { rows: readonly QueueFormRow[] }) {
                   )}{" "}
                   · <time dateTime={row.postedAt.iso}>{row.postedAt.label}</time>
                 </span>
-                {/*
-                  Plain text, never markup. This is the one screen that shows
-                  content nobody has approved, and rendering it here would give
-                  a spammer's markup its first audience — in the browser of the
-                  person deciding whether it should exist at all.
-                */}
+                { }
                 <span className="whitespace-pre-wrap break-words text-sm leading-relaxed">
                   {row.excerpt}
                 </span>

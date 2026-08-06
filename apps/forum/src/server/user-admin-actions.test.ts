@@ -1,18 +1,3 @@
-/**
- * F67's writes, at the app layer.
- *
- * The SQL is proven against real Postgres in `@meith/db`. What is proven here
- * is what only this adapter can get wrong, and the one that matters most is
- * about *which mechanism* a ban goes through:
- *
- * **banning is `BanService`, never a state write.** F23 captures the group the
- * member held so an expiring ban can restore it; a ban applied as a state
- * change produces a member whose column says banned with no ban row behind it —
- * un-bannable, and invisible until somebody tries.
- *
- * The other two: the two ban reasons stay separate (the staff note must never
- * reach the person it is about), and every write clears the permission tag.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
@@ -229,11 +214,6 @@ describe('saveMemberAccountAction', () => {
   })
 
   it('logs the member but never the address', async () => {
-    /*
-     * An email is the member's, and the admin log is read by more people than
-     * can edit an account — F64's rule about setting values, applied here.
-     * Kills the mutant that puts the payload in the audit detail.
-     */
     await saveMemberAccountAction(
       {},
       form({ userId: '7', username: 'a', email: 'secret@example.test', primaryGroupId: '2' }),
@@ -252,14 +232,6 @@ describe('setMemberStateAction', () => {
   })
 
   it('refuses `banned`, so the screen cannot fake a ban', async () => {
-    /*
-     * The claim this file is about. A state write cannot capture the group F23
-     * restores on expiry, so a "ban" issued this way is one nothing can lift
-     * correctly. The repository refuses it too; both guards exist because they
-     * protect different things — that one keeps the column honest, this one
-     * keeps the screen from offering the operation. Kills the mutant that
-     * accepts whatever state arrived.
-     */
     const state = await setMemberStateAction({}, form({ userId: '7', state: 'banned' }))
 
     expect(state.error).toBeDefined()
@@ -300,11 +272,6 @@ describe('banMemberAction', () => {
   })
 
   it('keeps the two reasons apart', async () => {
-    /*
-     * `reason` is the staff note and routinely says things that must never
-     * reach the person it is about; `publicReason` is what F23 shows them on a
-     * login attempt. Kills the mutant that passes one field as both.
-     */
     await banMemberAction(
       {},
       form({
@@ -343,13 +310,6 @@ describe('liftBanAction', () => {
 
 describe('saveSecondaryGroupsAction', () => {
   it('submits the whole set, so an unticked box is a removal', async () => {
-    /*
-     * `user_group_memberships` has had a reader since F20 and never a writer.
-     * The form shows every group with a checkbox, so what arrives *is* the
-     * intended set — an empty submission means "no additional groups", not
-     * "leave them alone". Kills the mutant that skips the write when nothing
-     * was ticked, which would make removing the last group impossible.
-     */
     await saveSecondaryGroupsAction({}, form({ userId: '7' }))
 
     expect(secondaryGroups).toEqual([{ userId: 7, groupIds: [], by: 1 }])
@@ -400,12 +360,6 @@ describe('mergeStepAction', () => {
   })
 
   it('stops after a batch while posts remain, and does not finish', async () => {
-    /*
-     * The claim that makes the chunking safe. `finish` refuses while posts
-     * remain, but calling it at all would be a wasted transaction on a table
-     * this size — and reporting "merged" after one batch would tell an operator
-     * a half-done merge was complete. Kills the mutant that always finishes.
-     */
     chunkResult.current = { moved: 500, remaining: 1_200 }
 
     const state = await mergeStepAction({}, form({ userId: '7', toUserId: '3' }))
@@ -437,11 +391,6 @@ describe('mergeStepAction', () => {
 
 describe('pruneMembersAction', () => {
   it('passes the confirmed criteria through, not something re-read elsewhere', async () => {
-    /*
-     * The operator approved a dry run against *these* dates. A prune that
-     * rebuilt its criteria from anywhere else would be acting on a preview
-     * nobody saw. Kills the mutant that ignores the submitted fields.
-     */
     const state = await pruneMembersAction(
       {},
       form({ before: '2025-01-01', inactive: '2024-01-01', awaiting: '1' }),
@@ -486,12 +435,6 @@ describe('pruneMembersAction', () => {
 
 describe('mass mail', () => {
   it('enqueues one job per recipient rather than one for the batch', async () => {
-    /*
-     * A provider rejecting one address then costs that member's message a retry
-     * rather than the whole batch's, and the queue's dead-letter list becomes
-     * the record of who could not be reached. Kills the mutant that enqueues a
-     * single job carrying the whole list.
-     */
     claimResult.current = {
       recipients: [
         { userId: 1, email: 'a@example.test', username: 'ann' },
@@ -511,10 +454,6 @@ describe('mass mail', () => {
   })
 
   it('sends nothing itself — the driver is only touched in the tick', async () => {
-    /*
-     * F55's rule. An SMTP provider hanging for ten seconds must not be a
-     * ten-second Server Action, so this enqueues and returns.
-     */
     await startMassMailAction({}, form({ subject: 'Hi', body: 'All' }))
     expect(enqueued.every((job) => job.kind === 'admin.mass_mail')).toBe(true)
   })
@@ -539,10 +478,6 @@ describe('mass mail', () => {
   })
 
   it('continues an existing campaign rather than starting a new one', async () => {
-    /*
-     * Restarting a mass mail is not a neutral act — it is mailing everybody
-     * twice. Kills the mutant that creates a second campaign on continue.
-     */
     claimResult.current = {
       recipients: [{ userId: 3, email: 'c@example.test', username: 'cal' }],
       finished: false,

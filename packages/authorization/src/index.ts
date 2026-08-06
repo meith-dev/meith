@@ -25,7 +25,6 @@ export {
 } from './types'
 export type { MemoryAppointment } from './memory-source'
 
-/** F47's vocabulary, re-exported so a caller needs one import. */
 export { PUBLIC_CONTENT, type ContentScope } from '@meith/core'
 
 export {

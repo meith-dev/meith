@@ -1,13 +1,5 @@
 import type { UserPanelModel } from '@meith/theme-kit'
 
-/**
- * The welcome block, as a single dense line.
- *
- * Counts are rendered as `[3 new]` rather than as pills — same information,
- * a deliberately plainer voice. `children` is the app's log-out form and is
- * rendered last: it cannot be a link (a GET that ends a session is fired by
- * every prefetcher), so a theme that dropped it would strand a signed-in member.
- */
 export function UserPanel({
   viewer,
   links,

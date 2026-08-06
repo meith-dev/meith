@@ -1,12 +1,3 @@
-/**
- * F49 at the app layer.
- *
- * The report rules are unit-tested in `@meith/moderation` and the SQL against
- * real Postgres. What is proven here is the seam neither can see: that filing a
- * report re-authorises against the *target's* forum rather than trusting the
- * form, and that a member who cannot see something cannot learn it exists by
- * reporting it.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -47,7 +38,6 @@ const { installTestContainer } = await import('./test-container')
 
 class FakeReports implements ReportRepository {
   readonly filed: NewReport[] = []
-  /** Where the target lives. Overridden per test. */
   target: ReportTarget | null = {
     kind: 'post',
     id: 50,
@@ -156,11 +146,6 @@ describe('fileReportAction', () => {
     expect(reports.filed).toHaveLength(0)
   })
 
-  /*
-   * The check that matters. The form says which row; whether this member could
-   * *see* it is a question only the row's forum can answer, and reporting
-   * something invisible would be a way to confirm it exists.
-   */
   it('does not confirm that content in a forum it cannot see exists', async () => {
     const hidden = 555
     reports.target = {
@@ -185,19 +170,8 @@ describe('fileReportAction', () => {
     expect(reports.filed).toHaveLength(0)
   })
 
-  /*
-   * A signed-in member whose groups do not grant `canReportContent`. The guest
-   * case above is refused earlier, by having no user id at all, so it proves
-   * nothing about the permission itself.
-   */
   it('refuses a member whose group cannot report', async () => {
     const member = await actorFor(SEED_GROUP.registered, 3)
-    /*
-     * Everything else about this actor is a perfectly ordinary member — they
-     * can see the forum, so the target check passes and the only thing left to
-     * refuse them is the permission itself. The guest case above is refused
-     * earlier, by having no user id, so it proves nothing about this.
-     */
     actorRef.current = {
       ...member,
       global: { ...member.global, canReportContent: false },
@@ -233,10 +207,6 @@ describe('fileReportAction', () => {
     expect(reports.filed).toHaveLength(0)
   })
 
-  /*
-   * A duplicate is reported as success: the member did what they meant to, and
-   * "you already reported this" is only useful to somebody probing the queue.
-   */
   it('treats a duplicate as success', async () => {
     reports.open = async () => null
 

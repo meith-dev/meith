@@ -26,17 +26,6 @@ function memberId(value: string): number | null {
   return Number.isSafeInteger(id) ? id : null
 }
 
-/**
- * F62 — one member's reputation, and the form for adding to it.
- *
- * Its own route rather than a section of the profile, because it is a *history*
- * — it pages, and a profile that grew a pager for one of its sections would
- * have to page the rest of itself too.
- *
- * The whole screen is absent when reputation is switched off. Existing ratings
- * are kept (the setting hides, it does not delete), so switching it back on
- * restores them exactly.
- */
 export default async function ReputationPage({
   params,
   searchParams,
@@ -65,12 +54,6 @@ export default async function ReputationPage({
   if (!profile) notFound()
 
   const before = Number(query.before)
-  /*
-   * F62. `?post=` comes from the postbit's Rate link, and it attaches the
-   * rating to *that post* rather than to the author generally — which is what
-   * makes "one rating per post" a meaningful rule rather than a second way to
-   * say the same thing.
-   */
   const ratedPost = Number(query.post)
   const postId = Number.isInteger(ratedPost) && ratedPost > 0 ? ratedPost : null
   const preferences = await getViewerPreferences()
@@ -84,11 +67,6 @@ export default async function ReputationPage({
     viewerRaterLimits(),
   ])
 
-  /*
-   * Two reads only for somebody who could actually rate: what they said last
-   * time, so the form starts from it, and how many they have left today. A
-   * guest and a member without the permission pay for neither.
-   */
   const mayRate = limits.canGive && actor.userId !== null && actor.userId !== id
   const [existing, givenToday] = mayRate
     ? await Promise.all([
@@ -160,8 +138,7 @@ export default async function ReputationPage({
                           : 'font-semibold text-muted-foreground'
                     }
                   >
-                    {/* A word as well as a colour: a colour difference alone is
-                        not a distinction everybody can see. */}
+                    { }
                     {row.pointsLabel}
                   </span>
                   {row.givenByHref === null ? (
@@ -186,8 +163,7 @@ export default async function ReputationPage({
                   )}
                 </div>
 
-                {/* The comment is plain text, always. It is somebody else's
-                    words on a page every member can visit. */}
+                { }
                 {row.comment !== '' && (
                   <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
                     {row.comment}

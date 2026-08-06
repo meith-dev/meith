@@ -2,21 +2,6 @@ import type { ForumRowSlotModel } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-/**
- * One forum, as a table row.
- *
- * Three decisions carried over from the default theme because they are correct
- * rather than because they are its:
- *
- * **Unread is never colour alone** — the dot has text beside it for screen
- * readers, since "this forum has new posts" is information.
- *
- * **The last-post author is a link only when there is somewhere to link to**;
- * `profileHref` is null for a deleted account and the name still renders.
- *
- * **The timestamp is `<time>` with the machine value in `datetime`**, so the
- * exact instant survives the preformatted label.
- */
 export function ForumRow({ forum }: ForumRowSlotModel) {
   const isLink = forum.type === 'link'
 
@@ -46,12 +31,7 @@ export function ForumRow({ forum }: ForumRowSlotModel) {
         )}
       </td>
 
-      {/*
-        A link row navigates away and has no threads of its own, so its counter
-        cells are empty rather than showing zeroes — but the cells still exist,
-        because a row with fewer cells breaks the table's column alignment for
-        every row after it.
-      */}
+      { }
       <td className="w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground">
         {isLink ? '' : forum.threadCount}
       </td>

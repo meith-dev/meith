@@ -5,21 +5,6 @@ import { ResendVerificationForm } from '@/components/auth/resend-verification-fo
 
 export const metadata: Metadata = { title: 'Confirm your account' }
 
-/**
- * F18 — where an unconfirmed account lands, and how it gets unstuck.
- *
- * Registration redirects here whenever the board asked for the address to be
- * proven, **including when the send failed**. That is deliberate: the account
- * exists either way, the person cannot sign in either way, and the only useful
- * screen is the one that can send another link. Making the two cases look
- * different would also tell whoever registered whether the board's mail is
- * working, which is not their business and is a useful thing for somebody
- * probing it to learn.
- *
- * The address is named because it is the commonest failure on this screen: a
- * typo in the address means the link went somewhere real and unreachable, and
- * seeing it written back is what makes that obvious.
- */
 export default async function ResendVerificationPage({
   searchParams,
 }: {

@@ -1,14 +1,5 @@
 "use client"
 
-/**
- * The install line, and a button that copies it.
- *
- * The label says what happened, not that we are sorry. When the clipboard is
- * refused — an insecure origin, a browser that wants a user gesture it did not
- * see — it says which keys to press instead, because "copy failed" leaves the
- * reader with nothing to do.
- */
-
 import { useEffect, useRef, useState } from "react"
 
 interface CopyCommandProps {

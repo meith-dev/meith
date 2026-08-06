@@ -1,65 +1,11 @@
-/**
- * F79 — the hook registry.
- *
- * Every point at which a plugin may observe or alter what the board does is
- * named here, exactly once, with its **kind**. The registry is data for the same
- * three reasons the slot registry is: a type map is derived from it, a host
- * dispatches through it, and a documentation generator reads it.
- *
- * ## Two kinds, and the difference is the whole safety model
- *
- * A **filter** is handed a value and returns a replacement. Its result is used,
- * so a filter that throws, hangs or returns rubbish changes what a reader sees.
- * Filters are chained: each plugin receives what the previous one returned.
- *
- * An **event** is told that something happened and its return value is
- * discarded. An event handler cannot change an outcome, which is why anything
- * that merely wants to know — logging, an outbound webhook, a counter — must be
- * an event and not a filter. Making it a filter would give it the power to
- * corrupt the thing it only wanted to watch.
- *
- * The kind is declared rather than inferred because the same handler signature
- * fits both, and the difference is invisible at the call site of a plugin.
- *
- * ## Deterministic
- *
- * "Typed deterministic hooks" is the acceptance criterion, and the second word
- * is the harder one. Two plugins filtering the same value must compose the same
- * way on every request, on every instance, in every deployment — otherwise a
- * board's rendered output depends on module evaluation order, which differs
- * between the dev server, a serverless bundle and the worker.
- *
- * So ordering is **(priority, plugin key)**, both total and both declared: never
- * registration order, never the order `forum.config.ts` happens to list plugins
- * in, and never `Object.keys`. See `host.ts`.
- *
- * ## What is deliberately not here
- *
- * There is no hook that decides **authorization**, and there never will be one.
- * `authorization.can()` is the single answer to "may this actor do this",
- * and a plugin able to filter its result is a plugin able to grant itself
- * anything. Plugins receive what a viewer may already see and change how it is
- * presented or what happens afterwards.
- *
- * For the same reason there is no hook inside the visibility filter. A
- * plugin that could rewrite a `where` clause is a plugin that can leak a private
- * forum, and no amount of isolation makes that recoverable.
- */
-
 export type HookKind = 'filter' | 'event'
 
 export interface HookSpec {
   readonly kind: HookKind
-  /** The plan feature whose code fires this hook. */
   readonly feature: string
-  /** What a plugin is seeing or changing. */
   readonly purpose: string
 }
 
-/**
- * Every hook, with its kind. `as const` so `HOOKS[K]['kind']` is a literal type
- * and the handler signature can branch on it.
- */
 export const HOOKS = {
   /* ---- Content rendering ---- */
   'markdown.parse.text': {
@@ -566,13 +512,10 @@ export const HOOKS = {
   },
 } as const satisfies Readonly<Record<string, HookSpec>>
 
-/** Every hook name. Derived from the registry — never hand-written. */
 export type HookName = keyof typeof HOOKS
 
-/** The registry as an iterable list, in declaration order. */
 export const HOOK_NAMES = Object.keys(HOOKS) as readonly HookName[]
 
-/** Narrow an arbitrary string to a hook name. Used when validating a manifest. */
 export function isHookName(value: string): value is HookName {
   return Object.hasOwn(HOOKS, value)
 }

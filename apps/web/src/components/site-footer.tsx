@@ -10,18 +10,6 @@ import {
 } from "../docs/registry"
 import { FieldMark } from "./field-mark"
 
-/**
- * The footer, built from the same manifest as the sidebar.
- *
- * It lists the primary document of each section rather than a hand-written set
- * of links — the previous static page listed four documents by hand, and two of
- * them had been renamed by the time anyone looked.
- *
- * Grouped now, rather than run together. Eleven monospaced links in one
- * unbroken line is a list nobody reads to the end of: the eye has nothing to
- * stop on, and the two that are not documents at all — the source and
- * `llms.txt` — sat in the middle of it looking like two more.
- */
 export function SiteFooter() {
   const primaries = sections
     .map((section) => {
@@ -105,11 +93,7 @@ export function SiteFooter() {
           <p className="max-w-[42rem] text-micro leading-[1.6] text-ink-faint text-pretty">
             {footer.colophon}
           </p>
-          {/*
-            The licence, where somebody looks for it. Naming the version rather
-            than saying "open source" — the phrase that sends a reader hunting
-            through the repository is the vague one.
-          */}
+          { }
           <p className="font-mono text-micro text-ink-faint">
             <a className="transition-colors hover:text-gorse" href={licenceHref}>
               {licence.spdx}

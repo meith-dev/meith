@@ -14,20 +14,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'System health' }
 
-/**
- * F70 — system health and maintenance.
- *
- * **The stale-tick warning is the point of this screen**, and it is loud on
- * purpose. Every catch-up operation this board has runs on the scheduled tick:
- * bans expire, digests send, counters reconcile, orphaned uploads are swept,
- * queued mail is delivered. When the tick stops, none of that *fails* — it
- * simply does not happen, and the board looks completely normal until somebody
- * notices that a member banned for a week is still banned a month later.
- *
- * A stopped scheduler is called out separately from an unhappy task, because
- * they are different problems with different fixes: one stale task is a bug in
- * that task, and every enabled task stale at once is a tick that is not firing.
- */
 export default async function AdminSystemPage() {
   await requireAdmin()
 

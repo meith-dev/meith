@@ -129,7 +129,7 @@ the limits.
 | `thread.split` | event | — | `{ readonly sourceThreadId: number; readonly newThreadId: number; readonly postCount: number }` | `ModerationRef` |
 | `thread.locked` | event | — | `ThreadRef & { isLocked: boolean }` | `ModerationRef` |
 | `thread.stickied` | event | — | `ThreadRef & { isSticky: boolean }` | `ModerationRef` |
-| `attachment.upload.validate` | filter | — | `ValidationMessages` | `{ readonly filename: string readonly bytes: number /** What the *bytes* say it is, not what the name claims. */ readonly detectedMimeType: string readonly uploaderId: number }` |
+| `attachment.upload.validate` | filter | — | `ValidationMessages` | `{ readonly filename: string readonly bytes: number readonly detectedMimeType: string readonly uploaderId: number }` |
 | `attachment.uploaded` | event | — | `{ readonly attachmentId: number; readonly postId: number \| null; readonly bytes: number }` | `ViewerRef` |
 | `attachment.deleted` | event | — | `{ readonly attachmentId: number }` | `ViewerRef` |
 | `poll.created` | event | — | `ThreadRef & { pollId: number; optionCount: number }` | `ViewerRef` |
@@ -186,7 +186,7 @@ the limits.
 | `user.register.validate` | filter | — | `ValidationMessages` | `{ readonly username: string; readonly email: string; readonly ipPrefix: string \| null }` |
 | `user.registered` | event | — | `UserRef & { username: string; requiresActivation: boolean }` | `RequestRef` |
 | `user.activated` | event | — | `UserRef` | `RequestRef` |
-| `user.login.attempted` | event | — | `{ readonly username: string readonly outcome: 'ok' \| 'bad-credentials' \| 'locked-out' \| 'banned' /** Truncated. Never a full address. */ readonly ipPrefix: string \| null }` | `RequestRef` |
+| `user.login.attempted` | event | — | `{ readonly username: string readonly outcome: 'ok' \| 'bad-credentials' \| 'locked-out' \| 'banned' readonly ipPrefix: string \| null }` | `RequestRef` |
 | `user.logged-in` | event | — | `UserRef` | `RequestRef` |
 | `user.logged-out` | event | — | `UserRef & { reason: 'requested' \| 'revoked' }` | `RequestRef` |
 | `user.banned` | event | — | `UserRef & { expiresAt: string \| null }` | `ModerationRef` |
@@ -237,7 +237,7 @@ the limits.
 |---|---|---|---|---|
 | `search.query.before` | filter | — | `string` | `ViewerRef` |
 | `search.results` | filter | — | `readonly { readonly postId: number; readonly threadId: number; readonly rank: number }[]` | `ViewerRef & { terms: string }` |
-| `feed.items` | filter | — | `readonly { readonly title: string readonly href: string readonly publishedAt: string readonly summary: string }[] /** Always a guest: a feed is cached under a shared URL. */` | `{ readonly feed: 'board' \| 'forum' \| 'thread' }` |
+| `feed.items` | filter | — | `readonly { readonly title: string readonly href: string readonly publishedAt: string readonly summary: string }[]` | `{ readonly feed: 'board' \| 'forum' \| 'thread' }` |
 | `sitemap.entries` | filter | — | `readonly { readonly href: string; readonly lastModified: string \| null }[]` | `{ readonly chunk: number }` |
 | `metadata.page` | filter | — | `{ readonly title: string readonly description: string \| null readonly canonical: string readonly imageUrl: string \| null }` | `{ readonly route: string }` |
 

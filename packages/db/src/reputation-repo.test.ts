@@ -1,17 +1,3 @@
-/**
- * F62 — reputation against real Postgres.
- *
- * Four claims that only the database can settle:
- *
- *  - `users.reputation` is **derived, not incremented** — a test corrupts the
- *    column and watches the next write repair it, which is the only honest way
- *    to prove a cached total is recomputed;
- *  - the uniqueness rules are the two partial indexes, so re-rating updates
- *    rather than stacking, and a profile rating and a post rating coexist;
- *  - the daily cap is counted inside the writing transaction, and revising an
- *    existing rating does not spend an allowance;
- *  - withdrawing is scoped to the giver in the query, and recounts.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -106,12 +92,6 @@ describe('the cached total', () => {
   })
 
   it('repairs a corrupted column on the next write', async () => {
-    /*
-     * The claim F62 rests on: the total is *recomputed*, not incremented. An
-     * incremented total cannot survive a rating being revised or withdrawn, and
-     * drifts silently when it does. Kills the mutant that replaces the recount
-     * with `reputation = reputation + points`.
-     */
     await give({ points: 1 })
     await db.execute(sql`update users set reputation = 9999 where id = ${TARGET}`)
 
@@ -128,10 +108,6 @@ describe('the cached total', () => {
   })
 
   it('goes to zero rather than null when the last rating is withdrawn', async () => {
-    /*
-     * `sum` over no rows is NULL, and NULL into a NOT NULL column is a
-     * constraint violation on the happy path of somebody changing their mind.
-     */
     await give({ points: 1 })
     const [row] = await repo.list({ userId: TARGET, limit: 10 })
 
@@ -153,11 +129,6 @@ describe('the uniqueness rules', () => {
   })
 
   it('keeps a profile rating and a post rating apart', async () => {
-    /*
-     * Two partial indexes, not one: rating somebody's post is a different
-     * statement from rating them, and a board that collapsed the two would
-     * silently overwrite one with the other.
-     */
     await seedPost(100)
     await give({ postId: null, points: 1 })
     await give({ postId: 100, points: 1 })
@@ -207,10 +178,6 @@ describe('the daily cap', () => {
   })
 
   it('does not charge an allowance for revising an existing rating', async () => {
-    /*
-     * Making a correction cost an allowance would push people to leave a wrong
-     * rating alone, which is the opposite of what a cap is for.
-     */
     expect(await give({ maxPerDay: 1, points: 1 })).toBe(true)
     expect(await give({ maxPerDay: 1, points: -1 })).toBe(true)
     expect(await cachedTotal()).toBe(-1)
@@ -251,11 +218,6 @@ describe('reads', () => {
   })
 
   it('finds what this rater said, matching a null post id correctly', async () => {
-    /*
-     * `is not distinct from`: plain equality is never true against NULL, so a
-     * naive `post_id = null` would make every profile rating look like a new
-     * one and the form would never pre-fill.
-     */
     await give({ postId: null, comment: 'On the profile.' })
 
     const found = await repo.existing({ givenByUserId: RATER, userId: TARGET, postId: null })
@@ -267,7 +229,6 @@ describe('reads', () => {
     await give()
     expect((await repo.list({ userId: TARGET, limit: 10 }))[0]?.givenByUsername).toBe('bob')
 
-    /* SET NULL, not cascade: removing an account must not rewrite the total. */
     await db.execute(sql`delete from users where id = ${RATER}`)
 
     const rows = await repo.list({ userId: TARGET, limit: 10 })
@@ -287,14 +248,6 @@ describe('reads', () => {
   })
 })
 
-/**
- * The two batch reads a thread page's Thanks controls need.
- *
- * They exist because asking per post is the N+1 on the board's heaviest page,
- * and their correctness is entirely about *scope*: one is scoped to the reader
- * and one deliberately is not, and swapping them would either show everybody
- * the same button state or count one person's thanks as everybody's.
- */
 describe('the thread page’s batch reads', () => {
   beforeEach(async () => {
     await seedPost(100)
@@ -305,7 +258,6 @@ describe('the thread page’s batch reads', () => {
   it('reports what this rater said about each post, and nothing about the rest', async () => {
     await give({ postId: 100, points: 1 })
     await give({ postId: 101, points: -1 })
-    /* Somebody else's rating on a post this rater has not touched. */
     await give({ postId: 102, givenByUserId: OTHER, points: 1 })
 
     const mine = await repo.existingForPosts({
@@ -315,15 +267,9 @@ describe('the thread page’s batch reads', () => {
 
     expect(mine.get(100)?.points).toBe(1)
     expect(mine.get(101)?.points).toBe(-1)
-    /*
-     * The scoping is in the `where` clause. A query that fetched every rating
-     * on the page and filtered afterwards is one refactor away from showing a
-     * reader somebody else's button state.
-     */
     expect(mine.has(102)).toBe(false)
   })
 
-  /* A profile rating has a null post id and is not what this asks about. */
   it('does not mistake a profile rating for a post one', async () => {
     await give({ postId: null })
 
@@ -336,11 +282,6 @@ describe('the thread page’s batch reads', () => {
     expect(await repo.thanksForPosts([])).toEqual(new Map())
   })
 
-  /*
-   * A **count of people**, not a sum of points. A sum would let one negative
-   * cancel one thanks and show "2" on a post three people thanked — which is
-   * not a thing either of them said.
-   */
   it('counts thanks per post, and does not net a negative off against them', async () => {
     await give({ postId: 100, givenByUserId: RATER, points: 1 })
     await give({ postId: 100, givenByUserId: OTHER, points: -1 })
@@ -349,7 +290,6 @@ describe('the thread page’s batch reads', () => {
     const counts = await repo.thanksForPosts([100, 101, 102])
 
     expect(counts.get(100)).toBe(1)
-    /* A neutral is not a thanks, and an unrated post is absent rather than 0. */
     expect(counts.has(101)).toBe(false)
     expect(counts.has(102)).toBe(false)
   })
@@ -366,8 +306,6 @@ describe('withdrawing', () => {
   })
 
   it('takes a post rating with its post', async () => {
-    /* `on delete cascade` on `post_id`: a rating of a post that no longer
-       exists is a rating of nothing. */
     await seedPost(100)
     await give({ postId: 100 })
 

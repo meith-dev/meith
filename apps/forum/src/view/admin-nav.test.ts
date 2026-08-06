@@ -10,12 +10,6 @@ import {
   isUnder,
 } from './admin-nav'
 
-/**
- * The ACP's navigation is a pure function of the address bar, and this is the
- * file that keeps it that way. "Which item is lit" is the kind of thing that
- * looks right the day it is written and is quietly wrong two routes later.
- */
-
 const current = (pathname: string, href: string) =>
   currentProps(pathname, href, deepestNavHref(pathname))['aria-current']
 
@@ -26,7 +20,6 @@ describe('isUnder', () => {
   })
 
   it('needs a segment boundary', () => {
-    /* The reason it is not `startsWith`: a future `/admin/users-online`. */
     expect(isUnder('/admin/users-online', '/admin/users')).toBe(false)
     expect(isUnder('/admin/use', '/admin/users')).toBe(false)
   })
@@ -39,7 +32,6 @@ describe('activeSectionHref', () => {
   })
 
   it('keeps the section lit while you are inside one of its screens', () => {
-    /* Sub-pages belong to their section: the tree is what stays highlighted. */
     expect(activeSectionHref('/admin/users/mail')).toBe('/admin/users')
     expect(activeSectionHref('/admin/users/12/merge')).toBe('/admin/users')
   })
@@ -68,11 +60,6 @@ describe('currentProps', () => {
   })
 
   it('announces a section once, not twice', () => {
-    /*
-     * On a sub-page the link *is* the address, so the section above it says
-     * nothing — a screen reader that read "Users, current. Mass mail, current
-     * page." would be describing two places.
-     */
     expect(current('/admin/users/mail', '/admin/users/mail')).toBe('page')
     expect(current('/admin/users/mail', '/admin/users')).toBeUndefined()
   })
@@ -83,7 +70,6 @@ describe('currentProps', () => {
 
   it('leaves everything else alone', () => {
     expect(current('/admin/settings', '/admin/forums')).toBeUndefined()
-    /* The overview is not "current" merely because it contains the panel. */
     expect(current('/admin/settings', '/admin')).toBeUndefined()
   })
 })

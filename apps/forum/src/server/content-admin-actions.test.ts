@@ -1,11 +1,3 @@
-/**
- * F71's writes, at the app layer.
- *
- * The claim: **every write clears the tag the filter set is read under.** That
- * set is read on the render path, so a stale one is visible on every thread
- * page on the board — an operator who adds a filter and still sees the word
- * would reasonably conclude the feature does not work.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
@@ -108,11 +100,6 @@ describe('the admin gate', () => {
 
 describe('word filter writes', () => {
   it('clears the render-path tag on create, update and delete', async () => {
-    /*
-     * The filter set is read on every thread page. A write that did not clear
-     * this tag would leave the old set applying board-wide until something else
-     * happened to clear it. Kills the mutant that drops the invalidation.
-     */
     await createWordFilterAction({}, form({ pattern: 'a' }))
     await updateWordFilterAction({}, form({ id: '1', pattern: 'a' }))
     await deleteWordFilterAction({}, form({ id: '1' }))
@@ -121,11 +108,6 @@ describe('word filter writes', () => {
   })
 
   it('reads an unticked whole-word box as a substring filter', async () => {
-    /*
-     * A checkbox submits nothing when it is off, so this has to be read as
-     * presence rather than value. Getting it backwards silently turns every
-     * substring filter into a whole-word one, or worse.
-     */
     await createWordFilterAction({}, form({ pattern: 'a', wholeWord: '1' }))
     expect(created[0]?.wholeWord).toBe(true)
 
@@ -134,10 +116,6 @@ describe('word filter writes', () => {
   })
 
   it('keeps a replacement of spaces rather than trimming it away', async () => {
-    /*
-     * Blanking a word with a space is a legitimate thing to want; trimming
-     * would silently turn it into deletion.
-     */
     await createWordFilterAction({}, form({ pattern: 'a', replacement: '  ' }))
     expect(created[0]?.replacement).toBe('  ')
   })
@@ -159,10 +137,6 @@ describe('word filter writes', () => {
 
 describe('prefix writes', () => {
   it('clears the prefix tag rather than the filter tag', async () => {
-    /*
-     * Different data, different tag. Clearing the render-path filter tag for a
-     * prefix change would throw away a cache the change has nothing to do with.
-     */
     await createPrefixAction({}, form({ label: 'Ask' }))
     expect(invalidated).toEqual([['prefixes']])
   })

@@ -1,18 +1,3 @@
-/**
- * Disk-backed file store for self-hosting and tests.
- *
- * Unsuitable for serverless: the filesystem is ephemeral and per-instance, so a
- * file written on one instance is missing from the next — and nothing errors at
- * the time, because the write really did succeed on the instance that took it.
- *
- * This header used to claim env validation warned about that. It did not, for
- * the whole life of the file. `assertEnv` now **refuses to boot** a Vercel
- * deployment configured this way, which is the memory queue's rule applied to
- * the same class of failure; see the `FILESTORE_DRIVER` check in
- * `packages/core/src/env.ts`. On a host this cannot detect, `docs/operating.md`
- * is what an operator has.
- */
-
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, normalize, resolve, sep } from 'node:path'
@@ -22,19 +7,9 @@ import { ValidationError, type FileStore, type PutFileOptions, type StoredFile }
 export class LocalFileStore implements FileStore {
   constructor(
     private readonly root: string,
-    /** Public URL prefix that maps to `root`, e.g. `/uploads`. */
     private readonly publicPrefix = '/uploads',
   ) {}
 
-  /**
-   * Resolves a caller-supplied key to an absolute path, refusing anything that
-   * escapes `root`.
-   *
-   * Attachment keys are partly user-influenced, so `../../etc/passwd` or an
-   * absolute path must not be joinable. Comparing the *resolved* path against
-   * the resolved root is the only check that holds up against `..`, symlinked
-   * segments and Windows separators alike.
-   */
   private pathFor(key: string): string {
     if (key.includes('\0')) throw new ValidationError('Invalid file key.')
 
@@ -68,12 +43,6 @@ export class LocalFileStore implements FileStore {
     await rm(this.pathFor(key), { force: true })
   }
 
-  /**
-   * Disk has no signing mechanism, so this returns undefined by contract and
-   * callers must stream private files through an authorising route handler.
-   * Returning a plain URL here instead would quietly make every private
-   * attachment world-readable.
-   */
   signedUrl(): Promise<string | undefined> {
     return Promise.resolve(undefined)
   }
@@ -82,7 +51,6 @@ export class LocalFileStore implements FileStore {
     return `${this.publicPrefix}/${key}`
   }
 
-  /** Content-addressed key helper, shared with the S3 store. */
   static keyFor(prefix: string, body: Uint8Array, extension: string): string {
     const digest = createHash('sha256').update(body).digest('hex')
     return join(prefix, digest.slice(0, 2), `${digest}${extension}`)

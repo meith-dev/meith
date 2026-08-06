@@ -1,19 +1,5 @@
 "use client"
 
-/**
- * F66's forms.
- *
- * The permission editor is **one form for the whole group**, where F65's matrix
- * is one form per group row — and that difference is not inconsistency. F65's
- * screen edits several groups at once, so the unit of change has to be the row
- * an operator was reading; this screen edits one group, so the whole form *is*
- * that unit.
- *
- * Its cells are **two states, not three**. A group's global permissions are the
- * bottom of the resolution (R4.1 layer 1) and have no ancestor to inherit from,
- * so a third state would be an "inherit" that means nothing. Checkboxes are
- * therefore honest here in a way they would not be on a forum.
- */
 import { useActionState, useState } from "react"
 
 import {
@@ -42,7 +28,6 @@ function Saved({ when, children }: { when: boolean; children: React.ReactNode })
   )
 }
 
-/** A `<select>` of groups, shared by everything that has to name one. */
 export interface GroupOption {
   readonly id: number
   readonly title: string
@@ -81,12 +66,10 @@ export interface GroupIdentityValues {
   readonly displayOrder: number
   readonly isStaffGroup: boolean
   readonly badgeToken: string
-  /** The colour this group's members' names are shown in, per scheme. */
   readonly nameColorLight: string
   readonly nameColorDark: string
 }
 
-/** One preview surface, resolved by the server. See `boardSampleSurfaces`. */
 export interface SampleSurface {
   readonly background: string
   readonly foreground: string
@@ -135,12 +118,7 @@ export function GroupIdentityForm({
         />
       </label>
 
-      {/*
-        Two colours, and a sample of each against the surface it will really be
-        on. A name colour picked against a white page is the commonest way to
-        make half a board's members unreadable at night, and the only reliable
-        cure is showing both while the choice is being made.
-      */}
+      { }
       <fieldset className="flex flex-col gap-3">
         <legend className="text-sm font-medium">Name colour</legend>
         <p className="text-xs text-muted-foreground">
@@ -163,15 +141,7 @@ export function GroupIdentityForm({
                 value={value}
                 onChange={set}
               />
-              {/*
-                The surface is painted from values the server resolved, not
-                inherited from the page. Inheriting is wrong for exactly the
-                administrator this feature exists for: the board declares its
-                dark palette under a media query as well as a class, so on a
-                machine set to dark mode an unclassed element *is* dark — and
-                the sample labelled "Light" would be shown on black, which is
-                the one thing it must never do.
-              */}
+              { }
               <p
                 className="rounded-md border border-border px-3 py-2 text-sm"
                 style={{ backgroundColor: surface.background, color: surface.foreground }}
@@ -185,11 +155,7 @@ export function GroupIdentityForm({
         </div>
       </fieldset>
 
-      {/*
-        `badge_token` is still written because boards have values in it, and
-        still read by nothing — see the note on the column. The badge that does
-        render is an upload, on its own form below this one.
-      */}
+      { }
       <input type="hidden" name="badgeToken" value={group.badgeToken} />
 
       <label className="flex items-center gap-2 text-sm">
@@ -265,10 +231,6 @@ export function GroupPermissionsForm({
               <span className="font-medium">
                 <code className="text-xs">{cell.key}</code>
                 {cell.kind === "negative" && (
-                  /*
-                   * A negative field's `true` is a restriction, so a checkbox
-                   * labelled with the description alone would read backwards.
-                   */
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
                     ticked = restricted
                   </span>
@@ -374,14 +336,6 @@ export function DeleteGroupForm({
   )
 }
 
-/**
- * The chunked mass move.
- *
- * The cursor lives in a hidden field, so a run continues across presses with no
- * JavaScript at all — the action hands back where it stopped and the next
- * submission carries it. A single button that moved everybody would hold locks
- * on `users` for the whole run, on the table every request reads.
- */
 export function MoveMembersForm({ groups }: { groups: readonly GroupOption[] }) {
   const [state, action] = useActionState(moveMembersAction, EMPTY_STATE)
 

@@ -1,27 +1,3 @@
-/**
- * What each design token *means*, for the people who have to choose one.
- *
- * The theme editor used to be thirty-eight text boxes labelled with the token
- * name and prefilled with an OKLCH triple. That is a faithful rendering of the
- * data model and a poor rendering of the question: an operator wants to change
- * the colour of the "post reply" button, and what they were shown was
- * `primary` with `oklch(0.205 0 0)` beside it and no way to find out what
- * either meant short of changing it and reloading the board.
- *
- * So this file is the missing half — a group, a plain-English label, a sentence
- * about where the token is actually visible, and whether it is a colour, a
- * length or a font stack, which is what decides the control the editor renders.
- *
- * ## It is checked against the theme, not trusted
- *
- * `groupTokens` takes the token names the *theme package* declares and returns
- * the groups. A token described here that the theme does not have is dropped; a
- * token the theme has and this file does not describe is still shown, in a
- * final "Other" group, under its own name. Neither is silently lost, which is
- * the failure that would matter: a theme adding a token and this file not
- * knowing about it must not make the token uneditable.
- */
-
 export type TokenKind = 'colour' | 'length' | 'text'
 
 export interface TokenMeta {
@@ -42,13 +18,6 @@ interface GroupSpec {
   readonly tokens: readonly (readonly [string, string, string, TokenKind?])[]
 }
 
-/**
- * The groups, in the order the editor shows them.
- *
- * Brand first because it is the one group most boards ever touch: the default
- * palette is deliberately colourless (see `themes/default/src/tokens.ts`), so
- * setting two tokens here is the whole of "make this board ours".
- */
 const GROUPS: readonly GroupSpec[] = [
   {
     title: 'Brand',
@@ -156,18 +125,10 @@ export function tokenMeta(name: string): TokenMeta {
   return META.get(name) ?? { label: name, hint: '', kind: 'colour' }
 }
 
-/** True when a token means the same thing in both colour schemes. */
 export function isSchemeIndependent(name: string): boolean {
   return tokenMeta(name).kind !== 'colour'
 }
 
-/**
- * Arrange a theme's tokens into the editor's sections.
- *
- * Driven by the names the caller passes — the theme's — so a theme that
- * declares a token nobody described still gets an editable field, and a token
- * described here that a theme does not declare is not offered.
- */
 export function groupTokens<T extends { readonly name: string }>(
   tokens: readonly T[],
 ): readonly TokenGroup<T>[] {
@@ -200,17 +161,6 @@ export function groupTokens<T extends { readonly name: string }>(
   return groups
 }
 
-/**
- * One-click brand palettes.
- *
- * Three tokens each, which is the whole of branding a board built on a
- * colourless default: the fill of the loud control, the text on it, and the
- * focus ring. Every pair meets WCAG AA against its own fill in both schemes,
- * and the dark values are lighter fills with dark text rather than the same
- * colour reused — a colour that is legible on white is not legible on near
- * black, and applying one palette to both schemes is the mistake this feature
- * exists to stop an operator making by hand.
- */
 export interface BrandPreset {
   readonly key: string
   readonly title: string

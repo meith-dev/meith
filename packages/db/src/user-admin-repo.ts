@@ -1,25 +1,3 @@
-/**
- * F67 — user administration: search, one member, and the writes on them.
- *
- * Three things in this file are the feature; the rest is a listing.
- *
- * **A search term is escaped before it reaches `like`.** `%` and `_` are
- * wildcards, and an operator searching for a member called `100%` would
- * otherwise match every member on the board — which on the screen that *bans
- * people* is not a cosmetic bug. Every user-supplied fragment goes through
- * `likeFragment`.
- *
- * **Search is keyset-paged, never OFFSET.** The set being paged is `users`,
- * which the pages themselves mutate — banning somebody changes their state and
- * therefore whether they still match the filter. An OFFSET page over a set that
- * is being changed skips rows silently, and the rows it skips are the ones the
- * operator just acted on.
- *
- * **Anything that changes a permission input bumps the version.** Group, state
- * and deletion all decide what F20 resolves, so they go through
- * `withPermissionVersionBump` — the same pairing F65 and F66 use, for the same
- * reason: a lost bump is a revocation that silently did not take effect.
- */
 import { sql, type SQL } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
@@ -28,16 +6,13 @@ import type { Database } from './client'
 import { withPermissionVersionBump } from './permission-version'
 import { resultRows } from './result-rows'
 
-/** The account states F18 and F23 write. */
 export type AccountState = 'active' | 'awaiting_activation' | 'banned'
 
 const STATES: readonly AccountState[] = ['active', 'awaiting_activation', 'banned']
 
 export interface UserSearchFilter {
-  /** Matched against `username_lower`, as a contains. */
   readonly username?: string | undefined
   readonly email?: string | undefined
-  /** Matched against either IP prefix, as a starts-with. */
   readonly ipPrefix?: string | undefined
   readonly primaryGroupId?: number | undefined
   readonly state?: AccountState | undefined
@@ -45,9 +20,7 @@ export interface UserSearchFilter {
   readonly registeredAfter?: Date | undefined
   readonly minPostCount?: number | undefined
   readonly maxPostCount?: number | undefined
-  /** Include members whose account has been soft-deleted. Off by default. */
   readonly includeDeleted?: boolean | undefined
-  /** Keyset cursor. Pass 0 to start. */
   readonly afterUserId: number
   readonly limit: number
 }
@@ -71,7 +44,6 @@ export interface UserSearchRow {
 
 export interface UserSearchPage {
   readonly rows: readonly UserSearchRow[]
-  /** Pass back as `afterUserId`. `null` when the last page has been reached. */
   readonly nextCursor: number | null
 }
 
@@ -90,19 +62,10 @@ export interface UserAccountInput {
   readonly displayGroupId: number | null
 }
 
-/**
- * Escape a user-supplied fragment for `like`.
- *
- * `%` and `_` are wildcards and `\` is the escape character, so all three have
- * to be escaped or a search for `100%` matches everybody. This is not
- * defence-in-depth against injection — the value is still a bound parameter —
- * it is about the query meaning what the operator typed.
- */
 export function likeFragment(value: string): string {
   return value.replace(/[\\%_]/g, (character) => `\\${character}`)
 }
 
-/** Case-folded the same way `@meith/accounts` folds identifiers. */
 function fold(value: string): string {
   return value.trim().toLowerCase()
 }
@@ -142,13 +105,6 @@ function toSearchRow(row: Record<string, unknown>): UserSearchRow {
 export class PostgresUserAdminRepository {
   constructor(private readonly db: Database) {}
 
-  /**
-   * Find members.
-   *
-   * Every criterion is ANDed and every one is optional, so an empty filter is
-   * "everybody" rather than "nobody" — which is what an operator opening the
-   * screen expects to see.
-   */
   async search(filter: UserSearchFilter): Promise<UserSearchPage> {
     const conditions: SQL[] = [sql`u.id > ${filter.afterUserId}`]
 
@@ -163,20 +119,12 @@ export class PostgresUserAdminRepository {
       )
     }
     if (filter.ipPrefix !== undefined && filter.ipPrefix.trim() !== '') {
-      /*
-       * Starts-with on both columns. Only a prefix is ever stored (F19), so a
-       * contains would match the middle of an address and mean nothing.
-       */
       const pattern = `${likeFragment(filter.ipPrefix.trim())}%`
       conditions.push(
         sql`(u.registration_ip_prefix like ${pattern} escape '\\'
              or u.last_ip_prefix like ${pattern} escape '\\')`,
       )
     }
-    /*
-     * F20: a group id used as a *search criterion* is the operator's question,
-     * not an access decision — nothing here concludes anything from the value.
-     */
     // eslint-disable-next-line no-restricted-properties -- F20: filtering on a column, not deciding access
     if (filter.primaryGroupId !== undefined) {
       // eslint-disable-next-line no-restricted-properties -- F20: filtering on a column, not deciding access
@@ -198,11 +146,6 @@ export class PostgresUserAdminRepository {
       conditions.push(sql`u.post_count <= ${filter.maxPostCount}`)
     }
     if (filter.includeDeleted !== true) {
-      /*
-       * Excluded by default. A soft-deleted account is one somebody already
-       * decided about, and listing them among live members invites acting on
-       * them twice.
-       */
       conditions.push(sql`u.deleted_at is null`)
     }
 
@@ -224,7 +167,6 @@ export class PostgresUserAdminRepository {
     const mapped = rows.map(toSearchRow)
     return {
       rows: mapped,
-      /* A short page means the end, so the caller stops without a second query. */
       nextCursor:
         mapped.length < filter.limit ? null : (mapped[mapped.length - 1]?.id ?? null),
     }
@@ -253,21 +195,12 @@ export class PostgresUserAdminRepository {
     }
   }
 
-  /**
-   * Edit the account itself.
-   *
-   * The folded columns are written from the same values in the same statement.
-   * `username_lower` and `email_lower` are what every lookup and both unique
-   * indexes use, so a rename that updated only the display column would produce
-   * an account that cannot log in and a name that can be registered twice.
-   */
   async updateAccount(userId: number, input: UserAccountInput): Promise<void> {
     const username = input.username.trim()
     const email = input.email.trim()
     if (username === '') throw new ValidationError('A member needs a username.')
     if (email === '') throw new ValidationError('A member needs an email address.')
 
-    /* F20: read out here so the SQL below carries a value, not a decision. */
     // eslint-disable-next-line no-restricted-properties -- F20: writing the persisted column, not deciding access
     const primaryGroupId = input.primaryGroupId
 
@@ -291,15 +224,6 @@ export class PostgresUserAdminRepository {
     })
   }
 
-  /**
-   * Move a member between states.
-   *
-   * Refuses to write `banned` here. F23 owns that transition: banning captures
-   * the group the member was in, which is the entire mechanism behind
-   * "an expired ban restores the prior group". A state write that set `banned`
-   * directly would produce a member nothing can un-ban correctly — the column
-   * would say banned and no ban row would exist to expire.
-   */
   async setState(userId: number, state: AccountState): Promise<void> {
     if (state === 'banned') {
       throw new ValidationError('Bans are issued through the ban screen, not here.')
@@ -320,14 +244,6 @@ export class PostgresUserAdminRepository {
     })
   }
 
-  /**
-   * Everyone who has been seen on an IP prefix, other than one member.
-   *
-   * Only a prefix is stored (F19: the last octet is dropped at write time), so
-   * this answers "same network" and not "same machine" — which is what the
-   * screen has to say, because a shared prefix is a household or an office as
-   * often as it is one person with two accounts.
-   */
   async sharingIpPrefix(
     prefix: string,
     excludeUserId: number,
@@ -356,15 +272,6 @@ export class PostgresUserAdminRepository {
     return rows.map(toSearchRow)
   }
 
-  /**
-   * A member's *additional* groups.
-   *
-   * `user_group_memberships` has been read since F20 — `actor-builder` folds it
-   * into `Actor.groupIds`, so these groups combine into what the member may do
-   * under R4.2 exactly as the primary one does — and until now it had **no
-   * writer anywhere**. A board could resolve secondary groups and had no way to
-   * grant one.
-   */
   async readSecondaryGroups(userId: number): Promise<readonly number[]> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -377,17 +284,6 @@ export class PostgresUserAdminRepository {
     return rows.map((row) => Number(row.group_id))
   }
 
-  /**
-   * Replace the set, rather than add to it.
-   *
-   * The screen shows every group with a checkbox, so what it submits *is* the
-   * intended set — an add-only write would make unticking a box do nothing,
-   * which is the same trap the group permission editor avoids.
-   *
-   * The primary group is never stored here. It is already on `users`, and a row
-   * for it would be a second place saying the same thing that could disagree
-   * after a primary-group change.
-   */
   async setSecondaryGroups(
     userId: number,
     groupIds: readonly number[],
@@ -413,7 +309,6 @@ export class PostgresUserAdminRepository {
     })
   }
 
-  /** Groups, for the pickers. Ordered as the group screen orders them. */
   async listGroups(): Promise<readonly { readonly id: number; readonly title: string }[]> {
     const rows = resultRows(
       await this.db.execute(

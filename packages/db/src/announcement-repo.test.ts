@@ -1,14 +1,3 @@
-/**
- * F71's announcements, against real Postgres.
- *
- * The read is where the risk is, and it has two halves that fail differently:
- *
- *  - **the window** — three conditions, and the one that gets forgotten is
- *    `ends_at`, because it is null on most rows and therefore right in every
- *    test written from the happy path;
- *  - **the permission filter** — in SQL, so an announcement on a forum a viewer
- *    cannot see never reaches the process rendering their page.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -77,11 +66,6 @@ async function add(input: {
 }
 
 describe('writing', () => {
-  /*
-   * The name is captured by the insert rather than passed in, so a deleted
-   * administrator's announcement still says who wrote it and no caller can put
-   * the wrong name on a board-wide notice.
-   */
   it('captures the author’s name at write time', async () => {
     const id = await add({})
     expect((await repo.find(id))?.authorUsername).toBe('ada')
@@ -120,10 +104,6 @@ describe('writing', () => {
     ).rejects.toThrow(/needs something in it/)
   })
 
-  /*
-   * An administrator fixing a typo in somebody else's notice should not become
-   * its author — the same rule a post edit follows.
-   */
   it('does not rewrite the author on an edit', async () => {
     const id = await add({})
     await repo.update(id, {
@@ -159,7 +139,6 @@ describe('writing', () => {
     expect(await repo.find(id)).toBeNull()
   })
 
-  /* Cascades: an announcement about a forum that is gone is unreachable anyway. */
   it('goes with its forum', async () => {
     const id = await add({ forumId: PUBLIC_FORUM })
     await db.execute(sql`delete from forums where id = ${PUBLIC_FORUM}`)
@@ -180,11 +159,6 @@ describe('the live window', () => {
     expect(await repo.live({ now: NOW, visibleForumIds: visible })).toHaveLength(0)
   })
 
-  /*
-   * The condition that gets forgotten. It is null on most rows, so a predicate
-   * missing it passes every test written from the happy path — and the symptom
-   * is a notice that never goes away.
-   */
   it('hides one whose end has passed', async () => {
     await add({ endsAt: new Date('2026-08-02T00:00:00Z') })
     expect(await repo.live({ now: NOW, visibleForumIds: visible })).toHaveLength(0)
@@ -221,10 +195,6 @@ describe('the permission filter', () => {
     expect(await repo.live({ now: NOW, visibleForumIds: [] })).toHaveLength(1)
   })
 
-  /*
-   * In SQL, not in the caller. An announcement on a private forum must not
-   * reach the process rendering a guest's page at all.
-   */
   it('withholds a forum’s announcement from somebody who cannot see the forum', async () => {
     await add({ forumId: PRIVATE_FORUM })
 
@@ -249,10 +219,6 @@ describe('the permission filter', () => {
     expect(live[0]?.forumSlug).toBe('general')
   })
 
-  /*
-   * A forum's announcement belongs on that forum. Showing it on the index would
-   * put a notice about one corner of the board above all of it.
-   */
   it('keeps a forum’s announcement off the index', async () => {
     await add({ forumId: PUBLIC_FORUM })
     expect(await repo.live({ now: NOW, visibleForumIds: [PUBLIC_FORUM] })).toHaveLength(0)
@@ -269,10 +235,6 @@ describe('the permission filter', () => {
     expect(live).toHaveLength(0)
   })
 
-  /*
-   * A board-wide notice has to reach a forum page: it is the page most people
-   * arrive on, and one visible only on the index would be seen by almost nobody.
-   */
   it('shows the board’s own announcement on a forum page as well', async () => {
     await add({ forumId: null, title: 'board' })
     await add({ forumId: PUBLIC_FORUM, title: 'forum' })

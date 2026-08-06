@@ -8,24 +8,11 @@ import { buildAdminSettingsModel, settingsHref } from '@/view/admin-settings'
 
 export const metadata: Metadata = { title: 'Board settings' }
 
-/**
- * F64 — board settings.
- *
- * Generated entirely from F08's registry: this file names no setting, and the
- * navigation, the search and every control come from `SETTING_DEFINITIONS`.
- *
- * The filters are **links, not a scripted filter**. A group tab and the search
- * box are GET forms, so the state is in the URL — which means an operator can
- * bookmark "the posting settings", send somebody a link to the one they are
- * arguing about, and use the back button. A client-side filter would have none
- * of that and would need JavaScript for a screen that otherwise does not.
- */
 export default async function AdminSettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ group?: string; q?: string; advanced?: string }>
 }) {
-  /* Re-run, because a layout is not a security boundary (see the ACP layout). */
   await requireAdmin()
 
   const query = await searchParams
@@ -36,12 +23,6 @@ export default async function AdminSettingsPage({
     advanced: query.advanced === '1',
   })
 
-  /*
-   * The one setting on this screen that can be turned into an unusable board.
-   * Checked only while the registration group is on screen, which is where the
-   * dropdown that causes it lives — the same warning on the theme tab would be
-   * noise, and F70's health view is where it is stated unconditionally.
-   */
   const mail =
     model.activeGroup === 'registration' ? await assessMailReadiness() : null
 
@@ -56,7 +37,7 @@ export default async function AdminSettingsPage({
         </p>
       </div>
 
-      {/* A GET form: the search term lands in the URL and is shareable. */}
+      { }
       <form method="get" className="flex flex-wrap items-center gap-2">
         <label className="flex-1">
           <span className="sr-only">Search settings</span>

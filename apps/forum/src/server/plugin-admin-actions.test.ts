@@ -1,18 +1,3 @@
-/**
- * F69's two writes.
- *
- * What only this adapter can get wrong:
- *
- *  - **an unchecked box must store `false`, not "leave it alone"** — the mirror
- *    of F64's problem, and the reason this action walks the plugin's declared
- *    settings instead of the submitted form;
- *  - **enabling deletes the row** rather than storing `"1"`, so a board nobody
- *    has fiddled with looks like one;
- *  - **a key this build does not contain is refused**, because storing settings
- *    for an absent plugin writes rows nothing will ever read;
- *  - **the audit row carries keys and never values**, since a plugin setting can
- *    hold a token and the log is read by more people than can edit it.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const config = {
@@ -105,11 +90,6 @@ describe('the switch', () => {
     expect(adminCalls[0]).toEqual({ action: 'plugin.disabled', detail: { plugin: 'alpha' } })
   })
 
-  /*
-   * Absence and "1" are identical to every reader, and only one of them leaves
-   * the table looking like a board nobody has touched. Same choice F68 made for
-   * a theme reset.
-   */
   it('deletes the row to enable, rather than storing "1"', async () => {
     const state = await setPluginEnabledAction({}, form({ key: 'alpha', enabled: '1' }))
 
@@ -118,11 +98,6 @@ describe('the switch', () => {
     expect(written).toEqual([])
   })
 
-  /*
-   * The operator's next render is served by this instance. Without the
-   * reconcile it would show them the plugin still running, which is the one
-   * thing a kill switch must not do.
-   */
   it('reconciles the host before returning', async () => {
     await setPluginEnabledAction({}, form({ key: 'alpha', enabled: '0' }))
     expect(synced.count).toBe(1)
@@ -166,12 +141,6 @@ describe('saving settings', () => {
     ])
   })
 
-  /*
-   * The mutant this kills writes only the fields present in the form. An
-   * unchecked box submits nothing, so `verbose` would keep its old value and a
-   * settings screen whose off-switches do nothing is a bug that takes a long
-   * time to notice.
-   */
   it('reads an absent checkbox as false', async () => {
     await savePluginSettingsAction(
       {},
@@ -201,11 +170,6 @@ describe('saving settings', () => {
     expect(written).toEqual([])
   })
 
-  /*
-   * A field naming a setting the plugin never declared is ignored, because the
-   * declared list is what is walked. Storing it would create a row nothing
-   * reads, under a key a later version of the plugin might mean differently.
-   */
   it('ignores a submitted field the plugin does not declare', async () => {
     await savePluginSettingsAction(
       {},

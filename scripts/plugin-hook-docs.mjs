@@ -1,21 +1,4 @@
 #!/usr/bin/env node
-/**
- * F79 — the hook reference, generated from the registry that is the API.
- *
- * `docs/plugin-hooks.md` is what a plugin author reads instead of the source:
- * every hook, whether it is a filter or an event, what it is handed, and what
- * returning something means. It is generated, and `--check` fails the build when
- * it disagrees with the code — the same arrangement as the theme reference and
- * for the same reason.
- *
- * Hook documentation goes stale faster than most, because a hook is added in the
- * feature that needs it and documented, if at all, afterwards. A generated file
- * plus a gate means the reference cannot lag the registry by even one commit,
- * and a hook rename shows up in review as a documentation diff — which is the
- * moment somebody should ask whether a rename is allowed at all.
- *
- * Run: pnpm plugin:docs   ·   Check: pnpm plugin:docs:check
- */
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -28,10 +11,6 @@ const HOOKS_FILE = 'packages/plugin-kit/src/hooks.ts'
 const PAYLOADS_FILE = 'packages/plugin-kit/src/payloads.ts'
 const REGIONS_FILE = 'packages/plugin-kit/src/regions.ts'
 const OUTPUT_FILE = 'docs/plugin-hooks.md'
-
-/* ------------------------------------------------------------------ *
- * Parsing helpers — the same refusal-to-guess as scripts/theme-api-docs.mjs
- * ------------------------------------------------------------------ */
 
 function balancedBlock(source, from) {
   const start = source.indexOf('{', from)
@@ -49,7 +28,6 @@ function balancedBlock(source, from) {
   return null
 }
 
-/** Every single-quoted literal in a fragment, concatenated. */
 function joinStringLiterals(fragment) {
   let out = ''
   for (let i = 0; i < fragment.length; i++) {
@@ -63,14 +41,9 @@ function joinStringLiterals(fragment) {
   return out
 }
 
-/** Markdown table cells cannot hold a pipe, and union types are full of them. */
 function cell(text) {
   return text.replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim()
 }
-
-/* ------------------------------------------------------------------ *
- * The registry
- * ------------------------------------------------------------------ */
 
 async function readHooks() {
   const source = await readFile(join(ROOT, HOOKS_FILE), 'utf8')
@@ -87,12 +60,6 @@ async function readHooks() {
   const hooks = []
   let group = 'Other'
 
-  /*
-   * Section comments carry the grouping. The registry is written in feature
-   * order under `/* ---- Posting (F39–F44) ---- *\/` headings, and a reference
-   * that lost them would be ninety alphabetical rows — technically complete and
-   * useless to read.
-   */
   const tokenRe = /\/\*\s*----\s*(.+?)\s*----\s*\*\/|(?:^|\n)\s{2}'([\w.-]+)':\s*\{/g
   for (const match of body.matchAll(tokenRe)) {
     if (match[1] !== undefined) {
@@ -131,14 +98,6 @@ async function readHooks() {
   return hooks
 }
 
-/**
- * The `value` and `context` type text per hook, from `HookSignatures`.
- *
- * Types are reported verbatim rather than expanded. A plugin author reading
- * `PostBitSlotModel` can follow it to the theme reference, which is the document
- * that owns it; inlining the expansion here would duplicate it and the two would
- * disagree within a release.
- */
 async function readSignatures() {
   const source = await readFile(join(ROOT, PAYLOADS_FILE), 'utf8')
   const at = source.indexOf('export interface HookSignatures')
@@ -164,7 +123,6 @@ async function readSignatures() {
       )
     }
 
-    /* The two orders both occur; slice by whichever comes first. */
     const [first, second] =
       valueAt < contextAt
         ? [text.slice(valueAt + 6, contextAt), text.slice(contextAt + 8)]
@@ -208,10 +166,6 @@ async function readRegions() {
   if (regions.length === 0) throw new Error('plugin-hook-docs: parsed no UI regions.')
   return regions
 }
-
-/* ------------------------------------------------------------------ *
- * Rendering
- * ------------------------------------------------------------------ */
 
 function render({ hooks, signatures, regions, wired }) {
   const filters = hooks.filter((hook) => hook.kind === 'filter').length
@@ -301,10 +255,6 @@ function render({ hooks, signatures, regions, wired }) {
 
   return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`
 }
-
-/* ------------------------------------------------------------------ *
- * Entry point
- * ------------------------------------------------------------------ */
 
 const hooks = await readHooks()
 const signatures = await readSignatures()

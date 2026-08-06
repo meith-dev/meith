@@ -1,18 +1,3 @@
-/**
- * F55 — the seam between a raised notification and a sent e-mail.
- *
- * Each piece is tested where it lives: the raise and its outbox row against
- * real Postgres, the rendering and the delivery decisions in
- * `@meith/notifications`. What no other test can see is whether they are
- * *wired to each other* — that the relay turns a `notification.created` row
- * into a job whose `kind` is the handler id the drain looks up, and that the
- * handler reaches a mail driver. That is F38's argument for
- * `task-workers.test.ts`, applied to the path this feature added.
- *
- * It also pins the D32 shape: a build with no mail driver registers no handler,
- * and the relay then enqueues nothing rather than queueing jobs that could only
- * fail.
- */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MemoryMailDriver, MemoryQueue } from '@meith/drivers'
 import type { OutboxReader, OutboxRecord } from '@meith/events'
@@ -135,18 +120,12 @@ describe('the notification mail path', () => {
     const { workers, outbox } = build([notificationCreated(1, 55)])
 
     expect(await workers.relayOutbox!(10)).toBe(1)
-    /* Marked only after the enqueue returned, so a crash re-delivers. */
     expect(outbox.marked).toEqual([1])
 
     expect(await workers.drainQueue!(10)).toBe(1)
     expect(mail.sent).toHaveLength(1)
     expect(mail.sent[0]?.to).toBe('ivan@example.test')
     expect(mail.sent[0]?.subject).toBe('[Test Board] You have been warned: Spamming')
-    /*
-     * `mail.from_name`, carried per message. The driver turns it into the From
-     * header; the *address* never travels with a message, being the driver's
-     * own `MAIL_FROM`.
-     */
     expect(mail.sent[0]?.fromName).toBe('The Test Board')
     expect(sentIds).toEqual([55])
   })
@@ -154,11 +133,6 @@ describe('the notification mail path', () => {
   it('sends nothing on a build with no mail driver, and enqueues nothing either', async () => {
     const { workers, queue } = build([notificationCreated(1, 55)], false)
 
-    /*
-     * The relay asks the registry which handlers an event has. With no mail
-     * handler registered there are none, so the row is relayed to zero jobs —
-     * which is the D32 shape: absent rather than failing.
-     */
     expect(await workers.relayOutbox!(10)).toBe(1)
     expect(await workers.drainQueue!(10)).toBe(0)
     expect(mail.sent).toHaveLength(0)

@@ -1,13 +1,5 @@
 "use client"
 
-/**
- * F63's two ACP forms.
- *
- * The sign-in form is the one place on this board that mints elevated
- * authority. It carries `next` as a hidden field rather than reading the URL,
- * so the value that is validated server-side is the value that was rendered —
- * and it is validated to `/admin` and nothing else.
- */
 import { useActionState } from "react"
 
 import { adminSignInAction, adminSignOutAction } from "@/server/admin-actions"
@@ -21,7 +13,6 @@ export function AdminSignInForm({
   idleMinutes,
 }: {
   next: string
-  /** Set when a destructive operation asked for the password again. */
   reason: "expired" | "reauth" | null
   idleMinutes: number
 }) {

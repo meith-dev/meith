@@ -1,16 +1,3 @@
-/**
- * F64's save, at the app layer.
- *
- * The registry's validation is tested in `@meith/settings` and the store
- * against real Postgres. What is proven here is the part only this adapter can
- * get wrong, and one of them is the whole reason the form carries a hidden
- * field:
- *
- * **A save from a filtered screen must not touch what it was not showing.** An
- * unchecked checkbox submits *nothing*, and a form cannot tell "off" from "not
- * here" — so an action that iterated the registry would read every boolean the
- * operator could not see as `false` and turn the features behind them off.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SettingsSnapshot } from '@meith/settings'
@@ -75,11 +62,6 @@ beforeEach(() => {
 
 describe('the admin gate', () => {
   it('is asked for on every save, not left to the layout', async () => {
-    /*
-     * A layout is not a security boundary — F63's rule, and this is a Server
-     * Action, which is a public endpoint reachable without rendering any page
-     * at all. Kills the mutant that drops the call.
-     */
     await saveAdminSettingsAction({}, form({ keys: 'board.name', 'board.name': 'X' }))
     expect(requireAdminMock).toHaveBeenCalledTimes(1)
   })
@@ -101,12 +83,6 @@ describe('the admin gate', () => {
 
 describe('what a submission may touch', () => {
   it('is exactly what the form declared, and nothing else', async () => {
-    /*
-     * The claim this file exists for. `search.enabled` defaults to true and is
-     * not on this form; if the action iterated the registry it would read the
-     * absent checkbox as `false` and switch search off on a save of the board
-     * name. Kills the mutant that replaces `submittedKeys` with the registry.
-     */
     await saveAdminSettingsAction(
       {},
       form({ keys: 'board.name', 'board.name': 'A new name' }),
@@ -117,14 +93,9 @@ describe('what a submission may touch', () => {
   })
 
   it('reads an absent checkbox as false when the form did declare it', async () => {
-    /*
-     * The other half: within the declared set, absence *is* off. That is what a
-     * checkbox means, and it is why the declared set has to be explicit.
-     */
     snapshotRef.current = SettingsSnapshot.fromOverrides(new Map())
     await saveAdminSettingsAction({}, form({ keys: 'search.enabled' }))
 
-    /* `search.enabled` defaults to true, so false is a change and is written. */
     expect([...(written[0] ?? new Map()).keys()]).toEqual(['search.enabled'])
   })
 
@@ -135,12 +106,6 @@ describe('what a submission may touch', () => {
   })
 
   it('ignores a declared key that is not a real setting', async () => {
-    /*
-     * The hidden field is form data and therefore attacker-supplied. An unknown
-     * key is dropped here rather than passed to `saveSettings`, which would
-     * reject the whole batch — one forged key would otherwise be a way to stop
-     * an administrator saving anything.
-     */
     await saveAdminSettingsAction(
       {},
       form({ keys: 'board.name,not.a.setting', 'board.name': 'A new name' }),
@@ -152,10 +117,6 @@ describe('what a submission may touch', () => {
 
 describe('caches and the audit log', () => {
   it('invalidates the settings tag and whatever the changed keys declare', async () => {
-    /*
-     * F08 has carried `invalidates` since it was written with nothing calling
-     * it. `board.name` declares `layout`, so both go.
-     */
     await saveAdminSettingsAction(
       {},
       form({ keys: 'board.name', 'board.name': 'A new name' }),
@@ -166,10 +127,6 @@ describe('caches and the audit log', () => {
   })
 
   it('records which settings changed, and never what they became', async () => {
-    /*
-     * A settings value can be a secret, and the log is read by more people than
-     * can edit it. Kills the mutant that logs the values.
-     */
     await saveAdminSettingsAction(
       {},
       form({ keys: 'board.name', 'board.name': 'A new name' }),
@@ -182,10 +139,6 @@ describe('caches and the audit log', () => {
   })
 
   it('does neither when nothing actually changed', async () => {
-    /*
-     * Saving a form without editing it is the commonest thing an operator does.
-     * A cache flush and an audit row for it would make both useless.
-     */
     const state = await saveAdminSettingsAction(
       {},
       form({ keys: 'board.name', 'board.name': 'Meith' }),
@@ -199,10 +152,6 @@ describe('caches and the audit log', () => {
 
 describe('validation', () => {
   it('reports a bad value and writes none of the batch', async () => {
-    /*
-     * `saveSettings` validates the whole batch before writing any of it, so a
-     * form with one bad field cannot leave the board half-configured.
-     */
     const state = await saveAdminSettingsAction(
       {},
       form({

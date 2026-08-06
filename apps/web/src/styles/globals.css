@@ -1,48 +1,16 @@
 @import "tailwindcss";
 
-/*
- * ── The meitheal's own landscape ──────────────────────────────────────────
- *
- * Carried over unchanged from the static `site/index.html` this app replaces,
- * because the identity was already right: limewash walls, peat ink, gorse
- * burning on the hillside, lichen on the field wall. Gorse is the only loud
- * colour on the page and it appears sparingly on purpose — it has to mean
- * something every time it shows up.
- *
- * Three declarations of the same palette rather than one, and the repetition is
- * load-bearing:
- *
- *   :root                       the light scheme, and the default
- *   @media (prefers-color-scheme: dark)   a visitor who has never touched the toggle
- *   :root[data-theme="…"]       a visitor who has, in either direction
- *
- * The attribute has to win over the media query in *both* directions, which a
- * single media-query-only definition cannot do: someone whose system is dark and
- * who asked for light needs the light values at a higher specificity, not the
- * absence of the dark ones.
- */
 :root {
   --ground: #eef0e8;
   --ground-deep: #e3e7db;
-  /*
-   * A third surface, and the only one added since the identity was set: the
-   * panel carrying the board sketch has to read as sitting *above* the page,
-   * and `--ground-deep` reads as cut into it. In light the raised surface is
-   * nearer white than the ground; in dark it is nearer the ink. Both are the
-   * direction a light source implies.
-   */
+
   --ground-raise: #f7f8f2;
   --ink: #191e19;
   --ink-soft: #4a5347;
   --ink-faint: #78826f;
   --gorse: #c8901a;
   --gorse-flat: #e4b024;
-  /*
-   * What is legible *on* gorse, which neither --ink nor --ground can be in both
-   * schemes: light gorse wants the dark ink, dark gorse wants the dark ground.
-   * A filled gorse button is the only place it is used, and without it that
-   * button reads at about 2.5:1 in one scheme or the other.
-   */
+
   --on-gorse: #191e19;
   --lichen: #77896c;
   --wall: #cbd1c0;
@@ -93,12 +61,7 @@
   --ink-faint: #78826f;
   --gorse: #c8901a;
   --gorse-flat: #e4b024;
-  /*
-   * What is legible *on* gorse, which neither --ink nor --ground can be in both
-   * schemes: light gorse wants the dark ink, dark gorse wants the dark ground.
-   * A filled gorse button is the only place it is used, and without it that
-   * button reads at about 2.5:1 in one scheme or the other.
-   */
+
   --on-gorse: #191e19;
   --lichen: #77896c;
   --wall: #cbd1c0;
@@ -125,11 +88,6 @@
   --lift: 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent), 0 24px 48px -30px #000;
 }
 
-/*
- * The palette as Tailwind utilities. `inline` so the generated `bg-ground`
- * resolves `var(--ground)` at use time — which is what lets the scheme switch
- * without regenerating a stylesheet.
- */
 @theme inline {
   --color-ground: var(--ground);
   --color-ground-deep: var(--ground-deep);
@@ -149,11 +107,7 @@
   --font-body: var(--body);
   --font-mono: var(--mono);
 
-  /*
-   * Named rather than numbered. The `--step--1` spelling the tokens use above is
-   * fine in CSS but would generate a `text-step--1` utility, whose double hyphen
-   * is a Tailwind modifier separator — so the utility silently does not exist.
-   */
+
   --text-micro: var(--step--1);
   --text-base: var(--step-0);
   --text-mid: var(--step-1);
@@ -162,12 +116,10 @@
   --text-hero: var(--step-4);
 }
 
-/* ── base ─────────────────────────────────────────────────────────────── */
-
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
-  /* The sticky header must not sit on top of the heading an anchor jumps to. */
+
   scroll-padding-top: 6rem;
 }
 
@@ -204,8 +156,6 @@ body {
   }
 }
 
-/* ── the shared voice ─────────────────────────────────────────────────── */
-
 .eyebrow {
   font-family: var(--mono);
   font-size: var(--step--1);
@@ -234,28 +184,16 @@ body {
   color: var(--gorse);
 }
 
-/*
- * The one measure every band on the site is set to. It was written out as
- * `w-[min(72rem,100%-2.5rem)]` in eleven places, which is a number nobody can
- * change once — and the docs shell quietly used a different one, so the header
- * above a documentation page did not line up with the page under it.
- */
 .shell {
   width: min(72rem, 100% - 2.5rem);
   margin-inline: auto;
 }
 
-/* The documentation, which carries a sidebar and a table of contents beside it. */
 .shell-wide {
   width: min(80rem, 100% - 2.5rem);
   margin-inline: auto;
 }
 
-/*
- * An eyebrow with a rule leading into it. The plain `.eyebrow` is still there
- * for labels inside a component; this one opens a section, and the rule is what
- * makes a page of eleven sections scan as eleven rather than as one long column.
- */
 .eyebrow-rule {
   display: inline-flex;
   align-items: center;
@@ -269,14 +207,6 @@ body {
   background: var(--gorse);
 }
 
-/* ── things you can press ─────────────────────────────────────────────── */
-
-/*
- * The site had no button at all: every call to action was an underlined word,
- * which is the correct weight for "source" and the wrong one for the single
- * thing the page wants you to do. One filled button per screen, and the filled
- * one is gorse — the colour that has to mean something every time it appears.
- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -309,7 +239,6 @@ body {
   color: var(--on-gorse);
 }
 
-/* The arrow moves, the button does not. Motion at the size of the affordance. */
 .btn .btn-arrow {
   transition: transform 0.15s ease;
 }
@@ -332,14 +261,6 @@ body {
   color: var(--ink-faint);
 }
 
-/* ── surfaces ─────────────────────────────────────────────────────────── */
-
-/*
- * Raised, not cut in. Used for the two things on the page that are meant to be
- * looked *at* rather than read past — the board sketch and the install
- * transcript — and nowhere else, because a page where everything is raised is a
- * page where nothing is.
- */
 .panel {
   background: var(--ground-raise);
   border: 1px solid var(--wall);
@@ -347,16 +268,6 @@ body {
   box-shadow: var(--lift);
 }
 
-/* ── the numbers ──────────────────────────────────────────────────────── */
-
-/*
- * The display face rather than the body face, which is the opposite of the
- * usual dashboard advice and right here: this site's headline voice *is* the
- * serif, so a sans figure under a serif headline reads as a widget somebody
- * pasted in. Proportional figures, not tabular — `tabular-nums` gives every
- * digit the width of a zero, which looks loose at this size. The table further
- * down the page wants the opposite, and asks for it there.
- */
 .stat-value {
   font-family: var(--display);
   font-size: var(--step-2);
@@ -366,14 +277,6 @@ body {
   color: var(--ink);
 }
 
-/*
- * A budget and what was measured against it, as a bar.
- *
- * One series, so no legend and no palette to validate: the fill is gorse, the
- * track is gorse at low alpha — a lighter step of the same ramp, so the whole
- * bar reads as one measurement rather than as two colours. The number is beside
- * it in text, because a bar alone is not a value.
- */
 .meter {
   height: 0.4rem;
   border-radius: 999px;
@@ -388,11 +291,6 @@ body {
   border-radius: 999px;
   background: var(--gorse);
 }
-
-/* ── the install transcript ───────────────────────────────────────────── */
-
-
-/* ── the board sketch ─────────────────────────────────────────────────── */
 
 .sketch-bar {
   display: flex;
@@ -425,16 +323,6 @@ body {
   background: color-mix(in srgb, var(--ground-deep) 40%, var(--ground-raise));
 }
 
-/*
- * A grid of bordered cells whose last row may be short.
- *
- * The obvious way to draw this — `gap-px` over a background the colour of the
- * wall — draws the wall wherever a cell is missing, so the last row of a
- * seven-item grid in three columns ends in a solid block. That is a layout that
- * silently constrains the *content*: adding a seventh capability, or a seventh
- * documentation section, would have meant either living with the block or
- * finding an eighth thing to say. Per-cell borders instead, so the count is free.
- */
 .cell-grid {
   display: grid;
   border-top: 1px solid var(--wall);
@@ -451,11 +339,6 @@ body {
   transition: background-color 0.15s ease;
 }
 
-/*
- * A cell that is a link is a link *everywhere*, not just on the words at the
- * bottom of it. The tint is what says so — without it the whole-cell target is
- * invisible, and a reader aims at the four underlined words instead.
- */
 .cell-grid > a:hover {
   background: color-mix(in srgb, var(--gorse) 7%, transparent);
 }
@@ -468,11 +351,6 @@ body {
   transition: color 0.15s ease;
 }
 
-/*
- * A whole row that is a link — the documentation index, where the title, the
- * blurb and the arrow are one target. The same tint as a linked cell, so the two
- * lists on this site that behave this way look like they behave this way.
- */
 .row-link {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -489,23 +367,6 @@ body {
   background: color-mix(in srgb, var(--gorse) 7%, transparent);
 }
 
-/*
- * The wash over the hero canvas. A gradient rather than a flat scrim: the
- * townland has to stay legible at the right-hand edge, where there is no text
- * over it, and disappear under the headline, where there is.
- */
-/*
- * The wash over the hero canvas. Two gradients rather than one, because the
- * townland now has to do two different things in two directions.
- *
- * Across: it disappears under the headline, where there is text over it, and
- * survives on the right, where the board sketch sits — but only as far as
- * texture. Raw canvas beside an opaque panel competes with it, so the far edge
- * keeps a quarter of the ground rather than none of it.
- *
- * Down: it fades out at the foot, so the hero ends in the page rather than
- * against a hard line where the fields stop being drawn.
- */
 .hero-wash {
   position: absolute;
   inset: 0;
@@ -520,14 +381,6 @@ body {
     );
 }
 
-/* ── the rendered documents ───────────────────────────────────────────── */
-
-/*
- * Written by hand rather than pulled in from a typography plugin. The documents
- * this renders are dense — five-column tables of TypeScript types, fenced shell
- * transcripts, tables of contents made of anchor links — and every one of the
- * rules below exists because one of them looked wrong without it.
- */
 .doc-body {
   font-size: var(--step-0);
   line-height: 1.7;
@@ -584,10 +437,6 @@ body {
   letter-spacing: 0;
 }
 
-/*
- * The heading *is* the link. A `¶` bolted onto the end is a four-pixel target
- * that only appears on hover, which rules out touch and keyboard alike.
- */
 .doc-heading-anchor {
   color: inherit;
   text-decoration: none;
@@ -629,7 +478,6 @@ body {
   text-decoration-color: var(--gorse);
 }
 
-/* A link that leaves the site says so, rather than surprising the reader. */
 .doc-link-external::after {
   content: "↗";
   font-size: 0.8em;
@@ -699,12 +547,6 @@ body {
   border-radius: 3px;
 }
 
-/*
- * The language as a corner label rather than a caption bar, so a two-line
- * snippet is not half chrome. `::before` because the renderer puts the language
- * in an attribute — there is no element to style, and adding one would put it in
- * the copied text.
- */
 .doc-code[data-lang]::before {
   content: attr(data-lang);
   position: absolute;
@@ -734,11 +576,6 @@ body {
   overflow-wrap: normal;
 }
 
-/*
- * Shiki emits both schemes on every token and the stylesheet chooses. The four
- * blocks mirror the palette's own arrangement, and for the same reason: the
- * explicit `data-theme` has to beat the media query in *both* directions.
- */
 .doc-code pre code span {
   color: var(--shiki-light);
 }
@@ -771,11 +608,7 @@ body {
   border: 1px solid var(--wall);
   border-radius: 2px;
   cursor: copy;
-  /*
-   * Hidden until the block is hovered or the button itself is focused. Focus is
-   * the half that matters: `opacity: 0` alone would leave a keyboard user
-   * tabbing onto something they cannot see.
-   */
+
   opacity: 0;
   transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
@@ -790,21 +623,12 @@ body {
   border-color: var(--gorse);
 }
 
-/* Touch has no hover, so the button is simply always there. */
 @media (hover: none) {
   .doc-code-copy {
     opacity: 1;
   }
 }
 
-/* ── callouts ─────────────────────────────────────────────────────────── */
-
-/*
- * GitHub's alert syntax, styled. Deliberately quiet: a documentation page where
- * a third of the text is in a coloured box has taught the reader to skip boxes,
- * which is the opposite of what a warning is for. A rule down the side, a label,
- * and otherwise the same type as the prose around it.
- */
 .doc-callout {
   border-left: 3px solid var(--accent, var(--lichen));
   background: var(--ground-deep);
@@ -846,11 +670,6 @@ body {
   --accent: var(--gorse);
 }
 
-/*
- * Caution is the only one that gets the loud treatment — a tinted ground as well
- * as the rule. It marks the handful of things in these documents that cannot be
- * undone, and nothing else should compete with it.
- */
 .doc-callout[data-kind="caution"] {
   --accent: var(--gorse);
   background: color-mix(in srgb, var(--gorse) 10%, var(--ground-deep));
@@ -897,28 +716,11 @@ body {
   white-space: nowrap;
 }
 
-/*
- * The budget table on the landing page: the documentation's table, with three
- * differences. The first column is prose rather than a value, so it reads at
- * body size; the two numeric columns align on their right edge, which is the
- * only way a column of milliseconds is comparable at a glance; and the rows are
- * centred, because the last cell contains a bar rather than a line of text.
- *
- * After `.doc-table` in the file on purpose — the two selectors have the same
- * specificity, so this one wins by being second, and moving it above would
- * silently stop it applying.
- */
 .perf-table th,
 .perf-table td {
   vertical-align: middle;
 }
 
-/*
- * The page name does not wrap. On a phone it otherwise broke into four lines
- * beside a one-line measurement, and the bar in the last column was squeezed to
- * nothing rather than the table scrolling — which is what `.doc-table` is set up
- * to do, and the honest behaviour for a table that does not fit.
- */
 .perf-table td:first-child {
   font-size: var(--step-0);
   color: var(--ink);

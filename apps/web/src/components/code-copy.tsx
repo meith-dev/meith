@@ -1,21 +1,5 @@
 "use client"
 
-/**
- * A copy button on every fenced block.
- *
- * The blocks are rendered as HTML from Markdown, so there is no React element to
- * hang a button on. Rather than parse that HTML back into a component tree —
- * which would mean re-implementing the renderer in the browser — this finds the
- * figures after mount and portals a real React button into each one. The markup
- * stays server-rendered and the button stays a component, with its own state and
- * its own cleanup.
- *
- * It copies `data-code`, the source the renderer put on the `<pre>`, not the
- * element's `textContent`: highlighting wraps every token in a `<span>`, and
- * reading text back out of that is where copied snippets pick up stray
- * whitespace.
- */
-
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 

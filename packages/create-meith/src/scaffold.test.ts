@@ -16,12 +16,6 @@ describe('the project name', () => {
     expect(validateName('board_2')).toBeNull()
   })
 
-  /*
-   * `.` and `..` are the two that matter, and they are checked before the
-   * pattern gets a chance: a project called `..` scaffolds into the *parent*
-   * directory, which is the one failure of a generator that deleting a folder
-   * does not undo.
-   */
   it.each(['', '.', '..', 'My-Board', 'a/b', 'a\\b', '-leading'])(
     'refuses %o',
     (name) => {
@@ -43,12 +37,6 @@ describe('what the scaffold writes', () => {
     ])
   })
 
-  /*
-   * There was a sixth, and its absence is the point. `vercel.json` carried the
-   * tick cron for a platform this project no longer deploys to, and a scaffold
-   * that ships a schedule for a host that cannot run a process outliving a
-   * request is describing a board that half works.
-   */
   it('ships no platform configuration file', () => {
     expect([...files.keys()]).not.toContain('vercel.json')
   })
@@ -65,13 +53,6 @@ describe('what the scaffold writes', () => {
     expect(Object.keys(manifest.scripts).sort()).toEqual(['build', 'dev', 'forum', 'start'])
   })
 
-  /*
-   * Every catch-up operation runs on the tick, and when it does not run
-   * *nothing fails* — the work simply does not happen until somebody notices a
-   * ban that should have ended last month (F70). The scaffold cannot schedule
-   * it, so the one thing it can do is make sure the reader is told what runs
-   * it, in the file they open first.
-   */
   it('tells the reader which process runs the tick', () => {
     const readme = files.get('README.md')!
     expect(readme).toMatch(/tick/i)
@@ -86,26 +67,10 @@ describe('what the scaffold writes', () => {
     }
   })
 
-  /*
-   * The one operational mistake that looks like a database problem and is not:
-   * against a managed database on its direct connection string a board works in
-   * testing and starts refusing connections under the first real traffic. It is
-   * a warning rather than an instruction now, because a board on its own
-   * Postgres — the documented route — does not need a pooler at all.
-   */
   it('warns about the pooler where somebody choosing a managed database will read it', () => {
     expect(files.get('.env.example')).toMatch(/POOLER/)
   })
 
-  /*
-   * Run the documented command rather than reading it.
-   *
-   * The first version of this test evaluated the snippet inside the test's own
-   * ESM scope and failed with "require is not defined" — which is true there and
-   * false in `node -e`, where the default scope is CommonJS. Evaluating it
-   * somewhere it does not run is not a test of anything, so the command is
-   * spawned exactly as an operator would type it.
-   */
   it('generates a working secret-generation command', async () => {
     const { execFile } = await import('node:child_process')
     const { promisify } = await import('node:util')
@@ -117,11 +82,6 @@ describe('what the scaffold writes', () => {
     expect(stdout.trim().length).toBeGreaterThan(30)
   })
 
-  /*
-   * A board is meant to be forked, and the generated README sends the reader to
-   * the self-hosting guide — which has to be *their* copy of it, or a fork with
-   * a changed compose file documents somebody else's.
-   */
   it('points the generated README at the repository it was told about', () => {
     const readme = scaffold({ ...OPTIONS, repositoryUrl: 'https://example.test/board' }).get(
       'README.md',
@@ -129,7 +89,6 @@ describe('what the scaffold writes', () => {
     expect(readme).toContain('https://example.test/board/blob/main/docs/self-hosting.md')
   })
 
-  /* The routes that were removed stay removed. */
   it('offers no serverless platform', () => {
     for (const file of files.values()) {
       expect(file).not.toMatch(/vercel\.com\/new\/clone/)
@@ -137,7 +96,6 @@ describe('what the scaffold writes', () => {
     }
   })
 
-  /* A scaffold that leaked `.env` into git would be the worst kind of default. */
   it('ignores the environment files and the build output', () => {
     const ignore = files.get('.gitignore')!
     for (const entry of ['node_modules', '.next', '.env', '.env.local']) {
@@ -206,11 +164,6 @@ describe('the CLI', () => {
     })
   })
 
-  /*
-   * The refusal that matters. Overwriting somebody's `.git` or their existing
-   * `.env` is the single worst thing this tool could do, and "it asked first" is
-   * no defence when the prompt is one flag away from being skipped.
-   */
   it('refuses a directory that is not empty', async () => {
     await inTemp(async (dir) => {
       await run(['my-board'], '1.0.0')
@@ -219,7 +172,6 @@ describe('the CLI', () => {
       expect(second.code).toBe(1)
       expect(second.lines.join('\n')).toMatch(/already exists and is not empty/)
 
-      /* And it changed nothing: the first tree is still the first tree. */
       const manifest = JSON.parse(await readFile(join(dir, 'my-board/package.json'), 'utf8'))
       expect(manifest.name).toBe('my-board')
     })

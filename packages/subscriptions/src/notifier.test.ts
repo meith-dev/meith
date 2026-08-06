@@ -1,15 +1,3 @@
-/**
- * F56 — the runner, over an in-memory repository.
- *
- * The SQL is proven against real Postgres in `subscription-repo.test.ts`. What
- * is here is what the runner decides: what a member is told, in how many
- * notifications, and — the property that must never break — that a watermark is
- * only advanced for work that was actually looked at.
- *
- * Losing a notification is the failure mode this feature has to be defended
- * against, because it is invisible: nobody complains about the message they did
- * not know was coming.
- */
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { SubscriptionNotifier, groupByThread } from './notifier'
@@ -47,7 +35,6 @@ class MemorySubscriptions implements SubscriptionRepository {
   pending = new Map<number, PendingPost[]>()
   readonly advanced: Array<{ userId: number; watermarks: PendingForUser['watermarks'] }> = []
   readonly digestRuns: Array<{ userId: number; cadence: string }> = []
-  /** Set to make one member's read throw, for the isolation test. */
   failFor: number | null = null
 
   async subscribe() {
@@ -131,7 +118,6 @@ describe('grouping', () => {
 
     expect(threads).toHaveLength(1)
     expect(threads[0]?.posts).toBe(2)
-    /* The *latest* author, which is who a reader is about to see. */
     expect(threads[0]?.lastAuthor).toBe('mod')
   })
 
@@ -171,7 +157,6 @@ describe('instant', () => {
 
     expect(notified).toBe(1)
     expect(raised).toHaveLength(2)
-    /* Busiest thread first: two posts in 10, one in 11. */
     expect(raised.map((r) => r.dedupeKey)).toEqual([
       'subscription.reply:10',
       'subscription.reply:11',
@@ -205,10 +190,6 @@ describe('instant', () => {
   })
 
   it('advances the watermark even when everything was filtered out', async () => {
-    /*
-     * The member can no longer see the forum. Not advancing would leave a
-     * backlog that arrives in one piece if access ever comes back.
-     */
     subscriptions.pending.set(7, [])
 
     await notifier().runInstant()
@@ -279,8 +260,6 @@ describe('digests', () => {
 
     await notifier().runDigest('daily')
 
-    /* Otherwise a member with nothing pending "receives" an empty digest and
-     * waits another day for the one that had something in it. */
     expect(subscriptions.digestRuns).toEqual([])
   })
 
@@ -303,7 +282,6 @@ describe('digests', () => {
 
     expect((raised[0]?.data['threads'] as unknown[]).length).toBe(10)
     expect(raised[0]?.data['more']).toBe(5)
-    /* The count is still the truth about how much there was. */
     expect(raised[0]?.data['threadCount']).toBe(15)
   })
 })

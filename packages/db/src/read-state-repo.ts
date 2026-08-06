@@ -1,4 +1,3 @@
-/** Durable forum/thread read watermarks (F32). */
 import { and, eq, gt, isNull, or, sql } from 'drizzle-orm'
 
 import { PUBLIC_CONTENT } from '@meith/core'
@@ -34,12 +33,6 @@ export class PostgresReadStateRepository implements ReadStateRepository {
         )
         .where(
           and(
-            /*
-             * Public, always (F47). Unread state is about content a member can
-             * actually go and read: flagging a forum unread because of a post
-             * in the moderation queue would send a moderator to a thread that
-             * looks identical to the one they already read.
-             */
             visibleIn(threads.visibility, PUBLIC_CONTENT),
             sql`${threads.lastPostId} is not null`,
             or(isNull(threadsRead.lastReadPostId), gt(threads.lastPostId, threadsRead.lastReadPostId)),
@@ -77,7 +70,6 @@ export class PostgresReadStateRepository implements ReadStateRepository {
       .onConflictDoUpdate({
         target: [threadsRead.userId, threadsRead.threadId],
         set: {
-          // A slower tab must not move the marker backwards.
           lastReadPostId: sql`greatest(coalesce(${threadsRead.lastReadPostId}, 0), excluded.last_read_post_id)`,
           readAt: at,
         },

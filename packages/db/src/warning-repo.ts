@@ -1,17 +1,3 @@
-/**
- * F53 — warnings over Postgres.
- *
- * One statement does most of the work and is worth naming: `recalculate`. It
- * recomputes `users.warning_points` from the live rows in `warnings` rather
- * than adjusting it, and it runs inside the same transaction as whatever
- * changed them. Everything else in this file exists so that no path can change
- * a warning without going through it.
- *
- * "Live" means not revoked and not expired, and the definition lives in exactly
- * one place — `LIVE`, below — for the reason D41 gives about the definition of
- * "counted": two hand-written versions of a predicate is how a total and its
- * source drift apart while both look right.
- */
 import { sql } from 'drizzle-orm'
 
 import type {
@@ -31,15 +17,6 @@ interface Tx {
   execute(query: ReturnType<typeof sql>): Promise<unknown>
 }
 
-/**
- * A warning that currently counts.
- *
- * Not revoked, and either never expiring or not yet expired. The expiry sweep
- * exists to keep the *cached total* fresh without waiting for the member's next
- * warning — not to make this predicate correct, which it is on its own. That is
- * deliberate: a board whose tick has been down for a week still reports honest
- * totals the moment anything recalculates.
- */
 const LIVE = sql`revoked_at is null and (expires_at is null or expires_at > now())`
 
 async function recalculate(tx: Tx, userId: number): Promise<number> {
@@ -90,13 +67,6 @@ function toRow(row: {
   }
 }
 
-/**
- * The history cursor: the timestamp and id of the last row shown.
- *
- * Opaque and keyset rather than an offset, for the queue's reason — a member's
- * history changes underneath a moderator reading it, and an offset repeats or
- * skips rows every time somebody issues one.
- */
 function encodeCursor(row: WarningRow): string {
   return Buffer.from(`${row.createdAt.toISOString()}|${row.id}`, 'utf8').toString('base64url')
 }
@@ -141,12 +111,6 @@ export class PostgresWarningRepository implements WarningRepository {
       `),
     ) as Array<{ points: number; action: string; duration_days: number | null }>
 
-    /*
-     * A row whose action the code does not recognise is dropped rather than
-     * guessed at. Configuration outlives code — a level written by a newer
-     * version, or by hand, must not silently become the nearest thing this
-     * build understands.
-     */
     return rows.flatMap((row) => {
       const action = parseWarningAction(row.action)
       return action === null
@@ -178,14 +142,6 @@ export class PostgresWarningRepository implements WarningRepository {
     }
   }
 
-  /**
-   * A member who can be warned.
-   *
-   * `state <> 'deleted'` because a warning is a message to somebody, and a
-   * deleted account has nobody to receive it — F33 already refuses to resolve
-   * one for a profile, and warning a row that no page will ever show is a
-   * moderator act with no subject.
-   */
   async findWarnable(userId: number): Promise<{ id: number; username: string } | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -229,11 +185,6 @@ export class PostgresWarningRepository implements WarningRepository {
         `),
       ) as Array<{ id: number }>
 
-      /*
-       * In the same transaction as the insert. A warning that exists without
-       * the total reflecting it is a member the board treats as clean until
-       * somebody else warns them.
-       */
       const points = await recalculate(tx, input.userId)
 
       await tx.execute(sql`
@@ -262,11 +213,6 @@ export class PostgresWarningRepository implements WarningRepository {
     readonly at: Date
   }): Promise<{ userId: number; points: number } | null> {
     return this.db.transaction(async (tx) => {
-      /*
-       * `revoked_at is null` is the guard, and it is on the update rather than
-       * on a prior read: two moderators pressing Revoke at the same moment must
-       * produce one audit row, not two claiming the same act.
-       */
       const moved = resultRows(
         await tx.execute(sql`
           update warnings
@@ -298,16 +244,9 @@ export class PostgresWarningRepository implements WarningRepository {
   }
 
   async pointsFor(userId: number): Promise<number> {
-    /*
-     * Recomputes rather than reading the cached column, and that is the point:
-     * every caller of this gets truth, so a drifted `users.warning_points` is
-     * corrected by the next thing that asks rather than persisting until
-     * somebody notices.
-     */
     return this.db.transaction(async (tx) => recalculate(tx, userId))
   }
 
-  /** The posting path's read: both restriction timestamps, from the member's row. */
   async readRestriction(userId: number): Promise<PostingRestriction> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -373,18 +312,6 @@ export class PostgresWarningRepository implements WarningRepository {
       : { rows: mapped }
   }
 
-  /**
-   * The expiry sweep.
-   *
-   * It does not *write* anything to the warnings — `LIVE` already excludes an
-   * expired one, so there is no state to flip and nothing to make idempotent.
-   * What it does is find the members whose cached total is now stale and hand
-   * them back so the service can recompute and re-evaluate their level. That is
-   * the whole job: a suspension ending when the warning behind it ages out.
-   *
-   * Bounded by `limit` and ordered by expiry, so a board that has been down for
-   * a month catches up over several ticks rather than in one unbounded run.
-   */
   async expireDue(
     now: Date,
     limit: number,
@@ -397,11 +324,6 @@ export class PostgresWarningRepository implements WarningRepository {
          where w.revoked_at is null
            and w.expires_at is not null
            and w.expires_at <= ${now}
-           /*
-            * Only the members whose cached total still counts this warning.
-            * Without it, every past expiry on the board is rediscovered on
-            * every tick and the sweep never reaches the newest ones.
-            */
            and u.warning_points > coalesce((
                  select sum(x.points)::int from warnings x
                   where x.user_id = w.user_id and ${LIVE}

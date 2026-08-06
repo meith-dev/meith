@@ -1,19 +1,3 @@
-/**
- * F36 — the safety argument, stated as tests.
- *
- * The claim this package makes is narrow and total: **it never sanitises,
- * because it never parses markup.** Output is constructed from literals in
- * `render.ts`, values that passed a validator, and strings that went through
- * `escapeHtml`. So these are not "did the sanitiser miss a vector" tests —
- * there is no sanitiser — they are tests that the three sources are the only
- * three, on the inputs a real board receives.
- *
- * Markdown widens the input surface that BBCode had. `<` is ordinary syntax
- * here (autolinks), a link's destination is arbitrary text rather than a
- * quoted attribute, and CommonMark itself says HTML blocks pass through. Every
- * one of those is a place where a renderer that trusted its input would leak,
- * and each has a test below.
- */
 import { describe, expect, it } from 'vitest'
 
 import { renderMarkdown } from './body'
@@ -24,11 +8,6 @@ const html = (source: string): string => renderMarkdown(source).html
 
 describe('HTML in a post is text', () => {
   it('does not pass an HTML block through, whatever CommonMark says', () => {
-    /*
-     * The one place this Markdown consciously refuses the specification. A
-     * renderer that emitted raw HTML would need a sanitiser, and a sanitiser is
-     * a blocklist — which is the thing this package exists not to have.
-     */
     expect(html('<script>alert(1)</script>')).toBe('<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>')
     expect(html('<div onclick="x">hi</div>')).not.toContain('<div')
   })
@@ -56,11 +35,6 @@ describe('what may become an href', () => {
   })
 
   it('drops every spelling of it, because the rule is an allowlist', () => {
-    /*
-     * None of these is rejected *by name*. They are rejected because they are
-     * not `http://`, `https://`, `mailto:` or a same-origin path — which is why
-     * the list does not have to anticipate a spelling nobody has tried yet.
-     */
     for (const scheme of [
       'JaVaScRiPt:alert(1)',
       'java\u0009script:alert(1)',
@@ -106,7 +80,6 @@ describe('attributes the renderer builds itself', () => {
 
   it('escapes an image’s alt text, so it cannot close the attribute', () => {
     const out = html('![" onerror="alert(1)](https://ok.example/a.png)')
-    /* The words survive; the quote that would have ended `alt=` does not. */
     expect(out).toContain('alt="&quot; onerror=&quot;alert(1)"')
     expect(out).not.toContain('" onerror="alert(1)"')
   })
@@ -129,10 +102,6 @@ describe('the board vocabulary cannot introduce markup', () => {
   })
 
   it('drops a smiley whose URL would not be allowed, instead of failing the page', () => {
-    /*
-     * A row that got in some other way — a hand-edited database, an import —
-     * must not take every thread page on the board down with it.
-     */
     const vocabulary = compileVocabulary({
       revision: 1,
       smilies: [{ code: ':evil:', src: 'javascript:alert(1)' }],

@@ -1,16 +1,3 @@
-/**
- * F17/F18/F19 at the app layer — the Server Actions themselves.
- *
- * The domain services are unit-tested in `@meith/accounts`; what is proven here
- * is the adapter tier those tests cannot see: that each action reads FormData,
- * sets the right cookies, redirects where it claims to, and — the part with
- * teeth — that it does not hand a credential to the browser.
- *
- * `next/headers` and `next/navigation` are mocked because a Server Action calls
- * them outside any request scope here. `redirect()` genuinely throws in Next, so
- * the mock throws too; an action that "returns" instead of redirecting would
- * fail these tests exactly as it should.
- */
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 
 import { resetEnvForTests } from '@meith/core'
@@ -43,18 +30,9 @@ vi.mock('next/navigation', () => ({
   },
 }))
 
-/**
- * The two direct sends, recorded rather than performed.
- *
- * Mocked as a module for the reason `usercp-actions.test.ts` mocks its own
- * sender: what is under test here is *what the action does about a send*, which
- * includes the case where the send throws — and a real driver that cannot be
- * made to fail on demand cannot prove the interesting half.
- */
 const mail = vi.hoisted(() => ({
   verifications: [] as Array<{ token: string; email: string; username: string }>,
   resets: [] as Array<{ token: string; email: string; username: string }>,
-  /** Set to make the next verification send throw, as a provider outage would. */
   failVerification: false,
   failReset: false,
 }))
@@ -70,23 +48,8 @@ vi.mock('./auth-mail', () => ({
   },
 }))
 
-/**
- * The board's activation method, swapped per test.
- *
- * `boardAuthConfig` is the seam the whole of work item 1 exists to create, so
- * the tests drive it directly rather than by writing a settings row: the app
- * tests run on fixture data, which has no settings table, and going through one
- * would test the storage rather than the decision.
- */
 const policy = vi.hoisted(() => ({ activationMethod: 'none' as string }))
 
-/**
- * The resend limiter, forced to refuse.
- *
- * Fixture mode has no bucket store, so the real limiter counts nothing and
- * fails open — correct behaviour, and useless for proving what a *refusal*
- * looks like from the browser.
- */
 const limiter = vi.hoisted(() => ({ refuse: false }))
 
 vi.mock('./antispam', async (importOriginal) => {
@@ -119,7 +82,6 @@ const {
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SESSION_COOKIE } = await import('./cookies')
 
-/** The container memoises onto globalThis; drop it for a clean board per test. */
 const CONTAINER_KEY = Symbol.for('@meith/forum.container')
 
 function form(entries: Record<string, string>): FormData {
@@ -128,12 +90,6 @@ function form(entries: Record<string, string>): FormData {
   return f
 }
 
-/**
- * Run `body` with the app in development mode.
- *
- * `env` memoises its parse, so the cache has to be dropped on the way in *and*
- * on the way out — otherwise a later test inherits a development environment.
- */
 async function inDevelopment<T>(body: () => Promise<T>): Promise<T> {
   vi.stubEnv('NODE_ENV', 'development')
   resetEnvForTests()
@@ -145,7 +101,6 @@ async function inDevelopment<T>(body: () => Promise<T>): Promise<T> {
   }
 }
 
-/** Run an action that is expected to redirect, and return where it went. */
 async function redirectOf(run: Promise<unknown>): Promise<string> {
   try {
     await run
@@ -183,9 +138,6 @@ describe('registerAction (F18)', () => {
   it('rejects a duplicate username differing only by case', async () => {
     await registerUser()
 
-    // F18 acceptance. This is the case that breaks under a locale-sensitive
-    // fold: 'IVAN' lowercases to 'ıvan' (dotless) in tr_TR, misses the existing
-    // 'ivan', and silently creates a second account. See `foldIdentifier`.
     const state = await registerAction(
       EMPTY_STATE,
       form({ ...CREDS, username: 'IVAN', email: 'other@example.com' }),
@@ -196,7 +148,7 @@ describe('registerAction (F18)', () => {
   it('echoes back what was typed, but never the password', async () => {
     const state = await registerAction(
       EMPTY_STATE,
-      form({ ...CREDS, username: 'x' }), // too short
+      form({ ...CREDS, username: 'x' }),
     )
     expect(state.error).toBeTruthy()
     expect(JSON.stringify(state)).not.toContain(CREDS.password)
@@ -227,7 +179,6 @@ describe('loginAction (F17/F19)', () => {
 
   it('issues a different session id than the one presented (fixation)', async () => {
     await registerUser()
-    // An attacker-planted cookie must not survive authentication.
     jar.set(SESSION_COOKIE, 'attacker-fixed-session-value')
 
     await redirectOf(
@@ -278,13 +229,10 @@ describe('loginAction (F17/F19)', () => {
   it('locks the account out after the configured number of failures', async () => {
     await registerUser()
 
-    // AUTH_CONFIG.maxLoginAttempts = 5.
     for (let i = 0; i < 5; i++) {
       await loginAction(EMPTY_STATE, form({ identifier: CREDS.username, password: `bad-${i}` }))
     }
 
-    // F19 acceptance: the *correct* password is now refused, which is what makes
-    // this a lockout rather than a per-attempt failure count.
     const state = await loginAction(
       EMPTY_STATE,
       form({ identifier: CREDS.username, password: CREDS.password }),
@@ -307,13 +255,6 @@ describe('password reset (F19)', () => {
     expect(known.error).toBeUndefined()
   })
 
-  /*
-   * The regression that matters most in this file. The action used to return the
-   * live reset token to the browser unconditionally, behind a comment asserting
-   * that "a real deployment never renders this" — which nothing enforced. That is
-   * unauthenticated account takeover for any address an attacker knows, so both
-   * directions of the gate are pinned.
-   */
   it('never returns the reset token outside development', async () => {
     await registerUser()
 
@@ -347,14 +288,12 @@ describe('password reset (F19)', () => {
       ),
     ).toBe('/login?reset=1')
 
-    // Single-use: the same token must not set another password.
     const replay = await confirmResetAction(
       EMPTY_STATE,
       form({ token, password: 'attacker-chosen', confirm: 'attacker-chosen' }),
     )
     expect(replay.error).toBeTruthy()
 
-    // And the first reset really did take effect.
     await redirectOf(loginAction(EMPTY_STATE, form({ identifier: CREDS.username, password: next })))
     expect(jar.get(SESSION_COOKIE)).toBeTruthy()
   })
@@ -391,8 +330,6 @@ describe('password reset (F19)', () => {
 
     const state = await requestResetAction(EMPTY_STATE, form({ email: CREDS.email }))
 
-    // A provider outage must not be distinguishable from an unknown address:
-    // the difference would answer "does this address have an account here?".
     expect(state.error).toBeUndefined()
     expect(state.notice).toBeTruthy()
   })
@@ -412,20 +349,12 @@ describe('registration with e-mail activation (F18)', () => {
     expect(mail.verifications[0]?.token).toBeTruthy()
   })
 
-  /**
-   * The mutant this kills: making the send part of the registration's success.
-   *
-   * The account exists before the mail is attempted, so a send that throws must
-   * not be reported as a failed registration — the person would try again and
-   * be told the username is taken, by *their own* abandoned account.
-   */
   it('a failed send does not fail the registration, and the account survives', async () => {
     mail.failVerification = true
 
     const to = await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))
     expect(to).toBe(`/verify/resend?email=${encodeURIComponent(CREDS.email)}&sent=1`)
 
-    // The account is really there: registering again collides with it.
     const again = await registerAction(EMPTY_STATE, form(CREDS))
     expect(again.error).toBeTruthy()
   })
@@ -434,7 +363,6 @@ describe('registration with e-mail activation (F18)', () => {
     await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))
     expect(jar.has(SESSION_COOKIE)).toBe(false)
 
-    // And it cannot sign itself in either, which is what activation means.
     const state = await loginAction(
       EMPTY_STATE,
       form({ identifier: CREDS.username, password: CREDS.password }),
@@ -442,17 +370,10 @@ describe('registration with e-mail activation (F18)', () => {
     expect(state.error).toMatch(/not yet activated/i)
   })
 
-  /**
-   * The mutant this kills: `activationMethod` falling back to `'none'` when the
-   * board asked for e-mail. That is what every caller did before work item 1 —
-   * the setting existed, the dropdown moved, and registration carried on
-   * activating everybody immediately.
-   */
   it('honours the configured method rather than the static default', async () => {
     await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))
     expect(mail.verifications).toHaveLength(1)
 
-    /* Same board, same store — only the setting moves. */
     policy.activationMethod = 'none'
 
     const to = await redirectOf(
@@ -493,11 +414,6 @@ describe('resending a verification link (F18)', () => {
     expect(mail.verifications).toHaveLength(1)
   })
 
-  /**
-   * The mutant this kills: resending against an account that is already usable.
-   * It would be a confirmation mail for nothing, and a live credential mailed to
-   * somebody who never asked for one.
-   */
   it('sends nothing for an account that is already active', async () => {
     policy.activationMethod = 'none'
     await redirectOf(registerAction(EMPTY_STATE, form(CREDS)))
@@ -518,9 +434,6 @@ describe('resending a verification link (F18)', () => {
     limiter.refuse = true
     const refused = await resendVerificationAction(EMPTY_STATE, form({ email: CREDS.email }))
 
-    // Same sentence, no error — a "too many attempts" message here would only
-    // appear for addresses somebody keeps retrying, which is a signal about
-    // whether those addresses exist.
     expect(refused.notice).toBe(allowed.notice)
     expect(refused.error).toBeUndefined()
     expect(mail.verifications).toHaveLength(1)
@@ -532,8 +445,6 @@ describe('resending a verification link (F18)', () => {
     const state = await inDevelopment(() =>
       resendVerificationAction(EMPTY_STATE, form({ email: CREDS.email })),
     )
-    // Unlike the reset form's development escape hatch, this one has none: the
-    // resend screen is reachable without proving anything at all.
     expect(JSON.stringify(state)).not.toContain('token')
   })
 })

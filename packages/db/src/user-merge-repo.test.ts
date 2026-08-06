@@ -1,20 +1,3 @@
-/**
- * F67's merge, against real Postgres.
- *
- * The first test in this file is the most valuable one, and it is not about
- * behaviour at all: it holds the merge map against `information_schema`. The
- * dangerous failure of an account merge is a **column nobody remembered** —
- * rows left pointing at an account that has been merged away, which raises no
- * error and surfaces months later as a post with no author. A test that
- * enumerates the schema catches the next migration that adds one; a test that
- * checks a few tables by hand does not.
- *
- * After that, the four things a naive `update … set user_id = winner` gets
- * wrong: credentials must be destroyed rather than moved, duplicates under a
- * uniqueness rule must be dropped rather than collided, the two-ended tables
- * can produce rows the board cannot otherwise create, and the denormalised
- * display columns have no foreign key to remind anybody they exist.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -82,19 +65,6 @@ async function count(query: ReturnType<typeof sql>): Promise<number> {
 
 describe('the merge map', () => {
   it('accounts for every column in the schema that points at a user', async () => {
-    /*
-     * The guard this feature actually rests on. A migration that adds a
-     * user-shaped column fails here until somebody decides whether a merge
-     * reassigns it, dedupes it, discards it, renames it, or handles it
-     * bespoke — which is a decision, not an oversight. Kills the whole class
-     * of "we forgot `x.user_id`" bugs rather than one instance of it.
-     *
-     * It has already earned its place: the first version of the map covered
-     * only the id columns, and this test failed on the five denormalised
-     * *username* columns — `posts.author_username` and its siblings — which
-     * carry a name rather than an id and would have gone on displaying the
-     * merged-away account forever.
-     */
     const rows = resultRows(
       await db.execute(sql`
         select table_name, column_name
@@ -201,11 +171,6 @@ describe('finish', () => {
   })
 
   it('refuses when either account is banned', async () => {
-    /*
-     * `bans.user_id` is reassigned like any other column, so merging a banned
-     * account would carry its active ban onto the winner and lock out an
-     * account nobody decided to ban. Kills the mutant that drops the check.
-     */
     await seedUser(WINNER, 'keeper')
     await seedUser(LOSER, 'duplicate', 'banned')
 
@@ -213,11 +178,6 @@ describe('finish', () => {
   })
 
   it('destroys the loser’s sessions rather than moving them', async () => {
-    /*
-     * The security claim. A merge is not an authentication event: moving a
-     * session row would hand the winner's account to whoever holds that
-     * cookie. Kills the mutant that treats `sessions` as an ordinary pointer.
-     */
     await seedPair()
     await db.execute(sql`
       insert into sessions (id, user_id, token_hash, expires_at)
@@ -234,10 +194,6 @@ describe('finish', () => {
   })
 
   it('keeps the winner’s row when both hold one under a uniqueness rule', async () => {
-    /*
-     * Both subscribed to the same thread. A straight UPDATE violates the
-     * index; dropping the loser's keeps what the winner has been living with.
-     */
     await seedPair()
     await db.execute(sql`
       insert into threads (id, forum_id, author_user_id, author_username, title, slug)
@@ -255,7 +211,6 @@ describe('finish', () => {
         sql`select thread_id, mode from thread_subscriptions order by thread_id`,
       ),
     ) as Array<{ thread_id: number; mode: string }>
-    /* The winner's own mode survived; the thread only they had came across. */
     expect(rows).toEqual([
       { thread_id: 1, mode: 'instant' },
       { thread_id: 2, mode: 'instant' },
@@ -280,12 +235,6 @@ describe('finish', () => {
   })
 
   it('deletes a rating that would become a self-rating', async () => {
-    /*
-     * The two-ended case, and the reason `reputation` is not in the generic
-     * dedupe list. The loser rated the winner; after a merge that row says the
-     * winner rated themselves — a state the board refuses to create and no
-     * reader expects. Kills the mutant that moves it like any other column.
-     */
     await seedPair()
     await db.execute(sql`
       insert into reputation (id, user_id, given_by_user_id, points)
@@ -327,11 +276,6 @@ describe('finish', () => {
   })
 
   it('moves the denormalised last-post columns, which have no foreign key', async () => {
-    /*
-     * `threads.last_post_user_id` is a display cache. Nothing in the database
-     * would complain if it were missed; the thread list would simply keep
-     * showing the merged-away name forever.
-     */
     await seedPair()
     await db.execute(sql`
       insert into threads (id, forum_id, author_user_id, author_username, title, slug,
@@ -352,11 +296,6 @@ describe('finish', () => {
       sql`select count(*)::int as n from forums where last_post_user_id = ${WINNER}`,
     )).toBe(1)
 
-    /*
-     * And the *names* beside them. Moving the id and leaving the name is the
-     * failure this whole map exists to prevent: no error, no foreign key, and
-     * a thread list that shows the merged-away account forever.
-     */
     expect(await count(
       sql`select count(*)::int as n from threads where last_post_username = 'keeper'`,
     )).toBe(1)
@@ -408,11 +347,6 @@ describe('finish', () => {
   })
 
   it('soft-deletes the losing account rather than dropping it', async () => {
-    /*
-     * Its row is what any column this map missed still points at — a deleted
-     * account renders as a former member where a dangling id renders as a
-     * crash — and it is the only evidence afterwards that a merge happened.
-     */
     await seedPair()
     await repo.finish(LOSER, WINNER)
 

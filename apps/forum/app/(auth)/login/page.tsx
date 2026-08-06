@@ -9,23 +9,11 @@ const NOTICES: Record<string, string> = {
   registered: "Account created. You can sign in now.",
   reset: "Your password has been changed. Sign in with your new password.",
   activated: "Your address is confirmed. You can sign in now.",
-  /*
-   * The `both` policy: the address is proven and an administrator still has to
-   * approve the account. Saying so is the difference between waiting and
-   * assuming something is broken.
-   */
   confirmed:
     "Your address is confirmed. An administrator will review your account before you can sign in.",
   already: "That account is already active. Sign in below.",
 }
 
-/**
- * One sentence for every way a confirmation link can fail.
- *
- * A forged token, a used one and an expired one are deliberately not told
- * apart: the next step is the same for all three, and distinguishing them would
- * tell whoever is holding a token whether it was ever real.
- */
 const VERIFY_FAILED =
   "That confirmation link is no longer valid. Ask for a new one below."
 

@@ -1,27 +1,5 @@
 import 'server-only'
 
-/**
- * F68 at the app layer.
- *
- * ## Where the build/runtime line actually falls
- *
- * **Installing** a theme is a build-time fact. `forum.config.ts` is the
- * registry (invariant 6): a serverless bundle contains only what the bundler
- * saw, and nothing is discovered by scanning a directory at request time. So
- * adding a theme is still `pnpm add`, a line in that file, redeploy — the same
- * honest story F69 tells about plugins.
- *
- * **Choosing** one is not. Every registered theme is in the bundle and resolved
- * at module load, so picking between them is a per-request choice like any
- * other, and `currentTheme()` makes it from a cookie. What this screen decides
- * — which themes are offered, which is the default, and what each one's colours
- * are — is all read on the render path.
- *
- * The screen used to say there could be no switcher at all, on the argument
- * that one "would cost every first paint a database read". That argument had
- * quietly expired: 91 of the board's 92 routes were already dynamic, because
- * the shell resolves the viewer.
- */
 import { ForbiddenError } from '@meith/core'
 import { PostgresThemeAdminRepository, getDb, type ThemeRecord } from '@meith/db'
 
@@ -47,16 +25,13 @@ export function requireThemeAdmin(): PostgresThemeAdminRepository {
   return repository
 }
 
-/** One editable token: what the theme ships, and what this board overrides. */
 export interface TokenRow {
   readonly name: string
   readonly label: string
   readonly hint: string
   readonly kind: TokenKind
-  /** The compiled value, light and dark, straight from the theme package. */
   readonly light: string
   readonly dark: string
-  /** This board's override per scheme, or `''` for "use the theme's". */
   readonly overrideLight: string
   readonly overrideDark: string
 }
@@ -64,9 +39,7 @@ export interface TokenRow {
 export interface ThemeAdminView {
   readonly key: string
   readonly title: string
-  /** True for the theme whose *components* this build renders. */
   readonly isBuildTheme: boolean
-  /** True for the theme a member who has chosen nothing is shown. */
   readonly isDefault: boolean
   readonly enabled: boolean
   readonly tokens: readonly TokenRow[]
@@ -75,11 +48,9 @@ export interface ThemeAdminView {
   readonly updatedAt: Date | null
 }
 
-/** A theme as the management list shows it. */
 export interface ThemeListing {
   readonly key: string
   readonly title: string
-  /** Its components are what the board renders. Cannot be disabled. */
   readonly isBuildTheme: boolean
   readonly isDefault: boolean
   readonly enabled: boolean
@@ -90,15 +61,6 @@ export interface ThemeListing {
 
 const buildThemeKey = forumConfig.defaultTheme
 
-/**
- * How many tokens this board has overridden, counted across both schemes.
- *
- * Tolerant on purpose. This runs on the *listing*, where the only consequence
- * of a malformed row is a wrong number beside a theme name — and the screen
- * that fixes a malformed row is the one behind this link. Throwing here would
- * mean a hand-edited row locked an administrator out of the editor that repairs
- * it.
- */
 function countOverrides(raw: unknown): number {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return 0
 
@@ -115,13 +77,6 @@ function countOverrides(raw: unknown): number {
   return keys.length
 }
 
-/**
- * Every theme the build has, with whatever the board has decided about it.
- *
- * The registry is the list; storage is the exception to it — the same rule
- * F64's settings screen and F66's permission editor follow. A theme with no row
- * is enabled and uncustomised, which is what a freshly installed theme is.
- */
 export async function themeListing(): Promise<readonly ThemeListing[]> {
   const repository = themeAdminRepository()
   const rows = repository === null ? [] : await repository.list()
@@ -137,12 +92,6 @@ export async function themeListing(): Promise<readonly ThemeListing[]> {
       key: theme.key,
       title: theme.title,
       isBuildTheme: theme.key === buildThemeKey,
-      /*
-       * With no row claiming it, the default is the build's own theme — which
-       * is what the board rendered before any of this was configurable, and
-       * what `theme-runtime.ts` falls back to. Reading it the same way in both
-       * places is what stops the screen and the page disagreeing.
-       */
       isDefault:
         claimed === undefined || byKey.get(claimed.key)?.enabled === false
           ? theme.key === buildThemeKey
@@ -155,18 +104,6 @@ export async function themeListing(): Promise<readonly ThemeListing[]> {
   })
 }
 
-/**
- * Assemble the editor.
- *
- * The token list comes from the **theme package**, not from the stored row: the
- * row holds overrides only, and a screen built from it would show an operator
- * the three tokens they have already changed and none of the thirty-five they
- * could.
- *
- * A malformed stored row is read as "no overrides" rather than thrown from:
- * this is the screen an operator opens to *repair* such a row, and the editor
- * refusing to open is how they end up back in psql.
- */
 export async function buildThemeAdminView(key: string): Promise<ThemeAdminView | null> {
   const installed = forumConfig.themes[key]
   const repository = themeAdminRepository()
@@ -177,16 +114,8 @@ export async function buildThemeAdminView(key: string): Promise<ThemeAdminView |
   let overrides: TokenOverrides = { light: {}, dark: {} }
   try {
     overrides = validateTokenOverrides(installed.tokens, record?.tokenOverrides)
-  } catch {
-    /* Shown as uncustomised; saving from this screen replaces the bad row. */
-  }
+  } catch {}
 
-  /*
-   * "Is this the default?" cannot be answered from this theme's own row alone:
-   * with no row claiming the default, it is the build's theme, and that is a
-   * fact about every *other* row. One extra read on an administration screen,
-   * resolved by the same function the listing uses so the two cannot disagree.
-   */
   const listing = (await themeListing()).find((entry) => entry.key === key)
 
   return {
@@ -216,7 +145,6 @@ export async function buildThemeAdminView(key: string): Promise<ThemeAdminView |
   }
 }
 
-/** The declared tokens for a key, for the actions' validation. */
 export function themeTokens(
   key: string,
 ): { light: Readonly<Record<string, string>>; dark: Readonly<Record<string, string>> } | null {
@@ -230,43 +158,10 @@ export function themeTitle(key: string): string | null {
   return forumConfig.themes[key]?.title ?? null
 }
 
-/**
- * The theme whose components render, which is the one that may not be disabled.
- *
- * Turning it off would leave a board painting one theme's markup in another's
- * colours with no route back through the screen that did it.
- */
 export function isBuildTheme(key: string): boolean {
   return key === buildThemeKey
 }
 
-/**
- * The two surface colours an administration preview has to paint itself with.
- *
- * ## Why a preview cannot just inherit the page
- *
- * The group screen shows a member's name in the group's colour twice, once on
- * the light card it will really be on and once on the dark one. The obvious
- * implementation — a `<div>` with `bg-card` and a `dark` class on the second —
- * is right for half the administrators and wrong for the other half, and the
- * half it is wrong for cannot tell.
- *
- * The reason is the cascade this board deliberately uses. Dark values are
- * declared under `.dark` *and* under `@media (prefers-color-scheme: dark)`; the
- * light values are only ever on `:root`. So for an administrator whose
- * operating system is in dark mode, an element with no class inherits the dark
- * palette — and the sample labelled "Light" is painted on black. There is no
- * `.light` class to opt back out with, because nothing else on the board has
- * ever needed one.
- *
- * The fix is the one the theme customizer already uses: a preview declares the
- * palette it means, as custom properties on its own element, so nothing about
- * the surrounding page can reach into it. This is that palette, cut down to the
- * two tokens a name-on-a-card needs.
- *
- * The values come from the board's **default** theme with its overrides
- * applied, because that is the theme most readers are actually looking at.
- */
 export interface SampleSurface {
   readonly background: string
   readonly foreground: string
@@ -288,9 +183,7 @@ export async function boardSampleSurfaces(): Promise<{
     const record = await themeAdminRepository()?.read(key).catch(() => null)
     try {
       overrides = validateTokenOverrides(theme.tokens, record?.tokenOverrides)
-    } catch {
-      /* A malformed row previews as uncustomised; the editor is where it is repaired. */
-    }
+    } catch {}
   }
 
   const pick = (

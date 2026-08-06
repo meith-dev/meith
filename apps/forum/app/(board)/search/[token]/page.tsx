@@ -13,19 +13,6 @@ export const metadata: Metadata = { title: 'Search results' }
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-/**
- * F73 — a stored search's results.
- *
- * The page **re-runs** the stored query rather than reading a frozen list of
- * hits, so every visit applies the current viewer's scope: a post deleted since
- * the search was run is gone, and a member who has lost access to a forum stops
- * seeing its hits at once. A frozen list would be faster here and wrong in both
- * of those ways.
- *
- * Paging is a link carrying the keyset cursor — no JavaScript, and the address
- * stays short because the *query* lives in the stored row rather than in the
- * URL.
- */
 export default async function SearchResultsPage({
   params,
   searchParams,
@@ -61,11 +48,6 @@ export default async function SearchResultsPage({
       after,
     })
   } catch (err) {
-    /*
-     * A search that is not this viewer's is a 404, not a 403: "this exists but
-     * is not yours" confirms that somebody ran it, which is the fact being
-     * protected.
-     */
     if (isAppError(err)) notFound()
     throw err
   }
@@ -108,12 +90,7 @@ export default async function SearchResultsPage({
               >
                 {hit.threadTitle}
               </a>
-              {/*
-                The excerpt is `ts_headline`'s output: the same engine that
-                matched the terms marks them, so a stemmed match ("running"
-                found by "run") is highlighted correctly. It is the renderer's
-                own markup, not a member's.
-              */}
+              { }
               <p
                 className="text-sm text-muted-foreground [&_b]:font-semibold [&_b]:text-foreground"
                 dangerouslySetInnerHTML={{ __html: hit.excerpt }}
@@ -135,11 +112,7 @@ export default async function SearchResultsPage({
         </a>
       )}
 
-      {/*
-        Search within results. A new search rather than an intersection — with
-        the query stored rather than a list of ids, "within" is simply "and",
-        which is what full-text search does natively and what a member means.
-      */}
+      { }
       <form method="get" action="/search" className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Search within these results</span>

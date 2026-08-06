@@ -1,28 +1,4 @@
 #!/usr/bin/env node
-/**
- * The documentation is published from one copy, and this is what keeps it so.
- *
- * `apps/web` renders `docs/*.md` directly — it holds no copy of any document,
- * only a manifest saying which ones exist, what they are called and where they
- * belong. That arrangement has exactly one way to rot, and it is silent: a
- * document is added to `docs/`, nobody names it in the manifest, and the site
- * simply never mentions it. Nothing fails. The newest document — the one most
- * likely to matter — is the one that goes missing, which is the same failure
- * `scripts/docs-index.mjs` exists to prevent for `docs/README.md`.
- *
- * So three things are checked, and one is generated:
- *
- *   1. Every `.md` under `docs/` is either published by the manifest or listed
- *      in its `internal` array with a reason. Silence is not an option.
- *   2. Every manifest entry points at a file that exists.
- *   3. Slugs are unique, sections resolve, and each section has exactly one
- *      primary document — the one the site sends a new reader to first.
- *   4. The table in `README.md` is written from the manifest, between markers,
- *      so the repository's front page cannot drift from what the site publishes.
- *
- * Run: pnpm site:docs        (rewrites README.md)
- *      pnpm site:docs:check  (fails instead, and is what verify and CI run)
- */
 
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
@@ -38,7 +14,6 @@ const END = '<!-- docs:table end -->'
 const check = process.argv.includes('--check')
 const problems = []
 
-/** Every Markdown file under docs/, recursively, relative to docs/. */
 async function markdownFiles(dir = DOCS) {
   const entries = await readdir(dir, { withFileTypes: true })
   const found = []
@@ -59,7 +34,6 @@ const published = new Map(manifest.documents.map((doc) => [doc.file, doc]))
 const internal = new Map(manifest.internal.map((doc) => [doc.file, doc]))
 const sections = new Map(manifest.sections.map((section) => [section.id, section]))
 
-/* 1. Nothing under docs/ is unaccounted for. */
 for (const file of files) {
   if (published.has(file) || internal.has(file)) continue
   problems.push(
@@ -69,7 +43,6 @@ for (const file of files) {
   )
 }
 
-/* 2. Nothing in the manifest points at a file that is not there. */
 for (const [file, doc] of published) {
   if (!files.includes(file)) {
     problems.push(`${MANIFEST} publishes docs/${file} as "${doc.slug}", and that file does not exist.`)
@@ -86,7 +59,6 @@ for (const file of published.keys()) {
   }
 }
 
-/* 3. The manifest is internally consistent. */
 const slugs = new Set()
 for (const doc of manifest.documents) {
   if (slugs.has(doc.slug)) problems.push(`${MANIFEST} uses the slug "${doc.slug}" twice.`)
@@ -109,18 +81,12 @@ for (const section of manifest.sections) {
   if (inSection.length === 0) {
     problems.push(`${MANIFEST}: section "${section.id}" has no documents.`)
   } else if (primaries.length !== 1) {
-    /*
-     * The site sends a reader to a section's primary document from the landing
-     * page and the footer. Two primaries means one of those links silently picks
-     * whichever came first in the file; none means the link disappears.
-     */
     problems.push(
       `${MANIFEST}: section "${section.id}" has ${primaries.length} primary documents, and needs exactly 1.`,
     )
   }
 }
 
-/* 4. README's table, written from the manifest. */
 function renderTable() {
   const rows = manifest.sections.flatMap((section) =>
     manifest.documents

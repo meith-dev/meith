@@ -91,7 +91,6 @@ describe('CachedForumRepository', () => {
     await repo.move(1, { newParentId: null })
     await repo.listAll()
 
-    // Without invalidation this stays at 1 and the ACP shows a stale tree.
     expect(inner.listAll).toHaveBeenCalledTimes(2)
   })
 
@@ -105,11 +104,6 @@ describe('CachedForumRepository', () => {
     expect(inner.listAll).toHaveBeenCalledTimes(2)
   })
 
-  /*
-   * Ordering matters: invalidating before the write leaves a window where a
-   * concurrent read repopulates from the pre-write state and nothing clears it
-   * again. This pins the write-then-invalidate order.
-   */
   it('invalidates after the write, not before', async () => {
     const order: string[] = []
     const cache = cacheDriver()
@@ -138,17 +132,6 @@ describe('CachedForumRepository', () => {
     })
   })
 
-  /*
-   * The listing read carries counters that change on every post. Caching it
-   * under the forum-tree tag would mean invalidating the tree on every reply,
-   * making the tag worthless for the structural read it exists to serve; caching
-   * it under a tag of its own means an entry that is stale within seconds and a
-   * second thing the posting path must remember to clear.
-   *
-   * Both of those are easy to "fix" by adding two lines to the decorator, which
-   * is exactly why the decision is pinned by a test rather than left as a
-   * comment. See ForumRepository.listListing.
-   */
   it('never caches the listing read', async () => {
     const cache = cacheDriver()
     const set = vi.spyOn(cache, 'set')
@@ -167,8 +150,6 @@ describe('CachedForumRepository', () => {
     const inner = innerRepo([row(1)])
     const repo = new CachedForumRepository(inner, cache)
 
-    // Populate the structural cache first: a decorator that answered the
-    // listing read from it would return rows with no counters at all.
     await repo.listAll()
     const listing = await repo.listListing()
 

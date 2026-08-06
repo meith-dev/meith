@@ -43,7 +43,6 @@ describe('path arithmetic', () => {
     expect(() => parsePath('1.-2')).toThrow()
   })
 
-  /* The distinction the whole subtree predicate rests on. */
   it('treats a shared numeric prefix as a different branch', () => {
     expect(isInSubtree('1.4', '1.4')).toBe(true)
     expect(isInSubtree('1.4.9', '1.4')).toBe(true)
@@ -67,18 +66,15 @@ describe('buildTree', () => {
 
   it('orders siblings by display order, then id', () => {
     const tree = buildTree([row(3, null, 1), row(1, null, 0), row(2, null, 0)])
-    // Equal display_order falls back to id so the order is stable across runs.
     expect(tree.map((n) => n.id)).toEqual([1, 2, 3])
   })
 
   it('promotes an orphan to the root rather than dropping it', () => {
-    // Routine once F21 filters by visibility: a visible child of a hidden parent.
     const tree = buildTree([row(1, null), row(9, 77, 0, '77.9')])
     expect(tree.map((n) => n.id).sort((a, b) => a - b)).toEqual([1, 9])
   })
 
   it('does not hang on a cycle', () => {
-    // Corrupt data must not spin the render thread.
     const tree = buildTree([row(1, 2), row(2, 1)])
     expect(flattenTree(tree)).toHaveLength(2)
   })

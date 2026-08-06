@@ -27,15 +27,6 @@ function postId(value: string | undefined): number | null {
   return Number.isSafeInteger(id) ? id : null
 }
 
-/**
- * F41 — managing one post.
- *
- * Both of the post's manageable states live here, because they are the same
- * decision seen from either side and a second route would 404 whenever another
- * moderator acted first. Which forms appear is decided by `resolvePostScope`,
- * the same function the three actions re-run before writing — this page offers
- * controls, it does not grant anything.
- */
 export default async function EditPostPage({
   params,
   searchParams,
@@ -52,19 +43,9 @@ export default async function EditPostPage({
   if (scope === null) notFound()
 
   const isDeleted = scope.target.post.visibility === 'deleted'
-  /*
-   * Nothing on offer is a 404, not an empty page. A member who cannot edit a
-   * post has no more business knowing this screen exists for it than they have
-   * knowing about a forum they cannot see.
-   */
   const mayManage = isDeleted ? scope.mayRestore : scope.mayEdit || scope.mayDelete
   if (!mayManage) notFound()
 
-  /*
-   * No second read of the thread. `resolvePostScope` already resolved it with
-   * the post, and reading it again would be a second visibility decision made
-   * somewhere else — which is exactly what F47 exists to stop.
-   */
   const view = buildEditView({
     thread: {
       id: scope.target.thread.id,

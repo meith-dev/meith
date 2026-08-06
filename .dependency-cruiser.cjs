@@ -1,14 +1,3 @@
-/**
- * R2 architectural boundaries, mechanically enforced.
- *
- * The plan's rule R2 is the load-bearing constraint of the whole build: domain
- * packages must stay free of Next.js and of driver *implementations*, so that
- * business logic is testable without a framework and swappable without a
- * rewrite. A convention nobody checks is a convention nobody keeps, so every
- * clause of R2 below is a hard `error` — CI fails, not warns.
- */
-
-/** Domain packages: pure business logic. */
 const DOMAIN = [
   'accounts',
   'antispam',
@@ -55,28 +44,11 @@ module.exports = {
         pathNot: [
           '(^|/)\\.[^/]+\\.(js|cjs|mjs|ts|json)$',
           '\\.d\\.ts$',
-          /*
-           * Test-support modules are imported only by *.test.ts, which is not
-           * part of the production graph depcruise walks — so they legitimately
-           * have no non-test importer and are not dead code.
-           */
           '\\.(fixture|test)\\.ts$',
-          /*
-           * `*.type-test.ts` is checked by `tsc`, not by vitest: its assertions
-           * are `@ts-expect-error` directives. It has no importer by design.
-           */
           '\\.type-test\\.ts$',
           '(^|/)tsconfig\\.json$',
           '(^|/)(babel|webpack)\\.config\\.(js|cjs|mjs|ts|json)$',
-          /*
-           * Tooling configs are invoked by a CLI, never imported.
-           */
           '(^|/)(drizzle|postcss|next|vitest|playwright)\\.config\\.(js|cjs|mjs|ts)$',
-          /*
-           * Next's App Router resolves these by file convention, so they have
-           * no importer in the module graph by design. Flagging them as dead
-           * code would make the rule useless for every real page.
-           */
           'apps/(forum|web)/app/.*/(page|layout|route|template|loading|error|not-found|default|sitemap|robots|opengraph-image|icon)\\.(ts|tsx)$',
           'apps/(forum|web)/app/(page|layout|route|template|loading|error|not-found|global-error|sitemap|robots)\\.(ts|tsx)$',
           'apps/forum/(instrumentation|middleware|proxy)\\.(ts|tsx)$',
@@ -85,7 +57,6 @@ module.exports = {
       to: {},
     },
 
-    /* ---- R2: domain packages are framework-free ---- */
     {
       name: 'domain-no-next',
       severity: 'error',
@@ -106,21 +77,6 @@ module.exports = {
       to: { path: '(^|/)node_modules/(postgres|pg|drizzle-orm)(/|$)' },
     },
     {
-      /*
-       * Both forms of the same target are matched deliberately.
-       *
-       * With `tsConfig` pointing at tsconfig.base.json, `@meith/db` resolves via
-       * the path alias to the real file `packages/db/src/index.ts`. Without a
-       * resolvable alias it stays an unresolved bare specifier, and under some
-       * pnpm layouts it appears as `node_modules/@meith/db`. A rule written for
-       * only one of those three shapes reports a clean run while enforcing
-       * nothing — which is exactly what happened here: the original
-       * `^packages/drivers/`-only rule never covered @meith/db at all, and a
-       * probe importing getDb() into packages/forums passed silently.
-       *
-       * Verify with: create packages/<domain>/src/__probe.ts importing @meith/db
-       * and confirm this rule fires before trusting a green run.
-       */
       name: 'domain-no-infra-impl',
       severity: 'error',
       comment:
@@ -139,7 +95,6 @@ module.exports = {
       },
     },
 
-    /* ---- R2: layering ---- */
     {
       name: 'core-depends-on-nothing',
       severity: 'error',
@@ -177,13 +132,6 @@ module.exports = {
       },
     },
     {
-      /*
-       * F80. The strongest form of "a plugin cannot leak a private forum" is
-       * that it cannot reach the query layer at all. `@meith/plugin-kit` hands a
-       * plugin what a viewer may already see; a plugin importing `@meith/db` or a
-       * domain package would be outside every guarantee the host makes, and no
-       * amount of failure isolation would help.
-       */
       name: 'plugins-use-the-kit-only',
       severity: 'error',
       comment:
@@ -212,7 +160,6 @@ module.exports = {
       },
     },
 
-    /* ---- F02: one env reader ---- */
     {
       name: 'no-deprecated-core',
       severity: 'error',
@@ -227,11 +174,6 @@ module.exports = {
     exclude: {
       path: [
         'node_modules',
-        /*
-         * Build output. `.next-e2e` is the same thing under another name — the
-         * browser suite builds into it so a run does not invalidate the dev
-         * server's cache — and it is inside `apps/forum/`, which this scans.
-         */
         '\\.next(-e2e)?/',
         'dist/',
         '\\.test\\.ts$',
@@ -240,22 +182,7 @@ module.exports = {
       ],
     },
     tsPreCompilationDeps: true,
-    /*
-     * Must be tsconfig.base.json, which is where the `@meith/<name>` path
-     * aliases live. Pointing at the root tsconfig.json (which only holds
-     * `references`) leaves every workspace import unresolvable: dependency-cruiser
-     * reports `couldNotResolve: true` with the bare specifier as the `resolved`
-     * value, so any rule matching a *path* silently never fires. That made the
-     * R2 driver-isolation rules inert while still reporting a clean run — the
-     * worst possible failure mode for a guard. Verified with a probe module.
-     */
     tsConfig: { fileName: 'tsconfig.base.json' },
-    /*
-     * The app's `@/*` alias, which lives in `apps/forum/tsconfig.json` and so
-     * not in the `tsconfig.base.json` above. Without it every `@/…` edge from
-     * `app/` is invisible to this tool — see the file's own header for what
-     * that costs.
-     */
     webpackConfig: { fileName: '.dependency-cruiser.webpack.cjs' },
     enhancedResolveOptions: {
       exportsFields: ['exports'],

@@ -1,11 +1,3 @@
-/**
- * F55 — the service's decisions, over an in-memory repository.
- *
- * What is worth asserting here is not "a row was written" — that is the
- * repository's test, on real Postgres — but the four judgements this layer
- * makes: whether an e-mail is wanted, what a coalesced raise suppresses, which
- * kinds a screen offers, and what a form's *absent* checkbox means.
- */
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { NotificationService, MAX_STAFF_FANOUT } from './service'
@@ -22,7 +14,6 @@ class MemoryNotifications implements NotificationRepository {
   readonly rows: NotificationRecord[] = []
   readonly preferences = new Map<number, Map<string, boolean>>()
   administrators: number[] = []
-  /** Set to make the fan-out see a coalescing conflict. */
   private nextId = 1
   private readonly dedupe = new Map<string, number>()
 
@@ -163,13 +154,6 @@ describe('raising', () => {
       )
     }
 
-    /*
-     * One row with five occurrences, and exactly one mail job. The service asks
-     * for e-mail every time — it has no idea a raise will coalesce — and the
-     * suppression happens where the conflict is detected, which is the storage
-     * layer. `notification-repo.test.ts` proves the same property against the
-     * real partial unique index.
-     */
     expect(repo.rows).toHaveLength(1)
     expect(repo.rows[0]?.occurrences).toBe(5)
     expect(results.filter((r) => r.emailQueued)).toHaveLength(1)
@@ -185,11 +169,6 @@ describe('raising', () => {
     })
     await service.markRead(1, first.notificationId)
 
-    /*
-     * The memory fake keeps its dedupe entry after a read, so this asserts the
-     * *service* asked for the same key rather than the storage rule — which is
-     * proved against the real partial index in `notification-repo.test.ts`.
-     */
     const second = await service.raise({
       userId: 1,
       kind: 'system.task_failed',
@@ -254,8 +233,6 @@ describe('preferences', () => {
       ['report.actioned', false, true],
       ['subscription.reply', true, true],
       ['subscription.digest', true, true],
-      /* F60. On by default for a message, off for a receipt: the sender already
-         asked to be told and can see the read time on the message itself. */
       ['pm.received', true, true],
       ['pm.receipt', false, true],
     ])
@@ -280,7 +257,6 @@ describe('preferences', () => {
     await service.savePreferences(1, 'member', ['report.actioned'])
 
     const stored = repo.preferences.get(1)
-    /* Unchecked submits nothing, so "off" has to be reconstructed. */
     expect(stored?.get('warning.received')).toBe(false)
     expect(stored?.get('report.actioned')).toBe(true)
   })

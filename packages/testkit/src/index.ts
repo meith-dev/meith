@@ -1,11 +1,3 @@
-/**
- * @meith/testkit — test support (F11).
- *
- * Excluded from dependency-cruiser and from production bundles: this may import
- * `@meith/db` freely, because its whole job is standing a real database up and
- * measuring what the code does to it.
- */
-
 export {
   createRandom,
   paragraphs,

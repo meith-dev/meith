@@ -1,17 +1,5 @@
 'use server'
 
-/**
- * F51 — the merge and split Server Actions.
- *
- * Two exports rather than one, unlike F50's single `threadToolAction`. The
- * thread tools all take the same arguments and differ only in a verb, so one
- * adapter fits them; these two take different arguments (a post and a title
- * versus another thread) and authorise different pairs of forums. Forcing them
- * into one action would mean a parser that ignores half its input depending on
- * a hidden field, which is how the wrong end gets authorised.
- *
- * Both work with scripting off: native inputs, a submit button, a redirect.
- */
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError, isAppError, logger } from '@meith/core'
@@ -69,19 +57,9 @@ export async function splitThreadAction(
     return toFormState(err)
   }
 
-  /* The moderator lands on what they made, which is the thing to check. */
   redirect(`/thread/${outcome.threadId}-${outcome.slug}?tool=split&n=${outcome.posts}`)
 }
 
-/**
- * F52's checkboxes, feeding F51's split (the piece F51 deferred).
- *
- * Reached from the inline-moderation bar by a submit button carrying
- * `formAction`, which is native HTML: one set of checkboxes, one form owner,
- * and a button that redirects the submission somewhere else. That is what lets
- * the same ticks drive both the bulk tools and this without a second selection
- * mechanism — the thing F51 refused to build.
- */
 export async function splitSelectedAction(
   _prev: FormState,
   form: FormData,
@@ -93,12 +71,6 @@ export async function splitSelectedAction(
   const { threadSurgery } = getContainer()
   if (threadSurgery === null) return { error: NO_STORE }
 
-  /*
-   * The same `kind:id` values the bulk bar submits, parsed by the same reader.
-   * Only posts are meaningful here; a ticked thread is dropped rather than
-   * refused, because the two selections share one set of checkboxes and a
-   * thread cannot be split out of a thread.
-   */
   const postIds = parseSelection(
     form.getAll('item').filter((v): v is string => typeof v === 'string'),
   )
@@ -147,13 +119,6 @@ export async function mergeThreadAction(
     const actor = await getActor()
     if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
 
-    /*
-     * Both ends are located and authorised here, and the target end is checked
-     * with the *same* answer a missing thread gets. A moderator must not be able
-     * to discover a thread in a forum they cannot read by trying to merge into
-     * it — the merge form takes a raw number, so without this it would be a
-     * working thread-existence oracle.
-     */
     const [sourceForumId, targetForumId] = await Promise.all([
       visibleForumOf(sourceThreadId),
       visibleForumOf(targetThreadId),
@@ -173,13 +138,6 @@ export async function mergeThreadAction(
   redirect(`/thread/${outcome.threadId}-${outcome.slug}?tool=merge&n=${outcome.posts}`)
 }
 
-/**
- * The forum a thread is in, if this actor may see that it is there at all.
- *
- * `locateForum` is deliberately unscoped (F47) and returns an id and nothing
- * else, so the permission check happens here — and its failure is worded as
- * "does not exist", because for this actor it does not.
- */
 async function visibleForumOf(threadId: number): Promise<number> {
   const { threads, authorizer } = getContainer()
   const actor = await getActor()
@@ -194,7 +152,6 @@ async function visibleForumOf(threadId: number): Promise<number> {
   return forumId
 }
 
-/** This actor's two answers in one forum, resolved the way F50 resolves four. */
 async function resolveRights(forumId: number): Promise<SurgeryRights> {
   const actor = await getActor()
   const { authorizer } = getContainer()

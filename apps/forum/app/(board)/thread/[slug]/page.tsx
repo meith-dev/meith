@@ -49,21 +49,6 @@ import {
 import { buildSubscriptionsView } from '@/view/subscriptions'
 import { BOARD_MEASURE } from '@/components/shell/measure'
 
-/**
- * F76 — the thread's own metadata, resolved in the viewer's scope.
- *
- * Next calls this alongside the page, and it repeats the page's locate →
- * authorise → read sequence rather than sharing state with it. That is not
- * duplication to remove: a metadata function that trusted the page to have
- * checked first would emit a private thread's title into an Open Graph card on
- * any request where the two got out of step, and the reads are cached per
- * request anyway.
- *
- * The **canonical points at the page being read**, not at page 1 — see
- * `view/metadata.ts`. What it drops is the surplus: `?post=`, `?after=` and
- * `?reveal=` are three URLs for one document, and only the page number
- * survives.
- */
 export async function generateMetadata({
   params,
   searchParams,
@@ -88,11 +73,6 @@ export async function generateMetadata({
   if (
     !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
   ) {
-    /*
-     * The same title an unknown thread gets. A metadata function that said
-     * "Private thread" would answer, in the page title of a 404, a question the
-     * 404 exists to refuse.
-     */
     return { title: 'Thread' }
   }
 
@@ -109,13 +89,6 @@ export async function generateMetadata({
     hasNext: false,
   })
 
-  /*
-   * The forum, not the opening post. This function runs beside the page rather
-   * than inside it, and reading the first post here would be a second post
-   * query on every thread view to fill a description only a link unfurler
-   * sees. The page itself has the posts already and puts the real text into
-   * the JSON-LD, which is where a crawler reads it.
-   */
   const description = `A discussion in ${forum.title}.`
 
   return {
@@ -138,7 +111,6 @@ export async function generateMetadata({
   }
 }
 
-/** What each tool says when it worked. Unknown values fall through to null. */
 const TOOL_NOTICE: Readonly<Record<string, string>> = {
   lock: 'Thread locked.',
   unlock: 'Thread unlocked.',
@@ -152,7 +124,6 @@ const TOOL_NOTICE: Readonly<Record<string, string>> = {
 }
 
 function threadId(value: string): number | null {
-  // Index last-post links carry only the stable id; thread listings add a slug.
   const match = /^(\d+)(?:-|$)/.exec(value)
   if (!match) return null
   const id = Number(match[1])
@@ -178,13 +149,11 @@ export default async function ThreadPage({
     posted?: string
     post?: string
     tool?: string
-    /* F52's outcome, written by the inline-moderation action's redirect. */
     did?: string
     n?: string
     refused?: string
     gone?: string
     skipped?: string
-    /* F61. Repeatable: `?reveal=12&reveal=15`. */
     reveal?: string | string[]
   }>
 }) {
@@ -210,14 +179,6 @@ export default async function ThreadPage({
     polls,
     drafts,
   } = getContainer()
-  /*
-   * Locate, authorise, then read — in that order, and the order is the whole
-   * point. The scope cannot be built before the forum is known and the forum
-   * cannot be known before the thread is located, so `locateForum` returns the
-   * one field permissions need and nothing else. The thread itself is read
-   * exactly once, inside the scope this actor turns out to have, so a moderator
-   * sees a hidden thread and nobody else learns it exists.
-   */
   const forumId = await threads.locateForum(id)
   if (forumId === null) notFound()
 
@@ -236,23 +197,10 @@ export default async function ThreadPage({
   const thread = await threads.findById(id, scope)
   if (!thread) notFound()
 
-  /*
-   * Count the view only after the permission check, and only on the first page:
-   * paging through a long thread is one visit, and a viewer who cannot see the
-   * thread has not viewed it. The write is buffered (F38) rather than applied to
-   * `threads`, and a failure is swallowed — a view counter is never a reason to
-   * fail a page that has already been authorised and read.
-   */
   if (threadViews && after === undefined) {
     await threadViews.record(thread.id).catch(() => undefined)
   }
 
-  /*
-   * The same scope the thread was read with. Everyone else's page never
-   * contains the row — filtering in the theme would put the body in the HTML
-   * and hide it with CSS, which F33 already refused to do for profile fields.
-   */
-  /* F57's per-member page size, resolved before the read that uses it. */
   const preferences = await getViewerPreferences()
   const postPage = await posts.listThread(thread.id, {
     ...(after === undefined ? {} : { afterId: after }),
@@ -263,11 +211,6 @@ export default async function ThreadPage({
     postPage.nextAfterId === null
       ? null
       : `/thread/${thread.id}-${thread.slug}?after=${postPage.nextAfterId}&page=${page + 1}`
-  /*
-   * The reply link is offered only where the actor may actually use it, and a
-   * locked thread offers it to nobody but a moderator — the same answer the
-   * action gives, computed twice because a link is not authorisation.
-   */
   const canReply =
     threadWrites !== null &&
     authorizer.can(actor, 'reply.post', { forumId: forum.id, forum: matrix }) &&
@@ -277,34 +220,10 @@ export default async function ThreadPage({
         forum: matrix,
       }))
 
-  /*
-   * F41's affordances, resolved once. `post.editOwn` and `post.deleteOwn` are
-   * asked with the *viewer* as owner so the matrix answers the own-content
-   * question; the per-post decision of whether this actually is their post is
-   * the view model's, and every one of these is re-asked by the action that
-   * acts on it.
-   */
-  /*
-   * F54's debt, paid. `Target.isForumModerator` has existed since F48 and was
-   * never set on a per-page `can()` call, so outside the queue a per-forum
-   * appointee had only their group's rights — `post.editOthers` and
-   * `post.softDelete` both read the flag and both saw `undefined`. Every
-   * affordance below is now built on the appointment-aware target.
-   */
   const appointment = await moderatorTargetFor(actor, forum.id, matrix)
   const own = { ...appointment, ownerId: actor.userId }
   const others = { ...appointment, ownerId: -1 }
-  /*
-   * Every affordance is also gated on there being somewhere to write, the same
-   * way the reply link is: fixture mode has no post writer (D38), and an Edit
-   * link that leads to a 404 is worse than no link at all.
-   */
   const writable = postWrites !== null
-  /*
-   * Read once. Three things below ask the board what it has decided about
-   * reputation, and three separate awaits of a cached read is three chances for
-   * one of them to be asking a different question than it looks like.
-   */
   const reputation = await reputationSettings()
   const capabilities = {
     viewerUserId: actor.userId,
@@ -315,45 +234,22 @@ export default async function ThreadPage({
     bypassesWindow:
       authorizer.can(actor, 'post.editOthers', others) ||
       authorizer.can(actor, 'content.viewUnapproved', own),
-    /* Global (F49): reporting is a board capability, not a per-forum grant. */
     canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
-    /* F53. Global too, and gated on there being a warning store at all (D38). */
     canWarn:
       getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
-    /*
-     * F62. Global as well, gated on a reputation store *and* on the board
-     * setting — a Rate link that leads to a 404 because reputation is switched
-     * off is worse than no link.
-     */
     canRate:
       getContainer().reputation !== null &&
       authorizer.can(actor, 'reputation.give') &&
       reputation.enabled,
-    /*
-     * Whether the form has anything the Thanks button has not. On a board that
-     * requires no comment and allows no negatives it does not, and the link
-     * beside the button would lead to a page for pressing the same thing.
-     */
     ratingNeedsForm: reputation.commentRequired || reputation.allowNegative,
   }
 
-  /*
-   * The Thanks state for the page, in two queries rather than two per post.
-   * Only asked for where the control will actually be offered — a guest, a
-   * board with reputation off, and a board that requires a comment all skip it.
-   */
   const thanksOffered =
     capabilities.canRate === true && !reputation.commentRequired && actor.userId !== null
   const thanks = thanksOffered
     ? await thanksForPosts(postPage.rows.map((row) => row.id))
     : new Map()
 
-  /*
-   * F50's tools, and the only place on a reading page that resolves appointment
-   * rights. Gated on `threadTools` so fixture mode offers nothing, and the move
-   * destinations are only fetched when the actor may actually move — two extra
-   * queries for a moderator, none for everybody else.
-   */
   const movableInto =
     threadTools === null
       ? []
@@ -370,11 +266,6 @@ export default async function ThreadPage({
       threadTools !== null &&
       authorizer.can(actor, 'thread.delete', toolTarget),
   }
-  /*
-   * F51's two, gated on their own repository. The split points are the posts on
-   * *this page* minus the thread's opening post — the one post a split may not
-   * start from, because taking everything from it is a move (F51).
-   */
   const surgeryRights = {
     merge:
       threadSurgery !== null &&
@@ -403,11 +294,6 @@ export default async function ThreadPage({
         )
         .map((row) => ({ id: row.id, title: row.title }))
 
-  /*
-   * F52 on the thread page selects *posts*, so the bar offers only the tools
-   * that mean something for one: approve, delete, restore. Lock, pin and move
-   * act on the thread as a unit and already have F50's bar above.
-   */
   const inlineRights = {
     approve:
       inlineModeration !== null &&
@@ -415,24 +301,12 @@ export default async function ThreadPage({
     lock: false,
     stick: false,
     move: false,
-    /* `toolTarget` already carries `isForumModerator` (see `appointment`). */
     delete:
       inlineModeration !== null &&
       authorizer.can(actor, 'post.softDelete', toolTarget),
   }
-  /*
-   * Split alone is enough to want the checkboxes: a moderator appointed only to
-   * split threads holds none of the bulk tools, and without this the surface
-   * they need would not render at all.
-   */
   const inlineOffered = anyInlineTool(inlineRights) || surgeryRights.split
 
-  /*
-   * F59. One resolution per *distinct author* on the page, not per post: a
-   * thread is mostly the same few people, and the rules themselves are read
-   * once per request and cached. A board with no custom fields pays one cached
-   * lookup and gets an empty map.
-   */
   const authorIds = [
     ...new Set(
       postPage.rows
@@ -448,35 +322,12 @@ export default async function ThreadPage({
     ),
   )
 
-  /*
-   * F61's ignore list, resolved once per request. Empty for a guest, for a
-   * board with no relation store, and if the read fails — a thread page is not
-   * worth failing over a preference.
-   */
   const ignoredIds = await viewerIgnoredIds()
 
-  /*
-   * F58. One query for the whole page, keyed by author — a signature per post
-   * would be an N+1 on the board's heaviest page, which is exactly what the
-   * repository's `readMany` exists to avoid.
-   */
   const signatures = await signaturesFor(authorIds)
 
-  /*
-   * F42. One query for every attachment on the page, for the same reason as the
-   * signatures above. `attachmentsByPost` drops anything that is not
-   * downloadable, so a re-encode that has not finished is simply absent rather
-   * than rendered as a link that would 404.
-   */
-  /* F58. Same one-query-per-page shape as the signatures above. */
   const avatars = await avatarsFor(authorIds)
 
-  /*
-   * The group standing behind every name on the page — title, colour, badge and
-   * reputation — in one query, for the same reason. This is what fills
-   * `PostAuthorModel.title`, which has been in the theme contract since F27 and
-   * hardcoded `null` at the only place that builds it.
-   */
   const identities = await identitiesFor(authorIds)
 
   const attachments = attachmentsByPost(
@@ -485,12 +336,7 @@ export default async function ThreadPage({
 
   const view = buildThreadView({
     thread,
-    /*
-     * F71. Compiled once for the page rather than per post, and `undefined` on
-     * a board with no filters — which is most of them, and they pay nothing.
-     */
     wordFilter: await activeWordFilter(),
-    /* F71. Into the render, unlike the filter — see `thread-view.ts`. */
     vocabulary: await activeVocabulary(),
     capabilities,
     replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
@@ -511,22 +357,11 @@ export default async function ThreadPage({
     identities,
     ignoredIds,
     revealedPostIds: revealedFrom(query.reveal),
-    /*
-     * The page's own URL, with the page number kept: a reveal link that dropped
-     * it would send the reader back to page 1 of a long thread, which is worse
-     * than not offering one.
-     */
     currentHref:
       `/thread/${thread.id}-${thread.slug}` +
       (after === undefined ? `?page=${page}` : `?after=${after}&page=${page}`),
   })
 
-  /*
-   * F56's follow control. Two reads for a signed-in member — the current mode,
-   * and nothing else — and none at all for a guest or on a board with no
-   * subscription store, where the control is absent rather than offered and
-   * then refused.
-   */
   const { subscriptions } = getContainer()
   const followMode =
     subscriptions === null || actor.userId === null
@@ -558,28 +393,10 @@ export default async function ThreadPage({
               ? 'Nothing changed — that post was already in this state.'
               : inlineOutcomeNotice(query)
 
-  /*
-   * F76. JSON-LD, from rows this page has already read **inside the viewer's
-   * scope** — which is what makes the leak impossible rather than unlikely:
-   * there is no private post in scope here for it to describe.
-   *
-   * Serialised by `jsonLdScript`, not `JSON.stringify`. The difference is not
-   * cosmetic: `stringify` does not escape the forward slash, so a thread titled
-   * `</script>` would end this block and turn the rest of the document into
-   * markup. A test found that; see `view/metadata.ts`.
-   */
   const opening = postPage.rows.find((row) => row.isFirstPost) ?? null
   const jsonLd =
     opening === null
-      ? /*
-         * Only where the opening post is on the page — which is page one. The
-         * structured record describes the *thread*, and page four has neither
-         * its opening text nor its creation date without a second read. A
-         * crawler reading page four already has the record from page one, and
-         * the canonical here still points at page four because that is the
-         * document it is looking at.
-         */
-        null
+      ? null
       : threadJsonLd({
           title: thread.title,
           url: `/thread/${thread.id}-${thread.slug}`,
@@ -594,16 +411,6 @@ export default async function ThreadPage({
           ),
         })
 
-  /*
-   * F80. The busiest hooks on the board: `view.post-bit` and `view.post-actions`
-   * run once per post, so twenty posts is forty filter chains. Both are built
-   * here in one pass rather than inside the JSX, so the awaits happen over data
-   * the page already has instead of interleaving with rendering.
-   *
-   * The postbit's two regions are handed the post *and* its author, because the
-   * commonest plugin badge — a role marker, a country flag, a post-count tier —
-   * is about the person rather than the post.
-   */
   const pluginContext = {
     ...viewerRef(actor),
     threadId: thread.id,
@@ -628,28 +435,9 @@ export default async function ThreadPage({
             inlineOffered,
           ),
           regions: {
-            /*
-             * The multi-quote island goes *into* the actions (theme API 1.3),
-             * not into the plugin footer beside them. It sat in the footer
-             * because that was the only region reachable from here, which cost
-             * every post on the board a second bordered row holding one
-             * control. It is a post action; it lives with the post actions.
-             *
-             * The condition is the same one that decides whether the post can
-             * be quoted at all — collecting a quote you may not use is a
-             * control that does nothing.
-             */
             actions: (
               <PostActions {...actions}>
-                {/*
-                  Thanks first, because it is the one control on this row most
-                  readers will ever press. Offered on the same terms the Rate
-                  link used to carry alone — not your own post, not a deleted
-                  author, not a post you have chosen to hide — plus one more:
-                  the board must not require a comment, because one press
-                  cannot carry a reason. Where it does, the Rate link is still
-                  here and is the honest affordance.
-                */}
+                { }
                 {thanksOffered &&
                 post.author.userId !== null &&
                 post.author.userId !== actor.userId &&
@@ -708,13 +496,7 @@ export default async function ThreadPage({
   const replyTarget = { forumId: forum.id, forum: matrix }
   const quickReply = !canReply ? null : (
     <>
-      {/*
-        Turns every `?quote=` link on the page into an in-place quote — see
-        `quote-in-place.tsx`. It renders nothing; it is here rather than beside
-        the posts because it is only useful when there is a box for the quote to
-        land in. A reader who cannot reply still gets the link, and the link
-        still works.
-      */}
+      { }
       <QuoteInPlace threadId={thread.id} />
       <ReplyForm
         threadId={thread.id}
@@ -723,34 +505,11 @@ export default async function ThreadPage({
         canSubscribe={authorizer.can(actor, 'forum.subscribe', replyTarget)}
         attachmentLimits={canAttach(actor, replyTarget) ? attachmentLimits(replyTarget) : null}
         draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, forum.id, thread.id)}
-        /*
-         * Folded and shrunk, because inline this is the quick reply rather than
-         * the page — see `ReplyForm`. `/thread/…/reply` passes nothing and gets
-         * the full-size, always-open form.
-         */
         collapsible
       />
     </>
   )
 
-  /*
-   * The thread's controls, at the two ends of it (theme API 1.3 and 1.4).
-   *
-   * All four used to be siblings of `<ThreadView>` rendered *before* it,
-   * because the contract had nowhere else to put them — so a thread opened
-   * with a moderator's tool bar, a follow control, a poll and a star rating,
-   * and the `<h1>` saying which thread was a screen below all of it.
-   *
-   * They split by when somebody wants them. **Before** the posts: the
-   * moderator's bar, and the poll — a poll is content, and it is part of what
-   * the opening post is asking. **After** them: rating the thread and
-   * following it, which are both verdicts on something you have to have read.
-   * A star rating above the first post was asking what a reader thought of a
-   * discussion they had not started reading.
-   *
-   * They stay app-rendered: each one is a `<form>` bound to a Server Action,
-   * and an action reference is the one thing that never crosses into a theme.
-   */
   const anyTool =
     toolRights.lock ||
     toolRights.stick ||
@@ -823,14 +582,6 @@ export default async function ThreadPage({
     pluginContext,
   )
 
-  /*
-   * The trail: Forums › Category › Forum › this thread.
-   *
-   * Both reads are already paid for on this request — `listAll` is what the
-   * shell's jump box calls and `CachedForumRepository` serves once, and the
-   * visibility set is memoised by the authorizer. Rendered outside `<main>`,
-   * because it is navigation and "skip to content" should skip it.
-   */
   const [allForums, visibleIds] = await Promise.all([
     forums.listAll(),
     authorizer.visibleForumIds(actor),
@@ -869,7 +620,6 @@ export default async function ThreadPage({
           rights={inlineRights}
           moveTargets={[]}
           returnTo={`/thread/${thread.id}-${thread.slug}`}
-          /* F51's split over F52's checkboxes; null when they may not split. */
           splitFrom={surgeryRights.split ? thread.id : null}
         />
       )}

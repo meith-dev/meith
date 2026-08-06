@@ -1,75 +1,24 @@
-/**
- * F83 — the preflight, and why it is a pure function over probes.
- *
- * An installer's job is not really "create some rows". It is to tell somebody
- * whose board is not working *why*, before they have a board to be confused
- * about. Nearly every failure a new operator hits is visible before anything is
- * written: no database URL, the wrong connection string, a missing secret, a
- * board that is already installed.
- *
- * So the checks are a function from a **probe** — a plain record of what the
- * environment looks like — to a list of findings. Nothing here opens a
- * connection, reads the environment directly, or touches Next; the app gathers
- * the facts and this decides what they mean. That is what makes "what does the installer
- * say when the URL is the direct one" a unit test rather than a manual
- * experiment against a real Supabase project.
- *
- * ## Blockers and warnings are different, and the distinction is the feature
- *
- * A **blocker** means installing cannot succeed. A **warning** means it will
- * succeed and something will be wrong later — which is the more dangerous
- * category, because nothing complains at the time. The pooler check is the
- * archetype: a board on the direct connection string installs perfectly, works
- * in testing, and starts refusing connections under the first real traffic, with
- * an error that names the database rather than the cause.
- */
-
 export type Level = 'blocker' | 'warning' | 'ok'
 
 export interface Check {
   readonly id: string
   readonly level: Level
   readonly title: string
-  /** What to do about it. Empty for an `ok`. */
   readonly detail: string
 }
 
-/**
- * What the app measured. Every field is a fact, never a judgement.
- *
- * `null` consistently means "not determined" rather than "no": a connection that
- * was never attempted and one that failed are different situations, and an
- * installer that conflated them would report a database problem to somebody who
- * has not configured one yet.
- */
 export interface PreflightProbe {
   readonly dataSource: 'fixture' | 'postgres'
   readonly databaseUrl: string | null
   readonly hasAuthSecret: boolean
   readonly hasTickSecret: boolean
   readonly publicUrl: string | null
-  /** `null` when no attempt was made — usually because there was no URL. */
   readonly canConnect: boolean | null
-  /** `null` when unknown (no connection). */
   readonly pendingMigrations: number | null
-  /** `null` when unknown. Any user at all means this is not a fresh board. */
   readonly userCount: number | null
-  /** Whether the one-time marker is already set. */
   readonly alreadyInstalled: boolean
 }
 
-/**
- * Does this look like a pooler connection string?
- *
- * A heuristic, and it is honest about being one: the check *warns*, it does not
- * block, because a self-hosted board talking to Postgres on 5432 is entirely
- * correct and telling that operator they are wrong would train them to ignore
- * the installer.
- *
- * Three signals, any of which is enough — Supabase's pooler port, a host that
- * says so, or an explicit `pgbouncer=true`. Missing all three on a *serverless*
- * deployment is what the warning is for.
- */
 export function looksLikePooler(url: string): boolean {
   let parsed: URL
   try {
@@ -88,17 +37,9 @@ function ok(id: string, title: string): Check {
   return { id, level: 'ok', title, detail: '' }
 }
 
-/**
- * Read the probe and say what it means.
- *
- * Ordered as somebody would fix them: what is missing, then what is
- * unreachable, then what is already done. An installer that reported "no admin
- * account" above "no database" would be technically complete and useless.
- */
 export function preflight(probe: PreflightProbe): readonly Check[] {
   const checks: Check[] = []
 
-  /* ---- Already installed. First, because nothing else matters if so. ---- */
   if (probe.alreadyInstalled) {
     checks.push({
       id: 'already-installed',
@@ -109,12 +50,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
         'Use /admin to configure the board, or the operator CLI if you have lost access.',
     })
   } else if (probe.userCount !== null && probe.userCount > 0) {
-    /*
-     * The second, independent gate. A run that created the administrator and
-     * then failed before writing the marker must not be re-runnable — the second
-     * attempt would create a *second* administrator on somebody else's board,
-     * which is the one outcome an installer must make impossible.
-     */
     checks.push({
       id: 'has-members',
       level: 'blocker',
@@ -128,7 +63,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
     checks.push(ok('fresh', 'This board has not been installed yet'))
   }
 
-  /* ---- Database ---- */
   if (probe.dataSource !== 'postgres') {
     checks.push({
       id: 'data-source',
@@ -179,11 +113,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
   }
 
   if (probe.pendingMigrations !== null && probe.pendingMigrations > 0) {
-    /*
-     * Not a blocker: applying them is a *step of the install*, not a
-     * prerequisite for it. Reporting the count is still worth it — an operator
-     * who sees "42 migrations will be applied" understands what the button does.
-     */
     checks.push({
       id: 'migrations',
       level: 'ok',
@@ -192,7 +121,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
     })
   }
 
-  /* ---- Secrets ---- */
   if (!probe.hasAuthSecret) {
     checks.push({
       id: 'auth-secret',
@@ -236,7 +164,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
   return checks
 }
 
-/** May the install proceed? Blockers stop it; warnings never do. */
 export function canProceed(checks: readonly Check[]): boolean {
   return !checks.some((check) => check.level === 'blocker')
 }

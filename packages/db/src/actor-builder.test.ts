@@ -1,9 +1,3 @@
-/**
- * Actor construction, against a real (in-memory) Postgres. These prove the
- * things pure unit tests cannot: that a user's primary + secondary groups are
- * actually OR/max-combined (R4.2) after a real join, that DB lifecycle states
- * map correctly, and that the permission_version cache key is read.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ActorBuilder } from './actor-builder'
@@ -12,11 +6,6 @@ import { cacheVersions, usergroups, userGroupMemberships, users } from './schema
 
 let h: TestDb
 
-/*
- * Boot once, clear between tests — the harness convention in progress.md.
- * Creating a database per test applies every migration per test, which got slow
- * enough to trip the hook timeout once the group seed (0001) landed.
- */
 beforeAll(async () => {
   h = await createTestDb()
 })
@@ -25,21 +14,12 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
-  /*
-   * Order matters: memberships and users reference groups.
-   *
-   * These cases build bespoke permission sets to exercise the combination
-   * rules, so they own the group table outright rather than layering on top of
-   * migration 0001's seeded ladder — otherwise a change to the board's default
-   * permissions would silently rewrite what this suite asserts.
-   */
   await h.db.delete(userGroupMemberships)
   await h.db.delete(users)
   await h.db.delete(usergroups)
   await h.db.delete(cacheVersions)
 })
 
-/** Insert a group and return its id. Permission flags default off unless set. */
 async function group(
   key: string,
   perms: Record<string, unknown> = {},
@@ -87,7 +67,6 @@ describe('ActorBuilder.buildGuest', () => {
 
 describe('ActorBuilder.buildForUser — group combination (R4.2)', () => {
   it('OR-combines booleans across primary and secondary groups', async () => {
-    // Primary can view but not post; secondary can post and is an admin.
     const members = await group('members', {
       canView: true,
       canPostThreads: false,
@@ -107,7 +86,6 @@ describe('ActorBuilder.buildForUser — group combination (R4.2)', () => {
     expect(actor).not.toBeNull()
     expect(new Set(actor!.groupIds)).toEqual(new Set([members, staff]))
     expect(actor!.primaryGroupId).toBe(members)
-    // true from either group wins.
     expect(actor!.global.canView).toBe(true)
     expect(actor!.global.canPostThreads).toBe(true)
     expect(actor!.global.isAdministrator).toBe(true)
@@ -140,7 +118,6 @@ describe('ActorBuilder.buildForUser — lifecycle state', () => {
 
     expect((await builder.buildForUser(active))!.state).toBe('active')
     expect((await builder.buildForUser(banned))!.state).toBe('banned')
-    // Both DB "awaiting" states collapse to the authorizer's single one.
     expect((await builder.buildForUser(emailWait))!.state).toBe('awaiting_activation')
     expect((await builder.buildForUser(adminWait))!.state).toBe('awaiting_activation')
   })

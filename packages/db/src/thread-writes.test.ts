@@ -1,10 +1,3 @@
-/**
- * F39 — the thread write, against real Postgres.
- *
- * What is being proven here is atomicity and counter correctness, both of which
- * are properties of the transaction rather than of the SQL text: a mock would
- * accept a version that writes the post and loses the counters.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
 
@@ -88,8 +81,6 @@ describe('PostgresThreadWriteRepository.create', () => {
     const [post] = await db.select().from(posts).where(eq(posts.id, created.postId))
     expect(post).toMatchObject({ threadId: created.threadId, isFirstPost: true, message: 'First!' })
 
-    // Direct forum and author counters are exact immediately; the ancestor is
-    // the roll-up's job and is driven by this event.
     const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
     expect(forum).toMatchObject({ threadCount: 1, postCount: 1, lastPostId: created.postId })
     const [category] = await db.select().from(forums).where(eq(forums.id, CATEGORY))
@@ -116,7 +107,6 @@ describe('PostgresThreadWriteRepository.create', () => {
     const created = await repo.create({ ...RECORD, visibility: 'unapproved' })
 
     const [thread] = await db.select().from(threads).where(eq(threads.id, created.threadId))
-    // The opening post is still linked: the thread is complete, just not visible.
     expect(thread).toMatchObject({ visibility: 'unapproved', firstPostId: created.postId })
 
     const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
@@ -127,8 +117,6 @@ describe('PostgresThreadWriteRepository.create', () => {
   })
 
   it('leaves nothing behind when the write fails', async () => {
-    // A forum id that no row has: the post's foreign key rejects it after the
-    // thread insert has already succeeded inside the transaction.
     await expect(repo.create({ ...RECORD, forumId: 9999 })).rejects.toThrow()
 
     expect(await db.select().from(threads)).toEqual([])
@@ -162,15 +150,12 @@ describe('PostgresThreadWriteRepository replies (F40)', () => {
       lastPostAt: at,
     })
 
-    // The counter that a reply must *not* move. Getting this wrong inflates
-    // every ancestor's thread total by one per reply.
     const [forum] = await db.select().from(forums).where(eq(forums.id, FORUM))
     expect(forum).toMatchObject({ threadCount: 1, postCount: 2, lastPostId: postId })
 
     const [user] = await db.select().from(users).where(eq(users.id, 1))
     expect(user).toMatchObject({ threadCount: 1, postCount: 2 })
 
-    // One event per post, so the ancestor roll-up sees the reply too.
     expect(await db.select({ topic: outbox.topic }).from(outbox)).toHaveLength(2)
   })
 
@@ -246,8 +231,6 @@ describe('PostgresThreadWriteRepository.lastPostAt', () => {
       createdAt: later,
     })
 
-    // A queue full of held posts is exactly what the interval is for; exempting
-    // them would make moderation the cheapest way to flood.
     expect(await repo.lastPostAt(1)).toEqual(later)
   })
 })
@@ -267,7 +250,6 @@ describe('PostgresThreadWriteRepository prefixes', () => {
   })
 
   it('does not offer a prefix scoped to a text-prefix sibling', async () => {
-    // `1.40` shares its opening characters with `1.4` and is a different tree.
     const labels = (await repo.listPrefixes(FORUM)).map((p) => p.label)
     expect(labels).toEqual(['Board-wide', 'This subtree'])
   })

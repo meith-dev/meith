@@ -1,18 +1,5 @@
 'use server'
 
-/**
- * F63 — signing in and out of the control panel.
- *
- * Three verbs, and one rule shapes all of them: **entering the ACP proves the
- * password again.** The board session says who you are; it does not say that
- * you are still at the keyboard, and an unattended browser is the threat this
- * whole feature exists for.
- *
- * The same verb serves the initial sign-in and the mid-session re-authentication
- * a destructive operation asks for. They are the same act — prove the password,
- * move the proof clock — and writing them twice would be two chances to move
- * the wrong clock.
- */
 import { redirect } from 'next/navigation'
 
 import { generateToken, hashToken, verifyPassword } from '@meith/accounts'
@@ -43,17 +30,6 @@ function text(form: FormData, name: string): string {
   return typeof value === 'string' ? value : ''
 }
 
-/**
- * Prove the password and open — or refresh — an ACP session.
- *
- * The gates run in the same order `resolveAdmin` uses, and for the same reason:
- * an address outside the allowlist is refused before the board is asked
- * anything at all.
- *
- * A wrong password is reported as a wrong password. There is nothing to
- * enumerate here — the attacker already knows who they are signed in as — and a
- * vague message would only make a mistyped password look like a broken panel.
- */
 export async function adminSignInAction(_prev: FormState, form: FormData): Promise<FormState> {
   let target: string
 
@@ -83,21 +59,10 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
 
     const ok = await verifyPassword(password, account.passwordHash)
     if (!ok) {
-      /*
-       * Logged, and deliberately *before* the throw: a failed ACP password is
-       * one of the few events on this board that is interesting on its own,
-       * because reaching this form already required a valid board session and
-       * the ACP permission.
-       */
       await recordAdminAction({ action: 'admin.signin_failed' })
       throw new ForbiddenError('That password is not right.')
     }
 
-    /*
-     * An existing live session is *refreshed* rather than replaced. Minting a
-     * second one on every re-authentication would leave a trail of live
-     * sessions behind somebody who simply confirmed a deletion.
-     */
     const existing = await resolveAdmin()
     if ('context' in existing) {
       await service.markReauthenticated(existing.context.session.id)
@@ -134,11 +99,6 @@ export async function adminSignOutAction(): Promise<void> {
       }
     }
   } catch (err) {
-    /*
-     * Swallowed. The cookie is cleared below regardless: a sign-out that fails
-     * because the database is unreachable must still stop the browser holding
-     * an ACP session, and the row expires on its own within the idle window.
-     */
     logger({ module: 'admin-actions' }).warn({ err }, 'admin sign-out could not revoke')
   }
 
@@ -146,18 +106,9 @@ export async function adminSignOutAction(): Promise<void> {
   redirect('/')
 }
 
-/**
- * Where the sign-in form returns to.
- *
- * **Restricted to `/admin`**, not merely to board-relative paths. This form is
- * the one place on the board that mints elevated authority, and a `next` that
- * could point anywhere would make it a redirector with an administrator's
- * session attached.
- */
 function safeAdminReturn(raw: string): string {
   const trimmed = raw.trim()
   if (!trimmed.startsWith('/admin')) return '/admin'
-  /* `//evil` and `/admin@evil` both fail this; only a real sub-path passes. */
   if (trimmed.startsWith('//') || /^\/admin[^/?#]/.test(trimmed)) return '/admin'
   return trimmed
 }

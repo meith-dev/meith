@@ -31,11 +31,6 @@ export default async function NewThreadPage({
   const actor = await getActor()
   const { authorizer, forums, threadWrites, drafts } = getContainer()
 
-  /*
-   * Fixture mode has no writer, so the composer does not exist there rather
-   * than existing and failing on submit — the same rule the scheduler and the
-   * CLI follow: never advertise a capability that is not there (D32).
-   */
   if (threadWrites === null) notFound()
 
   const forum = await forums.findById(id)
@@ -43,12 +38,6 @@ export default async function NewThreadPage({
 
   const matrix = await authorizer.forumMatrix(actor, id)
   const target = { forumId: id, forum: matrix }
-  /*
-   * Two checks, not one. Without `thread.view` the forum is not something this
-   * actor may know exists, so the answer is the same 404 the listing gives;
-   * with it but without `thread.post`, they may look and not write. The action
-   * repeats both — rendering a page is not authorisation.
-   */
   if (!authorizer.can(actor, 'thread.view', target)) notFound()
   if (!authorizer.can(actor, 'thread.post', target)) notFound()
 
@@ -59,9 +48,6 @@ export default async function NewThreadPage({
 
   const view = buildNewThreadView({
     forum: { id: forum.id, title: forum.title, slug: forum.slug },
-    // A closed forum still renders its composer, with the reason stated. The
-    // alternative — a 404 — reads as "this forum vanished" to someone who was
-    // just looking at it.
     errorMessage:
       rules.isOpen && rules.allowThreads
         ? null
@@ -89,8 +75,6 @@ export default async function NewThreadPage({
                 draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, id, null)}
               />
             ) : null,
-          // F45's island. Absent by design: the plain textarea above is the
-          // posting path, and it must stay the whole path.
           toolbar: null,
         }}
       />

@@ -1,17 +1,5 @@
 "use client"
 
-/**
- * F57's four forms.
- *
- * Client components only for `useActionState`, like every other form on the
- * board, and every one works with scripting off: native inputs, a native
- * `<select>` for the timezone, and a submit button.
- *
- * The timezone list is passed in as data rather than built here. A `<select>`
- * of 400 IANA zones is the one control on this board where the no-JS answer is
- * genuinely worse than the enhanced one, and building the list on the server is
- * what keeps it working at all.
- */
 import { useActionState } from "react"
 
 import {
@@ -47,7 +35,6 @@ export function ProfileForm({
   location: string
   website: string
   bio: string
-  /** F59's operator-defined fields, already filtered to what this member may edit. */
   customFields?: readonly CustomFieldInput[]
 }) {
   const [state, action] = useActionState(saveProfileAction, EMPTY_STATE)
@@ -68,8 +55,6 @@ export function ProfileForm({
           defaultValue={website}
           className={FIELD}
           maxLength={200}
-          /* `type="url"` would refuse `example.com`, which the server accepts
-             and normalises. The looser input is the one that matches. */
           inputMode="url"
         />
       </label>
@@ -160,12 +145,7 @@ export function OptionsForm({
         when an administrator changes it.
       </p>
 
-      {/*
-        F75. The wording is the honest version: this hides you from the online
-        list *and* from its count, so nobody can find you by subtracting. It
-        does not hide your posts, and moderators still see you — a board where
-        staff cannot tell who is present is one they cannot moderate.
-      */}
+      { }
       <label className="flex items-start gap-2 text-sm">
         <input
           type="checkbox"
@@ -192,14 +172,6 @@ export function OptionsForm({
   )
 }
 
-/**
- * Both dangerous changes ask for the current password.
- *
- * The field is first in each form rather than last, because it is the thing
- * being asked for rather than a formality at the end — and `autoComplete` is
- * set so a password manager fills the right box rather than putting the new
- * password in the old one's slot.
- */
 export function PasswordForm({ minLength }: { minLength: number }) {
   const [state, action] = useActionState(changePasswordAction, EMPTY_STATE)
 
@@ -303,14 +275,6 @@ export function EmailForm({ email }: { email: string }) {
   )
 }
 
-/**
- * F58's signature form.
- *
- * The limit is shown as a number rather than only enforced, because a member
- * typing into a box that will refuse them at 1,001 characters and not say so
- * until they press Save is being set up to fail. `maxLength` on the textarea
- * mirrors the server's rule so the browser stops them first.
- */
 export function SignatureForm({
   signature,
   maxLength,
@@ -337,7 +301,7 @@ export function SignatureForm({
             </>
           )}
         </p>
-        {/* The text is kept, and shown, so an appeal can see what was there. */}
+        { }
         {signature !== "" && (
           <pre className="whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-3 text-xs">
             {signature}
@@ -351,11 +315,7 @@ export function SignatureForm({
     <form action={action} className={CARD}>
       <FormError message={state.error} />
 
-      {/*
-        The same composer a post gets, narrowed to what a signature may use. The
-        hint names the omissions rather than only the allowances, because the
-        surprising half is what silently renders as text.
-      */}
+      { }
       <MarkdownEditor
         id="signature-body"
         name="signature"

@@ -1,12 +1,3 @@
-/**
- * F53 — warnings against real Postgres.
- *
- * The thing worth proving here is the one decision the whole feature rests on:
- * `users.warning_points` is **recomputed from the live rows**, not adjusted. So
- * every test that changes a warning checks the total afterwards, and two of
- * them deliberately corrupt the cached column first to show that the next
- * recalculation repairs it rather than compounding the error.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -96,7 +87,6 @@ describe('the seeded configuration', () => {
     ])
   })
 
-  /* Configuration outlives code: an unknown action is dropped, not guessed. */
   it('drops a level whose action this build does not recognise', async () => {
     await db.execute(
       sql`insert into warning_levels (points, action) values (20, 'delete_account')`,
@@ -132,7 +122,6 @@ describe('issuing', () => {
     expect((await issue({ points: 1 })).points).toBe(6)
   })
 
-  /* The definition of "live": an expiry in the past does not count. */
   it('does not count a warning that has already expired', async () => {
     await issue({ points: 5, expiresAt: new Date(Date.now() - DAY) })
     expect(await cachedPoints()).toBe(0)
@@ -166,11 +155,6 @@ describe('revoking', () => {
     expect(await cachedPoints()).toBe(3)
   })
 
-  /*
-   * The guard is on the update, not on a prior read: two moderators pressing
-   * Revoke at the same moment must produce one audit row, not two claiming the
-   * same act.
-   */
   it('is a no-op the second time, and writes no second audit row', async () => {
     const written = await issue()
     const input = {
@@ -213,10 +197,6 @@ describe('revoking', () => {
   })
 })
 
-/*
- * The point of deriving rather than incrementing. A drifted cache is repaired
- * by the next thing that asks, instead of persisting until somebody notices.
- */
 describe('the total is derived, not adjusted', () => {
   it('repairs a cached total that has been corrupted', async () => {
     await issue({ points: 2 })
@@ -293,16 +273,10 @@ describe('history', () => {
 })
 
 describe('the expiry sweep', () => {
-  /*
-   * It corrects the *cache*; the live predicate is already right without it.
-   * What the service does with the returned ids is re-evaluate the level, which
-   * is how a suspension ends when the warning behind it ages out.
-   */
   it('finds a member whose cached total still counts a lapsed warning', async () => {
     await issue({ points: 5, expiresAt: new Date(Date.now() + DAY) })
     expect(await cachedPoints()).toBe(5)
 
-    /* Age the warning out without touching the cache. */
     await db.execute(sql`update warnings set expires_at = now() - interval '1 day'`)
 
     const due = await repo.expireDue(new Date(), 100)
@@ -310,10 +284,6 @@ describe('the expiry sweep', () => {
     expect(due.userIds).toEqual([IVAN])
   })
 
-  /*
-   * Without the "cache is still stale" predicate, every past expiry on the
-   * board is rediscovered on every tick and the sweep never reaches the newest.
-   */
   it('finds nothing once the cache agrees with the live rows', async () => {
     await issue({ points: 5, expiresAt: new Date(Date.now() + DAY) })
     await db.execute(sql`update warnings set expires_at = now() - interval '1 day'`)

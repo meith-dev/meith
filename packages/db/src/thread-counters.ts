@@ -1,20 +1,3 @@
-/**
- * What a *thread* contributes to the board's totals, and how to move it.
- *
- * Extracted from F50's thread-tools repository when F52 needed the same
- * arithmetic for a bulk selection. It is deliberately one module rather than
- * two copies: the counters a thread moves are the same counters whether one
- * moderator pressed "Delete thread" on its page or ticked forty boxes on the
- * listing, and the way that goes wrong is by drifting apart — a fix applied to
- * one path and not the other, discovered a month later as a category whose
- * total disagrees with its forums by seven.
- *
- * The reason ancestors are updated *synchronously* here, unlike F38's roll-up
- * and F41's reversal, is unchanged and worth repeating: those are per-post
- * deltas made idempotent by the `content_counter_rollups` ledger, and a *move*
- * cannot use that ledger, because the post is still counted — just somewhere
- * else — and a row that says "counted" cannot say which chain it is counted in.
- */
 import { sql } from 'drizzle-orm'
 
 import { resultRows } from './result-rows'
@@ -23,13 +6,6 @@ export interface CounterTx {
   execute(query: ReturnType<typeof sql>): Promise<unknown>
 }
 
-/**
- * What a thread contributes to the board's totals.
- *
- * Counted once and reused for the forum, the ancestors and every author,
- * because they must agree: three separate counts of the same thing is how a
- * move leaves a forum and its category disagreeing by one.
- */
 export interface ThreadTally {
   readonly posts: number
   readonly byAuthor: ReadonlyArray<{ userId: number; posts: number }>
@@ -65,14 +41,6 @@ export async function tallyThread(
   }
 }
 
-/**
- * Apply a thread's contribution to a forum **and every ancestor**, in one
- * statement.
- *
- * `f.id = child.id or child.path like f.path || '.%'` is self-plus-ancestors:
- * the separator is D22's prefix trap again, without which `1.4` would be
- * treated as an ancestor of `1.40`.
- */
 export async function applyForumChain(
   tx: CounterTx,
   forumId: number,
@@ -90,7 +58,6 @@ export async function applyForumChain(
   `)
 }
 
-/** The same contribution, per author. A move leaves these alone. */
 export async function applyAuthorCounts(
   tx: CounterTx,
   delta: 1 | -1,
@@ -113,14 +80,6 @@ export async function applyAuthorCounts(
   }
 }
 
-/**
- * Keep the roll-up ledger agreeing with reality.
- *
- * The ledger means "this post is currently counted in its ancestors". A thread
- * leaving the board takes its posts' rows with it, and a thread coming back
- * puts them there — otherwise a post deleted individually afterwards would
- * decrement ancestors that had already been decremented by the thread.
- */
 export async function syncLedger(
   tx: CounterTx,
   threadId: number,
@@ -142,7 +101,6 @@ export async function syncLedger(
   `)
 }
 
-/** One audit row. Every moderator act on this board leaves one. */
 export async function logModeratorAction(
   tx: CounterTx,
   action: string,

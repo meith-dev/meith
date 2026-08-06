@@ -1,14 +1,4 @@
 #!/usr/bin/env node
-/**
- * F13 — operator CLI.
- *
- * Everything an operator must do without a browser: inspect configuration, run
- * migrations, drain the queue, force a tick, seed sample data.
- *
- * Deliberately a *thin* layer. Each subcommand delegates to the same code the
- * app uses, so a CLI path cannot drift from the request path — the class of bug
- * where `forum settings:set` writes a value the app then rejects.
- */
 
 import process from 'node:process'
 
@@ -37,7 +27,6 @@ interface Command {
   run(args: readonly string[]): Promise<number>
 }
 
-/** Printed for `--help` and on unknown input. */
 function usage(commands: readonly Command[]): string {
   const width = Math.max(...commands.map((c) => c.name.length))
   const lines = commands.map(
@@ -59,12 +48,6 @@ const commands: Command[] = [
     name: 'env:check',
     summary: 'Validate environment variables and print the resolved config.',
     async run() {
-      /*
-       * Imported lazily inside run() rather than at module top level. A failed
-       * validation must be reported by *this* command with a readable message;
-       * a top-level import would throw during module evaluation, before the
-       * command dispatcher could attach any context.
-       */
       const { assertEnv } = await import('@meith/core')
 
       let env
@@ -76,11 +59,6 @@ const commands: Command[] = [
         return 1
       }
 
-      /*
-       * Secrets are reported as present/absent only. An operator running this
-       * over a shared terminal or pasting output into an issue must not leak
-       * AUTH_SECRET.
-       */
       const secretKeys = new Set([
         'AUTH_SECRET',
         'TICK_SECRET',
@@ -177,12 +155,6 @@ const commands: Command[] = [
       const { upgrade } = await import('./upgrade')
       return upgrade({
         dryRun: args.includes('--dry-run'),
-        /*
-         * Empty, and honestly so: `forum.config.ts` lives in the board's project
-         * and an operator CLI installed from npm has no path to it. Plugin
-         * migrations are applied by the board's own upgrade entry point; this
-         * command handles core, which is what an operator at a terminal has.
-         */
         plugins: [],
         log: (line) => console.log(line),
       })
@@ -193,13 +165,6 @@ const commands: Command[] = [
     name: 'settings:list',
     summary: 'Print the setting registry with default values.',
     async run() {
-      /*
-       * Reads the *registry*, not resolved values. Resolved values need a
-       * SettingsRepository, which belongs to the composition root (still
-       * pending — see `tick` and `queue:drain` below). Listing defaults is
-       * genuinely useful on its own: it is how an operator discovers what keys
-       * exist and what they may be set to.
-       */
       const { SETTING_DEFINITIONS } = await import('@meith/settings')
 
       const width = Math.max(...SETTING_DEFINITIONS.map((d) => d.key.length))
@@ -298,39 +263,9 @@ const commands: Command[] = [
   },
 ]
 
-
-/*
- * `task:run` and `task:list` arrived once F06 gave the scheduler a real
- * `TaskRepository`; `queue:drain` is not separate from them, because draining
- * the queue *is* one of the registered tasks and running it twice by two routes
- * would mean two claims on the same work.
- *
- * Still deliberately absent: `cache:clear`. It needs a cache an operator could
- * meaningfully clear, and there is not one — MemoryCache dies with the process
- * it lives in, and NextCache's `revalidateTag` only works inside a Next
- * request. The honest implementation bumps `cache_versions`, and that belongs
- * with F70's Recount & Rebuild.
- *
- * Registering it now as a command that throws would be worse than omitting it:
- * `forum --help` would advertise a capability the binary does not have.
- */
-
-/**
- * What `loadEnvFiles()` found, so `env:check` can report it.
- *
- * Assigned by `main()` before any command runs. `env:check` exists to answer
- * "what configuration am I actually running with", and the file that supplied it
- * is half that answer — an operator staring at `DATA_SOURCE fixture` needs to
- * know whether the CLI read their `.env` and it said fixture, or never found it.
- */
 let envFiles: LoadedEnvFiles = { root: undefined, loaded: [] }
 
 async function main(): Promise<number> {
-  /*
-   * First, before a command can import anything that reads `env`. The CLI is a
-   * plain Node process: unlike `next dev`, nothing has populated `process.env`
-   * from the workspace's `.env` by the time it starts.
-   */
   envFiles = loadEnvFiles()
 
   const [name, ...rest] = process.argv.slice(2)
@@ -358,14 +293,6 @@ async function main(): Promise<number> {
 main()
   .then((code) => process.exit(code))
   .catch(async (error: unknown) => {
-    /*
-     * Expected failures print their message and nothing else. A missing --title
-     * or an unset DATABASE_URL is an operator mistake, not a defect, and a stack
-     * trace buries the one line that says how to fix it — it also trains people
-     * to ignore stack traces, so the real ones stop being read.
-     *
-     * Anything unrecognised still prints in full, because that IS a defect.
-     */
     const { isAppError } = await import('@meith/core')
 
     if (isAppError(error)) {

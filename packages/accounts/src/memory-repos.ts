@@ -1,11 +1,3 @@
-/**
- * In-memory AccountStore for fixture mode and tests.
- *
- * These implementations are the *reference semantics* for the ports: where the
- * Postgres versions must reproduce a behaviour (single-use token redemption,
- * atomic failure counting), the rule is expressed here in the smallest honest
- * form and pinned by the service tests that run against this store.
- */
 import type {
   AccountRecord,
   AccountRepository,
@@ -54,12 +46,7 @@ class MemoryAccounts implements AccountRepository {
       passwordHash: input.passwordHash,
       passwordAlgo: input.passwordAlgo,
       state: input.state,
-      /* A brand-new account has proven nothing yet, whatever its state. */
       emailVerifiedAt: null,
-      // F20 sanctioned per-line disable (promised in D13). This copies a
-      // persisted column verbatim into the record so the actor builder in
-      // @meith/authorization can read it — it is transport, not an authorization
-      // decision. Nothing in this package ever branches on the value.
       // eslint-disable-next-line no-restricted-properties -- F20: group-id transport, not a decision
       primaryGroupId: input.primaryGroupId,
     }
@@ -87,21 +74,13 @@ class MemoryAccounts implements AccountRepository {
 
     this.byId.set(userId, {
       ...cur,
-      /* First proof wins, as the Postgres `coalesce` does. */
       emailVerifiedAt: cur.emailVerifiedAt ?? at,
-      /*
-       * The condition the port promises lives in the write. Only an account
-       * still waiting is activated: a banned one keeps its state, and so does
-       * one an administrator already activated.
-       */
       state: activate && cur.state === 'awaiting_activation' ? 'active' : cur.state,
     })
 
-    /* The state as it was *before* this write — see the port. */
     return cur.state
   }
 
-  /** Last activity per user, for the `touchLastActive` throttle. */
   private readonly lastActive = new Map<number, Date>()
 
   async touchLastActive(userId: number, now: Date, windowSeconds: number): Promise<boolean> {
@@ -120,7 +99,6 @@ class MemoryAccounts implements AccountRepository {
 class MemorySessions implements SessionRepository {
   private readonly byId = new Map<number, SessionRecord>()
   private readonly byHash = new Map<string, number>()
-  /** Last location-write time per session, for the touchLocation throttle. */
   private readonly lastLocationWrite = new Map<number, number>()
   private seq = 0
 
@@ -182,9 +160,6 @@ class MemorySessions implements SessionRepository {
     const cur = this.byId.get(sessionId)
     if (!cur) return false
     const last = this.lastLocationWrite.get(sessionId)
-    // The throttle is the method's own responsibility: inside the window we
-    // report "not written" and leave last_seen_at alone, matching the Postgres
-    // conditional UPDATE that skips rows touched within windowSeconds.
     if (last !== undefined && (now.getTime() - last) / 1000 < windowSeconds) {
       return false
     }
@@ -229,10 +204,6 @@ class MemoryRememberTokens implements RememberTokenRepository {
     const t = this.byHash.get(input.presentedHash)
     if (!t) return { status: 'invalid' }
     if (t.expiresAt.getTime() <= input.now.getTime()) return { status: 'invalid' }
-    // Replay detection: a token presented after it was already spent (or its
-    // family revoked) is the signature of a stolen cookie. Report reuse; the
-    // caller nukes the family. Single-use is enforced here, so the thief and the
-    // honest client cannot both come away with a fresh token.
     if (t.usedAt !== null || t.revokedAt !== null) {
       return { status: 'reuse', userId: t.userId, familyId: t.familyId }
     }
@@ -300,11 +271,6 @@ class MemoryCredentialTokens implements CredentialTokenRepository {
     now: Date,
   ): Promise<{ userId: number; payload: string | null } | null> {
     const t = this.byHash.get(tokenHash)
-    // Single-use lives HERE: the first successful call flips consumedAt, so any
-    // second call — replay, double-submit, concurrent tab — sees it set and
-    // returns null. The Postgres version does this as one conditional UPDATE
-    // ... WHERE consumed_at IS NULL RETURNING, which is the same guarantee under
-    // real concurrency.
     if (!t) return null
     if (t.purpose !== purpose) return null
     if (t.consumedAt !== null) return null
@@ -348,7 +314,6 @@ class MemoryLoginAttempts implements LoginAttemptRepository {
   }
 }
 
-/** Build a fresh, empty in-memory store. Each call is fully isolated. */
 export function createMemoryStore(): AccountStore {
   return {
     accounts: new MemoryAccounts(),

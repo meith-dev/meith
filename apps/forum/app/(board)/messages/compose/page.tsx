@@ -8,15 +8,6 @@ import { messageService } from '@/server/messages'
 
 export const metadata: Metadata = { title: 'Write a message' }
 
-/**
- * F60 — the composer, and the reply and forward buttons.
- *
- * Reply and forward are **GET links that prefill this form on the server**, not
- * separate routes and not a client-side template. That is what makes them work
- * with scripting off, and it is why the prefill can quote the original: the
- * server holds the copy check, so a `?reply=` naming a message this member does
- * not hold prefills nothing rather than leaking a subject line.
- */
 export default async function ComposePage({
   searchParams,
 }: {
@@ -33,12 +24,6 @@ export default async function ComposePage({
   const reply = positiveInt(query.reply)
   const forward = positiveInt(query.forward)
 
-  /*
-   * A draft that cannot be built — the id is somebody else's message, or is
-   * nothing at all — falls back to an empty composer rather than a 404. The
-   * member asked to write a message and should get to; failing the screen
-   * would also confirm which ids exist.
-   */
   const draft =
     reply !== null
       ? await service.replyDraft({ messageId: reply, userId: actor.userId }).catch(() => null)
@@ -58,8 +43,6 @@ export default async function ComposePage({
         </div>
 
         <ComposeForm
-          /* `?to=` prefills from a profile's "send a message" link. It is only
-             a default: the server resolves whatever is actually submitted. */
           to={draft?.to ?? query.to ?? ''}
           subject={draft?.subject ?? ''}
           message={draft?.message ?? ''}

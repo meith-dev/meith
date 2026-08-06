@@ -1,5 +1,3 @@
--- F43 — one poll per thread, one database-enforced vote per member, and a
--- running thread-rating aggregate for listing sorts.
 ALTER TABLE "threads" ADD COLUMN "rating_total" integer NOT NULL DEFAULT 0;
 --> statement-breakpoint
 ALTER TABLE "threads" ADD COLUMN "rating_count" integer NOT NULL DEFAULT 0;

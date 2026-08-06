@@ -3,8 +3,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { CacheTags, cachedGlobal, globalCacheKey } from './cache'
 import type { CacheDriver, CacheSetOptions } from './ports'
 
-/** Minimal in-memory driver — the real MemoryCache lives in @meith/drivers,
- * which core must not depend on. */
 function fakeCache(): CacheDriver & { entries: Map<string, { value: unknown; tags: readonly string[] }> } {
   const entries = new Map<string, { value: unknown; tags: readonly string[] }>()
   return {
@@ -26,7 +24,6 @@ function fakeCache(): CacheDriver & { entries: Map<string, { value: unknown; tag
   }
 }
 
-/** ASCII Unit Separator — what globalCacheKey joins with. */
 const US = '\u001f'
 
 describe('globalCacheKey', () => {
@@ -39,12 +36,6 @@ describe('globalCacheKey', () => {
     expect(() => globalCacheKey([])).toThrow()
   })
 
-  /*
-   * A separator a part can contain is not a separator: ['a', 'b:c'] and
-   * ['a:b', 'c'] would produce the same key, and a cache collision serves one
-   * forum's data under another's identity. A control character cannot occur in
-   * a slug or an id, which is exactly why it was chosen — this pins that.
-   */
   it('refuses a part containing the separator', () => {
     expect(() => globalCacheKey([`forum${US}1`, '2'])).toThrow(/separator/)
   })
@@ -78,10 +69,6 @@ describe('cachedGlobal', () => {
     expect(load).toHaveBeenCalledTimes(2)
   })
 
-  /*
-   * An entry no tag can reach is a stale read waiting to happen — it would live
-   * until its TTL with no way for a mutation to clear it.
-   */
   it('refuses to cache anything untagged', async () => {
     const cache = fakeCache()
     await expect(
@@ -96,7 +83,6 @@ describe('cachedGlobal', () => {
     await cachedGlobal(cache, opts, load)
     expect(cache.entries.size).toBe(0)
 
-    // Caching it would mean re-running the loader anyway, but silently.
     await cachedGlobal(cache, opts, load)
     expect(load).toHaveBeenCalledTimes(2)
   })
@@ -117,8 +103,6 @@ describe('cachedGlobal', () => {
     const set = vi.spyOn(cache, 'set')
 
     await cachedGlobal(cache, opts, async () => 'v')
-    // Not `ttlSeconds: undefined` — under exactOptionalPropertyTypes that is a
-    // different thing, and a driver may treat it as "expire immediately".
     expect(set).toHaveBeenCalledWith('forum-tree', 'v', { tags: [CacheTags.forumTree()] })
   })
 })

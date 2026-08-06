@@ -1,21 +1,7 @@
 "use client"
 
-/**
- * The hero: a townland from above.
- *
- * Small irregular fields divided by walls, filling in one after another the way
- * a meitheal works its way across one. A jittered quad lattice rather than a
- * true Voronoi — the boundaries want to look walked, not computed.
- *
- * Ported from the static site this app replaces, with two changes. It now reads
- * its colours from the design tokens on every paint (so the theme toggle is
- * reflected without a reload), and it observes `data-theme` as well as the
- * system preference, because the toggle sets the former.
- */
-
 import { useEffect, useRef } from "react"
 
-/** Deterministic jitter, so a resize redraws the same townland. */
 function noise(x: number, y: number): number {
   const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
   return n - Math.floor(n)
@@ -23,7 +9,6 @@ function noise(x: number, y: number): number {
 
 interface Cell {
   quad: [number, number][]
-  /** How far this field is from where the first hands landed. */
   dist: number
   gorse: boolean
   shade: number
@@ -48,7 +33,7 @@ export function FieldCanvas() {
       getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 
     function build(width: number, height: number) {
-      const target = width < 700 ? 108 : 132 // field width, CSS px
+      const target = width < 700 ? 108 : 132
       const columns = Math.max(3, Math.round(width / target)) + 1
       const rows = Math.max(3, Math.round(height / target)) + 1
       const cellWidth = width / (columns - 1)
@@ -99,7 +84,6 @@ export function FieldCanvas() {
       context.lineWidth = 1
 
       for (const cell of cells) {
-        // Each field has its own moment: it is cut, or it is not yet.
         const t = Math.min(1, Math.max(0, (progress - cell.dist * 0.85) * 3.2))
         if (t <= 0) continue
 
@@ -150,7 +134,6 @@ export function FieldCanvas() {
       raf = requestAnimationFrame(frame)
     }
 
-    /* Both, because the toggle writes `data-theme` and the OS writes neither. */
     const observer = new MutationObserver(repaint)
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] })
     scheme.addEventListener("change", repaint)

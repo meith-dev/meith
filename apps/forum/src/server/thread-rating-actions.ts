@@ -23,13 +23,6 @@ export async function rateThreadAction(form: FormData): Promise<void> {
     throw new ForbiddenError('You must be logged in to rate a thread.')
   const forumId = await threads.locateForum(threadId)
   const forum = forumId === null ? null : await forums.findById(forumId)
-  /*
-   * `forumId` is tested as well as `forum`, and not only to satisfy the
-   * compiler: the scope below is what every permission check reads, and a null
-   * forum id would resolve a matrix for "no forum" — which grants the group
-   * defaults with no per-forum override applied. Narrowing `forum` alone left
-   * `forumId` nullable, and the two must fail together.
-   */
   if (forumId === null || forum === null || forum.type !== 'forum')
     throw new ValidationError('That thread does not exist.')
   const target = {

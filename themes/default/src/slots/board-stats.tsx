@@ -12,26 +12,6 @@ import type { BoardStatsModel } from '@meith/theme-kit'
 
 import { NUMERIC, Stamp, UserRef } from '../shared'
 
-/**
- * The board's totals (F75).
- *
- * Two decisions here rather than styling.
- *
- * **The panel says when the numbers were computed.** They are a rollup, not a
- * live count — the member count is a count of `users`, and the index is the
- * most-requested page on the board. A number that is ten minutes old and says
- * so is honest; the same number presented as "now" is wrong. It sits in the
- * card's footer, which is where a caveat belongs: readable, not shouted.
- *
- * **Before the first rollup it says so rather than showing zeroes.** Three
- * convincing zeroes on a board with content is the worst of the three possible
- * outputs, because nobody doubts it — and on a board that genuinely has nothing
- * yet it is indistinguishable from a rollup that has failed for a week.
- *
- * The figures are a `<dl>` and the numbers lead: somebody reading this panel is
- * comparing three quantities, and putting the word first makes them read three
- * sentences instead.
- */
 export function BoardStats({
   threadCount,
   postCount,

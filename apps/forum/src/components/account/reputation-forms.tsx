@@ -1,13 +1,5 @@
 "use client"
 
-/**
- * F62's rating form and withdraw button.
- *
- * Client components only for `useActionState`; both submit natively with
- * scripting off. The three rating values are three submit buttons rather than a
- * `<select>` and a separate submit: it is one fewer control, and the button
- * that was pressed is what carries the value.
- */
 import { useActionState } from "react"
 
 import { rateMemberAction, withdrawRatingAction } from "@/server/reputation-actions"
@@ -36,12 +28,10 @@ export function RateMemberForm({
 }: {
   userId: number
   username: string
-  /** Set when rating one post rather than the member's profile. */
   postId?: number | null
   returnTo: string
   allowNegative: boolean
   commentRequired: boolean
-  /** What this rater said last time, so revising starts from it. */
   existingComment?: string | null
   existingPoints?: number | null
   remainingLabel?: string | null
@@ -77,21 +67,7 @@ export function RateMemberForm({
       </label>
 
       <div className="flex flex-wrap items-center gap-2">
-        {/*
-          The value travels on the button, so there is no separate control to
-          get out of step with it — and with scripting off the pressed button is
-          still the one whose name/value is submitted.
-
-          **The labels follow the board's own setting.** With negatives off,
-          `reputation.allow_negative` describes what is left as "a thanks
-          button" — and "Positive / Neutral" is not one. A board that has
-          decided members may only say something kind should be asking "do you
-          want to thank this person", not offering two thirds of a scale whose
-          missing third is what made the words mean anything. Neutral stays,
-          because a comment with no verdict is a real thing to want and is what
-          most ratings turn out to be; it is just no longer the opposite of
-          anything.
-        */}
+        { }
         <button type="submit" name="points" value="1" className={CHOICE}>
           {allowNegative ? "Positive" : "Thanks"}
         </button>

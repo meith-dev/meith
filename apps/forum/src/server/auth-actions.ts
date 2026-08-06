@@ -1,19 +1,5 @@
 'use server'
 
-/**
- * F18/F19 Server Actions: register, login, logout, request-reset, confirm-reset.
- *
- * Every action is written for `useActionState` AND for a no-JS form post: each
- * returns a plain serialisable `FormState` (never throws to the client), reads
- * from `FormData` (so a native submit works with scripting disabled), and does
- * its own `redirect()` on success. Progressive enhancement is a hard F18
- * requirement — the whole auth flow must work with JavaScript turned off — so
- * there is no client-side validation these depend on.
- *
- * Domain errors (`ValidationError`, `ConflictError`, `ForbiddenError`) are the
- * expected failure channel and are caught and turned into a field/summary
- * message; anything else rethrows as a real 500.
- */
 import { redirect } from 'next/navigation'
 
 import {
@@ -43,13 +29,11 @@ import {
   setSessionCookie,
 } from './session-cookies'
 
-/** Pull a trimmed string field; '' when absent. */
 function field(form: FormData, name: string): string {
   const v = form.get(name)
   return typeof v === 'string' ? v.trim() : ''
 }
 
-/** Turn a thrown domain error into a FormState; rethrow the unexpected. */
 function toFormState(err: unknown, values?: Record<string, string>): FormState {
   if (
     err instanceof ValidationError ||
@@ -58,24 +42,12 @@ function toFormState(err: unknown, values?: Record<string, string>): FormState {
   ) {
     return { error: err.message, values }
   }
-  // Not an expected domain failure: log it and surface a generic message rather
-  // than leaking internals. Rethrowing would blank the form with a 500 page;
-  // for a bad-gateway-class fault that is worse UX than an inline message.
   if (isAppError(err)) return { error: err.message, values }
   logger({ module: 'auth-actions' }).error({ err }, 'unexpected error in auth action')
   return { error: 'Something went wrong. Please try again.', values }
 }
 
-/**
- * A coarse per-request lockout bucket. The username is the primary key (so
- * guessing account A cannot lock account B); we deliberately do NOT mix in IP
- * here in fixture mode because the demo has no proxy header to trust. The
- * Postgres path can compose a richer bucket later without touching this action.
- */
 function loginBucket(identifier: string): string {
-  // Same folding the account lookup uses, and for the same reason: a
-  // locale-dependent fold would let an attacker alternate case to get two
-  // independent lockout buckets for one account. See `foldIdentifier`.
   return `login:${foldIdentifier(identifier)}`
 }
 
@@ -88,36 +60,14 @@ export async function registerAction(
   const password = field(form, 'password')
   const values = { username, email }
 
-  /*
-   * Built from the *configured* activation method rather than from the static
-   * policy: `registration.method` is the one auth setting an operator actually
-   * chooses, and this is the request where it decides something.
-   */
   const identity = await configuredIdentity()
 
-  /** Set when the board asked for the address to be proven. */
   let verification: { token: string; email: string; username: string } | null = null
 
   try {
-    /*
-     * F46, checked **before** anything else — before the profile fields, before
-     * the account. A challenge that ran after validation would tell a script
-     * which usernames are taken and which emails are registered, one refused
-     * submission at a time, which is a enumeration oracle behind a form whose
-     * whole purpose is to stop automation.
-     */
     const challenge = await verifyChallenge(form)
     if (!challenge.ok) return { error: challenge.reason, values }
 
-    /*
-     * F59's required fields are validated *before* the account exists, and
-     * written after. Doing it the other way round would leave a member the
-     * board considers incomplete: registered, logged in, and missing an answer
-     * the operator made mandatory, with no screen that insists on it.
-     *
-     * A failure here therefore costs nothing — the form comes back with the
-     * message and no account was created.
-     */
     const fields = profileFieldService()
     const context = fields === null ? null : await registrationFieldContext()
     const fieldValues =
@@ -127,13 +77,6 @@ export async function registerAction(
 
     const result = await identity.register({ username, email, password })
 
-    /*
-     * Not in the registration transaction, because there is not one to join —
-     * `register` owns its own. A field write that fails here leaves a usable
-     * account with an unanswered required field, which is recoverable from the
-     * UserCP; the reverse (an answer with no account) is not recoverable by
-     * anybody.
-     */
     if (fields !== null) await fields.applyRegistration(result.account.id, fieldValues)
 
     if (result.verificationToken !== undefined) {
@@ -148,19 +91,6 @@ export async function registerAction(
   }
 
   if (verification !== null) {
-    /*
-     * **A failed send must not fail the registration**, and that is a different
-     * call from the one `usercp-actions.ts` makes about an e-mail change. There
-     * the member is signed in and can simply ask again; here the account exists,
-     * is at `awaiting_activation`, and cannot sign in — reporting "registration
-     * failed" would be a lie about a state the person now has to live with.
-     *
-     * So the error is swallowed and logged, and the screen they land on is the
-     * one that can fix it: it names the address and offers to send again. That
-     * screen is also why the two outcomes are indistinguishable from the
-     * browser, which is the right shape — whether the provider was up is not
-     * something a registration form should be reporting to whoever filled it in.
-     */
     try {
       await sendVerificationEmail(verification)
     } catch (err) {
@@ -172,21 +102,9 @@ export async function registerAction(
     redirect(`/verify/resend?email=${encodeURIComponent(verification.email)}&sent=1`)
   }
 
-  // Nothing further to prove, so the account is usable immediately — send them
-  // to login with a success hint rather than auto-authenticating, which keeps
-  // register and login as separate credentials tests.
   redirect('/login?registered=1')
 }
 
-/**
- * Ask for another verification link (F18).
- *
- * Everything about this action is shaped by the same rule `requestResetAction`
- * follows: **one notice on every path**. An unknown address, an account that is
- * already active, a refused rate limit and a successful send all return the same
- * sentence, because any difference between them is an oracle that answers "does
- * this address have an account here?" to anybody with a form.
- */
 export async function resendVerificationAction(
   _prev: FormState,
   form: FormData,
@@ -198,13 +116,6 @@ export async function resendVerificationAction(
     'If that address has an account waiting to be confirmed, a new link has been sent.'
 
   try {
-    /*
-     * Spent *before* the lookup, so the refusal cannot be provoked for one
-     * address and not another. `limitMessage` is deliberately not returned as
-     * an error here: a refused resend still says the same thing as a successful
-     * one, and adding "you have done that too many times" would be a signal
-     * that only appears for addresses somebody keeps retrying.
-     */
     const limit = await spendResendLimit(foldIdentifier(email))
     if (limit !== null && !limit.allowed) return { notice, values }
 
@@ -219,7 +130,6 @@ export async function resendVerificationAction(
           username: resent.account.username,
         })
       } catch (err) {
-        /* Same call as registration: the token is issued either way. */
         logger({ module: 'auth-actions' }).error(
           { err },
           'could not resend a verification e-mail',
@@ -250,9 +160,6 @@ export async function loginAction(
     await setSessionCookie(result.sessionToken, result.expiresAt)
 
     if (remember) {
-      // A brand-new remember-me family. This also mints its own short session,
-      // but we already set one from login(); the remember family is what
-      // survives the session's idle expiry, so we only need its token here.
       const remembered = await sessions.startRemembered(result.account.id)
       await setRememberCookie(remembered.rememberToken, remembered.rememberExpiresAt)
     }
@@ -267,8 +174,6 @@ export async function logoutAction(): Promise<void> {
   const token = await readSessionToken()
   if (token) {
     const { identity } = getContainer()
-    // Best-effort server-side revoke; even if it fails we still clear cookies so
-    // the browser stops presenting the token.
     try {
       await identity.logout(token)
     } catch (err) {
@@ -289,8 +194,6 @@ export async function requestResetAction(
   const email = field(form, 'email')
   const { identity } = getContainer()
 
-  // Identical whether or not an account matched — that is the enumeration
-  // defence, so it is built once and returned on every path below.
   const notice =
     'If an account exists for that email, a password reset link has been sent.'
 
@@ -298,13 +201,6 @@ export async function requestResetAction(
     const { token, userId } = await identity.requestPasswordReset(email)
 
     if (token !== null && userId !== null) {
-      /*
-       * Sent directly rather than queued, and a failure does not change what
-       * the screen says. The notice above is already identical for "no such
-       * account" — reporting a provider outage here would make a failed send
-       * distinguishable from an address nobody has, which is the enumeration
-       * oracle this whole action is built to avoid.
-       */
       const account = await getContainer().accountStore.accounts.findById(userId)
       if (account !== null) {
         try {
@@ -314,7 +210,6 @@ export async function requestResetAction(
             username: account.username,
           })
         } catch (err) {
-          /* The error, never the token or a URL built from it. */
           logger({ module: 'auth-actions' }).error(
             { err },
             'could not send a password reset e-mail',
@@ -323,20 +218,6 @@ export async function requestResetAction(
       }
     }
 
-    /*
-     * The token is a bearer credential: whoever holds it owns the account. It
-     * goes to the browser ONLY in development, where there is no mailer and the
-     * alternative is a flow nobody can exercise.
-     *
-     * Gated on NODE_ENV rather than on the mail driver or the data source: a
-     * production board with mail misconfigured must still never hand a reset
-     * token to whoever typed the address into the form. Anything short of this
-     * is unauthenticated account takeover for any address an attacker knows.
-     *
-     * It is deliberately not logged either — pino's redaction covers `token`
-     * keys, but a token interpolated into a URL string sails straight through,
-     * and F02/§40 forbids credentials in logs at default level.
-     */
     if (token && env.NODE_ENV === 'development') {
       return { notice, values: { devToken: token } }
     }
@@ -358,13 +239,6 @@ export async function confirmResetAction(
     return { error: 'The two passwords do not match.', values: { token } }
   }
 
-  /*
-   * The configured service, not the container's: `redeemPasswordReset` enforces
-   * the minimum password length, and that is a setting now. Taking the static
-   * policy here would let a reset set a password shorter than the board's own
-   * registration form accepts — the rule would hold everywhere except on the
-   * one screen somebody reaches while locked out.
-   */
   const identity = await configuredIdentity()
   try {
     await identity.redeemPasswordReset(token, password)
@@ -375,11 +249,6 @@ export async function confirmResetAction(
   redirect('/login?reset=1')
 }
 
-/**
- * Only allow same-origin relative redirects after login. An attacker-supplied
- * `?next=https://evil.example` would otherwise turn the login form into an open
- * redirect; anything not starting with a single '/' is dropped to the home page.
- */
 function sanitizeNext(next: string): string {
   if (next.startsWith('/') && !next.startsWith('//')) return next
   return '/'

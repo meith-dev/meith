@@ -15,19 +15,6 @@ import { boardSampleSurfaces } from '@/server/theme-admin'
 
 export const metadata: Metadata = { title: 'Group' }
 
-/**
- * F66 — one group.
- *
- * **Every cell is two states.** F65's forum matrix has three because
- * `forum_permissions` is nullable and null means inherit (R4.1 layer 2); a
- * group's global permissions are layer 1, the bottom of the resolution, with
- * nothing above them to inherit from. A third state here would be an "inherit"
- * that resolves to nothing, which is worse than no control at all.
- *
- * The fields come from `PERMISSION_FIELDS` rather than a list written out here,
- * so a permission added to the registry appears on this screen without anybody
- * remembering to add it — the same rule F64's settings screen follows.
- */
 export default async function AdminGroupPage({
   params,
 }: {
@@ -41,10 +28,8 @@ export default async function AdminGroupPage({
   const view = await buildGroupPermissionView(Number(id))
   if (view === null) notFound()
 
-  /* For the "move its members to" list on the delete form. */
   const groups = (await groupAdminRepository()?.list()) ?? []
 
-  /* The badges as they stand, so each control shows what the board is using. */
   const [lightBadge, darkBadge] = await Promise.all([
     badgeKey(view.group.id, 'light'),
     badgeKey(view.group.id, 'dark'),
@@ -85,12 +70,7 @@ export default async function AdminGroupPage({
         />
       </section>
 
-      {/*
-        Its own section, and its own forms. An upload is a different kind of
-        write from a text field — it cannot be part of a form that also carries
-        the title, or saving a rename would re-post whatever the file inputs
-        happened to be holding.
-      */}
+      { }
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Badge</h2>
         <p className="text-sm text-muted-foreground">

@@ -1,13 +1,5 @@
 "use client"
 
-/**
- * F67's forms.
- *
- * The *search* form is not here, and that is deliberate: it is a plain GET
- * form in the page, so the filter lives in the address bar. It survives a
- * reload, it can be pasted to another administrator, and it needs neither
- * JavaScript nor a Server Action. Only the writes need this file.
- */
 import { useActionState } from "react"
 
 import {
@@ -89,7 +81,6 @@ export function MemberAccountForm({
           <span className="font-medium">Primary group</span>
           <select
             name="primaryGroupId"
-            /* F20: the currently-selected option, not a decision about it. */
             // eslint-disable-next-line no-restricted-properties -- F20: rendering the stored value, not deciding access
             defaultValue={String(member.primaryGroupId)}
             className={INPUT}
@@ -153,12 +144,7 @@ export function MemberStateForm({
           <option value="active">Active</option>
           <option value="awaiting_activation">Awaiting activation</option>
         </select>
-        {/*
-          Banned is not an option. It is not a state you set — F23 captures the
-          group the member held so an expiring ban can restore it, and a member
-          whose column says banned with no ban row behind it cannot be un-banned
-          correctly.
-        */}
+        { }
         <span className="text-xs text-muted-foreground">
           Banning is below, and is not a state change.
         </span>
@@ -219,14 +205,6 @@ export function BanMemberForm({ userId }: { userId: number }) {
   )
 }
 
-/**
- * A member's additional groups.
- *
- * Checkboxes over every group, so what the form submits *is* the intended set —
- * which is why the action replaces rather than adds. The primary group is shown
- * but not offered: it is already set above, and a second control for it would
- * be two places saying the same thing.
- */
 // eslint-disable-next-line no-restricted-properties -- F20: the id whose checkbox is suppressed, not a decision about it
 export function SecondaryGroupsForm({
   userId,
@@ -276,13 +254,6 @@ export function SecondaryGroupsForm({
   )
 }
 
-/**
- * The merge, one batch per press.
- *
- * The remaining count travels in the form, so a long merge continues across
- * presses with no JavaScript — the same shape as F66's mass membership move,
- * and for the same reason.
- */
 export function MergeForm({
   fromUserId,
   toUserId,
@@ -350,13 +321,6 @@ export function LiftBanForm({ userId }: { userId: number }) {
   )
 }
 
-/**
- * The prune, one batch per press.
- *
- * The criteria are hidden fields rather than something the action re-reads from
- * the URL: the operator confirmed a dry run against *these* dates, and a prune
- * that used anything else would be acting on a preview nobody saw.
- */
 export function PruneForm({
   before,
   inactive,
@@ -404,13 +368,6 @@ export function PruneForm({
   )
 }
 
-/**
- * Mass mail: create the campaign, then queue it a batch at a time.
- *
- * Nothing is sent from this form. It enqueues one job per recipient and the
- * tick hands each to the driver, because a provider hanging for ten seconds
- * must not be a ten-second button press.
- */
 export function MassMailForm({
   groups,
   audience,

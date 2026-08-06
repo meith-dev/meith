@@ -7,18 +7,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Board statistics' }
 
-/**
- * F75 — the statistics page.
- *
- * The totals are a rollup and the page says when it ran, which is the whole
- * honesty of the screen: they are not live, they are not expensive, and
- * presenting a ten-minute-old number as "now" is the only version of this that
- * is actually wrong.
- *
- * Both thread leaderboards are permission-filtered in the query. A member sees
- * the most-viewed threads *they can see* — which means two members can see
- * different tables, and that is correct rather than a bug to work around.
- */
 export default async function StatsPage() {
   const actor = await getActor()
   const now = new Date()

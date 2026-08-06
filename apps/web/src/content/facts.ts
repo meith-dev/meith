@@ -1,31 +1,3 @@
-/**
- * The figures the landing page quotes, read from the documents that generate
- * them.
- *
- * Every number on the front page is a claim about the software, and a claim on a
- * marketing page is the one kind that nobody re-reads. "27 slots" was true when
- * somebody typed it; a slot added six months later makes it a lie that no test
- * covers, no reviewer notices and no reader can check.
- *
- * Four of the documents in `docs/` are written by scripts from the code itself,
- * and each opens by counting what it contains — `**93 hooks** — 48 filters, 45
- * events`, `7 endpoints, 8 scopes`, a table of measured p95s. Those sentences are
- * machine-written and therefore stable, so this module reads them at build time
- * and hands the page the numbers. The chain is: code → generated document →
- * landing page, with `pnpm verify` failing at the first link when it is stale.
- *
- * **It throws rather than guesses.** A pattern that no longer matches fails
- * `pnpm site:build` with the file, the expectation and what to do — because the
- * alternative is a front page quietly claiming last year's numbers. That is the
- * same trade `chrome.test.ts` makes for the two colours it cannot express as
- * tokens, and the same one `scripts/site-docs.mjs` makes for the manifest.
- *
- * Prose documents are deliberately not read here. `operating.md` is written by
- * hand and its sentences are meant to be edited; a regex over them would fail the
- * build for a rewording. Claims that come from a hand-written document stay in
- * `site.ts`, where they are visibly somebody's copy.
- */
-
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { cache } from "react"
@@ -33,7 +5,6 @@ import { cache } from "react"
 import { DOCS_DIRECTORY } from "../workspace"
 
 export interface ThemeFacts {
-  /** `1.6`, from the theme-kit version the reference was generated against. */
   readonly version: string
   readonly slots: number
   readonly stable: number
@@ -46,23 +17,19 @@ export interface PluginFacts {
   readonly filters: number
   readonly events: number
   readonly regions: number
-  /** Hooks something in the board actually fires today. */
   readonly wired: number
 }
 
 export interface ApiFacts {
   readonly endpoints: number
   readonly scopes: number
-  /** `/api/v1`. */
   readonly basePath: string
 }
 
 export interface Scenario {
-  /** The page, exactly as the reference names it. */
   readonly page: string
   readonly budgetMs: number
   readonly p95Ms: number
-  /** Percentage of the budget the measurement used. */
   readonly used: number
 }
 
@@ -70,7 +37,6 @@ export interface PerformanceFacts {
   readonly posts: number
   readonly threads: number
   readonly longestThread: number
-  /** ISO date the recorded run was taken. */
   readonly measured: string
   readonly scenarios: readonly Scenario[]
 }
@@ -82,14 +48,6 @@ export interface Facts {
   readonly performance: PerformanceFacts
 }
 
-/**
- * One capture, or a build failure that says how to fix it.
- *
- * The message names the file and the sentence, because the person who sees it
- * will not be the person who wrote this — it will be whoever regenerated the
- * reference and changed the wording of a line they had no reason to think
- * anything read.
- */
 function capture(file: string, source: string, pattern: RegExp, expected: string): RegExpMatchArray {
   const match = source.match(pattern)
   if (!match) {
@@ -103,7 +61,6 @@ function capture(file: string, source: string, pattern: RegExp, expected: string
   return match
 }
 
-/** `2,343,847` as it appears in a table cell, as a number. */
 function count(text: string): number {
   return Number(text.replaceAll(",", ""))
 }
@@ -180,12 +137,6 @@ async function performanceFacts(): Promise<PerformanceFacts> {
     "the date of the recorded run (“| Measured | 2026-08-04 |”)",
   )
 
-  /*
-   * Every row of the budget table, rather than the handful the page shows. The
-   * page names the ones it wants and `findScenario` fails when one is gone —
-   * which is the failure worth catching, because a scenario is dropped from the
-   * runner far more often than the table's shape changes.
-   */
   const scenarios: Scenario[] = []
   const rows = source.matchAll(
     /^\|\s*([^|]+?)\s*\|\s*([\d.]+)\s*ms\s*\|[^|]*\|\s*([\d.]+)\s*ms\s*\|[^|]*\|[^|]*\|\s*(\d+)%\s*\|/gm,
@@ -217,10 +168,6 @@ async function performanceFacts(): Promise<PerformanceFacts> {
   }
 }
 
-/**
- * `cache()` for the same reason `loadDocument` uses it: scoped to one render
- * pass, so a build reads each file once and a dev server does not hold them.
- */
 export const readFacts = cache(async (): Promise<Facts> => {
   const [theme, plugins, api, performance] = await Promise.all([
     themeFacts(),
@@ -232,7 +179,6 @@ export const readFacts = cache(async (): Promise<Facts> => {
   return { theme, plugins, api, performance }
 })
 
-/** One measured scenario by the name the reference gives it, or a build failure. */
 export function findScenario(performance: PerformanceFacts, page: string): Scenario {
   const scenario = performance.scenarios.find((entry) => entry.page === page)
   if (!scenario) {

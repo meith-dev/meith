@@ -1,17 +1,5 @@
 "use client"
 
-/**
- * F60's forms.
- *
- * Client components only for `useActionState`, like every other form on the
- * board, and every one works with scripting off.
- *
- * The selection bar is F52's trick: the checkboxes sit inside the *listing*
- * markup and are associated with the bar's `<form>` by the `form` attribute, so
- * a native submit carries them. Nothing here reads a checkbox in JavaScript;
- * the bar would work identically with scripting disabled, which is the whole
- * point of doing it this way rather than with a controlled component.
- */
 import { useActionState } from "react"
 
 import { messageBulkAction, sendMessageAction } from "@/server/message-actions"
@@ -45,11 +33,6 @@ export function ComposeForm({
 }) {
   const [state, action] = useActionState(sendMessageAction, EMPTY_STATE)
 
-  /*
-   * The submitted values win over the prefill. A send rejected for a bad
-   * recipient name must come back with what was typed, not with the reply
-   * template again — that is how somebody loses a long message.
-   */
   const values = state.values ?? {}
 
   return (
@@ -90,12 +73,7 @@ export function ComposeForm({
         />
       </label>
 
-      {/*
-        The same composer a post gets — toolbar, preview tab, formatting help —
-        because a private message is written the same way and by the same
-        people. `id` is distinct so a page holding both a message form and a
-        reply form does not label one control twice.
-      */}
+      { }
       <MarkdownEditor
         id="message-body"
         required
@@ -118,14 +96,6 @@ export function ComposeForm({
   )
 }
 
-/**
- * The action bar for a folder.
- *
- * `formId` is the id every checkbox in the listing points at. It is passed in
- * rather than hard-coded here so the listing and the bar cannot disagree about
- * it — a mismatch is silent, and the symptom is a member ticking six boxes and
- * being told to select something.
- */
 export function MessageActionBar({
   formId,
   folder,
@@ -162,9 +132,7 @@ export function MessageActionBar({
             <button type="submit" name="command" value="delete" className={SECONDARY}>
               Delete permanently
             </button>
-            {/* Named separately because it acts on the whole folder rather than
-                on a selection, and a member emptying the trash has not ticked
-                anything. */}
+            { }
             <button type="submit" name="command" value="empty" className={SECONDARY}>
               Empty trash
             </button>

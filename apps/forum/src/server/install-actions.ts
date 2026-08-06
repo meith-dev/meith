@@ -1,20 +1,5 @@
 'use server'
 
-/**
- * F83 — the install action.
- *
- * Two gates before anything is written, and they are not redundant:
- *
- *  1. **the seal**, so a finished board's installer cannot be re-run;
- *  2. **the preflight**, re-evaluated here rather than trusted from the page.
- *
- * The second is the one that matters. The page ran a preflight to decide what to
- * render, and a form submission is a *separate request* — the board may have been
- * installed by somebody else in between, which on a public URL somebody found by
- * guessing is not a hypothetical. Re-authorising in the action rather than
- * trusting the render is the same rule every other Server Action here follows.
- */
-
 import { canProceed, parseInstallInput } from '@meith/install'
 import { redirect } from 'next/navigation'
 
@@ -42,11 +27,6 @@ export async function installAction(
   }
 
   if (await installerIsSealed()) {
-    /*
-     * Not an error on the form: the board exists now, so the honest response is
-     * to send whoever this is to it. A message saying "already installed" on a
-     * form asking for an administrator would read as a bug.
-     */
     redirect('/')
   }
 
@@ -75,13 +55,5 @@ export async function installAction(
     }
   }
 
-  /*
-   * Outside any try/catch: `redirect` works by throwing, so catching it would
-   * turn a successful install into a form that silently re-renders.
-   *
-   * To the sign-in page rather than to the board: the administrator has an
-   * account and no session, and a fresh board's index tells them nothing they
-   * need. The query parameter is what the sign-in page uses to say so.
-   */
   redirect('/login?installed=1')
 }

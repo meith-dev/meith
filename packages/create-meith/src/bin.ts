@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/** The published entry point. Thin on purpose: `run` is what the tests drive. */
 import { run } from './cli'
 
 const result = await run(process.argv.slice(2), '0.1.0')

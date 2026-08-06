@@ -68,10 +68,6 @@ describe('set', () => {
   })
 
   it('moves somebody between the lists in one write', async () => {
-    /*
-     * The two are mutually exclusive, which the primary key enforces. A delete
-     * followed by an insert could half happen and leave nobody on either list.
-     */
     await service.set({ userId: ME, otherUserId: THEM, kind: 'ignore' })
     await service.set({ userId: ME, otherUserId: THEM, kind: 'buddy' })
 
@@ -86,11 +82,6 @@ describe('set', () => {
   })
 
   it('refuses to ignore staff, rather than doing it and having no effect', async () => {
-    /*
-     * A moderator's post is often the one saying why a thread was locked. A
-     * member who believes they have hidden it, and has not, is worse off than
-     * one who was told.
-     */
     await expect(
       service.set({ userId: ME, otherUserId: THEM, kind: 'ignore', targetIsStaff: true }),
     ).rejects.toThrow(/cannot be ignored/)
@@ -117,11 +108,6 @@ describe('set', () => {
   })
 
   it('still lets somebody already on a full list be moved between them', async () => {
-    /*
-     * Kills the mutant that checks the ceiling without asking whether this
-     * person is already on the list — which would strand a full list, unable to
-     * move anybody from ignore to buddy or back.
-     */
     repo.rows = Array.from({ length: MAX_RELATIONS }, (_, i) => ({
       userId: i === 0 ? THEM : 100 + i,
       username: `user${i}`,
@@ -161,17 +147,10 @@ describe('suppress', () => {
   })
 
   it('keeps hiding the other posts by the same author', () => {
-    /*
-     * Reveal is per post, not per author. Kills the mutant that reveals
-     * everybody's posts once one is revealed — which would make a single click
-     * undo the whole feature for that thread.
-     */
     expect(suppress({ ...base, revealedPostIds: new Set([10]), postId: 11 })).toBe(true)
   })
 
   it('never hides your own post', () => {
-    /* You can end up ignoring somebody you have quoted; hiding your own words
-       back at you is nonsense. */
     expect(suppress({ ...base, authorUserId: ME })).toBe(false)
   })
 
@@ -200,11 +179,6 @@ describe('isOnline', () => {
   })
 
   it('does not count somebody who has never been seen', () => {
-    /*
-     * `last_active_at` had no writer before F61, so on an existing board this
-     * is everybody until their next visit. "Never seen" must read as offline
-     * rather than as an error.
-     */
     expect(isOnline(null, now)).toBe(false)
   })
 })

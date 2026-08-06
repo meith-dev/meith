@@ -11,37 +11,6 @@ import type { ForumDisplayModel } from '@meith/theme-kit'
 
 import { Counts, PAGE_BODY, isEmptyRegion } from '../shared'
 
-/**
- * A forum page (F30): its title, and the regions the route composes.
- *
- * ## The page's one loud control is "New thread"
- *
- * Everything else on this page — mark read, paging, the jump box — is somewhere
- * a reader might go. Posting is what the forum is *for*, and it is the only
- * filled button on the page. "Mark read" sits beside it as a ghost, because it
- * is a control for somebody who has already decided and does not need finding.
- *
- * On a phone the two swap into a full-width row with the primary action first,
- * where a thumb is.
- *
- * ## An empty forum says so
- *
- * It did not. `regions.threads` arrives as a rendered list, an empty forum
- * renders an empty one, and `CardRows` drew that as a bordered box containing a
- * single hairline — a 1px rule where a listing should be, with no words
- * anywhere on the page saying the forum is new rather than broken. That is the
- * state every forum on a board is in on its first day, and it is the day a
- * visitor is deciding whether to stay. `@meith/ui`'s `Empty` was written for
- * exactly this and had no caller.
- *
- * ## The header carries the forum's counters
- *
- * They are in `ForumRowModel` and the previous version of this slot dropped
- * them: a reader who followed a link straight into a forum — from search, from a
- * notification, from outside — had no idea whether they had arrived somewhere
- * with four threads or four thousand. It is one line and it is the cheapest
- * context a page can give.
- */
 export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: ForumDisplayModel) {
   return (
     <div className={PAGE_BODY}>
@@ -76,8 +45,6 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
 
         <div className="flex shrink-0 items-center gap-2">
           {markReadAction !== null && (
-            /* A POST, for the reason `BoardIndex` states: a GET that mutates
-               gets fired by every prefetcher that touches the page. */
             <form action={markReadAction} method="post">
               <button type="submit" className={buttonVariants({ variant: 'ghost' })}>
                 Mark read
@@ -92,29 +59,19 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
         </div>
       </div>
 
-      {/*
-        Theme API 1.3 — the ordering tabs, under the heading rather than above
-        the whole page. A forum page used to open with "Latest · Top rated"
-        before it said which forum was being sorted. Following the forum is not
-        here; see `regions.afterContent` at the foot of this slot.
-      */}
+      { }
       {regions.tools !== undefined && (
         <div className="flex flex-col gap-3 empty:hidden">{regions.tools}</div>
       )}
 
-      {/* F71. This forum's announcements and the board's, above its content. */}
+      { }
       {regions.announcements !== undefined && (
         <div className="flex flex-col gap-3">{regions.announcements}</div>
       )}
 
       {regions.subforums}
 
-      {/*
-        The thread list. `CardRows` supplies the hairlines; the rows themselves
-        are `ThreadRow`, and the pairing is this theme's — a theme whose rows are
-        `<tr>` has to put a `<table>` here instead. See the note in
-        `themes/midnight/src/theme.ts`, which is that theme and does exactly that.
-      */}
+      { }
       <Card>
         {isEmptyRegion(regions.threads) ? (
           <Empty>
@@ -139,16 +96,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
 
       {regions.pagination}
 
-      {/*
-        Theme API 1.4 — following this forum, after the threads rather than
-        above them. "Do you want to hear about this?" is a question somebody
-        can only answer once they have seen what is in it.
-
-        A hairline and a row, not a card: it is one control, and a bordered
-        panel holding one `<select>` and one button reads as a section of the
-        page rather than as a footnote to it. `ThreadView` draws the same strip
-        for the same reason.
-      */}
+      { }
       {regions.afterContent !== undefined && (
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-border pt-4 empty:hidden">
           {regions.afterContent}

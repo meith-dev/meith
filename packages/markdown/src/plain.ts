@@ -1,17 +1,3 @@
-/**
- * A body as the words in it, with none of the marks.
- *
- * Feeds, card descriptions, notification excerpts and search snippets all want
- * the same thing: what somebody wrote, without syntax and without HTML. Under
- * BBCode the codebase did this with a regular expression per call site — strip
- * `\[/?[a-z*][^\]]*\]` and hope — which was survivable because BBCode's syntax
- * is one shape. Markdown's is a dozen, and a regex that strips `*` also strips
- * the asterisks out of somebody's aside about multiplication.
- *
- * So this runs the real parser and walks the tree. It is the same parse the
- * renderer does, bounded by the same limits, and it cannot disagree with what
- * the post actually says — which is the property the regex never had.
- */
 import { parse, type ParseOptions } from './blocks'
 import type { Block, Inline } from './nodes'
 
@@ -24,7 +10,6 @@ function fromInline(nodes: readonly Inline[]): string {
         out += node.value
         break
       case 'image':
-        /* The alt text, which is the only part of an image that is words. */
         out += node.alt
         break
       case 'break':
@@ -66,7 +51,6 @@ function fromBlocks(blocks: readonly Block[]): string[] {
   return parts
 }
 
-/** The body's words, whitespace collapsed. Never throws. */
 export function plainText(source: string, options: ParseOptions = {}): string {
   return fromBlocks(parse(source, options).blocks)
     .join(' ')
@@ -74,13 +58,6 @@ export function plainText(source: string, options: ParseOptions = {}): string {
     .trim()
 }
 
-/**
- * `plainText`, cut to `limit` on a word boundary.
- *
- * The break falls back to a hard cut when the "word" is longer than half the
- * budget — a pasted URL with no spaces in it would otherwise truncate to
- * nothing at all.
- */
 export function summarise(source: string | null, limit = 300): string {
   if (source === null) return ''
   const flat = plainText(source)

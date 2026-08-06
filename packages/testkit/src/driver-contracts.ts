@@ -1,36 +1,14 @@
-/**
- * The contract every driver implementation must satisfy (F05).
- *
- * "A contract test suite every implementation must pass" — because the point of
- * the driver seam is that downstream code never branches on which
- * implementation it holds. That only holds if the implementations genuinely
- * behave the same, and the differences that bite are never in the type
- * signature: it is whether `get` on a missing key returns `undefined` or
- * throws, whether an expired entry is a miss, whether two concurrent drains can
- * claim the same job.
- *
- * These are exported as functions rather than as `describe` blocks in a shared
- * file so each implementation's own suite calls them with its own setup and
- * teardown, and shows up under its own name when it fails.
- */
 import type { CacheDriver, FileStore, MailDriver, QueueDriver } from '@meith/core'
 import { describe, expect, it } from 'vitest'
 
-/** Fresh instance per test — a contract must not depend on test ordering. */
 export interface DriverFactory<T> {
   (): Promise<T> | T
 }
-
-/* ------------------------------------------------------------------ *
- * Cache
- * ------------------------------------------------------------------ */
 
 export function cacheDriverContract(name: string, make: DriverFactory<CacheDriver>): void {
   describe(`CacheDriver contract: ${name}`, () => {
     it('returns undefined for a key that was never set', async () => {
       const cache = await make()
-      // Not null, not a throw. `cachedGlobal` treats undefined as "miss", so a
-      // driver that throws turns a cold cache into a 500.
       expect(await cache.get('absent')).toBeUndefined()
     })
 
@@ -80,7 +58,6 @@ export function cacheDriverContract(name: string, make: DriverFactory<CacheDrive
     })
 
     it('treats invalidating no tags as a no-op, not as "everything"', async () => {
-      // A caller with an empty tag list must not accidentally flush the board.
       const cache = await make()
       await cache.set('k', 'v', { tags: ['t'] })
       await cache.invalidateTags([])
@@ -94,10 +71,6 @@ export function cacheDriverContract(name: string, make: DriverFactory<CacheDrive
     })
   })
 }
-
-/* ------------------------------------------------------------------ *
- * Queue
- * ------------------------------------------------------------------ */
 
 export function queueDriverContract(name: string, make: DriverFactory<QueueDriver>): void {
   describe(`QueueDriver contract: ${name}`, () => {
@@ -128,12 +101,6 @@ export function queueDriverContract(name: string, make: DriverFactory<QueueDrive
       expect(result.processed).toBe(2)
     })
 
-    /*
-     * F05: "Queue survives a concurrent double-drain without double-processing."
-     * Two workers, or a cron tick overlapping a worker loop, must never receive
-     * the same job — at-least-once delivery is the contract, but delivering the
-     * same job to two workers *simultaneously* is not that.
-     */
     it('does not hand the same job to two concurrent drains', async () => {
       const queue = await make()
       for (let i = 0; i < 6; i++) await queue.enqueue('test.job', { i })
@@ -156,8 +123,6 @@ export function queueDriverContract(name: string, make: DriverFactory<QueueDrive
         throw new Error('handler blew up')
       })
 
-      // A failure must not be silently counted as success, or the tick reports
-      // work that never happened.
       expect(result.failed).toBe(1)
       expect(result.processed).toBe(0)
     })
@@ -175,10 +140,6 @@ export function queueDriverContract(name: string, make: DriverFactory<QueueDrive
     })
   })
 }
-
-/* ------------------------------------------------------------------ *
- * FileStore
- * ------------------------------------------------------------------ */
 
 export function fileStoreContract(name: string, make: DriverFactory<FileStore>): void {
   describe(`FileStore contract: ${name}`, () => {
@@ -215,7 +176,6 @@ export function fileStoreContract(name: string, make: DriverFactory<FileStore>):
     })
 
     it('deleting an absent key is not an error', async () => {
-      // Orphan cleanup (F42) runs repeatedly and must be idempotent.
       const store = await make()
       await expect(store.delete('never-existed.txt')).resolves.not.toThrow()
     })
@@ -252,13 +212,6 @@ export function fileStoreContract(name: string, make: DriverFactory<FileStore>):
     })
 
     it('either signs a url or admits it cannot', async () => {
-      /*
-       * The port allows `undefined` for stores with no signing support, so the
-       * caller streams through the app instead. What it must not do is return a
-       * plain unsigned URL and let a private attachment be fetched directly —
-       * F42's "an attachment in a forum the actor cannot view is not
-       * downloadable by direct URL".
-       */
       const store = await make()
       await store.put('priv.txt', body, { contentType: 'text/plain', visibility: 'private' })
 
@@ -267,10 +220,6 @@ export function fileStoreContract(name: string, make: DriverFactory<FileStore>):
     })
   })
 }
-
-/* ------------------------------------------------------------------ *
- * Mail
- * ------------------------------------------------------------------ */
 
 export function mailDriverContract(name: string, make: DriverFactory<MailDriver>): void {
   describe(`MailDriver contract: ${name}`, () => {

@@ -1,12 +1,3 @@
-/**
- * F51 at the app layer.
- *
- * The rules are unit-tested in `@meith/moderation` and the arithmetic against
- * real Postgres. What is proven here is the seam neither can see: that a merge
- * resolves rights in *both* threads' forums, that the target thread is located
- * through `thread.view` so the id box is not a thread-existence oracle, and
- * that the split right and the merge right are genuinely separate.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -55,7 +46,6 @@ const TARGET = 21
 class FakeSurgery implements ThreadSurgeryRepository {
   readonly splits: SplitPlan[] = []
   readonly merges: MergePlan[] = []
-  /** Visible posts of the source thread, for the hand-picked split (F52). */
   eligible: readonly number[] = [101, 102, 103]
 
   async find(threadId: number): Promise<SurgeryThread | null> {
@@ -92,7 +82,6 @@ class FakeSurgery implements ThreadSurgeryRepository {
   }
 }
 
-/** Which forum each thread id lives in, for both the fake and `locateForum`. */
 let forumOf: Record<number, number>
 let surgery: FakeSurgery
 
@@ -137,7 +126,6 @@ function installContainer(
 
 function form(
   entries: Record<string, string>,
-  /** Native checkboxes submit several values under one name (F52). */
   items: readonly string[] = [],
 ): FormData {
   const f = new FormData()
@@ -260,11 +248,6 @@ describe('mergeThreadAction', () => {
     ])
   })
 
-  /*
-   * The rule that needs two resolutions, and the one a merge shares with a
-   * move. Rights in the source forum only must not let a moderator push posts
-   * into a forum they have no standing in.
-   */
   it('needs the merge right at both ends', async () => {
     forumOf[TARGET] = SEED_FORUM.announcements
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
@@ -291,10 +274,6 @@ describe('mergeThreadAction', () => {
     ).toMatch(/tool=merge/)
   })
 
-  /*
-   * The merge box takes a raw number, so without a `thread.view` check on the
-   * *target* it would answer "does thread N exist?" for every N on the board.
-   */
   it('will not confirm that an unreadable thread exists', async () => {
     forumOf[TARGET] = SEED_FORUM.generalOffTopic
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
@@ -303,7 +282,6 @@ describe('mergeThreadAction', () => {
         appointment(SEED_FORUM.general, { canMergeThreads: true }),
         appointment(SEED_FORUM.generalOffTopic, { canMergeThreads: true }),
       ],
-      /* A forum this member cannot see into, appointment or no appointment. */
       [
         {
           forumId: SEED_FORUM.generalOffTopic,
@@ -317,7 +295,6 @@ describe('mergeThreadAction', () => {
       EMPTY_STATE,
       form({ threadId: String(SOURCE), targetThreadId: String(TARGET) }),
     )
-    /* The same words a thread id nobody has ever used gets. */
     expect(state.error).toMatch(/does not exist/i)
     expect(surgery.merges).toEqual([])
   })
@@ -338,7 +315,6 @@ describe('mergeThreadAction', () => {
   })
 })
 
-/** F52's checkboxes feeding F51's split, at the app layer. */
 describe('splitSelectedAction', () => {
   it('splits the ticked posts and lands on the new thread', async () => {
     const where = await redirectOf(
@@ -355,10 +331,6 @@ describe('splitSelectedAction', () => {
     expect(surgery.splits[0]).toMatchObject({ postIds: [101, 102] })
   })
 
-  /*
-   * The two selections share one set of checkboxes, so a ticked *thread* is
-   * dropped rather than refused — a thread cannot be split out of a thread.
-   */
   it('ignores a ticked thread in the same selection', async () => {
     await redirectOf(
       splitSelectedAction(

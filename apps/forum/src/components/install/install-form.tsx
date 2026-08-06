@@ -1,20 +1,5 @@
 'use client'
 
-/**
- * F83 — the install form.
- *
- * A client component for exactly one reason: `useActionState`, which is how
- * every form on this board reports a validation error. It is otherwise a plain
- * `<form>` with named inputs posting to a Server Action, so it works with
- * scripting disabled — the field errors arrive on the re-rendered page rather
- * than beside the input, which is the documented no-JS trade (R5).
- *
- * That matters more here than anywhere else: this is the first page a new
- * operator loads, on a fresh deployment, possibly from a phone on a bad
- * connection. An installer that needs JavaScript to submit is an installer that
- * sometimes cannot.
- */
-
 import { useActionState } from 'react'
 
 import { installAction, type InstallFormState } from '@/server/install-actions'
@@ -38,12 +23,6 @@ export function InstallForm() {
       )}
 
       {state.failedStep !== undefined && (
-        /*
-         * Which step, not just "it failed". The steps are listed above this form,
-         * so naming one tells the operator exactly how far the board got — and
-         * whether trying again is safe or whether they now have a half-installed
-         * board to look at.
-         */
         <p role="alert" className="rounded-md border border-destructive bg-destructive/5 px-3 py-2 text-sm">
           <span className="font-medium">The “{state.failedStep.id}” step failed.</span>{' '}
           {state.failedStep.error}
@@ -76,11 +55,6 @@ export function InstallForm() {
         name="password"
         label="Administrator’s password"
         type="password"
-        /*
-         * Never echoed back on a failed submit — unlike the three fields above,
-         * which are. A password re-rendered into HTML is a password in a proxy
-         * log and in the browser's back-forward cache.
-         */
         defaultValue=""
         error={state.errors?.password}
         autoComplete="new-password"

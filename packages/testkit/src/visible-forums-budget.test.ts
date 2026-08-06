@@ -1,10 +1,3 @@
-/**
- * F21: "`visibleForumIds` is one query."
- *
- * Every list page on the board filters by this, so its cost is multiplied
- * across the whole product — and invariant 25 requires the filter to happen
- * inside the SQL rather than after it.
- */
 import { Authorizer } from '@meith/authorization'
 import { ActorBuilder, PostgresAuthorizationSource } from '@meith/db'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
@@ -32,15 +25,6 @@ afterAll(async () => {
 })
 
 describe('visibleForumIds', () => {
-  /*
-   * Was 32 queries on this 15-forum board — two per forum plus overhead. Every
-   * list page filters by this set, so that cost was multiplied across the whole
-   * product.
-   *
-   * Three, not one: the combination rules are domain logic and deliberately not
-   * pushed into SQL (D26). What matters is that it is *constant*, which the
-   * scaling test below is the real proof of.
-   */
   it('costs a constant number of queries, not one per forum', async () => {
     const { value, count } = await measureQueries(harness, () =>
       authorizer.visibleForumIds(actor!),
@@ -50,11 +34,6 @@ describe('visibleForumIds', () => {
     expect(count).toBeLessThanOrEqual(3)
   })
 
-  /*
-   * The assertion that actually pins "constant". A budget of 3 would still pass
-   * on a three-forum fixture with a per-forum walk; only comparing two board
-   * sizes proves the cost does not grow.
-   */
   it('costs the same on a board five times the size', async () => {
     const bigger = await createTestDb()
     try {

@@ -1,5 +1,3 @@
-/** F08 — typed board settings registry. */
-
 export {
   SETTING_DEFINITIONS,
   SETTING_DEFINITION_BY_KEY,

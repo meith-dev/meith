@@ -12,22 +12,6 @@ import { getContainer } from '@/server/container'
 
 export const metadata: Metadata = { title: 'Announcements' }
 
-/**
- * F71 — announcements.
- *
- * **An announcement is chrome, not content, and the whole model follows from
- * that.** A sticky thread is a conversation: members reply to it, it belongs to
- * its author, and taking it down deletes what they said — which is why boards
- * built on pinned threads end up with a three-year-old rules post at the top of
- * every forum. This is a dated notice nobody can reply to, that expires on its
- * own, and whose removal removes nothing anybody wrote. That is what makes the
- * delete button here safe and the same button on a sticky thread not.
- *
- * Its own screen rather than a section on `/admin/content`, because an
- * announcement is a body of text with a schedule rather than a row in a
- * vocabulary — the form is a composer, and four of them on a page of one-line
- * lists reads as a different screen that got pasted in.
- */
 export default async function AdminAnnouncementsPage() {
   await requireAdmin()
 
@@ -47,16 +31,10 @@ export default async function AdminAnnouncementsPage() {
   const { forums } = getContainer()
   const [rows, tree] = await Promise.all([repository.list(), forums.listListing()])
 
-  /*
-   * Categories are excluded: nobody reads a category page, so an announcement
-   * on one would be written and never seen. Offering the choice would be
-   * offering a way to publish into a void.
-   */
   const choices: readonly ForumChoice[] = tree
     .filter((row) => row.type === 'forum')
     .map((row) => ({ id: row.id, label: `${' '.repeat(row.depth)}${row.title}` }))
 
-  /* `datetime-local` wants `YYYY-MM-DDTHH:mm`, and the action reads it as UTC. */
   const forInput = (at: Date | null): string =>
     at === null ? '' : at.toISOString().slice(0, 16)
 
@@ -84,11 +62,6 @@ export default async function AdminAnnouncementsPage() {
       ) : (
         <section className="flex flex-col divide-y divide-border rounded-lg border border-border px-4">
           {rows.map((row) => {
-            /*
-             * Said plainly rather than left for the operator to work out from
-             * two dates and a checkbox. "Why is my announcement not showing" is
-             * the question this screen exists to answer before it is asked.
-             */
             const live =
               row.enabled && row.startsAt <= now && (row.endsAt === null || row.endsAt > now)
             const state = !row.enabled

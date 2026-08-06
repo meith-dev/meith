@@ -1,12 +1,3 @@
-/**
- * F18/F19 — what the two auth messages actually say.
- *
- * The interesting content is the link: it is the whole point of both messages,
- * it is built from `APP_URL`, and `APP_URL` is the single most likely thing to
- * be missing on a fresh deployment. So both the working link and the degraded
- * "no origin configured" copy are pinned here, along with the rule that a
- * failure is reported to the caller rather than swallowed at this level.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { resetEnvForTests, type OutgoingMail } from '@meith/core'
@@ -24,7 +15,6 @@ vi.mock('@meith/drivers', () => ({
   }),
 }))
 
-/** Both values this file reads come from the registry; the mock supplies them. */
 const settings = vi.hoisted(() => ({
   values: { 'board.name': 'The Townland', 'mail.from_name': '' } as Record<string, string>,
 }))
@@ -37,9 +27,7 @@ const { sendPasswordResetEmail, sendVerificationEmail } = await import('./auth-m
 
 const RECIPIENT = { email: 'ivan@example.test', username: 'ivan' }
 
-/** Run `body` with APP_URL set (or deliberately absent). */
 async function withOrigin<T>(origin: string | undefined, body: () => Promise<T>): Promise<T> {
-  /* `undefined` removes the variable; an empty string would fail env's URL check. */
   vi.stubEnv('APP_URL', origin)
   resetEnvForTests()
   try {
@@ -66,7 +54,6 @@ describe('sendVerificationEmail', () => {
     expect(mail.to).toBe(RECIPIENT.email)
     expect(mail.subject).toBe('[The Townland] Confirm your account')
     expect(mail.text).toContain('https://board.example/verify?token=tok-123')
-    /* The TTL in the copy is the token's own, not a number typed twice. */
     expect(mail.text).toContain('24 hours')
   })
 
@@ -88,8 +75,6 @@ describe('sendVerificationEmail', () => {
     await withOrigin(undefined, () => sendVerificationEmail({ ...RECIPIENT, token: 'tok' }))
 
     const text = sent.mail[0]!.text
-    // Not a relative path: a mail client has no page for it to be relative to,
-    // so "/verify?token=…" would be a dead string rather than a link.
     expect(text).not.toContain('/verify?token=')
     expect(text).toContain('resend confirmation')
   })
@@ -101,8 +86,6 @@ describe('sendVerificationEmail', () => {
       sendVerificationEmail({ ...RECIPIENT, token: 'tok' }),
     )
 
-    // The name only. The address is `MAIL_FROM` and belongs to the driver,
-    // which is what composes the two into a From header.
     expect(sent.mail[0]?.fromName).toBe('The Townland')
   })
 

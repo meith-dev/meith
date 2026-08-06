@@ -1,18 +1,3 @@
-/**
- * Postgres adapters for the four identity ports declared in `@meith/accounts`.
- *
- * The domain (`@meith/accounts`) owns the interfaces; this is their SQL
- * implementation, so the same `IdentityService` runs over Postgres here and over
- * the in-memory store in tests. Infrastructure depends on the domain interface,
- * never the reverse.
- *
- * The one method with a genuine concurrency hazard is `CredentialToken.consume`:
- * single-use must survive two requests racing on the same token. It is written
- * as a *conditional UPDATE ... RETURNING* — the `consumed_at IS NULL` predicate
- * is evaluated inside the write, so exactly one of two concurrent redemptions
- * gets a row back and the other gets nothing. A read-then-write would let both
- * observe "unconsumed" and both succeed; that bug is designed out here.
- */
 import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm'
 
 import type {
@@ -41,7 +26,6 @@ import {
   users,
 } from './schema'
 
-/** Narrow the DB user row to the identity subset the port promises. */
 function toAccountRecord(row: {
   id: number
   username: string
@@ -146,25 +130,6 @@ export class PostgresAccountRepository implements AccountRepository {
     await this.db.update(users).set({ state }).where(eq(users.id, userId))
   }
 
-  /**
-   * Stamp the address as proven and — when asked — activate, in **one**
-   * statement.
-   *
-   * The `case` is the port's condition, evaluated inside the write: only a row
-   * that is still `awaiting_activation` moves to `active`, so a ban that lands
-   * between the token being consumed and this update wins, and a redeemed link
-   * can never hand a banned account back to whoever holds it. Doing it as a
-   * read then an update would lose that race in the direction that matters.
-   *
-   * The `before` CTE exists because `RETURNING` reports the *new* row and the
-   * caller needs the old state to say which thing happened. It is the same
-   * snapshot the `case` reads, so the answer and the decision cannot disagree.
-   *
-   * `coalesce` keeps the first proof: a second redemption is not a fresher
-   * verification, and overwriting would quietly rewrite when the address was
-   * confirmed. The stamp is written even for a banned account — it records that
-   * the address was proven, which stays true regardless of the ban.
-   */
   async markEmailVerified(
     userId: number,
     at: Date,
@@ -194,11 +159,6 @@ export class PostgresAccountRepository implements AccountRepository {
   }
 
   async touchLastActive(userId: number, now: Date, windowSeconds: number): Promise<boolean> {
-    // The throttle IS the WHERE clause, exactly as `touchLocation` does it: a
-    // burst of page views collapses to one write, and no caller can forget.
-    // `IS NULL` is included so a member who has never been seen gets their
-    // first write — the column has had no writer since `0000`, so on an
-    // existing board that is everybody.
     const cutoff = new Date(now.getTime() - windowSeconds * 1000)
     const rows = await this.db
       .update(users)
@@ -252,8 +212,6 @@ export class PostgresSessionRepository implements SessionRepository {
   }
 
   async revokeAllForUser(userId: number): Promise<void> {
-    // Only touch live sessions; re-revoking a revoked row would move its
-    // timestamp and muddy the audit trail.
     await this.db
       .update(sessions)
       .set({ revokedAt: new Date() })
@@ -261,8 +219,6 @@ export class PostgresSessionRepository implements SessionRepository {
   }
 
   async supersede(oldSessionId: number, newSessionId: number, now: Date): Promise<void> {
-    // Point the old row at its replacement and revoke it in one write, so a
-    // concurrent request never observes a superseded-but-still-live session.
     await this.db
       .update(sessions)
       .set({ supersededBySessionId: newSessionId, revokedAt: now })
@@ -275,9 +231,6 @@ export class PostgresSessionRepository implements SessionRepository {
     now: Date,
     windowSeconds: number,
   ): Promise<boolean> {
-    // The throttle IS the WHERE clause: only rows whose last_seen_at is older
-    // than the window are rewritten, so a burst of page views collapses to one
-    // write. `RETURNING id` lets the caller know whether the write happened.
     const cutoff = new Date(now.getTime() - windowSeconds * 1000)
     const rows = await this.db
       .update(sessions)
@@ -352,10 +305,6 @@ export class PostgresCredentialTokenRepository
     purpose: CredentialPurpose,
     now: Date,
   ): Promise<{ userId: number; payload: string | null } | null> {
-    // Single-use is enforced *inside* the write: the row is claimed only if it
-    // is still unconsumed and unexpired. Two racing redemptions cannot both
-    // match, because the first commit flips consumed_at and the second's
-    // predicate no longer holds.
     const rows = await this.db
       .update(credentialTokens)
       .set({ consumedAt: now })
@@ -379,8 +328,6 @@ export class PostgresCredentialTokenRepository
     userId: number,
     purpose: CredentialPurpose,
   ): Promise<void> {
-    // Consuming (rather than deleting) keeps the audit trail and reuses the
-    // single-use guard: a revoked token is just one that is already consumed.
     await this.db
       .update(credentialTokens)
       .set({ consumedAt: new Date() })
@@ -411,8 +358,6 @@ export class PostgresLoginAttemptRepository implements LoginAttemptRepository {
         and(
           eq(loginAttempts.bucket, bucket),
           eq(loginAttempts.succeeded, false),
-          // `since` is the exclusive lower bound of the lockout window
-          // (now - lockoutMinutes); attempts strictly newer than it count.
           gt(loginAttempts.occurredAt, since),
         ),
       )
@@ -447,9 +392,6 @@ export class PostgresRememberTokenRepository implements RememberTokenRepository 
     now: Date
     nextExpiresAt: Date
   }): Promise<RememberRotation> {
-    // Step 1: atomically claim the presented token — mark it used ONLY if it is
-    // unused, unrevoked and unexpired. This conditional UPDATE is the single-use
-    // guard: under a race exactly one caller claims it.
     const claimed = await this.db
       .update(rememberTokens)
       .set({ usedAt: input.now })
@@ -464,7 +406,6 @@ export class PostgresRememberTokenRepository implements RememberTokenRepository 
       .returning({ familyId: rememberTokens.familyId, userId: rememberTokens.userId })
 
     if (claimed[0]) {
-      // Won the claim: extend the chain with a fresh token in the same family.
       const { familyId, userId } = claimed[0]
       await this.db.insert(rememberTokens).values({
         tokenHash: input.nextHash,
@@ -475,10 +416,6 @@ export class PostgresRememberTokenRepository implements RememberTokenRepository 
       return { status: 'rotated', userId, familyId }
     }
 
-    // Step 2: the claim failed. Distinguish "replay of a known token" (exists but
-    // already used/revoked → reuse, burn the family) from "unknown/expired"
-    // (→ invalid). A plain existence lookup is enough because step 1 already
-    // ruled out the still-valid case.
     const existing = await this.db
       .select({
         familyId: rememberTokens.familyId,
@@ -523,7 +460,6 @@ export class PostgresRememberTokenRepository implements RememberTokenRepository 
   }
 }
 
-/** Assemble the adapters into the `AccountStore` the service consumes. */
 export function createPostgresAccountStore(db: Database): AccountStore {
   return {
     accounts: new PostgresAccountRepository(db),

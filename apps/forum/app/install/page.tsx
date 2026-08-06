@@ -7,34 +7,8 @@ import { gatherPreflight, installerIsSealed } from '@/server/install'
 
 export const metadata: Metadata = { title: 'Install' }
 
-/*
- * Never cached, and never prerendered. The whole page is a report on the current
- * environment, and a cached copy would tell the next operator about the last
- * one's database.
- */
 export const dynamic = 'force-dynamic'
 
-/**
- * F83 — the one-time installer.
- *
- * ## Why this is a 404 rather than a "already installed" page
- *
- * Once sealed, `/install` does not exist. An informative page here would confirm
- * to anybody who asks that this is a forum-software board and that it has been
- * installed — and more usefully to them, that the route *was* reachable. A 404 is
- * the same answer the board gives for any path it does not serve, which is the
- * only answer that says nothing.
- *
- * ## No theme
- *
- * The installer renders its own markup rather than going through the theme, and
- * that is deliberate: a theme's slots are the *board's* look, but this page runs
- * before there is a board. `currentTheme()` would have to read a `themes` table
- * that does not exist yet to know which themes are even offered — and this page
- * also has to render when the database is unreachable, which is the one
- * situation where depending on anything else is a mistake (the same rule
- * `ErrorNotice` follows).
- */
 export default async function InstallPage() {
   if (await installerIsSealed()) notFound()
 
@@ -69,12 +43,7 @@ export default async function InstallPage() {
               }`}
             >
               <p className="font-medium">
-                {/*
-                  A word, not only a colour. "blocker" and "warning" are
-                  information, and information carried by a hue alone is absent
-                  for a substantial number of readers — on the one page whose
-                  entire purpose is telling somebody what is wrong.
-                */}
+                { }
                 <span className="font-mono text-xs uppercase text-muted-foreground">
                   {check.level === 'ok' ? 'ready' : check.level}
                   {' · '}

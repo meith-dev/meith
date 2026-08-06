@@ -12,16 +12,6 @@ import { buildQueueView } from '@/view/moderation-queue'
 
 export const metadata: Metadata = { title: 'Moderation queue' }
 
-/**
- * F48 — what is waiting for approval, in the forums this actor moderates.
- *
- * **App-owned, not a theme slot**, and deliberately so. The 25-slot registry is
- * R6's list and is frozen at F77; a moderator tool is an operator surface like
- * the ACP (F63), which also has no slot. Committing the public theme contract
- * to a screen whose shape F54's ModCP has not designed yet would be the wrong
- * order. The theme still supplies everything around it — this route is inside
- * the board route group, so `PageShell` wraps it like any other page.
- */
 export default async function ModerationPage({
   searchParams,
 }: {
@@ -36,11 +26,6 @@ export default async function ModerationPage({
   const query = await searchParams
   const actor = await getActor()
   const { authorizer, moderationQueue } = getContainer()
-  /*
-   * Fixture mode has no queue, and a screen that lists nothing while claiming
-   * to be the queue is worse than no screen (D38/D32). A guest gets the same
-   * answer a member without rights gets: this page is not here.
-   */
   if (moderationQueue === null || actor.userId === null) notFound()
 
   const moderated = await authorizer.moderatedForumIds(actor)
@@ -60,11 +45,6 @@ export default async function ModerationPage({
 
   const Notice = requireSlot(await currentTheme(), 'Notice')
 
-  /*
-   * Counts, not a bare "done". A moderator who selected twelve and moved eleven
-   * has to be told, or the screen and the board disagree about what just
-   * happened and only one of them is right.
-   */
   const parts: string[] = []
   if (query.did !== undefined && query.n !== undefined) {
     const verb = query.did === 'approve' ? 'Approved' : 'Rejected'

@@ -1,28 +1,13 @@
-/**
- * The search index, built once at build time.
- *
- * A documentation site this size does not need a search server, and paying for
- * one would mean the docs could go stale relative to the repository between
- * deploys. Every published document is cut at its headings, each piece gets a
- * snippet, and the whole thing ships as one static JSON file that the command
- * palette filters in the browser.
- *
- * The unit of a result is a *section*, not a document. "Connection pooling" is a
- * useful answer; "operating.md" is not.
- */
-
 import { loadAllDocuments } from "./load"
 import { findSection } from "./registry"
 
 export interface SearchEntry {
-  /** `/docs/operating#connection-pooling` — ready to navigate to. */
   readonly href: string
   readonly document: string
   readonly section: string
   readonly heading: string
   readonly depth: number
   readonly snippet: string
-  /** Lower-cased heading and snippet, so the browser does not fold on every keystroke. */
   readonly haystack: string
 }
 
@@ -31,7 +16,6 @@ export interface SearchIndex {
   readonly entries: readonly SearchEntry[]
 }
 
-/** Long enough to tell two similar sections apart, short enough to read in a list. */
 const SNIPPET_LENGTH = 220
 
 function snippet(text: string): string {
@@ -49,12 +33,6 @@ export async function buildSearchIndex(): Promise<SearchIndex> {
     const sectionTitle = findSection(entry.section)?.title ?? entry.section
 
     for (const part of rendered.sections) {
-      /*
-       * `####` and deeper are indexed under the `###` above them rather than
-       * given their own result. The generated references are full of fourth-level
-       * headings — one per field of a view model — and a palette that offers
-       * three hundred near-identical rows is a palette nobody scrolls.
-       */
       if (part.depth > 3) continue
       if (part.text === "" && part.id !== "") continue
 

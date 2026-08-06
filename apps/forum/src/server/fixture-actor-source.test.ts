@@ -1,11 +1,3 @@
-/**
- * Fixture-mode ActorSource parity (Checkpoint 1).
- *
- * Proves the no-database actor builder resolves the same shape the Postgres
- * `ActorBuilder` produces: a guest in the guest group, a registered user in
- * their primary group with permissions combined through the shared
- * `combinePermissionSets`, and null for a user that does not exist.
- */
 import { IdentityService, createMemoryStore, type AccountStore } from '@meith/accounts'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -28,7 +20,6 @@ describe('FixtureActorSource', () => {
     expect(guest.state).toBe('guest')
     expect(guest.groupIds).toEqual([SEED_GROUP.guest])
 
-    // Its permissions are exactly the guest group's defaults.
     const guestGroup = SEED_BOARD.groups.find((g) => g.groupId === SEED_GROUP.guest)!
     expect(guest.global).toEqual(guestGroup.permissions)
   })
@@ -47,8 +38,6 @@ describe('FixtureActorSource', () => {
     expect(actor!.primaryGroupId).toBe(SEED_GROUP.registered)
     expect(actor!.state).toBe('active')
 
-    // Registered users can post and upload — a strictly larger permission set
-    // than the guest's read-only defaults.
     const registeredGroup = SEED_BOARD.groups.find(
       (g) => g.groupId === SEED_GROUP.registered,
     )!

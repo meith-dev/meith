@@ -1,10 +1,3 @@
-/**
- * F56 — the unsubscribe token.
- *
- * This is a bearer credential that travels in an e-mail and is accepted with no
- * session behind it, so the tests are about forgery rather than about
- * behaviour: what it must refuse, and how little it grants when it is genuine.
- */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -41,7 +34,6 @@ describe('a genuine token', () => {
 
   it('survives being carried through a URL', () => {
     const token = mintUnsubscribeToken(CLAIM, SECRET)
-    /* base64url plus dots: nothing here needs percent-encoding. */
     expect(token).toMatch(/^[A-Za-z0-9._-]+$/)
     expect(encodeURIComponent(token)).toBe(token)
   })
@@ -66,11 +58,6 @@ describe('what it refuses', () => {
   })
 
   it('a scope swapped for the board-wide one', () => {
-    /*
-     * The interesting forgery: `thread` → `email` would upgrade "stop this one
-     * thread" into "stop all subscription e-mail". The signature covers the
-     * scope, so it does not verify.
-     */
     const token = mintUnsubscribeToken(CLAIM, SECRET)
     expect(readUnsubscribeToken(token.replace('.thread.', '.email.'), SECRET)).toBeNull()
   })

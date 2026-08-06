@@ -1,15 +1,3 @@
-/**
- * F66's writes, against real Postgres.
- *
- * Two claims carry the feature and both are settled here:
- *
- *  - **every write bumps `permission_version`, in the same transaction** — a
- *    lost bump leaves resolved actors holding permissions that have been
- *    revoked, which is the failure direction that matters;
- *  - **a mass membership move is chunked and resumable** — bounded batches on a
- *    keyset cursor, rather than one UPDATE holding locks on `users` while the
- *    board tries to read it.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -38,11 +26,6 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.execute(sql`delete from users`)
-  /*
-   * Created groups take a generated identity id in the single digits — the
-   * seeded ladder occupies 1–7 — so a cleanup keyed on a high id would leave
-   * them behind to collide on the next `create` with the same key.
-   */
   await db.execute(sql`delete from usergroups where is_system = false`)
   await db.execute(sql`update cache_versions set version = 1 where key = 'permissions'`)
 })
@@ -79,10 +62,6 @@ describe('list', () => {
   })
 
   it('marks the groups the board resolves by key as system groups', async () => {
-    /*
-     * `is_system` is what stops `remove` deleting registration out from under
-     * the board. It has to be readable, or the screen cannot say so.
-     */
     const groups = await repo.list()
     expect(groups.find((group) => group.id === REGISTERED)?.isSystem).toBe(true)
   })
@@ -93,7 +72,6 @@ describe('readPermissions', () => {
     const permissions = await repo.readPermissions(REGISTERED)
 
     expect(permissions?.canPostThreads).toBe(true)
-    /* Numerics come back as numbers, not as the strings some drivers hand over. */
     expect(typeof permissions?.maxPostsPerDay).toBe('number')
   })
 
@@ -104,24 +82,14 @@ describe('readPermissions', () => {
 
 describe('savePermissions', () => {
   it('writes every field, so an omitted one is a default rather than a leftover', async () => {
-    /*
-     * There is no inherit state at this layer — a group's global permission is
-     * the bottom of the resolution (R4.1 layer 1), so every cell has an answer.
-     * Kills the mutant that writes only the keys it was handed.
-     */
     await repo.savePermissions(REGISTERED, { canPostThreads: false })
 
     const after = await repo.readPermissions(REGISTERED)
     expect(after?.canPostThreads).toBe(false)
-    /* `canView` was not in the payload, so it is the registry fallback. */
     expect(after?.canView).toBe(false)
   })
 
   it('bumps the permission version', async () => {
-    /*
-     * The claim the whole file is about. A revocation whose bump is lost stays
-     * un-revoked for the cache's lifetime. Kills the mutant that drops it.
-     */
     const before = await permissionVersion()
     await repo.savePermissions(REGISTERED, { canPostThreads: false })
 
@@ -131,17 +99,7 @@ describe('savePermissions', () => {
 
 describe('updateIdentity', () => {
   it('renames without touching permissions, and still bumps', async () => {
-    /*
-     * A rename is not a permission change, but the badge and the staff flag are
-     * read through the same resolved actor — so the bump is unconditional
-     * rather than a judgement about which columns matter.
-     */
     const before = await permissionVersion()
-    /*
-     * Compared against what was actually there rather than a literal: the claim
-     * is that the identity write leaves the permission columns alone, and a
-     * hardcoded expectation would instead be asserting the seed.
-     */
     const permissionsBefore = await repo.readPermissions(REGISTERED)
 
     await repo.updateIdentity(REGISTERED, {
@@ -159,11 +117,6 @@ describe('updateIdentity', () => {
       title: 'Members',
       displayOrder: 5,
       badgeToken: 'badge-member',
-      /*
-       * Both schemes round-trip. A write that stored one and dropped the other
-       * would leave half the board's names uncoloured at night, which is the
-       * failure two columns exist to prevent.
-       */
       nameColorLight: 'oklch(0.49 0.13 250)',
       nameColorDark: 'oklch(0.69 0.12 250)',
     })
@@ -174,11 +127,6 @@ describe('updateIdentity', () => {
 
 describe('create', () => {
   it('copies another group’s permissions rather than starting from deny', async () => {
-    /*
-     * The registry defaults are deny-everything, so a group made from them is
-     * one whose members cannot see the board. "Like Registered, but…" is what
-     * an operator means essentially every time.
-     */
     const id = await repo.create({
       key: 'veterans',
       title: 'Veterans',
@@ -222,11 +170,6 @@ describe('remove', () => {
   })
 
   it('refuses a system group', async () => {
-    /*
-     * `is_system` marks the groups the board's own code resolves by key.
-     * Deleting one breaks registration rather than a screen. Kills the mutant
-     * that drops the check.
-     */
     await expect(repo.remove(REGISTERED, ADMINS)).rejects.toThrow(/how the board works/)
     expect((await repo.list()).find((group) => group.id === REGISTERED)).toBeDefined()
   })
@@ -241,17 +184,6 @@ describe('remove', () => {
   })
 
   it('leaves the version alone when the write was refused', async () => {
-    /*
-     * The bump is inside the transaction, so a refusal rolls it back with
-     * everything else. Kills the mutant that bumps outside it: that one throws
-     * away every resolved actor on an operation that changed nothing, which is
-     * a stampede rather than a correctness bug and so would otherwise go
-     * unnoticed until it happened under load.
-     *
-     * Note the mutant this *cannot* kill, because there is nothing to kill:
-     * bumping before the work rather than after is the same transaction either
-     * way, so the two orders are indistinguishable by construction.
-     */
     const before = await permissionVersion()
     await expect(repo.remove(REGISTERED, ADMINS)).rejects.toThrow()
 
@@ -276,11 +208,6 @@ describe('moveMembersChunk', () => {
   })
 
   it('resumes from the cursor and finishes with a null one', async () => {
-    /*
-     * The cursor is what makes a long run interruptible. A short chunk means
-     * the source is exhausted, and saying so with `null` is what lets a caller
-     * stop without a second query that finds nothing.
-     */
     await seedMembers(5, REGISTERED)
 
     let cursor: number | null = 0
@@ -302,12 +229,6 @@ describe('moveMembersChunk', () => {
   })
 
   it('reports a null cursor when the chunk came back short', async () => {
-    /*
-     * Short means exhausted. Kills the mutant that always reports the last id
-     * moved: the loop above would still total 5, because the extra round trip
-     * finds nothing and stops — the cost is a wasted query per run, which no
-     * assertion on the total can see.
-     */
     await seedMembers(3, REGISTERED)
 
     const chunk = await repo.moveMembersChunk({
@@ -321,12 +242,6 @@ describe('moveMembersChunk', () => {
   })
 
   it('starts after the cursor rather than at the beginning of the group', async () => {
-    /*
-     * Kills the mutant that drops `id > afterUserId`. A sequential run hides it
-     * — the source group shrinks as it goes, so the totals still come out right
-     * — and it only shows when the cursor is ahead of members who are still
-     * there, which is exactly the case a resumed run is in.
-     */
     await seedMembers(5, REGISTERED)
 
     const chunk = await repo.moveMembersChunk({
@@ -381,11 +296,6 @@ describe('moveMembersChunk', () => {
   })
 
   it('bumps the version on every chunk, not only the last', async () => {
-    /*
-     * A run that stops half way has still changed real permissions, and the
-     * actors holding the old ones have to go. Kills the mutant that bumps once
-     * at the end of a multi-chunk run.
-     */
     await seedMembers(4, REGISTERED)
     const before = await permissionVersion()
 
@@ -408,12 +318,6 @@ describe('moveMembersChunk', () => {
 })
 
 describe('setBadge', () => {
-  /*
-   * The property that matters is not that the key is stored — it is that the
-   * write hands back the key it *stopped* pointing at, in the same statement.
-   * The caller deletes that object, and a read-then-write would let two
-   * concurrent uploads both believe they own the same previous key.
-   */
   it('returns the key it replaced, not the one it just wrote', async () => {
     expect(await repo.setBadge(REGISTERED, 'light', 'group/2/badge-light-a.png')).toBeNull()
 
@@ -440,10 +344,6 @@ describe('setBadge', () => {
     expect((await repo.list()).find((row) => row.id === REGISTERED)?.badgeImageLight).toBeNull()
   })
 
-  /*
-   * A badge is presentation. Bumping the permission version would invalidate
-   * every resolved actor on the board because somebody uploaded a picture.
-   */
   it('does not bump the permission version', async () => {
     const before = await permissionVersion()
     await repo.setBadge(REGISTERED, 'light', 'group/2/badge-light-a.png')

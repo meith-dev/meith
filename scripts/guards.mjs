@@ -1,15 +1,4 @@
 #!/usr/bin/env node
-/**
- * Textual invariant guards.
- *
- * Some rules in the plan are about *text*, not module graphs, so
- * dependency-cruiser cannot see them: "process.env appears in exactly one
- * file", "no component hardcodes a colour", "cookies() is never read inside a
- * cached function". Each guard below maps to a numbered requirement and fails
- * the build with the reason, not just a line number.
- *
- * Run: pnpm guards
- */
 
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
@@ -30,7 +19,6 @@ const SKIP_DIRS = new Set([
   'user_read_only_context',
 ])
 
-/** Recursively collect candidate source files. */
 async function walk(dir, out = []) {
   const entries = await readdir(dir, { withFileTypes: true })
   for (const e of entries) {

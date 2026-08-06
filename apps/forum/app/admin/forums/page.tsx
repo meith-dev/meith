@@ -8,27 +8,11 @@ import { getContainer } from '@/server/container'
 
 export const metadata: Metadata = { title: 'Forums' }
 
-/**
- * F65 — the forum tree.
- *
- * A read-only listing with links, deliberately: creating and moving forums are
- * F16's `create` and `move`, both of which take the forest lock and re-read the
- * tree inside their transaction. Putting a create form here before the screen
- * that can *show* a move would be a panel that lets an operator build a tree it
- * cannot rearrange — which is the shape a forum administration screen must not
- * have. See the F65 row for what that costs.
- */
 export default async function AdminForumsPage() {
-  /* Re-run, because a layout is not a security boundary (see the ACP layout). */
   await requireAdmin()
 
   const forums = await getContainer().forums.listAll()
 
-  /*
-   * Flattened depth-first from the tree rather than sorted by `path`, so the
-   * order on screen is the order the board renders — which is what makes
-   * "display order" mean anything to somebody editing it.
-   */
   type Row = { forum: ForumRow; depth: number }
   const rows: Row[] = []
   const walk = (nodes: readonly ForumNode<ForumRow>[], depth: number): void => {

@@ -6,19 +6,6 @@ import { groupAdminRepository } from '@/server/group-admin'
 
 export const metadata: Metadata = { title: 'Mass membership change' }
 
-/**
- * F66 — the chunked mass move.
- *
- * The chunking is the feature. Moving every member of a group in one statement
- * holds row locks on `users` — the table every request on the board reads —
- * for as long as the update takes, which on a board with five figures of
- * members is long enough to look like an outage. Bounded batches on a keyset
- * cursor mean the run is interruptible, resumable, and never blocks the board.
- *
- * The cursor travels in the form, so a run continues across presses **with no
- * JavaScript** (D06). That is also why the screen does not have a progress bar:
- * a bar would be an island, and this works without one.
- */
 export default async function AdminMembershipsPage() {
   await requireAdmin()
 

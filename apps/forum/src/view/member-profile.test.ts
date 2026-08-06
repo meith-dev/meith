@@ -33,12 +33,7 @@ describe('buildMemberProfileView', () => {
   it('formats in the viewer’s timezone, not the board’s (F57)', () => {
     const view = buildMemberProfileView(PROFILE, NOW, { timeZone: 'Australia/Sydney' })
 
-    /*
-     * 08:41 UTC is 18:41 the same day in Sydney. The zone belongs to whoever is
-     * *reading* the profile, not to whoever owns it.
-     */
     expect(view.lastVisitAt?.label).toBe('Today, 18:41')
-    /* The machine-readable value never moves: it is the instant itself. */
     expect(view.lastVisitAt?.iso).toBe('2026-07-30T08:41:00.000Z')
   })
 
@@ -55,7 +50,6 @@ describe('buildMemberProfileView', () => {
   })
 
   it('renders no field rows at all for a profile nobody filled in', () => {
-    /* F33's rule: an absent field is not in the HTML, not hidden with CSS. */
     expect(buildMemberProfileView(PROFILE, NOW).fields).toEqual([])
   })
 

@@ -6,20 +6,6 @@ import { groupAdminRepository, previewPromotions } from '@/server/group-admin'
 
 export const metadata: Metadata = { title: 'Promotions' }
 
-/**
- * F66 — the promotion dry run.
- *
- * This screen is a *caller* of `PromotionService.preview()`, not a second
- * implementation of it. `preview()` and `apply()` are the same evaluation
- * differing only in whether the outcomes are written, which is what stops a
- * preview from ever disagreeing with the run it previewed — a screen that
- * computed the list itself would eventually lie, and the thing it would lie
- * about is who is about to be moved between groups.
- *
- * The dry run is unconditional: opening this page runs it. It writes nothing,
- * and a promotions screen that showed rules without their consequences would be
- * asking an operator to evaluate the rules in their head.
- */
 export default async function AdminPromotionsPage() {
   await requireAdmin()
 
@@ -89,10 +75,7 @@ export default async function AdminPromotionsPage() {
         </>
       )}
 
-      {/*
-        Named, because the guards are the reason this list is shorter than an
-        operator might expect — and an unexplained absence reads as a bug.
-      */}
+      { }
       <p className="text-xs text-muted-foreground">
         A promotion never lifts a ban, never demotes, and never re-applies to
         somebody already in the target group. Banned members and staff are

@@ -1,4 +1,3 @@
-/** Postgres thread-view listing (F31), widened for moderators at F41. */
 import { and, asc, eq, gt, sql, type SQL } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
@@ -62,7 +61,6 @@ function toPost(row: {
 export class PostgresPostRepository implements PostRepository {
   constructor(private readonly db: Database) {}
 
-  /** F40's quote source: one visible post in one thread, body included. */
   async findQuotable(threadId: number, postId: number): Promise<QuotablePost | null> {
     const rows = await this.db
       .select({
@@ -76,11 +74,6 @@ export class PostgresPostRepository implements PostRepository {
         and(
           eq(posts.id, postId),
           eq(posts.threadId, threadId),
-          /*
-           * Public, whoever is asking. Quoting is how a post is put back in
-           * front of everybody, so a moderator quoting a removed post would
-           * republish it — with the moderator's name on it.
-           */
           visibleIn(posts.visibility, PUBLIC_CONTENT),
         ),
       )
@@ -88,13 +81,6 @@ export class PostgresPostRepository implements PostRepository {
 
     const row = rows[0]
     if (row === undefined) return null
-    /*
-     * Converted here, because what this returns is pasted into a composer. A
-     * quote of a post the backfill has not reached yet must arrive as the
-     * Markdown the replier is about to post, not as the BBCode it is still
-     * stored as — otherwise quoting an old post writes new BBCode into a new
-     * post, and the migration would never finish.
-     */
     return {
       id: row.id,
       authorUsername: row.authorUsername,
@@ -125,11 +111,6 @@ export class PostgresPostRepository implements PostRepository {
       readonly scope: ContentScope
     },
   ): Promise<PostPage> {
-    /*
-     * One predicate, used by both the page slice and the "how many came before"
-     * subquery. Two spellings of it is how a moderator's page ends up numbered
-     * from the member's set — off by exactly the number of hidden posts above.
-     */
     const visible: SQL = visibleIn(posts.visibility, options.scope)
 
     const beforeCount = options.afterId

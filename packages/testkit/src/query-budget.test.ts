@@ -1,7 +1,3 @@
-/**
- * The budget helper has to be trusted before anything relies on it, so this
- * proves it counts real statements and actually fails when the budget is blown.
- */
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import { schema } from '@meith/db'
 import { eq } from 'drizzle-orm'
@@ -61,10 +57,6 @@ describe('expectQueryBudget', () => {
     expect(value).toBe('ok')
   })
 
-  /*
-   * The assertion this whole helper exists for. If it cannot fail, every "no
-   * N+1" claim built on it is decoration.
-   */
   it('fails when the budget is exceeded', async () => {
     await expect(
       expectQueryBudget(harness, 2, async () => {
@@ -93,9 +85,6 @@ describe('expectQueryBudget', () => {
       message = error instanceof Error ? error.message : String(error)
     }
 
-    // "3× select ..." is what turns a number into a diagnosis. The table name
-    // lives at the end of drizzle's column list, so the message must elide from
-    // the middle to keep it.
     expect(message).toMatch(/3×/)
     expect(message).toMatch(/usergroups/)
   })

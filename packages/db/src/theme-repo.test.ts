@@ -60,12 +60,6 @@ describe('PostgresThemeRepository', () => {
       ])
     })
 
-    /*
-     * An empty table is a board that has never opened the theme screen, and it
-     * renders exactly as it did before the table had a writer. The composition
-     * that turns this into a palette lives in the app, where the registry is —
-     * which theme exists is `forum.config.ts`'s answer, not a row's.
-     */
     it('is empty for a board that has decided nothing', async () => {
       await expect(new PostgresThemeRepository(db).listRuntime()).resolves.toEqual([])
     })

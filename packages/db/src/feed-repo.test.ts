@@ -1,18 +1,3 @@
-/**
- * F76's reads, against real Postgres — and the leak suite the roadmap asks for
- * by name.
- *
- * F47's row has said since Phase 4 that feeds were one of two read paths its
- * guard had nothing to fire on. This is that path arriving, so the tests are
- * written as the guard's counterpart: **for every syndicated read, seed a
- * private forum and a hidden thread, then assert that nothing about either
- * appears in the output.** Not "the ids are absent" — the titles, the slugs and
- * the bodies, because a leak through a feed is a leak of text.
- *
- * The second theme is the sitemap's paging. A crawler works through the chunks
- * over hours, so the boundary has to be stable while it does; the tests page
- * the whole board and assert every thread appears exactly once.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -95,7 +80,6 @@ async function seedPost(input: {
   `)
 }
 
-/** What a signed-out visitor sees: the open forum, visible content only. */
 const guest = (overrides: Partial<FeedScope> = {}): FeedScope => ({
   forumIds: [OPEN],
   content: PUBLIC_CONTENT,
@@ -109,7 +93,6 @@ const staff: FeedScope = {
 
 describe('the leak suite', () => {
   beforeEach(async () => {
-    /* Something private, in a forum a guest cannot read. */
     await seedThread({
       id: 100,
       forumId: SECRET,
@@ -119,7 +102,6 @@ describe('the leak suite', () => {
     })
     await seedPost({ id: 1000, threadId: 100, message: SECRET_BODY })
 
-    /* And something merely hidden, in a forum a guest *can* read. */
     await seedThread({
       id: 101,
       forumId: OPEN,
@@ -140,28 +122,16 @@ describe('the leak suite', () => {
     expect(serialised).not.toContain(SECRET_TITLE)
     expect(serialised).not.toContain(SECRET_BODY)
     expect(serialised).not.toContain('Staff room')
-    /* And it is not simply empty — that would pass every assertion above. */
     expect(serialised).toContain('ordinary business')
   })
 
   it('keeps a hidden thread in a readable forum out of the board feed', async () => {
-    /*
-     * The second half, and the one a forum-id filter alone would miss: thread
-     * 101 is in the open forum and would pass any permission check that stopped
-     * at the forum. Kills the mutant that drops the content scope.
-     */
     const rows = await repo.recentThreads(50, guest())
     expect(rows.map((row) => row.threadId)).toEqual([1])
   })
 
   it('refuses a private forum asked for by id', async () => {
-    /*
-     * The forum feed takes an id from the URL. Asking for one outside the scope
-     * must produce nothing — not that forum's threads. Kills the mutant that
-     * replaces the scope filter with the requested id instead of intersecting.
-     */
     expect(await repo.recentThreads(50, guest(), SECRET)).toEqual([])
-    /* Staff, who may read it, do get it — so the emptiness above is the scope. */
     expect((await repo.recentThreads(50, staff, SECRET)).map((r) => r.threadId)).toEqual([100])
   })
 
@@ -171,13 +141,6 @@ describe('the leak suite', () => {
   })
 
   it('refuses a hidden thread’s post feed even though its posts are visible', async () => {
-    /*
-     * Thread 101 is unapproved and sits in a forum a guest may read, and its
-     * post is visible in its own right. A feed that checked only the post — the
-     * obvious reading of "list this thread's posts" — would publish the body of
-     * a thread awaiting moderation, at a URL that is a bare id anybody can
-     * guess. Kills the mutant that drops the thread's own visibility check.
-     */
     const serialised = JSON.stringify(await repo.recentPosts(101, 50, guest()))
 
     expect(serialised).not.toContain(SECRET_BODY)
@@ -204,11 +167,6 @@ describe('the leak suite', () => {
   })
 
   it('answers nothing for a scope with no forums at all', async () => {
-    /*
-     * An empty forum list is "nothing", never "no filter" — the same claim F74
-     * makes first in its own suite, restated here because a feed is the one
-     * surface where getting it wrong is served to the whole internet.
-     */
     const empty = guest({ forumIds: [] })
 
     expect(await repo.recentThreads(50, empty)).toEqual([])
@@ -229,18 +187,6 @@ describe('recentThreads', () => {
   })
 
   it('summarises the opening post, and stays one entry per thread', async () => {
-    /*
-     * Two claims that are really one. An entry keyed on the thread must say
-     * what the thread is *about* — taking the latest post would rewrite the
-     * entry's meaning under a reader who has already seen it, every reply
-     * changing history in their inbox.
-     *
-     * And it must be **one row**. The mutant that joins on `thread_id` rather
-     * than on `first_post_id` gets the summary right by accident and returns a
-     * row per post: a thread with forty replies fills the whole feed, and the
-     * limit applies before anything could de-duplicate it. Asserting the count
-     * is what separates the two.
-     */
     await seedThread({ id: 1, firstPostId: 10 })
     await seedPost({ id: 10, threadId: 1, message: 'the question' })
     await seedPost({ id: 11, threadId: 1, message: 'the answer', createdAt: '2026-03-03T00:00:00Z' })
@@ -251,11 +197,6 @@ describe('recentThreads', () => {
   })
 
   it('keeps a thread whose opening post was removed, without a summary', async () => {
-    /*
-     * A thread is still a thread. Dropping it would make a moderator deleting
-     * one post remove the whole conversation from the feed — and an inner join
-     * is how that happens by accident.
-     */
     await seedThread({ id: 1, firstPostId: 10 })
     await seedPost({ id: 10, threadId: 1, visibility: 'deleted', message: SECRET_BODY })
 
@@ -286,12 +227,6 @@ describe('the sitemap’s paging', () => {
   })
 
   it('walks the whole board once, in id order', async () => {
-    /*
-     * The claim a crawler depends on. It works through the chunks over hours,
-     * so every thread must appear exactly once across the whole walk — and by
-     * id, because ordering by activity moves the boundary whenever somebody
-     * posts, which makes the crawl skip threads and revisit others.
-     */
     const seen: number[] = []
     let after = 0
     for (;;) {
@@ -305,49 +240,24 @@ describe('the sitemap’s paging', () => {
   })
 
   it('finds a chunk’s starting id by position', async () => {
-    /*
-     * The sitemap *index* names chunks by number before any of them exists, so
-     * a chunk has to find its own start from that number. Skipping three
-     * threads must land on the third id, and asking for none must start at the
-     * beginning.
-     */
     expect(await repo.sitemapBoundaryId(3, guest())).toBe(3)
     expect(await repo.sitemapBoundaryId(0, guest())).toBe(0)
   })
 
   it('says null — not zero — for a chunk past the end', async () => {
-    /*
-     * The distinction the sitemap index depends on. Zero means "start at the
-     * beginning", so answering it for a chunk that does not exist would serve
-     * the *first* chunk's threads at `/sitemap/threads-99.xml`: the same
-     * content under a second URL, published to crawlers by the document whose
-     * whole job is telling them what to crawl. Kills the mutant that collapses
-     * the two.
-     */
     expect(await repo.sitemapBoundaryId(99, guest())).toBeNull()
     expect(await repo.sitemapBoundaryId(1, guest())).toBe(1)
   })
 
   it('skips a hidden thread when counting positions', async () => {
-    /*
-     * The boundary and the chunk must agree about what exists, or a chunk
-     * starts in the wrong place and the walk loses threads. Kills the mutant
-     * that omits the scope from the boundary query.
-     */
     await db.execute(sql`update threads set visibility = 'deleted' where id = 4`)
 
     expect(await repo.sitemapThreadCount(guest())).toBe(6)
-    /* Positions 1..6 are ids 1,2,3,5,6,7 — so skipping 3 lands on 3, not 4. */
     expect(await repo.sitemapBoundaryId(3, guest())).toBe(3)
     expect(await repo.sitemapBoundaryId(4, guest())).toBe(5)
   })
 
   it('omits lastmod for a forum nobody has posted in', async () => {
-    /*
-     * `lastmod` is a promise about when the page changed. Inventing "now" for a
-     * dormant forum teaches a crawler to keep re-fetching a page that never
-     * moves — which is a cost paid forever for a field that could be absent.
-     */
     const forums = await repo.sitemapForums({ ...guest(), forumIds: [OPEN, SECRET] })
 
     expect(forums.find((f) => f.forumId === OPEN)?.lastPostAt).not.toBeNull()

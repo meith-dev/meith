@@ -1,23 +1,5 @@
 import 'server-only'
 
-/**
- * F66 at the app layer.
- *
- * Two things assembled here, both of which read more than one source.
- *
- * **The permission editor's rows.** A group's global permissions are the
- * *bottom* of the resolution (R4.1 layer 1) — there is no ancestor above them
- * and nothing to inherit from — so unlike F65's forum matrix these cells have
- * two states, not three. The editor is built from the registry rather than from
- * a hand-written list of fields, so a permission added to `PERMISSION_FIELDS`
- * appears here without anybody remembering to add it.
- *
- * **The promotion dry run.** `PromotionService.preview()` has existed since
- * F24 and had no caller outside the scheduler; the screen is a caller, not a
- * second implementation. `preview()` and `apply()` differ only in whether the
- * outcomes are written, which is the property that stops a preview from ever
- * disagreeing with the run it is previewing.
- */
 import { ForbiddenError, PERMISSION_FIELDS } from '@meith/core'
 import type { PermissionField, PermissionSet } from '@meith/core'
 import { PromotionService, type PromotionRunResult } from '@meith/groups'
@@ -32,11 +14,6 @@ import {
 import { getContainer } from './container'
 
 export function groupAdminRepository(): PostgresGroupAdminRepository | null {
-  /*
-   * Gated on the container's data source, like `forumAdminRepository`: this is
-   * used by four ACP screens and nothing else, and a field on `Container` would
-   * be a field every test double has to carry.
-   */
   return getContainer().dataSource === 'postgres'
     ? new PostgresGroupAdminRepository(getDb())
     : null
@@ -52,7 +29,6 @@ export function requireGroupAdmin(): PostgresGroupAdminRepository {
   return repository
 }
 
-/** One editable permission, with the value the group currently holds. */
 export interface GroupPermissionCell {
   readonly key: string
   readonly description: string
@@ -81,14 +57,6 @@ export async function buildGroupPermissionView(
   return { group, cells: permissionCells(permissions) }
 }
 
-/**
- * Every field in the registry, in registry order.
- *
- * Including the `forum`-scoped ones. They are a group's *default* answer for
- * every forum that does not override them (R4.1 layer 1), so leaving them off
- * this screen would hide the value that most forums actually resolve to — an
- * operator would set `canPostThreads` nowhere and wonder why nobody can post.
- */
 function permissionCells(permissions: PermissionSet): readonly GroupPermissionCell[] {
   return PERMISSION_FIELDS.map((field) => ({
     key: field.key,
@@ -101,12 +69,6 @@ function permissionCells(permissions: PermissionSet): readonly GroupPermissionCe
   }))
 }
 
-/**
- * What a promotion run would do, without doing it.
- *
- * Returns `null` on a board with no Postgres behind it rather than throwing:
- * the screen renders an explanation, and a dry run is a read.
- */
 export async function previewPromotions(limit = 500): Promise<PromotionRunResult | null> {
   if (getContainer().dataSource !== 'postgres') return null
 
@@ -117,7 +79,6 @@ export async function previewPromotions(limit = 500): Promise<PromotionRunResult
   return service.preview(limit)
 }
 
-/** The promotion service the apply action uses — same construction, one place. */
 export function promotionService(): PromotionService {
   if (getContainer().dataSource !== 'postgres') {
     throw new ForbiddenError(

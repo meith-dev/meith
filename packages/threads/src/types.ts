@@ -1,4 +1,3 @@
-/** F30's read model. Writes arrive with F39/F40. */
 export type ThreadSort = 'activity' | 'rating'
 
 export interface ThreadLastPost {
@@ -21,20 +20,16 @@ export interface ThreadListingRow {
   readonly authorUsername: string
   readonly replyCount: number
   readonly viewCount: number
-  /** F43's denormalised aggregate, used for the rating listing sort. */
   readonly ratingTotal: number
   readonly ratingCount: number
-  /** F47: a moderator's listing shows hidden threads, marked as such. */
   readonly visibility: 'visible' | 'unapproved' | 'deleted'
   readonly isSticky: boolean
   readonly isLocked: boolean
   readonly isMoved: boolean
   readonly lastPost: ThreadLastPost | null
-  /** The sort key, retained only for a stable next-page cursor. */
   readonly lastPostAt: Date
 }
 
-/** The final row of a page, used to resume the descending listing. */
 export interface ThreadCursor {
   readonly sort: ThreadSort
   readonly isSticky: boolean

@@ -1,11 +1,3 @@
-/**
- * @meith/db — the only package that speaks SQL.
- *
- * Domain packages must NOT import this (enforced by .dependency-cruiser.cjs).
- * They declare repository interfaces and receive an implementation, so the same
- * logic runs against Postgres in production and the in-memory fixture in tests.
- */
-
 export {
   getDb,
   createIsolatedDb,
@@ -69,7 +61,6 @@ export { PostgresNotificationRepository } from './notification-repo'
 export { PostgresProfileFieldRepository } from './profile-field-repo'
 export { PostgresMessageRepository } from './message-repo'
 export { PostgresAttachmentRepository } from './attachment-repo'
-/* F71 — the ACP's attachment listing. */
 export {
   PostgresAttachmentAdminRepository,
   type AttachmentAdminFilter,
@@ -208,19 +199,16 @@ export {
   type ThreadPrefixRow,
   type WordFilterRow,
 } from './content-admin-repo'
-/* F46 — anti-spam: the rate-limit counter and the captcha questions. */
 export {
   PostgresCaptchaQuestionRepository,
   PostgresRateLimitBucketStore,
   type CaptchaQuestionRow,
 } from './antispam-repo'
-/* F71 — announcements. */
 export {
   PostgresAnnouncementRepository,
   type AnnouncementInput,
   type AnnouncementRow,
 } from './announcement-repo'
-/* F71 — the compiled vocabulary, for the render and write paths. */
 export { readBoardVocabulary } from './vocabulary-repo'
 export {
   PostgresAdminRepository,
@@ -238,7 +226,6 @@ export {
 
 export * from './schema'
 
-/* F81 — the public API's stores. */
 export {
   PostgresApiTokenRepository,
   type ApiTokenSummary,
@@ -247,10 +234,8 @@ export {
   type WebhookDeliveryRow,
 } from './api-repo'
 
-/* F83 — the installer's probes and its one write. */
 export { canConnect, countUsers, isInstalled, markInstalled } from './install-repo'
 
-/* F84 — component versions and the plugin migration runner. */
 export {
   appliedPluginMigrations,
   applyPluginMigration,
@@ -259,7 +244,6 @@ export {
   recordVersion,
 } from './upgrade-repo'
 
-/* F85 — the legacy-id map and the import run's state. */
 export {
   currentImportRun,
   finishImportRun,

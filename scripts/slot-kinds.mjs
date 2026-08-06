@@ -1,41 +1,4 @@
 #!/usr/bin/env node
-/**
- * F25 — the server/client slot boundary, checked statically.
- *
- * `theme-kit` declares a kind per slot and enforces it two ways already: an
- * `async` client slot does not type-check, and a bundler-marked client reference
- * in a server slot throws at `defineTheme`. Neither catches the case that
- * actually happens:
- *
- *   a plain synchronous component in a file that starts with "use client".
- *
- * It satisfies the server signature, it is an ordinary function under vitest, and
- * it renders identically. The only difference is that its whole subtree now ships
- * to the browser and hydrates. For `PostBit` that is the entire post list — the
- * one number this product is built around.
- *
- * So the check is textual and runs in `pnpm verify`:
- *
- *   1. read the slot kinds out of packages/theme-kit/src/slots.ts;
- *   2. find every theme manifest (a file calling `defineTheme(`);
- *   3. map each filled slot to the module its component was imported from;
- *   4. compare that module's "use client" status against the declared kind.
- *
- * ## It refuses to guess
- *
- * Step 3 is a regex over TypeScript, which is brittle — so the brittleness is
- * converted into an explicit rule rather than a silent pass: if a slot's value is
- * not a bare identifier resolving to a local import, the check **fails**, asking
- * for that form. A checker that shrugs at what it cannot parse is how a boundary
- * erodes — one clever manifest and the rule is off for that theme forever, while
- * still reporting green.
- *
- * Both directions are errors. A client slot implemented by a server module is the
- * quieter bug: the island renders once and never becomes interactive, so a
- * quick-reply box looks right in a screenshot and does nothing when clicked.
- *
- * Run: pnpm slots:check   ·   Probe it: pnpm slots:check --probe
- */
 
 import { readdir, readFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -52,33 +15,12 @@ const SKIP_DIRS = new Set([
   'coverage',
 ])
 
-/*
- * Every file read goes through here so the probe can substitute in-memory
- * sources and still exercise the real analysis. One code path, not two — a probe
- * with its own copy of the logic drifts from the rule it claims to test.
- */
 let readSource = (path) => readFile(path, 'utf8')
 
-/* ------------------------------------------------------------------ *
- * The slot registry, read from its single source
- * ------------------------------------------------------------------ */
-
-/**
- * Parse `SLOTS` out of slots.ts.
- *
- * Deliberately *not* imported: this script is plain ESM and slots.ts is
- * TypeScript, so importing it would mean adding a TS loader to a guard — making
- * the guard depend on the toolchain it is guarding. The shape it reads is pinned
- * by packages/theme-kit/src/slots.test.ts, and `assertRegistryParsed` refuses to
- * report a clean run if this parse ever stops finding slots.
- *
- * @returns {Promise<Map<string, 'server'|'client'>>}
- */
 async function readSlotKinds() {
   const file = join(ROOT, 'packages/theme-kit/src/slots.ts')
   const source = await readFile(file, 'utf8')
 
-  // Only the SLOTS object literal, so prose in the file header cannot match.
   const start = source.indexOf('export const SLOTS = {')
   const end = source.indexOf('} as const satisfies', start)
   if (start === -1 || end === -1) {
@@ -89,7 +31,6 @@ async function readSlotKinds() {
   }
   const body = source.slice(start, end)
 
-  /** @type {Map<string, 'server'|'client'>} */
   const kinds = new Map()
   for (const match of body.matchAll(/(\w+):\s*\{\s*kind:\s*'(server|client)'/g)) {
     kinds.set(match[1], match[2])
@@ -106,11 +47,6 @@ function assertRegistryParsed(kinds) {
   }
 }
 
-/* ------------------------------------------------------------------ *
- * Source analysis
- * ------------------------------------------------------------------ */
-
-/** Recursively collect .ts/.tsx files under a directory. */
 async function walk(dir, out = []) {
   let entries
   try {
@@ -129,21 +65,11 @@ async function walk(dir, out = []) {
   return out
 }
 
-/** Strip block and line comments. Used before any structural parse. */
 function stripComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
 }
 
-/**
- * `true` when a module declares itself a client module.
- *
- * The directive must be the *first statement*, so only leading whitespace and
- * comments are skipped before looking. A `'use client'` further down the file is
- * not a directive at all — React ignores it — and treating one as such would let
- * a mention in a comment flip a file's apparent kind.
- */
 function declaresUseClient(source) {
-  // Escaped, not literal: a raw BOM in source is invisible in every diff (R0).
   let rest = source.replace(/^\uFEFF/, '')
   for (;;) {
     const before = rest
@@ -155,16 +81,7 @@ function declaresUseClient(source) {
   return /^['"]use client['"]\s*;?/.test(rest)
 }
 
-/**
- * Map local binding → import specifier for a module's value imports.
- *
- * Covers the forms a manifest legitimately uses: named imports (including
- * `as` renames and inline `type`), and default imports. A namespace import is
- * not resolvable to one component module, so bindings taken from it are absent
- * here and reported by the caller rather than skipped.
- */
 function importedBindings(source) {
-  /** @type {Map<string, string>} */
   const bindings = new Map()
   const importRe = /import\s+([^'"]+?)\s+from\s+['"]([^'"]+)['"]/g
   for (const match of source.matchAll(importRe)) {
@@ -191,14 +108,6 @@ function importedBindings(source) {
   return bindings
 }
 
-/**
- * Extract the body of the `slots: { ... }` object.
- *
- * Brace-counted rather than regex-matched: slot values are often calls or
- * objects, and a lazy `\{([^}]*)\}` stops at the first inner `}` and silently
- * loses every slot after it — a checker that quietly stops reading half the map
- * is worse than no checker.
- */
 function slotsObject(source) {
   const clean = stripComments(source)
   const key = /\bslots\s*:\s*\{/.exec(clean)
@@ -217,7 +126,6 @@ function slotsObject(source) {
   return null
 }
 
-/** Split on top-level commas, ignoring those nested in braces/brackets/parens. */
 function splitTopLevel(body) {
   const parts = []
   let depth = 0
@@ -236,14 +144,6 @@ function splitTopLevel(body) {
   return parts.map((p) => p.trim()).filter((p) => p !== '')
 }
 
-/**
- * `{ slot, value }` pairs from a slots object body.
- *
- * Shorthand (`{ PostBit }`) is the idiomatic form and resolves to itself. A
- * spread or a computed key produces an entry whose `slot` is not an identifier,
- * which the caller reports — that is the "assembled elsewhere" case, and it must
- * fail rather than vanish.
- */
 function slotEntries(body) {
   return splitTopLevel(body).map((segment) => {
     const colon = segment.indexOf(':')
@@ -255,13 +155,8 @@ function slotEntries(body) {
   })
 }
 
-/* ------------------------------------------------------------------ *
- * Resolution and the check itself
- * ------------------------------------------------------------------ */
-
 const EXTENSIONS = ['', '.tsx', '.ts', '/index.tsx', '/index.ts']
 
-/** Resolve a relative specifier to a file on disk, or `null`. */
 async function resolveModule(fromFile, specifier) {
   if (!specifier.startsWith('.')) return null
   const base = resolve(dirname(fromFile), specifier)
@@ -269,18 +164,11 @@ async function resolveModule(fromFile, specifier) {
     const candidate = base + ext
     try {
       return { file: candidate, source: await readSource(candidate) }
-    } catch {
-      /* try the next extension */
-    }
+    } catch {}
   }
   return null
 }
 
-/**
- * Check one manifest.
- *
- * @returns {Promise<string[]>} human-readable failures; empty when clean.
- */
 async function checkManifest(file, source, kinds) {
   const rel = relative(ROOT, file)
   const failures = []
@@ -373,11 +261,6 @@ async function checkManifest(file, source, kinds) {
   return failures
 }
 
-/* ------------------------------------------------------------------ *
- * Probe (D10: prove the check is not inert)
- * ------------------------------------------------------------------ */
-
-/** Run the real analysis over in-memory sources. */
 async function checkSample(manifestPath, manifestSource, files, kinds) {
   const previous = readSource
   readSource = async (path) => {
@@ -394,11 +277,6 @@ async function checkSample(manifestPath, manifestSource, files, kinds) {
   }
 }
 
-/**
- * Two assertions per case, and the second is the one people forget: a check
- * broadened until everything fails satisfies "fires on a violation" trivially
- * while making the build unfixable.
- */
 async function probe(kinds) {
   const failures = []
   const MANIFEST = 'themes/probe/src/theme.ts'
@@ -410,7 +288,6 @@ async function probe(kinds) {
     export default defineTheme({ key: 'p', title: 'P', slots: { PostBit } })
   `
 
-  /* 1. A server slot implemented by a client module must be caught. */
   const crossing = await checkSample(
     MANIFEST,
     postBitManifest,
@@ -424,7 +301,6 @@ async function probe(kinds) {
     )
   }
 
-  /* 2. The same manifest over a server module must pass. */
   const clean = await checkSample(
     MANIFEST,
     postBitManifest,
@@ -435,7 +311,6 @@ async function probe(kinds) {
     failures.push(`TOO BROAD: a legitimate server slot was reported.\n    ${clean.join('\n    ')}`)
   }
 
-  /* 3. A client slot that forgot its directive must be caught. */
   const inertIsland = await checkSample(
     MANIFEST,
     `
@@ -450,7 +325,6 @@ async function probe(kinds) {
     failures.push('INERT: a client slot with no "use client" directive was not reported.')
   }
 
-  /* 4. A slot value this checker cannot resolve must fail, not be skipped. */
   const unresolvable = await checkSample(
     MANIFEST,
     `
@@ -468,7 +342,6 @@ async function probe(kinds) {
     )
   }
 
-  /* 5. A slot name that is not in the registry must fail. */
   const typo = await checkSample(
     MANIFEST,
     `
@@ -483,7 +356,6 @@ async function probe(kinds) {
     failures.push('INERT: a slot name absent from the registry was not reported.')
   }
 
-  /* 6. The directive parser itself, both ways. */
   if (declaresUseClient("/* 'use client' is what an island needs */\nexport function X() {}")) {
     failures.push('TOO BROAD: "use client" inside a comment was read as a directive.')
   }
@@ -491,7 +363,6 @@ async function probe(kinds) {
     failures.push('INERT: a real directive following a comment was not recognised.')
   }
 
-  /* 7. Brace counting: a slot after a nested object must still be seen. */
   const afterNested = slotEntries(" Header: { a: 1 } ? A : B, PostBit ").map((e) => e.slot)
   if (!afterNested.includes('PostBit')) {
     failures.push('INERT: a slot listed after a nested object literal was lost by the parser.')
@@ -499,10 +370,6 @@ async function probe(kinds) {
 
   return failures
 }
-
-/* ------------------------------------------------------------------ *
- * Entry point
- * ------------------------------------------------------------------ */
 
 const kinds = await readSlotKinds()
 assertRegistryParsed(kinds)
@@ -525,7 +392,6 @@ if (process.argv.includes('--probe')) {
 
   for (const file of files) {
     const rel = relative(ROOT, file)
-    // theme-kit *declares* defineTheme, and its tests build throwaway manifests.
     if (rel.startsWith('packages/theme-kit/')) continue
     if (/\.test\.tsx?$/.test(rel)) continue
 
@@ -543,11 +409,6 @@ if (process.argv.includes('--probe')) {
     process.exit(1)
   }
 
-  /*
-   * A clean run over nothing is the failure mode this whole script is written
-   * against: it reported "0 theme manifests, every slot matches" for its first
-   * hour of life, which is a green tick for having checked nothing at all.
-   */
   if (manifests === 0) {
     console.error(
       '\n✖ F25 slot server/client boundary: no theme manifest found.\n' +

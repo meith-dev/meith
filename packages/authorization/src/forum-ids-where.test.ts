@@ -1,13 +1,3 @@
-/**
- * F52 — "where may I do X", which is a different question again from "where am
- * I a moderator".
- *
- * `moderatedForumIds` is keyed by a `ModeratorRights` field, and one of those
- * fields means two things: `canSoftDeletePosts` grants `post.softDelete`
- * through a group column *or* an appointment, and grants `thread.delete`
- * through the appointment only. These tests are about that gap, and about the
- * `isForumModerator` flag F48 recorded as debt and never set.
- */
 import { describe, expect, it } from 'vitest'
 
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
@@ -30,11 +20,6 @@ function set(over: Partial<PermissionSet>): PermissionSet {
 
 const READ = { canView: true, canViewThreads: true } as const
 
-/**
- * `staff` holds the *group-level* soft-delete column and nothing else. That is
- * the configuration the whole feature turns on: a Moderator usergroup that may
- * remove a post but has never been appointed to a forum.
- */
 const GROUPS = [
   { groupId: GROUP.registered, permissions: set(READ) },
   { groupId: GROUP.staff, permissions: set({ ...READ, canSoftDeletePosts: true }) },
@@ -107,12 +92,6 @@ describe('forumIdsWhere', () => {
     expect(await where([], actor([GROUP.registered]), 'post.softDelete')).toEqual([])
   })
 
-  /*
-   * The whole reason this method exists. `moderatedForumIds('canSoftDeletePosts')`
-   * answers "nowhere" for this actor, because it only consults appointments for
-   * that right — but `post.softDelete` is granted by the group column, so a
-   * scope built from the rights key would silently disable the button.
-   */
   it('honours a group-level column an appointment-keyed scope would miss', async () => {
     const staff = actor([GROUP.registered, GROUP.staff])
     expect(await where([], staff, 'post.softDelete')).toEqual([
@@ -123,11 +102,6 @@ describe('forumIdsWhere', () => {
     ])
   })
 
-  /*
-   * And the other half of the same fact: the *thread* tools have no group-level
-   * column at all (F50), so the same actor may remove a post anywhere and
-   * remove a thread nowhere. Keying both off one answer gets one of them wrong.
-   */
   it('gives the same actor nothing for thread.delete, which has no group column', async () => {
     const staff = actor([GROUP.registered, GROUP.staff])
     expect(await where([], staff, 'thread.delete')).toEqual([])
@@ -155,15 +129,8 @@ describe('forumIdsWhere', () => {
     ).toEqual([FORUM.general, FORUM.nested])
   })
 
-  /*
-   * `isForumModerator` set from the appointment — the flag F48 introduced and
-   * then recorded as debt because nothing ever set it. Without it, an appointee
-   * with no group column would resolve `post.softDelete` to false here while
-   * resolving it to true on the post's own page.
-   */
   it('sets isForumModerator, so an appointee resolves post.softDelete here too', async () => {
     const member = actor([GROUP.registered])
-    /* No group column anywhere in this actor's groups — the appointment is all. */
     expect(await where([APPOINTMENT], member, 'post.softDelete')).toEqual([FORUM.general])
   })
 
@@ -206,11 +173,6 @@ describe('forumIdsWhere', () => {
       ])
     })
 
-    /*
-     * Not an optimisation: looping would call `can()` once per forum, and every
-     * one of those logs a bypass. Fifty audit lines for one page load buries
-     * the bypasses that describe an actual decision.
-     */
     it('logs one bypass rather than one per forum', async () => {
       for (const [group, kind] of [
         [GROUP.admin, 'administrator'],
@@ -224,12 +186,6 @@ describe('forumIdsWhere', () => {
       }
     })
 
-    /*
-     * The other half of the short-circuit, and the reason it is not just an
-     * optimisation: `can()` grants a super-moderator every forum-scoped action
-     * before it looks at the matrix, so a scope that filtered on `canView`
-     * first would refuse work the action itself would go on to permit.
-     */
     it('does not narrow staff to what their groups can view, because can() does not', async () => {
       const hidden: MemoryBoard = {
         ...board(),
@@ -241,7 +197,6 @@ describe('forumIdsWhere', () => {
       const who = actor([GROUP.superMod])
 
       expect(await authorizer.forumIdsWhere(who, 'thread.delete')).toContain(FORUM.general)
-      /* And the action agrees, which is the point. */
       expect(
         authorizer.can(who, 'thread.delete', {
           forumId: FORUM.general,

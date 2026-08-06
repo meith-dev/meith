@@ -2,14 +2,6 @@ import type { BoardStatsModel } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-/**
- * Board totals, as a definition list rather than a sentence.
- *
- * `computedAt` is rendered, not dropped. The totals are a rollup (F75), and
- * "counted ten minutes ago" is the difference between a number that is stale and
- * one that is wrong; `null` means the rollup has not run, which is said in words
- * rather than shown as three convincing zeroes.
- */
 export function BoardStats({
   threadCount,
   postCount,

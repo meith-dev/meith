@@ -1,13 +1,3 @@
-/**
- * F81 — the delivery loop's verdicts.
- *
- * `verdictFor`, `signPayload` and the backoff are tested in `@meith/api`. What
- * is only testable here is the loop around them: that the body signed is the
- * body sent, that a transport failure with no status code is still scheduled
- * rather than lost, and that each verdict reaches the right store method.
- *
- * `fetch` is injected, so nothing here opens a socket.
- */
 import { describe, expect, it, vi } from 'vitest'
 
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifySignature } from '@meith/api'
@@ -59,12 +49,6 @@ describe('deliverWebhooks', () => {
     const headers = init.headers as Record<string, string>
     const body = init.body as string
 
-    /*
-     * The property the published documentation asks third parties to implement.
-     * Verifying with the *sent* body rather than a re-serialised copy is the
-     * point: a loop that signed `JSON.stringify(payload)` twice could drift and
-     * this assertion would not notice.
-     */
     expect(
       verifySignature(
         'shhh-a-long-enough-secret',
@@ -82,8 +66,6 @@ describe('deliverWebhooks', () => {
 
     await deliverWebhooks(impl, 10, { now: NOW, fetchImpl: fetchImpl as unknown as typeof fetch })
 
-    /* A 3xx would otherwise deliver the operator's signed payload to a host
-       they never configured. */
     const [, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit]
     expect(init.redirect).toBe('manual')
   })
@@ -112,7 +94,6 @@ describe('deliverWebhooks', () => {
     })
 
     expect(result.retried).toBe(1)
-    /* 30s base on the first failure, with the jitter pinned to its midpoint. */
     expect(calls.retried).toEqual([
       { id: 1, at: new Date(NOW.getTime() + 30_000), status: 500, error: 'HTTP 500' },
     ])
@@ -144,11 +125,6 @@ describe('deliverWebhooks', () => {
       fetchImpl: fetchImpl as unknown as typeof fetch,
     })
 
-    /*
-     * The case `verdictFor` cannot answer: there is no response to judge. A
-     * loop that only handled status codes would drop these, and a subscriber
-     * whose DNS was briefly wrong would silently lose every event.
-     */
     expect(result.retried).toBe(1)
     expect(calls.retried[0]).toMatchObject({ status: null, error: 'ECONNREFUSED' })
   })
@@ -182,8 +158,6 @@ describe('deliverWebhooks', () => {
       fetchImpl: fetchImpl as unknown as typeof fetch,
     })
 
-    /* One broken endpoint must not cost the batch — the second delivery is to
-       a different subscriber that has done nothing wrong. */
     expect(result).toMatchObject({ attempted: 2, delivered: 1, retried: 1 })
     expect(calls.delivered).toHaveLength(1)
   })

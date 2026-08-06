@@ -1,9 +1,3 @@
-/**
- * The token descriptions the editor is built from.
- *
- * The colour conversions that used to live here went with the native hex
- * control they existed for; `@/view/oklch` and its own tests replaced both.
- */
 import { describe, expect, it } from 'vitest'
 
 import { LIGHT_TOKENS, TOKEN_NAMES } from '@meith/theme-default'
@@ -14,11 +8,6 @@ describe('groupTokens', () => {
   const tokens = TOKEN_NAMES.map((name) => ({ name }))
 
   it('places every token the default theme declares', () => {
-    /*
-     * The property that matters: a token this file forgot to describe must
-     * still be editable. It lands in "Other" under its own name rather than
-     * vanishing from a screen that claims to show everything the theme has.
-     */
     const placed = groupTokens(tokens).flatMap((group) => group.tokens.map((t) => t.name))
 
     expect([...placed].sort()).toEqual([...TOKEN_NAMES].sort())
@@ -42,12 +31,6 @@ describe('groupTokens', () => {
 })
 
 describe('token kinds', () => {
-  /*
-   * The kind decides the control: a colour gets two fields and a picker, and
-   * anything else gets one field, because "light" and "dark" corner radii are
-   * not a thing anybody wants and offering them is two chances to disagree with
-   * yourself.
-   */
   it('marks geometry and the font stack as scheme-independent', () => {
     for (const name of ['radius', 'density-unit', 'font-mono-stack']) {
       expect(isSchemeIndependent(name), name).toBe(true)
@@ -66,11 +49,6 @@ describe('token kinds', () => {
 })
 
 describe('BRAND_PRESETS', () => {
-  /*
-   * A preset that named a token the theme does not declare would be refused by
-   * F26's validator on save — after the operator had pressed it, watched the
-   * preview change, and pressed Save. Caught here instead.
-   */
   it('names only tokens the default theme declares', () => {
     for (const preset of BRAND_PRESETS) {
       for (const name of [...Object.keys(preset.light), ...Object.keys(preset.dark)]) {
@@ -79,11 +57,6 @@ describe('BRAND_PRESETS', () => {
     }
   })
 
-  /*
-   * Both schemes, always. The whole reason presets exist is that applying one
-   * colour to light and dark alike is the mistake this editor was rebuilt to
-   * stop somebody making by hand.
-   */
   it('sets a different value in each scheme', () => {
     for (const preset of BRAND_PRESETS) {
       expect(Object.keys(preset.dark), preset.key).toEqual(Object.keys(preset.light))

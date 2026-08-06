@@ -1,15 +1,3 @@
-/**
- * F59 — `profile-field:list|add|remove`.
- *
- * The only way to define a custom field until F71 builds the ACP screen. That
- * is not a stopgap in the apologetic sense: a field is board configuration, and
- * an operator who can create one from a terminal can also do it from a deploy
- * script, which is how a board with a dozen fields actually gets set up.
- *
- * Built over `ProfileFieldService` rather than the repository, so the CLI gets
- * the same key rules, type checking and duplicate refusal the ACP screen will —
- * the F13 header's whole argument for keeping this layer thin.
- */
 import { ValidationError } from '@meith/core'
 import { PostgresProfileFieldRepository, getDb } from '@meith/db'
 import { FIELD_TYPES, ProfileFieldService } from '@meith/profile-fields'
@@ -17,25 +5,11 @@ import { FIELD_TYPES, ProfileFieldService } from '@meith/profile-fields'
 import { optional, parseFlags, required, type Flags } from './args'
 import { requirePostgres } from './context'
 
-/**
- * The service, over a repository built directly on the database.
- *
- * `createContext()` is not used because none of its services are needed here
- * and every one of them costs a query on a command that may only be listing.
- */
 function service(): ProfileFieldService {
   requirePostgres()
   return new ProfileFieldService({ fields: new PostgresProfileFieldRepository(getDb()) })
 }
 
-/**
- * A flag that is present without a value, or set to a truthy word.
- *
- * `parseFlags` already turns a bare `--postbit` into `"true"`, so this only has
- * to decide what an explicit `--postbit=no` means — and it refuses anything it
- * does not recognise rather than reading it as false, because a typo silently
- * meaning "off" is how a field ends up not asked for at registration.
- */
 function flag(flags: Flags, name: string): boolean {
   const raw = optional(flags, name)
   if (raw === undefined) return false
@@ -60,11 +34,6 @@ export async function profileFieldList(): Promise<number> {
   console.log(`${fields.length} custom profile field(s):\n`)
 
   for (const field of fields) {
-    /*
-     * The flags are printed as words rather than a table of booleans: an
-     * operator reading this wants to know what is unusual about a field, and
-     * everything unmarked is the default.
-     */
     const marks = [
       field.isActive ? null : 'inactive',
       field.requiredAtRegistration ? 'required at registration' : null,
@@ -89,11 +58,6 @@ export async function profileFieldAdd(args: readonly string[]): Promise<number> 
   const { flags } = parseFlags(args)
 
   const type = required(flags, 'type')
-  /*
-   * Checked before the database is opened so a typo is reported as a typo, and
-   * with the list attached — a message that says what is valid saves the round
-   * trip to `--help`.
-   */
   if (!(FIELD_TYPES as readonly string[]).includes(type)) {
     throw new ValidationError(
       `--type must be one of ${FIELD_TYPES.join(', ')}, got "${type}".`,
@@ -120,12 +84,6 @@ export async function profileFieldAdd(args: readonly string[]): Promise<number> 
   })
 
   console.log(`Created profile field "${field.key}" (id ${field.id}, ${field.type}).`)
-  /*
-   * Said here rather than left to be discovered: a new field is visible and
-   * editable by every group, because the per-group rows are overrides on top of
-   * the field's own defaults (F21's shape). An operator who wanted a staff-only
-   * field has not got one yet.
-   */
   console.log(
     'Every group can see and edit it. Per-group overrides arrive with the ACP screen (F71).',
   )

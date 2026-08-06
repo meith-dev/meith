@@ -1,19 +1,5 @@
 "use client"
 
-/**
- * Light, dark, or whatever the system says.
- *
- * Three states rather than two. A two-state toggle has to pick a starting side,
- * and whichever it picks is wrong for half of the people arriving — and once
- * they have touched it, there is no way back to "follow my system", which is
- * what most people actually want.
- *
- * The choice is written to `data-theme` on `<html>` (the stylesheet's palette
- * blocks key off it) and to `localStorage`, which the bootstrap script in the
- * root layout reads before first paint. `system` removes the attribute rather
- * than writing a value, so the media query takes over again.
- */
-
 import { useEffect, useState } from "react"
 
 import { THEME_STORAGE_KEY } from "../theme-storage"
@@ -38,13 +24,6 @@ function apply(choice: Choice) {
 }
 
 export function ThemeToggle() {
-  /*
-   * `system` on the server and on the first client render, then corrected in an
-   * effect. Reading localStorage during render would make the markup depend on a
-   * value the server cannot know, and React would replace the whole control on
-   * hydration. The *page* is already correct by then — the bootstrap script set
-   * the attribute before paint — so only this control's highlight moves.
-   */
   const [choice, setChoice] = useState<Choice>("system")
 
   useEffect(() => {

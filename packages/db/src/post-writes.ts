@@ -1,11 +1,3 @@
-/**
- * F41 — persisting an edit, a soft delete, and a restore.
- *
- * One transaction each, for the reason F39 established: a revision that exists
- * without the edit it describes, or a post marked deleted whose counters still
- * count it, is a board that needs a human to reconcile it. The revision, the
- * post, every counter and the event all commit together or none of them do.
- */
 import { sql } from 'drizzle-orm'
 
 import { BodyFormat, renderMarkdown, vocabularyOptions } from '@meith/markdown'
@@ -22,13 +14,6 @@ import { searchVectorSql } from './search-repo'
 import { readBoardVocabulary } from './vocabulary-repo'
 import { applyVisibilityChangeCounters } from './visibility-counters'
 
-/**
- * Whether a state counts towards the board's totals.
- *
- * The single definition D41 insisted on: every counter on the board means
- * *visible* content. Both `unapproved` and `deleted` are outside it, which is
- * why moving between those two moves nothing.
- */
 function isCounted(visibility: string): boolean {
   return visibility === 'visible'
 }
@@ -96,17 +81,9 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
   }
 
   async applyEdit(record: PostEditRecord): Promise<void> {
-    /* F71. Read outside the transaction; see `thread-writes.ts` for why. */
     const vocabulary = await readBoardVocabulary(this.db)
 
     await this.db.transaction(async (tx) => {
-      /*
-       * The revision stores the body being *replaced*, so the current text
-       * always lives on `posts` and reading a post never joins into history
-       * (F28's shape). The unique key on (post_id, revision) is what turns a
-       * doubled submit into a constraint failure rather than two rows claiming
-       * to be revision 3.
-       */
       await tx.execute(sql`
         insert into post_revisions
           (post_id, revision, message, subject, edited_by_user_id, edit_reason, created_at)
@@ -116,32 +93,14 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
            ${record.editedAt})
       `)
 
-      /*
-       * The render is rewritten with the message, in the same statement. F36's
-       * backfill would eventually repair a miss, which is exactly why it must
-       * not be relied on here: between the edit and the sweep every reader sees
-       * the *old* body, because a current-version render is trusted.
-       */
       const body = renderMarkdown(record.message, vocabularyOptions(vocabulary))
       await tx.execute(sql`
         update posts
            set message = ${record.message},
                message_html = ${body.html},
-               /*
-                * F72: the indexed document is rewritten with the text, in the
-                * same statement. An edit that changed the body and left the
-                * vector alone would make the post findable by words it no
-                * longer contains — and unfindable by the ones it does.
-                */
                search_vector = ${searchVectorSql(sql`subject`, sql`${record.message}`)},
                render_version = ${body.version},
                vocab_version = ${vocabulary.revision},
-               /*
-                * Named rather than left to the column default: an edit is the
-                * one path that can turn a legacy row into a current one, and a
-                * row whose text is now Markdown while its stamp still says
-                * BBCode would be converted a second time by the backfill.
-                */
                body_format = ${BodyFormat.Markdown},
                visibility = ${record.toVisibility},
                edited_at = ${record.editedAt},
@@ -168,12 +127,6 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
 
   async applyVisibility(record: PostVisibilityRecord): Promise<boolean> {
     return this.db.transaction(async (tx) => {
-      /*
-       * The `where visibility = from` is the whole concurrency story. A double
-       * submit, a stale form, or a second moderator acting at the same moment
-       * updates no row — and because the counters hang off this result rather
-       * than off the caller's intent, none of them can run twice.
-       */
       const moved = await tx.execute(sql`
         update posts set visibility = ${record.to}
          where id = ${record.postId} and visibility = ${record.from}
@@ -182,12 +135,6 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
       if (resultRows(moved).length === 0) return false
 
       const delta = (isCounted(record.to) ? 1 : 0) - (isCounted(record.from) ? 1 : 0)
-      /*
-       * `unapproved → deleted` moves nothing: the post was never counted, so
-       * subtracting would take a post off the board that was never on it. This
-       * is the case a "deleting always decrements" implementation gets wrong,
-       * and it is silent — the totals simply drift down over a busy queue.
-       */
       if (delta !== 0) {
         await applyVisibilityChangeCounters(tx, {
           postId: record.postId,

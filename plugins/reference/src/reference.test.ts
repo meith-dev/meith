@@ -3,17 +3,6 @@ import { describe, expect, it } from 'vitest'
 
 import { MARK, RECORDED, referencePlugin, resetRecorder } from './plugin'
 
-/**
- * F80 — the acceptance criterion, as a test.
- *
- * "A CI reference plugin exercises every documented extension point" is only
- * worth something if *exercises* and *every* are both checked mechanically.
- * Both are, and they are checked against different sources: the extension-point
- * kinds against the manifest, and the hooks against the set of call sites
- * `scripts/hook-callsites.mjs` finds in the tree.
- */
-
-/** The wired set, derived from the tree rather than restated here. */
 async function wiredHooks(): Promise<readonly HookName[]> {
   const { scanCallSites } = (await import('../../../scripts/hook-callsites.mjs')) as {
     scanCallSites: () => Promise<{ wired: Map<string, string[]>; problems: string[] }>
@@ -42,24 +31,16 @@ describe('every kind of extension point', () => {
     expect(typeof referencePlugin.onUninstall).toBe('function')
   })
 
-  /*
-   * Every region, not one. A region a theme quietly stopped rendering is
-   * invisible from the plugin side — the contribution is collected, the node is
-   * returned, and nobody puts it on the page — so the reference plugin
-   * contributes to all six and the app-level test looks for the marker.
-   */
   it('contributes to every region', () => {
     const regions = (referencePlugin.contributions ?? []).map((entry) => entry.region)
     expect([...regions].sort()).toEqual([...REGION_NAMES].sort())
   })
 
-  /* One setting of each shape, because the ACP derives its control from the type. */
   it('declares a setting of each supported type', () => {
     const types = (referencePlugin.settings ?? []).map((setting) => typeof setting.default)
     expect([...new Set(types)].sort()).toEqual(['boolean', 'number', 'string'])
   })
 
-  /* Two migrations, or the ascending-order rule has nothing to demonstrate. */
   it('declares more than one migration', () => {
     expect((referencePlugin.migrations ?? []).length).toBeGreaterThan(1)
   })
@@ -73,15 +54,6 @@ describe('every kind of extension point', () => {
 })
 
 describe('hook coverage', () => {
-  /**
-   * **The ratchet.** Wiring a new call site into the board makes this fail until
-   * a handler is added here — so a hook cannot become part of the running
-   * product without something proving it fires.
-   *
-   * The comparison is against the *wired* set, not the registry. Requiring all
-   * ninety-one would mean seventy handlers for hooks no call site reaches, which
-   * proves nothing and would have to be maintained forever.
-   */
   it('handles every hook the board actually fires', async () => {
     const wired = await wiredHooks()
     const handled = Object.keys(referencePlugin.hooks ?? {})
@@ -90,7 +62,6 @@ describe('hook coverage', () => {
     expect(missing, `wired hooks with no reference handler: ${missing.join(', ')}`).toEqual([])
   })
 
-  /* The scan itself must not be vacuous — an empty wired set would pass above. */
   it('finds a non-trivial wired set', async () => {
     expect((await wiredHooks()).length).toBeGreaterThan(15)
   })
@@ -150,11 +121,6 @@ describe('driven through a real host', () => {
     expect([...RECORDED.regions].sort()).toEqual([...REGION_NAMES].sort())
   })
 
-  /*
-   * The host's own guarantee, proven through the plugin rather than through a
-   * fixture: nothing this plugin does can take a page down, so a reference
-   * plugin that started throwing would be a red test rather than a red board.
-   */
   it('never leaves the host in a failed state on a clean run', async () => {
     const board = host()
     await board.applyFilter(

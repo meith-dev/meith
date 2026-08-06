@@ -1,13 +1,3 @@
-/**
- * F69 — plugin tasks in F06's registry.
- *
- * Three claims, and each one is a way the adapter could be quietly wrong:
- * the id has to be the namespaced one (a plugin that could pick `relay-outbox`
- * would replace it), settings have to be read per run rather than captured
- * (otherwise the panel's save takes effect on the next deploy), and a throw has
- * to propagate (swallowing it turns every failure into a successful run of
- * nothing, which is what the system-health screen exists to make visible).
- */
 import { describe, expect, it, vi } from 'vitest'
 
 import { definePlugin } from '@meith/plugin-kit'
@@ -35,7 +25,6 @@ const CONTEXT = {
   signal: new AbortController().signal,
 }
 
-/* The adapter never touches the client; it only hands it to the repository. */
 const db = {} as never
 
 describe('registration', () => {
@@ -49,10 +38,6 @@ describe('registration', () => {
       key: 'alpha',
       name: 'Alpha',
       version: '1.0.0',
-      /*
-       * The id a plugin would have to choose to collide with F06's outbox
-       * relay. It comes out namespaced, so it cannot.
-       */
       tasks: [{ id: 'relay-outbox', intervalSeconds: 300, run: () => {} }],
     })
 
@@ -98,11 +83,6 @@ describe('running one', () => {
     expect(seen).toEqual({ batch: 50 })
   })
 
-  /*
-   * The bundle is built once per process and a task can run for weeks after
-   * that. Reading at registration would mean the panel's save applies on the
-   * next deploy rather than on the next tick.
-   */
   it('re-reads settings on every run rather than capturing them', async () => {
     const seen: unknown[] = []
     const plugin = definePlugin({

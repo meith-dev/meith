@@ -20,11 +20,6 @@ const QUESTIONS: readonly CaptchaQuestion[] = [
 ]
 
 describe('no captcha', () => {
-  /*
-   * A real provider rather than a null the call sites check, so "off" and "on"
-   * take the same path — the alternative is a branch at every form, and the one
-   * somebody forgets is a form with no captcha on a board that thinks it has one.
-   */
   it('issues nothing and accepts anything', async () => {
     expect(await noCaptcha.issue()).toBeNull()
     expect(await noCaptcha.verify({ token: 'x', answer: '' })).toEqual({ ok: true })
@@ -64,11 +59,6 @@ describe('the question captcha', () => {
     expect(empty.ok === false && empty.reason).toContain('Answer the question')
   })
 
-  /*
-   * The whole point of the token being an id. A form carrying its own correct
-   * answer — hashed, signed, however — is a form whose answer an attacker holds
-   * a copy of. `verify` re-reads the question from the source every time.
-   */
   it('checks the answer against what is stored now, not against the form', async () => {
     const questions = [{ id: 1, question: 'Colour?', answers: ['blue'] }]
     const captcha = new QuestionCaptcha({ async list() { return questions } })
@@ -78,22 +68,12 @@ describe('the question captcha', () => {
     expect(await captcha.verify({ token: '1', answer: 'blue' })).toMatchObject({ ok: false })
   })
 
-  /*
-   * Fails open, deliberately, and the argument is in the class doc: an operator
-   * who switches the mode on before writing a question would otherwise lock
-   * registration on their own board with a form that refuses the right answer.
-   */
   it('lets everybody through when no question is configured', async () => {
     const captcha = new QuestionCaptcha(source([]))
     expect(await captcha.issue()).toBeNull()
     expect(await captcha.verify({ token: '1', answer: '' })).toEqual({ ok: true })
   })
 
-  /*
-   * A visitor who loaded the page before the operator edited the list. Refusing
-   * them punishes somebody for the board changing under them; the attacker's
-   * gain is one stale id that stops working the moment the row is gone.
-   */
   it('accepts a token naming a question that has since gone', async () => {
     const captcha = new QuestionCaptcha(source(QUESTIONS))
     expect(await captcha.verify({ token: '99', answer: 'anything' })).toEqual({ ok: true })
@@ -128,12 +108,6 @@ describe('the fill-time floor', () => {
     ).toMatchObject({ ok: false })
   })
 
-  /*
-   * The stamp is a form field, so it is attacker-controlled and proves nothing
-   * on its own. Refusing a form that lacks it breaks every visitor whose
-   * browser did something unexpected, in exchange for stopping an attacker who
-   * need only delete a field.
-   */
   it('passes when there is no stamp at all', () => {
     expect(
       checkHoneypot({ honeypot: '', issuedAt: null, now: NOW, minimumSeconds: 3 }),
@@ -152,7 +126,6 @@ describe('the fill-time floor', () => {
     ).toEqual({ ok: true })
   })
 
-  /* The honeypot outranks the timing check: a filled field is a bot either way. */
   it('still catches a filled field on a slow form', () => {
     expect(
       checkHoneypot({ honeypot: 'x', issuedAt: filled(600), now: NOW, minimumSeconds: 3 }),
@@ -167,10 +140,6 @@ describe('first-post moderation', () => {
     expect(holdsForReview(member, { threshold: 0 })).toBe(false)
   })
 
-  /*
-   * The off-by-one *is* the behaviour: "first 2 posts" means hold while the
-   * account has fewer than 2, so the third goes straight through.
-   */
   it('holds while the account has fewer posts than the threshold', () => {
     expect(holdsForReview({ ...member, postCount: 0 }, { threshold: 2 })).toBe(true)
     expect(holdsForReview({ ...member, postCount: 1 }, { threshold: 2 })).toBe(true)
@@ -178,12 +147,6 @@ describe('first-post moderation', () => {
     expect(holdsForReview({ ...member, postCount: 9 }, { threshold: 2 })).toBe(false)
   })
 
-  /*
-   * Follows the forum queue's rule rather than the warning's: this is a
-   * statement about trust in an account, and an account explicitly granted
-   * `moderation.bypass` has already been trusted. Otherwise every newly
-   * appointed moderator's first post lands in the queue.
-   */
   it('does not hold somebody the board has granted a moderation bypass', () => {
     expect(
       holdsForReview({ ...member, bypassesModeration: true }, { threshold: 5 }),

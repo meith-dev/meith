@@ -1,14 +1,7 @@
-/**
- * F02 — the environment contract.
- *
- * `parseEnv` is pure over the object it is handed (no `process.env` read), so
- * these drive it with explicit inputs rather than mutating the ambient env.
- */
 import { describe, expect, it } from 'vitest'
 
 import { parseEnv } from './env'
 
-/** Minimal env that parses cleanly; spread and override per case. */
 const base = {
   NODE_ENV: 'production',
   AUTH_SECRET: 'a'.repeat(32),
@@ -21,8 +14,6 @@ describe('derived defaults', () => {
   it('falls back to the fixture data source when no database is configured', () => {
     const env = parseEnv({ NODE_ENV: 'development' })
     expect(env.DATA_SOURCE).toBe('fixture')
-    // The whole point of deriving these: a database-less checkout must boot
-    // without the operator setting anything.
     expect(env.QUEUE_DRIVER).toBe('memory')
     expect(env.CACHE_DRIVER).toBe('memory')
   })
@@ -37,16 +28,6 @@ describe('derived defaults', () => {
   })
 })
 
-/**
- * The shape a container actually receives.
- *
- * `docker-compose.yml` forwards the optional variables as `${MAIL_FROM:-}` so
- * an operator can set them later without editing the file. Until they do, the
- * container gets empty strings — and the strict schema read those as *present
- * and malformed*, so a board with no mail configured refused to boot, naming
- * variables nobody had set. Caught by running the compose file rather than by
- * reading it.
- */
 describe('an empty variable is an unset one', () => {
   const asCompose = {
     NODE_ENV: 'production',
@@ -74,10 +55,6 @@ describe('an empty variable is an unset one', () => {
     expect(parseEnv({ ...asCompose, APP_URL: '  ' }).APP_URL).toBeUndefined()
   })
 
-  /*
-   * The message matters as much as the refusal. "Required" sends somebody to
-   * set it; "too small" sends them to look at a value they never wrote.
-   */
   it('still refuses a required secret, and calls it missing rather than malformed', () => {
     expect(() => parseEnv({ ...asCompose, AUTH_SECRET: '' })).toThrow(/AUTH_SECRET.*is required/)
   })
@@ -105,12 +82,6 @@ describe('cross-field rules', () => {
   })
 })
 
-/**
- * These are the rules that keep a misconfigured *server* from accepting
- * traffic. They are suppressed during `next build` (see NEXT_PHASE in env.ts),
- * which is the one case where NODE_ENV=production describes a compiler rather
- * than a running service — so both directions are pinned here.
- */
 describe('production rules', () => {
   it('refuses to boot a production server with a memory queue', () => {
     expect(() => parseEnv({ ...base, QUEUE_DRIVER: 'memory', REDIS_URL: undefined })).toThrow(
@@ -118,14 +89,6 @@ describe('production rules', () => {
     )
   })
 
-  /*
-   * The same class of failure as the memory queue, and the one that had a
-   * comment claiming a guard nobody had written: `local-file-store.ts` said env
-   * validation warned about this, and it did not. These are the tests that make
-   * the claim true — the first proves the guard fires, and the three after it
-   * prove it is not merely "refuse everything", which is the way a guard passes
-   * its own test while being useless (D10).
-   */
   it('refuses to boot a Vercel deployment writing uploads to local disk', () => {
     expect(() =>
       parseEnv({ ...base, FILESTORE_DRIVER: 'local', VERCEL: '1' }),
@@ -133,17 +96,12 @@ describe('production rules', () => {
   })
 
   it('says what to do about it, because the default is the broken one', () => {
-    /*
-     * `local` is the *default*, so an operator hits this without having chosen
-     * anything — the message has to name the way out rather than the mistake.
-     */
     expect(() => parseEnv({ ...base, FILESTORE_DRIVER: 'local', VERCEL: '1' })).toThrow(
       /FILESTORE_DRIVER=s3/,
     )
   })
 
   it('allows local disk everywhere else, which is where it is correct', () => {
-    /* The self-hosted image mounts a volume at UPLOADS_DIR. Nothing to refuse. */
     const env = parseEnv({ ...base, FILESTORE_DRIVER: 'local' })
     expect(env.FILESTORE_DRIVER).toBe('local')
   })
@@ -176,19 +134,11 @@ describe('production rules', () => {
   })
 
   it('still applies them when NODE_ENV is production and no build is running', () => {
-    // Guards the inverse of the case above: an arbitrary NEXT_PHASE value must
-    // not become a way to boot a secretless production server.
     expect(() => parseEnv({ NODE_ENV: 'production', NEXT_PHASE: 'phase-production-server' })).toThrow(
       /AUTH_SECRET/,
     )
   })
 
-  /*
-   * The boot path (instrumentation.ts → assertRuntimeEnv) passes this option so
-   * the build-phase exemption cannot reach a running server. Without it, a
-   * NEXT_PHASE that leaked into a production environment — a copied env file, a
-   * single-stage image — would fail open and serve traffic with no AUTH_SECRET.
-   */
   it('cannot be waived by NEXT_PHASE when validating for a running server', () => {
     const buildPhase = { NODE_ENV: 'production', NEXT_PHASE: 'phase-production-build' } as const
 
@@ -197,8 +147,6 @@ describe('production rules', () => {
   })
 
   it('leaves the caller-supplied environment untouched', () => {
-    // `ignoreBuildPhase` drops NEXT_PHASE before parsing; that must not be
-    // visible to the caller, which for the boot path is `process.env` itself.
     const source: NodeJS.ProcessEnv = {
       NODE_ENV: 'production',
       NEXT_PHASE: 'phase-production-build',

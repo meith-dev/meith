@@ -1,17 +1,3 @@
-/**
- * F60 at the app layer.
- *
- * The rules are unit-tested in `@meith/messages` and the SQL against real
- * Postgres. What is proven here is the seam neither can see:
- *
- *  - the sender is the *session's* member, never the form's;
- *  - a group without `pm.use` is refused on the **send** side as well as on
- *    receipt, so it cannot write to everybody;
- *  - the quota and the "may they receive" answer come from the Authorizer,
- *    which is the only thing on this board allowed to work them out;
- *  - a rejected send comes back with what was typed rather than an empty form;
- *  - the bulk action parses a selection posted by hand without trusting it.
- */
 import { BodyFormat } from '@meith/markdown'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -188,7 +174,6 @@ async function run(
   }
 }
 
-/** A container with a real memory account store, so recipient lookup is real. */
 async function install(): Promise<void> {
   const container = installTestContainer({ container: { messages } })
   const store = container['accountStore'] as {
@@ -240,7 +225,6 @@ describe('sending', () => {
         ['to', 'bob'],
         ['subject', 'Hello'],
         ['message', 'A message.'],
-        /* A submitted author id is simply not read. */
         ['authorUserId', '999'],
       ]),
     )
@@ -265,17 +249,6 @@ describe('sending', () => {
   })
 
   it('refuses a sender whose groups do not allow private messages', async () => {
-    /*
-     * The check that matters on this side: `pm.use` gates receiving too, but a
-     * board that only checked on receipt would let a restricted group write to
-     * everybody who is allowed one.
-     */
-    /*
-     * A *real* account whose group defaults do not grant `pm.use`. Using a
-     * user id with no account would pass for the wrong reason: the "you must be
-     * logged in" branch would fire first, and the test would survive deleting
-     * the permission check entirely (mutation-verified).
-     */
     actorRef.current = await actorFor(SEED_GROUP.guest, BOB)
 
     const result = await run(
@@ -307,10 +280,6 @@ describe('sending', () => {
   })
 
   it('gives back what was typed when a recipient name is wrong', async () => {
-    /*
-     * The failure this reports most often is a typo in a username, and a
-     * composer that empties itself is one somebody retypes a long message into.
-     */
     const result = await run(
       sendMessageAction,
       form([
@@ -417,10 +386,6 @@ describe('the folder action bar', () => {
   })
 
   it('asks for a selection rather than acting on everything', async () => {
-    /*
-     * Kills the mutant that treats an empty selection as "all of them" — which
-     * on `delete` would empty a mailbox on one stray click.
-     */
     await seedInbox()
 
     const result = await run(
@@ -445,7 +410,6 @@ describe('the folder action bar', () => {
       readAt: null,
     })
 
-    /* Ivan is signed in; the id is Bob's. */
     const result = await run(
       messageBulkAction,
       form([

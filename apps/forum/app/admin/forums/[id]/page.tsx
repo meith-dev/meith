@@ -14,7 +14,6 @@ import { forumAdminRepository } from '@/server/forum-admin'
 
 export const metadata: Metadata = { title: 'Forum options' }
 
-/** F65 — one forum's options. The tree position is `move`'s, not this form's. */
 export default async function AdminForumPage({
   params,
 }: {
@@ -29,11 +28,6 @@ export default async function AdminForumPage({
   const forum = forums.find((row) => row.id === Number(id))
   if (forum === undefined) notFound()
 
-  /*
-   * The options come from their own read rather than from the listing row: the
-   * board's forum query deliberately does not carry eight posting toggles it
-   * never renders.
-   */
   const repository = forumAdminRepository()
   const options = await repository?.readOptions(forum.id)
   if (options === null || options === undefined || repository === null) notFound()
@@ -88,8 +82,6 @@ export default async function AdminForumPage({
               (row) =>
                 row.type !== 'link' &&
                 row.id !== forum.id &&
-                /* Not into its own subtree: `move` refuses it under the forest
-                   lock, and offering the option would be offering an error. */
                 !row.path.startsWith(`${forum.path}.`),
             )
             .map((row) => ({ id: row.id, title: row.title, depth: row.depth }))}

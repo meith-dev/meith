@@ -1,12 +1,3 @@
-/**
- * The inline grammar.
- *
- * Most of these are CommonMark's rules and would be unremarkable in a
- * specification suite. They are here because the rules people *feel* — that
- * `snake_case` is a variable name and `2 * 3 * 4` is arithmetic — are the ones
- * a hand-written emphasis matcher gets wrong first, and they are the ones a
- * board hears about.
- */
 import { describe, expect, it } from 'vitest'
 
 import { renderMarkdown } from './body'
@@ -23,10 +14,6 @@ describe('emphasis', () => {
   })
 
   it('leaves an underscore inside a word alone', () => {
-    /*
-     * The rule that decides whether a board about software is usable. Without
-     * it, every `file_name_here` in every post is two italics and a bug report.
-     */
     expect(inline('snake_case_name')).toBe('snake_case_name')
     expect(inline('_leading and trailing_')).toBe('<em>leading and trailing</em>')
   })
@@ -85,10 +72,6 @@ describe('links', () => {
   })
 
   it('does not nest a link inside a link', () => {
-    /*
-     * An `<a>` inside an `<a>` is markup a browser silently unnests, which is
-     * the difference between what the preview shows and what the thread does.
-     */
     const out = inline('[see https://inner.test](https://outer.test)')
     expect(out.match(/<a /g)).toHaveLength(1)
   })
@@ -116,13 +99,11 @@ describe('line breaks', () => {
 
 describe('the delimiter ceiling', () => {
   it('stops pairing rather than going quadratic on a wall of asterisks', () => {
-    /* `x` between the runs, so this is emphasis to pair and not a thematic break. */
     const source = `${'*x'.repeat(5000)}*`
     const started = Date.now()
     const out = renderMarkdown(source)
 
     expect(Date.now() - started).toBeLessThan(2000)
-    /* Nothing is lost: whatever did not pair is on the page as an asterisk. */
     expect(out.html).toContain('x')
   })
 })

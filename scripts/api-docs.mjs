@@ -1,17 +1,4 @@
 #!/usr/bin/env node
-/**
- * F81 — the REST reference, generated from the registry that is the API.
- *
- * Third in the same family as the theme and hook references, and the reason is
- * strongest here: an API's documentation is read by people who cannot see the
- * source, on a board they do not run, and a stale endpoint list is not a
- * confusing document — it is a client that 404s in production.
- *
- * `pnpm verify` and CI run `--check`, so a route added, renamed or re-scoped
- * without its reference updated fails the build.
- *
- * Run: pnpm api:docs   ·   Check: pnpm api:docs:check
- */
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'

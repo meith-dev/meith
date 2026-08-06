@@ -1,26 +1,3 @@
-/**
- * F38 — the recount, in bounded resumable batches.
- *
- * Every denormalised counter on the board is maintained incrementally on the
- * write path because reading the truth costs a scan. Incremental maintenance
- * drifts: a crashed request, an import, a moderator action from a version that
- * missed a case. So each counter also has a way back to the truth, and this is
- * it — it writes a *computed* value rather than a delta, which is what makes it
- * idempotent and safe to interrupt.
- *
- * Two constraints shape the shape it has:
- *
- *   - It must run inside a serverless invocation, so a run is bounded by batch
- *     size and never by "until finished" (invariant 18). At the 2M-post target
- *     a full sweep is thousands of runs.
- *   - It must therefore be resumable, so where it got to lives in
- *     `counter_recount_state` rather than in the process.
- *
- * The phases are ordered threads → forums → users deliberately. Forum totals
- * are aggregated from the same post rows the thread phase reads, so running
- * threads first means a single sweep leaves the two consistent with each other
- * rather than one sweep behind.
- */
 import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
@@ -31,14 +8,10 @@ export type RecountPhase = (typeof RECOUNT_PHASES)[number]
 
 export interface RecountRun {
   readonly phase: RecountPhase
-  /** Rows examined in this run. Less than the batch size means phase complete. */
   readonly scanned: number
-  /** Rows whose stored counters disagreed with the truth and were rewritten. */
   readonly corrected: number
-  /** Where the next run resumes. */
   readonly cursor: number
   readonly nextPhase: RecountPhase
-  /** True when this run finished the last phase, completing a full sweep. */
   readonly completedPass: boolean
 }
 
@@ -60,13 +33,6 @@ export class PostgresCounterRecount {
     private readonly stateId = 'default',
   ) {}
 
-  /**
-   * Recount one bounded batch and record where to resume.
-   *
-   * Returns the run's shape rather than just a number so the task log can say
-   * which phase is in progress — "corrected 0" is reassuring only when an
-   * operator can see the sweep is still moving.
-   */
   async run(batchSize = 500): Promise<RecountRun> {
     const state = await this.loadState()
 
@@ -74,12 +40,6 @@ export class PostgresCounterRecount {
     const corrected =
       batch.ids.length === 0 ? 0 : await this.correct(state.phase, state.cursor, batchSize)
 
-    /*
-     * A short batch means the phase has reached the end of its table. Advancing
-     * on "short" rather than on "empty" saves one wasted run per phase, and the
-     * cost of being wrong is nil: the next sweep re-reads whatever was inserted
-     * behind the cursor, and re-reading is free of side effects by design.
-     */
     const phaseComplete = batch.ids.length < batchSize
     const phase = phaseComplete ? nextPhase(state.phase) : state.phase
     const cursor = phaseComplete ? 0 : batch.maxId
@@ -105,7 +65,6 @@ export class PostgresCounterRecount {
     }
   }
 
-  /** Current resume point. Exposed for the CLI and F70's health screen. */
   async state(): Promise<PhaseState> {
     return this.loadState()
   }
@@ -133,15 +92,6 @@ export class PostgresCounterRecount {
     }
   }
 
-  /**
-   * The ids this run covers.
-   *
-   * Read separately from the correction so a run reports what it *examined*,
-   * not only what was wrong — a recount that corrects nothing must still be
-   * distinguishable from one that scanned nothing. Rows inserted concurrently
-   * always take a higher id than `maxId`, so re-running the same window cannot
-   * skip them.
-   */
   private async scan(
     phase: RecountPhase,
     cursor: number,
@@ -168,13 +118,6 @@ export class PostgresCounterRecount {
     return this.correctUsers(cursor, batchSize)
   }
 
-  /**
-   * Thread counters from the thread's own visible posts.
-   *
-   * `reply_count` excludes the opening post, which is why it is one less than
-   * the post count and floors at zero: a thread whose only post was deleted
-   * still exists, and a negative reply count would render as one.
-   */
   private async correctThreads(cursor: number, batchSize: number): Promise<number> {
     const result = await this.db.execute(sql`
       with batch as (
@@ -223,19 +166,6 @@ export class PostgresCounterRecount {
     return resultRows(result).length
   }
 
-  /**
-   * Forum counters over the whole subtree.
-   *
-   * Forum totals are subtree-inclusive — a category's row on the index counts
-   * everything beneath it — so the truth for a forum is aggregated over itself
-   * plus every descendant, matched by path prefix *with the separator*: without
-   * the trailing dot, `1.4` also matches `1.40` and a sibling's posts land in
-   * the wrong category (D22).
-   *
-   * Posts in a soft-deleted thread do not count, which is the one place this
-   * differs from the incremental writer: the writer only ever sees new content,
-   * where the two definitions agree.
-   */
   private async correctForums(cursor: number, batchSize: number): Promise<number> {
     const result = await this.db.execute(sql`
       with batch as (
@@ -297,19 +227,6 @@ export class PostgresCounterRecount {
     return resultRows(result).length
   }
 
-  /**
-   * Per-user totals.
-   *
-   * Counted from authored rows rather than from a running total, so a user
-   * whose posts were deleted loses the count — which is what promotions (F24)
-   * and postbit both claim to be showing.
-   *
-   * A visible post inside a soft-deleted thread does not count, for the same
-   * reason it does not count towards its forum: the whole thread is gone from
-   * the board, and leaving its posts on their authors' totals would mean a
-   * moderator deleting a thread silently leaves every participant's count
-   * higher than the posts anyone can find.
-   */
   private async correctUsers(cursor: number, batchSize: number): Promise<number> {
     const result = await this.db.execute(sql`
       with batch as (

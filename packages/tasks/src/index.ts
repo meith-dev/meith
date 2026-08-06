@@ -1,5 +1,3 @@
-/** F06 — scheduled catch-up tasks and the tick scheduler. */
-
 export type {
   TaskContext,
   TaskDefinition,

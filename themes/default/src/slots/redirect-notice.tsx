@@ -1,21 +1,6 @@
 import { Card, CardContent, buttonVariants } from '@meith/ui'
 import type { RedirectNoticeModel } from '@meith/theme-kit'
 
-/**
- * The MyBB-style interstitial (F34): "your post was made, continuing in a
- * moment".
- *
- * The link is the reason this page exists. The meta refresh that the route sets
- * does not carry everybody — a browser with refresh disabled, a screen reader
- * that has already begun reading the page, anyone whose connection stalls past
- * the delay — and for all of them this is a page with a message and no exit
- * unless the exit is a real anchor.
- *
- * So "Continue now" is the primary control, not a footnote after the countdown.
- * The delay is stated as text beside it rather than counted down: a live counter
- * is a client component, and a number that ticks is a number a screen reader
- * re-reads every second.
- */
 export function RedirectNotice({ message, targetHref, delaySeconds }: RedirectNoticeModel) {
   return (
     <Card className="w-full max-w-lg">

@@ -13,26 +13,11 @@ export const metadata: Metadata = { title: 'Members' }
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-/**
- * F67 — member search.
- *
- * **The search form is a GET form**, so the filter is in the address bar. It
- * survives a reload, it can be pasted to another administrator, and it needs
- * neither JavaScript nor a Server Action — the browser does all of it. A POST
- * search would be none of those things, and this is a screen operators work
- * from for long stretches.
- *
- * Paging is keyset, on the same cursor the repository returns. The set being
- * paged is `users`, which this screen's own actions mutate — banning somebody
- * changes their state and therefore whether they still match — and an OFFSET
- * page over a set being changed skips exactly the rows just acted on.
- */
 export default async function AdminUsersPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  /* Re-run, because a layout is not a security boundary (see the ACP layout). */
   await requireAdmin()
 
   const repository = userAdminRepository()

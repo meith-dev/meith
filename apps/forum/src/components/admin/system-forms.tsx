@@ -1,13 +1,5 @@
 "use client"
 
-/**
- * F70's maintenance buttons.
- *
- * Each reports what it did rather than only that it succeeded. "Removed 0" and
- * "removed 4,812" are different answers to the same press, and an operator
- * running a sweep needs to know which one they got — a bare "Done." tells them
- * nothing about whether to press it again.
- */
 import { useActionState } from "react"
 
 import {

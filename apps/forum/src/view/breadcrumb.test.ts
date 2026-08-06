@@ -2,20 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { buildBreadcrumb, type CrumbForum } from './breadcrumb'
 
-/**
- * The interesting case in a breadcrumb is not the happy path, it is the
- * ancestor the viewer may not see — a trail is rendered on every thread page,
- * and one that names a private category has published the board's structure to
- * everybody who can read a public thread inside it.
- */
-
-/*
- *   1 Community            '1'
- *     4 General            '1.4'
- *       9 Off topic        '1.4.9'
- *   2 Staff (private)      '2'
- *     7 Staff room         '2.7'
- */
 const FORUMS: CrumbForum[] = [
   { id: 1, slug: 'community', title: 'Community', path: '1' },
   { id: 4, slug: 'general', title: 'General', path: '1.4' },
@@ -45,7 +31,6 @@ describe('buildBreadcrumb', () => {
       leaf: 'What are you reading?',
     })
     expect(labels(trail)).toEqual(['Forums', 'Community', 'General', 'What are you reading?'])
-    /* Never a destination: the themes render the last crumb as text. */
     expect(trail[trail.length - 1]?.href).toBe('')
   })
 
@@ -76,7 +61,6 @@ describe('buildBreadcrumb', () => {
   })
 
   it('degrades to the root for a forum it cannot find', () => {
-    /* A decoration must not be able to take a page down. */
     expect(labels(buildBreadcrumb({ forums: FORUMS, forumId: 404 }))).toEqual(['Forums'])
     expect(labels(buildBreadcrumb({ forums: FORUMS, forumId: 404, leaf: 'Reply' }))).toEqual([
       'Forums',

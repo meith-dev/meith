@@ -1,14 +1,3 @@
-/**
- * The F22 world: eight actors, four forum contexts, and an in-memory
- * AuthorizationSource that resolves them without a database.
- *
- * This is a fixture, not test code, so it lives in `src/` and is type-checked
- * and boundary-linted like everything else. `matrix.test.ts` drives the cross
- * product; `matrix.fixture.ts` holds the human-reviewed expected results.
- *
- * The group/forum numbers here mirror the shape the Postgres source will
- * produce, so the same Authorizer runs unchanged against both.
- */
 import {
   emptyPermissionSet,
   type PermissionSet,
@@ -23,26 +12,20 @@ import type {
   ModeratorAppointment,
 } from './types'
 
-/** Build a complete permission set from deny-by-default plus explicit grants. */
 export function makePermissionSet(
   overrides: Partial<PermissionSet>,
 ): PermissionSet {
   return { ...emptyPermissionSet(), ...overrides }
 }
 
-/* ----------------------------- Group IDs ----------------------------- */
 export const GROUP = {
   guest: 1,
   registered: 2,
-  veterans: 3, // a secondary group
+  veterans: 3,
   superMod: 5,
   admin: 6,
 } as const
 
-/*
- * Forum-scoped grants shared by every group that can participate. Pulled out so
- * the guest/registered/staff defaults differ only where they should.
- */
 const PARTICIPANT_FORUM_GRANTS: Partial<PermissionSet> = {
   canView: true,
   canViewThreads: true,
@@ -52,7 +35,6 @@ const PARTICIPANT_FORUM_GRANTS: Partial<PermissionSet> = {
 
 const POSTER_FORUM_GRANTS: Partial<PermissionSet> = {
   ...PARTICIPANT_FORUM_GRANTS,
-  // Subscribing needs an account, so it starts at the poster tier, not guests.
   canSubscribe: true,
   canPostThreads: true,
   canPostReplies: true,
@@ -60,18 +42,15 @@ const POSTER_FORUM_GRANTS: Partial<PermissionSet> = {
   canDeleteOwnPosts: true,
   canUploadAttachments: true,
   canDownloadAttachments: true,
-  // Trusted: content goes live immediately. `negative` fields false = exempt.
   requiresThreadApproval: false,
   requiresPostApproval: false,
   requiresApprovalOnEdit: false,
 }
 
-/** Global group defaults, keyed by group ID. */
 export const GROUP_DEFAULTS: Record<number, PermissionSet> = {
   [GROUP.guest]: makePermissionSet({
     ...PARTICIPANT_FORUM_GRANTS,
     canViewProfiles: true,
-    // Guests never post; approval flags stay restricted (true) but are moot.
   }),
 
   [GROUP.registered]: makePermissionSet({
@@ -84,12 +63,10 @@ export const GROUP_DEFAULTS: Record<number, PermissionSet> = {
     maxPostsPerDay: 50,
   }),
 
-  // Secondary group: strictly additive. Grants polls and a higher cap, so a
-  // registered+veterans actor must resolve to at-least-registered everywhere.
   [GROUP.veterans]: makePermissionSet({
     canPostPolls: true,
     canVotePolls: true,
-    maxPostsPerDay: 0, // 0 = unlimited, must beat registered's 50
+    maxPostsPerDay: 0,
   }),
 
   [GROUP.superMod]: makePermissionSet({
@@ -113,18 +90,13 @@ export const GROUP_DEFAULTS: Record<number, PermissionSet> = {
   }),
 }
 
-/* ----------------------------- Forum IDs ----------------------------- */
 export const FORUM = {
   public: 100,
-  publicSub: 101, // child of `public`, read-only override
+  publicSub: 101,
   private: 200,
   password: 300,
 } as const
 
-/**
- * Ancestor chains, nearest first. `publicSub` is a genuine two-level tree so
- * inheritance is exercised; the others are roots.
- */
 const CHAINS: Record<number, number[]> = {
   [FORUM.public]: [FORUM.public],
   [FORUM.publicSub]: [FORUM.publicSub, FORUM.public],
@@ -132,14 +104,7 @@ const CHAINS: Record<number, number[]> = {
   [FORUM.password]: [FORUM.password],
 }
 
-/**
- * Per-(forum, group) overrides. Only the private forum and the read-only
- * subforum carry any; the public and password forums resolve purely from group
- * defaults (password gating is a Target flag, not a permission).
- */
 const OVERRIDES: ForumOverride[] = [
-  // Private forum: hide from guests and ordinary members entirely. Staff reach
-  // it via bypass, not via an override, which is what R4.2 intends.
   ...[GROUP.guest, GROUP.registered, GROUP.veterans].map((groupId) => ({
     forumId: FORUM.private,
     groupId,
@@ -152,9 +117,6 @@ const OVERRIDES: ForumOverride[] = [
     },
   })),
 
-  // Read-only subforum: members may read but not post. canView is left null so
-  // it inherits `true` from the public parent — proving inheritance and a
-  // same-level override coexist.
   {
     forumId: FORUM.publicSub,
     groupId: GROUP.registered,
@@ -167,7 +129,6 @@ const OVERRIDES: ForumOverride[] = [
   },
 ]
 
-/** In-memory AuthorizationSource over the fixture data. */
 export class MemoryAuthorizationSource implements AuthorizationSource {
   async groupDefaults(groupIds: readonly number[]): Promise<GroupDefaults[]> {
     return groupIds
@@ -197,14 +158,6 @@ export class MemoryAuthorizationSource implements AuthorizationSource {
     return new Map(ids.map((id) => [id, CHAINS[id] ?? []]))
   }
 
-  /**
-   * One appointment: `forumModerator` over the public tree, cascading.
-   *
-   * It carries every granular right, which is what makes the F22 table's
-   * moderator rows readable. Appointments that grant only *some* rights are
-   * exercised by `moderated-forums.test.ts`, where the point is the
-   * appointment rather than the matrix.
-   */
   async moderatorAppointments(
     userId: number | null,
   ): Promise<readonly ModeratorAppointment[]> {
@@ -227,7 +180,6 @@ export class MemoryAuthorizationSource implements AuthorizationSource {
   }
 }
 
-/* ----------------------------- Actors ----------------------------- */
 function actor(
   partial: Pick<Actor, 'userId' | 'groupIds' | 'state'> &
     Partial<Pick<Actor, 'primaryGroupId'>>,
@@ -242,7 +194,6 @@ function actor(
   }
 }
 
-/** Combine group defaults for an actor's groups (mirrors what the repo will do). */
 function combineForActor(groupIds: readonly number[]): PermissionSet {
   const sets = groupIds
     .filter((id) => id in GROUP_DEFAULTS)

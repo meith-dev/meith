@@ -1,17 +1,5 @@
 "use client"
 
-/**
- * The board logo's upload controls.
- *
- * One form per colour scheme rather than one form with two file inputs, for the
- * reason the appearance strip learned the hard way: a form posts every field it
- * contains, so a single form would make "replace the light logo" also re-post
- * whatever was sitting in the dark input. Two forms, two independent decisions.
- *
- * The preview beside each control is the stored image itself, not a thumbnail
- * of the pending file. An operator wants to know what the board is showing
- * *now* — the pending one is in the file picker they are looking at.
- */
 import { useActionState } from "react"
 
 import { removeLogoAction, saveLogoAction } from "@/server/branding-actions"
@@ -23,7 +11,6 @@ export interface LogoSlot {
   readonly scheme: "light" | "dark"
   readonly label: string
   readonly hint: string
-  /** The stored image's URL, or `null` when there is none. */
   readonly src: string | null
 }
 
@@ -55,13 +42,7 @@ export function LogoUploadForm({ slot, maxKib }: { slot: LogoSlot; maxKib: numbe
         </p>
       )}
 
-      {/*
-        The sample sits on the surface the header actually uses — `card`, not the
-        page — and the dark one carries `.dark` so an operator sees the image
-        against the background it will really be on rather than against this
-        screen's. Checking a logo against the wrong background is how a board
-        ends up with a black wordmark nobody can see at night.
-      */}
+      { }
       <div
         className={`flex min-h-16 items-center justify-center rounded-md border border-border bg-card p-3 ${
           slot.scheme === "dark" ? "dark" : ""

@@ -37,10 +37,6 @@ function build(overrides: Partial<Parameters<typeof buildMessageFolderView>[0]> 
 
 describe('quotaView', () => {
   it('treats 0 as unlimited rather than as a store of zero', () => {
-    /*
-     * Every numeric permission on this board means that (R4.2). A view that got
-     * it wrong would tell every member their store was full.
-     */
     const view = quotaView(COUNTS, 0)
     expect(view.isFull).toBe(false)
     expect(view.isNearlyFull).toBe(false)
@@ -53,8 +49,6 @@ describe('quotaView', () => {
   })
 
   it('warns before the limit rather than at it', () => {
-    /* Warning at the limit is warning too late: the first the member hears of
-       it is a refused send. */
     expect(quotaView({ ...COUNTS, stored: 90 }, 100).isNearlyFull).toBe(true)
     expect(quotaView({ ...COUNTS, stored: 89 }, 100).isNearlyFull).toBe(false)
   })
@@ -62,10 +56,6 @@ describe('quotaView', () => {
 
 describe('folder tabs', () => {
   it('counts unread on the inbox and everything on the others', () => {
-    /*
-     * A number on the inbox that never goes down is a number nobody reads;
-     * on Sent and Trash "how many are in here" is the only question.
-     */
     const tabs = build().tabs
     expect(tabs.map((tab) => [tab.folder, tab.count])).toEqual([
       ['inbox', 2],
@@ -94,10 +84,6 @@ describe('rows', () => {
   })
 
   it('never shows the author their own sent copy as new', () => {
-    /*
-     * Kills the mutant that tests `readAt === null` alone: a sent copy written
-     * with no read time would otherwise be announced as unread mail.
-     */
     const view = build({ rows: [row({ folder: 'sent', role: 'author', readAt: null })] })
     expect(view.rows[0]?.isUnread).toBe(false)
   })
@@ -119,8 +105,6 @@ describe('rows', () => {
   })
 
   it('says something rather than nothing when every counterparty is hidden', () => {
-    /* A bcc-only message seen by a recipient: the names are withheld, the fact
-       that other people are on it is not. */
     expect(
       build({ rows: [row({ counterparties: [], moreCounterparties: 0 })] }).rows[0]?.people,
     ).toBe('—')
@@ -152,7 +136,6 @@ describe('messageNotice', () => {
   })
 
   it('reads a nonsense count as zero rather than printing it', () => {
-    /* The query string is anybody's to write. */
     expect(messageNotice({ moved: 'lots' })?.message).toBe('0 messages moved.')
   })
 

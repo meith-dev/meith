@@ -1,20 +1,3 @@
-/**
- * The tests that need a *real* Postgres server, not PGlite.
- *
- * Every other database suite here runs against PGlite, which is the right
- * trade — it is fast, it needs no service, and it runs the actual generated
- * SQL. But it is not the same *driver*, and F11's row has always said so. This
- * file is for the cases where that difference is the whole point.
- *
- * It found its first one immediately: `drizzle(client)` replaces postgres.js's
- * date serialisers with a passthrough, so a `Date` interpolated into a raw
- * `sql` template reached `Buffer.byteLength()` and threw. PGlite does not go
- * through those serialisers, so 1800-odd tests passed while the write path was
- * broken against every real server. See `restoreDateSerialisers` in client.ts.
- *
- * **Skipped unless `TEST_DATABASE_URL` is set**, so a normal `pnpm test` needs
- * no service. CI's `migrations` job already runs a Postgres and sets it.
- */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -36,11 +19,6 @@ describeIfPg('against real Postgres', () => {
   })
 
   describe('Date parameters in raw sql templates', () => {
-    /*
-     * The regression. A `Date` in a raw template is how most of this package
-     * writes timestamps — `updated_at = ${at}`, `locked_until = ${lockedUntil}`
-     * — and it threw on every real server until the serialiser was restored.
-     */
     it('accepts a Date and round-trips it', async () => {
       const at = new Date('2026-07-31T12:34:56.000Z')
       const rows = resultRows(
@@ -77,12 +55,6 @@ describeIfPg('against real Postgres', () => {
     })
   })
 
-  /*
-   * The specific query that broke: `PostgresTaskRepository.claim` passes three
-   * Dates. It is exercised here through the driver rather than the repository
-   * because the repository's own behaviour is covered on PGlite — what this
-   * pins is that the *driver* accepts the shape.
-   */
   it('runs the scheduler claim shape', async () => {
     const now = new Date()
     const rows = resultRows(

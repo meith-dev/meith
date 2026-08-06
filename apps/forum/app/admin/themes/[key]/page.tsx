@@ -12,20 +12,6 @@ import { formatTime } from '@/view/time'
 
 export const metadata: Metadata = { title: 'Theme' }
 
-/**
- * F68 — one theme's editor.
- *
- * The token list comes from the **theme package**, not from the stored row: the
- * row holds overrides only, so a screen built from it would show an operator
- * the three tokens they have already changed and none of the thirty-five they
- * could. Same rule as F64's settings and F66's permissions — the registry is
- * the list, storage is the exception to it.
- *
- * The export is rendered on the page rather than offered as a download,
- * deliberately: it is a small JSON document, an operator wants to paste it into
- * another board's import box, and a download would put a file on disk for them
- * to find and open first.
- */
 export default async function AdminThemePage({
   params,
 }: {

@@ -1,4 +1,3 @@
-/** Public member-profile read (F33). */
 import { and, eq, ne } from 'drizzle-orm'
 
 import type { MemberProfileRecord, MemberProfileRepository } from '@meith/accounts'

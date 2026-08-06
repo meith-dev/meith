@@ -1,18 +1,3 @@
-/**
- * F59 — custom profile fields against real Postgres.
- *
- * Four things can only be proved here, and each is a claim about SQL rather
- * than about resolution (which `@meith/profile-fields` tests without a
- * database):
- *
- *  - an emptied field **deletes its row** rather than storing `''`, so no read
- *    on the board has to treat two states as one;
- *  - saving the same form twice is the same as saving it once (the upsert);
- *  - deleting a field takes its answers with it, by cascade — the behaviour
- *    that makes `is_active` the right tool for "hide this for now";
- *  - a stored type this build does not know arrives as `null` instead of
- *    throwing, so a downgrade degrades the input rather than the page.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -54,7 +39,6 @@ beforeEach(async () => {
   `)
 })
 
-/** Create a field and return its id, bypassing the service's own validation. */
 async function insertField(
   key: string,
   overrides: Partial<{
@@ -90,11 +74,6 @@ async function insertField(
 
 describe('listFields', () => {
   it('returns every field in display order, inactive ones included', async () => {
-    /*
-     * Unfiltered on purpose: "inactive" is the caller's filter, and a query
-     * that dropped them here would give the operator CLI no way to list a
-     * switched-off field. Kills the mutant that adds `where is_active`.
-     */
     await insertField('second', { display_order: 2 })
     await insertField('first', { display_order: 1 })
     await insertField('off', { display_order: 3, is_active: false })
@@ -122,11 +101,6 @@ describe('listFields', () => {
 
 describe('listGroupRules', () => {
   it('returns every rule with NULL preserved as null, not as false', async () => {
-    /*
-     * The distinction the whole model rests on: NULL abstains, false denies.
-     * Coercing one to the other here would silently make every unset column a
-     * denial.
-     */
     const id = await insertField('staff_note')
     await db.execute(sql`
       insert into profile_field_groups (field_id, group_id, can_view, can_edit)

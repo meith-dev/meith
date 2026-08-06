@@ -21,18 +21,6 @@ function positiveInt(value: string | undefined): number | null {
   return Number.isSafeInteger(n) ? n : null
 }
 
-/**
- * F53 — one member's warning record, and the form that adds to it.
- *
- * The record and the form are one screen on purpose. A moderator about to warn
- * somebody needs to know what they have already been warned for — issuing a
- * second three-point warning for the same thing, unaware of the first, is how a
- * ladder that ends in a ban gets climbed by accident.
- *
- * App-owned rather than a theme slot, for F48's reason: the slot registry is
- * R6's list, frozen at F77, and a moderator tool is an operator surface. The
- * theme still supplies everything around it.
- */
 export default async function WarnPage({
   searchParams,
 }: {
@@ -51,12 +39,6 @@ export default async function WarnPage({
 
   const actor = await getActor()
   const { authorizer, warnings, warningBans } = getContainer()
-  /*
-   * Fixture mode has no warning store, and a guest or a member without
-   * `user.warn` gets the same answer: this page is not here. Not a 403 — the
-   * existence of a moderator screen is not something to confirm to somebody who
-   * may not use it.
-   */
   if (warnings === null || actor.userId === null || !authorizer.can(actor, 'user.warn')) {
     notFound()
   }
@@ -71,12 +53,6 @@ export default async function WarnPage({
     service.history(userId, query.after === undefined ? {} : { after: query.after }),
   ])
 
-  /*
-   * The cited post, validated against *this* member. `?post=` is a URL
-   * parameter, and a warning whose evidence is somebody else's post is a record
-   * that says the wrong thing — the action re-checks it too, because a form
-   * field is not authorisation.
-   */
   const citedPost = positiveInt(query.post)
   const postId =
     citedPost !== null && (await warnings.findPostAuthor(citedPost)) === userId
@@ -148,11 +124,7 @@ export default async function WarnPage({
                       <time dateTime={row.issuedAt.iso}>{row.issuedAt.label}</time>
                     </span>
                   </div>
-                  {/*
-                    Plain text, never markup. A warning reason is written by a
-                    moderator about a member and is not a post; rendering it as
-                    Markdown would give it capabilities the box never advertised.
-                  */}
+                  { }
                   <p className="mt-2 whitespace-pre-wrap break-words text-sm">{row.reason}</p>
                   {row.postId !== null && (
                     <p className="mt-1 text-xs text-muted-foreground">

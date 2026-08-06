@@ -1,12 +1,3 @@
-/**
- * F69's read model.
- *
- * The claims worth a test are the ones a screen would get wrong quietly:
- * "enabled" has three sources that disagree, an unreadable migration table must
- * not read as "nothing is pending", and a plugin the config disabled has to
- * appear at all — the host is never told about it, so it is invisible to every
- * other reader in the app.
- */
 import type { PluginHealth } from '@meith/plugin-kit'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -46,11 +37,6 @@ const host = {
   health: (): readonly PluginHealth[] => [HEALTHY],
   listeners: () => ({ 'post.created': ['alpha'], 'markdown.render.html': [] }),
 }
-/*
- * Partial: the real `configuredPlugins` is the thing under test here as much as
- * anything else — it is where "absent means enabled" lives — so only the host
- * itself is replaced.
- */
 vi.mock('./plugin-host', async (importOriginal) => ({
   ...(await importOriginal<typeof PluginHostModule>()),
   pluginHost: host,
@@ -109,12 +95,6 @@ describe('the three states of "enabled"', () => {
     expect(row).toMatchObject({ configuredEnabled: true, operatorEnabled: true, running: true })
   })
 
-  /*
-   * The host is only ever handed plugins it may call, so a config-disabled
-   * plugin has no health entry and no other reader in the app can see it. If
-   * this screen did not list it, an operator would have no way to discover that
-   * the plugin they installed is switched off in a file.
-   */
   it('lists a plugin disabled in forum.config.ts, and does not call it running', async () => {
     config.current.plugins = [{ key: 'alpha', enabled: false, plugin: ALPHA }]
 
@@ -130,11 +110,6 @@ describe('the three states of "enabled"', () => {
     expect(row).toMatchObject({ configuredEnabled: true, operatorEnabled: false, running: false })
   })
 
-  /*
-   * `running` defers to the host's own answer rather than recomputing it, so a
-   * plugin auto-disabled for failing is not reported as running merely because
-   * both switches are on.
-   */
   it('is not running when the host has auto-disabled it', async () => {
     const failing: PluginHealth = { ...HEALTHY, enabled: false, disabledReason: 'failed 5 times' }
     vi.spyOn(host, 'health').mockReturnValueOnce([failing])
@@ -154,11 +129,6 @@ describe('migrations', () => {
     ])
   })
 
-  /*
-   * The failure this prevents: a query that fell over reporting every migration
-   * as pending, and an operator running an upgrade they did not need. "We could
-   * not find out" and "nothing is pending" must not render the same.
-   */
   it('says the state is unknown when the table cannot be read', async () => {
     applied.throws = true
 
@@ -175,7 +145,6 @@ describe('migrations', () => {
     config.current.plugins = [{ key: 'alpha', plugin: { ...ALPHA, migrations: [] } }]
     dataSource.current = 'fixture'
 
-    /* No query is needed to answer "none pending", so fixture mode is not a gap. */
     expect((await pluginInventory()).migrationsKnown).toBe(true)
   })
 })
@@ -268,11 +237,6 @@ describe('pluginRow', () => {
 })
 
 describe('hookListeners', () => {
-  /*
-   * A hook with no listener is dropped. Ninety-one rows of "nothing" would bury
-   * the handful an operator is actually looking for, and the generated
-   * reference is where the complete list belongs.
-   */
   it('omits hooks nothing is listening on', () => {
     expect(hookListeners()).toEqual([{ hook: 'post.created', plugins: ['alpha'] }])
   })

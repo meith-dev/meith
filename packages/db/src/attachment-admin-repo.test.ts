@@ -1,17 +1,3 @@
-/**
- * F71's attachment listing, against real Postgres.
- *
- * Three claims that only the database can settle:
- *
- *  - **a delete orphans every key, thumbnail included** — the one that would be
- *    missed, and the failure is bytes on the store that nothing will ever look
- *    for again;
- *  - **the post survives its attachment** — the whole reason this screen could
- *    be built, and a cascade in the wrong direction would be invisible in a
- *    unit test;
- *  - **the filename filter escapes its wildcards**, or an operator searching for
- *    a file called `100%` matches every attachment on the board.
- */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
@@ -139,15 +125,9 @@ describe('listing', () => {
 
   it('ignores a status that is not one of the three, rather than refusing', async () => {
     await addAttachment({ id: 1, filename: 'ok.png' })
-    /* A hand-typed query string is not an error; it is a filter that does not apply. */
     expect((await repo.list({ limit: 10, status: 'nonsense' })).rows).toHaveLength(1)
   })
 
-  /*
-   * The mutant this kills passes the term to `like` unescaped: a filename
-   * containing `%` would then match every attachment on the board, on the screen
-   * an operator deletes things from.
-   */
   it('escapes wildcards in the filename filter', async () => {
     await addAttachment({ id: 1, filename: '100%.png' })
     await addAttachment({ id: 2, filename: 'holiday.png' })
@@ -177,12 +157,6 @@ describe('totals', () => {
 })
 
 describe('deleting', () => {
-  /*
-   * All three keys. `thumbnail_key` is the one that would be missed, and the
-   * failure is bytes on the store that nothing will ever look for again — the
-   * ledger exists because a bucket listing cannot tell an orphan from an upload
-   * in flight.
-   */
   it('hands every stored key to the sweep', async () => {
     await addAttachment({
       id: 1,
@@ -201,10 +175,6 @@ describe('deleting', () => {
     expect(await orphanKeys()).toEqual(['src/1'])
   })
 
-  /*
-   * The claim the whole screen rests on. An attachment is listed beside a post,
-   * never written into it, so removing one costs a list entry and nothing else.
-   */
   it('leaves the post exactly as it was', async () => {
     await addAttachment({ id: 1, filename: 'a.png', keys: { storage: 'ready/1' } })
     await repo.delete(1)

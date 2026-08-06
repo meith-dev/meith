@@ -1,19 +1,3 @@
-/**
- * F62 — reputation over Postgres.
- *
- * Two things in this file carry the feature.
- *
- * **`give` is one transaction that ends in a recount.** The cap is counted, the
- * row is written or updated, and `users.reputation` is rebuilt from the live
- * rows — all three inside it. Recomputing rather than incrementing is what lets
- * a rating be revised or withdrawn without the cached total drifting, and it is
- * the same decision F53 made for `warning_points`.
- *
- * **The uniqueness is the index, not a read.** `on conflict` names the partial
- * unique index for whichever shape is being written, so two clicks arriving
- * together produce one row and the second updates it — rather than both passing
- * a check and inserting.
- */
 import { sql } from 'drizzle-orm'
 
 import type {
@@ -25,7 +9,6 @@ import type {
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 
-/** PGlite hands raw templates timestamps as strings; postgres.js hands Dates. */
 function toDate(value: string | Date): Date {
   return value instanceof Date ? value : new Date(value)
 }
@@ -64,18 +47,9 @@ const SELECT_ROW = sql`
          p.thread_id
     from reputation r
     left join users u on u.id = r.given_by_user_id
-    /* For the history's link. Left, because a profile rating has no post and a
-       rated post may since have been hard-deleted. */
     left join posts p on p.id = r.post_id
 `
 
-/**
- * Rebuild one member's cached total, in whatever transaction is running.
- *
- * A `sum` over the live rows, coalesced — a member with no ratings has no rows
- * to sum, and `NULL` written into a NOT NULL column is a constraint violation
- * on the happy path of somebody withdrawing their only rating.
- */
 function recountInto(tx: Database, userId: number) {
   return tx.execute(sql`
     update users
@@ -98,12 +72,6 @@ export class PostgresReputationRepository implements ReputationRepository {
     readonly at: Date
   }): Promise<boolean> {
     return this.db.transaction(async (tx) => {
-      /*
-       * The cap, counted inside the transaction so the count and the write see
-       * one state. It deliberately counts *distinct rows written today*, not
-       * points: revising an existing rating is not a new one, which is why the
-       * count is against `created_at` rather than `updated_at`.
-       */
       if (input.maxPerDay > 0) {
         const startOfDay = new Date(
           Date.UTC(
@@ -124,11 +92,6 @@ export class PostgresReputationRepository implements ReputationRepository {
 
         const already = Number(counted[0]?.n ?? 0)
 
-        /*
-         * An *existing* rating being revised does not count against the cap:
-         * changing your mind is a thing the feature supports, and making it
-         * cost an allowance would push people to leave a wrong rating alone.
-         */
         const existing = resultRows(
           await tx.execute(sql`
             select id from reputation
@@ -141,11 +104,6 @@ export class PostgresReputationRepository implements ReputationRepository {
         if (existing.length === 0 && already >= input.maxPerDay) return false
       }
 
-      /*
-       * `on conflict` names the partial index for this shape. Two of them exist
-       * and only one applies to a given row, so the target has to be spelled
-       * out per shape rather than inferred.
-       */
       if (input.postId === null) {
         await tx.execute(sql`
           insert into reputation
@@ -175,13 +133,6 @@ export class PostgresReputationRepository implements ReputationRepository {
     })
   }
 
-  /**
-   * Withdraw a rating.
-   *
-   * Scoped to the member who gave it **in the query**, so a rating id from
-   * somebody else's history matches nothing rather than being caught by a
-   * check — the same rule F60's mailbox follows.
-   */
   async withdraw(input: {
     readonly ratingId: number
     readonly givenByUserId: number
@@ -253,9 +204,6 @@ export class PostgresReputationRepository implements ReputationRepository {
         ${SELECT_ROW}
          where r.given_by_user_id = ${input.givenByUserId}
            and r.user_id = ${input.userId}
-           /* "is not distinct from" so a null post id matches a null one:
-              plain equality is never true against NULL, which would make every
-              profile rating look like a new one. */
            and r.post_id is not distinct from ${input.postId}
       `),
     ) as RawRow[]
@@ -263,18 +211,6 @@ export class PostgresReputationRepository implements ReputationRepository {
     return rows[0] === undefined ? null : toRow(rows[0])
   }
 
-  /**
-   * The batch form of `existing`, for a thread page's Thanks controls.
-   *
-   * Scoped to the *rater* in the `where` clause rather than filtered after the
-   * read, like every other query here: what this reader has said is theirs, and
-   * a query that fetched everybody's ratings and picked out one member's would
-   * be one refactor away from showing the wrong ones.
-   *
-   * `post_id in (...)` rather than `is not distinct from`, because a profile
-   * rating has a null post id and is not what this asks about — the caller is
-   * always holding a page of posts.
-   */
   async existingForPosts(input: {
     readonly givenByUserId: number
     readonly postIds: readonly number[]
@@ -297,13 +233,6 @@ export class PostgresReputationRepository implements ReputationRepository {
     )
   }
 
-  /**
-   * The thanks count per post, for a page of them.
-   *
-   * `points > 0` rather than `sum(points)`: this is a count of people, and a
-   * sum would let one negative cancel one thanks — showing "2" on a post that
-   * three people thanked, which is not a thing anybody said.
-   */
   async thanksForPosts(postIds: readonly number[]): Promise<ReadonlyMap<number, number>> {
     if (postIds.length === 0) return new Map()
 

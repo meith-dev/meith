@@ -1,12 +1,3 @@
-/**
- * F29 — the board index view model.
- *
- * The cases here are the ones that make a listing wrong rather than ugly: a
- * forum the viewer may not see, a *child* of one, a deleted author, and an empty
- * forum. All four are invisible on the fixture board unless asked for
- * deliberately, and all four are how a real board differs from a demo.
- */
-
 import type { ForumListingRow } from '@meith/forums'
 import { describe, expect, it } from 'vitest'
 
@@ -79,12 +70,6 @@ describe('buildBoardIndexView', () => {
     expect(result.blocks[0]!.forums.map((f) => f.title)).toEqual(['Public'])
   })
 
-  /*
-   * The case this file exists for. `buildTree` promotes orphans to roots (D22),
-   * so filtering the flat list and building the tree would surface a visible
-   * child of a hidden category as a top-level block — telling a guest both that
-   * the forum exists and what it is called.
-   */
   it('drops a visible child whose parent is hidden, rather than promoting it', () => {
     const result = view(
       [
@@ -97,12 +82,6 @@ describe('buildBoardIndexView', () => {
     expect(result.blocks).toEqual([])
   })
 
-  /*
-   * One pass is not enough: the grandchild's parent survives the *filter* and is
-   * then dropped for being orphaned, so anything hanging off it has to go in a
-   * later pass. An implementation that filters once leaves the grandchild as a
-   * top-level block — the same leak, one level deeper and much easier to miss.
-   */
   it('drops a grandchild whose parent was dropped for being orphaned', () => {
     const result = view(
       [
@@ -157,11 +136,6 @@ describe('buildBoardIndexView', () => {
     expect(last.author.profileHref).toBe('/member/3')
   })
 
-  /*
-   * `posts.author_user_id` is ON DELETE SET NULL while the username is kept, so
-   * a listing must render the name without a link. Assuming an author is always
-   * linkable is what turns a deleted account into a broken row.
-   */
   it('renders a deleted author by name with no profile link', () => {
     const result = view(
       [

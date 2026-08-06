@@ -1,13 +1,5 @@
 import type { ForumDisplayModel } from '@meith/theme-kit'
 
-/**
- * A forum page: subforums, then the thread table, then paging.
- *
- * `regions.threads` is a run of rendered `ThreadRow` slots, which in this theme
- * are `<tr>`s — so the table lives here and the header row with it. A theme
- * that wanted a card list would put nothing around them; the page does not know
- * either way.
- */
 export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: ForumDisplayModel) {
   return (
     <div className="flex flex-col gap-3 p-3">
@@ -27,12 +19,12 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
         <p className="text-sm text-muted-foreground">{forum.description}</p>
       )}
 
-      {/* Theme API 1.3: the thread ordering, and following this forum. */}
+      { }
       {regions.tools !== undefined && (
         <div className="flex flex-col gap-2 empty:hidden">{regions.tools}</div>
       )}
 
-      {/* F71. This forum's announcements and the board's, above its content. */}
+      { }
       {regions.announcements !== undefined && (
         <div className="flex flex-col gap-3">{regions.announcements}</div>
       )}
@@ -53,7 +45,7 @@ export function ForumDisplay({ forum, newThreadHref, markReadAction, regions }: 
 
       {regions.pagination}
 
-      {/* Theme API 1.4 — following this forum, after the threads. */}
+      { }
       {regions.afterContent !== undefined && (
         <div className="flex flex-col gap-2 empty:hidden">{regions.afterContent}</div>
       )}

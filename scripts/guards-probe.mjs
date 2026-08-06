@@ -1,23 +1,4 @@
 #!/usr/bin/env node
-/**
- * Proves the textual guards are not inert (D10).
- *
- * `pnpm guards` passing tells you nothing on its own: a rule whose pattern no
- * longer matches anything passes exactly as loudly as a rule that is doing its
- * job. Every guard this repo has ever added was probed by hand with a
- * deliberately-broken file; this makes that permanent and runs it in CI, so a
- * refactor that quietly defangs a pattern fails immediately instead of years
- * later when the bug it was watching for comes back.
- *
- * Two assertions per guard, and the second is the one people forget:
- *
- *   1. the violating sample MUST match — the rule still catches its bug;
- *   2. the clean sample MUST NOT — the rule has not been broadened into
- *      something that matches everything, which would satisfy (1) trivially
- *      while making the guard useless and the build unfixable.
- *
- * Run: pnpm guards:probe
- */
 
 import { GUARDS } from './guards.config.mjs'
 
@@ -37,8 +18,6 @@ for (const guard of GUARDS) {
 
   const { violates, clean } = guard.probe
 
-  // `exec` on a /g regex is stateful; these are not global, but reset anyway so
-  // this stays correct if one ever becomes so.
   guard.pattern.lastIndex = 0
   if (!guard.pattern.test(violates)) {
     fail(
@@ -49,12 +28,6 @@ for (const guard of GUARDS) {
     )
   }
 
-  /*
-   * `alsoClean` carries the extra legal samples a rule with a carve-out needs.
-   * A single `clean` cannot prove both that a rule still fires and that each of
-   * its exemptions holds, and an exemption nobody probes is one that quietly
-   * widens until the rule means nothing.
-   */
   for (const sample of [clean, ...(guard.alsoClean ?? [])]) {
     guard.pattern.lastIndex = 0
     if (guard.pattern.test(sample)) {

@@ -1,31 +1,3 @@
-/**
- * F67 — merging one account into another.
- *
- * The roadmap's phrase is "correct reassignment on merge", and correctness here
- * has four parts that a naive `update … set user_id = winner` gets wrong.
- *
- * **Every column, including the denormalised ones.** Forty columns in this
- * schema point at a user; two of them (`threads.last_post_user_id`,
- * `forums.last_post_user_id`) are display caches with no foreign key at all.
- * Missing one leaves rows pointing at an account that no longer participates —
- * which raises no error and is noticed months later. The map is a declaration
- * in `user-merge-map.ts` and a test holds it against `information_schema`.
- *
- * **Credentials are destroyed, never moved.** A merge is not an authentication
- * event. Moving the loser's session row would hand the winner's account to
- * whoever holds that cookie.
- *
- * **A merge can create rows that were never possible.** `reputation` and
- * `user_relations` each have two user-shaped ends, and bringing the ends
- * together produces somebody who has rated themselves or put themselves on
- * their own ignore list — states the board's own validation refuses to create
- * and none of its readers expect. They are deleted rather than moved.
- *
- * **The unbounded table is chunked.** `posts` is the one table whose size is a
- * function of how long the board has existed rather than of one member's
- * settings, so authorship moves in bounded batches with a resumable cursor; the
- * rest is a member's own activity and fits in the finishing transaction.
- */
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
@@ -44,32 +16,21 @@ import {
 export interface MergePreview {
   readonly fromUsername: string
   readonly toUsername: string
-  /** Posts still to move. The chunked part, and the only unbounded one. */
   readonly posts: number
   readonly threads: number
   readonly privateMessages: number
   readonly attachments: number
-  /** True when either account is banned, which refuses the merge. */
   readonly blockedByBan: boolean
 }
 
 export interface MergeChunkResult {
   readonly moved: number
-  /** Posts still owned by the losing account. */
   readonly remaining: number
 }
 
 export class PostgresUserMergeRepository {
   constructor(private readonly db: Database) {}
 
-  /**
-   * What a merge would touch.
-   *
-   * A count rather than a list: the point is scale — "this moves 9,000 posts"
-   * tells an operator whether they are starting something that finishes in one
-   * press — and a list of nine thousand posts would tell them nothing they can
-   * read.
-   */
   async preview(fromUserId: number, toUserId: number): Promise<MergePreview | null> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -103,15 +64,6 @@ export class PostgresUserMergeRepository {
     }
   }
 
-  /**
-   * Move one batch of post authorship.
-   *
-   * Keyset-free on purpose: the predicate is "still owned by the loser", and
-   * each batch removes rows from that set, so the next batch finds the next
-   * ones without a cursor. That is only safe because the set shrinks
-   * monotonically — which it does, since nothing in the system re-assigns a
-   * post *to* the losing account while a merge is running.
-   */
   async mergePostsChunk(
     fromUserId: number,
     toUserId: number,
@@ -139,17 +91,6 @@ export class PostgresUserMergeRepository {
     return { moved: moved.length, remaining: Number(remaining[0]?.n ?? 0) }
   }
 
-  /**
-   * Everything else, in one transaction.
-   *
-   * One transaction because the rest is bounded by a member's own activity and
-   * because a half-applied merge is the worst of the three states: the loser
-   * would own some of their history and not the rest, with no record of where
-   * the boundary was.
-   *
-   * Refuses while posts remain, so the chunked stage cannot be skipped by a
-   * caller who forgot to loop.
-   */
   async finish(fromUserId: number, toUserId: number): Promise<void> {
     assertDistinct(fromUserId, toUserId)
 
@@ -167,11 +108,6 @@ export class PostgresUserMergeRepository {
       const row = state[0] as Record<string, unknown>
       if (Number(row.found) !== 2) throw new ValidationError('No such member.')
       if (Number(row.banned) > 0) {
-        /*
-         * `bans.user_id` is reassigned like any other column, so merging a
-         * banned account would carry its active ban onto the winner and lock
-         * out an account nobody decided to ban. Lift it first, deliberately.
-         */
         throw new ValidationError(
           'One of these accounts is banned. Lift the ban before merging.',
         )
@@ -201,12 +137,6 @@ export class PostgresUserMergeRepository {
         `)
       }
 
-      /*
-       * The denormalised names, after the ids have moved. Reassigning the id
-       * and stopping there leaves every post displaying the merged-away name,
-       * with no foreign key and no error to say so — this is a *second* kind
-       * of pointer, and the coverage test is what found it.
-       */
       const winner = resultRows(
         await tx.execute(sql`select username from users where id = ${toUserId}`),
       ) as Array<{ username: string }>
@@ -221,12 +151,6 @@ export class PostgresUserMergeRepository {
         `)
       }
 
-      /*
-       * Counters are added rather than recomputed. F38's recount is the
-       * authority on these numbers and runs on its own schedule; adding gets
-       * the display right immediately without this transaction scanning every
-       * post the winner has ever made.
-       */
       await tx.execute(sql`
         update users w
            set post_count = w.post_count + l.post_count,
@@ -237,12 +161,6 @@ export class PostgresUserMergeRepository {
          where w.id = ${toUserId} and l.id = ${fromUserId}
       `)
 
-      /*
-       * The loser is soft-deleted rather than dropped. Its row is what any
-       * column this map missed still points at — a deleted account renders as
-       * "a former member", where a dangling id renders as a crash — and it is
-       * the only evidence afterwards that the merge happened at all.
-       */
       await tx.execute(sql`
         update users
            set deleted_at = now(), post_count = 0, thread_count = 0, reputation = 0,
@@ -259,13 +177,6 @@ function assertDistinct(fromUserId: number, toUserId: number): void {
   }
 }
 
-/**
- * Drop the loser's row where the winner already has one, then move the rest.
- *
- * The winner keeps theirs, which is the choice that loses nothing the winner
- * did not already have: their read state, their subscription settings, their
- * notification preferences are the ones they have been living with.
- */
 async function dedupeThenMove(
   tx: Tx,
   entry: DedupeColumn,
@@ -294,23 +205,7 @@ async function dedupeThenMove(
   `)
 }
 
-/**
- * The two-ended tables.
- *
- * `reputation` and `user_relations` both have a *giver* and a *subject*, and a
- * merge can bring the two ends onto the same account. What comes out is a row
- * the board cannot otherwise produce: a member who has rated themselves, or who
- * has put themselves on their own ignore list. Neither is representable in the
- * UI and neither is something any reader expects, so those rows are deleted
- * rather than moved — the alternative is a permanent, invisible inconsistency
- * that only shows up as a strange profile.
- *
- * Order matters: collapse the self-referencing rows *first*, then dedupe
- * against the winner's existing rows, then move the remainder. Doing it the
- * other way round moves a row into a self-reference and then fails to notice.
- */
 async function mergeBespoke(tx: Tx, fromUserId: number, toUserId: number): Promise<void> {
-  /* Ratings the loser gave the winner, or the winner gave the loser. */
   await tx.execute(sql`
     delete from reputation
      where (given_by_user_id = ${fromUserId} and user_id = ${toUserId})
@@ -318,10 +213,6 @@ async function mergeBespoke(tx: Tx, fromUserId: number, toUserId: number): Promi
         or (given_by_user_id = ${fromUserId} and user_id = ${fromUserId})
   `)
 
-  /*
-   * Duplicate ratings: the loser rated something the winner already rated. One
-   * rating per person per target is the rule (F51), and the winner's stands.
-   */
   await tx.execute(sql`
     delete from reputation loser
      where loser.given_by_user_id = ${fromUserId}
@@ -336,10 +227,6 @@ async function mergeBespoke(tx: Tx, fromUserId: number, toUserId: number): Promi
     update reputation set given_by_user_id = ${toUserId}
      where given_by_user_id = ${fromUserId}
   `)
-  /*
-   * The receiving end needs the same duplicate check: two profile ratings from
-   * the same person, one to each account, collide once both are the winner's.
-   */
   await tx.execute(sql`
     delete from reputation loser
      where loser.user_id = ${fromUserId}
@@ -354,7 +241,6 @@ async function mergeBespoke(tx: Tx, fromUserId: number, toUserId: number): Promi
     update reputation set user_id = ${toUserId} where user_id = ${fromUserId}
   `)
 
-  /* Relations between the two accounts collapse to nothing. */
   await tx.execute(sql`
     delete from user_relations
      where (user_id = ${fromUserId} and other_user_id = ${toUserId})

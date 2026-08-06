@@ -1,4 +1,3 @@
-/** F52 — the inline-moderation rules, without a database. */
 import { describe, expect, it } from 'vitest'
 import { ValidationError } from '@meith/core'
 
@@ -28,7 +27,6 @@ const ALL: InlineRights = {
   deletePosts: true,
 }
 
-/** Where the actor may act. Anything outside it must be invisible, not refused. */
 const SCOPE = [4, 5]
 
 function target(over: Partial<InlineTarget> & Pick<InlineTarget, 'kind' | 'id'>): InlineTarget {
@@ -45,9 +43,7 @@ function target(over: Partial<InlineTarget> & Pick<InlineTarget, 'kind' | 'id'>)
 class FakeInline implements InlineModerationRepository {
   rows: InlineTarget[] = []
   destination: MoveDestination | null = { id: 5, type: 'forum' }
-  /** Every chunk this repository was handed, in order. */
   readonly chunks: Array<{ tool: InlineTool; threadIds: number[]; postIds: number[] }> = []
-  /** Ids the write is to report as having lost a race. */
   raced = new Set<number>()
 
   async resolve(
@@ -85,7 +81,6 @@ function commandFor(inline: FakeInline): InlineModeration {
   return new InlineModeration({ inline, now: () => NOW })
 }
 
-/** A rights resolver that answers the same thing everywhere. */
 function everywhere(rights: InlineRights): {
   rightsIn: (forumId: number) => Promise<InlineRights>
   asked: number[]
@@ -148,11 +143,6 @@ describe('InlineModeration', () => {
     expect(inline.chunks[0]!.threadIds).toEqual([1])
   })
 
-  /*
-   * The security property. A row outside the scope is not "refused", because
-   * that would be an answer, and the difference between an answer and no answer
-   * is a content-existence oracle over every private forum on the board.
-   */
   it('reports a row outside the scope as missing, exactly like one that does not exist', async () => {
     const inline = new FakeInline()
     inline.rows = [
@@ -168,7 +158,6 @@ describe('InlineModeration', () => {
       actorUserId: 9,
     })
 
-    // #2 is in a forum out of scope, #3 does not exist: one number, both cases.
     expect(outcome).toMatchObject({ applied: 1, refused: 0, missing: 2 })
   })
 
@@ -188,10 +177,6 @@ describe('InlineModeration', () => {
     expect(inline.chunks).toEqual([])
   })
 
-  /*
-   * Rights are checked before state, so somebody who may not act here cannot
-   * learn from `skipped` that the thread is already locked.
-   */
   it('refuses a row it holds no right for without revealing its state', async () => {
     const inline = new FakeInline()
     inline.rows = [target({ kind: 'thread', id: 1, isLocked: true })]
@@ -259,7 +244,6 @@ describe('InlineModeration', () => {
       ['unlock', { isLocked: true }, true],
       ['stick', { isSticky: false }, true],
       ['unstick', { isSticky: false }, false],
-      /* A deleted thread's pin would sort a listing by a flag nobody can see. */
       ['stick', { visibility: 'deleted' }, false],
     ]
 
@@ -282,10 +266,6 @@ describe('InlineModeration', () => {
       })
     }
 
-    /*
-     * F48's rule seen from the other surface: approving a reply held inside a
-     * held thread would publish a post into a thread nobody can see.
-     */
     it('will not approve a held reply whose thread is itself held', async () => {
       const inline = new FakeInline()
       inline.rows = [
@@ -354,7 +334,6 @@ describe('InlineModeration', () => {
       const inline = new FakeInline()
       inline.rows = [target({ kind: 'thread', id: 1, forumId: 4 })]
 
-      /* Everywhere-move except forum 5, which is where they are aiming. */
       const rights = {
         rightsIn: async (forumId: number) =>
           forumId === 5 ? { ...ALL, move: false } : ALL,
@@ -451,10 +430,6 @@ describe('InlineModeration', () => {
       ])
     })
 
-    /*
-     * The chunk boundary is the point of the feature: F48 refuses over 200, and
-     * a listing with a "select all" has to do the work instead.
-     */
     it('handles a selection well over the queue ceiling', async () => {
       const inline = new FakeInline()
       const selected = Array.from({ length: 220 }, (_, i) => i + 1)
@@ -500,11 +475,6 @@ describe('InlineModeration', () => {
     })
   })
 
-  /*
-   * A row that passed every check and did not move lost a race with another
-   * moderator. It is a skip: the state it was being moved to is the state it is
-   * in, and reporting it as applied would be a lie about what this actor did.
-   */
   it('counts a row that lost a race between the re-read and the write as skipped', async () => {
     const inline = new FakeInline()
     inline.rows = [
@@ -537,11 +507,6 @@ describe('parseInlineTool', () => {
 })
 
 describe('INLINE_TOOL_ACTIONS', () => {
-  /*
-   * Deleting is the case that forces the scope to be a union: a thread needs
-   * `thread.delete` (appointment only) and a post needs `post.softDelete`
-   * (which a usergroup can grant). One action for both breaks one of them.
-   */
   it('scopes deletion by both the thread and the post action', () => {
     expect(INLINE_TOOL_ACTIONS.delete).toEqual(['thread.delete', 'post.softDelete'])
     expect(INLINE_TOOL_ACTIONS.restore).toEqual(['thread.delete', 'post.softDelete'])

@@ -1,21 +1,3 @@
-/**
- * F68's writes, at the app layer.
- *
- * The claim this file exists for: **the editor validates with the same
- * functions the render path uses.** F26's `validateTokenOverrides` and
- * `validateCustomCss` run on every page load against the stored row; running
- * them again before the write is what makes "saved" mean "will render". A
- * second validator here would eventually disagree, and the direction it would
- * disagree in is the bad one — a value the editor accepts and the renderer
- * rejects is a board that goes blank on the next request, from an
- * administrator's own save.
- *
- * The others: a blank field is "use the theme's value" and not an empty
- * override, light and dark are separate overrides while a token that has no
- * such distinction posts once, the preview runs the real validation rather than
- * approximating it in the browser, and the two state writes refuse the changes
- * that would leave a board unable to render itself.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
@@ -44,17 +26,11 @@ const resets: string[] = []
 const enabling: Array<{ key: string; enabled: boolean }> = []
 const defaults: string[] = []
 
-/*
- * A stand-in theme with a handful of real token names. `background` is here
- * because F26 treats it specially — it has to be a colour it can convert for
- * `<meta name="theme-color">` — and that rule has to survive this screen.
- */
 const TOKENS = {
   light: { background: '#ffffff', primary: '#334455', radius: '0.375rem' },
   dark: { background: '#111111', primary: '#88aacc', radius: '0.375rem' },
 }
 
-/** `default` is the build's theme; `midnight` is registered beside it. */
 const LISTING = [
   { key: 'default', isDefault: true, enabled: true, isBuildTheme: true },
   { key: 'midnight', isDefault: false, enabled: true, isBuildTheme: false },
@@ -129,24 +105,12 @@ describe('the admin gate', () => {
   })
 
   it('refuses a theme the build does not have', async () => {
-    /*
-     * The key is a URL segment. A theme that is not in `forum.config.ts` cannot
-     * render, so storing a row for one would be a customisation nothing will
-     * ever apply.
-     */
     const state = await saveThemeAction({}, form({ key: 'not-installed' }))
     expect(state.error).toBeDefined()
     expect(saved).toEqual([])
   })
 
   it('refuses an unknown key on reset too, which has no second check', async () => {
-    /*
-     * Save, preview and import all look the theme's tokens up afterwards and
-     * would refuse anyway; **reset does not** — it needs no tokens, so
-     * `themeKey` is the only thing standing between a URL segment and a DELETE.
-     * Kills the mutant that drops that guard, which every other test in this
-     * file survives.
-     */
     const state = await resetThemeAction({}, form({ key: 'not-installed' }))
 
     expect(state.error).toBeDefined()
@@ -166,12 +130,6 @@ describe('the admin gate', () => {
 
 describe('saveThemeAction', () => {
   it('treats a blank field as "use the theme’s value", not as an override', async () => {
-    /*
-     * Most fields are blank on any real board — the editor shows all
-     * thirty-odd tokens. Storing those as empty strings would write
-     * `--primary:;` into the cascade: a token that overrides the theme with
-     * nothing. Kills the mutant that collects every field.
-     */
     await saveThemeAction(
       {},
       form({ key: 'default', 'token.light.primary': '', 'token.both.radius': '1rem' }),
@@ -184,12 +142,6 @@ describe('saveThemeAction', () => {
   })
 
   it('keeps light and dark apart', async () => {
-    /*
-     * The whole reason the shape changed. One value for both schemes is fine
-     * for a corner radius and wrong for every colour: a board that set its page
-     * background to white used to get white in dark mode too, and the only way
-     * to avoid that was to not use the editor.
-     */
     await saveThemeAction(
       {},
       form({
@@ -206,12 +158,6 @@ describe('saveThemeAction', () => {
   })
 
   it('expands a scheme-independent token into both schemes', async () => {
-    /*
-     * `both` is how the editor posts a token with no light/dark distinction. It
-     * is expanded here rather than stored as a third key, because the render
-     * path has exactly two blocks to write and a stored `both` would need a
-     * rule in every reader. Kills the mutant that writes it to light only.
-     */
     await saveThemeAction({}, form({ key: 'default', 'token.both.radius': '0px' }))
 
     expect(saved[0]?.tokenOverrides).toEqual({
@@ -221,11 +167,6 @@ describe('saveThemeAction', () => {
   })
 
   it('refuses a token the theme does not declare', async () => {
-    /*
-     * F26's rule, and the reason it matters: an override of a name no
-     * stylesheet reads is accepted silently and then does nothing, which is
-     * indistinguishable from the feature being broken.
-     */
     const state = await saveThemeAction(
       {},
       form({ key: 'default', 'token.light.invented': '#abcdef' }),
@@ -236,12 +177,6 @@ describe('saveThemeAction', () => {
   })
 
   it('refuses a token value carrying a second declaration', async () => {
-    /*
-     * The value goes into a style block. `;` would close the declaration and
-     * open another, which is a stylesheet injection from a form field. F26's
-     * validator refuses it and this proves the editor runs that validator
-     * rather than its own. Kills the mutant that writes without validating.
-     */
     const state = await saveThemeAction(
       {},
       form({ key: 'default', 'token.light.primary': 'red;position:fixed' }),
@@ -252,11 +187,6 @@ describe('saveThemeAction', () => {
   })
 
   it('refuses an unsafe value in the dark scheme too', async () => {
-    /*
-     * Two schemes means two ways in. A validator that only walked `light` would
-     * pass every test above and let the same injection through one field to the
-     * right.
-     */
     const state = await saveThemeAction(
       {},
       form({ key: 'default', 'token.dark.primary': 'red;position:fixed' }),
@@ -267,10 +197,6 @@ describe('saveThemeAction', () => {
   })
 
   it('refuses a background that is not a convertible colour', async () => {
-    /*
-     * `background` is special: F26 converts it for `<meta name="theme-color">`,
-     * so a value it cannot convert breaks the render rather than the styling.
-     */
     const state = await saveThemeAction(
       {},
       form({ key: 'default', 'token.light.background': 'papayawhip' }),
@@ -292,12 +218,6 @@ describe('saveThemeAction', () => {
   })
 
   it('clears the theme cache tag for that key alone', async () => {
-    /*
-     * The render path caches the whole cascade against every registered theme's
-     * tag, so clearing one key is enough to drop it — and clearing *this* key
-     * is what says which theme changed. A save that cleared nothing would be a
-     * save an operator watches do nothing.
-     */
     await saveThemeAction({}, form({ key: 'default' }))
     expect(invalidated).toEqual([['theme:default']])
   })
@@ -313,7 +233,6 @@ describe('saveThemeAction', () => {
       }),
     )
 
-    /* One token, changed in two schemes — the count is of tokens, not fields. */
     expect(adminCalls[0]).toEqual({
       action: 'theme.saved',
       detail: { key: 'default', tokens: 1, customCss: true },
@@ -324,11 +243,6 @@ describe('saveThemeAction', () => {
 
 describe('previewThemeAction', () => {
   it('hands back a scoped style block and saves nothing', async () => {
-    /*
-     * Scoped to `[data-theme-preview]` rather than `:root`, so previewing an
-     * unreadable colour cannot restyle the form that changes it back. Kills the
-     * mutant that emits `:root`.
-     */
     const state = await previewThemeAction(
       {},
       form({ key: 'default', 'token.light.primary': '#abcdef' }),
@@ -350,11 +264,6 @@ describe('previewThemeAction', () => {
   })
 
   it('runs the same validation a save would, so a preview cannot hide a refusal', async () => {
-    /*
-     * A preview that approximated the rules in the browser would show an
-     * operator something that then failed to save — or worse, showed nothing
-     * wrong with a value the renderer would reject.
-     */
     const state = await previewThemeAction(
       {},
       form({ key: 'default', 'token.light.primary': 'red;position:fixed' }),
@@ -375,11 +284,6 @@ describe('previewThemeAction', () => {
   })
 
   it('never puts the style block where a form control could echo it', async () => {
-    /*
-     * Everything in `values` is rendered back into an input as text; `preview`
-     * is the field this codebase reserves for trusted self-generated markup
-     * (F36/F41). They must not be reachable by the same name.
-     */
     const state = await previewThemeAction(
       {},
       form({ key: 'default', 'token.light.primary': '#abcdef' }),
@@ -411,11 +315,6 @@ describe('setThemeEnabledAction', () => {
   })
 
   it('refuses to disable the theme the build renders', async () => {
-    /*
-     * Its components are what every page is made of. Turning it off would leave
-     * the board painting one theme's markup in another's palette — and the
-     * control that did it would then be offering no way back.
-     */
     const state = await setThemeEnabledAction({}, form({ key: 'default', enabled: 'false' }))
 
     expect(state.error).toBeDefined()
@@ -423,13 +322,6 @@ describe('setThemeEnabledAction', () => {
   })
 
   it('refuses to disable the default, rather than quietly moving it', async () => {
-    /*
-     * Silently reassigning the default here would be a second, unrequested
-     * change hidden inside the first. `default` is both the build's theme and
-     * the default in this fixture, so the refusal above could pass for the
-     * wrong reason — this proves the default check exists by asking for a
-     * theme that is only the default.
-     */
     const listing = [
       { key: 'default', isDefault: false, enabled: true, isBuildTheme: true },
       { key: 'midnight', isDefault: true, enabled: true, isBuildTheme: false },
@@ -471,7 +363,6 @@ describe('importThemeAction', () => {
     const state = await importThemeAction({}, form({ key: 'default', document }))
 
     expect(state.notice).toBe('imported')
-    /* The key in the file is ignored: copying a look between boards is the point. */
     expect(saved[0]).toMatchObject({
       key: 'default',
       tokenOverrides: { light: { primary: '#abcdef' }, dark: { primary: '#123456' } },
@@ -480,12 +371,6 @@ describe('importThemeAction', () => {
   })
 
   it('reads a version 1 document, whose overrides meant both schemes', async () => {
-    /*
-     * Every export taken before members could switch themes is version 1 with a
-     * flat map. Refusing them would break the one thing export exists for — and
-     * the flat map's meaning is unambiguous, because `light` and `dark` are not
-     * token names.
-     */
     const document = JSON.stringify({
       version: 1,
       tokenOverrides: { primary: '#abcdef' },
@@ -502,11 +387,6 @@ describe('importThemeAction', () => {
   })
 
   it('validates the values, not only the envelope', async () => {
-    /*
-     * A file that arrived by email is exactly as untrusted as a hand-edited
-     * row. `parseThemeExport` checks the envelope; F26's validator checks what
-     * is inside. Kills the mutant that trusts a well-formed document.
-     */
     const document = JSON.stringify({
       version: 2,
       tokenOverrides: { light: { primary: 'red;position:fixed' }, dark: {} },

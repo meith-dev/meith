@@ -1,11 +1,3 @@
-/**
- * F15 — the seeded group ladder, asserted against a real migrated database.
- *
- * This exists because the ladder is data, and data in a migration has no
- * compiler behind it: a mistyped column name, a permission granted to the wrong
- * group, or an id that drifts from `seed-board.ts` would all apply cleanly and
- * be wrong. Every claim the seed makes about *security* is pinned here.
- */
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -25,16 +17,6 @@ afterAll(async () => {
   await harness.close()
 })
 
-/**
- * Read a group and resolve its permissions the way production does.
- *
- * The permission columns are generated from the registry into a
- * `Record<string, ...>`, so drizzle's inferred row type does not carry them —
- * `permissions-map.ts` exists precisely to turn a loose row into a validated
- * `PermissionSet`. Asserting through that mapper rather than around it means
- * this test covers the same path the authorizer uses, including the coercion
- * that turns a Postgres numeric string into a number.
- */
 async function byKey(key: string) {
   const rows = await db.select().from(usergroups).where(eq(usergroups.key, key)).limit(1)
   const row = rows[0]
@@ -60,12 +42,6 @@ describe('seeded usergroups', () => {
     ])
   })
 
-  /*
-   * ActorBuilder is constructed with `guestGroupId: 1` and AUTH_CONFIG's
-   * defaultMemberGroupId is the registered group, both matching the in-memory
-   * seed board. If these ids drift, a fixture actor and a Postgres actor stop
-   * resolving to the same permissions and every parity assumption breaks.
-   */
   it('pins the ids the code depends on', async () => {
     expect((await byKey('guests'))?.id).toBe(1)
     expect((await byKey('registered'))?.id).toBe(2)
@@ -75,7 +51,6 @@ describe('seeded usergroups', () => {
 
   it('marks every seeded group as a system group', async () => {
     const rows = await db.select({ isSystem: usergroups.isSystem }).from(usergroups)
-    // A system group cannot be deleted, because code references it by key.
     expect(rows.every((r) => r.isSystem)).toBe(true)
   })
 
@@ -96,7 +71,6 @@ describe('seeded usergroups', () => {
     expect(registered?.canPostThreads).toBe(true)
     expect(registered?.canPostReplies).toBe(true)
 
-    // Negative-sense flags: true would mean every post needs a moderator.
     expect(registered?.requiresThreadApproval).toBe(false)
     expect(registered?.requiresPostApproval).toBe(false)
   })
@@ -116,8 +90,6 @@ describe('seeded usergroups', () => {
     expect((await byKey('administrators'))?.canAccessAdminCp).toBe(true)
     expect((await byKey('administrators'))?.isAdministrator).toBe(true)
 
-    // R4.2: super moderators bypass forum permissions but NOT admin-only
-    // actions. An ACP that a super moderator can reach is a privilege bug.
     expect((await byKey('super_moderators'))?.canAccessAdminCp).toBe(false)
     expect((await byKey('super_moderators'))?.isAdministrator).toBe(false)
     expect((await byKey('super_moderators'))?.isSuperModerator).toBe(true)
@@ -129,7 +101,6 @@ describe('seeded usergroups', () => {
     expect(mods?.canViewUnapproved).toBe(true)
     expect(mods?.canAccessModCp).toBe(true)
 
-    // Which forums they may act in is decided by forum_moderators, not a bypass.
     expect(mods?.isSuperModerator).toBe(false)
     expect(mods?.isAdministrator).toBe(false)
   })
@@ -148,14 +119,9 @@ describe('seeded usergroups', () => {
     const pending = await byKey('awaiting_activation')
     expect(pending?.canView).toBe(true)
     expect(pending?.canPostThreads).toBe(false)
-    // If an admin later grants posting, it must still queue for approval.
     expect(pending?.requiresPostApproval).toBe(true)
   })
 
-  /*
-   * Explicit ids do not advance the identity sequence. Without the setval in the
-   * migration, the first group an administrator creates collides on id 1.
-   */
   it('leaves the identity sequence past the seeded ids', async () => {
     const [created] = await db
       .insert(usergroups)

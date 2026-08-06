@@ -1,25 +1,5 @@
 "use client"
 
-/**
- * The contents rail, with the section you are reading marked.
- *
- * `IntersectionObserver` rather than a scroll handler: it does not run on every
- * frame of a scroll, and the rail is a hint rather than a measurement, so the
- * observer's coarser granularity costs nothing a reader would notice.
- *
- * The observed band is the top third of the viewport. A heading counts as "the
- * one you are reading" once it has passed under the header and before it leaves
- * the top of the screen — the alternative, marking whatever is centred, marks
- * the *next* section while you are still finishing the current one.
- *
- * **Sub-headings collapse.** `mybb-parity.md` has eighteen sections and
- * seventy-nine entries under them; a rail listing all ninety-seven is a rail
- * nobody reads and, worse, one that hides where you are in a list too long to
- * scan. So the third-level headings of the section you are in are shown, and the
- * rest are not — which is also what makes the rail a map of the document rather
- * than a copy of it.
- */
-
 import { useEffect, useMemo, useState } from "react"
 
 export interface TocHeading {
@@ -49,17 +29,9 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
           if (entry.isIntersecting) visible.add(entry.target.id)
           else visible.delete(entry.target.id)
         }
-        /* Document order, so the *first* heading in the band wins. */
         const first = headings.find((heading) => visible.has(heading.id))
         if (first) setActiveId(first.id)
       },
-      /*
-       * Pixels, not `rem`. `IntersectionObserver` accepts only px and %, and
-       * throws a SyntaxError on anything else — which, thrown from an effect
-       * during hydration, takes the whole page down rather than merely
-       * disabling the rail. 96px is the 6rem of `scroll-padding-top` in
-       * `globals.css`, so the band starts exactly where an anchor jump lands.
-       */
       { rootMargin: "-96px 0px -67% 0px", threshold: 0 },
     )
 
@@ -67,13 +39,6 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     return () => observer.disconnect()
   }, [headings])
 
-  /**
-   * The rail's own shape: top-level headings always, and the children of
-   * whichever one contains the active heading.
-   *
-   * A document with no `##` at all — every ADR is one long run of `###` — has no
-   * sections to collapse into, so everything stays visible.
-   */
   const shown = useMemo(() => {
     const hasSections = headings.some((heading) => heading.depth === 2)
     if (!hasSections) return headings

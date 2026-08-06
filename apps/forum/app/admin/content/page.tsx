@@ -15,19 +15,6 @@ import { contentAdminRepository } from '@/server/content-admin'
 
 export const metadata: Metadata = { title: 'Content' }
 
-/**
- * F71 — content administration.
- *
- * The word filter is the part worth reading about. It is applied when a post is
- * **rendered**, never when it is saved, and that single choice is the feature:
- * turning a filter off restores the word everywhere on the next page load, a
- * badly chosen pattern can be corrected with no lasting damage, and a filter
- * added today applies to everything ever written. Boards that rewrite the
- * stored text have none of that, because the original is gone.
- *
- * Thread prefixes get their first writer here: `thread_prefixes` has been read
- * by the thread composer since F33 and could only be populated with SQL.
- */
 export default async function AdminContentPage() {
   await requireAdmin()
 

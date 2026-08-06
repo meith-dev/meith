@@ -1,9 +1,3 @@
-/**
- * F81 — the stores behind the public API and its webhooks.
- *
- * Three repositories, each with exactly one interesting statement in it.
- */
-
 import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
@@ -21,13 +15,11 @@ interface TokenRow {
   revoked_at: Date | null
 }
 
-/** Scopes arrive as JSON. An unrecognised one is dropped rather than trusted. */
 function parseScopes(raw: unknown, known: (value: string) => value is Scope): readonly Scope[] {
   if (!Array.isArray(raw)) return []
   return raw.filter((value): value is Scope => typeof value === 'string' && known(value))
 }
 
-/** A token as the operator screen lists it. Never carries the secret hash. */
 export interface ApiTokenSummary {
   readonly id: number
   readonly userId: number
@@ -48,12 +40,6 @@ export class PostgresApiTokenRepository {
   ) {}
 
   async findByLookup(lookup: string): Promise<ApiTokenRecord | null> {
-    /*
-     * The lookup is the *clear* half and is unique-indexed, so this is one
-     * index probe. The secret is never compared in SQL — a `where secret_hash =`
-     * would compare in the database, which is neither constant-time nor
-     * something the query log should ever contain.
-     */
     const rows = (await this.db.execute(sql`
       select id, user_id, name, lookup, secret_hash, scopes, expires_at, revoked_at
       from api_tokens
@@ -76,15 +62,6 @@ export class PostgresApiTokenRepository {
     }
   }
 
-  /**
-   * Every token on the board, for the operator screen (F81).
-   *
-   * **The secret hash is not selected.** It has no use on a listing and the
-   * screen renders whatever it is given; leaving it out of the query means a
-   * future template change cannot put it on a page. The lookup half *is*
-   * shown — it is the clear prefix a member can match against their own copy,
-   * which is how somebody identifies which token to revoke.
-   */
   async listAll(limit = 200): Promise<readonly ApiTokenSummary[]> {
     const rows = (await this.db.execute(sql`
       select t.id, t.user_id, u.username, t.name, t.lookup, t.scopes,
@@ -120,13 +97,6 @@ export class PostgresApiTokenRepository {
     }))
   }
 
-  /**
-   * Store an issued token.
-   *
-   * Takes the *hash*, never the secret: the caller does the hashing so this
-   * class has no opportunity to log, return or accidentally persist the clear
-   * value. The clear token exists exactly once, in the response that mints it.
-   */
   async create(input: {
     readonly userId: number
     readonly name: string
@@ -145,15 +115,6 @@ export class PostgresApiTokenRepository {
     return rows[0]!.id
   }
 
-  /**
-   * Revoke, idempotently and without deleting.
-   *
-   * The row stays so `last_used_at` and the name survive an incident review —
-   * "which token was that, and when was it last used" is the first question
-   * asked after one leaks, and a DELETE answers none of it. Revoking twice is
-   * not an error: the operator clicking again during an incident should not see
-   * a failure.
-   */
   async revoke(id: number, at: Date): Promise<boolean> {
     const rows = (await this.db.execute(sql`
       update api_tokens set revoked_at = ${at}
@@ -164,14 +125,6 @@ export class PostgresApiTokenRepository {
     return rows.length > 0
   }
 
-  /**
-   * Record use, at most once a minute.
-   *
-   * The throttle is in the `where` clause rather than in a read-then-write,
-   * which is the same shape `touchActivity` and `touchLocation` use: an API
-   * under load must not also be a write per request, and a conditional UPDATE
-   * that usually matches nothing costs an index probe.
-   */
   async touch(id: number, at: Date): Promise<void> {
     await this.db.execute(sql`
       update api_tokens
@@ -182,15 +135,6 @@ export class PostgresApiTokenRepository {
   }
 }
 
-/**
- * The rate-limit window store.
- *
- * **The check is the write.** One statement: insert the window row or add to
- * it, and return the total afterwards. A `select` followed by an `update` is
- * two statements with a gap in the middle, and API traffic is precisely the
- * traffic that arrives twenty requests at once — every one of them reading the
- * same under-budget total.
- */
 export class PostgresRateLimitStore implements RateLimitStore {
   constructor(private readonly db: Database) {}
 
@@ -206,7 +150,6 @@ export class PostgresRateLimitStore implements RateLimitStore {
     return rows[0]?.used ?? cost
   }
 
-  /** Windows older than an hour are history nobody reads. Bounded, per F70. */
   async prune(before: Date, limit = 5000): Promise<number> {
     const rows = (await this.db.execute(sql`
       delete from api_rate_limits
@@ -233,14 +176,6 @@ export interface WebhookDeliveryRow {
 export class PostgresWebhookRepository {
   constructor(private readonly db: Database) {}
 
-  /**
-   * Queue one delivery per subscription interested in the topic.
-   *
-   * `on conflict do nothing` against `(webhook_id, delivery_id)` is what makes
-   * the *emitter* idempotent: the relay drains the outbox at least once (F07),
-   * so the same event can arrive twice, and without this a subscriber would get
-   * two deliveries with different ids and no way to tell they were one event.
-   */
   async enqueue(
     topic: string,
     deliveryId: string,
@@ -258,13 +193,6 @@ export class PostgresWebhookRepository {
     return rows.length
   }
 
-  /**
-   * Claim due deliveries.
-   *
-   * `for update skip locked` because the worker may run in more than one place
-   * — the standalone image and a Vercel cron can both be pointed at the same
-   * database, and two workers claiming the same row would send one event twice.
-   */
   async claimDue(now: Date, limit: number): Promise<readonly WebhookDeliveryRow[]> {
     const rows = (await this.db.execute(sql`
       with due as (
@@ -319,7 +247,6 @@ export class PostgresWebhookRepository {
     `)
   }
 
-  /** The dead letter: kept, not dropped, so an operator can retry it later. */
   async markDead(id: number, status: number | null, error: string, at: Date): Promise<void> {
     await this.db.execute(sql`
       update webhook_deliveries
@@ -328,7 +255,6 @@ export class PostgresWebhookRepository {
     `)
   }
 
-  /** Put a dead delivery back in the queue. The operator's undo. */
   async retryDead(id: number, at: Date): Promise<boolean> {
     const rows = (await this.db.execute(sql`
       update webhook_deliveries

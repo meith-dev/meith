@@ -1,15 +1,3 @@
-/**
- * F08 — the board settings registry.
- *
- * Every setting is declared here once, with its type, default, and validation.
- * The admin UI is *generated* from this list (F60), so adding a setting means
- * adding one entry — not an entry plus a form field plus a migration plus a
- * parser, each of which could disagree with the others.
- *
- * Values are stored as text in the `settings` table and coerced on read, which
- * is why each definition owns its own zod schema.
- */
-
 import { z } from 'zod'
 
 export type SettingGroup =
@@ -19,25 +7,9 @@ export type SettingGroup =
   | 'display'
   | 'search'
   | 'mail'
-  /** F62. Its own group rather than an extension of 'posting': reputation is
-      about members rather than about content, and an operator looking for it
-      would not find it under posting. */
   | 'reputation'
   | 'security'
-  /**
-   * F46. Its own group rather than an extension of 'security', on F62's
-   * reasoning: 'security' is about signing in — attempts, lockout, session
-   * length — and anti-spam is about strangers arriving. An operator whose board
-   * is being flooded looks for "spam", and nine settings buried under a heading
-   * about passwords are nine settings they do not find.
-   */
   | 'antispam'
-  /**
-   * What the board asks its readers before processing anything optional. Its
-   * own group rather than a corner of 'board', because an operator looking for
-   * it is answering a question somebody else asked them — a regulator, a
-   * customer, their own legal advice — and will look for the word.
-   */
   | 'privacy'
 
 interface SettingDefinitionBase<T> {
@@ -47,80 +19,23 @@ interface SettingDefinitionBase<T> {
   readonly description: string
   readonly schema: z.ZodType<T>
   readonly default: T
-  /**
-   * Cache tags to invalidate when this setting changes. Wired to F10's registry
-   * so a settings change cannot leave a stale rendered page behind.
-   */
   readonly invalidates?: readonly string[]
-  /**
-   * When true the value is redacted in the admin UI and audit log. For secrets
-   * that legitimately live in the database rather than the environment.
-   */
   readonly secret?: boolean
-  /**
-   * Hints the generated form (F64) cannot derive.
-   *
-   * Everything derivable is derived: `typeof default` already says string,
-   * number or boolean. Only what a type cannot say is declared here — see
-   * `fields.ts`, and note that `min`/`max` restate what the schema validates
-   * and are checked against it by a test.
-   */
   readonly ui?: {
-    /** A string that wants a textarea rather than one line. */
     readonly multiline?: boolean
-    /** An enum's choices, with the words an operator should see. */
     readonly options?: readonly {
       readonly value: string
       readonly label: string
     }[]
     readonly min?: number
     readonly max?: number
-    /**
-     * Hidden unless the operator asks for advanced settings.
-     *
-     * For the ones where a wrong value is not merely wrong but *locks somebody
-     * out* or breaks a running board — not merely for the ones that are rarely
-     * changed. A screen that hides half of itself by default teaches people to
-     * click "advanced" first, which defeats it.
-     */
     readonly advanced?: boolean
-    /**
-     * Owned by a screen of its own, so the generated form does not draw it.
-     *
-     * For a value that is real configuration but is not *typed* by an operator:
-     * the board logo's storage key is written by an upload and read by the
-     * header, and rendering it as a text box would invite somebody to paste a
-     * path at it and get a broken image with no explanation.
-     *
-     * It stays in this registry rather than moving somewhere private, because
-     * everything else the registry gives it is still wanted — a declared type,
-     * a default, cache invalidation on write, and `settings:get` from the CLI
-     * when a board is broken and the panel is not reachable.
-     */
     readonly managed?: boolean
   }
 }
 
 export type SettingDefinition<T = unknown> = SettingDefinitionBase<T>
 
-/** Helper preserving the literal value type through the definition. */
-/**
- * Attach the type, and **keep the key literal**.
- *
- * The `K` is the entire point of the second type parameter. Without it the
- * return type widens `key` to `string`, which is what this signature used to
- * do — and the consequence was silent and total: `SettingKey` became `string`,
- * so any key at all type-checked, and `SettingValue<K>` became `never`, because
- * `Extract<{ key: string, … }, { key: 'board.name' }>` matches nothing.
- *
- * `never` is assignable to everything, so nothing complained. Every
- * `settings.get('board.name')` on the board was typed `never` and every
- * assignment of one still compiled. It surfaced the first time somebody called
- * a method on the result rather than assigning it.
- *
- * `definitions.type-test.ts` is the deliberate violation that keeps this
- * honest — put the old signature back and it fails loudly (D10).
- */
 function define<T, K extends string>(
   d: SettingDefinitionBase<T> & { readonly key: K },
 ): SettingDefinition<T> & { readonly key: K } {
@@ -128,7 +43,6 @@ function define<T, K extends string>(
 }
 
 export const SETTING_DEFINITIONS = [
-  /* ------------------------------- board ------------------------------- */
   define({
     key: 'board.name',
     group: 'board',
@@ -171,7 +85,6 @@ export const SETTING_DEFINITIONS = [
     ui: { multiline: true, advanced: true },
   }),
 
-  /* ---------------------------- registration --------------------------- */
   define({
     key: 'registration.enabled',
     group: 'registration',
@@ -189,28 +102,6 @@ export const SETTING_DEFINITIONS = [
       '"none" logs the user straight in. "email" requires a link. "admin" ' +
       'queues the account for manual approval. "both" requires e-mail then admin.',
     schema: z.enum(['none', 'email', 'admin', 'both']),
-    /*
-     * `none`, and the reason is the pairing rather than the value.
-     *
-     * `MAIL_DRIVER` defaults to `log`, which sends nothing, so a board that
-     * defaulted to `email` here would mint a confirmation link for every new
-     * account, print it to the server log, and be unjoinable out of the box —
-     * the exact failure `/admin/system` warns about, as the *installed state of
-     * every new board*. A default that needs a second, unrelated variable set
-     * before the board works is not a safe default; it is a trap with a warning
-     * next to it.
-     *
-     * It is also what every existing board already does. This setting had no
-     * reader until F18's activation half was wired: whatever the dropdown said,
-     * accounts were created as though it said `none`. Defaulting to `email`
-     * would have changed behaviour on every board that never stored a value —
-     * and since a value equal to the default is *deleted* rather than stored,
-     * that includes every operator who chose `email` back when choosing it did
-     * nothing. Boards that stored `none`, `admin` or `both` keep what they
-     * stored either way.
-     *
-     * A board that wants confirmed addresses says so, and the say-so now works.
-     */
     default: 'none',
     invalidates: ['settings'],
     ui: {
@@ -255,7 +146,6 @@ export const SETTING_DEFINITIONS = [
     ui: { min: 1, max: 64 },
   }),
 
-  /* ------------------------------ posting ------------------------------ */
   define({
     key: 'posting.flood_seconds',
     group: 'posting',
@@ -297,7 +187,6 @@ export const SETTING_DEFINITIONS = [
     ui: { min: 0, max: 86_400 },
   }),
 
-  /* ------------------------------ display ------------------------------ */
   define({
     key: 'display.threads_per_page',
     group: 'display',
@@ -318,34 +207,7 @@ export const SETTING_DEFINITIONS = [
     invalidates: ['settings'],
     ui: { min: 5, max: 100 },
   }),
-  /*
-   * `display.default_theme_id` used to be here, and it never did anything.
-   *
-   * It came from the build plan, which assumed MyBB's numeric theme ids. Themes
-   * here are keyed by the string they are registered under in
-   * `forum.config.ts`, so nothing could ever have read it — and now that the
-   * board default is a real control (the `themes` table's `is_default`, set
-   * from /admin/themes), an inert setting labelled "Default theme" is worse
-   * than a missing one: it is a control an operator would reasonably use and
-   * then wonder why the board ignored them.
-   *
-   * Removed rather than deprecated. A setting with no reader has no stored
-   * value worth migrating, and `SettingsSnapshot` ignores a row whose key is not
-   * in the registry, so an old row on an upgraded board is inert either way.
-   */
 
-  /*
-   * The board's logo, in two schemes.
-   *
-   * Storage keys rather than URLs, and written by the upload on /admin/themes
-   * rather than typed — hence `managed`. Two of them because a logo that reads
-   * on a white page usually disappears on a black one, which is the same reason
-   * the token editor has two colour fields per token rather than one.
-   *
-   * Empty means "no logo", and the header falls back to the board's name in
-   * text. That is the state every board starts in and most boards stay in, so
-   * it is the state the code treats as ordinary rather than as an error.
-   */
   define({
     key: 'board.logo_light',
     group: 'board',
@@ -366,13 +228,6 @@ export const SETTING_DEFINITIONS = [
     invalidates: ['settings', 'layout'],
     ui: { managed: true },
   }),
-  /*
-   * Not `managed`: this one *is* typed, and it is the only part of a logo a
-   * screen reader ever gets. Left empty it becomes the board's name, which is
-   * right far more often than it is wrong — a logo is nearly always a wordmark
-   * of the thing it belongs to, and `alt=""` on the only link home is a
-   * navigation dead end.
-   */
   define({
     key: 'board.logo_alt',
     group: 'board',
@@ -385,24 +240,6 @@ export const SETTING_DEFINITIONS = [
     invalidates: ['settings', 'layout'],
   }),
 
-  /* ------------------------------ privacy ------------------------------ */
-  /*
-   * `auto` by default, which asks in the EEA, the UK and Switzerland — and asks
-   * when the board cannot tell where a request came from, which is every
-   * self-hosted board without a CDN in front of it.
-   *
-   * Defaulting to "ask when unsure" is the only defensible way round. The cost
-   * of a false positive is a notice somebody did not need; the cost of a false
-   * negative is a European reader's data reaching a third party without their
-   * being asked. An operator who knows their audience turns it off in one
-   * setting, and one who wants it everywhere says so.
-   *
-   * What the answer actually gates is the analytics script. The board's own
-   * cookies — session, remember-me, CSRF, and the two appearance preferences a
-   * member sets by pressing a control — are strictly necessary or explicitly
-   * requested, and are not part of the question. `src/view/consent.ts` has the
-   * long version.
-   */
   define({
     key: 'privacy.cookie_consent',
     group: 'privacy',
@@ -423,7 +260,6 @@ export const SETTING_DEFINITIONS = [
     },
   }),
 
-  /* ------------------------------- search ------------------------------ */
   define({
     key: 'search.enabled',
     group: 'search',
@@ -434,24 +270,7 @@ export const SETTING_DEFINITIONS = [
     default: true,
     invalidates: ['settings'],
   }),
-  /*
-   * F86. Off by default, and that is the honest default: a board that was never
-   * a MyBB board should not carry routes for somebody else's URL scheme, and a
-   * `/showthread.php` that answers on a fresh install is a fingerprint of
-   * software the board is not running.
-   *
-   * An import turns it on. It stays a setting rather than being inferred from
-   * "has anything been imported", because an operator who imported once and has
-   * since rebuilt should be able to stop serving the old shapes.
-   */
   define({
-    /*
-     * `board.` rather than `legacy.`, because a setting's key prefix and its
-     * group have to agree — the ACP navigates by group and a test pins the
-     * correspondence. The first version of this entry was `legacy.redirects` in
-     * the `board` group and that test caught it, which is the registry's
-     * convention doing exactly what it is for.
-     */
     key: 'board.legacy_redirects',
     group: 'board',
     label: 'Redirect old MyBB URLs',
@@ -483,7 +302,6 @@ export const SETTING_DEFINITIONS = [
     ui: { min: 1, max: 10 },
   }),
 
-  /* -------------------------------- mail ------------------------------- */
   define({
     key: 'mail.from_name',
     group: 'mail',
@@ -494,7 +312,6 @@ export const SETTING_DEFINITIONS = [
     default: '',
   }),
 
-  /* ---------------------------- reputation ----------------------------- */
   define({
     key: 'reputation.enabled',
     group: 'reputation',
@@ -546,7 +363,6 @@ export const SETTING_DEFINITIONS = [
     ui: { min: 0, max: 1000 },
   }),
 
-  /* ------------------------------ security ----------------------------- */
   define({
     key: 'security.session_idle_days',
     group: 'security',
@@ -575,14 +391,6 @@ export const SETTING_DEFINITIONS = [
     ui: { min: 1, max: 10_080, advanced: true },
   }),
 
-  /* ------------------------------ antispam ------------------------------ */
-  /*
-   * F46. Every default here is chosen to be **inert on a fresh board**: the
-   * captcha is off, the limits are off, and first-post moderation is off. An
-   * anti-spam feature that arrives switched on is one that greets the operator
-   * by breaking their registration form, and the board they are testing has no
-   * spam on it yet. The honeypot is the exception — see its own note.
-   */
   define({
     key: 'antispam.captcha_mode',
     group: 'antispam',
@@ -600,12 +408,6 @@ export const SETTING_DEFINITIONS = [
       ],
     },
   }),
-  /*
-   * On by default, and the only one that is. A honeypot costs a legitimate
-   * visitor nothing — it is an invisible field they never see and never fill —
-   * so there is no operator decision to defer, and a board that ships with it
-   * off is a board where the cheapest control is the one nobody remembers.
-   */
   define({
     key: 'antispam.honeypot',
     group: 'antispam',
@@ -641,14 +443,6 @@ export const SETTING_DEFINITIONS = [
     ui: { min: 0, max: 50 },
   }),
 
-  /*
-   * The five limits F46 names. All per hour, all counted in the database so
-   * every instance shares one allowance, and all 0 by default.
-   *
-   * They are *limits*, not intervals: `posting.flood_seconds` already sets a
-   * minimum gap between two posts, which stops a double-submit and does nothing
-   * about a script posting every 31 seconds all night. The two compose.
-   */
   define({
     key: 'antispam.post_per_hour',
     group: 'antispam',
@@ -709,7 +503,6 @@ export const SETTING_DEFINITION_BY_KEY = new Map<
   SettingDefinition<unknown>
 >(SETTING_DEFINITIONS.map((d) => [d.key, d as SettingDefinition<unknown>]))
 
-/** Maps a setting key to the type its definition declares. */
 export type SettingValue<K extends SettingKey> = Extract<
   (typeof SETTING_DEFINITIONS)[number],
   { key: K }

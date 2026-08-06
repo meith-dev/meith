@@ -1,13 +1,3 @@
-/**
- * F75's view models.
- *
- * The subject is `locationOf`, and the thing worth pinning is what it does with
- * a **null** forum or thread. The repository has already replaced everything
- * this reader may not be told about with null, so null here does not mean
- * "nowhere" — it means "you may not know". A builder that treated the two the
- * same would be correct on the happy path and a leak on the other one, because
- * the tempting fix is to fall back to an id.
- */
 import { describe, expect, it } from 'vitest'
 
 import { buildBoardStatsModel, buildWhoIsOnlineModel, locationOf, type OnlineRow } from './presence'
@@ -41,44 +31,24 @@ describe('locationOf', () => {
   })
 
   it('says nothing specific when the reader may not be told', () => {
-    /*
-     * The claim. A withheld forum arrives as null on both the id and the title —
-     * the repository gates them together — and what comes out must name
-     * nothing. Kills the mutant that falls back to the path, which is where a
-     * private forum's slug would be.
-     */
     const where = locationOf(row({ forumId: null, forumTitle: null, threadId: null }))
 
     expect(where).toEqual({ label: 'Somewhere on the board', href: null })
   })
 
   it('withholds the thread but keeps the forum when only the thread is hidden', () => {
-    /*
-     * The mixed case the repository produces for a soft-deleted thread in a
-     * forum the reader can see. The label must fall back to the forum rather
-     * than to nothing — and must not link to a thread it was not given.
-     */
     const where = locationOf(row({ forumId: 1, forumTitle: 'Open', threadId: null }))
 
     expect(where).toEqual({ label: 'Viewing Open', href: null })
   })
 
   it('does not link to a forum, because a forum link needs a slug it was not given', () => {
-    /*
-     * `/forum/<id>` alone is a 404 — the route wants `<id>-<slug>` — and the
-     * session row holds no slug. A label with no link beats a link that 404s.
-     */
     expect(locationOf(row({ forumId: 1, forumTitle: 'Open' })).href).toBeNull()
   })
 })
 
 describe('buildWhoIsOnlineModel', () => {
   it('counts the members it lists, plus the guests', () => {
-    /*
-     * The repository has already dropped the members this reader may not see
-     * *before* counting them, so the sum here and its own total are the same
-     * number by construction — which is why only one of them exists.
-     */
     const model = buildWhoIsOnlineModel({
       members: [row()],
       guestCount: 4,
@@ -123,11 +93,6 @@ describe('buildBoardStatsModel', () => {
   })
 
   it('shows a newest member whose account has since gone, without a link', () => {
-    /*
-     * `UserRefModel` has carried a null `userId` since F29 for exactly this: the
-     * name survives the account. A model that dropped the member entirely would
-     * make the panel change shape between two rollups.
-     */
     const model = buildBoardStatsModel({
       threadCount: 1,
       postCount: 2,
@@ -142,7 +107,6 @@ describe('buildBoardStatsModel', () => {
       userId: null,
       username: 'ghost',
       profileHref: null,
-      /* No id, so no group and no colour — the same reason there is no link. */
       nameClass: null,
     })
     expect(model.computedAt).not.toBeNull()

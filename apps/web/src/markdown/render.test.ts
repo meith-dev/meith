@@ -3,17 +3,10 @@ import { describe, expect, it } from "vitest"
 import { renderMarkdown } from "./render"
 import { createSlugger, slugify } from "./slug"
 
-/** Links are the docs layer's business; these tests only need them to be visible. */
 const identity = { resolveLink: (href: string) => ({ href, external: false }) }
 
 describe("slugify", () => {
   it("matches the ids GitHub generates", () => {
-    /*
-     * These four are not invented: they are anchors that `docs/operating.md` and
-     * `docs/theme-slots.md` actually link to. If this function stops agreeing
-     * with GitHub, those links break here while continuing to work in the
-     * repository — the failure this whole module exists to avoid.
-     */
     expect(slugify("Connection pooling")).toBe("connection-pooling")
     expect(slugify("Backup and restore")).toBe("backup-and-restore")
     expect(slugify("Shell")).toBe("shell")
@@ -64,17 +57,10 @@ describe("renderMarkdown", () => {
   })
 
   it("escapes raw HTML instead of emitting it", async () => {
-    /*
-     * `docs/mybb-parity.md` line 494 says a moved thread leaves a `Moved: <title>`
-     * row. Passed through, that is an empty element and the reader sees nothing;
-     * escaped, they see what the author wrote. The same rule is what makes it
-     * impossible for an edit to a document to inject markup into a page.
-     */
     const { html } = await renderMarkdown('# T\n\nMoved: <title>\n\n<img src="x" onerror="go()">\n', identity)
 
     expect(html).toContain("&lt;title&gt;")
     expect(html).not.toContain("<title>")
-    /* The attribute survives as text — what matters is that no element carries it. */
     expect(html).not.toContain("<img")
     expect(html).toContain("onerror=&quot;go()&quot;")
   })
@@ -100,9 +86,7 @@ describe("renderMarkdown", () => {
     const { html } = await renderMarkdown("# T\n\n```sh\nnpm run dev\n```\n", identity)
 
     expect(html).toContain('data-lang="shell"')
-    /* The raw source rides along so the copy button copies what was written. */
     expect(html).toContain('data-code="npm run dev"')
-    /* Highlighted: the words are wrapped rather than sitting in bare text. */
     expect(html).toContain("--shiki-light")
   })
 
@@ -122,7 +106,6 @@ describe("renderMarkdown", () => {
     expect(html).toContain('<aside class="doc-callout" data-kind="warning">')
     expect(html).toContain("Warning")
     expect(html).toContain("Sealing the installer is irreversible.")
-    /* The marker is stripped from the tokens, so it is not searchable text. */
     expect(sections[0]?.text).toBe("Sealing the installer is irreversible.")
     expect(sections[0]?.text).not.toContain("[!WARNING]")
   })
@@ -164,7 +147,6 @@ describe("renderMarkdown", () => {
   it("keeps fenced code out of the indexed text", async () => {
     const { sections } = await renderMarkdown("# T\n\n## One\n\nProse.\n\n```sh\nsecret-command\n```\n", identity)
 
-    /* No preamble section: a document that opens straight onto a heading has none. */
     expect(sections).toHaveLength(1)
     expect(sections[0]?.text).toBe("Prose.")
   })

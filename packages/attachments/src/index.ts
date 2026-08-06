@@ -1,17 +1,3 @@
-/**
- * `@meith/attachments` — F42.
- *
- * The domain half of attachments: what the board accepts, what it does to it,
- * and in what order. No SQL, no HTTP, no codec — `@meith/db` provides the
- * repository, the app provides the route handlers, and `@meith/drivers/images`
- * provides the `ImageProcessor`.
- *
- * The one idea worth carrying out of here: **an upload is not made safe by
- * being validated, it is made safe by being re-encoded**. Everything in
- * `service.ts` is arranged around that — the two storage keys, the `pending`
- * status, the queued job, and the fact that nothing is downloadable until the
- * job has succeeded.
- */
 export {
   ACCEPTED_EXTENSIONS,
   ATTACHMENT_FIELD,

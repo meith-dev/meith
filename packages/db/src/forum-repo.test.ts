@@ -1,11 +1,3 @@
-/**
- * F16 against a real Postgres (PGlite).
- *
- * The planner is unit-tested in `@meith/forums`; what needs a database is the
- * part that only SQL can get wrong — that the `VALUES`-join rewrite touches
- * exactly the subtree, that the whole move commits or none of it does, and that
- * the unique indexes actually hold.
- */
 import { buildTree, planMove } from '@meith/forums'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -19,14 +11,6 @@ let harness: TestDb
 let db: Database
 let repo: PostgresForumRepository
 
-/**
- *  1 Category one          '1'
- *    4 General             '1.4'
- *      9 Off-topic         '1.4.9'
- *        12 Deep           '1.4.9.12'
- *  2 Category two          '2'
- *  40 Forty                '1.40'   — shares a numeric prefix with 1.4
- */
 async function seedTree(): Promise<void> {
   await db.insert(forums).values([
     { id: 1, type: 'category', title: 'Category one', slug: 'cat-one', path: '1', depth: 0, displayOrder: 0 },
@@ -37,12 +21,6 @@ async function seedTree(): Promise<void> {
     { id: 40, type: 'forum', title: 'Forty', slug: 'forty', parentId: 1, path: '1.40', depth: 1, displayOrder: 1 },
   ])
 
-  /*
-   * Explicit ids bypass the identity sequence, so without this the next
-   * `default` insert starts at 1 and collides. The same trap waits for any
-   * seed or import that preserves upstream ids (F85) — advancing the sequence
-   * is part of writing explicit ids, not a test-only concern.
-   */
   await db.execute(
     sql`select setval(pg_get_serial_sequence('forums', 'id'), (select max(id) from forums))`,
   )
@@ -96,11 +74,6 @@ describe('move', () => {
     expect(after.get(4)?.parentId).toBe(2)
   })
 
-  /*
-   * The bug a `replace(path, '1.4', '2.4')` implementation ships with: forum 40
-   * has path '1.40', which contains '1.4' as a string prefix but is a sibling,
-   * not a descendant. It must not move.
-   */
   it('leaves a prefix-sharing sibling alone', async () => {
     await repo.move(4, { newParentId: 2 })
 
@@ -133,7 +106,6 @@ describe('move', () => {
 
     await expect(repo.move(4, { newParentId: 12 })).rejects.toThrow()
 
-    // The rejection happens inside the transaction, so nothing may have landed.
     expect(await pathsById()).toEqual(before)
   })
 
@@ -206,7 +178,6 @@ describe('create', () => {
     expect(created.depth).toBe(1)
     expect(created.parentId).toBe(1)
 
-    // And it is durable, not just the returned object.
     expect((await pathsById()).get(created.id)?.path).toBe(`1.${created.id}`)
   })
 
@@ -218,7 +189,6 @@ describe('create', () => {
 
   it('appends after existing siblings', async () => {
     const created = await repo.create({ type: 'forum', title: 'Third', slug: 'third', parentId: 1 })
-    // 1 already has children 4 (order 0) and 40 (order 1).
     expect(created.displayOrder).toBe(2)
   })
 

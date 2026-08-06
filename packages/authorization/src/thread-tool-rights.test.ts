@@ -1,11 +1,3 @@
-/**
- * F50 — the granular half of an appointment.
- *
- * `moderatedForumIds` answers *where* somebody moderates; this answers *what*
- * they may do there. The four thread tools have no group-level permission field
- * at all — MyBB has never had one either — so an appointment and a staff bypass
- * are the only two ways to reach them, and these tests are about the first.
- */
 import { describe, expect, it } from 'vitest'
 
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
@@ -113,11 +105,6 @@ describe('moderatorRightsIn', () => {
     }
   })
 
-  /*
-   * The point of the whole feature. An appointment that can lock threads and
-   * nothing else must reach exactly one of the four — which is what a board
-   * appointing a "thread janitor" is asking for.
-   */
   it('grants exactly the rights the appointment carries', async () => {
     const canLockOnly: MemoryAppointment = {
       ...NONE,
@@ -169,7 +156,6 @@ describe('moderatorRightsIn', () => {
     expect(await allowed(actor([GROUP.registered]), [cascading], FORUM.category)).toEqual([])
   })
 
-  /* Two grants are two grants: rights union rather than the last one winning. */
   it('unions rights across a personal and a group appointment', async () => {
     const personal: MemoryAppointment = {
       ...NONE,

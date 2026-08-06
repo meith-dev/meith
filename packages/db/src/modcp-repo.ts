@@ -1,21 +1,3 @@
-/**
- * F54 — the moderator control panel's reads, over Postgres.
- *
- * Every query here is scoped, and two of them are scoped in a way worth
- * spelling out.
- *
- * **The log.** `admin_log` is shared with the ACP (F63) and will grow rows for
- * settings changes, group edits and user merges. So the moderator log filters
- * by an **allow-list of action names** rather than by excluding the
- * administrative ones — a row type added next year is invisible here until
- * somebody names it, which is a build-time omission rather than a disclosure.
- * The forum scope comes out of the JSON detail, because that is where every
- * moderation action already writes the ids it touched.
- *
- * **The address lookup.** It matches on the *truncated prefix* the board
- * stores (F09), never on a full address, because a full address is not written
- * down anywhere. See `ipMatches`.
- */
 import { sql, type SQL } from 'drizzle-orm'
 
 import type {
@@ -74,14 +56,6 @@ function decodeCursor(value: string): { at: Date; id: number } | null {
   }
 }
 
-/**
- * Which detail keys a moderator is shown, and what to call them.
- *
- * An allow-list again, for the same reason as the actions: `detail` is free
- * JSON that every feature writes what it likes into, and rendering all of it
- * would put whatever the next feature decides to record in front of whoever
- * opens the log. A key nobody has named is not shown.
- */
 const DETAIL_LABELS: Readonly<Record<string, string>> = {
   threadId: 'Thread',
   threadIds: 'Threads',
@@ -134,14 +108,6 @@ export class PostgresModCpRepository implements ModCpRepository {
       ? sql`and (e.created_at, e.id) < (${cursor.at}, ${cursor.id})`
       : sql``
 
-    /*
-     * The forum an entry belongs to is read out of the detail JSON — every
-     * moderation action already records the ids it touched, and adding a column
-     * to `admin_log` would mean the ACP's rows carrying a forum id that means
-     * nothing. `forum_id` is checked first and `to` second, so a move shows up
-     * for the moderators of *both* ends, which is what D49's two-ended rule
-     * implies for the log as well.
-     */
     const rows = resultRows(
       await this.db.execute(sql`
         with entry as (
@@ -162,14 +128,7 @@ export class PostgresModCpRepository implements ModCpRepository {
           left join forums f on f.id = e.forum_id
          where (
                  e.forum_id in ${idList(input.forumIds)}
-                 /*
-                  * Entries with no forum at all — a warning, an address lookup —
-                  * are the actor's own business only. A moderator seeing every
-                  * warning on the board through the log would be a wider grant
-                  * than the warn screen itself gives.
-                  */
                  or (e.forum_id is null and e.user_id = ${input.actorUserId})
-                 /* Their own acts stay visible even in a forum they have left. */
                  or e.user_id = ${input.actorUserId}
                )
            ${after}
@@ -196,13 +155,6 @@ export class PostgresModCpRepository implements ModCpRepository {
       : { entries }
   }
 
-  /**
-   * Both counts for every moderated forum, in one statement.
-   *
-   * A dashboard listing fourteen forums must not run twenty-eight queries — the
-   * N+1 F11's budget helper exists to catch, and the reason this returns a map
-   * rather than being called per forum.
-   */
   async workload(
     forumIds: readonly number[],
   ): Promise<ReadonlyMap<number, { pending: number; openReports: number }>> {
@@ -257,19 +209,6 @@ export class PostgresModCpRepository implements ModCpRepository {
     return { registration: row.registration_ip_prefix, lastVisit: row.last_ip_prefix }
   }
 
-  /**
-   * Accounts sharing a stored address prefix.
-   *
-   * Prefixes, because prefixes are all there is: F09 truncates before writing,
-   * so a query for a full address would match nothing on a board that has been
-   * running correctly. A `null` prefix matches nothing rather than matching
-   * every other `null` — a board that has not recorded an address for two
-   * accounts has not established that they share one.
-   *
-   * Deleted accounts are excluded: they have no profile to open and their
-   * presence in the result is a disclosure about a row that is meant to be
-   * gone.
-   */
   async ipMatches(userId: number, limit: number): Promise<readonly IpMatch[]> {
     const rows = resultRows(
       await this.db.execute(sql`

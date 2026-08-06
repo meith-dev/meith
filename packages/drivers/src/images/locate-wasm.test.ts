@@ -1,12 +1,3 @@
-/**
- * Finding a packaged `.wasm` on disk.
- *
- * The claim under test is narrow and was expensive to learn: **the Next
- * standalone output's `node_modules` contains `.pnpm` and nothing else.** No
- * top-level links, so no bare specifier resolves from it by any means,
- * including Node's own. Every test here builds a tree by hand rather than
- * leaning on the installed one, because the layout *is* the subject.
- */
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -28,7 +19,6 @@ async function tree(): Promise<string> {
   return root
 }
 
-/** Writes `relative` under `root`, creating parents. */
 async function put(root: string, relative: string, body = 'x'): Promise<string> {
   const path = join(root, relative)
   await mkdir(join(path, '..'), { recursive: true })
@@ -45,11 +35,6 @@ describe('the plain layout', () => {
   })
 
   it('walks up to find it in an ancestor', async () => {
-    /*
-     * The ordinary monorepo case: the working directory is `apps/forum` and the
-     * package is installed at the root. Kills the mutant that looks only in the
-     * starting directory.
-     */
     const root = await tree()
     const expected = await put(root, `node_modules/${SPEC}`)
     const deep = join(root, 'apps', 'forum')
@@ -69,11 +54,6 @@ describe('the plain layout', () => {
 
 describe('the pnpm store layout', () => {
   it('finds a file with no top-level link at all', async () => {
-    /*
-     * This is the standalone image, exactly: `node_modules/.pnpm` and nothing
-     * else. Kills the mutant that drops the store branch — which is what the
-     * first three attempts at this did, each passing every other test here.
-     */
     const root = await tree()
     const expected = await put(
       root,
@@ -94,11 +74,6 @@ describe('the pnpm store layout', () => {
   })
 
   it('does not match a package whose name merely starts the same', async () => {
-    /*
-     * `@fake+png-extra@1.0.0` must not answer for `@fake/png`. Kills the mutant
-     * that drops the `@` from the store prefix, which would have this board
-     * decoding PNGs with whatever else happened to be installed.
-     */
     const root = await tree()
     await put(root, 'node_modules/.pnpm/@fake+png-extra@1.0.0/node_modules/@fake/png-extra/codec/pkg/fake_bg.wasm')
 
@@ -138,11 +113,6 @@ describe('an unscoped package', () => {
 
 describe('when it is not there', () => {
   it('throws naming the specifier and where it looked', async () => {
-    /*
-     * The failure is always a deployment that did not copy the file, and a bare
-     * "not found" thrown from inside a codec is the least debuggable error
-     * there is.
-     */
     const root = await tree()
 
     await expect(locateAsset(SPEC, root)).rejects.toThrow(
@@ -153,11 +123,6 @@ describe('when it is not there', () => {
 
 describe('compileAsset', () => {
   it('compiles the codec modules this board actually ships', async () => {
-    /*
-     * Not a fake tree: the real installed packages, compiled by the real
-     * WebAssembly engine. If a version bump moves one of these paths, this is
-     * where it is noticed — which is the whole risk this accepts.
-     */
     for (const spec of [
       '@jsquash/png/codec/pkg/squoosh_png_bg.wasm',
       '@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm',

@@ -10,26 +10,6 @@ import { unsubscribeNotice } from '@/view/subscriptions'
 
 export const metadata: Metadata = { title: 'Unsubscribe' }
 
-/**
- * F56 — unsubscribing without signing in.
- *
- * The link in a notification e-mail lands here. Two rules shape the page.
- *
- * **The GET does nothing.** It reads the token, says what unsubscribing would
- * do, and offers one button. Acting on the GET would mean a member is
- * unsubscribed by their own mail client, their employer's link scanner, or a
- * preview fetch — none of which are the member deciding anything. The act is
- * the POST.
- *
- * **A bad token and a valid one look the same until the button.** The page
- * renders the same shape for any well-formed request; only the description
- * differs, and it never names the member. Somebody holding a forged token
- * learns nothing about whether a user id exists.
- *
- * No `getActor()` call anywhere on this page, deliberately: it must work in a
- * browser with no session, and reading one would tempt a future change into
- * using it.
- */
 export default async function UnsubscribePage({
   searchParams,
 }: {

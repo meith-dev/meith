@@ -1,8 +1,3 @@
-/**
- * In-memory ban store, so `BanService` can be driven with a fixed clock and no
- * database. The Postgres implementation must behave identically — the same
- * expectations run against both.
- */
 import type { BanFilter } from './ban-filter'
 import type {
   AccountRepository,
@@ -12,10 +7,8 @@ import type {
   CreateBanInput,
 } from './ports'
 
-/** Minimal surface the memory ban store needs from the account store. */
 export interface MemoryBanDeps {
   readonly accounts: AccountRepository & {
-    /** Test-visible primary-group access; the Postgres path uses SQL. */
     getPrimaryGroupId?(userId: number): Promise<number | null>
     setPrimaryGroupId?(userId: number, groupId: number | null): Promise<void>
     revokeAllSessions?(userId: number): Promise<void>
@@ -26,9 +19,7 @@ export class MemoryBans implements BanRepository {
   private readonly rows: (BanRecord & { bannedByUserId: number | null })[] = []
   private nextId = 1
 
-  /** Primary group per user, standing in for the `users` table. */
   private readonly primaryGroup = new Map<number, number | null>()
-  /** Users whose sessions were revoked, so a test can assert it happened. */
   readonly revoked: number[] = []
 
   setPrimaryGroup(userId: number, groupId: number | null): void {
@@ -44,7 +35,6 @@ export class MemoryBans implements BanRepository {
   }
 
   async create(input: CreateBanInput): Promise<BanRecord> {
-    // Captured *before* the move — this value is the whole restore mechanism.
     const previousPrimaryGroupId = this.primaryGroup.get(input.userId) ?? null
 
     const row = {

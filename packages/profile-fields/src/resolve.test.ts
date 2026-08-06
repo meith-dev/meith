@@ -33,10 +33,6 @@ describe('resolveAccess', () => {
   })
 
   it('ignores rules belonging to another field', () => {
-    /*
-     * Kills the mutant that drops the `fieldId` filter: with the filter gone,
-     * field 1 would inherit field 2's grant and become visible.
-     */
     const access = resolveAccess(field({ id: 1, defaultVisible: false }), [
       rule({ fieldId: 2, canView: true }),
     ])
@@ -54,10 +50,6 @@ describe('resolveAccess', () => {
   })
 
   it('grants when any applicable group grants, even if another denies (R4.2)', () => {
-    /*
-     * The rule the whole model rests on, and the one a "safer" implementation
-     * gets backwards: adding somebody to a group must never take access away.
-     */
     const access = resolveAccess(field({ defaultVisible: false }), [
       rule({ groupId: 2, canView: false }),
       rule({ groupId: 7, canView: true }),
@@ -107,10 +99,6 @@ describe('editableFields', () => {
   })
 
   it('keeps a field a member may write but not read back', () => {
-    /*
-     * Kills the mutant that ANDs canView into the editable filter — a board can
-     * collect something only staff read, and the member still has to answer it.
-     */
     const resolved = editableFields({
       fields: [field({ defaultVisible: false, defaultEditable: true })],
       applicable: [],
@@ -152,7 +140,6 @@ describe('maxLengthFor', () => {
   })
 
   it('ignores a nonsensical stored limit rather than refusing every value', () => {
-    /* A 0 from a hand-edited row would otherwise reject every answer. */
     expect(maxLengthFor(field({ type: 'text', maxLength: 0 }))).toBe(200)
   })
 })

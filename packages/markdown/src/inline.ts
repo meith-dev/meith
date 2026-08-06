@@ -1,23 +1,3 @@
-/**
- * F36 — one paragraph's worth of source, to inline nodes.
- *
- * Deliberately not a pile of regular expressions. The old BBCode renderer made
- * the same choice for the same reason, and Markdown makes the argument harder
- * to refuse: `*` means emphasis or a bullet or a literal asterisk depending on
- * what is either side of it, and every board that has tried to settle that with
- * a global replace has ended up with `2 * 3 * 4` in italics and a security
- * advisory about the one case where the pattern matched across a `<`.
- *
- * So this is a scanner with one decision per character, then a second pass that
- * pairs emphasis delimiters. Two properties fall out, and both are what the
- * renderer's safety argument rests on:
- *
- *  - **No output is produced here.** This builds nodes holding *source text*.
- *    Escaping happens in `render.ts`, once, in one place.
- *  - **Nothing is ever dropped.** A `[` that turns out not to open a link, a
- *    `*` that never finds a partner, an unterminated code span: each becomes
- *    the character it is. There is no input for which this loses a word.
- */
 import type { NodeBudget } from './budget'
 import type { MarkdownFeatures } from './features'
 import type { MarkdownLimits } from './limits'
@@ -27,30 +7,18 @@ import { textOf } from './nodes'
 export interface InlineContext {
   readonly features: MarkdownFeatures
   readonly limits: MarkdownLimits
-  /** Inline directive names this board has defined (F71). */
   readonly directives: ReadonlySet<string>
   readonly budget: NodeBudget
 }
 
-/** ASCII and Unicode punctuation, which the flanking rules are defined against. */
 const PUNCTUATION = /[!-#%-*,-/:;?@[-\]_{}\p{P}\p{S}]/u
 
-/** Characters `\` may escape. Anything else keeps its backslash. */
 const ESCAPABLE = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/
 
-/** A directive name: what the ACP will accept, restated where it is parsed. */
 const DIRECTIVE_NAME = /^[a-z][a-z0-9]{0,15}$/
 
-/**
- * A bare URL, autolinked.
- *
- * `www.` is included because members type it and expect a link; it is emitted
- * with an explicit `https://` rather than a scheme-relative href, so there is
- * exactly one place — `safeUrl` — deciding what a scheme may be.
- */
 const BARE_URL = /^(https?:\/\/|www\.)[^\s<]*/i
 
-/** `<https://…>` and `<someone@example.com>`. */
 const AUTOLINK = /^<([a-z][a-z0-9+.-]{1,31}:[^\s<>]*)>/i
 const AUTOLINK_EMAIL = /^<([^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)>/
 
@@ -60,7 +28,6 @@ type Delimiter = {
   length: number
   readonly canOpen: boolean
   readonly canClose: boolean
-  /** The run as typed, for when it never pairs and becomes text. */
   readonly raw: string
 }
 
@@ -74,10 +41,6 @@ function isPunctuation(character: string | undefined): boolean {
   return character !== undefined && PUNCTUATION.test(character)
 }
 
-/**
- * CommonMark's flanking rules, which are the whole reason `snake_case_names`
- * do not come out half italic and `2 * 3 * 4` comes out as arithmetic.
- */
 function flanking(
   source: string,
   start: number,
@@ -94,11 +57,6 @@ function flanking(
     !isWhitespace(before) &&
     (!isPunctuation(before) || isWhitespace(after) || isPunctuation(after))
 
-  /*
-   * `_` is stricter than `*` on purpose, and it is the rule people feel rather
-   * than read: it may not open or close *inside* a word. Without it every
-   * `file_name_here` in every post about code is two italics and a bug report.
-   */
   if (char === '_') {
     return {
       canOpen: leftFlanking && (!rightFlanking || isPunctuation(before)),
@@ -108,7 +66,6 @@ function flanking(
   return { canOpen: leftFlanking, canClose: rightFlanking }
 }
 
-/** The index just past a balanced `]`, or -1. Skips escapes and code spans. */
 function matchingBracket(source: string, from: number): number {
   let depth = 0
   let index = from
@@ -137,16 +94,9 @@ function matchingBracket(source: string, from: number): number {
 interface Destination {
   readonly url: string
   readonly title: string | null
-  /** Index just past the closing `)`. */
   readonly end: number
 }
 
-/**
- * `(url)`, `(url "title")`, `(<url with spaces> 'title')`.
- *
- * Bare destinations balance their parentheses, because half the URLs on the
- * internet that need this are Wikipedia articles ending in `(disambiguation)`.
- */
 function readDestination(source: string, from: number): Destination | null {
   if (source[from] !== '(') return null
   let index = from + 1
@@ -196,20 +146,12 @@ function readDestination(source: string, from: number): Destination | null {
   return { url: url.trim(), title, end: index + 1 }
 }
 
-/** Resolve backslash escapes in a run of text. */
 function unescape(value: string): string {
   return value.replace(/\\(.)/gs, (whole, character: string) =>
     ESCAPABLE.test(character) ? character : whole,
   )
 }
 
-/**
- * Trailing punctuation a bare URL should not have swallowed.
- *
- * A sentence ending "…see https://example.com." means the full stop is the
- * sentence's, not the URL's. Closing brackets are only given back when they are
- * unbalanced, so a link to `…/Foo_(bar)` keeps its parenthesis.
- */
 function trimBareUrl(url: string): string {
   let end = url.length
   while (end > 0) {
@@ -233,14 +175,6 @@ function trimBareUrl(url: string): string {
   return url.slice(0, end)
 }
 
-/**
- * Parse one run of inline source.
- *
- * `allowLinks` goes false inside a link's own text: a link inside a link has no
- * meaning in HTML and nesting one produces markup a browser silently unnests,
- * which is the difference between what the author sees in preview and what the
- * thread shows.
- */
 export function parseInline(
   source: string,
   context: InlineContext,
@@ -259,25 +193,18 @@ export function parseInline(
 
   const flush = (): void => {
     if (buffer.length === 0) return
-    /*
-     * Text runs do not each cost a node: a paragraph is mostly text, and
-     * charging for it would mean the allowance was really a character limit
-     * wearing a node limit's name.
-     */
     items.push({ t: 'node', node: { kind: 'text', value: buffer } })
     buffer = ''
   }
 
   while (index < source.length) {
     if (context.budget.spent) {
-      /* Out of allowance: the rest of this run is the text it is. */
       context.budget.exhaust()
       buffer += source.slice(index)
       break
     }
     const character = source[index]!
 
-    /* An escape is the one construct that always wins, so `\*` is never a delimiter. */
     if (character === '\\') {
       const next = source[index + 1]
       if (next !== undefined && ESCAPABLE.test(next)) {
@@ -294,11 +221,6 @@ export function parseInline(
       flush()
       if (!push({ kind: 'break' })) break
       index += 1
-      /*
-       * The spaces that indent the next line of a wrapped paragraph are the
-       * author's editor, not their intent. Dropped so a soft-wrapped list item
-       * does not render with a gap after every break.
-       */
       while (index < source.length && (source[index] === ' ' || source[index] === '\t')) index += 1
       continue
     }
@@ -310,7 +232,6 @@ export function parseInline(
       while (search < source.length) {
         const at = source.indexOf(run, search)
         if (at === -1) break
-        /* A longer run is a different fence, not this one's close. */
         if (source[at + run.length] === '`') {
           search = at + /^`+/.exec(source.slice(at))![0].length
           continue
@@ -320,7 +241,6 @@ export function parseInline(
       }
       if (close !== -1) {
         let value = source.slice(index + run.length, close).replace(/\n/g, ' ')
-        /* ``` `` ` `` ``` is how you write a lone backtick; the padding is not content. */
         if (value.length > 2 && value.startsWith(' ') && value.endsWith(' ') && value.trim() !== '') {
           value = value.slice(1, -1)
         }
@@ -370,11 +290,6 @@ export function parseInline(
       if (destination !== null) {
         const alt = textOf(parseInline(source.slice(index + 2, close), context, false))
         flush()
-        /*
-         * With images off the alt text is kept and the image is not. A member
-         * whose signature is one image sees the words they wrote rather than a
-         * blank line, which is the difference between a rule and a trap.
-         */
         if (context.features.images) {
           if (!push({ kind: 'image', src: destination.url, alt })) break
         } else {
@@ -403,7 +318,6 @@ export function parseInline(
       continue
     }
 
-    /* `:name[…]` — an inline directive, if this board has defined that name. */
     if (character === ':' && context.features.directives) {
       const match = /^:([a-z][a-z0-9]{0,15})\[/.exec(source.slice(index))
       if (match !== null && context.directives.has(match[1]!) && DIRECTIVE_NAME.test(match[1]!)) {
@@ -446,11 +360,6 @@ export function parseInline(
 
     if (allowLinks && context.features.links) {
       const before = index === 0 ? undefined : source[index - 1]
-      /*
-       * Only at a boundary. Without this, `foohttps://x` links and — worse —
-       * the tail of a URL already inside a `[text](href)` would be autolinked
-       * a second time.
-       */
       if (before === undefined || /[\s(<*_~]/.test(before)) {
         const bare = BARE_URL.exec(source.slice(index))
         if (bare !== null) {
@@ -474,7 +383,6 @@ export function parseInline(
   return resolveEmphasis(items, context)
 }
 
-/** An unpaired delimiter run is the characters it is made of. */
 function literal(items: readonly Item[]): Inline[] {
   const out: Inline[] = []
   for (const item of items) {
@@ -489,15 +397,6 @@ function literal(items: readonly Item[]): Inline[] {
   return out
 }
 
-/**
- * CommonMark's "process emphasis": pair each closer with the nearest opener.
- *
- * Left to right, so the innermost pair is always resolved first and
- * `**a *b* c**` nests the way it reads. The odd-looking modulo is CommonMark's
- * rule of three, which exists so that `*foo**bar**baz*` is one emphasis
- * containing one strong, rather than the three overlapping spans a naive
- * matcher produces.
- */
 function resolveEmphasis(items: Item[], context: InlineContext): Inline[] {
   let index = 0
   while (index < items.length) {
@@ -526,11 +425,6 @@ function resolveEmphasis(items: Item[], context: InlineContext): Inline[] {
       continue
     }
 
-    /*
-     * Out of allowance. Pairing stops here rather than half-building a node:
-     * every delimiter still standing falls through to `literal` below and
-     * renders as the asterisks somebody typed.
-     */
     if (!context.budget.take()) break
 
     const opener = items[found] as Delimiter
@@ -561,7 +455,6 @@ function resolveEmphasis(items: Item[], context: InlineContext): Inline[] {
     }
 
     items.splice(found, index - found + 1, ...replacement)
-    /* Land on whatever is left of the closer, so `***a***` resolves both halves. */
     index = found + replacement.length - (closer.length > 0 ? 1 : 0)
   }
 

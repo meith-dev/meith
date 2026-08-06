@@ -1,13 +1,5 @@
 import type { PostActionsSlotModel } from '@meith/theme-kit'
 
-/**
- * Per-post controls, as a row of plain links.
- *
- * Links and never buttons with handlers: every one of these is a GET to a page
- * that does the work, so the whole set functions with JavaScript disabled. The
- * model gives `null` for anything this viewer may not do, so there is no
- * permission decision to make here — and a theme must not try to make one.
- */
 export function PostActions({ actions, children }: PostActionsSlotModel) {
   const items = [
     { href: actions.quoteHref, label: 'quote' },
@@ -28,7 +20,7 @@ export function PostActions({ actions, children }: PostActionsSlotModel) {
           {item.label}
         </a>
       ))}
-      {/* Theme API 1.3 — the multi-quote island, with the other post actions. */}
+      { }
       {children}
     </nav>
   )

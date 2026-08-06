@@ -15,14 +15,6 @@ function positiveInt(value: string | undefined): number | null {
   return Number.isSafeInteger(id) ? id : null
 }
 
-/**
- * F49 — one route for all three reportable kinds.
- *
- * One page rather than three (`/thread/…/report`, `/member/…/report`, …)
- * because the *decision* is identical in every case and only the target lookup
- * differs — and that lookup has to happen server-side regardless, since a form
- * says which row and nothing about whether this member could see it.
- */
 export default async function ReportPage({
   searchParams,
 }: {
@@ -38,11 +30,6 @@ export default async function ReportPage({
   if (reports === null || actor.userId === null) notFound()
   if (!authorizer.can(actor, 'content.report')) notFound()
 
-  /*
-   * The same read the action re-runs. Rendering the form is not authorisation,
-   * but showing it for something this member cannot see would confirm the
-   * thing exists — so the check happens here too.
-   */
   const target = await reports.resolveTarget(kind, targetId, actor.userId)
   if (target === null) notFound()
   if (target.forumId !== null) {

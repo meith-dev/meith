@@ -9,19 +9,8 @@ import { registrationFields } from "@/server/profile-fields"
 export const metadata: Metadata = { title: "Create account" }
 
 export default async function RegisterPage() {
-  /*
-   * F59's required-at-registration fields. Resolved on the server because the
-   * answer depends on board configuration and on what the default member group
-   * may edit — neither of which a client component can be trusted to decide.
-   */
-  /* F46. Issued per render, so the fill-time stamp is this visitor's. */
   const issued = await issueChallenge()
 
-  /*
-   * The board's own limits (F13), so the form asks for exactly what
-   * `registerAction` will accept. Both come from `boardAuthConfig`, which is
-   * what stops the hint and the rule drifting apart.
-   */
   const { minPasswordLength, usernameMin, usernameMax } = await boardAuthConfig()
 
   const customFields = (await registrationFields()).map((field) => ({

@@ -1,11 +1,3 @@
-/**
- * The configuration this board refuses to pretend is fine (F18/F70).
- *
- * `MAIL_DRIVER=smtp` throws at boot rather than downgrading to `log`. The
- * equivalent here cannot throw — the driver is boot-time and the activation
- * method is a row somebody edits at 3pm — so the refusal is a warning, and
- * these are the four facts it turns on.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { resetEnvForTests } from '@meith/core'
@@ -27,22 +19,12 @@ vi.mock('./auth-config', async (importOriginal) => {
 
 const { assessMailReadiness } = await import('./mail-health')
 
-/**
- * Run with a driver and a NODE_ENV, restoring both afterwards.
- *
- * The non-development cases use `test` rather than `production`: the rule is
- * "anything that is not development", and a production `env` additionally
- * insists on secrets, a durable queue and a database URL — none of which this
- * check has an opinion about, and all of which would have to be faked here to
- * ask it one question.
- */
 async function withEnv<T>(
   vars: { driver: string; nodeEnv: string },
   body: () => Promise<T>,
 ): Promise<T> {
   vi.stubEnv('MAIL_DRIVER', vars.driver)
   vi.stubEnv('NODE_ENV', vars.nodeEnv)
-  /* env's cross-field rule: MAIL_DRIVER=http needs all three of these. */
   vi.stubEnv('MAIL_HTTP_ENDPOINT', 'https://api.resend.com/emails')
   vi.stubEnv('MAIL_HTTP_TOKEN', 're_test_token')
   vi.stubEnv('MAIL_FROM', 'noreply@board.example')
@@ -103,7 +85,6 @@ describe('assessMailReadiness', () => {
       assessMailReadiness(),
     )
     expect(readiness.unactivatable).toBe(false)
-    /* Still reported, so the screen can say what is configured. */
     expect(readiness.driver).toBe('log')
     expect(readiness.activationMethod).toBe('email')
   })

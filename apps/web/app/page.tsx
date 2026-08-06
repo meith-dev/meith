@@ -23,38 +23,6 @@ import {
 import { docHref, documentsInSection, sections } from "../src/docs/registry"
 import { compact, group } from "../src/format"
 
-/**
- * The landing page.
- *
- * The version before this one made a single claim, named three things worth
- * knowing and handed the reader to the documentation. That was the right
- * correction to the version before *it*, which argued seven points and was
- * therefore read as none — but it over-corrected. A reader who arrives knowing
- * nothing about forum software left knowing that this was some, and an operator
- * weighing it against the board they already run found nothing here to weigh.
- *
- * So: nine bands, each answering one question somebody actually asks. What is it
- * (a picture of a board, not a paragraph about one). Is it any good (measured
- * numbers, from the load runner, with the budget beside them). Where does it
- * run. What about the board I am already on. Why is it called that. Where do I
- * read more.
- *
- * There were ten. A band between the capabilities and the measurements showed a
- * terminal transcript and the installer's five steps — how *long* it takes —
- * and it answered a question the reader had not got to yet: you cannot care
- * about the five lines until you know where they run. Where it runs took its
- * place, and the transcript went with it rather than being moved twice.
- *
- * Removing a band shifts the light/dark alternation for everything after it, so
- * the measurements and the migration band are now both plain. They are still
- * two bands — there is a rule between them — and the alternative was flipping
- * four backgrounds to chase a rhythm nobody counts.
- *
- * Every word comes from `src/content/site.ts`, every document link from the
- * manifest, and every *figure* from `src/content/facts.ts`, which reads the
- * generated references at build time rather than trusting anybody to retype a
- * number that changed.
- */
 export default async function LandingPage() {
   const facts = await readFacts()
   const running = sections.find((section) => section.id === "running")
@@ -65,7 +33,7 @@ export default async function LandingPage() {
 
   return (
     <>
-      {/* ── the hero ─────────────────────────────────────────────────── */}
+      { }
       <section className="relative isolate overflow-hidden border-b border-wall">
         <FieldCanvas />
         <div aria-hidden className="hero-wash" />
@@ -110,7 +78,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the figures ──────────────────────────────────────────────── */}
+      { }
       <section aria-label="By the numbers" className="border-b border-wall bg-ground-deep">
         <div className="shell grid gap-x-10 gap-y-8 py-10 sm:grid-cols-2 sm:py-12 lg:grid-cols-4">
           {stats.map((stat) => (
@@ -124,7 +92,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── what it does ─────────────────────────────────────────────── */}
+      { }
       <section className="border-b border-wall">
         <div className="shell py-16 sm:py-24">
           <header className="max-w-[44rem]">
@@ -138,11 +106,7 @@ export default async function LandingPage() {
             </p>
           </header>
 
-          {/*
-            The whole cell is the link, not the four words at the bottom of it.
-            `cell-grid` draws its borders per cell rather than with a gap, so a
-            seventh capability would not leave a solid block in the last row.
-          */}
+          { }
           <div className="cell-grid mt-12 sm:grid-cols-2 lg:grid-cols-3">
             {capabilities.map((capability, index) => (
               <Link
@@ -167,7 +131,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── where it runs ────────────────────────────────────────────── */}
+      { }
       <section className="border-b border-wall bg-ground-deep">
         <div className="shell py-16 sm:py-24">
           <header className="max-w-[44rem]">
@@ -185,11 +149,7 @@ export default async function LandingPage() {
                 <p className="mt-auto pt-3 font-mono text-micro leading-[1.5] text-ink-faint">
                   {option.note}
                 </p>
-                {/*
-                  Each card ends somewhere. The band used to carry one link
-                  under both cards, which made the second card an assertion with
-                  nowhere to check it.
-                */}
+                { }
                 <p className="pt-3">
                   <Link className="textlink text-micro" href={docHref(option.action.doc)}>
                     {option.action.label}
@@ -207,7 +167,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the measurements ─────────────────────────────────────────── */}
+      { }
       <section className="border-b border-wall">
         <div className="shell py-16 sm:py-24">
           <header className="max-w-[44rem]">
@@ -217,13 +177,7 @@ export default async function LandingPage() {
           </header>
 
           <div className="mt-10 grid gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
-            {/*
-              The same table styling the documentation uses, because it is the
-              same kind of claim: a column of numbers somebody may want to check
-              against their own board. The bar is one series against one budget,
-              so it needs no legend — the number is beside it, and the row names
-              itself.
-            */}
+            { }
             <div className="doc-table perf-table">
               <table>
                 <thead>
@@ -276,7 +230,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the board you are already on ─────────────────────────────── */}
+      { }
       <section className="border-b border-wall">
         <div className="shell grid gap-x-14 gap-y-6 py-14 sm:py-18 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
           <div>
@@ -295,7 +249,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the licence ──────────────────────────────────────────────── */}
+      { }
       <section className="border-b border-wall bg-ground-deep">
         <div className="shell py-16 sm:py-20">
           <div className="grid gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
@@ -337,7 +291,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the name ─────────────────────────────────────────────────── */}
+      { }
       <section className="border-b border-wall">
         <div className="shell py-16 sm:py-24">
           <p className="eyebrow eyebrow-rule">{story.eyebrow}</p>
@@ -363,7 +317,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the documentation ────────────────────────────────────────── */}
+      { }
       <section className="border-b border-wall bg-ground-deep">
         <div className="shell py-16 sm:py-24">
           <header className="max-w-[44rem]">
@@ -403,7 +357,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the ask ──────────────────────────────────────────────────── */}
+      { }
       <section>
         <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
           <div className="flex flex-col items-start gap-6">
@@ -423,10 +377,7 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          {/*
-            The question somebody has at exactly this point, answered where they
-            have it rather than one click away in the quickstart.
-          */}
+          { }
           <dl className="flex flex-col gap-3 border-t border-wall pt-5 lg:mt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
             {closing.requirements.map((requirement) => (
               <div key={requirement.label}>

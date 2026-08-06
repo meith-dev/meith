@@ -1,43 +1,3 @@
-/**
- * F79 — what each hook is handed.
- *
- * One entry per hook in `HOOKS`, both directions asserted at the bottom, so a
- * hook without a payload (or a payload without a hook) fails `pnpm typecheck`
- * rather than surfacing as `unknown` inside a plugin.
- *
- * ## Every hook has the same shape: a value and a context
- *
- * `value` is the thing. For a **filter** it is what the handler returns a
- * replacement for; for an **event** it is what happened. `context` is the
- * surroundings — who, where, which thread — and is never returned by anything.
- *
- * Uniformity is worth more here than expressiveness. A plugin author learns one
- * signature, the host has one dispatch path, and the generated documentation has
- * one table shape. The alternative — a bespoke argument list per hook — reads
- * better in isolation and is unusable across eighty of them.
- *
- * ## The payload rule: plain data, and the actor is not in it
- *
- * Payloads are JSON-shaped, for the same reasons view models are (they cross to
- * the outbox, to a webhook, and into a log). And they carry a **viewer** —
- * `{ userId, isGuest }` — never an `Actor`.
- *
- * That is a security boundary, not an ergonomic one. An `Actor` carries resolved
- * group membership and is the input to `authorization.can()`; handing one to a
- * plugin invites the plugin to make its own permission decision from the group
- * ids, which is exactly what R4 forbids of core code and doubly so of code an
- * operator installed from a directory. Plugins are handed the *result* of
- * authorization — a link that is present or absent, a post that is in the list
- * or is not — and never its inputs.
- *
- * ## Ids, not rows
- *
- * Most event payloads are ids plus the few fields a handler cannot look up
- * cheaply. A plugin that needs the whole post can fetch it; a payload carrying
- * every row would be a second read model to keep in step with the schema, and
- * the first migration would break every plugin.
- */
-
 import type {
   AnnouncementModel,
   BoardIndexModel,
@@ -68,23 +28,12 @@ import type {
 
 import type { HookName } from './hooks'
 
-/* ------------------------------------------------------------------ *
- * Shared context pieces
- * ------------------------------------------------------------------ */
-
-/**
- * Who is looking, as much as a plugin is told.
- *
- * Not an `Actor`. See this file's header — the omission is the point.
- */
 export interface ViewerRef {
   readonly userId: number | null
   readonly isGuest: boolean
 }
 
-/** The request a hook is running inside, when there is one. */
 export interface RequestRef {
-  /** F09's correlation id, so a plugin's own logging joins up with the board's. */
   readonly requestId: string | null
 }
 
@@ -107,13 +56,11 @@ export interface UserRef {
   readonly userId: number
 }
 
-/** A moderator acting, with the reason they gave. */
 export interface ModerationRef {
   readonly moderatorId: number
   readonly reason: string | null
 }
 
-/** A draft, as the composer has it before anything is written. */
 export interface DraftPayload {
   readonly subject: string | null
   readonly body: string
@@ -122,15 +69,9 @@ export interface DraftPayload {
   readonly authorId: number
 }
 
-/** Validation messages. Empty means "no objection"; anything else refuses. */
 export type ValidationMessages = readonly string[]
 
-/* ------------------------------------------------------------------ *
- * The registry
- * ------------------------------------------------------------------ */
-
 export interface HookSignatures {
-  /* ---- Content rendering ---- */
   'markdown.parse.text': {
     value: string
     context: ViewerRef & { source: 'post' | 'signature' | 'pm' }
@@ -151,7 +92,6 @@ export interface HookSignatures {
     context: Record<string, never>
   }
 
-  /* ---- View models ---- */
   'view.header': { value: HeaderModel; context: ViewerRef & RequestRef }
   'view.user-panel': { value: UserPanelModel; context: ViewerRef & RequestRef }
   'view.navigation': { value: NavigationModel; context: ViewerRef & RequestRef }
@@ -178,7 +118,6 @@ export interface HookSignatures {
   'view.post-form': { value: PostFormModel; context: ViewerRef }
   'view.redirect-notice': { value: RedirectNoticeModel; context: ViewerRef }
 
-  /* ---- Posting ---- */
   'thread.create.validate': { value: ValidationMessages; context: { draft: DraftPayload } }
   'thread.create.before': { value: DraftPayload; context: ViewerRef }
   'thread.created': { value: ThreadRef & { authorId: number; subject: string }; context: ViewerRef }
@@ -212,7 +151,6 @@ export interface HookSignatures {
     context: {
       readonly filename: string
       readonly bytes: number
-      /** What the *bytes* say it is, not what the name claims. */
       readonly detectedMimeType: string
       readonly uploaderId: number
     }
@@ -229,7 +167,6 @@ export interface HookSignatures {
     context: ViewerRef
   }
 
-  /* ---- Moderation ---- */
   'report.created': {
     value: {
       readonly reportId: number
@@ -270,7 +207,6 @@ export interface HookSignatures {
     context: ModerationRef
   }
 
-  /* ---- Identity ---- */
   'user.register.validate': {
     value: ValidationMessages
     context: { readonly username: string; readonly email: string; readonly ipPrefix: string | null }
@@ -281,7 +217,6 @@ export interface HookSignatures {
     value: {
       readonly username: string
       readonly outcome: 'ok' | 'bad-credentials' | 'locked-out' | 'banned'
-      /** Truncated. Never a full address. */
       readonly ipPrefix: string | null
     }
     context: RequestRef
@@ -301,7 +236,6 @@ export interface HookSignatures {
   'user.merged': { value: { readonly keptUserId: number; readonly mergedUserId: number }; context: RequestRef }
   'user.deleted': { value: UserRef & { reason: 'pruned' | 'deleted' }; context: RequestRef }
 
-  /* ---- Mail, notifications, messages ---- */
   'notification.create.before': {
     value: {
       readonly userId: number
@@ -346,7 +280,6 @@ export interface HookSignatures {
     context: ViewerRef
   }
 
-  /* ---- Search, discovery, syndication ---- */
   'search.query.before': { value: string; context: ViewerRef }
   'search.results': {
     value: readonly { readonly postId: number; readonly threadId: number; readonly rank: number }[]
@@ -359,7 +292,6 @@ export interface HookSignatures {
       readonly publishedAt: string
       readonly summary: string
     }[]
-    /** Always a guest: a feed is cached under a shared URL. */
     context: { readonly feed: 'board' | 'forum' | 'thread' }
   }
   'sitemap.entries': {
@@ -376,7 +308,6 @@ export interface HookSignatures {
     context: { readonly route: string }
   }
 
-  /* ---- Admin and system ---- */
   'admin.navigation': {
     value: readonly { readonly label: string; readonly href: string }[]
     context: ViewerRef
@@ -395,15 +326,9 @@ export interface HookSignatures {
   }
 }
 
-/** What a handler for `K` is given. */
 export type HookValue<K extends HookName> = HookSignatures[K]['value']
 export type HookContext<K extends HookName> = HookSignatures[K]['context']
 
-/* ------------------------------------------------------------------ *
- * Compile-time proofs
- * ------------------------------------------------------------------ */
-
-/** Fails with the offending name in the message rather than a bare `never`. */
 type AssertNever<T extends never> = T
 
 type _NoHookWithoutSignature = AssertNever<Exclude<HookName, keyof HookSignatures>>

@@ -1,11 +1,3 @@
-/**
- * F24 on real Postgres.
- *
- * `evaluatePromotions` is unit-tested in `@meith/groups`, which proves the
- * rules and the safety guards. What needs a database is the run: that a dry run
- * writes nothing, that a real run is idempotent, and that paging a set the run
- * is *mutating* does not skip anybody.
- */
 import { PromotionService, type PromotionGuards } from '@meith/groups'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -38,7 +30,6 @@ beforeAll(async () => {
   db = harness.db
   repo = new PostgresPromotionRepository(db)
 
-  // A target group to promote into; the seeded ladder has no "Veteran".
   await db.insert(usergroups).values({ id: VETERAN, key: 'veteran', title: 'Veteran' })
 }, 60_000)
 
@@ -91,10 +82,6 @@ function service() {
 }
 
 describe('dry run', () => {
-  /*
-   * F24's acceptance: "Dry run reports affected users without writing." An ACP
-   * preview that quietly applied would be the worst possible surprise.
-   */
   it('reports the affected users and changes nothing', async () => {
     await addRule()
     await addUser(1, { postCount: 150 })
@@ -116,8 +103,6 @@ describe('dry run', () => {
     const preview = await service().preview()
     const applied = await service().apply()
 
-    // A preview computed by different code would eventually lie; these share
-    // one evaluation and differ only in whether they write.
     expect(applied.outcomes).toEqual(preview.outcomes)
   })
 })
@@ -138,11 +123,9 @@ describe('applying', () => {
       .select({ v: cacheVersions.version })
       .from(cacheVersions)
       .where(eq(cacheVersions.key, 'permissions'))
-    // Once for two users — it is a global counter, so per-user bumps are waste.
     expect(version?.v).toBe(1)
   })
 
-  /* F24's other acceptance criterion. */
   it('is idempotent across repeated runs', async () => {
     await addRule()
     await addUser(1, { postCount: 150 })
@@ -168,12 +151,6 @@ describe('applying', () => {
     expect(await groupOf(1)).toBe(ADMINS)
   })
 
-  /*
-   * Deliberately uses VETERAN, which is *not* in protectedGroupIds. An earlier
-   * version of this test used an administrator and passed even with the
-   * demotion guard removed — the protected-groups check was catching it, so the
-   * test proved nothing about ranking. Mutation testing surfaced that.
-   */
   it('never demotes a user whose group is merely higher-ranked', async () => {
     await addRule({ fromPrimaryGroupId: null, minPostCount: 1, toPrimaryGroupId: REGISTERED })
     await addUser(1, { postCount: 5000, groupId: VETERAN })
@@ -186,20 +163,12 @@ describe('applying', () => {
     await addUser(1, { postCount: 5000 })
     const result = await service().apply()
 
-    // And does not page the whole user table to find that out.
     expect(result.examined).toBe(0)
     expect(await groupOf(1)).toBe(REGISTERED)
   })
 })
 
 describe('paging', () => {
-  /*
-   * The bug that only appears on a real run: applying a promotion changes the
-   * rows being paged. With OFFSET, moving a user shifts every later row up one
-   * and the next page skips somebody — which shows up as "some people never get
-   * promoted" and is near-impossible to reproduce by hand. Keyset paging on an
-   * immutable id does not have the problem.
-   */
   it('promotes everyone when the batch is smaller than the population', async () => {
     await addRule()
     for (let id = 1; id <= 25; id++) await addUser(id, { postCount: 150 })
@@ -216,7 +185,6 @@ describe('paging', () => {
     for (let id = 1; id <= 12; id++) await addUser(id)
 
     const result = await service().preview(5)
-    // Nobody qualified, but the run did look at the whole board.
     expect(result.outcomes).toHaveLength(0)
     expect(result.examined).toBe(12)
   })
@@ -227,7 +195,6 @@ describe('rules', () => {
     await addRule({ minPostCount: null, minReputation: null, minDaysRegistered: null })
     await addUser(1, { postCount: 0 })
 
-    // A rule with no thresholds means "everyone in the source group".
     expect((await service().preview()).outcomes).toHaveLength(1)
   })
 
@@ -269,11 +236,8 @@ describe('schema', () => {
     await addRule()
     await db.execute(sql`delete from usergroups where id = ${VETERAN}`)
 
-    // A rule pointing at a group that no longer exists would promote people
-    // into nothing; the FK removes it instead.
     expect(await db.select({ id: groupPromotions.id }).from(groupPromotions)).toHaveLength(0)
 
-    // Restore for the remaining tests in this file.
     await db.insert(usergroups).values({ id: VETERAN, key: 'veteran', title: 'Veteran' })
   })
 })

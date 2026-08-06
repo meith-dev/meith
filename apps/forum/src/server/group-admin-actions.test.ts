@@ -1,21 +1,3 @@
-/**
- * F66's writes, at the app layer.
- *
- * The SQL is proven against real Postgres in `@meith/db`; what is proven here
- * is what only this adapter can get wrong.
- *
- * Three things, and the first is the reason the permission editor is checkboxes
- * rather than the three-state control F65 uses:
- *
- *  - **an unticked box is a revocation, not an absence.** A checkbox submits
- *    nothing when it is off, so an action that read only the fields that
- *    arrived could never turn a permission off — the operator would untick it,
- *    press save, and watch it come back;
- *  - **the version tag is cleared on every write**, because a group *is*
- *    permissions and F20 caches resolved actors against it;
- *  - **the chunk cursor survives the round trip**, which is what makes a long
- *    membership run resumable without JavaScript.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PERMISSION_FIELDS } from '@meith/core'
@@ -111,11 +93,6 @@ beforeEach(() => {
 
 describe('the admin gate', () => {
   it('is asked for on every write, not left to the layout', async () => {
-    /*
-     * A Server Action is a public endpoint reachable without rendering any
-     * page, so F63's rule applies to each one separately. Kills the mutant that
-     * drops the call from any of them.
-     */
     await saveGroupPermissionsAction({}, form({ groupId: '2' }))
     await saveGroupIdentityAction({}, form({ groupId: '2', title: 'T', displayOrder: '0' }))
     await createGroupAction({}, form({ key: 'k', title: 'T', copyFromGroupId: '2' }))
@@ -123,12 +100,6 @@ describe('the admin gate', () => {
   })
 
   it('re-authenticates the three bulk operations', async () => {
-    /*
-     * Deleting a group, moving members en masse and running promotions all
-     * change what a population of members may do, with no undo and no visible
-     * blast radius. `requireAdmin` is not enough for those — F63 built
-     * `requireFreshAdmin` for exactly this shape.
-     */
     await deleteGroupAction({}, form({ groupId: '8', moveMembersTo: '2' }))
     await moveMembersAction({}, form({ fromGroupId: '2', toGroupId: '3' }))
     await applyPromotionsAction({}, form({}))
@@ -152,12 +123,6 @@ describe('the admin gate', () => {
 
 describe('saveGroupPermissionsAction', () => {
   it('reads an unticked box as a revocation rather than as an absence', async () => {
-    /*
-     * The claim the checkbox editor rests on. An off checkbox submits nothing,
-     * so an action that iterated only the submitted fields could never turn a
-     * permission off — the operator would untick, save, and see it return.
-     * Kills the mutant that reads `form.entries()` instead of the registry.
-     */
     const boolean = PERMISSION_FIELDS.find((field) => field.kind === 'boolean')
     await saveGroupPermissionsAction({}, form({ groupId: '2' }))
 
@@ -205,11 +170,6 @@ describe('saveGroupPermissionsAction', () => {
   })
 
   it('clears the permission tag', async () => {
-    /*
-     * The bump is the repository's, in the same transaction as the write; this
-     * is the other half — the caches holding the old number have to be told to
-     * let go. Kills the mutant that drops the invalidation.
-     */
     await saveGroupPermissionsAction({}, form({ groupId: '2' }))
     expect(invalidated).toEqual([['permissions']])
   })
@@ -225,11 +185,6 @@ describe('saveGroupPermissionsAction', () => {
 
 describe('saveGroupIdentityAction', () => {
   it('clears the tag for a rename too', async () => {
-    /*
-     * The badge and the staff flag ride on the same resolved actor, so the
-     * invalidation is unconditional rather than a judgement about which columns
-     * are "really" permissions.
-     */
     await saveGroupIdentityAction(
       {},
       form({ groupId: '2', title: 'Members', displayOrder: '5' }),
@@ -246,10 +201,6 @@ describe('saveGroupIdentityAction', () => {
   })
 
   it('stores a blank description and badge as null, not as an empty string', async () => {
-    /*
-     * The columns are nullable and every reader treats null as "none". An empty
-     * string would render as a badge with no name rather than as no badge.
-     */
     await saveGroupIdentityAction(
       {},
       form({ groupId: '2', title: 'T', displayOrder: '0', description: '', badgeToken: '' }),
@@ -260,21 +211,12 @@ describe('saveGroupIdentityAction', () => {
 
 describe('createGroupAction', () => {
   it('requires a copy source, so a new group is never deny-everything', async () => {
-    /*
-     * The registry defaults deny everything, so a group made from them is one
-     * whose members cannot see the board.
-     */
     const state = await createGroupAction({}, form({ key: 'veterans', title: 'V' }))
     expect(state.error).toBeDefined()
     expect(created).toEqual([])
   })
 
   it('refuses a key that is not an identifier', async () => {
-    /*
-     * The key is how code names the group. Kills the mutant that drops the
-     * pattern check: a key with a space or a dot in it is one that cannot be
-     * referred to from anywhere it would need to be.
-     */
     for (const key of ['Veterans', '2fast', 'has space', 'has.dot', '']) {
       const state = await createGroupAction({}, form({ key, title: 'V', copyFromGroupId: '2' }))
       expect(state.error, key).toBeDefined()
@@ -296,10 +238,6 @@ describe('createGroupAction', () => {
 
 describe('deleteGroupAction', () => {
   it('requires somewhere for the members to go', async () => {
-    /*
-     * `users.primary_group_id` is NOT NULL. A delete without a destination
-     * either fails on the constraint or takes the members with it.
-     */
     const state = await deleteGroupAction({}, form({ groupId: '8' }))
     expect(state.error).toBeDefined()
     expect(removed).toEqual([])
@@ -315,12 +253,6 @@ describe('deleteGroupAction', () => {
 
 describe('moveMembersAction', () => {
   it('starts at the beginning and hands back where it stopped', async () => {
-    /*
-     * The cursor is the whole mechanism: it travels in the form, so the next
-     * press continues the run with no JavaScript involved. Kills the mutant
-     * that drops it from the returned state, which would restart the run from
-     * zero on every press.
-     */
     const state = await moveMembersAction({}, form({ fromGroupId: '2', toGroupId: '3' }))
 
     expect(chunks[0]).toEqual({
@@ -349,11 +281,6 @@ describe('moveMembersAction', () => {
   })
 
   it('says it is finished when the chunk came back short', async () => {
-    /*
-     * `nextCursor: null` is the repository saying the source is exhausted.
-     * Reporting that as "more" would leave an operator pressing a button that
-     * does nothing, unsure whether the run had finished.
-     */
     chunkResult.current = { moved: 1, nextCursor: null }
     const state = await moveMembersAction({}, form({ fromGroupId: '2', toGroupId: '3' }))
 
@@ -371,10 +298,6 @@ describe('moveMembersAction', () => {
   })
 
   it('clears the tag on every chunk, not only the last', async () => {
-    /*
-     * A run that stops half way has still changed real permissions, and the
-     * actors holding the old ones have to go.
-     */
     await moveMembersAction({}, form({ fromGroupId: '2', toGroupId: '3' }))
     await moveMembersAction(
       {},

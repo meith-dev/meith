@@ -2,13 +2,6 @@ import Link from "next/link"
 
 import { docHref, documentsInSection, sections } from "../src/docs/registry"
 
-/**
- * A 404 that offers the documentation index rather than an apology.
- *
- * Most of the ways to reach this page are a stale link to a document — a rename,
- * or a `docs/…md` URL from the repository pasted into a browser — so the useful
- * thing to put here is the list of documents that do exist.
- */
 export default function NotFound() {
   return (
     <div className="shell py-24">

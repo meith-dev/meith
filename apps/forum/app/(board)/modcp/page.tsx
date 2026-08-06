@@ -8,13 +8,6 @@ import { moderatedForumRights, resolveModCpAccess } from '@/server/modcp'
 
 export const metadata: Metadata = { title: 'Moderator control panel' }
 
-/**
- * F54's overview: what this moderator is responsible for, busiest first.
- *
- * The counts are one query for every forum rather than two per forum — a
- * dashboard listing fourteen forums must not be twenty-eight statements, which
- * is the N+1 F11's budget helper exists to catch.
- */
 export default async function ModCpPage() {
   const access = await resolveModCpAccess()
   if (access === null) notFound()
@@ -43,11 +36,7 @@ export default async function ModCpPage() {
 
       {dashboard.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {/*
-            A group-level moderator with no forum appointments still reaches the
-            panel — `modcp.access` is a real grant — and telling them the truth
-            is better than an empty table that looks broken.
-          */}
+          { }
           You hold moderator permissions but are not assigned to any forum.
         </p>
       ) : (

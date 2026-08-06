@@ -18,20 +18,8 @@ import {
   type WriteResult,
 } from './index'
 
-/* ------------------------------------------------------------------ *
- * A sink that records, and is idempotent the way a real one must be
- * ------------------------------------------------------------------ */
-
-/**
- * The in-memory sink.
- *
- * Keyed on `(kind, legacyId)` and reporting insert-versus-update, which is
- * exactly the contract a Postgres sink has to honour — so the round trip below
- * proves the runner's idempotency rather than the map's happening to be a no-op.
- */
 class MemorySink implements ImportSink {
   readonly stored = new Map<string, Map<number, unknown>>()
-  /** Every call, so "was this page written twice" is answerable. */
   readonly calls: string[] = []
 
   putUsers = (rows: readonly { legacyId: number }[]) => this.#put('users', rows)
@@ -58,10 +46,6 @@ class MemorySink implements ImportSink {
     return { inserted, updated, skipped: [] }
   }
 }
-
-/* ------------------------------------------------------------------ *
- * A small board
- * ------------------------------------------------------------------ */
 
 const user = (uid: number) => ({
   uid,
@@ -117,16 +101,7 @@ const BOARD = {
   posts: [post(1), post(2, { pid: 2 }), post(3, { pid: 3, tid: 2 })],
 }
 
-/* ------------------------------------------------------------------ *
- * Mapping
- * ------------------------------------------------------------------ */
-
 describe('timestamps', () => {
-  /*
-   * Seconds, not milliseconds. Getting it wrong produces dates in 1970 — obvious
-   * — or, once somebody "fixes" it the other way, sub-second offsets from the
-   * epoch that sort correctly relative to each other. The second one ships.
-   */
   it('reads MyBB seconds', () => {
     expect(fromUnixSeconds(1_600_000_000)?.toISOString()).toBe('2020-09-13T12:26:40.000Z')
   })
@@ -145,11 +120,6 @@ describe('visibility', () => {
     expect(visibilityOf(-1)).toBe('deleted')
   })
 
-  /*
-   * An unknown value comes from a plugin, and the safe reading of "I do not know
-   * whether this should be public" is that it should not be. A default of
-   * `visible` would publish whatever that plugin was hiding.
-   */
   it('treats an unknown value as unapproved rather than visible', () => {
     expect(visibilityOf(2)).toBe('unapproved')
     expect(visibilityOf(-99)).toBe('unapproved')
@@ -163,7 +133,6 @@ describe('users', () => {
     expect(mapped.legacyPasswordHash).toBe(`mybb$saltsalt$${'a'.repeat(32)}`)
   })
 
-  /* This board's uniqueness is case-insensitive and MyBB's is not. */
   it('lower-cases the e-mail', () => {
     expect(mapped.email).toBe('member7@example.test')
   })
@@ -184,11 +153,6 @@ describe('forums', () => {
     expect(mapForum(BOARD.forums[2]!).type).toBe('link')
   })
 
-  /*
-   * A fourth type comes from a plugin. A forum is the reading that loses
-   * nothing — its threads still import, where treating it as a link would orphan
-   * them.
-   */
   it('reads an unknown type as a forum', () => {
     expect(mapForum({ ...BOARD.forums[1]!, type: 'x' }).type).toBe('forum')
   })
@@ -205,7 +169,6 @@ describe('forums', () => {
 })
 
 describe('threads', () => {
-  /* MyBB stores `closed` as the *string* '1'. A truthiness check locks every thread. */
   it('reads closed as the string MyBB stores', () => {
     expect(mapThread(thread(1, { closed: '1' })).isLocked).toBe(true)
     expect(mapThread(thread(1, { closed: '0' })).isLocked).toBe(false)
@@ -222,7 +185,6 @@ describe('threads', () => {
 })
 
 describe('posts', () => {
-  /* Otherwise a third of an old board reads "last edited 1 January 1970". */
   it('reads an unedited post as never edited', () => {
     expect(mapPost(post(1)).editedAt).toBeNull()
   })
@@ -231,10 +193,6 @@ describe('posts', () => {
     expect(mapPost(post(1, { edituid: 4, edittime: 1_700_000_000 })).editedAt).not.toBeNull()
   })
 })
-
-/* ------------------------------------------------------------------ *
- * The round trip
- * ------------------------------------------------------------------ */
 
 describe('the fixture round trip', () => {
   it('imports every row', async () => {
@@ -257,11 +215,6 @@ describe('the fixture round trip', () => {
     expect(report.readThisRun).toBe(11)
   })
 
-  /*
-   * **Idempotency.** A chunked import will be interrupted, and the recovery
-   * instruction has to be "run it again" — so a second full run must write the
-   * same rows and change nothing.
-   */
   it('imports twice without duplicating anything', async () => {
     const sink = new MemorySink()
     const source = new FixtureMybbSource(BOARD)
@@ -273,11 +226,6 @@ describe('the fixture round trip', () => {
     expect(second.kinds.posts).toMatchObject({ inserted: 0, updated: 3 })
   })
 
-  /*
-   * **Chunking**, proven by the call log rather than by the totals. A page size
-   * of one means eleven writes; an importer that quietly fetched everything at
-   * once would pass every count assertion above.
-   */
   it('reads in pages of the size it was given', async () => {
     const sink = new MemorySink()
     await runImport({ source: new FixtureMybbSource(BOARD), sink, pageSize: 1 })
@@ -289,10 +237,6 @@ describe('the fixture round trip', () => {
     ])
   })
 
-  /*
-   * **Resumability.** The budget stops the run mid-way, and the returned cursors
-   * are passed to the next one — a different process, in production.
-   */
   it('stops at the budget and resumes exactly where it stopped', async () => {
     const sink = new MemorySink()
     const source = new FixtureMybbSource(BOARD)
@@ -304,7 +248,6 @@ describe('the fixture round trip', () => {
     const second = await runImport({ source, sink, pageSize: 2, budget: 100, from: first.cursors })
     expect(second.finished).toBe(true)
 
-    /* Everything arrived exactly once, across the two runs. */
     expect(sink.count('users')).toBe(3)
     expect(sink.count('posts')).toBe(3)
     const inserts =
@@ -321,11 +264,6 @@ describe('the fixture round trip', () => {
     expect(report.finished).toBe(true)
   })
 
-  /*
-   * Order is a dependency graph: a thread references a forum, a post references
-   * a thread. Importing posts first means inventing parents or holding every post
-   * in memory — the design that works on a small board and dies on a real one.
-   */
   it('imports in dependency order', async () => {
     const sink = new MemorySink()
     await runImport({ source: new FixtureMybbSource(BOARD), sink })
@@ -346,10 +284,6 @@ describe('the fixture round trip', () => {
   })
 })
 
-/* ------------------------------------------------------------------ *
- * Counters
- * ------------------------------------------------------------------ */
-
 describe('the counter comparison', () => {
   const forums = BOARD.forums.map(mapForum)
   const threads = BOARD.threads.map(mapThread)
@@ -366,11 +300,6 @@ describe('the counter comparison', () => {
     ).toEqual([])
   })
 
-  /*
-   * MyBB's counters drift — incremented on post, not always decremented on
-   * delete. The comparison exists to *say so*, not to fail: importing somebody
-   * else's arithmetic as truth is what bakes their bug into a fresh board.
-   */
   it('names a forum whose claimed totals are wrong', () => {
     const differences = compareCounters({
       forums,
@@ -382,7 +311,6 @@ describe('the counter comparison', () => {
     expect(differences).toEqual([{ legacyId: 2, field: 'threads', claimed: 9, actual: 2 }])
   })
 
-  /* Only visible content counts, which is the rule the board's own counters follow. */
   it('does not count deleted or unapproved content', () => {
     const withHidden = [...posts, mapPost(post(4, { pid: 4, visible: -1 }))]
     expect(
@@ -403,7 +331,6 @@ describe('the counter comparison', () => {
       claimedForumTotals: {},
     })
 
-    /* Two posts in thread 1, so one reply. */
     expect(differences).toEqual([{ legacyId: 1, field: 'replies', claimed: 7, actual: 1 }])
   })
 

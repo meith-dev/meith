@@ -12,17 +12,6 @@ import { userCpNotice } from '@/view/usercp'
 
 export const metadata: Metadata = { title: 'Account security' }
 
-/**
- * F57 — the two changes that need the current password.
- *
- * On one screen because they are one decision from the member's side ("change
- * how I sign in") and because both are guarded the same way. A session left
- * open on a shared machine is otherwise a full takeover: change the address,
- * request a reset, and the real owner is locked out of their own board.
- *
- * The e-mail change is two-step and the screen says so, because "we sent you a
- * link" is the only honest description of what pressing the button did.
- */
 export default async function SecurityPage({
   searchParams,
 }: {
