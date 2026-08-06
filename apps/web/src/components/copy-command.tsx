@@ -37,13 +37,22 @@ export function CopyCommand({ command }: CopyCommandProps) {
       type="button"
       onClick={copy}
       aria-label={`Copy: ${command}`}
-      className="inline-flex cursor-copy items-center gap-3 rounded-sm border border-wall bg-ground-deep px-4 py-3 font-mono text-base text-ink transition-colors hover:border-gorse"
+      className="inline-flex max-w-full cursor-copy items-center gap-3 rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2.5 font-mono text-micro text-fg transition-colors hover:border-border-strong"
     >
-      <span aria-hidden className="text-gorse">
+      <span aria-hidden className="text-accent">
         $
       </span>
-      <span>{command}</span>
-      <span aria-live="polite" className="font-mono text-micro tracking-[0.1em] text-ink-faint uppercase">
+      {/*
+        `break-all`, because the one thing this must not do is push the page
+        sideways. At 390px the clone URL is wider than the viewport, and a
+        command that wraps onto a second line is a great deal better than a
+        landing page with a horizontal scrollbar.
+      */}
+      <span className="min-w-0 break-all text-left">{command}</span>
+      <span
+        aria-live="polite"
+        className="font-mono text-[0.68rem] tracking-[0.08em] text-fg-subtle uppercase"
+      >
         {state === "copied" ? "copied" : state === "manual" ? "press ⌘C" : ""}
       </span>
     </button>

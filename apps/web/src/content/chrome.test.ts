@@ -13,7 +13,7 @@ import { chromeColour } from "./chrome"
  *
  * The failure it prevents is quiet and slightly ugly rather than dramatic: the
  * palette is adjusted in `globals.css`, the meta tag is not, and from then on
- * the browser's toolbar is a slightly different green from the page under it —
+ * the browser's toolbar is a slightly different grey from the page under it —
  * on mobile Safari and Chrome, which is where most people see the site.
  */
 const stylesheet = join(dirname(fileURLToPath(import.meta.url)), "../styles/globals.css")
@@ -27,7 +27,7 @@ function tokenIn(css: string, selector: string, property: string): string | unde
 }
 
 describe("theme-color", () => {
-  it("matches --ground in both schemes", async () => {
+  it("matches --canvas in both schemes", async () => {
     const css = await readFile(stylesheet, "utf8")
 
     /*
@@ -35,8 +35,8 @@ describe("theme-color", () => {
      * one nested in the dark media query, because the selector must be followed
      * immediately by its brace — `:root[data-theme=…]` is a different string.
      */
-    expect(tokenIn(css, ":root", "--ground")).toBe(chromeColour.light.toLowerCase())
-    expect(tokenIn(css, ':root[data-theme="dark"]', "--ground")).toBe(
+    expect(tokenIn(css, ":root", "--canvas")).toBe(chromeColour.light.toLowerCase())
+    expect(tokenIn(css, ':root[data-theme="dark"]', "--canvas")).toBe(
       chromeColour.dark.toLowerCase(),
     )
   })

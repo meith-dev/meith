@@ -118,16 +118,16 @@ export function DocsSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-sm border border-wall px-2.5 py-1.5 font-mono text-micro tracking-[0.08em] text-ink-faint transition-colors hover:border-gorse hover:text-ink"
+        className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-border px-2.5 py-1.5 text-micro text-fg-subtle transition-colors hover:border-border-strong hover:text-fg"
       >
         <span aria-hidden>⌕</span>
         <span>Search</span>
-        <kbd className="hidden border border-wall px-1 sm:inline">⌘K</kbd>
+        <kbd className="kbd hidden sm:inline">⌘K</kbd>
       </button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-ground/80 px-4 pt-[12vh] backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-canvas/80 px-4 pt-[12vh] backdrop-blur-sm"
           role="presentation"
           onClick={(event) => {
             if (event.target === event.currentTarget) setOpen(false)
@@ -137,10 +137,10 @@ export function DocsSearch() {
             role="dialog"
             aria-modal="true"
             aria-label="Search the documentation"
-            className="flex max-h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-sm border border-wall bg-ground shadow-2xl"
+            className="flex max-h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-card)] border border-border bg-raised shadow-[var(--lift-lg)]"
           >
-            <div className="flex items-center gap-3 border-b border-wall px-4 py-3">
-              <span aria-hidden className="font-mono text-gorse">
+            <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+              <span aria-hidden className="font-mono text-accent">
                 ⌕
               </span>
               <input
@@ -161,14 +161,14 @@ export function DocsSearch() {
                 }}
                 placeholder="Search the documentation…"
                 aria-label="Search the documentation"
-                className="w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-faint"
+                className="w-full bg-transparent text-base text-fg outline-none placeholder:text-fg-subtle"
               />
-              <kbd className="border border-wall px-1 font-mono text-micro text-ink-faint">esc</kbd>
+              <kbd className="kbd">esc</kbd>
             </div>
 
             <div className="overflow-y-auto">
               {failed ? (
-                <p className="px-4 py-6 text-micro text-ink-faint">
+                <p className="px-4 py-6 text-micro text-fg-subtle">
                   The search index could not be loaded. Every document is listed on the{" "}
                   <a className="textlink" href="/docs">
                     documentation index
@@ -176,11 +176,11 @@ export function DocsSearch() {
                   .
                 </p>
               ) : query.trim() === "" ? (
-                <p className="px-4 py-6 text-micro text-ink-faint">
+                <p className="px-4 py-6 text-micro text-fg-subtle">
                   Type to search every published document. Results are sections, not pages.
                 </p>
               ) : results.length === 0 ? (
-                <p className="px-4 py-6 text-micro text-ink-faint">
+                <p className="px-4 py-6 text-micro text-fg-subtle">
                   Nothing matches “{query}”. {entries ? "" : "The index is still loading."}
                 </p>
               ) : (
@@ -191,17 +191,17 @@ export function DocsSearch() {
                         type="button"
                         onMouseEnter={() => setActive(index)}
                         onClick={() => go(entry)}
-                        className={`flex w-full flex-col gap-1 border-b border-wall px-4 py-3 text-left transition-colors ${
-                          index === active ? "bg-ground-deep" : ""
+                        className={`flex w-full flex-col gap-1 border-b border-border px-4 py-3 text-left transition-colors ${
+                          index === active ? "bg-surface" : ""
                         }`}
                       >
                         <span className="flex items-baseline gap-2">
-                          <span className="text-base text-ink">{entry.heading}</span>
-                          <span className="font-mono text-micro tracking-[0.08em] text-ink-faint uppercase">
+                          <span className="text-base text-fg">{entry.heading}</span>
+                          <span className="font-mono text-micro tracking-[0.08em] text-fg-subtle uppercase">
                             {entry.document}
                           </span>
                         </span>
-                        <span className="line-clamp-2 text-micro text-ink-soft">{entry.snippet}</span>
+                        <span className="line-clamp-2 text-micro text-fg-muted">{entry.snippet}</span>
                       </button>
                     </li>
                   ))}

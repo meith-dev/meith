@@ -1,18 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Meith">
   <!--
-    Four fields and the walls between them, the same townland the hero draws.
-    The one gorse-coloured field is the accent the whole identity turns on, and
-    it is a quarter of the mark for the same reason it is a fraction of the page.
+    The same mark the header draws: a board, reduced to a panel with two threads
+    in it. A static asset cannot read the design tokens, so the accent here is a
+    mid step of the ramp rather than either scheme's value — light enough to hold
+    against a dark tab strip, dark enough to hold against a light one.
   -->
-  <rect width="32" height="32" fill="#EEF0E8"/>
-  <path d="M2 2 L15 3 L14 15 L3 14 Z" fill="#DDE3D2"/>
-  <path d="M15 3 L30 2 L29 16 L14 15 Z" fill="#E4B024" fill-opacity="0.55"/>
-  <path d="M3 14 L14 15 L15 30 L2 29 Z" fill="#E6EADD"/>
-  <path d="M14 15 L29 16 L30 30 L15 30 Z" fill="#DDE3D2"/>
-  <g fill="none" stroke="#77896C" stroke-width="1.1" stroke-linejoin="round">
-    <path d="M2 2 L15 3 L14 15 L3 14 Z"/>
-    <path d="M15 3 L30 2 L29 16 L14 15 Z"/>
-    <path d="M3 14 L14 15 L15 30 L2 29 Z"/>
-    <path d="M14 15 L29 16 L30 30 L15 30 Z"/>
+  <g fill="#0b8f66">
+    <rect x="2" y="3" width="28" height="20" rx="6"/>
+    <path d="M10 19 L8.4 28.6 L16.6 22.2 Z"/>
+  </g>
+  <g fill="#ffffff">
+    <rect x="8" y="9" width="16" height="2.8" rx="1.4"/>
+    <rect x="8" y="14.4" width="10" height="2.8" rx="1.4"/>
   </g>
 </svg>

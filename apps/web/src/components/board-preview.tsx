@@ -1,6 +1,5 @@
-import { boardSketch } from "../content/site"
+import { boardPreview } from "../content/site"
 import { group } from "../format"
-import { FieldMark } from "./field-mark"
 
 /**
  * A drawing of a board, beside the headline.
@@ -19,9 +18,8 @@ import { FieldMark } from "./field-mark"
  * Built from the tokens rather than as an image: it is correct in both schemes,
  * it costs no request, and it stays sharp at any density.
  */
-
-export function BoardSketch() {
-  const { caption, name, blurb, forums, latest } = boardSketch
+export function BoardPreview() {
+  const { caption, name, blurb, forums, latest } = boardPreview
 
   return (
     <figure className="flex flex-col gap-3">
@@ -30,24 +28,22 @@ export function BoardSketch() {
         screen reader gains nothing from three invented forum names and a
         thread count; it gains the sentence that says what the picture is.
       */}
-      <div aria-hidden className="panel overflow-hidden">
-        <div className="sketch-bar">
-          <span className="font-display text-base font-semibold tracking-[-0.01em] text-ink">
-            {name}
-          </span>
-          <span className="font-mono text-[0.66rem] tracking-[0.14em] text-ink-faint uppercase">
+      <div aria-hidden className="card overflow-hidden shadow-[var(--lift-lg)]">
+        <div className="preview-bar">
+          <span className="text-base font-semibold tracking-[-0.015em] text-fg">{name}</span>
+          <span className="ml-auto font-mono text-[0.66rem] tracking-[0.1em] text-fg-subtle uppercase">
             {blurb}
           </span>
         </div>
 
         {forums.map((forum) => (
-          <div key={forum.title} className="sketch-row">
-            <FieldMark className="mt-0.5 h-5 w-5 opacity-80" />
+          <div key={forum.title} className="preview-row">
+            <span className="preview-dot">#</span>
             <div className="min-w-0">
-              <p className="truncate text-base text-ink">{forum.title}</p>
-              <p className="truncate text-micro text-ink-faint">{forum.blurb}</p>
+              <p className="truncate text-base font-medium text-fg">{forum.title}</p>
+              <p className="truncate text-micro text-fg-subtle">{forum.blurb}</p>
             </div>
-            <p className="text-right font-mono text-[0.66rem] leading-[1.6] text-ink-faint tabular-nums">
+            <p className="text-right font-mono text-[0.66rem] leading-[1.6] text-fg-subtle tabular-nums">
               {group(forum.threads)} threads
               <br />
               {group(forum.posts)} posts
@@ -55,16 +51,16 @@ export function BoardSketch() {
           </div>
         ))}
 
-        <div className="sketch-foot">
-          <span className="mt-[0.3rem] size-1.5 shrink-0 rounded-full bg-gorse" />
-          <span className="min-w-0 truncate text-micro text-ink-soft">{latest.thread}</span>
-          <span className="ml-auto shrink-0 font-mono text-[0.66rem] text-ink-faint">
+        <div className="preview-foot">
+          <span className="size-1.5 shrink-0 rounded-full bg-accent" />
+          <span className="min-w-0 truncate text-micro text-fg-muted">{latest.thread}</span>
+          <span className="ml-auto shrink-0 font-mono text-[0.66rem] text-fg-subtle">
             {latest.when}
           </span>
         </div>
       </div>
 
-      <figcaption className="text-micro leading-[1.5] text-ink-faint text-pretty">
+      <figcaption className="text-micro leading-[1.5] text-fg-subtle text-pretty">
         {caption}
       </figcaption>
     </figure>

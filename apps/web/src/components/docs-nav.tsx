@@ -29,8 +29,8 @@ export function DocsNav({ sections }: DocsNavProps) {
     <nav aria-label="Documentation">
       <Link
         href="/docs"
-        className={`mb-6 block font-mono text-micro tracking-[0.14em] uppercase transition-colors ${
-          pathname === "/docs" ? "text-gorse" : "text-ink-faint hover:text-ink"
+        className={`mb-6 block font-mono text-[0.75rem] tracking-[0.12em] uppercase transition-colors ${
+          pathname === "/docs" ? "text-accent" : "text-fg-subtle hover:text-fg"
         }`}
       >
         All documents
@@ -40,7 +40,7 @@ export function DocsNav({ sections }: DocsNavProps) {
         {sections.map((section) => (
           <li key={section.id}>
             <p className="eyebrow mb-2">{section.title}</p>
-            <ul className="flex flex-col gap-0.5 border-l border-wall">
+            <ul className="flex flex-col gap-0.5 border-l border-border">
               {section.documents.map((doc) => {
                 const href = `/docs/${doc.slug}`
                 const active = pathname === href
@@ -51,8 +51,8 @@ export function DocsNav({ sections }: DocsNavProps) {
                       aria-current={active ? "page" : undefined}
                       className={`-ml-px block border-l py-1 pl-3 text-micro leading-snug transition-colors ${
                         active
-                          ? "border-gorse text-gorse"
-                          : "border-transparent text-ink-soft hover:border-lichen hover:text-ink"
+                          ? "border-accent text-accent"
+                          : "border-transparent text-fg-muted hover:border-border-strong hover:text-fg"
                       }`}
                     >
                       {doc.title}

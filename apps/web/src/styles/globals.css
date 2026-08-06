@@ -1,20 +1,38 @@
 @import "tailwindcss";
 
 /*
- * ── The meitheal's own landscape ──────────────────────────────────────────
+ * ── The palette ───────────────────────────────────────────────────────────
  *
- * Carried over unchanged from the static `site/index.html` this app replaces,
- * because the identity was already right: limewash walls, peat ink, gorse
- * burning on the hillside, lichen on the field wall. Gorse is the only loud
- * colour on the page and it appears sparingly on purpose — it has to mean
- * something every time it shows up.
+ * Neutral surfaces, one accent, and nothing else.
+ *
+ * What this replaces was a landscape: a limewash-green ground, gorse yellow for
+ * the accent, lichen for the rules, and two field greens for a canvas that drew
+ * a townland behind the hero. It was a coherent identity and it was the wrong
+ * one — it read as a craft brand, and the thing being described is a piece of
+ * server software somebody is deciding whether to run. So the ground is now
+ * greyscale at chroma zero, the accent is a single green, and every colour on
+ * the page is one of those two things.
+ *
+ * The green is not the old one. That was gorse — a mustard yellow — over a
+ * limewash sage, and both were landscape colours. This is the green a terminal
+ * is: emerald against near-black in dark, a deep pine against white in light.
+ * That is also where the two schemes have to part company, and it is worth
+ * saying why a single value would not do. Emerald on white reads at about
+ * 3.5:1, which is under the floor for the small text this marks — so each
+ * scheme carries the step of the ramp that clears 4.5:1 against its own ground,
+ * and `--accent-contrast` carries what is legible on top of it.
+ *
+ * The accent is spent deliberately. It marks exactly four kinds of thing — the
+ * one primary action, the current item in a list, a link's underline, and a
+ * measured bar — and it appears nowhere else. A page where six things are green
+ * is a page where the button does not stand out.
  *
  * Three declarations of the same palette rather than one, and the repetition is
  * load-bearing:
  *
- *   :root                       the light scheme, and the default
+ *   :root                                 the light scheme, and the default
  *   @media (prefers-color-scheme: dark)   a visitor who has never touched the toggle
- *   :root[data-theme="…"]       a visitor who has, in either direction
+ *   :root[data-theme="…"]                 a visitor who has, in either direction
  *
  * The attribute has to win over the media query in *both* directions, which a
  * single media-query-only definition cannot do: someone whose system is dark and
@@ -22,132 +40,163 @@
  * absence of the dark ones.
  */
 :root {
-  --ground: #eef0e8;
-  --ground-deep: #e3e7db;
+  /* Surfaces, from the page backwards: the sheet, a band cut into it, a card raised off it. */
+  --canvas: #fcfcfd;
+  --surface: #f4f5f8;
+  --raised: #ffffff;
+
+  --fg: #0b0d12;
+  --fg-muted: #4e5563;
+  --fg-subtle: #7c838f;
+
   /*
-   * A third surface, and the only one added since the identity was set: the
-   * panel carrying the board sketch has to read as sitting *above* the page,
-   * and `--ground-deep` reads as cut into it. In light the raised surface is
-   * nearer white than the ground; in dark it is nearer the ink. Both are the
-   * direction a light source implies.
+   * The accent, and what is legible *on* it. A filled button is the only place
+   * the second one is used, and without it the label sits at about 3:1 in one
+   * scheme or the other — the hazard of a mid-tone accent that has to work
+   * against both a white and a near-black page.
    */
-  --ground-raise: #f7f8f2;
-  --ink: #191e19;
-  --ink-soft: #4a5347;
-  --ink-faint: #78826f;
-  --gorse: #c8901a;
-  --gorse-flat: #e4b024;
-  /*
-   * What is legible *on* gorse, which neither --ink nor --ground can be in both
-   * schemes: light gorse wants the dark ink, dark gorse wants the dark ground.
-   * A filled gorse button is the only place it is used, and without it that
-   * button reads at about 2.5:1 in one scheme or the other.
-   */
-  --on-gorse: #191e19;
-  --lichen: #77896c;
-  --wall: #cbd1c0;
-  --field-a: #dde3d2;
-  --field-b: #e6eadd;
-  --lift: 0 1px 1px color-mix(in srgb, var(--ink) 4%, transparent),
-    0 20px 44px -28px color-mix(in srgb, var(--ink) 42%, transparent);
+  --accent: #047857;
+  --accent-hover: #036045;
+  --accent-contrast: #ffffff;
+
+  --border: #e4e6eb;
+  --border-strong: #d0d4dc;
+
+  /* The wash behind the hero, and the ruled grid under it. */
+  --glow: color-mix(in srgb, var(--accent) 18%, transparent);
+  --grid-line: color-mix(in srgb, var(--fg) 6%, transparent);
+
+  --lift: 0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
+    0 12px 32px -16px color-mix(in srgb, var(--fg) 22%, transparent);
+  --lift-lg: 0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
+    0 32px 64px -28px color-mix(in srgb, var(--fg) 35%, transparent);
+
+  --radius-card: 0.75rem;
+  --radius-control: 0.5rem;
 
   --measure: 34rem;
-  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
-  --step-0: clamp(1rem, 0.97rem + 0.16vw, 1.09rem);
-  --step-1: clamp(1.2rem, 1.12rem + 0.38vw, 1.42rem);
-  --step-2: clamp(1.5rem, 1.32rem + 0.9vw, 2.1rem);
-  --step-3: clamp(2.1rem, 1.6rem + 2.5vw, 3.9rem);
-  --step-4: clamp(2.7rem, 1.5rem + 5.4vw, 6.4rem);
 
-  --display: "Hoefler Text", Baskerville, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --body: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, sans-serif;
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  /*
+   * A sans scale, tuned tighter than the serif one it replaces. The old hero
+   * step topped out at 6.4rem, which a Baskerville can carry and a grotesque
+   * cannot — at that size a sans headline stops being typography and becomes a
+   * banner.
+   */
+  --step--1: clamp(0.8125rem, 0.8rem + 0.06vw, 0.875rem);
+  --step-0: clamp(0.9375rem, 0.92rem + 0.1vw, 1rem);
+  --step-1: clamp(1.125rem, 1.08rem + 0.22vw, 1.3rem);
+  --step-2: clamp(1.5rem, 1.32rem + 0.85vw, 2.1rem);
+  --step-3: clamp(1.9rem, 1.6rem + 1.5vw, 2.9rem);
+  --step-4: clamp(2.5rem, 1.9rem + 3.2vw, 4.4rem);
+
+  /*
+   * No web font is loaded, on purpose: this site carries no analytics and no
+   * third-party script, and a font request is a request to somebody else's
+   * server on every first paint. Inter is named first because a developer
+   * audience frequently has it installed, and the system grotesque underneath
+   * it is the same shape.
+   */
+  --sans: "Inter var", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ground: #14180f;
-    --ground-deep: #0e1109;
-    --ground-raise: #1c2216;
-    --ink: #e8ebe0;
-    --ink-soft: #aeb8a4;
-    --ink-faint: #7c8873;
-    --gorse: #efc245;
-    --gorse-flat: #e9bc3a;
-    --on-gorse: #14180f;
-    --lichen: #8fa283;
-    --wall: #404d33;
-    --field-a: #242d18;
-    --field-b: #1b2213;
-    --lift: 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent),
-      0 24px 48px -30px #000;
+    --canvas: #08090c;
+    --surface: #0d0f13;
+    --raised: #12141a;
+
+    --fg: #f2f3f6;
+    --fg-muted: #a3a9b6;
+    --fg-subtle: #6e7480;
+
+    --accent: #34d399;
+    --accent-hover: #5ee7b7;
+    --accent-contrast: #04160f;
+
+    --border: #202430;
+    --border-strong: #2f3442;
+
+    --glow: color-mix(in srgb, var(--accent) 22%, transparent);
+    --grid-line: color-mix(in srgb, var(--fg) 7%, transparent);
+
+    --lift: 0 1px 0 color-mix(in srgb, #fff 6%, transparent), 0 16px 40px -20px #000;
+    --lift-lg: 0 1px 0 color-mix(in srgb, #fff 7%, transparent), 0 40px 80px -32px #000;
   }
 }
 
 :root[data-theme="light"] {
-  --ground: #eef0e8;
-  --ground-deep: #e3e7db;
-  --ground-raise: #f7f8f2;
-  --ink: #191e19;
-  --ink-soft: #4a5347;
-  --ink-faint: #78826f;
-  --gorse: #c8901a;
-  --gorse-flat: #e4b024;
-  /*
-   * What is legible *on* gorse, which neither --ink nor --ground can be in both
-   * schemes: light gorse wants the dark ink, dark gorse wants the dark ground.
-   * A filled gorse button is the only place it is used, and without it that
-   * button reads at about 2.5:1 in one scheme or the other.
-   */
-  --on-gorse: #191e19;
-  --lichen: #77896c;
-  --wall: #cbd1c0;
-  --field-a: #dde3d2;
-  --field-b: #e6eadd;
-  --lift: 0 1px 1px color-mix(in srgb, var(--ink) 4%, transparent),
-    0 20px 44px -28px color-mix(in srgb, var(--ink) 42%, transparent);
+  --canvas: #fcfcfd;
+  --surface: #f4f5f8;
+  --raised: #ffffff;
+
+  --fg: #0b0d12;
+  --fg-muted: #4e5563;
+  --fg-subtle: #7c838f;
+
+  --accent: #047857;
+  --accent-hover: #036045;
+  --accent-contrast: #ffffff;
+
+  --border: #e4e6eb;
+  --border-strong: #d0d4dc;
+
+  --glow: color-mix(in srgb, var(--accent) 18%, transparent);
+  --grid-line: color-mix(in srgb, var(--fg) 6%, transparent);
+
+  --lift: 0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
+    0 12px 32px -16px color-mix(in srgb, var(--fg) 22%, transparent);
+  --lift-lg: 0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent),
+    0 32px 64px -28px color-mix(in srgb, var(--fg) 35%, transparent);
 }
 
 :root[data-theme="dark"] {
-  --ground: #14180f;
-  --ground-deep: #0e1109;
-  --ground-raise: #1c2216;
-  --ink: #e8ebe0;
-  --ink-soft: #aeb8a4;
-  --ink-faint: #7c8873;
-  --gorse: #efc245;
-  --gorse-flat: #e9bc3a;
-  --on-gorse: #14180f;
-  --lichen: #8fa283;
-  --wall: #404d33;
-  --field-a: #242d18;
-  --field-b: #1b2213;
-  --lift: 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent), 0 24px 48px -30px #000;
+  --canvas: #08090c;
+  --surface: #0d0f13;
+  --raised: #12141a;
+
+  --fg: #f2f3f6;
+  --fg-muted: #a3a9b6;
+  --fg-subtle: #6e7480;
+
+  --accent: #34d399;
+  --accent-hover: #5ee7b7;
+  --accent-contrast: #04160f;
+
+  --border: #202430;
+  --border-strong: #2f3442;
+
+  --glow: color-mix(in srgb, var(--accent) 22%, transparent);
+  --grid-line: color-mix(in srgb, var(--fg) 7%, transparent);
+
+  --lift: 0 1px 0 color-mix(in srgb, #fff 6%, transparent), 0 16px 40px -20px #000;
+  --lift-lg: 0 1px 0 color-mix(in srgb, #fff 7%, transparent), 0 40px 80px -32px #000;
 }
 
 /*
- * The palette as Tailwind utilities. `inline` so the generated `bg-ground`
- * resolves `var(--ground)` at use time — which is what lets the scheme switch
+ * The palette as Tailwind utilities. `inline` so the generated `bg-canvas`
+ * resolves `var(--canvas)` at use time — which is what lets the scheme switch
  * without regenerating a stylesheet.
  */
 @theme inline {
-  --color-ground: var(--ground);
-  --color-ground-deep: var(--ground-deep);
-  --color-ground-raise: var(--ground-raise);
-  --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
-  --color-ink-faint: var(--ink-faint);
-  --color-gorse: var(--gorse);
-  --color-gorse-flat: var(--gorse-flat);
-  --color-on-gorse: var(--on-gorse);
-  --color-lichen: var(--lichen);
-  --color-wall: var(--wall);
-  --color-field-a: var(--field-a);
-  --color-field-b: var(--field-b);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
 
-  --font-display: var(--display);
-  --font-body: var(--body);
+  --font-sans: var(--sans);
   --font-mono: var(--mono);
+
+  --radius-card: var(--radius-card);
+  --radius-control: var(--radius-control);
 
   /*
    * Named rather than numbered. The `--step--1` spelling the tokens use above is
@@ -172,22 +221,24 @@ html {
 }
 
 body {
-  background: var(--ground);
-  color: var(--ink);
-  font-family: var(--body);
+  background: var(--canvas);
+  color: var(--fg);
+  font-family: var(--sans);
   font-size: var(--step-0);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  /* Real apostrophes and single-storey figures, where the installed face has them. */
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 :focus-visible {
-  outline: 2px solid var(--gorse);
-  outline-offset: 3px;
-  border-radius: 1px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--gorse) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -206,32 +257,55 @@ body {
 
 /* ── the shared voice ─────────────────────────────────────────────────── */
 
+/*
+ * The label above a section heading. Monospaced and small, which is the one
+ * typographic mannerism this design keeps: on a page about server software the
+ * mono face is not decoration, it is the face the reader's terminal is in.
+ */
 .eyebrow {
   font-family: var(--mono);
-  font-size: var(--step--1);
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: var(--ink-faint);
+  letter-spacing: 0.12em;
+  color: var(--fg-subtle);
 }
 
+/*
+ * Headlines. A grotesque set tight and heavy — the opposite of what was here,
+ * which was a Baskerville at 400. Tracking is negative and gets more negative as
+ * the size goes up, because spacing that looks right at 1rem looks loose at 4.
+ */
 .display {
-  font-family: var(--display);
-  font-weight: 400;
-  letter-spacing: -0.025em;
+  font-weight: 640;
+  letter-spacing: -0.028em;
   text-wrap: balance;
+}
+
+.display-hero {
+  font-weight: 680;
+  letter-spacing: -0.038em;
+  text-wrap: balance;
+}
+
+.lede {
+  font-size: var(--step-1);
+  line-height: 1.5;
+  color: var(--fg-muted);
+  text-wrap: pretty;
 }
 
 .textlink {
   color: inherit;
   text-decoration: underline;
-  text-decoration-color: var(--gorse);
+  text-decoration-color: color-mix(in srgb, var(--accent) 60%, transparent);
   text-underline-offset: 0.3em;
-  text-decoration-thickness: 2px;
-  transition: color 0.15s ease;
+  text-decoration-thickness: 1.5px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
 }
 
 .textlink:hover {
-  color: var(--gorse);
+  color: var(--accent);
+  text-decoration-color: var(--accent);
 }
 
 /*
@@ -251,62 +325,110 @@ body {
   margin-inline: auto;
 }
 
+/* ── the hero backdrop ────────────────────────────────────────────────── */
+
 /*
- * An eyebrow with a rule leading into it. The plain `.eyebrow` is still there
- * for labels inside a component; this one opens a section, and the rule is what
- * makes a page of eleven sections scan as eleven rather than as one long column.
+ * Two elements, no canvas and no JavaScript.
+ *
+ * What this replaces was a 170-line client component that drew a jittered
+ * lattice of fields on a `<canvas>`, re-read the design tokens on every repaint
+ * and watched two media queries so the theme toggle stayed honest. It was the
+ * single largest piece of script on the site and it drew the part of the
+ * identity being retired. A ruled grid under a soft wash of the accent says
+ * "developer tool" in the half second before anybody reads a word, and it costs
+ * two divs.
+ *
+ * The mask is what stops it being a wallpaper: the grid is at full strength
+ * behind the badge and gone by the foot of the hero, so the band ends in the
+ * page rather than against a hard line where the ruling stops.
  */
-.eyebrow-rule {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 3.5rem 3.5rem;
+  -webkit-mask-image: radial-gradient(ellipse 80% 65% at 20% 0%, #000 10%, transparent 70%);
+  mask-image: radial-gradient(ellipse 80% 65% at 20% 0%, #000 10%, transparent 70%);
 }
 
-.eyebrow-rule::before {
-  content: "";
-  width: 1.75rem;
+.hero-glow {
+  position: absolute;
+  inset: -12rem -20% auto -20%;
+  height: 42rem;
+  z-index: -10;
+  background: radial-gradient(ellipse 50% 50% at 30% 50%, var(--glow), transparent 70%);
+  pointer-events: none;
+}
+
+/*
+ * A hairline of accent along the very top of the page. One pixel, and it is the
+ * first thing the eye registers as "this has a colour".
+ */
+.top-beam {
   height: 1px;
-  background: var(--gorse);
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in srgb, var(--accent) 70%, transparent) 20%,
+    color-mix(in srgb, var(--accent) 30%, transparent) 55%,
+    transparent 85%
+  );
 }
 
 /* ── things you can press ─────────────────────────────────────────────── */
 
-/*
- * The site had no button at all: every call to action was an underlined word,
- * which is the correct weight for "source" and the wrong one for the single
- * thing the page wants you to do. One filled button per screen, and the filled
- * one is gorse — the colour that has to mean something every time it appears.
- */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  border: 1px solid var(--wall);
-  border-radius: 3px;
-  padding: 0.72rem 1.15rem;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: 0.62rem 1.05rem;
   font-size: var(--step-0);
-  line-height: 1.1;
-  color: var(--ink);
-  background: var(--ground-raise);
-  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--fg);
+  background: var(--raised);
+  box-shadow: var(--lift);
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .btn:hover {
-  border-color: var(--gorse);
-  color: var(--gorse);
+  border-color: var(--border-strong);
+  background: var(--surface);
 }
 
+/*
+ * One filled button per screen, and it is the accent. The glow under it is the
+ * only shadow on the site that carries a hue — a filled control on a dark page
+ * otherwise reads as a flat sticker.
+ */
 .btn-primary {
-  background: var(--gorse);
-  border-color: var(--gorse);
-  color: var(--on-gorse);
-  font-weight: 600;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 560;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 12px 28px -14px color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
 .btn-primary:hover {
-  background: var(--gorse-flat);
-  border-color: var(--gorse-flat);
-  color: var(--on-gorse);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--accent-contrast);
+}
+
+.btn-quiet {
+  background: transparent;
+  box-shadow: none;
+}
+
+.btn-quiet:hover {
+  background: var(--surface);
 }
 
 /* The arrow moves, the button does not. Motion at the size of the affordance. */
@@ -318,160 +440,128 @@ body {
   transform: translateX(0.2rem);
 }
 
+/*
+ * The pill above the headline: what this is, in five words, before the headline
+ * gets a chance to be clever. The dot is the only decorative use of the accent
+ * on the page, and it earns its place by being the thing that makes a pill read
+ * as a status rather than as a button.
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem 0.3rem 0.7rem;
+  background: color-mix(in srgb, var(--raised) 70%, transparent);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--fg-muted);
+  backdrop-filter: blur(6px);
+}
+
+.badge-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  border: 1px solid var(--wall);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.2rem 0.7rem;
+  padding: 0.15rem 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.kbd {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
   font-family: var(--mono);
   font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--fg-subtle);
+  background: var(--surface);
 }
 
 /* ── surfaces ─────────────────────────────────────────────────────────── */
 
-/*
- * Raised, not cut in. Used for the two things on the page that are meant to be
- * looked *at* rather than read past — the board sketch and the install
- * transcript — and nowhere else, because a page where everything is raised is a
- * page where nothing is.
- */
-.panel {
-  background: var(--ground-raise);
-  border: 1px solid var(--wall);
-  border-radius: 4px;
-  box-shadow: var(--lift);
-}
-
-/* ── the numbers ──────────────────────────────────────────────────────── */
-
-/*
- * The display face rather than the body face, which is the opposite of the
- * usual dashboard advice and right here: this site's headline voice *is* the
- * serif, so a sans figure under a serif headline reads as a widget somebody
- * pasted in. Proportional figures, not tabular — `tabular-nums` gives every
- * digit the width of a zero, which looks loose at this size. The table further
- * down the page wants the opposite, and asks for it there.
- */
-.stat-value {
-  font-family: var(--display);
-  font-size: var(--step-2);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--ink);
+.card {
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
 }
 
 /*
- * A budget and what was measured against it, as a bar.
+ * A grid of cards with real gaps between them, rounded, each one raised off the
+ * band it sits in.
  *
- * One series, so no legend and no palette to validate: the fill is gorse, the
- * track is gorse at low alpha — a lighter step of the same ramp, so the whole
- * bar reads as one measurement rather than as two colours. The number is beside
- * it in text, because a bar alone is not a value.
+ * The version before this drew a single hairline table — border-left and
+ * border-top on the container, border-right and border-bottom on every cell —
+ * so that a short last row would not leave a hole in the ruling. That is a
+ * careful solution to a problem this layout does not have: cards separated by a
+ * gap are already free to number anything, and the shape reads as a set of
+ * things rather than as a spreadsheet.
  */
-.meter {
-  height: 0.4rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--gorse) 16%, transparent);
-  overflow: hidden;
-}
-
-.meter > span {
-  display: block;
-  height: 100%;
-  min-width: 0.4rem;
-  border-radius: 999px;
-  background: var(--gorse);
-}
-
-/* ── the install transcript ───────────────────────────────────────────── */
-
-
-/* ── the board sketch ─────────────────────────────────────────────────── */
-
-.sketch-bar {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--wall);
-  background: color-mix(in srgb, var(--ground-deep) 55%, var(--ground-raise));
-}
-
-.sketch-row {
+.card-grid {
   display: grid;
-  grid-template-columns: 1.4rem minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 0.85rem;
-  padding: 0.8rem 1rem;
+  gap: 0.75rem;
 }
 
-.sketch-row + .sketch-row {
-  border-top: 1px solid color-mix(in srgb, var(--wall) 65%, transparent);
-}
-
-.sketch-foot {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.7rem 1rem;
-  border-top: 1px solid var(--wall);
-  background: color-mix(in srgb, var(--ground-deep) 40%, var(--ground-raise));
-}
-
-/*
- * A grid of bordered cells whose last row may be short.
- *
- * The obvious way to draw this — `gap-px` over a background the colour of the
- * wall — draws the wall wherever a cell is missing, so the last row of a
- * seven-item grid in three columns ends in a solid block. That is a layout that
- * silently constrains the *content*: adding a seventh capability, or a seventh
- * documentation section, would have meant either living with the block or
- * finding an eighth thing to say. Per-cell borders instead, so the count is free.
- */
-.cell-grid {
-  display: grid;
-  border-top: 1px solid var(--wall);
-  border-left: 1px solid var(--wall);
-}
-
-.cell-grid > * {
-  border-right: 1px solid var(--wall);
-  border-bottom: 1px solid var(--wall);
-  padding: 1.6rem;
+.card-grid > * {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  transition: background-color 0.15s ease;
+  padding: 1.5rem;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 /*
- * A cell that is a link is a link *everywhere*, not just on the words at the
- * bottom of it. The tint is what says so — without it the whole-cell target is
- * invisible, and a reader aims at the four underlined words instead.
+ * A card that is a link is a link *everywhere*, not just on the four words at
+ * the bottom of it. The lift is what says so — without it the whole-card target
+ * is invisible and a reader aims at the underlined words instead.
  */
-.cell-grid > a:hover {
-  background: color-mix(in srgb, var(--gorse) 7%, transparent);
+.card-grid > a:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--lift);
+  transform: translateY(-2px);
 }
 
-.cell-grid > a:hover .cell-arrow {
-  color: var(--gorse);
+.card-grid > a:hover .card-arrow {
+  color: var(--accent);
 }
 
-.cell-arrow {
+.card-arrow {
   transition: color 0.15s ease;
 }
 
 /*
+ * A cell that holds a place and draws nothing. The previous/next pair at the
+ * foot of a document is a two-column grid where either side may be missing, and
+ * the missing one still has to occupy its column — otherwise a document with no
+ * predecessor puts "Next" on the left, where the eye reads it as "previous".
+ */
+.card-grid > .card-ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+/*
  * A whole row that is a link — the documentation index, where the title, the
- * blurb and the arrow are one target. The same tint as a linked cell, so the two
- * lists on this site that behave this way look like they behave this way.
+ * blurb and the arrow are one target.
  */
 .row-link {
   display: grid;
@@ -481,43 +571,165 @@ body {
   row-gap: 0.25rem;
   margin-inline: -0.75rem;
   padding: 1rem 0.75rem;
-  border-radius: 2px;
+  border-radius: var(--radius-control);
   transition: background-color 0.15s ease;
 }
 
 .row-link:hover {
-  background: color-mix(in srgb, var(--gorse) 7%, transparent);
+  background: var(--surface);
+}
+
+/* ── the numbers ──────────────────────────────────────────────────────── */
+
+/*
+ * Tabular figures, tight, in the body face. The old rule set these in the serif
+ * display face and argued for it — which was right when the headline voice was
+ * a serif, and is wrong now that the whole page is one grotesque. A stat set in
+ * the same face as the heading above it reads as part of the page.
+ */
+.stat-value {
+  font-size: var(--step-2);
+  font-weight: 640;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
 }
 
 /*
- * The wash over the hero canvas. A gradient rather than a flat scrim: the
- * townland has to stay legible at the right-hand edge, where there is no text
- * over it, and disappear under the headline, where there is.
+ * A budget and what was measured against it, as a bar.
+ *
+ * One series, so no legend and no palette to validate: the fill is the accent,
+ * the track is the accent at low alpha — a lighter step of the same ramp, so the
+ * whole bar reads as one measurement rather than as two colours. The number is
+ * beside it in text, because a bar alone is not a value.
  */
+.meter {
+  height: 0.375rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  overflow: hidden;
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  min-width: 0.375rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+/* ── the terminal ─────────────────────────────────────────────────────── */
+
 /*
- * The wash over the hero canvas. Two gradients rather than one, because the
- * townland now has to do two different things in two directions.
+ * Three commands in a window, which is the one illustration a piece of
+ * self-hosted software owes the reader: the whole claim of this page is that it
+ * runs on a machine you already have, and a shell transcript is that claim in
+ * the shape the audience reads proof in.
  *
- * Across: it disappears under the headline, where there is text over it, and
- * survives on the right, where the board sketch sits — but only as far as
- * texture. Raw canvas beside an opaque panel competes with it, so the far edge
- * keeps a quarter of the ground rather than none of it.
- *
- * Down: it fades out at the foot, so the hero ends in the page rather than
- * against a hard line where the fields stop being drawn.
+ * A plain card rather than a mock of a specific terminal — no traffic lights, no
+ * macOS impersonation. The bar carries the working directory, because that is
+ * the part of a real terminal that carries information.
  */
-.hero-wash {
-  position: absolute;
-  inset: 0;
-  z-index: -10;
-  background:
-    linear-gradient(to top, var(--ground), transparent 28%),
-    linear-gradient(
-      105deg,
-      var(--ground) 30%,
-      color-mix(in srgb, var(--ground) 66%, transparent) 66%,
-      color-mix(in srgb, var(--ground) 28%, transparent)
-    );
+.terminal {
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--lift);
+  overflow: hidden;
+  font-family: var(--mono);
+  /*
+   * A fixed size rather than a step of the scale. The longest line is a clone
+   * URL and the column it sits in is a fixed width, so letting the type grow
+   * with the viewport is what makes a transcript that fits at 1280px scroll
+   * sideways at 1600.
+   */
+  font-size: 0.8125rem;
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.terminal-body {
+  padding: 1rem 1.1rem 1.15rem;
+  line-height: 1.85;
+  overflow-x: auto;
+}
+
+.terminal-line {
+  white-space: pre;
+}
+
+/* The prompt is not part of what you would paste, so it is not selectable. */
+.terminal-line::before {
+  content: "$ ";
+  color: var(--accent);
+  user-select: none;
+}
+
+.terminal-line[data-out]::before {
+  content: "  ";
+  color: transparent;
+}
+
+.terminal-line[data-out] {
+  color: var(--fg-subtle);
+}
+
+/* ── the board preview ────────────────────────────────────────────────── */
+
+.preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.95rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.preview-row {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.8rem;
+  padding: 0.8rem 0.95rem;
+}
+
+.preview-row + .preview-row {
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+/* The marker beside a forum: neutral, because it is not a second accent. */
+.preview-dot {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--fg-subtle);
+}
+
+.preview-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.95rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 
 /* ── the rendered documents ───────────────────────────────────────────── */
@@ -530,8 +742,8 @@ body {
  */
 .doc-body {
   font-size: var(--step-0);
-  line-height: 1.7;
-  color: var(--ink-soft);
+  line-height: 1.75;
+  color: var(--fg-muted);
   overflow-wrap: break-word;
 }
 
@@ -545,7 +757,7 @@ body {
 }
 
 .doc-body strong {
-  color: var(--ink);
+  color: var(--fg);
   font-weight: 600;
 }
 
@@ -554,11 +766,10 @@ body {
 }
 
 .doc-heading {
-  color: var(--ink);
-  font-family: var(--display);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.2;
+  color: var(--fg);
+  font-weight: 640;
+  letter-spacing: -0.022em;
+  line-height: 1.25;
   text-wrap: balance;
   scroll-margin-top: 6rem;
 }
@@ -567,7 +778,7 @@ body {
   font-size: var(--step-2);
   margin-top: 2.6em;
   padding-top: 1.1rem;
-  border-top: 1px solid var(--wall);
+  border-top: 1px solid var(--border);
 }
 
 .doc-body h3.doc-heading {
@@ -579,9 +790,8 @@ body {
 .doc-body h5.doc-heading,
 .doc-body h6.doc-heading {
   font-size: var(--step-0);
-  font-family: var(--body);
   margin-top: 1.8em;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 
 /*
@@ -595,14 +805,14 @@ body {
 }
 
 .doc-heading-anchor:hover {
-  color: var(--gorse);
+  color: var(--accent);
 }
 
 .doc-heading-anchor::before {
   content: "#";
   position: absolute;
   left: -1.1ch;
-  color: var(--gorse);
+  color: var(--accent);
   opacity: 0;
   font-family: var(--mono);
   font-weight: 400;
@@ -617,16 +827,16 @@ body {
 }
 
 .doc-link {
-  color: var(--ink);
+  color: var(--fg);
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--gorse) 70%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
   text-underline-offset: 0.22em;
   text-decoration-thickness: 1px;
 }
 
 .doc-link:hover {
-  color: var(--gorse);
-  text-decoration-color: var(--gorse);
+  color: var(--accent);
+  text-decoration-color: var(--accent);
 }
 
 /* A link that leaves the site says so, rather than surprising the reader. */
@@ -634,7 +844,7 @@ body {
   content: "↗";
   font-size: 0.8em;
   margin-left: 0.15em;
-  color: var(--ink-faint);
+  color: var(--fg-subtle);
   vertical-align: 0.15em;
 }
 
@@ -659,10 +869,10 @@ body {
   content: "";
   position: absolute;
   left: -1rem;
-  top: 0.68em;
-  width: 0.34rem;
-  height: 0.34rem;
-  background: var(--lichen);
+  top: 0.7em;
+  width: 0.3rem;
+  height: 0.3rem;
+  background: var(--border-strong);
   border-radius: 50%;
 }
 
@@ -671,7 +881,7 @@ body {
 }
 
 .doc-body ol > li::marker {
-  color: var(--gorse);
+  color: var(--fg-subtle);
   font-family: var(--mono);
   font-size: 0.9em;
 }
@@ -684,19 +894,19 @@ body {
 .doc-body code {
   font-family: var(--mono);
   font-size: 0.88em;
-  background: var(--ground-deep);
-  border: 1px solid var(--wall);
-  border-radius: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   padding: 0.1em 0.35em;
-  color: var(--ink);
+  color: var(--fg);
   overflow-wrap: anywhere;
 }
 
 .doc-code {
   position: relative;
-  background: var(--ground-deep);
-  border: 1px solid var(--wall);
-  border-radius: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
 }
 
 /*
@@ -712,10 +922,10 @@ body {
   right: 0;
   padding: 0.35rem 0.7rem;
   font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--fg-subtle);
   pointer-events: none;
 }
 
@@ -763,13 +973,13 @@ body {
   bottom: 0.4rem;
   padding: 0.25rem 0.6rem;
   font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-faint);
-  background: var(--ground);
-  border: 1px solid var(--wall);
-  border-radius: 2px;
+  color: var(--fg-subtle);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   cursor: copy;
   /*
    * Hidden until the block is hovered or the button itself is focused. Focus is
@@ -786,8 +996,8 @@ body {
 }
 
 .doc-code-copy:hover {
-  color: var(--gorse);
-  border-color: var(--gorse);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* Touch has no hover, so the button is simply always there. */
@@ -806,19 +1016,19 @@ body {
  * and otherwise the same type as the prose around it.
  */
 .doc-callout {
-  border-left: 3px solid var(--accent, var(--lichen));
-  background: var(--ground-deep);
-  border-radius: 0 3px 3px 0;
+  border-left: 3px solid var(--accent-rule, var(--border-strong));
+  background: var(--surface);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
   padding: 1rem 1.2rem;
   max-width: 42rem;
 }
 
 .doc-callout-label {
   font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent, var(--lichen));
+  color: var(--accent-rule, var(--fg-subtle));
   margin: 0 0 0.4rem;
 }
 
@@ -830,20 +1040,14 @@ body {
   margin-top: 0;
 }
 
-.doc-callout[data-kind="note"] {
-  --accent: var(--lichen);
-}
-
+.doc-callout[data-kind="note"],
 .doc-callout[data-kind="tip"] {
-  --accent: var(--lichen);
+  --accent-rule: var(--border-strong);
 }
 
-.doc-callout[data-kind="important"] {
-  --accent: var(--gorse);
-}
-
+.doc-callout[data-kind="important"],
 .doc-callout[data-kind="warning"] {
-  --accent: var(--gorse);
+  --accent-rule: var(--accent);
 }
 
 /*
@@ -852,15 +1056,15 @@ body {
  * undone, and nothing else should compete with it.
  */
 .doc-callout[data-kind="caution"] {
-  --accent: var(--gorse);
-  background: color-mix(in srgb, var(--gorse) 10%, var(--ground-deep));
-  border-color: var(--gorse);
+  --accent-rule: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border-color: var(--accent);
 }
 
 .doc-table {
   overflow-x: auto;
-  border: 1px solid var(--wall);
-  border-radius: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
 }
 
 .doc-table table {
@@ -875,17 +1079,17 @@ body {
   text-align: left;
   vertical-align: top;
   padding: 0.7rem 0.9rem;
-  border-bottom: 1px solid var(--wall);
+  border-bottom: 1px solid var(--border);
 }
 
 .doc-table th {
   font-family: var(--mono);
-  font-size: 0.82em;
+  font-size: 0.8em;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-faint);
+  letter-spacing: 0.08em;
+  color: var(--fg-subtle);
   font-weight: 400;
-  background: var(--ground-deep);
+  background: var(--surface);
   white-space: nowrap;
 }
 
@@ -908,6 +1112,11 @@ body {
  * specificity, so this one wins by being second, and moving it above would
  * silently stop it applying.
  */
+.perf-table {
+  background: var(--raised);
+  border-radius: var(--radius-card);
+}
+
 .perf-table th,
 .perf-table td {
   vertical-align: middle;
@@ -921,7 +1130,7 @@ body {
  */
 .perf-table td:first-child {
   font-size: var(--step-0);
-  color: var(--ink);
+  color: var(--fg);
   white-space: nowrap;
 }
 
@@ -936,10 +1145,11 @@ body {
 .perf-table td:nth-child(3) {
   text-align: right;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .perf-table td:nth-child(2) {
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .perf-table tbody tr:last-child td {
@@ -947,21 +1157,21 @@ body {
 }
 
 .doc-body blockquote {
-  border-left: 2px solid var(--gorse);
+  border-left: 2px solid var(--border-strong);
   padding-left: 1.1rem;
-  color: var(--ink-faint);
+  color: var(--fg-subtle);
   max-width: 42rem;
 }
 
 .doc-body hr {
   border: 0;
-  border-top: 1px solid var(--wall);
+  border-top: 1px solid var(--border);
   margin-block: 2.5em;
 }
 
 .doc-body img {
   max-width: 100%;
   height: auto;
-  border: 1px solid var(--wall);
-  border-radius: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
 }

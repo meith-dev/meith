@@ -8,7 +8,7 @@ import {
   type DocEntry,
   type DocSection,
 } from "../docs/registry"
-import { FieldMark } from "./field-mark"
+import { Logomark } from "./logomark"
 
 /**
  * The footer, built from the same manifest as the sidebar.
@@ -31,15 +31,15 @@ export function SiteFooter() {
     .filter((pair): pair is { section: DocSection; doc: DocEntry } => pair !== null)
 
   return (
-    <footer className="border-t border-wall bg-ground-deep">
+    <footer className="border-t border-border bg-surface">
       <div className="shell pt-14 pb-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-16">
           <div className="flex flex-col gap-3">
             <Link href="/" className="flex items-center gap-2.5">
-              <FieldMark lit className="h-6 w-6 shrink-0" />
-              <b className="font-display text-mid font-semibold tracking-[-0.015em]">{site.name}</b>
+              <Logomark className="h-6 w-6 shrink-0" />
+              <b className="text-mid font-semibold tracking-[-0.03em]">{site.name}</b>
             </Link>
-            <p className="max-w-[24rem] text-micro leading-[1.6] text-ink-soft text-pretty">
+            <p className="max-w-[24rem] text-micro leading-[1.6] text-fg-muted text-pretty">
               {site.tagline}
             </p>
           </div>
@@ -52,7 +52,7 @@ export function SiteFooter() {
                   <li key={section.id}>
                     <Link
                       href={docHref(doc.slug)}
-                      className="text-micro text-ink-soft transition-colors hover:text-gorse"
+                      className="text-micro text-fg-muted transition-colors hover:text-fg"
                     >
                       {section.title}
                     </Link>
@@ -67,7 +67,7 @@ export function SiteFooter() {
                 <li>
                   <a
                     href={site.repository}
-                    className="text-micro text-ink-soft transition-colors hover:text-gorse"
+                    className="text-micro text-fg-muted transition-colors hover:text-fg"
                   >
                     Source
                   </a>
@@ -75,7 +75,7 @@ export function SiteFooter() {
                 <li>
                   <Link
                     href="/docs"
-                    className="text-micro text-ink-soft transition-colors hover:text-gorse"
+                    className="text-micro text-fg-muted transition-colors hover:text-fg"
                   >
                     All documents
                   </Link>
@@ -83,7 +83,7 @@ export function SiteFooter() {
                 <li>
                   <a
                     href={licenceHref}
-                    className="text-micro text-ink-soft transition-colors hover:text-gorse"
+                    className="text-micro text-fg-muted transition-colors hover:text-fg"
                   >
                     Licence
                   </a>
@@ -91,7 +91,7 @@ export function SiteFooter() {
                 <li>
                   <a
                     href="/llms.txt"
-                    className="font-mono text-micro text-ink-soft transition-colors hover:text-gorse"
+                    className="font-mono text-micro text-fg-muted transition-colors hover:text-fg"
                   >
                     llms.txt
                   </a>
@@ -101,8 +101,8 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-wrap items-baseline justify-between gap-x-10 gap-y-3 border-t border-wall pt-6">
-          <p className="max-w-[42rem] text-micro leading-[1.6] text-ink-faint text-pretty">
+        <div className="mt-12 flex flex-wrap items-baseline justify-between gap-x-10 gap-y-3 border-t border-border pt-6">
+          <p className="max-w-[42rem] text-micro leading-[1.6] text-fg-subtle text-pretty">
             {footer.colophon}
           </p>
           {/*
@@ -110,8 +110,8 @@ export function SiteFooter() {
             than saying "open source" — the phrase that sends a reader hunting
             through the repository is the vague one.
           */}
-          <p className="font-mono text-micro text-ink-faint">
-            <a className="transition-colors hover:text-gorse" href={licenceHref}>
+          <p className="font-mono text-micro text-fg-subtle">
+            <a className="transition-colors hover:text-fg" href={licenceHref}>
               {licence.spdx}
             </a>
           </p>
