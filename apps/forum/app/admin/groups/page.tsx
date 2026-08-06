@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { CreateGroupForm } from '@/components/admin/group-forms'
 import { requireAdmin } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
@@ -25,36 +26,39 @@ export default async function AdminGroupsPage() {
   const repository = groupAdminRepository()
   if (repository === null) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">Groups</h1>
+      <PanelPage title="Groups">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its groups cannot
-          be edited.
+          This board is running on in-memory sample data, so its groups cannot be edited.
         </p>
-      </div>
+      </PanelPage>
     )
   }
 
   const groups = await repository.list()
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold">Groups</h1>
-        <p className="text-sm text-muted-foreground">
-          A group is a set of permissions and the members who hold it. What a
-          group allows here is the <em>default</em> for every forum — a forum
-          may override it, and{' '}
-          <a href="/admin/forums" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+    <PanelPage
+      title="Groups"
+      lede={
+        <>
+          A group is a set of permissions and the members who hold it. What a group allows
+          here is the <em>default</em> for every forum — a forum may override it, and{' '}
+          <a
+            href="/admin/forums"
+            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+          >
             forum permissions
           </a>{' '}
           is where that happens.
-        </p>
-      </div>
-
+        </>
+      }
+    >
       <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
         {groups.map((group) => (
-          <li key={group.id} className="flex items-center justify-between gap-3 px-4 py-3">
+          <li
+            key={group.id}
+            className="flex items-center justify-between gap-3 px-4 py-3"
+          >
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-sm font-medium">
                 {group.title}
@@ -86,10 +90,16 @@ export default async function AdminGroupsPage() {
       </ul>
 
       <nav className="flex flex-wrap gap-4 text-sm">
-        <a href="/admin/groups/promotions" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+        <a
+          href="/admin/groups/promotions"
+          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+        >
           Promotions
         </a>
-        <a href="/admin/groups/memberships" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+        <a
+          href="/admin/groups/memberships"
+          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+        >
           Mass membership change
         </a>
       </nav>
@@ -104,6 +114,6 @@ export default async function AdminGroupsPage() {
           }))}
         />
       </section>
-    </div>
+    </PanelPage>
   )
 }

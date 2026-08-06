@@ -6,6 +6,7 @@ import {
   ResetThemeForm,
   ThemeEditorForm,
 } from '@/components/admin/theme-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
 import { buildThemeAdminView, themeAdminRepository } from '@/server/theme-admin'
 import { formatTime } from '@/view/time'
@@ -42,14 +43,13 @@ export default async function AdminThemePage({
   const now = new Date()
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/themes" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← All themes
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">{view.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          <code className="text-xs">{view.key}</code>
+    <PanelPage
+      back={{ href: '/admin/themes', label: 'All themes' }}
+      title={view.title}
+      gap="loose"
+      lede={
+        <>
+          <code className="font-mono text-xs">{view.key}</code>
           {view.isDefault
             ? ' · what a member who has chosen nothing sees'
             : view.enabled
@@ -64,14 +64,14 @@ export default async function AdminThemePage({
               </time>
             </>
           )}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {view.isBuildTheme
-            ? 'The board falls back to this theme’s components when nothing else is chosen, so it is what a new visitor sees.'
-            : 'A member who picks this theme gets its components as well as these colours.'}
-        </p>
-      </div>
-
+        </>
+      }
+      meta={
+        view.isBuildTheme
+          ? 'The board falls back to this theme’s components when nothing else is chosen, so it is what a new visitor sees.'
+          : 'A member who picks this theme gets its components as well as these colours.'
+      }
+    >
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <ThemeEditorForm
           themeKey={view.key}
@@ -83,9 +83,8 @@ export default async function AdminThemePage({
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Export</h2>
         <p className="text-sm text-muted-foreground">
-          Everything this board has changed, as a document another board can
-          import. It carries no timestamp and no board identity — only the
-          overrides themselves.
+          Everything this board has changed, as a document another board can import. It
+          carries no timestamp and no board identity — only the overrides themselves.
         </p>
         <textarea
           readOnly
@@ -105,9 +104,8 @@ export default async function AdminThemePage({
         {view.customised ? (
           <>
             <p className="text-sm text-muted-foreground">
-              Removes every override, putting the board back to exactly what the
-              theme ships. Take a copy of the export above first if you might
-              want it back.
+              Removes every override, putting the board back to exactly what the theme
+              ships. Take a copy of the export above first if you might want it back.
             </p>
             <ResetThemeForm themeKey={view.key} />
           </>
@@ -117,6 +115,6 @@ export default async function AdminThemePage({
           </p>
         )}
       </section>
-    </div>
+    </PanelPage>
   )
 }

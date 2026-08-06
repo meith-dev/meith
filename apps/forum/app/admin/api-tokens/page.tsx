@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { IssueTokenForm, RevokeTokenForm } from '@/components/admin/api-token-forms'
 import { requireAdmin } from '@/server/admin'
 import { buildApiTokenView } from '@/server/api-tokens-admin'
@@ -27,26 +28,26 @@ export default async function AdminApiTokensPage() {
 
   if (view === null) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">API tokens</h1>
+      <PanelPage title="API tokens">
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so it has no API.
         </p>
-      </div>
+      </PanelPage>
     )
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold">API tokens</h1>
-        <p className="text-sm text-muted-foreground">
-          Bearer tokens for <code className="font-mono text-xs">/api/v1</code>. Every request is
-          still checked against its owner’s permissions — a scope narrows a token, it never widens
-          the account.
-        </p>
-      </div>
-
+    <PanelPage
+      title="API tokens"
+      lede={
+        <>
+          Bearer tokens for <code className="font-mono text-xs">/api/v1</code>. Every
+          request is still checked against its owner’s permissions — a scope narrows a
+          token, it never widens the account.
+        </>
+      }
+      gap="loose"
+    >
       <section className="flex flex-col gap-3">
         <h2 className="font-serif text-lg font-semibold">Issue a token</h2>
         <IssueTokenForm scopes={view.scopes} />
@@ -62,12 +63,24 @@ export default async function AdminApiTokensPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th scope="col" className="py-2 pr-3 font-medium">Name</th>
-                  <th scope="col" className="py-2 pr-3 font-medium">Owner</th>
-                  <th scope="col" className="py-2 pr-3 font-medium">Prefix</th>
-                  <th scope="col" className="py-2 pr-3 font-medium">Scopes</th>
-                  <th scope="col" className="py-2 pr-3 font-medium">Last used</th>
-                  <th scope="col" className="py-2 pr-3 font-medium">State</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Name
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Owner
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Prefix
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Scopes
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Last used
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    State
+                  </th>
                   <th scope="col" className="py-2 font-medium">
                     <span className="sr-only">Actions</span>
                   </th>
@@ -81,9 +94,13 @@ export default async function AdminApiTokensPage() {
                     {/* The clear half only. It is how somebody matches a token
                         they hold against this list; the secret half is a hash. */}
                     <td className="py-2 pr-3 font-mono text-xs">{token.lookup}</td>
-                    <td className="py-2 pr-3 font-mono text-xs">{token.scopes.join(' ')}</td>
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {token.scopes.join(' ')}
+                    </td>
                     <td className="py-2 pr-3">
-                      {token.lastUsedAt === null ? 'never' : formatTime(token.lastUsedAt, now).label}
+                      {token.lastUsedAt === null
+                        ? 'never'
+                        : formatTime(token.lastUsedAt, now).label}
                     </td>
                     <td className="py-2 pr-3">
                       <span
@@ -99,7 +116,9 @@ export default async function AdminApiTokensPage() {
                       </span>
                     </td>
                     <td className="py-2">
-                      {token.state === 'revoked' ? null : <RevokeTokenForm tokenId={token.id} />}
+                      {token.state === 'revoked' ? null : (
+                        <RevokeTokenForm tokenId={token.id} />
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -108,6 +127,6 @@ export default async function AdminApiTokensPage() {
           </div>
         )}
       </section>
-    </div>
+    </PanelPage>
   )
 }

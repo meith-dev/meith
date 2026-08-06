@@ -6,6 +6,7 @@ import {
   type AnnouncementValues,
   type ForumChoice,
 } from '@/components/admin/content-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
 import { announcementRepository } from '@/server/announcements'
 import { getContainer } from '@/server/container'
@@ -34,13 +35,11 @@ export default async function AdminAnnouncementsPage() {
   const repository = announcementRepository()
   if (repository === null) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">Announcements</h1>
+      <PanelPage title="Announcements">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it stores no
-          announcements.
+          This board is running on in-memory sample data, so it stores no announcements.
         </p>
-      </div>
+      </PanelPage>
     )
   }
 
@@ -54,7 +53,10 @@ export default async function AdminAnnouncementsPage() {
    */
   const choices: readonly ForumChoice[] = tree
     .filter((row) => row.type === 'forum')
-    .map((row) => ({ id: row.id, label: `${' '.repeat(row.depth)}${row.title}` }))
+    .map((row) => ({
+      id: row.id,
+      label: `${' '.repeat(row.depth)}${row.title}`,
+    }))
 
   /* `datetime-local` wants `YYYY-MM-DDTHH:mm`, and the action reads it as UTC. */
   const forInput = (at: Date | null): string =>
@@ -63,20 +65,18 @@ export default async function AdminAnnouncementsPage() {
   const now = new Date()
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/content" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← Content
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">Announcements</h1>
-        <p className="text-sm text-muted-foreground">
-          A dated notice above the forums. Nobody can reply to one, it disappears
-          on its own date, and removing it removes nothing anybody wrote — which
-          is what makes it a different thing from a pinned thread rather than a
-          worse one.
-        </p>
-      </div>
-
+    <PanelPage
+      back={{ href: '/admin/content', label: 'Content' }}
+      title="Announcements"
+      lede={
+        <>
+          A dated notice above the forums. Nobody can reply to one, it disappears on its
+          own date, and removing it removes nothing anybody wrote — which is what makes it
+          a different thing from a pinned thread rather than a worse one.
+        </>
+      }
+      gap="loose"
+    >
       {rows.length === 0 ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
           None. The board shows no announcements.
@@ -90,7 +90,9 @@ export default async function AdminAnnouncementsPage() {
              * the question this screen exists to answer before it is asked.
              */
             const live =
-              row.enabled && row.startsAt <= now && (row.endsAt === null || row.endsAt > now)
+              row.enabled &&
+              row.startsAt <= now &&
+              (row.endsAt === null || row.endsAt > now)
             const state = !row.enabled
               ? 'switched off'
               : row.startsAt > now
@@ -130,6 +132,6 @@ export default async function AdminAnnouncementsPage() {
         <h2 className="font-serif text-lg font-semibold">New announcement</h2>
         <NewAnnouncementForm forums={choices} />
       </section>
-    </div>
+    </PanelPage>
   )
 }

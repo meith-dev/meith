@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation'
 
 import { WarningService } from '@meith/moderation'
 import { requireSlot } from '@meith/theme-kit'
+import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
+import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import {
   IssueWarningForm,
   RevokeWarningForm,
@@ -96,87 +98,104 @@ export default async function WarnPage({
   const notice = warningNotice(query)
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
-        {notice !== null && (
-          <Notice
-            kind="info"
-            message={notice}
-            dismissHref={`/moderation/warn?user=${view.member.userId}`}
-          />
+    <PanelPage
+      title={
+        <>
+          Warnings for{' '}
+          <a
+            href={view.member.href}
+            className="underline decoration-border underline-offset-2 hover:decoration-foreground"
+          >
+            {view.member.username}
+          </a>
+        </>
+      }
+      lede={
+        <>
+          {view.standing.points} {view.standing.points === 1 ? 'point' : 'points'}
+          {view.standing.levelLabel === null
+            ? '. No threshold reached.'
+            : ` — ${view.standing.levelLabel} at ${view.standing.levelPoints}.`}
+        </>
+      }
+    >
+      {notice !== null && (
+        <Notice
+          kind="info"
+          message={notice}
+          dismissHref={`/moderation/warn?user=${view.member.userId}`}
+        />
+      )}
+
+      <IssueWarningForm
+        userId={view.member.userId}
+        username={view.member.username}
+        postId={postId}
+        types={view.types}
+      />
+
+      <PanelSection id="history-heading" title="History">
+        {view.history.length === 0 ? (
+          <Card>
+            <Empty className="py-8">
+              <EmptyTitle>Never warned</EmptyTitle>
+              <EmptyDescription>
+                This member has no warning on record — nothing issued, and nothing lapsed.
+              </EmptyDescription>
+            </Empty>
+          </Card>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {view.history.map((row) => (
+              <li
+                key={row.id}
+                className="rounded-lg border border-border bg-card p-4 text-card-foreground shadow-elevation"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm font-medium">
+                    {row.title} — {row.points} {row.points === 1 ? 'point' : 'points'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    by {row.issuedBy} ·{' '}
+                    <time dateTime={row.issuedAt.iso}>{row.issuedAt.label}</time>
+                  </span>
+                </div>
+                {/*
+                  Plain text, never markup. A warning reason is written by a
+                  moderator about a member and is not a post; rendering it as
+                  Markdown would give it capabilities the box never advertised.
+                */}
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm">
+                  {row.reason}
+                </p>
+                {row.postId !== null && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    About post #{row.postId}
+                  </p>
+                )}
+                {row.lapsed === null ? (
+                  <div className="mt-3">
+                    <RevokeWarningForm warningId={row.id} userId={view.member.userId} />
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs italic text-muted-foreground">
+                    {row.lapsed}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
 
-        <div>
-          <h1 className="font-serif text-2xl font-semibold">
-            Warnings for{' '}
-            <a href={view.member.href} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-              {view.member.username}
-            </a>
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {view.standing.points} {view.standing.points === 1 ? 'point' : 'points'}
-            {view.standing.levelLabel === null
-              ? '. No threshold reached.'
-              : ` — ${view.standing.levelLabel} at ${view.standing.levelPoints}.`}
-          </p>
-        </div>
-
-        <IssueWarningForm
-          userId={view.member.userId}
-          username={view.member.username}
-          postId={postId}
-          types={view.types}
-        />
-
-        <section className="flex flex-col gap-3">
-          <h2 className="font-serif text-lg font-semibold">History</h2>
-          {view.history.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              This member has never been warned.
-            </p>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {view.history.map((row) => (
-                <li key={row.id} className="rounded-lg border border-border bg-card p-4">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-sm font-medium">
-                      {row.title} — {row.points}{' '}
-                      {row.points === 1 ? 'point' : 'points'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      by {row.issuedBy} ·{' '}
-                      <time dateTime={row.issuedAt.iso}>{row.issuedAt.label}</time>
-                    </span>
-                  </div>
-                  {/*
-                    Plain text, never markup. A warning reason is written by a
-                    moderator about a member and is not a post; rendering it as
-                    Markdown would give it capabilities the box never advertised.
-                  */}
-                  <p className="mt-2 whitespace-pre-wrap break-words text-sm">{row.reason}</p>
-                  {row.postId !== null && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      About post #{row.postId}
-                    </p>
-                  )}
-                  {row.lapsed === null ? (
-                    <div className="mt-3">
-                      <RevokeWarningForm warningId={row.id} userId={view.member.userId} />
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-xs italic text-muted-foreground">{row.lapsed}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-          {view.nextHref !== null && (
-            <a href={view.nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-              Older warnings
-            </a>
-          )}
-        </section>
-      </div>
-    </main>
+        {view.nextHref !== null && (
+          <a
+            href={view.nextHref}
+            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+          >
+            Older warnings
+          </a>
+        )}
+      </PanelSection>
+    </PanelPage>
   )
 }

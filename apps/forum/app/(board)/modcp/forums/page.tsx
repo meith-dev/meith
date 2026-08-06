@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { Badge, Card, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
+
+import { PanelPage } from '@/components/shell/panel-page'
 import { moderatedForumRights, resolveModCpAccess } from '@/server/modcp'
 
 export const metadata: Metadata = { title: 'My forums' }
@@ -20,44 +23,47 @@ export default async function ModCpForumsPage() {
   const forums = await moderatedForumRights(access)
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex flex-col gap-4">
-      <h1 className="font-serif text-2xl font-semibold">My forums</h1>
-
-      {forums.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          You are not assigned to any forum. Your group permissions still apply
-          wherever they grant something.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {forums.map((forum) => (
-            <li key={forum.forumId} className="rounded-lg border border-border bg-card p-4">
-              <a
-                href={`/forum/${forum.forumId}-${forum.slug}`}
-                className="font-medium text-foreground hover:underline underline-offset-2"
-              >
-                {forum.title}
-              </a>
-              {forum.rights.length === 0 ? (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  No granular rights here — your group permissions apply.
-                </p>
-              ) : (
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {forum.rights.map((right) => (
-                    <li
-                      key={right}
-                      className="rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
-                    >
-                      {right}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+    <PanelPage
+      title="My forums"
+      lede="Where you are appointed, and exactly what you may do in each."
+    >
+      <Card>
+        {forums.length === 0 ? (
+          <Empty className="py-8">
+            <EmptyTitle>No forum appointments</EmptyTitle>
+            <EmptyDescription>
+              You are not assigned to any forum. Your group permissions still apply
+              wherever they grant something.
+            </EmptyDescription>
+          </Empty>
+        ) : (
+          <CardRows>
+            {forums.map((forum) => (
+              <li key={forum.forumId} className="flex flex-col gap-2 px-4 py-3">
+                <a
+                  href={`/forum/${forum.forumId}-${forum.slug}`}
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
+                >
+                  {forum.title}
+                </a>
+                {forum.rights.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No granular rights here — your group permissions apply.
+                  </p>
+                ) : (
+                  <ul className="flex flex-wrap gap-1.5">
+                    {forum.rights.map((right) => (
+                      <li key={right}>
+                        <Badge tone="outline">{right}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </CardRows>
+        )}
+      </Card>
+    </PanelPage>
   )
 }

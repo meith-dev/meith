@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { MAX_RELATIONS } from '@meith/relations'
 import { requireSlot } from '@meith/theme-kit'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { RemoveRelationForm } from '@/components/account/relation-forms'
 import { getActor } from '@/server/context'
 import { relationService } from '@/server/relations'
@@ -61,71 +62,64 @@ export default async function ContactsPage({
   const notice = contactsNotice(query)
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
-        {notice !== null && (
-          <Notice kind={notice.kind} message={notice.message} dismissHref={RETURN_TO} />
+    <PanelPage
+      title="Buddies and ignored members"
+      lede={`Add somebody from their profile. ${view.total} of ${view.limit} used.`}
+    >
+      {notice !== null && (
+        <Notice kind={notice.kind} message={notice.message} dismissHref={RETURN_TO} />
+      )}
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-serif text-lg font-semibold">
+          Buddies{' '}
+          <span className="text-sm font-normal text-muted-foreground">
+            {view.onlineCount > 0 ? `${view.onlineCount} online now` : null}
+          </span>
+        </h2>
+
+        {view.buddies.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nobody yet. There is a link on every member&rsquo;s profile.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+            {view.buddies.map((row) => (
+              <ContactLine key={row.userId} row={row} />
+            ))}
+          </ul>
         )}
+      </section>
 
-        <div className="flex flex-col gap-1">
-          <h1 className="font-serif text-2xl font-semibold">Buddies and ignored members</h1>
-          <p className="text-sm text-muted-foreground">
-            Add somebody from their profile. {view.total} of {view.limit} used.
-          </p>
-        </div>
+      <section className="flex flex-col gap-3">
+        <h2 className="font-serif text-lg font-semibold">Ignored</h2>
+        <p className="text-sm text-muted-foreground">
+          Their posts are hidden behind a link rather than removed, so a thread still
+          reads in order and its numbering is the same for everybody. They cannot send you
+          private messages.
+        </p>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="font-serif text-lg font-semibold">
-            Buddies{' '}
-            <span className="text-sm font-normal text-muted-foreground">
-              {view.onlineCount > 0 ? `${view.onlineCount} online now` : null}
-            </span>
-          </h2>
-
-          {view.buddies.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nobody yet. There is a link on every member&rsquo;s profile.
-            </p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-              {view.buddies.map((row) => (
-                <ContactLine key={row.userId} row={row} />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="font-serif text-lg font-semibold">Ignored</h2>
-          <p className="text-sm text-muted-foreground">
-            Their posts are hidden behind a link rather than removed, so a thread
-            still reads in order and its numbering is the same for everybody. They
-            cannot send you private messages.
-          </p>
-
-          {view.ignored.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nobody.</p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-              {view.ignored.map((row) => (
-                <ContactLine key={row.userId} row={row} />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <a href="/usercp" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          &larr; Back to your control panel
-        </a>
-      </div>
-    </main>
+        {view.ignored.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nobody.</p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+            {view.ignored.map((row) => (
+              <ContactLine key={row.userId} row={row} />
+            ))}
+          </ul>
+        )}
+      </section>
+    </PanelPage>
   )
 }
 
 function ContactLine({ row }: { row: ContactRowView }) {
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
-      <a href={row.profileHref} className="text-sm font-medium text-foreground hover:underline underline-offset-2">
+      <a
+        href={row.profileHref}
+        className="text-sm font-medium text-foreground hover:underline underline-offset-2"
+      >
         {row.username}
       </a>
 
@@ -141,11 +135,18 @@ function ContactLine({ row }: { row: ContactRowView }) {
 
       <span className="ml-auto flex items-center gap-4">
         {row.messageHref !== null && (
-          <a href={row.messageHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+          <a
+            href={row.messageHref}
+            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+          >
             Message
           </a>
         )}
-        <RemoveRelationForm userId={row.userId} username={row.username} returnTo={RETURN_TO} />
+        <RemoveRelationForm
+          userId={row.userId}
+          username={row.username}
+          returnTo={RETURN_TO}
+        />
       </span>
     </li>
   )

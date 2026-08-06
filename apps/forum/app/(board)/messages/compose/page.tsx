@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { ComposeForm } from '@/components/messages/message-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -41,36 +42,30 @@ export default async function ComposePage({
    */
   const draft =
     reply !== null
-      ? await service.replyDraft({ messageId: reply, userId: actor.userId }).catch(() => null)
+      ? await service
+          .replyDraft({ messageId: reply, userId: actor.userId })
+          .catch(() => null)
       : forward !== null
-        ? await service.forwardDraft({ messageId: forward, userId: actor.userId }).catch(() => null)
+        ? await service
+            .forwardDraft({ messageId: forward, userId: actor.userId })
+            .catch(() => null)
         : null
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-6 py-8">
-        <div className="flex flex-col gap-1">
-          <h1 className="font-serif text-2xl font-semibold">Write a message</h1>
-          <p className="text-sm text-muted-foreground">
-            Private messages are not moderated, but the person you write to can
-            report one.
-          </p>
-        </div>
-
-        <ComposeForm
-          /* `?to=` prefills from a profile's "send a message" link. It is only
+    <PanelPage
+      back={{ href: '/messages', label: 'Private messages' }}
+      title="Write a message"
+      lede="Private messages are not moderated, but the person you write to can report one."
+    >
+      <ComposeForm
+        /* `?to=` prefills from a profile's "send a message" link. It is only
              a default: the server resolves whatever is actually submitted. */
-          to={draft?.to ?? query.to ?? ''}
-          subject={draft?.subject ?? ''}
-          message={draft?.message ?? ''}
-          replyToId={draft?.replyToId ?? null}
-        />
-
-        <a href="/messages" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← Back to your messages
-        </a>
-      </div>
-    </main>
+        to={draft?.to ?? query.to ?? ''}
+        subject={draft?.subject ?? ''}
+        message={draft?.message ?? ''}
+        replyToId={draft?.replyToId ?? null}
+      />
+    </PanelPage>
   )
 }
 

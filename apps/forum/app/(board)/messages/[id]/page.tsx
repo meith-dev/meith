@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { postBodyHtml } from '@meith/markdown'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { activeVocabulary } from '@/server/content-admin'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -62,71 +63,72 @@ export default async function MessagePage({
   })
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-6 py-8">
-        <a href={folderHref(view.folder)} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← Back to {view.folder}
-        </a>
-
-        <div className="flex flex-col gap-1">
-          <h1 className="font-serif text-2xl font-semibold">{view.subject}</h1>
-          <p className="text-sm text-muted-foreground">
-            From <span className="font-medium text-foreground">{view.author}</span>{' '}
-            <time dateTime={view.at.iso}>{view.at.label}</time>
-          </p>
-          {view.participants.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              To:{' '}
-              {view.participants
-                .filter((participant) => participant.role !== 'author')
-                .map((participant) =>
-                  participant.role === 'bcc'
-                    ? `${participant.username} (bcc)`
-                    : participant.username,
-                )
-                .join(', ')}
-            </p>
-          )}
-        </div>
-
-        {/*
+    <PanelPage
+      back={{ href: folderHref(view.folder), label: `Back to ${view.folder}` }}
+      title={view.subject}
+      lede={
+        <>
+          From <span className="font-medium text-foreground">{view.author}</span>{' '}
+          <time dateTime={view.at.iso}>{view.at.label}</time>
+        </>
+      }
+      {...(view.participants.length > 0
+        ? {
+            meta: `To: ${view.participants
+              .filter((participant) => participant.role !== 'author')
+              .map((participant) =>
+                participant.role === 'bcc'
+                  ? `${participant.username} (bcc)`
+                  : participant.username,
+              )
+              .join(', ')}`,
+          }
+        : {})}
+    >
+      {/*
           Trusted HTML from `@meith/markdown` — the one place on this board where
           `dangerouslySetInnerHTML` is correct, for the same reason a post body
           uses it: the string is this codebase's own construction, escaped at
           the point it was built.
         */}
-        <article
-          className="prose prose-sm max-w-none break-words"
-          dangerouslySetInnerHTML={{ __html: view.bodyHtml }}
-        />
+      <article
+        className="prose prose-sm max-w-none break-words"
+        dangerouslySetInnerHTML={{ __html: view.bodyHtml }}
+      />
 
-        <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
-          {view.actions.map((action) => (
-            <a key={action.href} href={action.href} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-              {action.label}
-            </a>
-          ))}
-          {view.reportHref !== null && (
-            <a href={view.reportHref} className="text-sm text-muted-foreground hover:text-foreground">
-              Report this message
-            </a>
-          )}
-        </div>
-
-        {view.tracking.length > 0 && (
-          <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
-            <h2 className="text-sm font-medium">Who has read it</h2>
-            <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
-              {view.tracking.map((participant) => (
-                <li key={participant.username}>
-                  <span className="text-foreground">{participant.username}</span>
-                  {participant.role === 'bcc' ? ' (bcc)' : ''} — {participant.readLabel}
-                </li>
-              ))}
-            </ul>
-          </section>
+      <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
+        {view.actions.map((action) => (
+          <a
+            key={action.href}
+            href={action.href}
+            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+          >
+            {action.label}
+          </a>
+        ))}
+        {view.reportHref !== null && (
+          <a
+            href={view.reportHref}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Report this message
+          </a>
         )}
       </div>
-    </main>
+
+      {view.tracking.length > 0 && (
+        <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
+          <h2 className="text-sm font-medium">Who has read it</h2>
+          <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
+            {view.tracking.map((participant) => (
+              <li key={participant.username}>
+                <span className="text-foreground">{participant.username}</span>
+                {participant.role === 'bcc' ? ' (bcc)' : ''} — {participant.readLabel}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </PanelPage>
   )
 }

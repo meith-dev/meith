@@ -29,16 +29,19 @@
  * The rail is sticky. A settings screen is thousands of pixels long and the
  * panel's other sections should not be a scroll away from it.
  *
- * ## Both panels use it, and that is the point
+ * ## All three panels use it, and that is the point
  *
- * The ACP had this first; the member's control panel is the second caller.
- * They differ in their tree and in one detail — whether an unrecognised
- * address falls back to the overview — and in nothing else, because two
- * control panels that navigate differently are two things to learn.
+ * The ACP had this first; the member's control panel was the second caller and
+ * the moderator's the third. They differ in their tree, in whether an
+ * unrecognised address falls back to the overview, and in whether their
+ * sections have anything to count — and in nothing else, because three control
+ * panels that navigate differently are three things to learn.
  *
- * The callers are themselves client modules (`AdminNav`, `UserCpNav`) that
- * import their own tree. That keeps the tree in the browser bundle rather than
- * serialised into the RSC payload as a prop on every page of the panel.
+ * The ACP's and the member's callers are themselves client modules (`AdminNav`,
+ * `UserCpNav`) that import their own tree, which keeps it in the browser bundle
+ * rather than serialised into the RSC payload on every page of the panel. The
+ * ModCP cannot do that — its sections depend on what the moderator may actually
+ * do — so it hands the tree across as a prop, which is a dozen short strings.
  */
 
 import { usePathname } from 'next/navigation'
@@ -46,15 +49,18 @@ import { usePathname } from 'next/navigation'
 import { Disclosure, cn } from '@meith/ui'
 
 import {
+  type PanelCounts,
   type PanelNav,
+  countFor,
   currentProps,
   deepestHrefIn,
   flattenNav,
   sectionHrefIn,
+  visibleChildren,
 } from '@/view/panel-nav'
 
 const ITEM =
-  'block rounded-md px-3 py-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'flex items-center gap-2 rounded-md px-3 py-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 /** The item you are on: filled, so it reads as a position and not as a link. */
 const HERE = 'bg-muted font-medium text-foreground'
@@ -76,12 +82,39 @@ export interface PanelNavProps {
    * across four route trees and there is no such prefix.
    */
   readonly fallbackHref?: string
+  /**
+   * What is waiting behind each address. Rendered as a count beside the label
+   * — the one thing a rail can say that a list of links cannot.
+   */
+  readonly counts?: PanelCounts
+}
+
+/**
+ * The count beside a label.
+ *
+ * `aria-hidden` on the digits and a written-out label for assistive
+ * technology: "Reports 4" read aloud is ambiguous between four reports and the
+ * fourth item, and the rail is a list where the second reading is plausible.
+ */
+function Count({ count }: { count: number }) {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="ml-auto rounded bg-surface px-1.5 py-0.5 text-xs font-medium tabular-nums text-foreground"
+      >
+        {count > 99 ? '99+' : count}
+      </span>
+      <span className="sr-only">({count} waiting)</span>
+    </>
+  )
 }
 
 function SectionList({
   nav,
   overviewHref,
   fallbackHref,
+  counts,
   pathname,
 }: PanelNavProps & { pathname: string }) {
   const active = sectionHrefIn(nav, pathname) ?? fallbackHref ?? null
@@ -91,13 +124,17 @@ function SectionList({
     <nav aria-label="Sections" className="text-sm">
       <ul className="flex flex-col gap-0.5">
         {nav.map((section) => {
-          const children = active === section.href ? (section.children ?? []) : []
+          const children =
+            active === section.href ? visibleChildren(section, deepest) : []
+          const count = countFor(counts, section.href)
 
           return (
             <li
               key={section.href}
               /* The overview is the way back, not one of the sections. */
-              className={cn(section.href === overviewHref && 'mb-1 border-b border-border pb-1')}
+              className={cn(
+                section.href === overviewHref && 'mb-1 border-b border-border pb-1',
+              )}
             >
               <a
                 href={section.href}
@@ -111,22 +148,44 @@ function SectionList({
                 )}
                 {...currentProps(pathname, section.href, deepest)}
               >
-                {section.title}
+                <span className="min-w-0 flex-1 truncate">{section.title}</span>
+                {count !== null && <Count count={count} />}
               </a>
 
               {children.length > 0 && (
                 <ul className="mt-0.5 ml-3 flex flex-col gap-0.5 border-l border-border pl-2">
-                  {children.map((child) => (
-                    <li key={child.href}>
-                      <a
-                        href={child.href}
-                        className={cn(ITEM, pathname === child.href ? HERE : ELSEWHERE)}
-                        {...currentProps(pathname, child.href, deepest)}
-                      >
-                        {child.title}
-                      </a>
-                    </li>
-                  ))}
+                  {children.map((child) => {
+                    const childCount = countFor(counts, child.href)
+
+                    /*
+                     * A record is where you are, not somewhere to go. Rendering
+                     * it as a `<span>` rather than as a link to the address you
+                     * are already at keeps the rail's tab order to the places
+                     * it can actually take you.
+                     */
+                    if (child.record === true) {
+                      return (
+                        <li key={child.href}>
+                          <span className={cn(ITEM, HERE)} aria-current="page">
+                            <span className="min-w-0 flex-1 truncate">{child.title}</span>
+                          </span>
+                        </li>
+                      )
+                    }
+
+                    return (
+                      <li key={child.href}>
+                        <a
+                          href={child.href}
+                          className={cn(ITEM, pathname === child.href ? HERE : ELSEWHERE)}
+                          {...currentProps(pathname, child.href, deepest)}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{child.title}</span>
+                          {childCount !== null && <Count count={childCount} />}
+                        </a>
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </li>

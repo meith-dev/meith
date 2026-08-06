@@ -5,7 +5,10 @@ import { ADMIN_IDLE_MINUTES } from '@meith/admin'
 
 import { AdminNav } from '@/components/admin/admin-nav'
 import { AdminSignInForm, AdminSignOutForm } from '@/components/admin/admin-forms'
+import type { PanelLink } from '@/components/shell/panel-links'
+import { PanelShell } from '@/components/shell/panel-shell'
 import { resolveAdmin } from '@/server/admin'
+import { getActor } from '@/server/context'
 
 export const metadata: Metadata = { title: 'Control panel' }
 
@@ -33,14 +36,24 @@ export const metadata: Metadata = { title: 'Control panel' }
  * panel contained.
  *
  * Now the sections are in a rail beside the content, sticky, with the one you
- * are in marked; below `lg` the same list is a `<details>` above the page. See
- * `@/components/admin/admin-nav`, and `@/view/admin-nav` for the tree they
- * both read.
+ * are in marked; below `lg` the same list is a `<details>` above the page. The
+ * arrangement itself is `PanelShell` — the same one the member's and the
+ * moderator's panels are laid out in, because three panels the same people move
+ * between all day should not be three shapes to learn. See
+ * `@/components/admin/admin-nav`, and `@/view/admin-nav` for the tree.
  *
  * The header keeps what is not navigation between sections: where you are
  * (the panel), the way back to the board, and the way out of the panel. It is
  * sticky too, because leaving is a thing people want from the bottom of a long
  * settings page as much as from the top.
+ *
+ * ## The page is the `<main>`, not this file
+ *
+ * It used to be this file, which made the ACP the one surface on the board
+ * where the landmark did not belong to the screen you were reading. Every panel
+ * page renders `PanelPage`, which is the `<main id="board-content">` the skip
+ * link above points at — so the rule is now the same in the ACP as in the
+ * board, and the skip link lands past the rail rather than in front of it.
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const resolved = await resolveAdmin()
@@ -61,10 +74,31 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         tabIndex={-1}
         className="flex min-h-screen items-center justify-center px-6 py-12"
       >
-        <AdminSignInForm next="/admin" reason="expired" idleMinutes={ADMIN_IDLE_MINUTES} />
+        <AdminSignInForm
+          next="/admin"
+          reason="expired"
+          idleMinutes={ADMIN_IDLE_MINUTES}
+        />
       </main>
     )
   }
+
+  /*
+   * The panels an administrator also holds, at the foot of the rail. An
+   * administrator is a member with an inbox and, usually, a moderator with a
+   * queue; the account menu on the board was the only route between the three
+   * and the ACP does not render the board's account menu.
+   *
+   * `getActor()` is `React.cache`d and `resolveAdmin` above has already called
+   * it, so this is free.
+   */
+  const actor = await getActor()
+  const links: readonly PanelLink[] = [
+    { href: '/usercp', label: 'Your control panel' },
+    ...(actor.global.canAccessModCp === true
+      ? [{ href: '/modcp', label: 'Moderator CP' }]
+      : []),
+  ]
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -87,7 +121,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           the header is 56px at every width the rail is sticky at — which is
           what `top-14` below is measuring.
         */}
-        <div className="mx-auto flex min-h-14 w-full max-w-7xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-6">
+        {/*
+          The same measure `PanelShell` uses below, so "Control panel" sits
+          directly over the rail rather than a hundred pixels to the left of it.
+        */}
+        <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-6">
           <a
             href="/admin"
             className="font-serif text-lg font-semibold whitespace-nowrap text-foreground"
@@ -109,26 +147,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {resolved.context.needsReauth && (
         <p className="border-b border-border bg-muted px-6 py-2 text-center text-xs text-muted-foreground">
-          It has been a while since you confirmed your password. Anything destructive will ask
-          again.
+          It has been a while since you confirmed your password. Anything destructive will
+          ask again.
         </p>
       )}
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col lg:flex-row">
-        {/*
-          `self-start` is what makes `sticky` work in a flex row — a stretched
-          item is already as tall as the row and has nowhere to stick to.
-          `top-14` is the header, which is sticky above it.
-        */}
-        <aside className="px-6 pt-6 lg:sticky lg:top-14 lg:w-60 lg:shrink-0 lg:self-start lg:py-8 lg:pr-0">
-          <AdminNav />
-        </aside>
-
-        {/* `min-w-0`: without it a wide table inside a page stretches the row. */}
-        <main id="board-content" tabIndex={-1} className="min-w-0 flex-1">
-          {children}
-        </main>
-      </div>
+      <PanelShell nav={<AdminNav />} links={links} railOffset="panel">
+        {children}
+      </PanelShell>
     </div>
   )
 }

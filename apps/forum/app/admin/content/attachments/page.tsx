@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { DeleteAttachmentForm } from '@/components/admin/content-forms'
 import { requireAdmin } from '@/server/admin'
 import { attachmentAdminRepository } from '@/server/content-admin'
@@ -37,12 +38,11 @@ export default async function AdminAttachmentsPage({
   const repository = attachmentAdminRepository()
   if (repository === null) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">Attachments</h1>
+      <PanelPage title="Attachments" width="wide">
         <p className="mt-2 text-sm text-muted-foreground">
           This board is running on in-memory sample data, so it stores no files.
         </p>
-      </div>
+      </PanelPage>
     )
   }
 
@@ -57,9 +57,8 @@ export default async function AdminAttachmentsPage({
   const status = one('status')
   const beforeText = one('before')
   /* An unparseable cursor is dropped rather than refused: it means page one. */
-  const beforeId = beforeText !== undefined && /^\d+$/.test(beforeText)
-    ? Number(beforeText)
-    : undefined
+  const beforeId =
+    beforeText !== undefined && /^\d+$/.test(beforeText) ? Number(beforeText) : undefined
 
   const [page, totals] = await Promise.all([
     repository.list({
@@ -81,20 +80,19 @@ export default async function AdminAttachmentsPage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/content" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← Content
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">Attachments</h1>
-        <p className="text-sm text-muted-foreground">
-          Every file members have uploaded. Deleting one removes it from the list
-          under its post and hands the stored bytes to the hourly sweep —{' '}
-          <strong>the post itself is untouched</strong>, because an attachment is
-          shown beside a post rather than written into it.
-        </p>
-      </div>
-
+    <PanelPage
+      back={{ href: '/admin/content', label: 'Content' }}
+      title="Attachments"
+      lede={
+        <>
+          Every file members have uploaded. Deleting one removes it from the list under
+          its post and hands the stored bytes to the hourly sweep —{' '}
+          <strong>the post itself is untouched</strong>, because an attachment is shown
+          beside a post rather than written into it.
+        </>
+      }
+      width="wide"
+    >
       <dl className="grid grid-cols-2 gap-4 rounded-lg border border-border p-4 sm:grid-cols-4">
         <div>
           <dt className="text-xs text-muted-foreground">Files</dt>
@@ -124,7 +122,10 @@ export default async function AdminAttachmentsPage({
         </div>
       </dl>
 
-      <form method="get" className="flex flex-wrap items-end gap-3 rounded-lg border border-border p-4">
+      <form
+        method="get"
+        className="flex flex-wrap items-end gap-3 rounded-lg border border-border p-4"
+      >
         <label className="flex min-w-48 flex-1 flex-col gap-1 text-sm">
           <span className="font-medium">Filename contains</span>
           <input
@@ -167,8 +168,9 @@ export default async function AdminAttachmentsPage({
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="truncate text-sm font-medium">{row.filename}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {formatBytes(row.sizeBytes)} · {row.contentType} ·{' '}
-                  {row.downloadCount} download{row.downloadCount === 1 ? '' : 's'} ·{' '}
+                  {formatBytes(row.sizeBytes)} · {row.contentType} · {row.downloadCount}{' '}
+                  download
+                  {row.downloadCount === 1 ? '' : 's'} ·{' '}
                   <time dateTime={row.createdAt.toISOString()}>
                     {formatTime(row.createdAt, now).label}
                   </time>
@@ -203,10 +205,13 @@ export default async function AdminAttachmentsPage({
       )}
 
       {page.nextBeforeId !== null && (
-        <a href={nextHref()} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+        <a
+          href={nextHref()}
+          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+        >
           Older →
         </a>
       )}
-    </div>
+    </PanelPage>
   )
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { requireAdmin } from '@/server/admin'
 import { assessMailReadiness } from '@/server/mail-health'
@@ -42,20 +43,19 @@ export default async function AdminSettingsPage({
    * dropdown that causes it lives — the same warning on the theme tab would be
    * noise, and F70's health view is where it is stated unconditionally.
    */
-  const mail =
-    model.activeGroup === 'registration' ? await assessMailReadiness() : null
+  const mail = model.activeGroup === 'registration' ? await assessMailReadiness() : null
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold">Board settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Every setting this build has, with what it does. A value equal to its
-          default is not stored, so changing a default in a later release reaches
-          a board that never touched it.
-        </p>
-      </div>
-
+    <PanelPage
+      title="Board settings"
+      lede={
+        <>
+          Every setting this build has, with what it does. A value equal to its default is
+          not stored, so changing a default in a later release reaches a board that never
+          touched it.
+        </>
+      }
+    >
       {/* A GET form: the search term lands in the URL and is shareable. */}
       <form method="get" className="flex flex-wrap items-center gap-2">
         <label className="flex-1">
@@ -81,7 +81,10 @@ export default async function AdminSettingsPage({
         {model.tabs.map((tab) => (
           <a
             key={tab.group}
-            href={settingsHref({ group: tab.group, advanced: model.showAdvanced })}
+            href={settingsHref({
+              group: tab.group,
+              advanced: model.showAdvanced,
+            })}
             aria-current={model.activeGroup === tab.group ? 'page' : undefined}
             className={
               model.activeGroup === tab.group
@@ -95,9 +98,7 @@ export default async function AdminSettingsPage({
       </nav>
 
       <p className="text-xs text-muted-foreground">
-        {model.query === ''
-          ? null
-          : `Searching every group for “${model.query}”. `}
+        {model.query === '' ? null : `Searching every group for “${model.query}”. `}
         {model.showAdvanced ? (
           <a
             href={settingsHref({
@@ -148,15 +149,16 @@ export default async function AdminSettingsPage({
             link that would release it never arrives.
           </p>
           <p className="text-sm">
-            Either set the activation method to <strong className="font-medium">none</strong>{' '}
-            or <strong className="font-medium">admin</strong>, or configure a mail driver.
-            The driver is an environment variable and takes a restart; see the Mail section
-            of the operator handbook.
+            Either set the activation method to{' '}
+            <strong className="font-medium">none</strong> or{' '}
+            <strong className="font-medium">admin</strong>, or configure a mail driver.
+            The driver is an environment variable and takes a restart; see the Mail
+            section of the operator handbook.
           </p>
         </section>
       )}
 
       <AdminSettingsForm groups={model.groups} />
-    </div>
+    </PanelPage>
   )
 }

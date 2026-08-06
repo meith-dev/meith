@@ -8,6 +8,7 @@ import {
   ModeratorsPanel,
   MoveForumForm,
 } from '@/components/admin/forum-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { forumAdminRepository } from '@/server/forum-admin'
@@ -45,18 +46,17 @@ export default async function AdminForumPage({
   }))
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/forums" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← All forums
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">{forum.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          Position in the tree is not edited here — moving a forum re-parents a
-          whole subtree and takes the forest lock.
-        </p>
-      </div>
-
+    <PanelPage
+      back={{ href: '/admin/forums', label: 'All forums' }}
+      title={forum.title}
+      lede={
+        <>
+          Position in the tree is not edited here — moving a forum re-parents a whole
+          subtree and takes the forest lock.
+        </>
+      }
+      gap="loose"
+    >
       <ForumOptionsForm
         forum={{
           id: forum.id,
@@ -102,6 +102,6 @@ export default async function AdminForumPage({
         moderators={moderators}
         groups={groups}
       />
-    </div>
+    </PanelPage>
   )
 }

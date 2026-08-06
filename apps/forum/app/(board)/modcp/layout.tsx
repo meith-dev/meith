@@ -1,9 +1,7 @@
-import { notFound } from 'next/navigation'
-
-import { resolveModCpAccess } from '@/server/modcp'
+import { ModCpShell } from '@/components/moderation/modcp-shell'
 
 /**
- * F54 — the ModCP shell.
+ * F54 — the ModCP shell, over the half of the panel that lives under `/modcp`.
  *
  * A layout rather than a repeated header, so the gate runs once per navigation
  * and every section below it can assume access has already been resolved. It
@@ -15,43 +13,12 @@ import { resolveModCpAccess } from '@/server/modcp'
  * already logged in as themselves and their powers are the ones the board
  * grants them; a second password would protect nothing that the first one does
  * not already.
+ *
+ * The *other* half of the panel is under `/moderation` — the approval queue,
+ * reports, and the warn screen — and `app/(board)/moderation/layout.tsx`
+ * renders this same shell so the rail does not vanish the moment a moderator
+ * starts working. See `ModCpShell` for why the URLs stay where they are.
  */
-export default async function ModCpLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const access = await resolveModCpAccess()
-  if (access === null) notFound()
-
-  const sections = [
-    { href: '/modcp', label: 'Overview' },
-    { href: '/moderation', label: 'Approval queue' },
-    { href: '/moderation/reports', label: 'Reports' },
-    { href: '/modcp/forums', label: 'My forums' },
-    { href: '/modcp/log', label: 'Moderator log' },
-    /*
-     * Offered only to somebody who may actually use it. The address lookup has
-     * its own answer for the same reason it has its own audit row: it is the
-     * one section that reads personal data about somebody who has done nothing.
-     */
-    ...(access.canLookUpIp ? [{ href: '/modcp/ip', label: 'Address lookup' }] : []),
-  ]
-
-  return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
-      <nav aria-label="Moderator control panel" className="flex flex-wrap gap-2">
-        {sections.map((section) => (
-          <a
-            key={section.href}
-            href={section.href}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            {section.label}
-          </a>
-        ))}
-      </nav>
-      {children}
-    </div>
-  )
+export default function ModCpLayout({ children }: { children: React.ReactNode }) {
+  return <ModCpShell>{children}</ModCpShell>
 }

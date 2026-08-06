@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { requireSlot } from '@meith/theme-kit'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { OptionsForm } from '@/components/account/usercp-forms'
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
@@ -40,28 +41,24 @@ export default async function OptionsPage({
   const Notice = requireSlot(await currentTheme(), 'Notice')
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
-        {notice !== null && (
-          <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/options" />
-        )}
-
-        <div>
-          <h1 className="font-serif text-2xl font-semibold">Your options</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            <a href="/usercp" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-              Back to your control panel
-            </a>
-          </p>
-        </div>
-
-        <OptionsForm
-          {...values}
-          timezones={availableTimezones()}
-          boardPostsPerPage={board.get('display.posts_per_page')}
-          boardThreadsPerPage={board.get('display.threads_per_page')}
+    <PanelPage
+      title="Your options"
+      lede="Your timezone, and how much of a thread fits on a page."
+    >
+      {notice !== null && (
+        <Notice
+          kind={notice.kind}
+          message={notice.message}
+          dismissHref="/usercp/options"
         />
-      </div>
-    </main>
+      )}
+
+      <OptionsForm
+        {...values}
+        timezones={availableTimezones()}
+        boardPostsPerPage={board.get('display.posts_per_page')}
+        boardThreadsPerPage={board.get('display.threads_per_page')}
+      />
+    </PanelPage>
   )
 }

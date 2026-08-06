@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { PruneForm } from '@/components/admin/user-forms'
 import { requireAdmin } from '@/server/admin'
 import { parsePruneCriteria, userBulkRepository } from '@/server/user-admin'
@@ -32,13 +33,12 @@ export default async function AdminPrunePage({
   const repository = userBulkRepository()
   if (repository === null) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">Prune members</h1>
+      <PanelPage title="Prune members">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it has no
-          membership to sweep.
+          This board is running on in-memory sample data, so it has no membership to
+          sweep.
         </p>
-      </div>
+      </PanelPage>
     )
   }
 
@@ -53,24 +53,30 @@ export default async function AdminPrunePage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/users" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← All members
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">Prune members</h1>
-        <p className="text-sm text-muted-foreground">
-          Closes dormant accounts in batches. It will never touch anybody who
-          has posted, anybody in a staff group, any forum moderator, or a banned
-          account — those are exclusions rather than options, because closing
-          one of them does damage a date filter cannot justify.
-        </p>
-      </div>
-
-      <form method="get" className="flex flex-col gap-3 rounded-lg border border-border p-4">
+    <PanelPage
+      back={{ href: '/admin/users', label: 'All members' }}
+      title="Prune members"
+      lede={
+        <>
+          Closes dormant accounts in batches. It will never touch anybody who has posted,
+          anybody in a staff group, any forum moderator, or a banned account — those are
+          exclusions rather than options, because closing one of them does damage a date
+          filter cannot justify.
+        </>
+      }
+    >
+      <form
+        method="get"
+        className="flex flex-col gap-3 rounded-lg border border-border p-4"
+      >
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Registered before</span>
-          <input type="date" name="before" defaultValue={value('before')} className={INPUT} />
+          <input
+            type="date"
+            name="before"
+            defaultValue={value('before')}
+            className={INPUT}
+          />
           <span className="text-xs text-muted-foreground">
             Required. Without it a prune matches everybody.
           </span>
@@ -78,7 +84,12 @@ export default async function AdminPrunePage({
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Not seen since</span>
-          <input type="date" name="inactive" defaultValue={value('inactive')} className={INPUT} />
+          <input
+            type="date"
+            name="inactive"
+            defaultValue={value('inactive')}
+            className={INPUT}
+          />
           <span className="text-xs text-muted-foreground">
             Members who have never been seen at all count as inactive.
           </span>
@@ -111,8 +122,8 @@ export default async function AdminPrunePage({
         </p>
       ) : preview !== null && preview.total === 0 ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          Nothing matches. Every account registered before that date has posted,
-          is staff, moderates a forum, or is banned.
+          Nothing matches. Every account registered before that date has posted, is staff,
+          moderates a forum, or is banned.
         </p>
       ) : preview !== null ? (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
@@ -123,11 +134,13 @@ export default async function AdminPrunePage({
           <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
             {preview.sample.map((row) => (
               <li key={row.id}>
-                <a href={`/admin/users/${row.id}`} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+                <a
+                  href={`/admin/users/${row.id}`}
+                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                >
                   {row.username}
                 </a>{' '}
-                — {row.email}, registered{' '}
-                {row.createdAt.toISOString().slice(0, 10)}
+                — {row.email}, registered {row.createdAt.toISOString().slice(0, 10)}
               </li>
             ))}
             {preview.total > preview.sample.length && (
@@ -143,6 +156,6 @@ export default async function AdminPrunePage({
           />
         </section>
       ) : null}
-    </div>
+    </PanelPage>
   )
 }
