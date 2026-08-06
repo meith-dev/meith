@@ -17,6 +17,17 @@
  * build time. A number typed into this file is a number that goes quietly wrong;
  * everything below is a *sentence*, and the sentences that quote a figure take it
  * as an argument.
+ *
+ * ## What changed, and why
+ *
+ * This copy used to be built around the meitheal — the Irish practice the
+ * project is named for — and the page carried a band explaining it, a proverb in
+ * Irish, and a headline ("Many hands, one field") that only made sense once you
+ * had read both. It was well written and it was aimed at the wrong reader. The
+ * person who lands here is deciding whether to run a piece of server software,
+ * and the first screen has to answer what it is, what it needs, and whether it
+ * holds up. The name still comes from where it comes from; the page no longer
+ * opens with the etymology.
  */
 
 import type { Facts } from "./facts"
@@ -26,11 +37,12 @@ export const site = {
   domain: "meith.dev",
   url: "https://meith.dev",
   repository: "https://github.com/meith-dev/meith",
-  tagline: "Forum software for communities that want to build something together.",
+  tagline: "Open-source forum software you run on your own server.",
   description:
-    "Meith is open-source forum software named for the meitheal: neighbours coming " +
-    "together for a shared task. Runs on your own server — guided by Coolify, or " +
-    "straight from the compose file.",
+    "Meith is open-source forum software for communities that want to own where they " +
+    "gather. One Postgres database and nothing else, permissions resolved per member per " +
+    "forum, typed theme and plugin APIs, and no third-party script between your members " +
+    "and their board.",
 } as const
 
 /**
@@ -69,13 +81,22 @@ export const licence = {
 export const licenceHref = `${site.repository}/blob/main/${licence.file}`
 
 export const hero = {
-  eyebrow: "Open source, LGPL-3.0 · runs on your own server · Postgres",
-  headline: { before: "Many hands, ", emphasis: "one field." },
+  /*
+   * Three facts in a pill, above the headline. They are the three things a
+   * reader has to know before the headline is worth reading — what the licence
+   * is, whose machine it runs on, and what it will ask them to operate — and
+   * every one of them is a question that otherwise sends somebody hunting
+   * through a README.
+   */
+  badge: "Open source · Self-hosted · Postgres",
+  headline: { before: "Self-hosted forum software that ", emphasis: "holds up." },
   /*
    * Kept in full. This paragraph is the one piece of copy on the site that does
    * the actual arguing, and shortening it in the name of concision took the
    * argument out — "open-source forum software" is a description, and the
-   * neighbourhood is the reason anybody would want one.
+   * neighbourhood is the reason anybody would want one. What it no longer has to
+   * carry is the etymology: the headline above it makes the claim, the badge
+   * above that names the licence and the database, and this is free to say why.
    */
   lede:
     "The internet used to feel like a neighbourhood. Today it more often feels like a " +
@@ -87,10 +108,51 @@ export const hero = {
    * The one line of small print in the hero, and it is a claim rather than a
    * disclaimer: no hosted captcha is a decision about your members, and it is the
    * thing every other board asks you to accept without mentioning.
+   *
+   * It used to end "nothing that needs a cookie banner", and that was false. A
+   * board sets `meith_theme`, `meith_scheme` and a session cookie, and it ships a
+   * consent notice — see `apps/forum/src/view/consent.ts`, which exists precisely
+   * because the optional category (analytics, off until allowed) does need asking
+   * about. The strictly-necessary ones are exempt under ePrivacy 5(3); the
+   * optional one is not, and a marketing page is the last place that distinction
+   * should be flattened into a boast.
    */
-  assurance:
-    "No hosted captcha, no third-party script between your members and your board.",
+  assurance: "No hosted captcha, and no third-party script between your members and your board.",
 } as const
+
+/**
+ * The install, as a transcript.
+ *
+ * The one illustration a piece of self-hosted software owes the reader: the
+ * whole claim of the page is that this runs on a machine they already have, and
+ * a shell transcript is that claim in the form the audience reads proof in. The
+ * first line is `installCommand` rather than a copy of it, so the page cannot
+ * show one command and offer another.
+ */
+export const terminal: {
+  readonly cwd: string
+  readonly lines: readonly { readonly text: string; readonly output?: boolean }[]
+} = {
+  cwd: "~/boards",
+  /*
+   * Every line is held to the width of the longest command above it. A
+   * transcript that scrolls sideways is a transcript nobody reads the end of,
+   * and the end is the part that says it worked.
+   *
+   * The four services are named rather than counted, because "four containers"
+   * is the claim the paragraph beside this makes and these are what they are.
+   */
+  lines: [
+    { text: installCommand },
+    { text: "cd meith && cp .env.example .env" },
+    { text: "docker compose up -d --build" },
+    { text: "✔ db        started", output: true },
+    { text: "✔ migrate   exited (0)", output: true },
+    { text: "✔ web       started", output: true },
+    { text: "✔ worker    started", output: true },
+    { text: "→ open /install to name the board", output: true },
+  ],
+}
 
 /**
  * The illustration beside the headline.
@@ -100,16 +162,20 @@ export const hero = {
  * stale against a theme somebody changed. The caption says as much, because a
  * picture of an interface implies a screenshot unless it tells you otherwise.
  */
-export const boardSketch = {
-  caption: "A board, in outline. Forums, what is in them, and the last thing said.",
-  name: "An Baile",
+export const boardPreview = {
+  caption: "A board, in outline — forums, what is in them, and the last thing said.",
+  name: "Workshop",
   blurb: "community board",
   forums: [
-    { title: "Introductions", blurb: "Say hello, and what you make.", threads: 412, posts: 3_180 },
+    { title: "Announcements", blurb: "Releases, and what changed.", threads: 96, posts: 1_204 },
     { title: "Build logs", blurb: "Work in progress, in public.", threads: 1_204, posts: 18_332 },
-    { title: "Tools & swaps", blurb: "Lend, borrow, hand on.", threads: 289, posts: 2_047 },
+    { title: "Help & support", blurb: "Ask, answer, search first.", threads: 2_891, posts: 21_470 },
   ],
-  latest: { thread: "Anyone got a spare tenon saw?", forum: "Tools & swaps", when: "4 min ago" },
+  latest: {
+    thread: "Migrating a 12-year MyBB archive",
+    forum: "Help & support",
+    when: "4 min ago",
+  },
 } as const
 
 export interface Stat {
@@ -147,20 +213,20 @@ export function proof(facts: Facts): readonly Stat[] {
 
   return [
     {
-      value: "~45",
-      label: "permission fields, resolved per member per forum",
-    },
-    {
       value: `${thread.p95Ms} ms`,
       label: `p95 for a thread page, against a ${thread.budgetMs} ms budget`,
     },
     {
-      value: `${theme.slots} slots`,
-      label: `a theme may fill, ${theme.stable} of them frozen until v2`,
+      value: "~45",
+      label: "permission fields, resolved per member per forum",
     },
     {
-      value: `${plugins.hooks} hooks`,
-      label: `a plugin may listen on, and ${api.endpoints} endpoints on the REST API`,
+      value: `${theme.slots}`,
+      label: `theme slots, ${theme.stable} of them frozen until v2`,
+    },
+    {
+      value: `${plugins.hooks}`,
+      label: `plugin hooks, and ${api.endpoints} endpoints on the REST API`,
     },
   ]
 }
@@ -293,6 +359,9 @@ export const performance = {
 export const deployment = {
   eyebrow: "Where it runs",
   heading: "Your own server. Guided, or by hand.",
+  lede:
+    "Four containers either way: Postgres, a one-shot migration the others wait on, the web " +
+    "server, and the worker that runs the background tick.",
   options: [
     {
       title: "Guided, with Coolify",
@@ -306,9 +375,9 @@ export const deployment = {
     {
       title: "Or by hand, if you would rather",
       body:
-        "The same four containers without the panel: Postgres, a one-shot migration the others " +
-        "wait on, the web server, and the worker that runs the tick. A clone, a `.env`, one " +
-        "command, and a reverse proxy you already run. The advanced route.",
+        "The same four containers without the panel: a clone, an .env with three generated " +
+        "secrets, one command, and a reverse proxy you already run. The advanced route, and the " +
+        "one the transcript above is running.",
       note: "Postgres and nothing else — no Redis, no broker, no search cluster.",
       action: { label: "Deploying by hand", doc: "self-hosting" },
     },
@@ -378,27 +447,6 @@ export const licensing = {
     "are in the repository, and both travel with any copy you pass on.",
 } as const
 
-export const story = {
-  eyebrow: "The name",
-  lead: {
-    before: "A ",
-    term: "meitheal",
-    after:
-      " is the old Irish practice of neighbours gathering to get one household's work " +
-      "done, then moving on to the next.",
-  },
-  paragraphs: [
-    "Nobody is paid and nobody keeps a ledger. Expertise is shared freely, the heavy " +
-      "lifting is distributed across everyone who turned up, and the community comes out " +
-      "of it stronger than the day's work alone would explain.",
-    "That is a forum, described before there were any. Meith is somewhere to do it on the " +
-      "internet — software you can hold the keys to, for a group of people who have " +
-      "something to get done together.",
-  ],
-  proverb: "Ar scáth a chéile a mhaireann na daoine.",
-  translation: "People live in one another's shelter.",
-} as const
-
 export const documentation = {
   eyebrow: "Documentation",
   heading: "Organised by what you are trying to do.",
@@ -409,7 +457,7 @@ export const documentation = {
 } as const
 
 export const closing = {
-  heading: "Put the neighbourhood back.",
+  heading: "Start a board this afternoon.",
   body:
     "A board of your own, on a machine of your own, in about half an hour. Read the source " +
     "before you run it — all of it is there.",
@@ -425,8 +473,17 @@ export const closing = {
   ],
 } as const
 
+/**
+ * The colophon describes *this site*, not a board — which is the distinction the
+ * line it replaces got wrong.
+ *
+ * This site has no analytics and sets no cookie at all: the colour scheme goes to
+ * `localStorage` (see `theme-storage.ts`), which is why it can say so plainly. A
+ * board is a different piece of software with different obligations, and it has
+ * its own consent notice for the one thing that needs one.
+ */
 export const footer = {
   colophon:
-    "Rendered from the Markdown in the repository. No analytics, no third-party script, " +
-    "nothing that needs a cookie banner.",
+    "Rendered from the Markdown in the repository. No analytics and no third-party scripts — " +
+    "the only thing this site stores is the colour scheme you pick, in your own browser.",
 } as const

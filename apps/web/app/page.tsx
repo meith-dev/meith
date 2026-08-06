@@ -1,8 +1,8 @@
 import Link from "next/link"
 
-import { BoardSketch } from "../src/components/board-sketch"
+import { BoardPreview } from "../src/components/board-preview"
 import { CopyCommand } from "../src/components/copy-command"
-import { FieldCanvas } from "../src/components/field-canvas"
+import { Terminal } from "../src/components/terminal"
 import { findScenario, readFacts } from "../src/content/facts"
 import {
   capabilities,
@@ -18,7 +18,6 @@ import {
   performance,
   proof,
   site,
-  story,
 } from "../src/content/site"
 import { docHref, documentsInSection, sections } from "../src/docs/registry"
 import { compact, group } from "../src/format"
@@ -26,29 +25,19 @@ import { compact, group } from "../src/format"
 /**
  * The landing page.
  *
- * The version before this one made a single claim, named three things worth
- * knowing and handed the reader to the documentation. That was the right
- * correction to the version before *it*, which argued seven points and was
- * therefore read as none — but it over-corrected. A reader who arrives knowing
- * nothing about forum software left knowing that this was some, and an operator
- * weighing it against the board they already run found nothing here to weigh.
+ * Eight bands, each answering one question somebody actually asks. What is it (a
+ * picture of a board, not a paragraph about one). Is it any good (measured
+ * numbers, from the load runner, with the budget beside them). What does it
+ * actually do. Where does it run, and what does running it look like. What about
+ * the board I am already on. What is the licence. Where do I read more.
  *
- * So: nine bands, each answering one question somebody actually asks. What is it
- * (a picture of a board, not a paragraph about one). Is it any good (measured
- * numbers, from the load runner, with the budget beside them). Where does it
- * run. What about the board I am already on. Why is it called that. Where do I
- * read more.
- *
- * There were ten. A band between the capabilities and the measurements showed a
- * terminal transcript and the installer's five steps — how *long* it takes —
- * and it answered a question the reader had not got to yet: you cannot care
- * about the five lines until you know where they run. Where it runs took its
- * place, and the transcript went with it rather than being moved twice.
- *
- * Removing a band shifts the light/dark alternation for everything after it, so
- * the measurements and the migration band are now both plain. They are still
- * two bands — there is a rule between them — and the alternative was flipping
- * four backgrounds to chase a rhythm nobody counts.
+ * There were nine. The band that went was the one explaining the name — the
+ * meitheal, the proverb, the two paragraphs of etymology — and it went because
+ * it was the page's *third* band and the reader's *last* question. What it is
+ * named after is a good story for somebody who has already decided to run this;
+ * for everybody else it was three screens between "what is this" and "does it
+ * hold up". The band about where it runs picked up the transcript that its
+ * removal made room for.
  *
  * Every word comes from `src/content/site.ts`, every document link from the
  * manifest, and every *figure* from `src/content/facts.ts`, which reads the
@@ -66,21 +55,28 @@ export default async function LandingPage() {
   return (
     <>
       {/* ── the hero ─────────────────────────────────────────────────── */}
-      <section className="relative isolate overflow-hidden border-b border-wall">
-        <FieldCanvas />
-        <div aria-hidden className="hero-wash" />
-        <div className="shell grid gap-x-14 gap-y-12 pt-16 pb-20 sm:pt-24 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-center">
-          <div className="flex flex-col gap-6">
-            <p className="eyebrow">{hero.eyebrow}</p>
+      <section className="relative isolate overflow-hidden border-b border-border">
+        {/*
+          Two divs and no JavaScript, where the old page ran a canvas: a ruled
+          grid, masked so it is gone by the foot of the band, under a soft wash
+          of the accent behind the headline.
+        */}
+        <div aria-hidden className="hero-grid" />
+        <div aria-hidden className="hero-glow" />
 
-            <h1 className="display max-w-[13ch] text-hero leading-[0.96] tracking-[-0.028em]">
+        <div className="shell grid gap-x-14 gap-y-14 pt-16 pb-20 sm:pt-24 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
+          <div className="flex flex-col items-start gap-6">
+            <p className="badge">
+              <span aria-hidden className="badge-dot" />
+              {hero.badge}
+            </p>
+
+            <h1 className="display-hero max-w-[15ch] text-hero leading-[1.02]">
               {hero.headline.before}
-              <em className="text-gorse italic">{hero.headline.emphasis}</em>
+              <span className="text-accent">{hero.headline.emphasis}</span>
             </h1>
 
-            <p className="max-w-[34rem] text-mid leading-[1.45] text-ink-soft text-pretty">
-              {hero.lede}
-            </p>
+            <p className="lede max-w-[36rem]">{hero.lede}</p>
 
             <div className="mt-1 flex flex-wrap items-center gap-3">
               <Link className="btn btn-primary" href={startHref}>
@@ -89,7 +85,7 @@ export default async function LandingPage() {
                   →
                 </span>
               </Link>
-              <Link className="btn" href="/docs">
+              <Link className="btn btn-quiet" href="/docs">
                 {hero.secondary}
               </Link>
             </div>
@@ -101,22 +97,22 @@ export default async function LandingPage() {
               </a>
             </div>
 
-            <p className="max-w-[32rem] text-micro leading-[1.5] text-ink-faint text-pretty">
+            <p className="max-w-[32rem] text-micro leading-[1.5] text-fg-subtle text-pretty">
               {hero.assurance}
             </p>
           </div>
 
-          <BoardSketch />
+          <BoardPreview />
         </div>
       </section>
 
       {/* ── the figures ──────────────────────────────────────────────── */}
-      <section aria-label="By the numbers" className="border-b border-wall bg-ground-deep">
+      <section aria-label="By the numbers" className="border-b border-border bg-surface">
         <div className="shell grid gap-x-10 gap-y-8 py-10 sm:grid-cols-2 sm:py-12 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="flex flex-col gap-2">
               <p className="stat-value">{stat.value}</p>
-              <p className="max-w-[18rem] text-micro leading-[1.5] text-ink-soft text-pretty">
+              <p className="max-w-[18rem] text-micro leading-[1.5] text-fg-muted text-pretty">
                 {stat.label}
               </p>
             </div>
@@ -125,41 +121,40 @@ export default async function LandingPage() {
       </section>
 
       {/* ── what it does ─────────────────────────────────────────────── */}
-      <section className="border-b border-wall">
+      <section className="border-b border-border">
         <div className="shell py-16 sm:py-24">
-          <header className="max-w-[44rem]">
-            <p className="eyebrow eyebrow-rule">What you get</p>
-            <h2 className="display mt-4 text-large leading-[1.15]">
+          <header className="max-w-[46rem]">
+            <p className="eyebrow">What you get</p>
+            <h2 className="display mt-3 text-large leading-[1.15]">
               Six decisions you would otherwise be living with.
             </h2>
-            <p className="mt-4 text-ink-soft text-pretty">
+            <p className="mt-4 text-fg-muted text-pretty">
               Each one is a thing that goes wrong on a board eventually, and what this one does
               about it. Each is also a link, because the page asserts and the document argues.
             </p>
           </header>
 
           {/*
-            The whole cell is the link, not the four words at the bottom of it.
-            `cell-grid` draws its borders per cell rather than with a gap, so a
-            seventh capability would not leave a solid block in the last row.
+            The whole card is the link, not the four words at the bottom of it.
+            The lift on hover is what says so.
           */}
-          <div className="cell-grid mt-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="card-grid mt-10 sm:grid-cols-2 lg:grid-cols-3">
             {capabilities.map((capability, index) => (
               <Link
                 key={capability.title}
                 href={docHref(capability.doc, capability.anchor ?? undefined)}
               >
-                <p className="font-mono text-micro tracking-[0.14em] text-gorse">
+                <p className="font-mono text-micro tracking-[0.12em] text-fg-subtle">
                   {String(index + 1).padStart(2, "0")}
                 </p>
-                <h3 className="font-display text-mid leading-[1.25] font-semibold tracking-[-0.01em] text-ink">
+                <h3 className="text-mid leading-[1.25] font-semibold tracking-[-0.02em] text-fg">
                   {capability.title}
                 </h3>
-                <p className="text-micro leading-[1.6] text-ink-soft text-pretty">
+                <p className="text-micro leading-[1.65] text-fg-muted text-pretty">
                   {capability.body}
                 </p>
-                <p className="mt-auto pt-3 font-mono text-micro tracking-[0.06em] text-ink-faint">
-                  <span className="cell-arrow">{capability.link} →</span>
+                <p className="mt-auto pt-4 font-mono text-micro text-fg-subtle">
+                  <span className="card-arrow">{capability.link} →</span>
                 </p>
               </Link>
             ))}
@@ -168,26 +163,41 @@ export default async function LandingPage() {
       </section>
 
       {/* ── where it runs ────────────────────────────────────────────── */}
-      <section className="border-b border-wall bg-ground-deep">
+      <section className="border-b border-border bg-surface">
         <div className="shell py-16 sm:py-24">
-          <header className="max-w-[44rem]">
-            <p className="eyebrow eyebrow-rule">{deployment.eyebrow}</p>
-            <h2 className="display mt-4 text-large leading-[1.15]">{deployment.heading}</h2>
-          </header>
+          {/*
+            The header and the transcript share a row, and the two routes run
+            full width underneath. The other way round — cards beside the
+            transcript — makes two narrow columns of eight lines each next to a
+            window of four, and leaves the bottom right of the band empty.
+          */}
+          <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_27rem] lg:items-center">
+            <header className="max-w-[44rem]">
+              <p className="eyebrow">{deployment.eyebrow}</p>
+              <h2 className="display mt-3 text-large leading-[1.15]">{deployment.heading}</h2>
+              <p className="mt-4 text-fg-muted text-pretty">{deployment.lede}</p>
+            </header>
 
-          <div className="cell-grid mt-10 sm:grid-cols-2">
+            <div className="flex flex-col gap-3">
+              <Terminal />
+              <p className="text-micro leading-[1.5] text-fg-subtle text-pretty">
+                The hand route, in full. The guided one is the same four containers, with the panel
+                typing the secrets for you.
+              </p>
+            </div>
+          </div>
+
+          <div className="card-grid mt-12 sm:grid-cols-2">
             {deployment.options.map((option) => (
               <div key={option.title}>
-                <h3 className="font-display text-mid font-semibold tracking-[-0.01em] text-ink">
-                  {option.title}
-                </h3>
-                <p className="text-micro leading-[1.6] text-ink-soft text-pretty">{option.body}</p>
-                <p className="mt-auto pt-3 font-mono text-micro leading-[1.5] text-ink-faint">
+                <h3 className="text-mid font-semibold tracking-[-0.02em] text-fg">{option.title}</h3>
+                <p className="text-micro leading-[1.65] text-fg-muted text-pretty">{option.body}</p>
+                <p className="mt-auto pt-3 font-mono text-micro leading-[1.5] text-fg-subtle">
                   {option.note}
                 </p>
                 {/*
-                  Each card ends somewhere. The band used to carry one link
-                  under both cards, which made the second card an assertion with
+                  Each card ends somewhere. The band used to carry one link under
+                  both cards, which made the second card an assertion with
                   nowhere to check it.
                 */}
                 <p className="pt-3">
@@ -208,12 +218,12 @@ export default async function LandingPage() {
       </section>
 
       {/* ── the measurements ─────────────────────────────────────────── */}
-      <section className="border-b border-wall">
+      <section className="border-b border-border">
         <div className="shell py-16 sm:py-24">
-          <header className="max-w-[44rem]">
-            <p className="eyebrow eyebrow-rule">{performance.eyebrow}</p>
-            <h2 className="display mt-4 text-large leading-[1.15]">{performance.heading}</h2>
-            <p className="mt-4 text-ink-soft text-pretty">{performance.lede}</p>
+          <header className="max-w-[46rem]">
+            <p className="eyebrow">{performance.eyebrow}</p>
+            <h2 className="display mt-3 text-large leading-[1.15]">{performance.heading}</h2>
+            <p className="mt-4 text-fg-muted text-pretty">{performance.lede}</p>
           </header>
 
           <div className="mt-10 grid gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
@@ -245,9 +255,7 @@ export default async function LandingPage() {
                           <span className="meter w-full min-w-16">
                             <span style={{ width: `${scenario.used}%` }} />
                           </span>
-                          <span className="w-9 shrink-0 text-right font-mono">
-                            {scenario.used}%
-                          </span>
+                          <span className="w-9 shrink-0 text-right font-mono">{scenario.used}%</span>
                         </span>
                       </td>
                     </tr>
@@ -257,10 +265,10 @@ export default async function LandingPage() {
             </div>
 
             <div className="flex flex-col gap-5">
-              <p className="text-micro leading-[1.65] text-ink-soft text-pretty">
+              <p className="text-micro leading-[1.65] text-fg-muted text-pretty">
                 {performance.aside}
               </p>
-              <p className="text-micro leading-[1.65] text-ink-faint text-pretty">
+              <p className="text-micro leading-[1.65] text-fg-subtle text-pretty">
                 Measured on {facts.performance.measured} against a board of{" "}
                 {compact(facts.performance.posts)} posts in{" "}
                 {compact(facts.performance.threads)} threads, the longest of them{" "}
@@ -277,15 +285,15 @@ export default async function LandingPage() {
       </section>
 
       {/* ── the board you are already on ─────────────────────────────── */}
-      <section className="border-b border-wall">
+      <section className="border-b border-border">
         <div className="shell grid gap-x-14 gap-y-6 py-14 sm:py-18 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
           <div>
-            <p className="eyebrow eyebrow-rule">{migration.eyebrow}</p>
-            <h2 className="display mt-4 text-large leading-[1.15]">{migration.heading}</h2>
+            <p className="eyebrow">{migration.eyebrow}</p>
+            <h2 className="display mt-3 text-large leading-[1.15]">{migration.heading}</h2>
           </div>
           <div className="flex max-w-[36rem] flex-col gap-4 lg:pt-1">
-            <p className="text-ink-soft text-pretty">{migration.body}</p>
-            <p className="text-ink text-pretty">{migration.emphasis}</p>
+            <p className="text-fg-muted text-pretty">{migration.body}</p>
+            <p className="text-fg text-pretty">{migration.emphasis}</p>
             <p>
               <Link className="textlink text-micro" href={docHref("mybb-parity")}>
                 {migration.link}
@@ -296,29 +304,29 @@ export default async function LandingPage() {
       </section>
 
       {/* ── the licence ──────────────────────────────────────────────── */}
-      <section className="border-b border-wall bg-ground-deep">
+      <section className="border-b border-border bg-surface">
         <div className="shell py-16 sm:py-20">
           <div className="grid gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
             <div>
-              <p className="eyebrow eyebrow-rule">{licensing.eyebrow}</p>
-              <h2 className="display mt-4 text-large leading-[1.15]">{licensing.heading}</h2>
+              <p className="eyebrow">{licensing.eyebrow}</p>
+              <h2 className="display mt-3 text-large leading-[1.15]">{licensing.heading}</h2>
             </div>
 
             <div className="flex max-w-[36rem] flex-col gap-6 lg:pt-1">
-              <p className="text-ink-soft text-pretty">{licensing.body}</p>
+              <p className="text-fg-muted text-pretty">{licensing.body}</p>
 
               <dl className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
                 {licensing.points.map((point) => (
                   <div key={point.title}>
-                    <dt className="text-ink">{point.title}</dt>
-                    <dd className="mt-1 text-micro leading-[1.6] text-ink-soft text-pretty">
+                    <dt className="font-medium text-fg">{point.title}</dt>
+                    <dd className="mt-1 text-micro leading-[1.65] text-fg-muted text-pretty">
                       {point.body}
                     </dd>
                   </div>
                 ))}
               </dl>
 
-              <p className="border-l-2 border-gorse pl-4 text-ink text-pretty">
+              <p className="border-l-2 border-accent pl-4 text-fg text-pretty">
                 {licensing.emphasis}
               </p>
 
@@ -328,7 +336,7 @@ export default async function LandingPage() {
                     {licensing.link} — {licence.name}
                   </a>
                 </p>
-                <p className="text-micro leading-[1.6] text-ink-faint text-pretty">
+                <p className="text-micro leading-[1.6] text-fg-subtle text-pretty">
                   {licensing.note}
                 </p>
               </div>
@@ -337,55 +345,29 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the name ─────────────────────────────────────────────────── */}
-      <section className="border-b border-wall">
-        <div className="shell py-16 sm:py-24">
-          <p className="eyebrow eyebrow-rule">{story.eyebrow}</p>
-
-          <p className="display mt-5 max-w-[26ch] text-large leading-[1.25] text-ink">
-            {story.lead.before}
-            <span className="font-display text-gorse italic">{story.lead.term}</span>
-            {story.lead.after}
-          </p>
-
-          <div className="mt-8 grid max-w-[52rem] gap-x-12 gap-y-4 sm:grid-cols-2">
-            {story.paragraphs.map((paragraph) => (
-              <p key={paragraph} className="text-micro leading-[1.7] text-ink-soft text-pretty">
-                {paragraph}
-              </p>
-            ))}
-          </div>
-
-          <blockquote className="mt-10 border-l-2 border-gorse pl-5">
-            <p className="font-display text-mid text-gorse italic">{story.proverb}</p>
-            <p className="mt-1 text-micro text-ink-faint">{story.translation}</p>
-          </blockquote>
-        </div>
-      </section>
-
       {/* ── the documentation ────────────────────────────────────────── */}
-      <section className="border-b border-wall bg-ground-deep">
+      <section className="border-b border-border">
         <div className="shell py-16 sm:py-24">
-          <header className="max-w-[44rem]">
-            <p className="eyebrow eyebrow-rule">{documentation.eyebrow}</p>
-            <h2 className="display mt-4 text-large leading-[1.15]">{documentation.heading}</h2>
-            <p className="mt-4 text-ink-soft text-pretty">{documentation.lede}</p>
+          <header className="max-w-[46rem]">
+            <p className="eyebrow">{documentation.eyebrow}</p>
+            <h2 className="display mt-3 text-large leading-[1.15]">{documentation.heading}</h2>
+            <p className="mt-4 text-fg-muted text-pretty">{documentation.lede}</p>
           </header>
 
-          <div className="cell-grid mt-10 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="card-grid mt-10 sm:grid-cols-2 lg:grid-cols-3">
             {sections.map((section) => {
               const primary = documentsInSection(section.id).find((doc) => doc.primary)
               if (!primary) return null
               return (
                 <Link key={section.id} href={docHref(primary.slug)}>
-                  <h3 className="font-display text-mid font-semibold tracking-[-0.01em] text-ink">
+                  <h3 className="text-mid font-semibold tracking-[-0.02em] text-fg">
                     {section.title}
                   </h3>
-                  <p className="text-micro leading-[1.6] text-ink-soft text-pretty">
+                  <p className="text-micro leading-[1.65] text-fg-muted text-pretty">
                     {section.blurb}
                   </p>
-                  <p className="mt-auto pt-3 font-mono text-micro text-ink-faint">
-                    <span className="cell-arrow">Start with {primary.title} →</span>
+                  <p className="mt-auto pt-4 font-mono text-micro text-fg-subtle">
+                    <span className="card-arrow">Start with {primary.title} →</span>
                   </p>
                 </Link>
               )
@@ -404,11 +386,12 @@ export default async function LandingPage() {
       </section>
 
       {/* ── the ask ──────────────────────────────────────────────────── */}
-      <section>
-        <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
+      <section className="relative isolate overflow-hidden">
+        <div aria-hidden className="hero-glow" />
+        <div className="shell grid gap-x-14 gap-y-10 py-20 sm:py-24 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
           <div className="flex flex-col items-start gap-6">
-            <h2 className="display max-w-[30ch] text-large leading-[1.15]">{closing.heading}</h2>
-            <p className="max-w-[36rem] text-ink-soft text-pretty">{closing.body}</p>
+            <h2 className="display max-w-[24ch] text-large leading-[1.12]">{closing.heading}</h2>
+            <p className="max-w-[36rem] text-fg-muted text-pretty">{closing.body}</p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
               <Link className="btn btn-primary" href={startHref}>
                 {hero.primary}
@@ -417,7 +400,7 @@ export default async function LandingPage() {
                 </span>
               </Link>
               <CopyCommand command={installCommand} />
-              <a className="btn" href={site.repository}>
+              <a className="btn btn-quiet" href={site.repository}>
                 Source
               </a>
             </div>
@@ -427,11 +410,11 @@ export default async function LandingPage() {
             The question somebody has at exactly this point, answered where they
             have it rather than one click away in the quickstart.
           */}
-          <dl className="flex flex-col gap-3 border-t border-wall pt-5 lg:mt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+          <dl className="flex flex-col gap-3 border-t border-border pt-5 lg:mt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
             {closing.requirements.map((requirement) => (
               <div key={requirement.label}>
                 <dt className="eyebrow">{requirement.label}</dt>
-                <dd className="mt-0.5 text-micro text-ink">{requirement.value}</dd>
+                <dd className="mt-0.5 text-micro text-fg">{requirement.value}</dd>
               </div>
             ))}
           </dl>

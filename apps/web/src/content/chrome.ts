@@ -6,10 +6,10 @@
  * before any stylesheet has loaded, so it cannot be `var(--ground)`. Everything
  * else — every component, every page — goes through the tokens.
  *
- * They are duplicates of `--ground` in each scheme, which is exactly the kind of
+ * They are duplicates of `--canvas` in each scheme, which is exactly the kind of
  * copy that drifts. `chrome.test.ts` reads `globals.css` and fails when it does.
  */
 export const chromeColour = {
-  light: "#EEF0E8",
-  dark: "#14180F",
+  light: "#FCFCFD",
+  dark: "#08090C",
 } as const

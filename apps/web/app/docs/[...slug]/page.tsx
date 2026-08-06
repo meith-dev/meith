@@ -56,13 +56,13 @@ export default async function DocumentPage({ params }: PageProps) {
   return (
     <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_13rem] xl:gap-12">
       <article className="min-w-0">
-        <header className="border-b border-wall pb-8">
+        <header className="border-b border-border pb-8">
           {section ? (
-            <Link href={`/docs#${entry.section}`} className="eyebrow hover:text-gorse">
+            <Link href={`/docs#${entry.section}`} className="eyebrow hover:text-fg">
               {section.title}
             </Link>
           ) : null}
-          <h1 className="display mt-2 text-huge leading-[1.04]">
+          <h1 className="display mt-2 text-huge leading-[1.06]">
             {rendered.title ?? entry.title}
           </h1>
 
@@ -75,7 +75,7 @@ export default async function DocumentPage({ params }: PageProps) {
             and the page description, where the document's own text is not there
             to do the job.
           */}
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-ink-faint">
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-fg-subtle">
             <a className="textlink" href={sourceUrl}>
               {sourcePath}
             </a>
@@ -88,9 +88,7 @@ export default async function DocumentPage({ params }: PageProps) {
                 something to a reader: this text was derived from the code, so it
                 cannot quietly disagree with the board.
               */
-              <span className="border border-wall px-2 py-0.5 tracking-[0.1em] uppercase">
-                generated from the code
-              </span>
+              <span className="chip">generated from the code</span>
             ) : null}
           </div>
         </header>
@@ -110,26 +108,23 @@ export default async function DocumentPage({ params }: PageProps) {
 
         <nav
           aria-label="Nearby documents"
-          className="mt-16 grid gap-px border border-wall bg-wall sm:grid-cols-2"
+          className="card-grid mt-16 sm:grid-cols-2"
         >
           {previous ? (
-            <Link href={docHref(previous.slug)} className="flex flex-col gap-1 bg-ground p-5">
+            <Link href={docHref(previous.slug)}>
               <span className="eyebrow">Previous</span>
-              <span className="text-ink transition-colors hover:text-gorse">{previous.title}</span>
+              <span className="font-medium text-fg">{previous.title}</span>
             </Link>
           ) : (
-            <span className="bg-ground p-5" />
+            <span aria-hidden className="card-ghost hidden sm:block" />
           )}
           {next ? (
-            <Link
-              href={docHref(next.slug)}
-              className="flex flex-col gap-1 bg-ground p-5 sm:items-end sm:text-right"
-            >
+            <Link href={docHref(next.slug)} className="sm:items-end sm:text-right">
               <span className="eyebrow">Next</span>
-              <span className="text-ink transition-colors hover:text-gorse">{next.title}</span>
+              <span className="font-medium text-fg">{next.title}</span>
             </Link>
           ) : (
-            <span className="bg-ground p-5" />
+            <span aria-hidden className="card-ghost hidden sm:block" />
           )}
         </nav>
       </article>

@@ -106,7 +106,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
   return (
     <nav aria-label="On this page" className="flex flex-col gap-2">
       <p className="eyebrow">On this page</p>
-      <ul className="flex flex-col gap-0.5 border-l border-wall">
+      <ul className="flex flex-col gap-0.5 border-l border-border">
         {shown.map((heading) => {
           const active = heading.id === activeId
           return (
@@ -118,8 +118,8 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
                   heading.depth === 3 ? "pl-6" : "pl-3"
                 } ${
                   active
-                    ? "border-gorse text-gorse"
-                    : "border-transparent text-ink-faint hover:border-lichen hover:text-ink"
+                    ? "border-accent text-accent"
+                    : "border-transparent text-fg-subtle hover:border-border-strong hover:text-fg"
                 }`}
               >
                 {heading.text}

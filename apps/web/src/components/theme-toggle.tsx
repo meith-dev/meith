@@ -54,7 +54,7 @@ export function ThemeToggle() {
 
   return (
     <fieldset
-      className="flex items-center gap-0 rounded-sm border border-wall"
+      className="flex items-center gap-0 overflow-hidden rounded-[var(--radius-control)] border border-border"
       aria-label="Colour scheme"
     >
       {CHOICES.map((option) => {
@@ -70,7 +70,7 @@ export function ThemeToggle() {
               apply(option.value)
             }}
             className={`px-2 py-1 font-mono text-micro leading-none transition-colors ${
-              active ? "bg-ground-deep text-gorse" : "text-ink-faint hover:text-ink"
+              active ? "bg-surface text-accent" : "text-fg-subtle hover:text-fg"
             }`}
           >
             <span aria-hidden>{option.glyph}</span>
