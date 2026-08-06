@@ -245,63 +245,6 @@ export const capabilities: readonly Capability[] = [
 ]
 
 /**
- * Getting to a board.
- *
- * The steps are the quickstart's, in its order, and the transcript is the same
- * four lines the README opens with. Both are here rather than written twice: the
- * page is a pointer at that document, not a second copy of it.
- *
- * The transcript used to be the `npx create-meith` flow, which nobody could run
- * — see `installCommand`. These four are the deployment, and they are the same
- * four whether the machine is a laptop you are trying it on or the server it
- * ends up living on, which is the argument for showing them rather than a
- * scaffold that only ever led here anyway.
- */
-export const install = {
-  eyebrow: "Ten minutes",
-  heading: "A machine with Docker to a board people can post on.",
-  lede:
-    "You need Docker, and a domain if this is the board you are keeping. Nothing else — " +
-    "Postgres comes up beside it, there is no account to open and no key to wait for.",
-  transcript: [
-    "git clone https://github.com/meith-dev/meith.git",
-    "cd meith",
-    "cp .env.example .env         # three secrets, generated not typed",
-    "docker compose up -d --build",
-  ],
-  steps: [
-    {
-      title: "Four containers come up",
-      body:
-        "Postgres, a one-shot migration the other two wait on, the web server, and the worker " +
-        "that runs the background tick. Then open /install.",
-    },
-    {
-      title: "The installer checks first",
-      body:
-        "It reports your environment before it offers you a form, and separates what blocks " +
-        "the install from what will be wrong later.",
-    },
-    {
-      title: "Five named steps",
-      body:
-        "Migrations, the board's name, your administrator account, a first forum, and then it " +
-        "disables itself. A failure stops at the step that failed and says which.",
-    },
-    {
-      title: "Then configure mail",
-      body:
-        "A board that has never had MAIL_DRIVER set sends no mail at all — the default writes " +
-        "each message to the log. Two variables and one setting fix it, before you invite anybody.",
-    },
-  ],
-  note:
-    "Sealing the installer is deliberately last and cannot be undone: /install answers 404 " +
-    "from then on. Run it against the database you are going to keep.",
-  link: "The quickstart, in full",
-} as const
-
-/**
  * The measurements.
  *
  * Named by the scenario the reference names, so a scenario dropped from the load

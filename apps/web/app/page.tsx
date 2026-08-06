@@ -3,7 +3,6 @@ import Link from "next/link"
 import { BoardSketch } from "../src/components/board-sketch"
 import { CopyCommand } from "../src/components/copy-command"
 import { FieldCanvas } from "../src/components/field-canvas"
-import { InstallTranscript } from "../src/components/install-transcript"
 import { findScenario, readFacts } from "../src/content/facts"
 import {
   capabilities,
@@ -11,7 +10,6 @@ import {
   deployment,
   documentation,
   hero,
-  install,
   installCommand,
   licence,
   licenceHref,
@@ -35,11 +33,22 @@ import { compact, group } from "../src/format"
  * nothing about forum software left knowing that this was some, and an operator
  * weighing it against the board they already run found nothing here to weigh.
  *
- * So: ten bands, each answering one question somebody actually asks. What is it
+ * So: nine bands, each answering one question somebody actually asks. What is it
  * (a picture of a board, not a paragraph about one). Is it any good (measured
- * numbers, from the load runner, with the budget beside them). How long does it
- * take (the five lines, and what the installer does). Where does it run. What
- * about the board I am already on. Why is it called that. Where do I read more.
+ * numbers, from the load runner, with the budget beside them). Where does it
+ * run. What about the board I am already on. Why is it called that. Where do I
+ * read more.
+ *
+ * There were ten. A band between the capabilities and the measurements showed a
+ * terminal transcript and the installer's five steps — how *long* it takes —
+ * and it answered a question the reader had not got to yet: you cannot care
+ * about the five lines until you know where they run. Where it runs took its
+ * place, and the transcript went with it rather than being moved twice.
+ *
+ * Removing a band shifts the light/dark alternation for everything after it, so
+ * the measurements and the migration band are now both plain. They are still
+ * two bands — there is a rule between them — and the alternative was flipping
+ * four backgrounds to chase a rhythm nobody counts.
  *
  * Every word comes from `src/content/site.ts`, every document link from the
  * manifest, and every *figure* from `src/content/facts.ts`, which reads the
@@ -158,57 +167,43 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── getting one running ──────────────────────────────────────── */}
+      {/* ── where it runs ────────────────────────────────────────────── */}
       <section className="border-b border-wall bg-ground-deep">
         <div className="shell py-16 sm:py-24">
           <header className="max-w-[44rem]">
-            <p className="eyebrow eyebrow-rule">{install.eyebrow}</p>
-            <h2 className="display mt-4 text-large leading-[1.15]">{install.heading}</h2>
-            <p className="mt-4 text-ink-soft text-pretty">{install.lede}</p>
+            <p className="eyebrow eyebrow-rule">{deployment.eyebrow}</p>
+            <h2 className="display mt-4 text-large leading-[1.15]">{deployment.heading}</h2>
           </header>
 
-          {/*
-            The transcript first and the steps beside it, both starting at the
-            same line. Stacked the other way round — heading, lede, five steps,
-            then a terminal — the two columns ended a screen apart and the right
-            half of the band was empty.
-          */}
-          <div className="mt-10 grid gap-x-14 gap-y-10 lg:grid-cols-2 lg:items-start">
-            <div className="flex flex-col gap-6">
-              <InstallTranscript />
-
-              {/*
-                The one irreversible step on the path, said here rather than left
-                for the document. Somebody who finds this out afterwards has a
-                board they cannot install and an /install that 404s.
-              */}
-              <p className="border-l-2 border-gorse pl-4 text-micro leading-[1.65] text-ink-soft text-pretty">
-                {install.note}
-              </p>
-
-              <p>
-                <Link className="textlink text-micro" href={startHref}>
-                  {install.link}
-                </Link>
-              </p>
-            </div>
-
-            <ol className="flex flex-col gap-6">
-              {install.steps.map((step, index) => (
-                <li key={step.title} className="grid grid-cols-[1.6rem_minmax(0,1fr)] gap-x-3">
-                  <span className="font-mono text-micro text-gorse tabular-nums">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div>
-                    <p className="text-ink">{step.title}</p>
-                    <p className="mt-1 text-micro leading-[1.6] text-ink-soft text-pretty">
-                      {step.body}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+          <div className="cell-grid mt-10 sm:grid-cols-2">
+            {deployment.options.map((option) => (
+              <div key={option.title}>
+                <h3 className="font-display text-mid font-semibold tracking-[-0.01em] text-ink">
+                  {option.title}
+                </h3>
+                <p className="text-micro leading-[1.6] text-ink-soft text-pretty">{option.body}</p>
+                <p className="mt-auto pt-3 font-mono text-micro leading-[1.5] text-ink-faint">
+                  {option.note}
+                </p>
+                {/*
+                  Each card ends somewhere. The band used to carry one link
+                  under both cards, which made the second card an assertion with
+                  nowhere to check it.
+                */}
+                <p className="pt-3">
+                  <Link className="textlink text-micro" href={docHref(option.action.doc)}>
+                    {option.action.label}
+                  </Link>
+                </p>
+              </div>
+            ))}
           </div>
+
+          <p className="mt-6">
+            <Link className="textlink text-micro" href={docHref("operating")}>
+              {deployment.link}
+            </Link>
+          </p>
         </div>
       </section>
 
@@ -278,46 +273,6 @@ export default async function LandingPage() {
               </p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ── where it runs ────────────────────────────────────────────── */}
-      <section className="border-b border-wall bg-ground-deep">
-        <div className="shell py-16 sm:py-24">
-          <header className="max-w-[44rem]">
-            <p className="eyebrow eyebrow-rule">{deployment.eyebrow}</p>
-            <h2 className="display mt-4 text-large leading-[1.15]">{deployment.heading}</h2>
-          </header>
-
-          <div className="cell-grid mt-10 sm:grid-cols-2">
-            {deployment.options.map((option) => (
-              <div key={option.title}>
-                <h3 className="font-display text-mid font-semibold tracking-[-0.01em] text-ink">
-                  {option.title}
-                </h3>
-                <p className="text-micro leading-[1.6] text-ink-soft text-pretty">{option.body}</p>
-                <p className="mt-auto pt-3 font-mono text-micro leading-[1.5] text-ink-faint">
-                  {option.note}
-                </p>
-                {/*
-                  Each card ends somewhere. The band used to carry one link
-                  under both cards, which made the second card an assertion with
-                  nowhere to check it.
-                */}
-                <p className="pt-3">
-                  <Link className="textlink text-micro" href={docHref(option.action.doc)}>
-                    {option.action.label}
-                  </Link>
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-6">
-            <Link className="textlink text-micro" href={docHref("operating")}>
-              {deployment.link}
-            </Link>
-          </p>
         </div>
       </section>
 
