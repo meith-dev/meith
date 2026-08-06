@@ -149,11 +149,33 @@ async function main(): Promise<number> {
   return 0
 }
 
+/**
+ * Wait out the interval, and wake early when a shutdown is asked for.
+ *
+ * **Neither timer is unref'd, and that is the point.** They used to be, on the
+ * reasoning that a sleep we are about to abandon should not hold the process
+ * open — but between ticks these two handles are the *only* thing holding the
+ * event loop at all. Postgres closes its idle connection about twenty seconds
+ * in, the loop empties, and Node exits 0 in the middle of a `while (!stopping)`
+ * loop that had not stopped.
+ *
+ * That failure is almost invisible. Under `restart: unless-stopped` the
+ * container comes straight back and runs a tick, so the board works and the
+ * logs read "worker started" every twenty seconds forever; under no restart
+ * policy the worker simply stops ticking, silently, which is the exact failure
+ * this whole process exists to prevent.
+ *
+ * Shutdown promptness is what the unref was reaching for, and the poll below
+ * already provides it — a SIGTERM is noticed within 250ms, both timers are
+ * cleared, and the loop breaks. Found by running the container for longer than
+ * a test does, not by reading this file.
+ */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms)
-    /* Do not hold the process open for a sleep we are about to abandon. */
-    timer.unref?.()
+    const timer = setTimeout(() => {
+      clearInterval(poll)
+      resolve()
+    }, ms)
     const poll = setInterval(() => {
       if (stopping) {
         clearTimeout(timer)
@@ -161,7 +183,6 @@ function sleep(ms: number): Promise<void> {
         resolve()
       }
     }, 250)
-    poll.unref?.()
   })
 }
 

@@ -5,14 +5,21 @@ far you can jump.
 
 ## The short version
 
+Deploy the new code, then run the upgrade:
+
 ```sh
-npm install @meith/web@latest @meith/cli@latest
-npm run forum -- upgrade --dry-run   # read what it will do
-npm run forum -- upgrade
+forum upgrade --dry-run   # read what it will do
+forum upgrade
 ```
 
-Deploy the new code **first**, then run the upgrade. The admin panel shows a
-notice until you do.
+On the documented deployments the *core* migrations are already applied by then
+— the `migrate` container runs to completion before anything serves — so
+`upgrade` is what carries plugin migrations and records the version. The admin
+panel shows a notice until you run it.
+
+`forum` is the operator CLI, and how you invoke it depends on how the board was
+deployed; [Running a board § The operator CLI](./operating.md#the-operator-cli)
+has the three spellings.
 
 ## Take a backup first
 
@@ -91,12 +98,13 @@ every migration must remain correct against every schema that ever existed — a
 promise nobody can test, and therefore one that should not be made. Two majors is
 what the migration set is exercised against, so two majors is what is claimed.
 
-A board further behind is not stuck. Upgrade in stages:
+A board further behind is not stuck. Upgrade in stages — check out each major
+in turn, deploy it, and run the upgrade before moving on:
 
 ```sh
-npm install @meith/web@2 @meith/cli@2      && npm run forum -- upgrade
-npm install @meith/web@3 @meith/cli@3      && npm run forum -- upgrade
-npm install @meith/web@latest @meith/cli@latest && npm run forum -- upgrade
+git checkout v2 && docker compose up -d --build && forum upgrade
+git checkout v3 && docker compose up -d --build && forum upgrade
+git checkout main && docker compose up -d --build && forum upgrade
 ```
 
 Each stage is an ordinary upgrade with an ordinary backup in front of it.
@@ -114,16 +122,42 @@ corrupts something a week later.
 | You deployed a version you did not mean to | Deploy the newer one again |
 | The newer one is broken | Restore the backup |
 
-## Serverless: deploy, then upgrade
+## On your own server
 
-On Vercel the two are separate events, and the gap between them is real. The
-board runs the new code as soon as the deployment is live; the schema does not
-change until you run the command.
+Under [Coolify](./quickstart.md), the upgrade is the **Redeploy**
+button — or nothing at all, if you have enabled the webhook and a push to `main`
+deploys itself.
+
+Under Compose it is two commands:
+
+```sh
+git pull
+docker compose up -d --build
+```
+
+Either way the ordering is handled for you:
+
+`migrate` runs to completion first and `web` and `worker` wait for it, so the
+new code never serves against the old schema. Take a backup before you start —
+migrations are forward-only, and recovery is by restore. Coolify's scheduled
+backup covers Postgres; the uploads volume is a second thing, and yours.
+
+That applies **core migrations only**. Plugin migrations run through
+`forum upgrade`, which needs your `forum.config.ts` to know which plugins are
+installed — see
+[the operator CLI](./operating.md#the-operator-cli) for how to run it on your
+deployment.
+
+## When the deploy and the migration are separate events
+
+Deploy some other way, and the two come apart: the board runs the new code as
+soon as the deployment is live, and the schema does not change until you run the
+command. Between them, new logic is talking to an old schema.
 
 That window is why the admin notice exists. It names both versions and the number
-of migrations waiting — so the failure mode (new logic against an old schema,
-surfacing as "column does not exist" in whichever request touches it first)
-becomes a sentence somebody read before it happened.
+of migrations waiting — so the failure mode (surfacing as "column does not exist"
+in whichever request touches it first) becomes a sentence somebody read before it
+happened.
 
 For a board with real traffic:
 
@@ -133,18 +167,6 @@ For a board with real traffic:
 | Removes or renames | Two-step: ship code that tolerates both shapes, migrate, then ship code that assumes the new one |
 
 Releases say which kind they are.
-
-## Self-hosted
-
-The standalone image runs the migrate role:
-
-```sh
-docker run --rm -e FORUM_ROLE=migrate -e DATABASE_URL=… forum:latest
-```
-
-That applies **core migrations only** — the same thing step 1 does. Plugin
-migrations run through `forum upgrade`, which needs your `forum.config.ts` to
-know which plugins are installed.
 
 ## Settings whose defaults have changed
 

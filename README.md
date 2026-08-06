@@ -17,20 +17,46 @@ niche hobby, Meith gives them the space to gather and grow.
 
 ## Getting started
 
+**On your own server**, with nothing between you and the board. The
+[Quickstart](./docs/quickstart.md) goes from a fresh Ubuntu box to a board on
+your own domain, over HTTPS, in about half an hour.
+
+**[Coolify](https://coolify.io) is the short way**, and it is still entirely
+your own server — a panel you install on the same machine, not a service you
+sign up to:
+
 ```sh
-npx create-meith my-board
-cd my-board
-npm install
-cp .env.example .env.local    # fill in DATABASE_URL and AUTH_SECRET
-npm run dev
+curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
 ```
 
-Then open `/install`. The full walkthrough, including deployment and what to do
-when the install fails halfway, is in the
-[Quickstart](./docs/quickstart.md).
+Then point it at this repository and
+[`docker-compose.coolify.yml`](./docker-compose.coolify.yml). It generates both
+secrets and the database password, issues the certificate, tells the board its
+own URL, and redeploys on push. Nothing is typed in.
 
-Deploy it serverlessly on Vercel, or self-host the standalone Docker image with
-its worker. Both are first-class.
+**Or the compose file directly**, if you already run a proxy:
+
+```sh
+git clone https://github.com/meith-dev/meith.git && cd meith
+cp .env.example .env          # three secrets, generated not typed
+docker compose up -d --build
+```
+
+The same four containers either way, from
+[`docker-compose.yml`](./docker-compose.yml): Postgres, a one-shot migration
+that the other two wait on, the web server, and the worker that runs the
+background tick. Certificate in front, open `/install`, and that is a board.
+
+That route is the advanced one — [Deploying by hand](./docs/self-hosting.md)
+covers the `.env`, the proxy and what you take on for it. Day two, either way,
+is [Running a board](./docs/operating.md).
+
+Those are the only deployment routes this project supports, and that is a
+decision rather than an omission. A board asks three things of wherever it runs — a
+scheduler that goes off every minute, a disk that survives a restart, and a
+process that outlives a request. A plain server gives you all three without
+being asked; a serverless host gives you none, and the third has no workaround
+at any price.
 
 ## What you get
 
@@ -66,17 +92,19 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 
 | Section | Document | What it answers |
 |---|---|---|
-| Running a board | [`quickstart.md`](./docs/quickstart.md) | From an empty directory to a working board, in five steps. About ten minutes, most of it waiting for npm install. |
+| Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board people can reach, on your own server with Coolify. About half an hour, most of it waiting for a build. |
 | Running a board | [`operating.md`](./docs/operating.md) | The operator handbook. Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
 | Running a board | [`upgrading.md`](./docs/upgrading.md) | How to take a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
 | Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
+| Advanced deployment | [`self-hosting.md`](./docs/self-hosting.md) | The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Advanced — the Quickstart is the route most boards should take. |
 | Themes | [`theme-api.md`](./docs/theme-api.md) | What the freeze covers, what a theme may do, and how to write one. |
 | Themes | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the theme registry. *(generated)* |
 | Plugins | [`plugin-api.md`](./docs/plugin-api.md) | What a plugin is, what it may and may not do, and how a failure is contained. |
 | Plugins | [`plugin-hooks.md`](./docs/plugin-hooks.md) | Every hook and payload, generated from the hook registry. *(generated)* |
 | The API | [`rest-api.md`](./docs/rest-api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
 | Migrating from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place this board behaves differently from MyBB, with the reason. Read it before promising anyone a like-for-like move. |
-| Working on Meith | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
+| Development | [`development.md`](./docs/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
+| Development | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
 
 <!-- docs:table end -->
 
@@ -84,22 +112,25 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 progress log and the other working records the site deliberately does not
 publish.
 
-## Working on Meith
+## Development
 
-A pnpm workspace. Node 22+, pnpm 10, and a Postgres to point it at:
+A pnpm workspace. Node 22+, pnpm 10, and nothing else to start:
 
 ```sh
 pnpm install
-docker compose -f docker-compose.dev.yml up -d
-pnpm forum migrate
 pnpm dev
 ```
 
-`pnpm verify` runs what CI runs: the invariant guards, the generated-doc checks,
-lint, dependency rules, all three typecheck projects and the full test suite. Run
-it before opening a pull request.
+That is a working board on <http://localhost:3000> with **no database** — a
+deterministic in-memory sample board, enough to read every page and try a theme.
+Posting needs Postgres, which is one more command.
+[Development](./docs/development.md) is the full walkthrough: the dev database,
+the commands, the gates, and what to do before opening a pull request.
 
-Three applications share the workspace:
+`pnpm verify` runs what CI runs — the invariant guards, the generated-doc checks,
+lint, dependency rules, all three typecheck projects and the full test suite.
+
+Four applications share the workspace:
 
 | Directory | Package | What it is |
 |---|---|---|

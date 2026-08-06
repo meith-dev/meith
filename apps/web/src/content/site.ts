@@ -29,11 +29,23 @@ export const site = {
   tagline: "Forum software for communities that want to build something together.",
   description:
     "Meith is open-source forum software named for the meitheal: neighbours coming " +
-    "together for a shared task. Self-host it or deploy it serverlessly.",
+    "together for a shared task. Runs on your own server — guided by Coolify, or " +
+    "straight from the compose file.",
 } as const
 
-/** The line the hero offers to copy, and the only place it is spelled out. */
-export const installCommand = "npx create-meith my-board"
+/**
+ * The line the hero offers to copy, and the only place it is spelled out.
+ *
+ * It was `npx create-meith my-board` for as long as this page has existed, and
+ * that command does not work: `create-meith` is not published, and the project
+ * it scaffolds pins `@meith/web`, `@meith/cli` and `@meith/theme-default`, none
+ * of which are on npm either. A copy button is a promise that what it hands you
+ * runs, and the first thing anybody does with a landing page is paste the one
+ * command on it — so this is the clone, which does.
+ *
+ * It goes back when the packages are published, and not before.
+ */
+export const installCommand = "git clone https://github.com/meith-dev/meith.git"
 
 /**
  * The licence, and where to read it.
@@ -57,7 +69,7 @@ export const licence = {
 export const licenceHref = `${site.repository}/blob/main/${licence.file}`
 
 export const hero = {
-  eyebrow: "Open source, LGPL-3.0 · self-hosted or serverless · Postgres",
+  eyebrow: "Open source, LGPL-3.0 · runs on your own server · Postgres",
   headline: { before: "Many hands, ", emphasis: "one field." },
   /*
    * Kept in full. This paragraph is the one piece of copy on the site that does
@@ -233,52 +245,6 @@ export const capabilities: readonly Capability[] = [
 ]
 
 /**
- * Getting to a board.
- *
- * The steps are the quickstart's, in its order, and the transcript is the same
- * five lines the README opens with. Both are here rather than written twice: the
- * page is a pointer at that document, not a second copy of it.
- */
-export const install = {
-  eyebrow: "Ten minutes",
-  heading: "An empty directory to a board people can post on.",
-  lede:
-    "You need Node 22 or newer and a Postgres you can connect to. Nothing else — no " +
-    "container to build first, no account to open, no key to wait for.",
-  transcript: [
-    "npx create-meith my-board",
-    "cd my-board",
-    "npm install",
-    "cp .env.example .env.local   # DATABASE_URL, AUTH_SECRET",
-    "npm run dev",
-  ],
-  steps: [
-    {
-      title: "Open /install",
-      body:
-        "The installer checks your environment before it offers you a form, and separates " +
-        "what blocks the install from what will be wrong later.",
-    },
-    {
-      title: "Five named steps",
-      body:
-        "Migrations, the board's name, your administrator account, a first forum, and then it " +
-        "disables itself. A failure stops at the step that failed and says which.",
-    },
-    {
-      title: "Then configure mail",
-      body:
-        "A board that has never had MAIL_DRIVER set sends no mail at all — the default writes " +
-        "each message to the log. Two variables and one setting fix it, before you invite anybody.",
-    },
-  ],
-  note:
-    "Sealing the installer is deliberately last and cannot be undone: /install answers 404 " +
-    "from then on. Run it against the database you are going to keep.",
-  link: "The quickstart, in full",
-} as const
-
-/**
  * The measurements.
  *
  * Named by the scenario the reference names, so a scenario dropped from the load
@@ -310,27 +276,44 @@ export const performance = {
   link: "Every scenario, and why",
 } as const
 
+/**
+ * Where it runs, and the shorter list this became.
+ *
+ * There were two options here and one of them was serverless. It went, and the
+ * reason is worth keeping written down: a board needs a scheduler that goes off
+ * every minute, a disk that survives a restart, and a process that outlives a
+ * request. A server gives you all three by existing. A function gives you none,
+ * and the third cannot be bought — so offering it as a route meant offering a
+ * board that half worked, to the readers least equipped to notice which half.
+ *
+ * What is left is one route in two shapes — a panel on your own server, or the
+ * compose file run by you — because "self-hosted" reads as "and you are on your
+ * own with the certificate", and for one of these that is simply not true.
+ */
 export const deployment = {
-  eyebrow: "Two ways to run it",
-  heading: "Serverless or your own metal. Both first-class.",
+  eyebrow: "Where it runs",
+  heading: "Your own server. Guided, or by hand.",
   options: [
     {
-      title: "On Vercel",
+      title: "Guided, with Coolify",
       body:
-        "The scaffold ships a vercel.json with the background tick already scheduled, so " +
-        "deploying is a git push and three environment variables. Run the installer from the " +
-        "deployed URL, against the production database.",
-      note: "Use your provider's transaction-mode pooler string.",
+        "A panel you install on the same server — still your machine, not a service. Point it " +
+        "at the repository and it generates both secrets and the database password, issues the " +
+        "certificate, tells the board its own URL, and redeploys on push. Nothing is typed in.",
+      note: "About twenty minutes, start to finish.",
+      action: { label: "The quickstart", doc: "quickstart" },
     },
     {
-      title: "On your own server",
+      title: "Or by hand, if you would rather",
       body:
-        "One standalone Docker image runs the web server, the worker and the migrations, so " +
-        "the three cannot drift apart between deploys. Postgres is the only thing beside it.",
-      note: "No Redis, no queue broker, no search cluster.",
+        "The same four containers without the panel: Postgres, a one-shot migration the others " +
+        "wait on, the web server, and the worker that runs the tick. A clone, a `.env`, one " +
+        "command, and a reverse proxy you already run. The advanced route.",
+      note: "Postgres and nothing else — no Redis, no broker, no search cluster.",
+      action: { label: "Deploying by hand", doc: "self-hosting" },
     },
   ],
-  link: "Deployment, backup and restore",
+  link: "The operator handbook",
 } as const
 
 export const migration = {
@@ -428,7 +411,7 @@ export const documentation = {
 export const closing = {
   heading: "Put the neighbourhood back.",
   body:
-    "A board of your own, on a database of your own, in about ten minutes. Read the source " +
+    "A board of your own, on a machine of your own, in about half an hour. Read the source " +
     "before you run it — all of it is there.",
   /*
    * What you actually need, beside the ask. Three rows rather than a paragraph,
@@ -436,9 +419,9 @@ export const closing = {
    * and the answer is short enough to be a list.
    */
   requirements: [
-    { label: "Runtime", value: "Node 22 or newer" },
-    { label: "Database", value: "Postgres, anywhere" },
-    { label: "Everything else", value: "Nothing" },
+    { label: "A machine", value: "Your own, with Docker" },
+    { label: "A domain", value: "Pointed at it" },
+    { label: "Everything else", value: "Comes up beside it" },
   ],
 } as const
 

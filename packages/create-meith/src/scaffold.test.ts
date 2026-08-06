@@ -33,15 +33,24 @@ describe('the project name', () => {
 describe('what the scaffold writes', () => {
   const files = scaffold(OPTIONS)
 
-  it('writes the six files a deployable project needs', () => {
+  it('writes the five files a deployable project needs', () => {
     expect([...files.keys()].sort()).toEqual([
       '.env.example',
       '.gitignore',
       'README.md',
       'forum.config.ts',
       'package.json',
-      'vercel.json',
     ])
+  })
+
+  /*
+   * There was a sixth, and its absence is the point. `vercel.json` carried the
+   * tick cron for a platform this project no longer deploys to, and a scaffold
+   * that ships a schedule for a host that cannot run a process outliving a
+   * request is describing a board that half works.
+   */
+  it('ships no platform configuration file', () => {
+    expect([...files.keys()]).not.toContain('vercel.json')
   })
 
   it('names the project and pins the dependency versions', () => {
@@ -57,15 +66,17 @@ describe('what the scaffold writes', () => {
   })
 
   /*
-   * The acceptance criterion is "push-to-deploy works without manual build
-   * configuration", and this is the line that makes it true rather than
-   * documented. Every catch-up operation runs on the tick, and when it does not
-   * run *nothing fails* — the work simply does not happen until somebody notices
-   * a ban that should have ended last month (F70).
+   * Every catch-up operation runs on the tick, and when it does not run
+   * *nothing fails* — the work simply does not happen until somebody notices a
+   * ban that should have ended last month (F70). The scaffold cannot schedule
+   * it, so the one thing it can do is make sure the reader is told what runs
+   * it, in the file they open first.
    */
-  it('commits the tick cron rather than documenting it', () => {
-    const vercel = JSON.parse(files.get('vercel.json')!)
-    expect(vercel.crons).toEqual([{ path: '/api/system/tick', schedule: '* * * * *' }])
+  it('tells the reader which process runs the tick', () => {
+    const readme = files.get('README.md')!
+    expect(readme).toMatch(/tick/i)
+    expect(readme).toMatch(/worker/i)
+    expect(readme).toMatch(/task:run/)
   })
 
   it('names every required secret in the env template, with no value', () => {
@@ -77,13 +88,13 @@ describe('what the scaffold writes', () => {
 
   /*
    * The one operational mistake that looks like a database problem and is not:
-   * on the direct connection string a serverless board works in testing and
-   * starts refusing connections under the first real traffic. It is called out
-   * in both files somebody reads before deploying.
+   * against a managed database on its direct connection string a board works in
+   * testing and starts refusing connections under the first real traffic. It is
+   * a warning rather than an instruction now, because a board on its own
+   * Postgres — the documented route — does not need a pooler at all.
    */
-  it('warns about the pooler in the env template and the README', () => {
+  it('warns about the pooler where somebody choosing a managed database will read it', () => {
     expect(files.get('.env.example')).toMatch(/POOLER/)
-    expect(files.get('README.md')).toMatch(/transaction-mode pooler/i)
   })
 
   /*
@@ -106,12 +117,24 @@ describe('what the scaffold writes', () => {
     expect(stdout.trim().length).toBeGreaterThan(30)
   })
 
-  it('points the deploy button at the repository it was told about', () => {
+  /*
+   * A board is meant to be forked, and the generated README sends the reader to
+   * the self-hosting guide — which has to be *their* copy of it, or a fork with
+   * a changed compose file documents somebody else's.
+   */
+  it('points the generated README at the repository it was told about', () => {
     const readme = scaffold({ ...OPTIONS, repositoryUrl: 'https://example.test/board' }).get(
       'README.md',
     )!
-    expect(readme).toContain('vercel.com/new/clone?repository-url=')
-    expect(readme).toContain(encodeURIComponent('https://example.test/board'))
+    expect(readme).toContain('https://example.test/board/blob/main/docs/self-hosting.md')
+  })
+
+  /* The routes that were removed stay removed. */
+  it('offers no serverless platform', () => {
+    for (const file of files.values()) {
+      expect(file).not.toMatch(/vercel\.com\/new\/clone/)
+      expect(file).not.toMatch(/deploy\.workers\.cloudflare\.com/)
+    }
   })
 
   /* A scaffold that leaked `.env` into git would be the worst kind of default. */
@@ -168,7 +191,6 @@ describe('the CLI', () => {
         'README.md',
         'forum.config.ts',
         'package.json',
-        'vercel.json',
       ])
 
       const manifest = JSON.parse(await readFile(join(dir, 'my-board/package.json'), 'utf8'))
@@ -203,11 +225,11 @@ describe('the CLI', () => {
     })
   })
 
-  it('accepts a repository override for the deploy button', async () => {
+  it('accepts a repository override, so a fork documents itself', async () => {
     await inTemp(async (dir) => {
       await run(['my-board', '--repo', 'https://example.test/fork'], '1.0.0')
       const readme = await readFile(join(dir, 'my-board/README.md'), 'utf8')
-      expect(readme).toContain(encodeURIComponent('https://example.test/fork'))
+      expect(readme).toContain('https://example.test/fork')
     })
   })
 })

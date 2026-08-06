@@ -50,8 +50,8 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
         '',
         '  npx create-meith <name> [--repo <url>]',
         '',
-        'Writes package.json, forum.config.ts, .env.example, vercel.json,',
-        '.gitignore and README.md into ./<name>, then tells you what to run.',
+        'Writes package.json, forum.config.ts, .env.example, .gitignore and',
+        'README.md into ./<name>, then tells you what to run.',
       ],
     }
   }
@@ -91,7 +91,8 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
       ...nextSteps(name).map((step) => `  ${step}`),
       '',
       'Then set DATABASE_URL, AUTH_SECRET and TICK_SECRET and deploy.',
-      'The tick cron is already in vercel.json; without it nothing catches up.',
+      'Something must run the tick every minute — the worker process, or',
+      '`forum task:run`. Without it nothing catches up, and nothing errors.',
     ],
   }
 }

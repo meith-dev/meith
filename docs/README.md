@@ -4,7 +4,8 @@ Each document has one audience and one job, and the tables below say which. A
 docs directory whose entry point is a directory listing makes every reader guess,
 and most of them guess the roadmap.
 
-**New here?** Start with the [Quickstart](./quickstart.md).
+**New here?** Start with the [Quickstart](./quickstart.md) — a board on your own
+server, on a domain, in about half an hour.
 
 ## Find your document
 
@@ -13,20 +14,29 @@ and most of them guess the roadmap.
 | Setting up a board for the first time | [Quickstart](./quickstart.md) |
 | Running one | [Running a board](./operating.md) |
 | Upgrading one | [Upgrading a board](./upgrading.md) |
+| Deploying without a panel | [Deploying by hand](./self-hosting.md) |
 | Writing a theme | [The theme API](./theme-api.md) |
 | Writing a plugin | [The plugin API](./plugin-api.md) |
 | Calling the API | [REST API v1](./rest-api.md) |
 | Moving a community off MyBB | [MyBB parity](./mybb-parity.md) |
-| Working on Meith itself | [Building the project](#building-the-project) |
+| Working on Meith itself | [Development](./development.md) |
 
 ## Running a board
 
+The path from nothing to a board people are posting on, and everything after.
+
 | Document | What it answers |
 |---|---|
-| [`quickstart.md`](./quickstart.md) | Empty directory to working board, in five steps. |
-| [`operating.md`](./operating.md) | **The operator handbook.** Configuration, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
+| [`quickstart.md`](./quickstart.md) | **Start here.** Nothing to a board people can reach, on your own server with Coolify. |
+| [`operating.md`](./operating.md) | **The operator handbook.** Configuration, the operator CLI, permissions, themes, plugins, spam, migrations, backup and restore, connection pooling, and the failures that actually happen. |
 | [`upgrading.md`](./upgrading.md) | Taking a board from one version to the next, how far you can jump, and what to do when a migration fails halfway. |
 | [`performance.md`](./performance.md) | The p95 budgets for hot pages, and what the last recorded run measured on a full-scale board. *Generated — do not edit.* |
+
+## Advanced deployment
+
+| Document | What it answers |
+|---|---|
+| [`self-hosting.md`](./self-hosting.md) | The same board without the panel: Docker Compose, a `.env` you write, a reverse proxy you run, and what you take on for it. Most boards should take the Quickstart instead. |
 
 ## Themes
 
@@ -57,10 +67,14 @@ and most of them guess the roadmap.
 The importer itself, the legacy-URL redirects and the legacy password upgrade are
 described in [`operating.md`](./operating.md).
 
-## Building the project
+## Development
+
+Working on Meith itself. The first two are published on the site; the rest are
+working records kept in the repository.
 
 | Document | What it answers |
 |---|---|
+| [`development.md`](./development.md) | **Start here.** Running it on your machine, the workspace, the commands, the gates, and what to do before opening a pull request. |
 | [`nextjs-conventions.md`](./nextjs-conventions.md) | The decisions that would otherwise be re-litigated in every pull request. |
 | [`roadmap.md`](./roadmap.md) | The delivery plan, with acceptance criteria. The source of truth for *what* is being built. |
 | [`plan-status.md`](./plan-status.md) | One row per plan feature: done, partial, or not started. The source of truth for *where* it is. |

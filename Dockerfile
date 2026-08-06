@@ -62,6 +62,12 @@ ENV DATA_SOURCE=fixture
 RUN pnpm --filter @meith/web build
 # Bundled separately from the Next output; see the COPY below for why.
 RUN pnpm --filter @meith/worker build
+# The operator CLI, for the same reason and by the same means. A self-hosted
+# board is the deployment *least* able to reach for a checkout — the image is
+# all there is on that machine — and "everything you should not need a browser
+# for" is worth nothing if promoting a user needs the repository and a
+# toolchain.
+RUN pnpm --filter @meith/cli build
 
 # ---------------------------------------------------------------------------
 # runtime: standalone output only.
@@ -91,10 +97,15 @@ COPY --from=build --chown=nextjs:nodejs /repo/apps/forum/public ./apps/forum/pub
 # a single file with no node_modules to install beside it. One image, two roles,
 # and the role is a flag rather than a second Dockerfile.
 COPY --from=build --chown=nextjs:nodejs /repo/apps/worker/dist/ ./apps/worker/
+# `docker compose run --rm web node apps/cli/cli.cjs …`. The entrypoint hands an
+# explicit command straight through, so no role is needed for a program that
+# takes arguments and exits.
+COPY --from=build --chown=nextjs:nodejs /repo/apps/cli/dist/ ./apps/cli/
 # The generated SQL. Not part of the traced standalone output — it is data, not
 # a module — so the migrate role would find an empty folder without this.
 COPY --from=build --chown=nextjs:nodejs /repo/packages/db/migrations ./migrations
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --chown=nextjs:nodejs docker-healthcheck.sh ./docker-healthcheck.sh
 
 # FILESTORE_DRIVER=local writes here. Declared as a volume so uploads survive a
 # container replacement — without this, every redeploy silently loses avatars.
@@ -106,9 +117,11 @@ USER nextjs
 EXPOSE 3000
 
 # Hits a real route rather than just checking the port is bound, so a server that
-# booted but cannot render is reported unhealthy.
+# booted but cannot render is reported unhealthy — and asks a different question
+# of a worker, which serves no HTTP and reported unhealthy for its whole life
+# under the single check this replaced. See docker-healthcheck.sh.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD ["/app/docker-healthcheck.sh"]
 
 # FORUM_ROLE=worker runs the scheduler loop instead of the web server. Anything
 # else runs the web server, so the default is unchanged and existing deployments

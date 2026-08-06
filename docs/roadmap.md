@@ -31,9 +31,12 @@ reading this file—use the evidence in `plan-status.md`.
 - No-JS forms and server routes come before islands. Every Server Action parses
   and validates input, calls a domain command, independently re-authorizes, and
   redirects/revalidates. Uploads use Route Handlers.
-- Vercel + Supabase is the baseline: no in-process scheduler, filesystem write,
-  memory rate-limit/lock, Redis dependency, long-lived connection, or unbounded
-  request operation. Tick/jobs must be idempotent and catch-up capable.
+- The request path assumes nothing it cannot have on a small machine: no
+  in-process scheduler, no memory rate-limit or lock, no Redis dependency, no
+  long-lived connection, no unbounded request operation. Tick and jobs are
+  idempotent and catch-up capable. *(This began as "Vercel + Supabase is the
+  baseline". The platform went with D105; the discipline stayed, because it is
+  what lets a board run on one box and scale to several.)*
 - `authorization.can()` / `require()` make all access decisions. SQL list
   queries filter by `visibleForumIds()` in-query; group IDs and admin checks do
   not escape `@meith/authorization`.
@@ -59,8 +62,8 @@ parity decision when the feature changes one of those public contracts.
 
 | Area | Required outcome |
 |---|---|
-| Serverless default | `DATABASE_URL` + deploy to Vercel; `/install` creates the board/admin. Postgres queue/cache/files/mail drivers support this profile without Redis. |
-| Self-hosted | Standalone Docker image plus worker loop runs the same task code; CI boots the image so this path remains real. |
+| ~~Serverless default~~ | **Superseded by D105** — the serverless route was removed. The *constraints* it imposed are kept, because they are what makes the board portable: no in-process scheduler assumed, no unbounded request operation, Postgres queue/cache/files/mail drivers with no Redis dependency. |
+| Self-hosted | **The one deployment route.** Compose on your own server: Postgres, a one-shot migration, the web server and the worker loop, all from one image so the roles cannot drift. CI brings the documented stack up so this path stays real. |
 | Rendering | Server-rendered board, form-first mutations, serializable client props, conservative tagged cache policy. Cache Components adoption remains an explicit human decision. |
 | Security | Argon2id, opaque rotating sessions/remember tokens, Postgres-backed rate limits, permission checks in every route/action, a Markdown renderer that constructs its output rather than sanitising it, attachment magic-byte validation, and audit logs. |
 | Data scale | Schema/indexes and deterministic seeding support a target of 50 forums, 100k threads, 2M posts, and 20k users; hot lists have measured query budgets. |
@@ -80,7 +83,7 @@ than being duplicated in the tracker.
 | F01 | — | pnpm/Turborepo workspace, strict App Router app, action and route-handler smoke paths; pinned patched Next version; build/lint/typecheck scripts. |
 | F02 | F01 | Typed Zod environment boundary, documented pooler configuration, clear invalid-env failures, and no stray `process.env`. |
 | F03 | F02 | Pooler-safe Drizzle/Postgres package with forward migrations, rollback-on-throw transaction helper, and a driver seam. |
-| F04 | F03 | Vercel and standalone Docker deployments; CI builds **and boots** the image and validates worker mode. |
+| F04 | F03 | Standalone Docker deployment; CI builds **and boots** the image and validates worker mode. *(Was "Vercel and standalone Docker" — see D105.)* |
 | F05 | F03 | Queue/cache/files/mail interfaces selected by environment; shared contracts for each shipped implementation; safe concurrent queue drain. |
 | F06 | F05 | Secret-authenticated, time-boxed concurrent-safe tick plus cron/worker entry points; failures are logged and notify admins. |
 | F07 | F05 | Transactional typed outbox, retry/backoff/dead letter, at-least-once delivery; rollback never emits. |
@@ -231,7 +234,7 @@ contracts without reading core source.
 
 | ID | Depends on | Deliverable and acceptance |
 |---|---|---|
-| F82 | F04 | `npx create-meith` scaffold with config/env/README/Deploy-to-Vercel; push-to-deploy works without manual build configuration. |
+| F82 | F04 | `npx create-meith` scaffold with config/env/README; the generated project builds without a database and names what runs the tick. *(Was "Deploy-to-Vercel; push-to-deploy" — see D105.)* |
 | F83 | F82/F63 | One-time `/install`: safe preflight, migrations/setup/admin/default forum, pooler warning, then irreversible self-disable. |
 | F84 | F83 | Core/plugin upgrade command, dependency order, version/ACP notice, documented two-version no-data-loss upgrade. |
 | F85 | F83 | Chunked, resumable, idempotent MyBB import preserving legacy IDs across all supported content; fixture round trip/report/counter proof. |
@@ -249,7 +252,7 @@ minutes while retaining links and member passwords.
    million-post design and its counter/recount discipline.
 2. Decide whether calendar/events, a portal page, localisation beyond
    i18n-ready English, and OAuth are v1 scope or plugins/out of scope.
-3. Set the minimum Vercel plan/cron frequency assumed by digest and tick docs.
+3. ~~Set the minimum Vercel plan/cron frequency assumed by digest and tick docs.~~ Closed by D105: the worker runs the tick on a one-minute loop, which is the cadence the digest and tick documents assume.
 4. Decide whether themes are npm-only or also supported as source folders in a
    self-hosted fork.
 5. Decide whether Next 16 Cache Components replace the conservative tagged

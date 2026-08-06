@@ -1,7 +1,22 @@
-# F04 — a complete self-hosted board: web + Postgres + the cron tick.
+# F04 — a complete board on one machine: Postgres, the migration, the web server
+# and the worker.
 #
-# `docker compose up` should produce a working forum with no other setup, which
-# is the parity claim against MyBB's "upload and run" story.
+# `docker compose up -d --build` should produce a working forum with no other
+# setup, which is the parity claim against MyBB's "upload and run" story. This
+# is the deployment route this project supports, in its by-hand shape;
+# docs/self-hosting.md is the walkthrough, docs/quickstart.md is the guided
+# one, and everything below is meant to be read as well as run.
+#
+# Four containers, and each earns its place: Postgres holds the board, `migrate`
+# runs to completion before anything serves so the schema is never behind the
+# code, `web` answers requests, and `worker` runs the tick. The worker is not
+# optional — every catch-up operation on this board runs on that loop, and when
+# it stops *nothing fails*, it just quietly stops happening.
+#
+# Nothing here terminates TLS. Put a reverse proxy in front (Caddy, nginx,
+# Traefik) and bind the web port to localhost so the proxy is the only way in:
+#
+#   PORT=127.0.0.1:3000
 
 services:
   postgres:
@@ -9,6 +24,11 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: forum
+      # Generate this with `openssl rand -hex 32`, not base64. It is substituted
+      # into the postgres:// URL below, and base64's alphabet includes `/` and
+      # `+` — which makes the connection string unparseable and the migration
+      # fail with `TypeError: Invalid URL`, naming nothing that would send you
+      # here.
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forum}
       POSTGRES_DB: forum
     volumes:
@@ -31,6 +51,16 @@ services:
       FORUM_ROLE: migrate
       DATABASE_URL: postgres://forum:${POSTGRES_PASSWORD:-forum}@postgres:5432/forum
       DATA_SOURCE: postgres
+      # The migration signs nothing, and still needs these.
+      #
+      # F02 is one environment contract for every process the board runs, with
+      # no per-role exemptions — so the production rules apply to the migrator
+      # too, and it exits naming both secrets before it opens a connection. That
+      # is the trade the single schema buys: no role can quietly boot with less
+      # than the others. Passing them here costs one line; the alternative is a
+      # carve-out that would let the *web* server start without them one day.
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set}
+      TICK_SECRET: ${TICK_SECRET:?TICK_SECRET must be set}
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,8 +81,16 @@ services:
       QUEUE_DRIVER: postgres
       CACHE_DRIVER: next
       FILESTORE_DRIVER: local
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      # Mail, forwarded rather than hard-coded so it can be configured in `.env`
+      # without editing this file. Unset means the default `log` driver, which
+      # writes each message to the container log and DELIVERS NOTHING — so
+      # password reset fails silently until these are set. An empty value here
+      # is treated as unset; see withoutEmptyValues in packages/core/src/env.ts.
       MAIL_DRIVER: ${MAIL_DRIVER:-log}
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_HTTP_ENDPOINT: ${MAIL_HTTP_ENDPOINT:-}
+      MAIL_HTTP_TOKEN: ${MAIL_HTTP_TOKEN:-}
     volumes:
       - uploads:/app/.uploads
     depends_on:
@@ -81,8 +119,13 @@ services:
       QUEUE_DRIVER: postgres
       CACHE_DRIVER: memory
       FILESTORE_DRIVER: local
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      # The worker is what actually sends queued mail, so it needs the same
+      # settings as the web server rather than a subset.
       MAIL_DRIVER: ${MAIL_DRIVER:-log}
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_HTTP_ENDPOINT: ${MAIL_HTTP_ENDPOINT:-}
+      MAIL_HTTP_TOKEN: ${MAIL_HTTP_TOKEN:-}
     volumes:
       - uploads:/app/.uploads
     depends_on:
@@ -92,8 +135,13 @@ services:
         condition: service_completed_successfully
 
   # The pre-worker approach, kept for the operator who prefers it: a tiny
-  # sidecar curling the tick endpoint on the cadence vercel.json declares.
-  # Enable this *or* `worker`, not both.
+  # sidecar curling the tick endpoint once a minute, so the only container
+  # holding database credentials is the web server. That is the whole of the
+  # trade, and it is the operator's to make. Enable this *or* `worker`, never
+  # both — harmless if you do (a task claims its work in the database, so
+  # concurrent ticks are safe) but it is two things doing one job.
+  #
+  #   docker compose --profile curl-tick up -d
   tick:
     profiles: ['curl-tick']
     image: alpine:3.20

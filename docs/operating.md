@@ -18,7 +18,7 @@ changing it costs.
 | `/admin/settings` | Everything else: board name, registration mode, posting limits, search. | Nothing — it takes effect immediately |
 
 **Why the split.** Anything in `forum.config.ts` has to be visible to the
-bundler, because a serverless build contains only what it could see statically.
+bundler, because a production build contains only what it could see statically.
 So "install a plugin" cannot be a database row. Anything in `/admin/settings` is
 a value the running board reads, so it can change without a deploy.
 
@@ -26,13 +26,13 @@ a value the running board reads, so it can change without a deploy.
 
 | Variable | Required | Notes |
 |---|---|---|
-| `DATABASE_URL` | For a real board | Use the transaction-mode pooler string. See [connection pooling](#connection-pooling). |
+| `DATABASE_URL` | For a real board | On a *managed* database, use the transaction-mode pooler string. See [connection pooling](#connection-pooling). |
 | `AUTH_SECRET` | Yes | Signs sessions and tokens. No default, deliberately. |
 | `TICK_SECRET` | In practice, yes | Without it the scheduled tick refuses every call — and nothing fails visibly. |
 | `APP_URL` | For mail and feeds | Absolute, no trailing slash. A digest sent from the worker has no request to be relative to. |
 | `DATA_SOURCE` | No | `postgres` or `fixture`. Defaults to `fixture` when `DATABASE_URL` is unset. |
 | `ADMIN_IP_ALLOWLIST` | No | Comma-separated address prefixes. Empty allows everything. |
-| `FILESTORE_DRIVER` | On serverless | `local` or `s3`. Defaults to `local`. See below — the default is wrong on Vercel. |
+| `FILESTORE_DRIVER` | No | `local` or `s3`. Defaults to `local`, which is right for a board with a disk. See below. |
 
 ### Where uploads go
 
@@ -42,14 +42,16 @@ Avatars, attachments and the board logo all share one store, chosen by
 | Deployment | Setting | Why |
 |---|---|---|
 | **Local development** | nothing to set | `local`, writing to `.uploads` beside the app. |
-| **Self-hosted (Docker)** | nothing to set | The image creates `/app/.uploads`, declares it a volume and points `UPLOADS_DIR` at it; compose mounts the same named volume into the web and worker services so both see the same files. |
-| **Vercel, or any serverless host** | `FILESTORE_DRIVER=s3` | The filesystem is per-instance and ephemeral. |
+| **A VPS (Docker Compose)** | nothing to set | The image creates `/app/.uploads`, declares it a volume and points `UPLOADS_DIR` at it; compose mounts the same named volume into the web and worker services so both see the same files. |
+| **A board big enough to want a CDN** | `FILESTORE_DRIVER=s3` | Optional at any size, and the point at which uploads stop being your disk's problem. |
 
-**On serverless, local disk does not fail — it loses.** The write succeeds, the
-file is served back from the same warm instance, and it is a 404 for every other
-visitor and for you tomorrow. An administrator uploading a logo sees it work.
-The board **refuses to boot** on Vercel with `FILESTORE_DRIVER=local` for that
-reason; on a serverless host it cannot detect, this table is what you have.
+**Wherever you run this, the store must survive a restart.** On a host whose
+filesystem is per-instance and ephemeral, `local` does not fail — it *loses*.
+The write succeeds, the file is served back from the same warm instance, and it
+is a 404 for every other visitor and for you tomorrow. An administrator
+uploading a logo sees it work. That is one of the reasons
+a board on your own server — the route this project documents — has a real
+disk, mounted as a volume, and nothing to think about.
 
 `s3` needs `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID` and
 `S3_SECRET_ACCESS_KEY`, and boot fails naming any that are missing. Add
@@ -66,10 +68,49 @@ object store the bucket has its own backup story. See
 which is usually the moment you need it.
 
 ```sh
-npm run forum -- settings:list          # the whole registry, with defaults
-npm run forum -- settings:get board.name
-npm run forum -- settings:set board.name "The Townland"
+forum settings:list          # the whole registry, with defaults
+forum settings:get board.name
+forum settings:set board.name "The Townland"
 ```
+
+## The operator CLI
+
+Everything you should not need a browser for: migrations, users, forums,
+settings, scheduled tasks, search reindexing. It ships **inside the image**, so
+a deployed board needs no checkout, no toolchain and no Node on the host.
+
+How you reach it depends on how the board was deployed:
+
+| | |
+|---|---|
+| **Coolify** | Open the `web` container's terminal in the panel, then `node apps/cli/cli.cjs <command>`. |
+| **Docker Compose** | `docker compose run --rm --no-deps web node apps/cli/cli.cjs <command>` |
+| **A checkout** | `pnpm forum <command>` |
+
+`--rm` matters on Compose: without it every invocation leaves a stopped
+container behind. `--no-deps` matters too — without it, each command re-runs the
+whole migration container first, which is harmless and slow enough to be
+confusing.
+
+The rest of this page writes **`forum <command>`**, which is worth making true
+on a Compose board:
+
+```sh
+alias forum='docker compose -f ~/meith/docker-compose.yml run --rm --no-deps web node apps/cli/cli.cjs'
+```
+
+```sh
+forum --help                     # everything it can do
+forum env:check                  # is the environment valid, and can it connect?
+forum user:create --admin        # a second administrator, or the first if /install is sealed
+forum user:promote               # administrator access on a board that already works
+forum task:run                   # run the tick once, by hand
+forum search:reindex             # after a large import
+```
+
+The commands that exist are the ones `--help` lists. This project does not
+document a command it has not written, so one you expected and cannot find is
+missing rather than hidden.
 
 ## Permissions
 
@@ -153,21 +194,28 @@ control — that reader's page carries no dark-mode class for a theme to match o
 
 ## Themes
 
-A theme is an npm package named in `forum.config.ts`. Installing one is three
-steps:
+A theme is a package named in `apps/forum/forum.config.ts`. Installing one is
+three steps, in your checkout of the board:
 
 ```sh
-npm install @meith/theme-midnight
+pnpm --filter @meith/web add @meith/theme-midnight
 ```
 
 ```ts
-// forum.config.ts
+// apps/forum/forum.config.ts
 import midnight from "@meith/theme-midnight"
 
 export default { theme: midnight }
 ```
 
-Then redeploy.
+Then commit, push, and redeploy — the image is rebuilt from your repository, so
+an installed theme is a commit rather than a state the server drifts into.
+
+> [!NOTE]
+> This is why there is no upload-a-zip path and will not be one. A theme has to
+> be visible to the bundler at build time; a production build contains only what
+> the bundler could see, so a theme discovered at runtime works in development
+> and is absent in production.
 
 > [!IMPORTANT]
 > **A member picks a whole theme, components included.** `midnight` renders its
@@ -282,8 +330,8 @@ means the script is never rendered, not that it loads and is asked to be quiet.
 | **Never ask** | Shows no notice, and analytics run for everyone |
 
 The country comes from whatever header the CDN in front of the board sets —
-`x-vercel-ip-country` on Vercel, `cf-ipcountry` behind Cloudflare. A board behind
-neither has no such header, and "unknown" is treated as in scope on purpose: a
+`cf-ipcountry` behind Cloudflare, and one of a handful of equivalents elsewhere.
+A board behind no CDN has no such header, and "unknown" is treated as in scope on purpose: a
 notice somebody did not need is a smaller mistake than processing a European
 reader's data without asking. If that is not the trade you want, say so in the
 setting rather than living with the guess.
@@ -296,12 +344,12 @@ changed afterwards from the appearance strip at the foot of any page.
 
 ## Plugins
 
-Same shape as a theme: `npm install`, a line in `forum.config.ts`, a redeploy.
+Same shape as a theme: add the package, a line in `forum.config.ts`, a redeploy.
 
 > [!NOTE]
 > There is no upload-a-zip path, and there will not be one. A plugin discovered
-> at runtime is a plugin that is not in the serverless bundle — it would work in
-> development and be absent in production.
+> at runtime is a plugin the bundler never saw — it would work in development
+> and be absent from the production build.
 
 ### What a plugin cannot do
 
@@ -334,7 +382,7 @@ the server that handled the click, and it survives a redeploy. Reach for it when
 a plugin is misbehaving — you do not need to deploy to stop one.
 
 **The panel never runs migrations.** It tells you which are outstanding;
-`npm run forum -- upgrade` applies them.
+`forum upgrade` applies them.
 
 > [!WARNING]
 > A plugin with unapplied migrations is running against a schema that does not
@@ -680,8 +728,8 @@ some migrations cannot be reversed at all, so a "roll back" that worked for half
 of them and silently did nothing for the rest would be worse than its absence.
 
 ```sh
-npm run forum -- migrate      # core only
-npm run forum -- upgrade      # core, then plugins, then record the version
+forum migrate      # core only
+forum upgrade      # core, then plugins, then record the version
 ```
 
 The admin panel shows a notice when the deployed code is ahead of the database.
@@ -705,14 +753,35 @@ Two things, and only one of them is the database.
 2. **Uploaded files**, if your file driver is local disk. On S3 or a compatible
    store the files are already elsewhere and the bucket has its own backup story.
 
-The code is in git. `.env` values are in your platform's environment — keep a
-copy somewhere you can reach when the platform is the thing that is broken.
+The code is in git. `.env` values — or the secrets your panel generated — are
+worth a copy somewhere you can reach when the machine is the thing that is
+broken.
+
+> [!WARNING]
+> **A scheduled database backup is not a backup of the board.** Coolify's
+> per-resource schedule dumps Postgres and does not touch the uploads volume, so
+> a restore from it gives you every post and a broken image in each of them.
+> Whatever takes the database, something has to take the volume too.
 
 ### Taking one
 
 ```sh
 pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL" > board.dump
 ```
+
+From a container deployment, where `pg_dump` is in the database container rather
+than on the host:
+
+```sh
+docker compose exec -T postgres pg_dump -U forum forum | gzip > board-$(date +%F).sql.gz
+docker run --rm -v meith_uploads:/u -v "$PWD":/out alpine \
+  tar czf /out/uploads-$(date +%F).tar.gz -C /u .
+```
+
+Check the volume's real name with `docker volume ls` first — Compose prefixes it
+with the project directory, and Coolify with the resource's UUID. Then put both
+in a cron and **copy them off the machine**: a backup on the server is a backup
+of the thing most likely to fail.
 
 `--format=custom` restores selectively and compresses. `--no-owner` and
 `--no-privileges` because the role names on a managed platform are not the ones
@@ -737,7 +806,7 @@ Then check three things, in this order:
 
 1. `select count(*) from posts;` — is the content there?
 2. Sign in as an administrator — did the credentials survive?
-3. `npm run forum -- migrate` — is the schema at the version the code expects?
+3. `forum migrate` — is the schema at the version the code expects?
 
 ### Rehearse it
 
@@ -747,18 +816,25 @@ recovery time, and an incident is the wrong moment to find it out.
 
 ## Connection pooling
 
+**Running the documented deployment? Skip this section.** A board on its own
+Postgres, with a fixed number of server processes in front of it, opens a
+bounded number of connections and needs no pooler. Use the ordinary connection
+string.
+
+This is for a board pointed at a *managed* database — Neon, Supabase and their
+kind — and it is worth reading before you point one at it.
+
 > [!CAUTION]
-> **This is the single most common way a serverless board breaks, and it does not
-> break during testing.**
+> **It does not break during testing.**
 
-Every function instance opens its own database connection. Postgres runs out at
-around a hundred, and a platform that scales to fifty instances under load will
-exhaust that. So the board works perfectly while you are the only visitor, and
-starts refusing connections the first day it is busy — with an error that names
-the database rather than the cause.
+Those providers hand out two connection strings, and the difference only shows
+under load: on the direct one, every process that scales up opens its own
+connection, Postgres runs out at around a hundred, and the board that worked
+perfectly while you were the only visitor starts refusing connections the first
+day it is busy — with an error that names the database rather than the cause.
 
-**Use the transaction-mode pooler connection string.** On Supabase that is port
-`6543`, not `5432`. The installer warns when the URL does not look like a pooler.
+**Use the transaction-mode pooler string.** On Supabase that is port `6543`, not
+`5432`. The installer warns when the URL does not look like a pooler.
 
 Two consequences:
 
@@ -767,10 +843,9 @@ Two consequences:
   next. The database layer is configured for this; a plugin issuing raw SQL
   should be too.
 - **`pg_dump` and DDL want the direct URL.** Both need session-level state. Set
-  `DIRECT_DATABASE_URL` for migrations if your platform provides both strings.
-
-Self-hosting against your own Postgres with a fixed number of server processes?
-None of this applies. Use the ordinary connection string.
+  `DIRECT_DATABASE_URL` for migrations when your provider offers both strings —
+  a migration's advisory lock is invisible through a transaction pooler, which
+  is what lets two deploys interleave schema changes.
 
 ## Troubleshooting
 
@@ -782,8 +857,11 @@ and nothing errors, because nothing ran.*
 1. Check `/admin/system`. The tick's status is there, and a stale one is called
    out loudly.
 2. Check `TICK_SECRET` is set.
-3. Check your platform's cron is actually calling `/api/system/tick`. On Vercel
-   that is `vercel.json`, which the scaffold commits.
+3. Check something is actually calling `/api/system/tick`. On the documented
+   deployment that is the `worker` container — `docker compose ps` should show
+   it up, and `docker compose logs worker` should show `worker started` once
+   rather than every few seconds. Anywhere else, it is whatever you pointed at
+   the tick.
 
 Notification and mass mail are delivered on this tick, so a stopped one is also
 a board that has stopped sending them — see [Mail](#mail). Verification and
@@ -834,10 +912,10 @@ map.
 The CLI does not need the web app:
 
 ```sh
-npm run forum -- env:check       # is the environment valid, and can it connect?
-npm run forum -- settings:list   # what the board thinks its settings are
-npm run forum -- task:list       # what is scheduled, and when each last ran
-npm run forum -- migrate         # is the schema behind the code?
+forum env:check       # is the environment valid, and can it connect?
+forum settings:list   # what the board thinks its settings are
+forum task:list       # what is scheduled, and when each last ran
+forum migrate         # is the schema behind the code?
 ```
 
 `forum --help` lists everything. The commands that exist are the ones listed

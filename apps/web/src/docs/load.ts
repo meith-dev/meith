@@ -61,6 +61,21 @@ export function linkResolver(file: string): (href: string) => ResolvedLink {
     /* `normalize` collapses the `./` and any `../`; `docs/` is the root here. */
     const target = normalize(directory === "." ? rawPath : join(directory, rawPath))
 
+    /*
+     * A path that climbs out of `docs/` altogether — `../render.yaml`,
+     * `../docker-compose.yml`. The deployment documents link to the files an
+     * operator is about to deploy, which live at the repository root, and those
+     * links have to survive being read here as well as on GitHub.
+     *
+     * Without this they fell through to the last branch and became
+     * `…/tree/main/docs/../render.yaml`: a URL that looks plausible in the
+     * markup and 404s when somebody follows it, which is the worst way for a
+     * link to be wrong.
+     */
+    if (target.startsWith("../")) {
+      return { href: repositoryHref(target.replace(/^(\.\.\/)+/, ""), anchor), external: true }
+    }
+
     /* The index of the documentation is this site's own /docs page. */
     if (target === "README.md") return { href: `/docs${anchor}`, external: false }
 

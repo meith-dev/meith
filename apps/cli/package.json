@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "build": "esbuild --bundle --platform=node --format=cjs --target=node22 --external:@opentelemetry/api src/index.ts --outfile=dist/cli.cjs"
   },
   "bin": {
     "forum": "./dist/index.js"
@@ -23,6 +24,7 @@
     "@meith/tasks": "workspace:*"
   },
   "devDependencies": {
+    "esbuild": "^0.25.0",
     "tsx": "^4.20.6"
   }
 }
