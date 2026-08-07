@@ -44,7 +44,7 @@
  * do — so it hands the tree across as a prop, which is a dozen short strings.
  */
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 import { Disclosure, cn } from '@meith/ui'
 
@@ -55,6 +55,7 @@ import {
   currentProps,
   deepestHrefIn,
   flattenNav,
+  isHere,
   sectionHrefIn,
   visibleChildren,
 } from '@/view/panel-nav'
@@ -122,10 +123,10 @@ function SectionList({
   overviewHref,
   fallbackHref,
   counts,
-  pathname,
-}: PanelNavProps & { pathname: string }) {
-  const active = sectionHrefIn(nav, pathname) ?? fallbackHref ?? null
-  const deepest = deepestHrefIn(nav, pathname) ?? fallbackHref ?? null
+  location,
+}: PanelNavProps & { location: string }) {
+  const active = sectionHrefIn(nav, location) ?? fallbackHref ?? null
+  const deepest = deepestHrefIn(nav, location) ?? fallbackHref ?? null
 
   return (
     <nav aria-label="Sections" className="text-sm">
@@ -147,13 +148,13 @@ function SectionList({
                 href={section.href}
                 className={cn(
                   ITEM,
-                  pathname === section.href
+                  isHere(location, section.href) && deepest === section.href
                     ? HERE
                     : active === section.href
                       ? 'font-medium text-foreground hover:bg-muted/60'
                       : ELSEWHERE,
                 )}
-                {...currentProps(pathname, section.href, deepest)}
+                {...currentProps(location, section.href, deepest)}
               >
                 <span className="min-w-0 flex-1">{section.title}</span>
                 {count !== null && <Count count={count} />}
@@ -184,8 +185,11 @@ function SectionList({
                       <li key={child.href}>
                         <a
                           href={child.href}
-                          className={cn(ITEM, pathname === child.href ? HERE : ELSEWHERE)}
-                          {...currentProps(pathname, child.href, deepest)}
+                          className={cn(
+                            ITEM,
+                            isHere(location, child.href) ? HERE : ELSEWHERE,
+                          )}
+                          {...currentProps(location, child.href, deepest)}
                         >
                           <span className="min-w-0 flex-1">{child.title}</span>
                           {childCount !== null && <Count count={childCount} />}
@@ -205,13 +209,25 @@ function SectionList({
 
 export function PanelNav(props: PanelNavProps) {
   const pathname = usePathname()
+  /*
+   * The query is part of where you are, not decoration. The ACP's ten setting
+   * groups are `?group=…` on one screen — a deliberate choice, so a group is
+   * bookmarkable and sendable — and a rail that read only the pathname could
+   * not mark which of them you were reading.
+   *
+   * `useSearchParams` opts this out of static rendering. Every screen the rail
+   * appears on is behind a session and already dynamic, so there is nothing to
+   * lose here; a page that could be static must not render a panel shell.
+   */
+  const search = useSearchParams().toString()
+  const location = search === '' ? pathname : `${pathname}?${search}`
 
   /*
    * The deepest match, so the collapsed row on a phone says "Mass mail" rather
    * than "Users" — it is the only thing on that screen that says where you are
    * within the panel, and the heading underneath already says the rest.
    */
-  const deepest = deepestHrefIn(props.nav, pathname) ?? props.fallbackHref ?? null
+  const deepest = deepestHrefIn(props.nav, location) ?? props.fallbackHref ?? null
   const here = flattenNav(props.nav).find((item) => item.href === deepest)
 
   return (
@@ -222,11 +238,11 @@ export function PanelNav(props: PanelNavProps) {
         contentClassName="p-2"
         {...(here === undefined ? {} : { aside: here.title })}
       >
-        <SectionList {...props} pathname={pathname} />
+        <SectionList {...props} location={location} />
       </Disclosure>
 
       <div className="hidden lg:block">
-        <SectionList {...props} pathname={pathname} />
+        <SectionList {...props} location={location} />
       </div>
     </>
   )

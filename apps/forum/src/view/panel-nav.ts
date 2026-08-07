@@ -68,41 +68,98 @@ export interface PanelSection {
 
 export type PanelNav = readonly PanelSection[]
 
+/** An address split into its path and the parameters that qualify it. */
+function parts(href: string): { path: string; params: URLSearchParams } {
+  const cut = href.indexOf('?')
+  if (cut === -1) return { path: href, params: new URLSearchParams() }
+  return { path: href.slice(0, cut), params: new URLSearchParams(href.slice(cut + 1)) }
+}
+
 /**
- * Is `pathname` this href or somewhere below it?
+ * Does the item's query, if it has one, agree with where we are?
+ *
+ * Only the parameters the *item* names are compared. `/admin/settings?group=mail`
+ * is still where you are when the address also carries `&advanced=1`, because
+ * `advanced` is a filter over the screen rather than a different screen.
+ */
+function paramsAgree(here: URLSearchParams, wanted: URLSearchParams): boolean {
+  for (const [key, value] of wanted) {
+    if (here.get(key) !== value) return false
+  }
+  return true
+}
+
+/**
+ * Is `location` this href or somewhere below it?
  *
  * The trailing slash is the whole point: `/admin/users` must not claim
  * `/admin/users-and-more`, and a board that later grows such a route should
  * not need to remember why the navigation went strange.
+ *
+ * ## Both sides may carry a query, and that is what puts the setting groups in the rail
+ *
+ * A control panel's second level is not always a route. The ACP's ten setting
+ * groups are one screen filtered ten ways — `?group=mail` — because the filter
+ * belongs in the URL, so it can be bookmarked, sent to somebody, and reached
+ * with the back button. That was a good decision and it left the groups with
+ * nowhere to live in the navigation, so they were a row of chips in the page
+ * body that nobody noticed.
+ *
+ * So an item's href may name the parameters that make it *that* item, and the
+ * caller passes `pathname + search` rather than a bare pathname. An item with
+ * no query behaves exactly as it always did — the section `/admin/settings`
+ * still claims every address under it, whatever the query says — which is why
+ * every other caller needed no change.
  */
-export function isUnder(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`)
+export function isUnder(location: string, href: string): boolean {
+  const here = parts(location)
+  const want = parts(href)
+  if (here.path !== want.path && !here.path.startsWith(`${want.path}/`)) return false
+  return paramsAgree(here.params, want.params)
 }
 
-function longest(pathname: string, hrefs: readonly string[]): string | null {
+/**
+ * Is this href the address itself, rather than something containing it?
+ *
+ * The distinction `aria-current` needs: `page` for the screen you are on,
+ * `true` for a record inside a section that has no link of its own.
+ */
+export function isHere(location: string, href: string): boolean {
+  const here = parts(location)
+  const want = parts(href)
+  return here.path === want.path && paramsAgree(here.params, want.params)
+}
+
+/**
+ * The most specific href that contains this location.
+ *
+ * Length is the tie-break, and a query counts towards it — which is what makes
+ * `/admin/settings?group=mail` beat the `/admin/settings` it sits under.
+ */
+function longest(location: string, hrefs: readonly string[]): string | null {
   let best: string | null = null
   for (const href of hrefs) {
-    if (!isUnder(pathname, href)) continue
+    if (!isUnder(location, href)) continue
     if (best === null || href.length > best.length) best = href
   }
   return best
 }
 
-/** Which section this path belongs to, or `null` if it is outside the panel. */
-export function sectionHrefIn(nav: PanelNav, pathname: string): string | null {
+/** Which section this location belongs to, or `null` if it is outside the panel. */
+export function sectionHrefIn(nav: PanelNav, location: string): string | null {
   return longest(
-    pathname,
+    location,
     nav.map((section) => section.href),
   )
 }
 
 /**
- * The deepest thing in the tree that contains this path — a sub-page where
+ * The deepest thing in the tree that contains this location — a sub-page where
  * there is one, otherwise its section. This is what "you are here" means.
  */
-export function deepestHrefIn(nav: PanelNav, pathname: string): string | null {
+export function deepestHrefIn(nav: PanelNav, location: string): string | null {
   return longest(
-    pathname,
+    location,
     nav.flatMap((section) => [
       section.href,
       ...(section.children ?? []).map((child) => child.href),
@@ -165,10 +222,10 @@ export function countFor(counts: PanelCounts | undefined, href: string): number 
  * not an absent attribute.
  */
 export function currentProps(
-  pathname: string,
+  location: string,
   href: string,
   deepest: string | null,
 ): { readonly 'aria-current'?: 'page' | 'true' } {
   if (href !== deepest) return {}
-  return { 'aria-current': pathname === href ? 'page' : 'true' }
+  return { 'aria-current': isHere(location, href) ? 'page' : 'true' }
 }

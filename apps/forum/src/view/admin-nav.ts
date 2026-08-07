@@ -45,9 +45,13 @@ import {
   isUnder,
   sectionHrefIn,
 } from './panel-nav'
+import { SETTING_GROUP_NAV } from './setting-groups'
 
 export { currentProps, isUnder }
-export type { PanelSection as AdminSection, PanelSubsection as AdminSubsection } from './panel-nav'
+export type {
+  PanelSection as AdminSection,
+  PanelSubsection as AdminSubsection,
+} from './panel-nav'
 
 /**
  * The panel's front door. Kept out of `ADMIN_SECTIONS` because the index does
@@ -65,6 +69,12 @@ export const ADMIN_SECTIONS: PanelNav = [
     href: '/admin/settings',
     title: 'Board settings',
     blurb: 'Every setting this build has, grouped and searchable.',
+    /*
+     * The ten groups, from the same list the screen itself renders. They were a
+     * row of chips in the page body that read as prose rather than as
+     * navigation; see `SETTING_GROUP_NAV` for why they are here instead.
+     */
+    children: SETTING_GROUP_NAV,
   },
   {
     href: '/admin/forums',

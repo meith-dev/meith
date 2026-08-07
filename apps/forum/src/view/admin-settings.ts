@@ -29,6 +29,10 @@ import {
   type SettingsSnapshot,
 } from '@meith/settings'
 
+import { GROUP_LABELS, GROUP_ORDER } from './setting-groups'
+
+export { DEFAULT_SETTING_GROUP, SETTING_GROUP_NAV } from './setting-groups'
+
 export interface SettingFieldModel {
   readonly key: string
   readonly label: string
@@ -58,43 +62,6 @@ export interface AdminSettingsModel {
   readonly hiddenAdvanced: number
   readonly total: number
 }
-
-const GROUP_LABELS: Record<SettingGroup, string> = {
-  board: 'Board',
-  registration: 'Registration',
-  posting: 'Posting',
-  display: 'Display',
-  search: 'Search',
-  mail: 'Mail',
-  reputation: 'Reputation',
-  security: 'Security',
-  antispam: 'Anti-spam',
-  privacy: 'Privacy',
-}
-
-/** The order the tabs appear in: the order an operator sets a board up. */
-const GROUP_ORDER: readonly SettingGroup[] = [
-  'board',
-  'registration',
-  'posting',
-  'display',
-  'search',
-  'reputation',
-  'mail',
-  'security',
-  /*
-   * Beside security rather than at the end: it is a question about the board's
-   * obligations to its readers, and an operator answering it is usually
-   * answering security's questions in the same sitting.
-   */
-  'privacy',
-  /*
-   * Last, because it is the tab an operator reaches for when something is
-   * already wrong rather than while setting a board up — and because every
-   * default in it is inert, so there is nothing here to do on day one.
-   */
-  'antispam',
-]
 
 function matches(definition: SettingDefinition, query: string): boolean {
   if (query === '') return true

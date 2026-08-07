@@ -5,6 +5,7 @@ import {
   type PanelSection,
   countFor,
   deepestHrefIn,
+  isHere,
   isUnder,
   sectionHrefIn,
   visibleChildren,
@@ -39,6 +40,39 @@ describe('isUnder', () => {
     /* The reason it is not `startsWith`: a future `/panel/things-archive`. */
     expect(isUnder('/panel/things-archive', '/panel/things')).toBe(false)
     expect(isUnder('/panel/things/12', '/panel/things')).toBe(true)
+  })
+
+  it('ignores a query the item does not name', () => {
+    /* A section claims everything under it, however the address is filtered. */
+    expect(isUnder('/panel/things?group=b&sort=old', '/panel/things')).toBe(true)
+  })
+
+  it('holds an item to every parameter it does name', () => {
+    expect(isUnder('/panel/things?group=b', '/panel/things?group=b')).toBe(true)
+    expect(isUnder('/panel/things?group=c', '/panel/things?group=b')).toBe(false)
+    expect(isUnder('/panel/things', '/panel/things?group=b')).toBe(false)
+  })
+
+  it('leaves the other filters on an address alone', () => {
+    /*
+     * `advanced` is a filter over the group, not a different group — so the
+     * group is still where you are when it is on.
+     */
+    expect(isUnder('/panel/things?group=b&advanced=1', '/panel/things?group=b')).toBe(
+      true,
+    )
+  })
+})
+
+describe('isHere', () => {
+  it('is the address itself, not something inside it', () => {
+    expect(isHere('/panel/things', '/panel/things')).toBe(true)
+    expect(isHere('/panel/things/12', '/panel/things')).toBe(false)
+  })
+
+  it('reads a query the same way `isUnder` does', () => {
+    expect(isHere('/panel/things?group=b&advanced=1', '/panel/things?group=b')).toBe(true)
+    expect(isHere('/panel/things?group=c', '/panel/things?group=b')).toBe(false)
   })
 })
 
