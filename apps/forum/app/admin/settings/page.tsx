@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter, Input, buttonVariants, cn } from '@meith
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { AdminSettingsForm } from '@/components/admin/settings-form'
+import { MailTestCard } from '@/components/admin/mail-test-card'
 import { requireAdmin } from '@/server/admin'
 import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
@@ -62,11 +63,19 @@ export default async function AdminSettingsPage({
 
   /*
    * The one setting on this screen that can be turned into an unusable board.
-   * Checked only while the registration group is on screen, which is where the
-   * dropdown that causes it lives — the same warning on the theme tab would be
-   * noise, and F70's health view is where it is stated unconditionally.
+   *
+   * Read on two groups rather than one. The registration group is where the
+   * dropdown that causes it lives, and the mail group is where it is fixed — and
+   * on the mail group it does more than warn: it carries the current transport
+   * and the test button, which are the two things an operator on that screen is
+   * there for. Every other tab skips the query, because the same alert beside
+   * the theme tokens would be noise, and F70's health view states it
+   * unconditionally.
    */
-  const mail = model.activeGroup === 'registration' ? await assessMailReadiness() : null
+  const mail =
+    model.activeGroup === 'registration' || model.activeGroup === 'mail'
+      ? await assessMailReadiness()
+      : null
 
   return (
     <PanelPage
@@ -146,6 +155,14 @@ export default async function AdminSettingsPage({
         </CardFooter>
       </Card>
 
+      {model.activeGroup === 'mail' && mail !== null && (
+        <MailTestCard
+          summary={mail.summary}
+          sends={mail.sends}
+          fromEnvironment={mail.source === 'environment'}
+        />
+      )}
+
       {mail?.unactivatable && (
         <section
           role="alert"
@@ -157,17 +174,29 @@ export default async function AdminSettingsPage({
           <p className="text-sm">
             The activation method is{' '}
             <strong className="font-medium">{mail.activationMethod}</strong>, so a new
-            account waits for a confirmation link — but <code>MAIL_DRIVER</code> is{' '}
-            <code>log</code>, which writes messages to the server log and sends nothing.
-            Every account created while this is true is stuck: it cannot sign in, and the
-            link that would release it never arrives.
+            account waits for a confirmation link — but this board sends no mail:{' '}
+            {mail.summary.toLowerCase()}. Every account created while this is true is
+            stuck: it cannot sign in, and the link that would release it never arrives.
           </p>
           <p className="text-sm">
             Either set the activation method to{' '}
             <strong className="font-medium">none</strong> or{' '}
-            <strong className="font-medium">admin</strong>, or configure a mail driver.
-            The driver is an environment variable and takes a restart; see the Mail
-            section of the operator handbook.
+            <strong className="font-medium">admin</strong>, or{' '}
+            {mail.source === 'environment' ? (
+              <>
+                complete the <code>MAIL_*</code> variables in this deployment’s
+                environment and redeploy — <code>MAIL_DRIVER</code> is set, so it
+                overrides the mail settings screen.
+              </>
+            ) : (
+              <>
+                <a href={settingsHref({ group: 'mail' })} className="underline">
+                  configure mail
+                </a>
+                , which takes effect without a redeploy and has a button to prove it
+                works.
+              </>
+            )}
           </p>
         </section>
       )}

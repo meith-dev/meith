@@ -23,3 +23,26 @@ export {
   type SettingField,
   type SettingOption,
 } from './fields'
+
+export {
+  MAIL_PRESETS,
+  MAIL_PRESET_BY_ID,
+  NO_MAIL,
+  canSendMail,
+  defaultPort,
+  describeMailConfig,
+  mailConfigFromEnvironment,
+  mailConfigFromSettings,
+  mailConfigProblems,
+  resolveMailConfig,
+  type HttpMailConfig,
+  type LogMailConfig,
+  type MailConfig,
+  type MailEnvironment,
+  type MailPreset,
+  type MailResolution,
+  type MailSecurity,
+  type MailSource,
+  type MailTransport,
+  type SmtpMailConfig,
+} from './mail'

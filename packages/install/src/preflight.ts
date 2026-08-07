@@ -24,7 +24,30 @@
  * an error that names the database rather than the cause.
  */
 
+import type { MailSource } from '@meith/settings'
+
 export type Level = 'blocker' | 'warning' | 'ok'
+
+/**
+ * What the environment already says about mail, as the installer finds it.
+ *
+ * `configured` is about *shape* — a transport with everything it needs — and
+ * never about whether the credentials work. Only a send proves that, and the
+ * installer does send: see `install-actions`. This is what decides whether to
+ * offer the operator a mail form at all.
+ */
+export interface MailProbe {
+  /** True when a complete, non-`log` transport is already resolved. */
+  readonly configured: boolean
+  /**
+   * `environment` means `MAIL_DRIVER` is set and the form must not offer to
+   * override it — the boxes would be ignored, and a form whose values are
+   * discarded is worse than no form.
+   */
+  readonly source: MailSource
+  /** Safe to print: names a host, never a credential. */
+  readonly summary: string
+}
 
 export interface Check {
   readonly id: string
@@ -48,6 +71,14 @@ export interface PreflightProbe {
   readonly hasAuthSecret: boolean
   readonly hasTickSecret: boolean
   readonly publicUrl: string | null
+  /**
+   * How the board would send mail *before* this form is submitted — the
+   * environment's answer, or the stored settings of a board being reinstalled.
+   *
+   * A fact, like every other field here: it says what is configured, not whether
+   * the operator ought to configure something. The judgement is below.
+   */
+  readonly mail: MailProbe
   /** `null` when no attempt was made — usually because there was no URL. */
   readonly canConnect: boolean | null
   /** `null` when unknown (no connection). */
@@ -220,17 +251,65 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
     checks.push(ok('tick-secret', 'TICK_SECRET is set'))
   }
 
+  /*
+   * `APP_URL`, and it has always been `APP_URL`.
+   *
+   * These two checks said `PUBLIC_URL` — a variable that appears nowhere in the
+   * schema, is read by nothing, and would have done nothing had anybody set it.
+   * The probe beside them has read `env.APP_URL` since the day it was written.
+   * On the one screen whose entire job is telling a new operator what to fix,
+   * naming the wrong variable does not merely fail to help: it sends them to
+   * change something that cannot have any effect, and the link in the password
+   * reset stays broken.
+   */
   if (probe.publicUrl === null || probe.publicUrl === '') {
     checks.push({
       id: 'public-url',
       level: 'warning',
-      title: 'PUBLIC_URL is not set',
+      title: 'APP_URL is not set',
       detail:
         'Mail, feeds and canonical URLs need an absolute address — there is no request to be ' +
-        'relative to when a digest is sent from the worker.',
+        'relative to when a digest is sent from the worker. Every link in an e-mail is built ' +
+        'from it, so a board without it sends password resets that carry no link at all.',
     })
   } else {
-    checks.push(ok('public-url', 'PUBLIC_URL is set'))
+    checks.push(ok('public-url', 'APP_URL is set'))
+  }
+
+  /* ---- Mail ---- */
+  if (probe.mail.configured) {
+    checks.push(ok('mail', `Mail is configured — ${probe.mail.summary}`))
+  } else if (probe.mail.source === 'environment') {
+    /*
+     * A blocker, uniquely among the mail states, and the only one here that is
+     * not about the operator's choice. `MAIL_DRIVER` is set, so the environment
+     * has taken the decision away from the form below — and it is incomplete, so
+     * what it took the decision away *for* cannot send. Installing would produce
+     * a board whose mail screen is read-only and whose mail does not work, and
+     * the fix is a variable this screen cannot write.
+     */
+    checks.push({
+      id: 'mail',
+      level: 'blocker',
+      title: 'MAIL_DRIVER is set but incomplete',
+      detail:
+        `The environment says ${probe.mail.summary}, which overrides anything this ` +
+        'installer or the settings screen could store — and it is missing something it ' +
+        'needs. Complete it in the environment and redeploy, or unset MAIL_DRIVER and ' +
+        'configure mail on the form below.',
+    })
+  } else {
+    checks.push({
+      id: 'mail',
+      level: 'warning',
+      title: 'Mail is not configured yet',
+      detail:
+        'The form below can set it up, and this is the moment to do it. Installing without ' +
+        'mail is supported and leaves a board people can still join — new accounts work ' +
+        'immediately by default rather than waiting for a confirmation nothing would send. ' +
+        'What does not work is the forgotten-password form, for every member and for you. ' +
+        'Mail can also be configured later, from the settings screen, without a redeploy.',
+    })
   }
 
   return checks

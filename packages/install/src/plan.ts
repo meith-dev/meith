@@ -19,6 +19,17 @@
  * board that can be fixed by trying again — except for the one case that must
  * not be repeatable, which the *user count* gate covers independently
  * (see `preflight`).
+ *
+ * ## Mail is proved before any of this runs, and is not a step
+ *
+ * When the operator configured mail, the action sends a real message to the
+ * address they gave for the administrator **before** the first migration —
+ * outside this list entirely. A step would be too late by definition: it would
+ * run after the account exists, so a wrong API key would leave a board that is
+ * installed, sealed, and unable to mail anybody, fixable only from a panel the
+ * operator has not seen yet. Failing before the first write leaves nothing
+ * behind and puts the provider's own error message on the form beside the field
+ * that caused it.
  */
 
 export interface InstallStep {
@@ -36,8 +47,10 @@ export const INSTALL_STEPS: readonly InstallStep[] = [
   },
   {
     id: 'settings',
-    title: 'Record the board’s name',
-    detail: 'The only setting the installer writes. Everything else has a default.',
+    title: 'Record the board’s name and mail settings',
+    detail:
+      'The only settings the installer writes. Everything else has a default and ' +
+      'a screen.',
   },
   {
     id: 'admin',

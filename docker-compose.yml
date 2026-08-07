@@ -83,14 +83,24 @@ services:
       FILESTORE_DRIVER: local
       APP_URL: ${APP_URL:-http://localhost:3000}
       # Mail, forwarded rather than hard-coded so it can be configured in `.env`
-      # without editing this file. Unset means the default `log` driver, which
-      # writes each message to the container log and DELIVERS NOTHING — so
-      # password reset fails silently until these are set. An empty value here
-      # is treated as unset; see withoutEmptyValues in packages/core/src/env.ts.
+      # without editing this file. An empty value here is treated as unset; see
+      # withoutEmptyValues in packages/core/src/env.ts.
+      #
+      # Leaving MAIL_DRIVER at `log` no longer means "no mail": it means the
+      # board decides, from the installer on first run or from
+      # /admin/settings?group=mail afterwards, with no redeploy. Setting it to
+      # `http` or `smtp` makes this file authoritative and the settings screen
+      # read-only — the right choice when the credential must not live in the
+      # database.
       MAIL_DRIVER: ${MAIL_DRIVER:-log}
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_HTTP_ENDPOINT: ${MAIL_HTTP_ENDPOINT:-}
       MAIL_HTTP_TOKEN: ${MAIL_HTTP_TOKEN:-}
+      MAIL_SMTP_HOST: ${MAIL_SMTP_HOST:-}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT:-}
+      MAIL_SMTP_SECURITY: ${MAIL_SMTP_SECURITY:-}
+      MAIL_SMTP_USERNAME: ${MAIL_SMTP_USERNAME:-}
+      MAIL_SMTP_PASSWORD: ${MAIL_SMTP_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
     depends_on:
@@ -126,6 +136,11 @@ services:
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_HTTP_ENDPOINT: ${MAIL_HTTP_ENDPOINT:-}
       MAIL_HTTP_TOKEN: ${MAIL_HTTP_TOKEN:-}
+      MAIL_SMTP_HOST: ${MAIL_SMTP_HOST:-}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT:-}
+      MAIL_SMTP_SECURITY: ${MAIL_SMTP_SECURITY:-}
+      MAIL_SMTP_USERNAME: ${MAIL_SMTP_USERNAME:-}
+      MAIL_SMTP_PASSWORD: ${MAIL_SMTP_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
     depends_on:

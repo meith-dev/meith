@@ -36,13 +36,22 @@ import {
   runMigrations,
 } from '@meith/db'
 import { env, logger } from '@meith/core'
-import { SettingsSnapshot } from '@meith/settings'
+import { currentMailConfig } from '@meith/drivers'
+import {
+  SettingsSnapshot,
+  canSendMail,
+  describeMailConfig,
+  mailConfigFromEnvironment,
+  saveSettings,
+} from '@meith/settings'
 import {
   INSTALL_STEPS,
   defaultForumSlug,
+  mailConfigFromInstallInput,
   preflight,
   type Check,
   type InstallInput,
+  type MailProbe,
   type StepOutcome,
 } from '@meith/install'
 
@@ -89,6 +98,7 @@ export async function gatherPreflight(): Promise<readonly Check[]> {
     hasAuthSecret: (env.AUTH_SECRET ?? '') !== '',
     hasTickSecret: (env.TICK_SECRET ?? '') !== '',
     publicUrl: env.APP_URL ?? null,
+    mail: await probeMail(),
     canConnect: connected,
     /*
      * Deliberately not measured. Counting pending migrations means reading the
@@ -100,6 +110,36 @@ export async function gatherPreflight(): Promise<readonly Check[]> {
     userCount: users,
     alreadyInstalled: installed,
   })
+}
+
+/**
+ * What mail looks like before the form is filled in.
+ *
+ * Failure-tolerant like every other probe, and for a sharper reason than most:
+ * reading the board's stored mail settings means reading the `settings` table,
+ * which on a board that has never been installed does not exist. That is the
+ * *expected* case here, not an error, and it must produce "nothing is
+ * configured" rather than a stack trace on the page whose job is to explain
+ * problems.
+ */
+export async function probeMail(): Promise<MailProbe> {
+  const fromEnvironment = mailConfigFromEnvironment(env)
+
+  try {
+    const config = fromEnvironment ?? (await currentMailConfig())
+    return {
+      configured: canSendMail(config),
+      source: fromEnvironment === null ? 'board' : 'environment',
+      summary: describeMailConfig(config),
+    }
+  } catch (error) {
+    logger().warn({ err: String(error) }, 'install preflight could not read mail settings')
+    return {
+      configured: false,
+      source: fromEnvironment === null ? 'board' : 'environment',
+      summary: 'Not sending — messages are written to the server log',
+    }
+  }
 }
 
 /** Whether `/install` should exist at all. Read by the page and the action. */
@@ -146,12 +186,50 @@ export async function runInstall(input: InstallInput): Promise<readonly StepOutc
   /* 1. Migrations. Nothing below has a table to write to until this succeeds. */
   if (!(await step('migrate', async () => void (await runMigrations())))) return report
 
-  /* 2. The board's name — the only setting the installer writes. */
+  /*
+   * 2. The board's name, and how it sends mail.
+   *
+   * The mail half goes through `saveSettings` rather than a direct `save`, so
+   * the values land under the same validation the settings screen applies —
+   * including the rule that a value equal to its default is *deleted* rather
+   * than stored, which keeps a later change of default reaching this board.
+   * Writing the rows by hand here would be a second, laxer writer for the one
+   * set of keys where a bad value means "no mail" rather than "wrong colour".
+   *
+   * The credentials have already been proved by this point: the action sent a
+   * real message through this exact config before calling `runInstall`. What is
+   * stored is therefore known to work, which is the difference between an
+   * installer that configures mail and one that merely records an intention.
+   */
   const settings = new PostgresSettingsRepository(db)
   if (
-    !(await step('settings', () =>
-      settings.save(new Map([['board.name', input.boardName]])),
-    ))
+    !(await step('settings', async () => {
+      await settings.save(new Map([['board.name', input.boardName]]))
+
+      const mail = mailConfigFromInstallInput(input)
+      if (mail.transport === 'log') return
+
+      await saveSettings(
+        settings,
+        mail.transport === 'http'
+          ? {
+              'mail.transport': 'http',
+              'mail.from': mail.from,
+              'mail.http_endpoint': mail.endpoint,
+              'mail.http_token': mail.token,
+            }
+          : {
+              'mail.transport': 'smtp',
+              'mail.from': mail.from,
+              'mail.smtp_host': mail.host,
+              'mail.smtp_port': mail.port,
+              'mail.smtp_security': mail.security,
+              'mail.smtp_username': mail.username,
+              'mail.smtp_password': mail.password,
+            },
+        SettingsSnapshot.fromOverrides(await settings.loadAll()),
+      )
+    }))
   ) {
     return report
   }

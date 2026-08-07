@@ -93,6 +93,13 @@ const nextConfig = {
     "@jsquash/jpeg",
     "@jsquash/png",
     "@jsquash/resize",
+    /*
+     * The SMTP transport. Node-only — it reaches for `net`, `tls` and `dns`, and
+     * resolves parts of itself by dynamic require — so bundling it produces a
+     * chunk that fails to build rather than one that is merely large. Only the
+     * boards that send over SMTP load it at all.
+     */
+    "nodemailer",
   ],
   outputFileTracingRoot: workspaceRoot,
   images: {

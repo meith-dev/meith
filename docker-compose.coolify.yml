@@ -96,10 +96,18 @@ services:
       # A real disk, shared with the worker below, which is what makes `local`
       # the right answer here rather than the trap it is on a serverless host.
       - FILESTORE_DRIVER=local
-      # Mail sends nothing until this is configured. See docs/operating.md § Mail.
+      # Left unset, mail is configured on the board itself — the installer asks
+      # on first run and /admin/settings?group=mail changes it afterwards, with
+      # no redeploy. Set MAIL_DRIVER here and this file wins instead.
+      # See docs/operating.md § Mail.
       - MAIL_DRIVER=${MAIL_DRIVER:-log}
       - MAIL_HTTP_ENDPOINT=${MAIL_HTTP_ENDPOINT:-}
       - MAIL_HTTP_TOKEN=${MAIL_HTTP_TOKEN:-}
+      - MAIL_SMTP_HOST=${MAIL_SMTP_HOST:-}
+      - MAIL_SMTP_PORT=${MAIL_SMTP_PORT:-}
+      - MAIL_SMTP_SECURITY=${MAIL_SMTP_SECURITY:-}
+      - MAIL_SMTP_USERNAME=${MAIL_SMTP_USERNAME:-}
+      - MAIL_SMTP_PASSWORD=${MAIL_SMTP_PASSWORD:-}
       - MAIL_FROM=${MAIL_FROM:-}
     volumes:
       - uploads:/app/.uploads
@@ -132,6 +140,11 @@ services:
       - MAIL_DRIVER=${MAIL_DRIVER:-log}
       - MAIL_HTTP_ENDPOINT=${MAIL_HTTP_ENDPOINT:-}
       - MAIL_HTTP_TOKEN=${MAIL_HTTP_TOKEN:-}
+      - MAIL_SMTP_HOST=${MAIL_SMTP_HOST:-}
+      - MAIL_SMTP_PORT=${MAIL_SMTP_PORT:-}
+      - MAIL_SMTP_SECURITY=${MAIL_SMTP_SECURITY:-}
+      - MAIL_SMTP_USERNAME=${MAIL_SMTP_USERNAME:-}
+      - MAIL_SMTP_PASSWORD=${MAIL_SMTP_PASSWORD:-}
       - MAIL_FROM=${MAIL_FROM:-}
     volumes:
       # The same volume the web service mounts. Both halves of the board write

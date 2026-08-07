@@ -140,7 +140,7 @@ export const SLOTS = {
   },
   /*
    * Both are `F29` — the board index is the page they appear on, which is what
-   * this field records. Neither is in the plan text; D107 has the reasoning.
+   * this field records. Neither is in the plan text; D108 has the reasoning.
    */
   LatestThreads: {
     kind: 'server',
