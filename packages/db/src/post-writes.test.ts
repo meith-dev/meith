@@ -14,10 +14,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
 import { RENDER_VERSION } from '@meith/markdown'
+import { PUBLIC_CONTENT } from '@meith/core'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresPostWriteRepository } from './post-writes'
+import { PostgresSearchRepository } from './search-repo'
 import { PostgresThreadWriteRepository } from './thread-writes'
 import { resultRows } from './result-rows'
 import { applyAncestorVisibilityChange } from './visibility-counters'
@@ -280,6 +282,38 @@ describe('applyEdit', () => {
     expect(await threadRow(threadId)).toMatchObject({ reply_count: 0 })
     expect(await userPostCount()).toBe(beforeAuthor - 1)
     expect((await postRow(postIds[1]!)).visibility).toBe('unapproved')
+  })
+
+  /*
+   * F72. The edit rewrites the document with the body — and has to rebuild the
+   * *whole* document, not the half it can see on the row. Reading `subject`
+   * alone, which is null for everything this board writes, meant editing a
+   * typo out of an opening post silently dropped the thread's title from the
+   * index: the post stayed findable by its body and stopped being findable by
+   * the title it still had.
+   */
+  it('keeps the thread’s title in the opening post’s index across an edit', async () => {
+    const { threadId, postIds } = await seedThread()
+    const first = postIds[0]!
+
+    await repo.applyEdit(
+      edit(first, threadId, { isFirstPost: true, previousMessage: 'the opening post' }),
+    )
+
+    const found = await new PostgresSearchRepository(db).search(
+      { terms: 'hello', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+      { forumIds: [FORUM], viewerUserId: null, content: PUBLIC_CONTENT },
+    )
+    expect(found.hits.map((hit) => hit.postId)).toEqual([first])
+  })
+
+  it('leaves the board with nothing outstanding to reindex', async () => {
+    /* An edit that forgot the version stamp would queue its post for a rebuild
+       it does not need, for ever. */
+    const { threadId, postIds } = await seedThread()
+    await repo.applyEdit(edit(postIds[1]!, threadId))
+
+    expect((await new PostgresSearchRepository(db).indexProgress()).pending).toBe(0)
   })
 
   it('numbers a second revision after the first', async () => {

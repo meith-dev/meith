@@ -54,6 +54,16 @@ export interface TaskWorkerDeps {
   /** F36's stale-render sweep. */
   readonly renderBackfill: { run(batchSize: number): Promise<{ rendered: number }> }
   /**
+   * F72's index backfill.
+   *
+   * Optional, and absent on a board with no database — a fixture board has no
+   * index to fill, and `builtinTasks` then registers no task rather than one
+   * reporting healthy runs of nothing (D32).
+   */
+  readonly searchIndex?:
+    | { reindexChunk(afterPostId: number, limit: number): Promise<{ indexed: number }> }
+    | undefined
+  /**
    * F81's webhook queue. Optional, and absent on a board with no database —
    * `builtinTasks` then registers no delivery task at all rather than one that
    * reports a healthy run of nothing (D32).
@@ -191,6 +201,24 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       const { rendered } = await deps.renderBackfill.run(batchSize)
       return rendered
     },
+
+    ...(deps.searchIndex === undefined
+      ? {}
+      : {
+          async reindexSearch(batchSize: number) {
+            /*
+             * From the start of the table every run, with no cursor kept
+             * between them — the same shape as `posts.render_backfill`, and
+             * sound for the same reason: "what is left" is a predicate on the
+             * row, and the set only shrinks. A cursor would have to survive a
+             * restart to be worth anything, and would be wrong the moment a
+             * release moved the document and made an older post outstanding
+             * again.
+             */
+            const { indexed } = await deps.searchIndex!.reindexChunk(0, batchSize)
+            return indexed
+          },
+        }),
 
     /*
      * Present only when a store is. The spread below drops the key entirely

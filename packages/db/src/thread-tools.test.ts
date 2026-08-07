@@ -10,8 +10,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
+import { PUBLIC_CONTENT } from '@meith/core'
+
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { PostgresSearchRepository } from './search-repo'
 import { PostgresThreadToolsRepository } from './thread-tools'
 import { PostgresThreadWriteRepository } from './thread-writes'
 import { rollUpAncestorCounters } from './content-counters'
@@ -497,6 +500,28 @@ describe('copy', () => {
     expect(rows.map((r) => r.message)).toEqual(['the opening post', 'a reply'])
     /* Carried across rather than inferred — F51's lesson about this flag. */
     expect(rows.map((r) => r.is_first_post)).toEqual([true, false])
+  })
+
+  it('carries F72’s index across, so the copy is findable at once', async () => {
+    /*
+     * A copy inserted without a vector is a thread nobody can search for until
+     * the backfill happens to reach it — ten minutes on a quiet board and a
+     * good deal longer on a busy one, during which a moderator who has just
+     * copied a thread somewhere useful cannot find it there.
+     *
+     * Copying the vector rather than recomputing it is exact: the copy keeps
+     * the source's title, bodies and opening post, so every input to the
+     * document is the same one.
+     */
+    const { threadId } = await seedThread(LEFT)
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
+
+    const found = await new PostgresSearchRepository(db).search(
+      { terms: 'hello', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+      { forumIds: [RIGHT], viewerUserId: null, content: PUBLIC_CONTENT },
+    )
+    expect(found.hits.map((hit) => hit.threadId)).toEqual([copy.threadId])
+    expect((await new PostgresSearchRepository(db).indexProgress()).pending).toBe(0)
   })
 
   it('leaves the source thread and its forum completely untouched', async () => {

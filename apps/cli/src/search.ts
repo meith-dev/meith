@@ -2,17 +2,24 @@
  * F13 — `search:reindex`, the operator half of F72's backfill.
  *
  * `search_vector` is written by the *write path*, per post, so it is correct for
- * every post a board has actually posted. Three things leave it null:
+ * every post a board has actually posted. Four things leave a post outstanding:
  *
  *   - a bulk insert — `seedBoard()`, or an import;
  *   - an existing board adopting search, where old posts predate the column;
- *   - `invalidateIndex()`, run deliberately when the indexed document changes.
+ *   - a release that changed the indexed document, which bumps
+ *     `SEARCH_DOCUMENT_VERSION` and leaves every row a version behind;
+ *   - `invalidateIndex()`, run deliberately when an index is believed wrong.
  *
- * A null vector matches nothing, and nothing about the resulting board looks
+ * An unindexed post matches nothing, and nothing about the resulting board looks
  * broken: the search form works, the query runs, it returns no hits. That is the
- * failure this command exists to make routine — a seeded development board is
- * the common case, and "search is silently empty until an administrator finds a
- * button" is not a reasonable thing to know.
+ * failure this command exists to make routine.
+ *
+ * **The tick does this too, and that is the point.** `search.reindex` runs every
+ * ten minutes and catches all four cases on its own, because "search is silently
+ * empty until an administrator finds a button" was not a reasonable thing to
+ * require anybody to know — a board that imported its content answered every
+ * search with nothing until somebody did. What this command adds is *now*
+ * instead of *eventually*, at a rate no request has to survive.
  *
  * **It runs to completion.** The Admin CP action indexes one batch per click,
  * which is right for a browser holding a request open on a two-million-post

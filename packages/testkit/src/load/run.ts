@@ -124,8 +124,9 @@ async function seed(
 
     /*
      * Resumable by construction, not by bookkeeping: `reindexChunk` selects on
-     * `search_vector is null`, so the remaining set shrinks monotonically and a
-     * re-run after an interruption picks up exactly what is left.
+     * "no vector, or one built under an older document version" — a set that
+     * shrinks monotonically, so a re-run after an interruption picks up exactly
+     * what is left.
      */
     let cursor = 0
     for (;;) {

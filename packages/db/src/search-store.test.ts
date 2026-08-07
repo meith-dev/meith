@@ -202,14 +202,33 @@ describe('ownsSearch', () => {
     expect(ownsSearch(search, { userId: ANN, sessionKey: 's5' })).toBe(false)
   })
 
-  it('refuses a search that belongs to nobody', async () => {
+  it('lets a search that belongs to nobody be opened with its token', async () => {
     /*
-     * A row with neither owner cannot be opened by anyone rather than by
-     * everyone — the failure direction that matters if such a row ever exists.
+     * **This is the guest, not a corner.** The session key is a hash of the
+     * session cookie and a logged-out reader has none, so every search a guest
+     * runs is stored with no user and no session. This used to return false,
+     * which made `/search?q=…` a 404 for every visitor who had not signed in,
+     * on every term — search reported as "does not work", from the reading that
+     * a row nobody owns should be reachable by nobody.
+     *
+     * What guards it now is the token: 144 random bits, held by the one browser
+     * that ran the search. Kills the mutant that restores the refusal.
      */
-    expect(ownsSearch({ userId: null, sessionKey: null }, { userId: ANN, sessionKey: 's1' }))
-      .toBe(false)
     expect(ownsSearch({ userId: null, sessionKey: null }, { userId: null, sessionKey: null }))
+      .toBe(true)
+    expect(ownsSearch({ userId: null, sessionKey: null }, { userId: ANN, sessionKey: 's1' }))
+      .toBe(true)
+  })
+
+  it('still ties an owned search to its owner', async () => {
+    /*
+     * The guarantee the change above must not have widened: an *owned* row is
+     * owned. Kills the mutant that returns true unconditionally, which the two
+     * assertions above would otherwise be happy with.
+     */
+    expect(ownsSearch({ userId: ANN, sessionKey: null }, { userId: null, sessionKey: null }))
+      .toBe(false)
+    expect(ownsSearch({ userId: null, sessionKey: 's5' }, { userId: null, sessionKey: null }))
       .toBe(false)
   })
 })

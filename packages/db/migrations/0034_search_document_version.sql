@@ -1,0 +1,63 @@
+-- Search finds thread titles, and the board can be told the document changed.
+--
+-- ## What was wrong
+--
+-- F72 indexes two fields: the post's `subject` at weight `A` and its `message`
+-- at weight `B`. The weighting is the whole point — "a thread whose subject
+-- contains the term is a better hit than one that mentions it in passing".
+--
+-- Nothing on this board ever writes `posts.subject`. A thread's subject is
+-- `threads.title`; the post write path inserts no `subject` column at all, and
+-- so passed a literal `null` into the document. Every post on every board was
+-- therefore indexed on its body alone, and the weight-`A` half of the index was
+-- an empty tsvector on every row.
+--
+-- The symptom is the one that is hardest to report: search *works*. The form
+-- submits, the query runs, hits come back for words in a post's body — and a
+-- member searching for the thread they remember, by its title, is told nothing
+-- matched. Which is the most common search anybody runs on a forum.
+--
+-- ## Why a version column rather than a rewrite here
+--
+-- The rule for what belongs in the vector has changed, so every row already on
+-- the board is stale. There were three ways to say so, and only one of them is
+-- deployable:
+--
+--   - **Rewrite the vectors in this migration.** Correct, and on a board with
+--     two million posts it is an `UPDATE` over the largest table there is,
+--     holding a deploy open for as long as it takes. `search-repo.ts` refuses a
+--     generated column for exactly this reason; it would be strange to then do
+--     the same work by hand.
+--   - **`invalidateIndex()` — null every vector and let the backfill refill
+--     them.** This is what that method is for, and it takes search away from
+--     the entire board for the length of the backfill. A fix for search that
+--     begins by turning search off is not a fix anybody wants deployed.
+--   - **Stamp the rows with the version of the rule that produced them**, which
+--     is what `render_version` next door already does for the stored HTML, and
+--     what this migration does. Nothing is nulled, so every post stays findable
+--     by its body throughout; `search.reindex` rewrites the stale rows behind
+--     the read path, oldest first, and each one gains its title as it goes.
+--
+-- ## Why the default is added twice
+--
+-- The same two statements, and the same reasoning, as `0031_markdown.sql`:
+--
+--   ALTER TABLE posts ADD COLUMN search_version smallint NOT NULL DEFAULT 0;
+--   ALTER TABLE posts ALTER COLUMN search_version SET DEFAULT 1;
+--
+-- The first is metadata-only on the Postgres versions this board targets — it
+-- stamps every existing row `0` ("indexed under the old rule") without
+-- rewriting the table. The second sets what *future* rows get, so a write path
+-- that somehow failed to name the column still stores the truth rather than
+-- queueing every new post for a rebuild it does not need.
+--
+-- Getting this backwards is recoverable, unlike `0031`'s: a row wrongly marked
+-- current keeps the index it has, which is the state the board is in today.
+ALTER TABLE "posts" ADD COLUMN "search_version" smallint NOT NULL DEFAULT 0;--> statement-breakpoint
+ALTER TABLE "posts" ALTER COLUMN "search_version" SET DEFAULT 1;--> statement-breakpoint
+
+-- The backfill's question, indexed: "the next N posts not at version X, by id".
+-- Version first, so a board that has caught up pays one seek that finds nothing
+-- rather than a scan of every post to discover the same. Its twins are
+-- `posts_render_version_idx` and `posts_vocab_version_idx`.
+CREATE INDEX "posts_search_version_idx" ON "posts" USING btree ("search_version","id");

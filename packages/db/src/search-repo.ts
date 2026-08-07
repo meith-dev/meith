@@ -13,7 +13,10 @@
  * **Ranking is weighted.** A thread whose subject contains the term is a better
  * hit than one that mentions it in passing, so the subject is indexed at weight
  * `A` and the body at `B`. Without weights, a two-word title loses to a
- * thousand-word post that says the word once.
+ * thousand-word post that says the word once. What that subject *is* — the
+ * thread's title on the opening post, never `posts.subject` alone — is
+ * `indexedSubjectSql`, and getting it wrong is what made searching for a thread
+ * by its title return nothing at all.
  *
  * **Paging is keyset on (rank, id).** Ranks tie constantly — a hundred posts
  * can share a score — and an OFFSET page over ties silently repeats and skips.
@@ -24,7 +27,10 @@
  * on an empty database that is the better design — but adding one to a table
  * with two million posts rewrites the table under an exclusive lock, which on a
  * live board is an outage. So the column is written on insert and by a
- * resumable backfill, exactly as F38's counters are.
+ * resumable backfill, exactly as F38's counters are — and, because it is the
+ * app's decision what the document holds, stamped with the version of that
+ * decision so the day it changes is a constant bump rather than a migration
+ * over the largest table there is.
  */
 import { sql, type SQL } from 'drizzle-orm'
 
@@ -51,6 +57,19 @@ const SEARCH_CONFIG = 'english'
 const RELEVANCE_WINDOW = 20_000
 
 /**
+ * Which definition of the document produced a row's vector.
+ *
+ * Bump this whenever `searchVectorSql` or `indexedSubjectSql` changes what
+ * belongs in the index. Every row on the board is then behind, `search.reindex`
+ * rewrites them behind the read path, and nothing stops being findable in the
+ * meantime — which is what this is for, and why it exists instead of a call to
+ * `invalidateIndex()`.
+ *
+ * 1 — the thread's title is the weight-`A` field of its opening post.
+ */
+export const SEARCH_DOCUMENT_VERSION = 1
+
+/**
  * Build the indexed document for one post.
  *
  * Exported so the writer and the backfill cannot drift: a post inserted today
@@ -63,6 +82,50 @@ export function searchVectorSql(subject: SQL | string, message: SQL | string): S
     setweight(to_tsvector(${SEARCH_CONFIG}, coalesce(${message}, '')), 'B')
   `
 }
+
+/**
+ * The weight-`A` field of a post already in the table.
+ *
+ * **A thread's subject is `threads.title`.** `posts.subject` exists because
+ * MyBB gave every post one and the importer needs somewhere to put it; nothing
+ * this board writes ever sets it. Reading the column alone — which is what the
+ * edit path and the backfill did — therefore weighted an empty string on every
+ * post ever written here, and the half of the index meant to hold the words
+ * members actually search for was empty on every row.
+ *
+ * So: the post's own subject when it has one, and the thread's title when the
+ * post *opens* the thread. Not for replies, deliberately. Folding the title
+ * into every post would make one term match a whole thread, so a search for a
+ * title would return forty hits that are all the same thread — and the opening
+ * post is the one a reader wants to land on anyway.
+ *
+ * `post` names the posts table as the surrounding statement aliases it, because
+ * the two callers alias it differently and a hard-coded `p.` would silently
+ * resolve to the wrong table in one of them.
+ */
+export function indexedSubjectSql(post: SQL): SQL {
+  return sql`coalesce(
+    ${post}.subject,
+    case when ${post}.is_first_post
+      then (select t.title from threads t where t.id = ${post}.thread_id)
+    end
+  )`
+}
+
+/**
+ * "This row's vector is missing or was built under an older rule."
+ *
+ * One predicate, used by the backfill and by the progress count, because an
+ * operator screen that disagreed with the backfill about what is outstanding is
+ * a screen that reports `0 pending` beside a task that keeps finding work.
+ *
+ * Parenthesised here rather than at each use. It is an `or`, `and` binds
+ * tighter, and the backfill's `where … and id > $cursor` would otherwise parse
+ * as "no vector at all, **or** stale and past the cursor" — which happens to
+ * behave, because indexing a row takes it out of the set either way, and is one
+ * edit away from not.
+ */
+const PENDING_INDEX: SQL = sql`(search_vector is null or search_version < ${SEARCH_DOCUMENT_VERSION})`
 
 export interface ReindexResult {
   readonly indexed: number
@@ -238,21 +301,23 @@ export class PostgresSearchRepository {
   }
 
   /**
-   * Index one batch of posts that have no vector yet.
+   * Index one batch of posts whose vector is missing or out of date.
    *
-   * Keyed on `search_vector is null` rather than on a cursor alone, so a run
-   * interrupted anywhere resumes correctly and a re-run costs nothing — the set
-   * shrinks monotonically as it goes. The id cursor is there to keep each batch
-   * a forward scan rather than a repeated seek through the rows already done.
+   * Keyed on the *row*, not on a cursor alone, so a run interrupted anywhere
+   * resumes correctly and a re-run costs nothing — the set shrinks
+   * monotonically as it goes. The id cursor is there to keep each batch a
+   * forward scan rather than a repeated seek through the rows already done, and
+   * a caller with no cursor to hand (the scheduled task) may pass 0 every time.
    */
   async reindexChunk(afterPostId: number, limit: number): Promise<ReindexResult> {
     const rows = resultRows(
       await this.db.execute(sql`
         update posts p
-           set search_vector = ${searchVectorSql(sql`p.subject`, sql`p.message`)}
+           set search_vector = ${searchVectorSql(indexedSubjectSql(sql`p`), sql`p.message`)},
+               search_version = ${SEARCH_DOCUMENT_VERSION}
          where p.id in (
            select id from posts
-            where search_vector is null and id > ${afterPostId}
+            where ${PENDING_INDEX} and id > ${afterPostId}
             order by id
             limit ${limit}
          )
@@ -272,8 +337,8 @@ export class PostgresSearchRepository {
   async indexProgress(): Promise<{ readonly indexed: number; readonly pending: number }> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select count(*) filter (where search_vector is not null)::int as indexed,
-               count(*) filter (where search_vector is null)::int as pending
+        select count(*) filter (where not ${PENDING_INDEX})::int as indexed,
+               count(*) filter (where ${PENDING_INDEX})::int as pending
           from posts
       `),
     ) as Array<{ indexed: number; pending: number }>
@@ -287,11 +352,18 @@ export class PostgresSearchRepository {
   /**
    * Drop every vector, so the next reindex rebuilds from scratch.
    *
-   * Needed when the *document* changes — a new weight, a different text search
-   * configuration — because those alter what a vector should contain, and the
-   * backfill only visits rows that have none.
+   * **Not the way to ship a change to the document.** Bumping
+   * `SEARCH_DOCUMENT_VERSION` marks the same rows as needing a rebuild and
+   * leaves them findable while it happens; this takes search away from the
+   * whole board until the backfill catches up. What it is left for is the case
+   * a version cannot express — an index believed to be *wrong* rather than
+   * merely old, after a restore or a hand-edited row — where serving nothing is
+   * better than serving something untrue.
+   *
+   * The version goes back with it, so a re-indexed row is stamped afresh rather
+   * than keeping a number that says it is current while holding no vector.
    */
   async invalidateIndex(): Promise<void> {
-    await this.db.execute(sql`update posts set search_vector = null`)
+    await this.db.execute(sql`update posts set search_vector = null, search_version = 0`)
   }
 }

@@ -239,6 +239,13 @@
       "when": 1785740227974,
       "tag": "0033_group_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1785740228974,
+      "tag": "0034_search_document_version",
+      "breakpoints": true
     }
   ]
 }

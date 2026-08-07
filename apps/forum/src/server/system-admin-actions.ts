@@ -102,13 +102,19 @@ export async function recountAction(): Promise<FormState> {
 }
 
 /**
- * Index one batch of posts that have never been indexed.
+ * Index one batch of posts whose document is missing or out of date.
  *
  * F72's `search_vector` is written when a post is created or edited, so this is
- * only ever a *backfill*: an existing board adopting search, or a board whose
- * index was invalidated because the indexed document changed. It resumes by
- * construction — the batch is "posts with no vector", a set that only shrinks —
- * so an interrupted run costs nothing and a repeated one does nothing.
+ * only ever a *backfill*: a board that imported its content, one adopting
+ * search, or one that has just taken a release which changed what the indexed
+ * document holds. It resumes by construction — the batch is a predicate on the
+ * row, a set that only shrinks — so an interrupted run costs nothing and a
+ * repeated one does nothing.
+ *
+ * The `search.reindex` task does the same work every ten minutes, which is what
+ * makes this button a way to *hurry* rather than the only way it happens.
+ * Leaving it to an administrator to discover meant a board could sit answering
+ * every search with nothing, looking entirely healthy, indefinitely.
  */
 export async function reindexSearchAction(): Promise<FormState> {
   try {
