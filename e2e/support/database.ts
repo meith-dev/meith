@@ -332,6 +332,14 @@ function seedSql(): string {
      * Stored bare: `serialise` writes a string setting verbatim, not as JSON.
      */
     { key: 'registration.method', value: 'none', group_key: 'registration' },
+    /*
+     * The search flood interval, off. It defaults to 30 seconds — the right
+     * default for a board and an unworkable one for a spec, which runs several
+     * searches in a row and would otherwise be told to wait by four of them.
+     * The interval has its own coverage in `search-store.test.ts`, where it can
+     * be tested without spending thirty seconds a case.
+     */
+    { key: 'search.flood_seconds', value: '0', group_key: 'search' },
   ]
 
   /*
@@ -411,6 +419,21 @@ function seedSql(): string {
     insert('forums', forums),
     insert('threads', threads),
     insert('posts', posts),
+    /*
+     * **No `search_vector` here, deliberately.**
+     *
+     * A bulk insert leaves F72's index unwritten, and this seed is a bulk
+     * insert — so the board it produces is exactly the board an operator gets
+     * after an import: correct in every table, and answering every search with
+     * nothing. Writing the vectors here would have hidden that, and would have
+     * meant a second copy of the document rule living in a fixture, free to go
+     * on agreeing with itself after the real one moved.
+     *
+     * `search.reindex` is what fills it, on the tick, and `search-no-js.spec.ts`
+     * drives that tick before it searches — so the vectors the browser suite
+     * asserts on are written by the board's own code, and the task that makes an
+     * imported board searchable is covered by the same wait.
+     */
     /* Past every seeded id, so the first row a browser creates does not collide. */
     "select setval(pg_get_serial_sequence('users', 'id'), (select max(id) from users));",
     "select setval(pg_get_serial_sequence('forums', 'id'), (select max(id) from forums));",

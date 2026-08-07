@@ -246,11 +246,38 @@ export const posts = pgTable(
     revisionCount: smallint('revision_count').notNull().default(0),
 
     /**
-     * Generated full-text column (R3.5). Written by Postgres, never by the app:
-     * declared `GENERATED ALWAYS AS ... STORED` in the migration with subject
-     * weighted A and message weighted B, so a title match outranks a body match.
+     * The indexed document (F72). Subject weighted `A`, body weighted `B`, so a
+     * title match outranks a passing mention.
+     *
+     * Written by the app rather than `GENERATED ALWAYS AS … STORED`, which is
+     * the better design on an empty database and an outage on a live one:
+     * adding a generated column rewrites the table under an exclusive lock. See
+     * `search-repo.ts` for the whole of that argument.
      */
     searchVector: tsvector('search_vector'),
+    /**
+     * Which *definition* of the document produced `search_vector`.
+     *
+     * The same device as `render_version` beside it, for the same reason. What
+     * belongs in the vector is a decision the code makes — it changed once
+     * already, when the thread's title started being indexed for the opening
+     * post — and a stored column cannot notice that the rule moved underneath
+     * it. Bumping `SEARCH_DOCUMENT_VERSION` marks every row on the board as
+     * needing a rebuild, and `search.reindex` does the rebuilding behind the
+     * read path.
+     *
+     * The alternative was `invalidateIndex()`: null every vector and let the
+     * backfill refill them. That works and it takes search away from the whole
+     * board while it runs, which is the one thing a fix for search must not do.
+     *
+     * `1` here and `0` in the migration's `ADD COLUMN`, exactly as `body_format`
+     * next door: the migration stamps the rows already there as *old* and then
+     * sets what new ones get, and this declares the second of those. Nothing
+     * relies on it — every write path names the column — and a row that somehow
+     * reached the table without one is still caught by the backfill, because a
+     * current version with no vector is outstanding on the vector alone.
+     */
+    searchVersion: smallint('search_version').notNull().default(1),
 
     legacyMybbPid: integer('legacy_mybb_pid'),
 
@@ -285,6 +312,13 @@ export const posts = pgTable(
      * the planner falls back to a sequential scan of the largest table here.
      */
     index('posts_vocab_version_idx').on(t.vocabVersion, t.id),
+    /*
+     * F72's backfill asks the same shape of question — "the next N posts not at
+     * document version X, by id" — and needs its own index for the same reason:
+     * once the board is current the answer has to be a seek that finds nothing,
+     * not a scan of every post to discover the same.
+     */
+    index('posts_search_version_idx').on(t.searchVersion, t.id),
     // Moderation queue: unapproved content for a set of forums.
     index('posts_forum_visibility_idx')
       .on(t.forumId, t.createdAt.desc())

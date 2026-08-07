@@ -23,6 +23,7 @@ import {
   PostgresPromotionRepository,
   PostgresRateLimitBucketStore,
   PostgresRenderBackfill,
+  PostgresSearchRepository,
   PostgresAttachmentRepository,
   PostgresAvatarRepository,
   PostgresPresenceRepository,
@@ -217,6 +218,14 @@ export function buildSchedulerBundle(deps: {
         }),
         recount: new PostgresCounterRecount(db),
         renderBackfill: new PostgresRenderBackfill(db),
+        /*
+         * F72's index backfill. Not optional the way the file store is: the
+         * column is in the schema every deployment migrates, and a board that
+         * imported its content — or that has just taken a release which moved
+         * the indexed document — has a search box that answers nothing until
+         * this has run.
+         */
+        searchIndex: new PostgresSearchRepository(db),
         /* F81. The delivery loop lives in `webhook-delivery.ts`; this is only
            the store it claims from. */
         webhooks: new PostgresWebhookRepository(db),

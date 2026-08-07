@@ -292,7 +292,7 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, subject, message,
              message_html, render_version, vocab_version, body_format, visibility,
-             is_first_post, created_at)
+             is_first_post, created_at, search_vector, search_version)
           select ${newThreadId}, ${input.toForumId}, p.author_user_id, p.author_username,
                  p.subject, p.message, p.message_html, p.render_version,
                  /*
@@ -301,7 +301,16 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
                   * whose BBCode the backfill has been told it already converted.
                   */
                  p.vocab_version, p.body_format,
-                 'visible', p.is_first_post, p.created_at
+                 'visible', p.is_first_post, p.created_at,
+                 /*
+                  * F72's document travels too, for the third time in this list
+                  * and the same reason: a copy left with no vector would be a
+                  * thread nobody could find until the backfill happened to
+                  * reach it. Copying rather than recomputing is exact here —
+                  * the copy keeps the source's title, body and opening post, so
+                  * every input to the document is the same.
+                  */
+                 p.search_vector, p.search_version
             from posts p
            where p.thread_id = ${input.threadId} and p.visibility = 'visible'
            order by p.id

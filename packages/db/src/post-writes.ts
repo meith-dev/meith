@@ -18,7 +18,7 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
-import { searchVectorSql } from './search-repo'
+import { SEARCH_DOCUMENT_VERSION, indexedSubjectSql, searchVectorSql } from './search-repo'
 import { readBoardVocabulary } from './vocabulary-repo'
 import { applyVisibilityChangeCounters } from './visibility-counters'
 
@@ -124,7 +124,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
        */
       const body = renderMarkdown(record.message, vocabularyOptions(vocabulary))
       await tx.execute(sql`
-        update posts
+        update posts p
            set message = ${record.message},
                message_html = ${body.html},
                /*
@@ -132,8 +132,15 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
                 * same statement. An edit that changed the body and left the
                 * vector alone would make the post findable by words it no
                 * longer contains — and unfindable by the ones it does.
+                *
+                * Through indexedSubjectSql rather than off subject, which is
+                * null for everything this board writes: reading the column
+                * alone left the weight-A half of the document empty, so an
+                * edited opening post lost the title an edit is supposed to
+                * preserve. The alias is why the statement names "posts p".
                 */
-               search_vector = ${searchVectorSql(sql`subject`, sql`${record.message}`)},
+               search_vector = ${searchVectorSql(indexedSubjectSql(sql`p`), sql`${record.message}`)},
+               search_version = ${SEARCH_DOCUMENT_VERSION},
                render_version = ${body.version},
                vocab_version = ${vocabulary.revision},
                /*

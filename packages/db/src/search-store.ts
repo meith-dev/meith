@@ -79,9 +79,14 @@ export class PostgresSearchStore {
           ? sql`session_key = ${input.sessionKey}`
           : /*
              * Neither: a caller with no identity at all cannot be throttled
-             * without throttling everybody, so it is not throttled here. The
-             * only way to reach this is a board with sessions disabled, and the
+             * without throttling everybody, so it is not throttled here — the
              * honest answer is that flood control needs *something* to count.
+             *
+             * This is not the rare branch it was once described as. The session
+             * key is a hash of the session cookie and a logged-out reader has
+             * none, so **every guest search lands here**. What still counts
+             * them is F46's hourly limit, which is keyed on the IP prefix and
+             * needs no cookie; the interval is what a guest escapes.
              */
             sql`false`
 
@@ -151,6 +156,9 @@ export class PostgresSearchStore {
  * searched for is frequently more revealing than what they found, and a
  * sequential token would otherwise make every member's searches readable.
  *
+ * A row can therefore be owned by an account, by a session, or by nobody — and
+ * the third is the ordinary guest, not a corner. See the last branch.
+ *
  * Pure, so the rule is stated once and testable without a database.
  */
 export function ownsSearch(
@@ -167,7 +175,26 @@ export function ownsSearch(
      */
     return viewer.userId === null && search.sessionKey === viewer.sessionKey
   }
-  return false
+
+  /*
+   * Neither: the search was run by a caller with no identity at all, and the
+   * token is the only thing there is to check.
+   *
+   * **This is the guest case, not an edge case.** The session key is a hash of
+   * the *session cookie*, and a visitor who has not signed in has no session
+   * cookie — so every search a logged-out reader runs is stored with no user
+   * and no session. Refusing those turned "search the board" into a 404 for
+   * everybody who had not signed in, on every term, which is the state this
+   * line is fixing. It read as the safe default and was in fact a refusal of
+   * the only thing a guest can do here.
+   *
+   * What is left guarding it is the token, and that is enough for what
+   * ownership was protecting: 144 random bits, unguessable and unenumerable,
+   * held by the one browser that ran the search. `robots.txt` keeps `/search`
+   * out of indexes, and the page links nowhere off-site that could carry the
+   * address away in a `Referer`.
+   */
+  return true
 }
 
 function toStored(row: Record<string, unknown>): StoredSearch {

@@ -46,6 +46,8 @@ export interface TaskWorkers {
   flushThreadViews(batchSize: number): Promise<number>
   /** Re-renders posts left on an older renderer, converting any still on BBCode. */
   backfillPostRenders(batchSize: number): Promise<number>
+  /** Builds F72's search document for posts that have none, or an out-of-date one. */
+  reindexSearch(batchSize: number): Promise<number>
   /** Promotes users who now meet a promotion rule. Returns users moved. */
   applyPromotions(batchSize: number): Promise<number>
   /** Lifts bans whose expiry has passed, restoring each user's prior group. */
@@ -231,6 +233,34 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       async run() {
         const rendered = await workers.backfillPostRenders(200)
         return { detail: { rendered } }
+      },
+    },
+
+    {
+      id: 'search.reindex',
+      title: 'Build the search index for posts that have none',
+      description:
+        'Writes F72’s search document for posts that were never indexed, or were ' +
+        'indexed under an older definition of it. The write path indexes every post ' +
+        'it creates, so this is only ever a catch-up: an import, a seeded board, a ' +
+        'board adopting search, or a release that changed what the document holds.',
+      /*
+       * This is the difference between a board whose search works and one whose
+       * search silently answers nothing, which is the failure the CLI's
+       * `search:reindex` was written to make routine — and a fix that an
+       * operator has to know to run is not a fix for the person who reported
+       * that search is broken. So the tick does it.
+       *
+       * Ten minutes, matching `posts.render_backfill`, and for the same reason:
+       * the work only exists after an import or a release that moved the
+       * document, so on a settled board this is one index seek that finds
+       * nothing. `posts_search_version_idx` is what makes that true.
+       */
+      intervalSeconds: 600,
+      maxDurationSeconds: 45,
+      async run() {
+        const indexed = await workers.reindexSearch(200)
+        return { detail: { indexed } }
       },
     },
 
@@ -429,6 +459,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'counters.reconcile': 'reconcileCounters',
   'views.flush': 'flushThreadViews',
   'posts.render_backfill': 'backfillPostRenders',
+  'search.reindex': 'reindexSearch',
   'promotions.apply': 'applyPromotions',
   'bans.expire': 'expireBans',
   'warnings.expire': 'expireWarnings',

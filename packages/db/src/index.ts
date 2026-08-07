@@ -163,6 +163,8 @@ export {
 export { PostgresMaintenanceRepository } from './maintenance-repo'
 export {
   PostgresSearchRepository,
+  SEARCH_DOCUMENT_VERSION,
+  indexedSubjectSql,
   searchVectorSql,
   type ReindexResult,
 } from './search-repo'

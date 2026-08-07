@@ -125,8 +125,15 @@ forum env:check                  # is the environment valid, and can it connect?
 forum user:create --admin        # a second administrator, or the first if /install is sealed
 forum user:promote               # administrator access on a board that already works
 forum task:run                   # run the tick once, by hand
-forum search:reindex             # after a large import
+forum search:reindex             # after a large import, to hurry the tick along
 ```
+
+Search indexes itself. `search.reindex` runs on the tick every ten minutes and
+covers every case that leaves a post unindexed — an import, a restored dump, an
+upgrade that changed what the index holds. `forum search:reindex` does the same
+work now instead of over the next few ticks, and runs to completion rather than
+one batch at a time; the Admin CP's button is the same thing, one batch per
+click. None of the three is a prerequisite for search working.
 
 The commands that exist are the ones `--help` lists. This project does not
 document a command it has not written, so one you expected and cannot find is

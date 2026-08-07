@@ -14,10 +14,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 
 import { RENDER_VERSION } from '@meith/markdown'
+import { PUBLIC_CONTENT } from '@meith/core'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresPostWriteRepository } from './post-writes'
+import { PostgresSearchRepository } from './search-repo'
 import { PostgresThreadWriteRepository } from './thread-writes'
 import { resultRows } from './result-rows'
 import { applyAncestorVisibilityChange } from './visibility-counters'
@@ -280,6 +282,51 @@ describe('applyEdit', () => {
     expect(await threadRow(threadId)).toMatchObject({ reply_count: 0 })
     expect(await userPostCount()).toBe(beforeAuthor - 1)
     expect((await postRow(postIds[1]!)).visibility).toBe('unapproved')
+  })
+
+  /*
+   * F72. The edit rewrites the document with the body — and has to rebuild the
+   * *whole* document, not the half it can see on the row. Reading `subject`
+   * alone, which is null for everything this board writes, meant editing a
+   * typo out of an opening post silently dropped the thread's title from the
+   * index: the post stayed findable by its body and stopped being findable by
+   * the title it still had.
+   */
+  it('keeps the thread’s title in the opening post’s index across an edit', async () => {
+    const { threadId, postIds } = await seedThread()
+    const first = postIds[0]!
+
+    await repo.applyEdit(
+      edit(first, threadId, { isFirstPost: true, previousMessage: 'the opening post' }),
+    )
+
+    const found = await new PostgresSearchRepository(db).search(
+      { terms: 'hello', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+      { forumIds: [FORUM], viewerUserId: null, content: PUBLIC_CONTENT },
+    )
+    expect(found.hits.map((hit) => hit.postId)).toEqual([first])
+  })
+
+  it('brings a post from an older document version up to date', async () => {
+    /*
+     * An edit writes the document under the *current* rule, so it has to stamp
+     * the row with that rule too. This is only observable on a row that was
+     * behind — a legacy board's post, edited after the upgrade — which is why
+     * the two posts here are pushed back to version 0 first. Without the stamp
+     * the edited row keeps a vector the backfill will rewrite to something
+     * identical, for ever, and `indexProgress` goes on reporting work that has
+     * already been done.
+     */
+    const { threadId, postIds } = await seedThread()
+    await db.execute(sql`update posts set search_version = 0`)
+
+    const search = new PostgresSearchRepository(db)
+    expect(await search.indexProgress()).toEqual({ indexed: 0, pending: 2 })
+
+    await repo.applyEdit(edit(postIds[1]!, threadId))
+
+    /* Exactly the edited post came forward; the untouched one is still behind. */
+    expect(await search.indexProgress()).toEqual({ indexed: 1, pending: 1 })
   })
 
   it('numbers a second revision after the first', async () => {

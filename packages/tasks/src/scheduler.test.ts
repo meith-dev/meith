@@ -238,6 +238,7 @@ describe('bans.expire is registered (F23)', () => {
       reconcileCounters: zero,
       flushThreadViews: zero,
       backfillPostRenders: zero,
+      reindexSearch: zero,
       notifySubscribers: zero,
       sendDigests: zero,
       expireWarnings: zero,
@@ -313,11 +314,46 @@ function fullWorkerSet(): TaskWorkers {
     notifySubscribers: async () => 0,
     sendDigests: async () => 0,
     backfillPostRenders: async () => 0,
+    reindexSearch: async () => 0,
     expireWarnings: async () => 0,
     applyPromotions: async () => 0,
     expireBans: async () => 0,
   }
 }
+
+describe('search.reindex is registered (F72)', () => {
+  /*
+   * The task that makes a board's search work without an operator knowing to
+   * run a command. `search_vector` is written per post by the write path, so
+   * this is only ever a catch-up — an import, a seeded board, or a release that
+   * changed what the indexed document holds — but until it existed, every one
+   * of those left a board whose search box answered nothing at all and looked
+   * entirely healthy doing it.
+   */
+  it('appears in the builtin registry', () => {
+    expect(builtinTasks(fullWorkerSet()).map((t) => t.id)).toContain('search.reindex')
+  })
+
+  it('delegates to the worker and reports how many it indexed', async () => {
+    const batches: number[] = []
+    const task = builtinTasks({
+      reindexSearch: async (batchSize) => {
+        batches.push(batchSize)
+        return 7
+      },
+    }).find((t) => t.id === 'search.reindex')
+
+    const result = await task!.run({
+      now: new Date(),
+      lastRunAt: null,
+      elapsedSeconds: 0,
+      signal: new AbortController().signal,
+    })
+
+    expect(result).toEqual({ detail: { indexed: 7 } })
+    expect(batches).toEqual([200])
+  })
+})
 
 describe('builtinTasks registers only what can run', () => {
   /*

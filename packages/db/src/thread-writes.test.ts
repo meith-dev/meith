@@ -8,8 +8,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
 
+import { PUBLIC_CONTENT } from '@meith/core'
+
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { PostgresSearchRepository } from './search-repo'
 import { PostgresThreadWriteRepository } from './thread-writes'
 import { forums, outbox, posts, threads, threadSubscriptions, users } from './schema'
 
@@ -272,3 +275,99 @@ describe('PostgresThreadWriteRepository prefixes', () => {
     expect(labels).toEqual(['Board-wide', 'This subtree'])
   })
 })
+
+/**
+ * F72's index, written by the path that writes the post.
+ *
+ * These belong here rather than beside the search tests because what is being
+ * proven is a property of *the writer*: a post that reaches the table with the
+ * wrong document is a post nobody can find, and no amount of correctness in the
+ * query recovers it.
+ */
+describe('PostgresThreadWriteRepository and the search index', () => {
+  const search = () => new PostgresSearchRepository(db)
+  const scope = { forumIds: [FORUM], viewerUserId: null, content: PUBLIC_CONTENT }
+  const find = async (terms: string) =>
+    (
+      await search().search(
+        { terms, grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+        scope,
+      )
+    ).hits.map((hit) => hit.postId)
+
+  it('makes a new thread findable by its title as well as its body', async () => {
+    /*
+     * The end-to-end shape of the bug, at the layer that caused it. The writer
+     * passed a literal null where the subject goes — `posts.subject` is a
+     * column this board never fills — so a thread was findable by its body and
+     * invisible to a search for its own title.
+     */
+    const created = await repo.create({ ...RECORD, title: 'Kestrel sightings', message: 'A bird.' })
+
+    expect(await find('kestrel')).toEqual([created.postId])
+    expect(await find('bird')).toEqual([created.postId])
+  })
+
+  it('writes the same document the backfill would', async () => {
+    /*
+     * The anti-drift claim `searchVectorSql` is exported for, now that the two
+     * sides reach the subject differently: the writer passes the title it is
+     * inserting, the backfill reads it back off the row. A post written today
+     * and one reindexed tomorrow must be findable by the same words, or search
+     * results depend on when a post happened to be written.
+     */
+    const created = await repo.create({ ...RECORD, title: 'Kestrel sightings', message: 'A bird.' })
+
+    const written = await vectorOf(created.postId)
+    await db.execute(sql`update posts set search_vector = null where id = ${created.postId}`)
+    await new PostgresSearchRepository(db).reindexChunk(0, 10)
+
+    expect(await vectorOf(created.postId)).toBe(written)
+  })
+
+  it('leaves the board with nothing outstanding to reindex', async () => {
+    /*
+     * A post the write path indexed must not also be queued for the backfill,
+     * or `search.reindex` never reports itself finished and an operator reads a
+     * pending count that never falls.
+     *
+     * This does not separately pin the `search_version` stamp: the column's own
+     * default is the current version too, so a writer that omitted it would
+     * still land on the right number. Naming it is for the day the version
+     * moves ahead of the default, and for the row saying which rule wrote it
+     * rather than which rule the table happens to assume. What this *does* kill
+     * is a writer that leaves the vector unwritten — four tests here catch that
+     * one, and this is the one that catches it as an operator would see it.
+     */
+    await repo.create(RECORD)
+
+    expect(await new PostgresSearchRepository(db).indexProgress()).toEqual({
+      indexed: 1,
+      pending: 0,
+    })
+  })
+
+  it('indexes a reply on its own words, not on the thread’s title', async () => {
+    const thread = await repo.create({ ...RECORD, title: 'Kestrel sightings', message: 'A bird.' })
+    const reply = await repo.createReply({
+      threadId: thread.threadId,
+      forumId: FORUM,
+      threadTitle: 'Kestrel sightings',
+      authorUserId: 1,
+      authorUsername: 'ada',
+      message: 'A peregrine, surely.',
+      visibility: 'visible',
+      subscribe: false,
+      createdAt: AT,
+    })
+
+    expect(await find('peregrine')).toEqual([reply.postId])
+    /* One hit for the title, not one per post in the thread. */
+    expect(await find('kestrel')).toEqual([thread.postId])
+  })
+})
+
+async function vectorOf(postId: number): Promise<string> {
+  const [row] = await db.select().from(posts).where(eq(posts.id, postId))
+  return String(row?.searchVector ?? '')
+}

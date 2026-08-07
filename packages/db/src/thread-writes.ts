@@ -25,7 +25,7 @@ import type {
 import type { Database } from './client'
 import { applyCreatedContentCounters } from './content-counters'
 import { resultRows } from './result-rows'
-import { searchVectorSql } from './search-repo'
+import { SEARCH_DOCUMENT_VERSION, searchVectorSql } from './search-repo'
 import { readBoardVocabulary } from './vocabulary-repo'
 
 export class PostgresThreadWriteRepository
@@ -102,14 +102,24 @@ export class PostgresThreadWriteRepository
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
              message_html, render_version, vocab_version, body_format, visibility,
-             is_first_post, created_at, search_vector)
+             is_first_post, created_at, search_vector, search_version)
           values
             (${threadId}, ${record.forumId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
              ${body.version}, ${vocabulary.revision}, ${BodyFormat.Markdown},
              ${record.visibility}, true,
              ${record.createdAt},
-             ${searchVectorSql(sql`${null}`, sql`${record.message}`)})
+             /*
+              * F72: the **title** is the weight-A field, because this is the
+              * thread's opening post and a thread's subject is its title. The
+              * row cannot be read while it is being inserted, so the value is
+              * passed rather than derived — and it is the same value
+              * indexedSubjectSql would produce for this row (subject null,
+              * is_first_post true), which search-repo.test.ts pins so the
+              * writer and the backfill cannot drift apart.
+              */
+             ${searchVectorSql(sql`${record.title}`, sql`${record.message}`)},
+             ${SEARCH_DOCUMENT_VERSION})
           returning id
         `),
       ) as Array<{ id: number }>
@@ -244,14 +254,22 @@ export class PostgresThreadWriteRepository
           insert into posts
             (thread_id, forum_id, author_user_id, author_username, message,
              message_html, render_version, vocab_version, body_format, visibility,
-             is_first_post, created_at, search_vector)
+             is_first_post, created_at, search_vector, search_version)
           values
             (${record.threadId}, ${record.forumId}, ${record.authorUserId},
              ${record.authorUsername}, ${record.message}, ${body.html},
              ${body.version}, ${vocabulary.revision}, ${BodyFormat.Markdown},
              ${record.visibility}, false,
              ${record.createdAt},
-             ${searchVectorSql(sql`${null}`, sql`${record.message}`)})
+             /*
+              * No weight-A field, and that is the rule rather than an
+              * omission: a reply has no subject of its own, and folding the
+              * thread's title in here would make one title term match every
+              * post in the thread — forty hits that are all the same thread,
+              * where the opening post already stands for it.
+              */
+             ${searchVectorSql(sql`${null}`, sql`${record.message}`)},
+             ${SEARCH_DOCUMENT_VERSION})
           returning id
         `),
       ) as Array<{ id: number }>
