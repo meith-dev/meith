@@ -121,7 +121,7 @@ function Section({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-serif text-lg font-semibold">{title}</h2>
+      <h2 className="font-heading text-lg font-semibold">{title}</h2>
 
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty}</p>

@@ -70,7 +70,7 @@ export default async function AdminGroupPage({
       gap="loose"
     >
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Details</h2>
+        <h2 className="font-heading text-lg font-semibold">Details</h2>
         <GroupIdentityForm
           group={{
             id: view.group.id,
@@ -93,7 +93,7 @@ export default async function AdminGroupPage({
         happened to be holding.
       */}
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Badge</h2>
+        <h2 className="font-heading text-lg font-semibold">Badge</h2>
         <p className="text-sm text-muted-foreground">
           A small image shown beside a member&rsquo;s name. Two of them, for the reason
           the colours have two: an icon drawn for a white page usually disappears on a
@@ -119,7 +119,7 @@ export default async function AdminGroupPage({
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Permissions</h2>
+        <h2 className="font-heading text-lg font-semibold">Permissions</h2>
         <p className="text-sm text-muted-foreground">
           These are this group&rsquo;s answers, not a forum&rsquo;s. A member in several
           groups gets the most permissive of them — a tick can only ever grant, never take
@@ -130,7 +130,7 @@ export default async function AdminGroupPage({
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Delete</h2>
+        <h2 className="font-heading text-lg font-semibold">Delete</h2>
         {view.group.isSystem ? (
           <p className="text-sm text-muted-foreground">
             This group is part of how the board works — registration, bans and the control

@@ -64,7 +64,20 @@ export default async function InstallPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
-        <h1 className="font-serif text-3xl font-semibold">Install this board</h1>
+        {/*
+          `font-heading`, at the board's heading size.
+
+          Two things were wrong here and they were not the same thing. The size
+          was `text-3xl` — 30px, where every other page-level heading is 24px —
+          and the face was `font-serif`, a literal that no operator could reach.
+          Headings now resolve through `--font-heading-stack`, which defaults to
+          the board's own face and is editable from the theme screen; this page
+          says `font-heading` like every other, so a board that sets that token
+          restyles its installer with everything else.
+        */}
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+          Install this board
+        </h1>
         <p className="text-sm text-muted-foreground">
           This page works once. When it finishes it disables itself, and the
           address stops existing.
@@ -134,7 +147,8 @@ function Preflight({ checks }: { checks: readonly Check[] }) {
 
   return (
     <section aria-labelledby="preflight" className="flex flex-col gap-3">
-      <h2 id="preflight" className="font-serif text-xl font-semibold">
+      {/* `text-lg`, matching the `CardTitle`s below it. It was `font-serif text-xl`. */}
+      <h2 id="preflight" className="font-heading text-lg font-semibold tracking-tight text-foreground">
         Before installing
       </h2>
 

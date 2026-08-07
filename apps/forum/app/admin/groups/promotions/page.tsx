@@ -82,7 +82,7 @@ export default async function AdminPromotionsPage() {
           </ul>
 
           <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-            <h2 className="font-serif text-lg font-semibold">Run it</h2>
+            <h2 className="font-heading text-lg font-semibold">Run it</h2>
             <ApplyPromotionsForm count={result.outcomes.length} />
           </section>
         </>

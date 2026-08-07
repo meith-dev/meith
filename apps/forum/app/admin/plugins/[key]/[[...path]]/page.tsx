@@ -103,7 +103,7 @@ export default async function AdminPluginPage({
         a different remedy and the row says which one applies.
       */}
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Status</h2>
+        <h2 className="font-heading text-lg font-semibold">Status</h2>
         <dl className="flex flex-col gap-2 text-sm">
           <div className="flex flex-wrap justify-between gap-2">
             <dt className="text-muted-foreground">In this build</dt>
@@ -136,7 +136,7 @@ export default async function AdminPluginPage({
 
       {plugin.health !== null && (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-          <h2 className="font-serif text-lg font-semibold">Health</h2>
+          <h2 className="font-heading text-lg font-semibold">Health</h2>
           <p className="text-sm text-muted-foreground">
             Counted by <em>this</em> server since it started, not across the board and not
             since the plugin was installed. On a platform that recycles instances these
@@ -173,7 +173,7 @@ export default async function AdminPluginPage({
 
       {visibleSettings.length > 0 && (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-          <h2 className="font-serif text-lg font-semibold">Settings</h2>
+          <h2 className="font-heading text-lg font-semibold">Settings</h2>
           <p className="text-sm text-muted-foreground">
             Stored under this plugin&rsquo;s own namespace, so two plugins cannot collide
             and neither can reach a board setting.
@@ -184,7 +184,7 @@ export default async function AdminPluginPage({
 
       {plugin.migrations.length > 0 && (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-          <h2 className="font-serif text-lg font-semibold">Migrations</h2>
+          <h2 className="font-heading text-lg font-semibold">Migrations</h2>
           <p className="text-sm text-muted-foreground">
             Applied by <code className="text-xs">forum upgrade</code>, in one transaction
             each, recorded as they run. There is no button here on purpose: schema changes
@@ -220,7 +220,7 @@ export default async function AdminPluginPage({
 
       {plugin.pages.length > 0 && (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-          <h2 className="font-serif text-lg font-semibold">Pages</h2>
+          <h2 className="font-heading text-lg font-semibold">Pages</h2>
           <ul className="flex flex-col divide-y divide-border text-sm">
             {plugin.pages.map((page) => (
               <li key={page.path} className="flex justify-between gap-3 py-2">
@@ -239,7 +239,7 @@ export default async function AdminPluginPage({
 
       {plugin.tasks.length > 0 && (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-          <h2 className="font-serif text-lg font-semibold">Scheduled tasks</h2>
+          <h2 className="font-heading text-lg font-semibold">Scheduled tasks</h2>
           <p className="text-sm text-muted-foreground">
             Registered in the board&rsquo;s own task registry and run by the same tick.
             Their runs and failures are on the{' '}
@@ -266,7 +266,7 @@ export default async function AdminPluginPage({
 
       {(plugin.hooks.length > 0 || plugin.regions.length > 0) && (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-          <h2 className="font-serif text-lg font-semibold">What it attaches to</h2>
+          <h2 className="font-heading text-lg font-semibold">What it attaches to</h2>
           {plugin.hooks.length > 0 && (
             <div className="flex flex-col gap-1">
               <h3 className="text-sm font-medium">Hooks</h3>

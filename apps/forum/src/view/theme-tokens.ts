@@ -152,6 +152,7 @@ const GROUPS: readonly GroupSpec[] = [
       ['density-unit', 'Spacing step', 'Every gap on the board is a multiple of this. Lower it for a denser board.', 'length'],
       ['elevation', 'Panel shadow', 'A CSS `box-shadow`, or `none` for a flat board with no shadows at all. Its colour is “Panel shadow colour” above, so this is only the geometry.', 'text'],
       ['font-sans-stack', 'Body font', 'The face the whole board is read in. A CSS font stack — the browser uses the first name it has.', 'text'],
+      ['font-heading-stack', 'Heading font', 'The face headings are set in. Defaults to the body font, so the board reads in one voice; set it to something else — `Georgia, ui-serif, serif` needs no download — to give headings a voice of their own.', 'text'],
       ['font-mono-stack', 'Monospace font', 'Used for code blocks and token values. A CSS font stack.', 'text'],
     ],
   },

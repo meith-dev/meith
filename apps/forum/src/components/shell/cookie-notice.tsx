@@ -16,44 +16,46 @@ const BUTTON =
  *
  * ## What it says
  *
- * It reads its two lists out of `@/view/consent` rather than describing any
- * particular feature. That is deliberate: a notice that named the things this
- * board happens to store today would be wrong the first time one of them was
- * added, renamed or removed, and wrong in the direction that matters — a banner
- * describing less than the board does.
+ * The question, and not an inventory. The headline says the site needs some
+ * cookies to work and asks whether it may also set optional ones; *which*
+ * cookies, in either category, is behind the disclosure for anybody who wants
+ * it. A banner whose first sentence enumerates storage is a banner people learn
+ * to dismiss without reading, and the enumeration is the part that ages worst.
  *
- * It also distinguishes the two categories out loud. Claiming consent for the
+ * The specifics stay available rather than being deleted. Consent has to be
+ * informed to be consent at all, so "what is stored" is one click away and still
+ * reads its two lists out of `@/view/consent` — a hand-written copy would be
+ * wrong the first time something was added or renamed, and wrong in the
+ * direction that matters, describing less than the board does.
+ *
+ * The two categories stay distinguished there too. Claiming consent for the
  * session cookie would be asking permission the board does not need and cannot
  * act on: refusing would have to mean "you may not sign in", which is not a
- * choice anybody is offering. Saying so is what makes the question that *is*
- * being asked worth reading.
+ * choice anybody is offering.
  *
- * ## Its position in the document, and why it is not fixed to the viewport
+ * ## `sticky`, which is not the same as `fixed`
  *
- * Last in `<body>`, in the ordinary flow. Last so that it comes after the page
- * in reading order for a screen reader and for a browser with no CSS — an
- * interstitial a keyboard user has to tab through before reaching the board is
- * the accessible-in-theory version of a modal nobody can close.
+ * Last in `<body>` so it comes after the page in reading order for a screen
+ * reader and for a browser with no CSS — an interstitial a keyboard user has to
+ * tab through before reaching the board is the accessible-in-theory version of a
+ * modal nobody can close.
  *
- * It **was** `fixed inset-x-0 bottom-0`, which is what a cookie banner
- * conventionally is, and it was wrong here in a way worth recording: a bar
- * pinned to the bottom of the viewport sits on top of whatever the page has at
- * the bottom of the viewport. On this board that is the appearance strip on
- * every single page, and — the one that mattered — the "Post reply" button at
- * the foot of a reply form. The board's own e2e suite caught it by failing to
- * click a button a member could not have clicked either.
+ * It **was** `fixed inset-x-0 bottom-0` once, and that was wrong here in a way
+ * worth recording: a bar taken out of flow sits on top of whatever the page has
+ * at the bottom of the viewport. On this board that is the appearance strip on
+ * every page and — the one that mattered — the "Post reply" button at the foot
+ * of a reply form. The e2e suite caught it by failing to click a button a member
+ * could not have clicked either. Padding the body does not fix that: it reserves
+ * space at the *end* of the document, while a fixed bar covers the bottom of the
+ * *viewport*, which on a long page is the middle of the thread.
  *
- * Padding the body to make room does not fix it. It reserves space at the
- * *end* of the document, and a fixed bar covers whatever is at the bottom of
- * the *viewport*, which on a long page is the middle of the thread.
- *
- * In flow it covers nothing, needs no z-index, no scroll padding and no
- * compensating margin anywhere else. What it costs is prominence: on a long
- * page a reader has to reach the foot to see it. That is an acceptable trade
- * and arguably the honest one — nothing optional runs until the answer is
- * *yes*, so a notice nobody scrolls to is a notice whose default answer is the
- * conservative one. A banner that blocks the board to extract that answer
- * faster is the pattern this whole feature was written to avoid.
+ * `sticky` is the shape that gets the prominence without the bug, because a
+ * sticky element **stays in flow**. It occupies its own space at the end of the
+ * document, so nothing is ever underneath it and no padding, scroll-margin or
+ * compensating rule is needed anywhere; and because it is pinned to `bottom-0`
+ * it rides the foot of the viewport for the whole scroll instead of waiting to
+ * be found. The one requirement is that no ancestor clips or scrolls
+ * independently — `<body>` is the containing block here, and it does neither.
  */
 export async function CookieNotice() {
   const { required, choice } = await getConsentState()
@@ -62,17 +64,28 @@ export async function CookieNotice() {
   return (
     <aside
       aria-label="Cookies"
-      className="border-t border-border bg-card text-card-foreground"
+      /*
+       * `z-40` sits above page content and below anything genuinely modal. The
+       * shadow is what separates it from whatever it is currently in front of —
+       * a border alone reads as part of the page on a light background.
+       */
+      className="sticky bottom-0 z-40 border-t border-border bg-card text-card-foreground shadow-[0_-4px_16px_-8px_rgb(0_0_0/0.25)]"
     >
       {/* On the board's measure, so the notice lines up with the page under it. */}
       <div
         className={`${BOARD_MEASURE} flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8`}
       >
         <div className="flex min-w-0 flex-col gap-2">
+          {/*
+            Generic on purpose. It used to name the optional processing in the
+            first sentence, which is the half of a cookie banner people have
+            trained themselves to skip — and the half that goes stale. What is
+            actually stored is in the disclosure below, where somebody who wants
+            it will find it and nobody else has to read it.
+          */}
           <p className="text-sm">
-            This site stores what it needs in order to work. May we also collect{' '}
-            {/* One optional thing today; the sentence still reads if there are two. */}
-            {OPTIONAL_PROCESSING.map((item) => item.label.toLowerCase()).join(', and ')}?
+            This site uses cookies so that it works correctly. May we also use
+            optional ones?
           </p>
 
           {/*

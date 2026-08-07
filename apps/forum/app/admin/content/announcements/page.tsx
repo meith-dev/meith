@@ -129,7 +129,7 @@ export default async function AdminAnnouncementsPage() {
       )}
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">New announcement</h2>
+        <h2 className="font-heading text-lg font-semibold">New announcement</h2>
         <NewAnnouncementForm forums={choices} />
       </section>
     </PanelPage>

@@ -127,7 +127,7 @@ export default async function AdminPrunePage({
         </p>
       ) : preview !== null ? (
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-          <h2 className="font-serif text-lg font-semibold">
+          <h2 className="font-heading text-lg font-semibold">
             {preview.total} account{preview.total === 1 ? '' : 's'} would be closed
           </h2>
 

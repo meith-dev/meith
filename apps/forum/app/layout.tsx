@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
-import { Inter, Newsreader } from "next/font/google"
+import { Inter } from "next/font/google"
 
 import { env } from "@meith/core"
 import { resolveBoardUrl } from "@meith/settings"
@@ -28,27 +28,18 @@ const inter = Inter({
   variable: "--font-inter",
 })
 
-/**
- * The display face, and the one carrying the Meith identity.
+/*
+ * There was a second face here — Newsreader, loaded for `font-serif`, which
+ * every heading on the board used to carry. It is gone, and the removal is the
+ * point rather than a side effect.
  *
- * Source Serif 4 was here first and is a perfectly good text serif — which is
- * the problem. It is low-contrast and even-coloured, built to disappear into a
- * paragraph, so headings set in it read as "slightly different body text"
- * rather than as a voice. The board's own identity is an old-style serif with
- * real thick/thin contrast, and at 24px that difference is the whole effect.
- *
- * Newsreader over the obvious Libre Baskerville: Baskerville is the closer
- * historical match, but Google's cut ships 400 and 700 only, and every heading
- * in this app is `font-semibold` — so all of them would snap to 700 and a dense
- * listing would go bold everywhere. Newsreader is variable across 200–800, so
- * 600 is 600, and it carries an optical-size axis that keeps the contrast from
- * collapsing at 14px in a thread row.
+ * The board reads in one face now, and *which* face is a theme token
+ * (`font-heading-stack`) an operator edits from the theme screen rather than a
+ * literal only this file could change. A webfont downloaded on every page for a
+ * default nothing uses is a cost with no reader on the other end of it — and a
+ * board that does want a serif can point the token at the system stack, which
+ * downloads nothing at all.
  */
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-newsreader",
-})
 
 /**
  * The board's own name and description, not this project's.
@@ -186,7 +177,7 @@ export default async function RootLayout({
       lang="en"
       data-theme={theme}
       style={{ colorScheme: colorSchemeProperty(scheme) }}
-      className={`${inter.variable} ${newsreader.variable} bg-background ${schemeClass(scheme)}`}
+      className={`${inter.variable} bg-background ${schemeClass(scheme)}`}
     >
       <head>
         <ThemeRuntimeStyle />

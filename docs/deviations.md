@@ -8797,3 +8797,72 @@ the failure names the step by *title* and not by the id `admin`, that the
 report reads two *done*, one *failed* and two *not run*, that the password box
 comes back empty while the board name does not, that the seal answers 404, and
 that `/admin` asks for a password without claiming a session expired.
+
+### D114 — The heading face was the one typographic decision an operator could not make (F25, F26, F83)
+
+The board set every heading in Newsreader, a serif, through a `font-serif`
+utility whose value was a literal in `globals.css`. Beside it, `font-mono-stack`
+and `font-sans-stack` had been **tokens** — editable from the theme screen,
+validated against `TOKEN_NAMES`, stored per board — since F26.
+
+That is backwards twice. The heading face is the more visible of the three by a
+distance, and it is the one a board with its own identity is likeliest to have an
+opinion about; the *code* face is the one almost nobody will ever touch. And a
+literal in a stylesheet is not a decision an operator can make at all — it is a
+decision they can file an issue about.
+
+#### `font-heading`, and no `font-serif`
+
+`--font-heading-stack` is a scheme-independent token defaulting to
+`var(--font-sans-stack)` — not to a repeat of its value, so a board that changes
+the face it is *read* in gets headings that follow, which is what an operator
+means nine times in ten by "change the font". Setting the token is the tenth
+case: headings alone, to anything, including a serif (`Georgia, ui-serif, serif`
+downloads nothing).
+
+The Tailwind mapping for `font-serif` is **deleted** rather than repointed. Left
+in place it would have been forty call sites compiling to a face the board no
+longer ships, and the next heading anybody wrote would have reached for it out of
+habit. There is no `font-serif` utility now; there is `font-heading`, and it
+resolves to whatever the board says.
+
+Newsreader is no longer loaded. A webfont fetched on every page for a default
+nothing uses is a cost with no reader at the other end of it.
+
+**The midnight theme's distinctness test needed one entry, and the reason is the
+interesting part.** Both themes set `font-heading-stack` to the literal
+`var(--font-sans-stack)`, so the values match — but that is agreement about a
+*rule*, "headings follow the body face", not about a value. It resolves to Inter
+in one theme and IBM Plex Sans in the other, so the two boards do not look alike
+because of it. The exclusion list says so.
+
+### D115 — A cookie notice that sticks, and the button it used to cover
+
+The notice was in the ordinary flow at the foot of the document, which was a
+correction of an earlier `fixed` version — recorded in that file, along with the
+bug it caused: a bar pinned to the viewport sits on top of whatever the page has
+at the bottom of the viewport, which here was the appearance strip on every page
+and the **"Post reply" button** at the foot of a reply form. The e2e suite caught
+it by failing to click a control a member could not have clicked either.
+
+In flow it covered nothing and cost prominence: on a long page a reader had to
+reach the foot to find it. Asked for a notice that stays visible, the shape that
+gets both is `sticky`, because a sticky element *stays in flow* — it owns space
+at the end of the document rather than being lifted out of the layout.
+
+**It was not enough on its own, and the same spec said so again.** Sticky still
+floats over the bottom of the viewport while there is document left to scroll, so
+the reply button was intercepted exactly as before — the third time this one
+control has failed the same way. The fix is a reserve: `body:has(> aside[aria-label='Cookies'])`
+gets bottom padding, so the end of every page clears the bar and any control can
+be scrolled out from under it. `:has()` scopes the reserve to pages that actually
+render the notice, which is only ever pages where the question is unanswered — a
+permanent gap under a board nobody was asked to consent on would be a footer that
+never quite reaches the bottom.
+
+The wording is generic now: the headline says the site needs cookies to work and
+asks whether it may also set optional ones, and *which* cookies is behind the
+disclosure. The enumeration was the half people have trained themselves to skip,
+and the half that ages worst. It is not deleted, because consent has to be
+informed to be consent — it is one click away and still generated from
+`@/view/consent` rather than written out by hand.

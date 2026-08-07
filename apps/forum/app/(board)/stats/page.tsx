@@ -28,7 +28,7 @@ export default async function StatsPage() {
   if (view === null) {
     return (
       <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-6 py-8 flex-1">
-        <h1 className="font-serif text-2xl font-semibold">Board statistics</h1>
+        <h1 className="font-heading text-2xl font-semibold">Board statistics</h1>
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
           This board keeps no statistics.
         </p>
@@ -41,7 +41,7 @@ export default async function StatsPage() {
   return (
     <main id="board-content" tabIndex={-1} className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8 flex-1">
       <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold">Board statistics</h1>
+        <h1 className="font-heading text-2xl font-semibold">Board statistics</h1>
         <p className="text-sm text-muted-foreground">
           {totals.computedAt === null ? (
             'The totals below have not been counted yet — they are rolled up on a schedule.'
@@ -58,7 +58,7 @@ export default async function StatsPage() {
       </div>
 
       <section aria-labelledby="totals-heading" className="rounded-lg border border-border p-4">
-        <h2 id="totals-heading" className="font-serif text-lg font-semibold">
+        <h2 id="totals-heading" className="font-heading text-lg font-semibold">
           Totals
         </h2>
         <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
@@ -86,7 +86,7 @@ export default async function StatsPage() {
       </section>
 
       <section aria-labelledby="posters-heading" className="rounded-lg border border-border p-4">
-        <h2 id="posters-heading" className="font-serif text-lg font-semibold">
+        <h2 id="posters-heading" className="font-heading text-lg font-semibold">
           Top {LEADERBOARD_SIZE} posters
         </h2>
         {topPosters.length === 0 ? (
@@ -157,7 +157,7 @@ function ThreadTable({
 }) {
   return (
     <section aria-labelledby={`${id}-heading`} className="rounded-lg border border-border p-4">
-      <h2 id={`${id}-heading`} className="font-serif text-lg font-semibold">
+      <h2 id={`${id}-heading`} className="font-heading text-lg font-semibold">
         {heading}
       </h2>
       {rows.length === 0 ? (

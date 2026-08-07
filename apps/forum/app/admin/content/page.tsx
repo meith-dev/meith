@@ -63,7 +63,7 @@ export default async function AdminContentPage() {
       gap="loose"
     >
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Word filters</h2>
+        <h2 className="font-heading text-lg font-semibold">Word filters</h2>
         <p className="text-sm text-muted-foreground">
           Applied when a post is shown, never to what is stored — so removing a filter
           brings the word back everywhere, immediately, and a pattern you regret does no
@@ -96,7 +96,7 @@ export default async function AdminContentPage() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Thread prefixes</h2>
+        <h2 className="font-heading text-lg font-semibold">Thread prefixes</h2>
         <p className="text-sm text-muted-foreground">
           Labels a member can put in front of a thread title. Removing one takes it off
           the threads that used it and leaves them otherwise untouched — which is why a
@@ -135,7 +135,7 @@ export default async function AdminContentPage() {
       </section>
 
       <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">Announcements</h2>
+        <h2 className="font-heading text-lg font-semibold">Announcements</h2>
         <p className="text-muted-foreground">
           A dated notice above the forums, board-wide or attached to one. Not a pinned
           thread: nobody can reply to it, it expires on its own date, and removing it
@@ -150,7 +150,7 @@ export default async function AdminContentPage() {
       </section>
 
       <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">Attachments</h2>
+        <h2 className="font-heading text-lg font-semibold">Attachments</h2>
         <p className="text-muted-foreground">
           What members have uploaded, what it is costing in storage, and what has failed
           to process. Its own screen, because it is a listing that pages rather than a
@@ -165,7 +165,7 @@ export default async function AdminContentPage() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Smilies</h2>
+        <h2 className="font-heading text-lg font-semibold">Smilies</h2>
         <p className="text-sm text-muted-foreground">
           A literal code and an image. The code is matched as text, never as a pattern,
           and the longest one wins where two overlap — so{' '}
@@ -200,7 +200,7 @@ export default async function AdminContentPage() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Custom directives</h2>
+        <h2 className="font-heading text-lg font-semibold">Custom directives</h2>
         <p className="text-sm text-muted-foreground">
           Markdown&rsquo;s extension point, and this board&rsquo;s own additions to it. A
           directive chooses a <strong>name</strong> and whether it is inline or block.

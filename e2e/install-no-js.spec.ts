@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 /**
  * Installing a board, with scripting off.
@@ -45,8 +45,44 @@ const BOARD = 'E2E Test Board'
 const ADMIN = 'boardowner'
 const PASSWORD = 'correct horse battery staple'
 
+/**
+ * How a heading is actually drawn, as the browser resolves it.
+ *
+ * Computed style rather than a class name, because the class is not the claim.
+ * `font-serif` resolved through `--font-newsreader` and a five-deep fallback
+ * stack is what the reader sees, and asserting `class="font-serif"` would keep
+ * passing if the variable stopped being in scope on this route.
+ */
+async function headingStyle(page: Page, selector: string) {
+  return page.locator(selector).first().evaluate((node) => {
+    const style = getComputedStyle(node)
+    return {
+      family: style.fontFamily.split(',')[0]?.trim(),
+      size: style.fontSize,
+      weight: style.fontWeight,
+    }
+  })
+}
+
 test('a board is installed from an empty database, with no scripting', async ({ page }) => {
   await page.goto('/install')
+
+  /*
+   * Nothing on this page is set in a serif.
+   *
+   * The installer renders no `PageShell` — it runs before there is a board — so
+   * there is no shared layout keeping its type honest, and it had drifted twice:
+   * a 30px heading where the board's are 24px, and a serif face the component
+   * set moved off deliberately. Asserted as computed style rather than as an
+   * absent class, because `font-serif` is only one of the ways a serif could get
+   * here; what matters is what the reader is shown.
+   */
+  for (const selector of ['h1', '#preflight', '[data-slot=card-title]']) {
+    const { family } = await headingStyle(page, selector)
+    expect(family, `${selector} should not be set in a serif`).not.toMatch(
+      /newsreader|serif|georgia|baskerville|hoefler/i,
+    )
+  }
 
   /* ---------------------------------------------------------------- *
    * The preflight
