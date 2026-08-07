@@ -185,6 +185,46 @@ ratings, and it is why the two switches are worth reading together: a criticism
 with no reason attached is the part of reputation people argue about, and a
 thanks is not.
 
+## Configuration that moved out of the environment
+
+Two things that were environment variables and nothing else are board settings
+now. **Nothing changes for a board that had them set** — the environment still
+wins, outright, and the screen says so rather than accepting an edit it would
+ignore. What changes is the board that never set them, which previously could
+not fix either without a redeploy.
+
+| | Was | Is |
+|---|---|---|
+| **Mail** | `MAIL_DRIVER` and friends, read at boot | `MAIL_DRIVER=http` or `=smtp` still wins. `log`, or unset, now hands the decision to `/admin/settings?group=mail` — which has a **Send a test message** button that reports the provider's own refusal verbatim. |
+| **The board's address** | `APP_URL`, read at boot | `APP_URL` still wins. Unset, it comes from **Board address** on `/admin/settings?group=board`, and the installer asks for it on a fresh board. |
+
+The upgrade needs no action either way. Worth doing once, though: open
+`/admin/settings?group=mail` and press the test button. Mail is the subsystem
+where a misconfiguration is silent by construction — the reset form still says
+"check your inbox" — so "we believe mail works" and "a message arrived" are worth
+reconciling on a board you have just moved.
+
+### `MAIL_DRIVER=smtp` boots now
+
+It used to refuse to start, on purpose: there was no SMTP driver, and quietly
+downgrading to the log driver would have meant an operator watching password
+resets vanish with no error. There is one now. `MAIL_SMTP_HOST` and `MAIL_FROM`
+are required with it, and the username and password must be set together or not
+at all — see [Mail](./operating.md#mail).
+
+If you have been running a separate relay to bridge this gap, it can go.
+
+### `TICK_DEADLINE_MS` and `TICK_MAX_JOBS` are gone
+
+They were read by nothing. Both were declared, documented in three places, and
+consulted by no code — a task's wall-clock budget comes from its own definition,
+and the worker bounds a tick with a constant of its own. Tuning them changed
+nothing, and there was no way to discover that.
+
+**Leaving them in your `.env` is harmless** — unknown variables are ignored, not
+rejected, so nothing fails on the next boot. Delete them when convenient; the
+only cost of keeping them is the next person believing they do something.
+
 ## Settings that gained a reader
 
 A setting can also change behaviour by starting to be *read*. That is not a
@@ -211,21 +251,27 @@ The first row is the one that needs explaining: **a value equal to its default
 is not stored**, so an operator who selected `email` back when it did nothing
 has no row, and is indistinguishable from somebody who never opened the screen.
 Defaulting to `email` would have switched confirmation on for both of them — on
-boards where `MAIL_DRIVER` is very often still `log`, which sends nothing and
-would have left them unable to register anybody. The default follows the
-behaviour every board actually had.
+boards that very often had no mail configured at all, which would have left them
+unable to register anybody. The default follows the behaviour every board
+actually had.
 
 **If you did want confirmed addresses, you now have to say so** — and this time
-saying so works. Set it in **Admin → Settings → Registration**, after
-configuring a mail driver ([Mail](./operating.md#mail)). The last two rows of
-the table are the boards that get a real behaviour change: they asked for
+saying so works. Configure mail first at `/admin/settings?group=mail`, prove it
+with the **Send a test message** button, then set the method in
+**Admin → Settings → Registration** ([Mail](./operating.md#mail)). The last two
+rows of the table are the boards that get a real behaviour change: they asked for
 vetting, and now they get it.
 
 > [!IMPORTANT]
-> `email` or `both` with `MAIL_DRIVER` unset or `log` is a board nobody can
-> join: the links are minted, written to the log, and never sent. The
-> registration settings screen and `/admin/system` both say so for as long as it
-> is true, so this is not a thing you find out from your members.
+> `email` or `both` on a board with no working mail is a board nobody can join:
+> the links are minted, written to the log, and never sent. The registration
+> settings screen and `/admin/system` both say so for as long as it is true, so
+> this is not a thing you find out from your members.
+>
+> "No working mail" is the state to check, not a particular variable. Mail is
+> configured on the board now and only *optionally* from the environment, so
+> `MAIL_DRIVER` being unset no longer tells you anything on its own — the mail
+> settings screen states what the board resolved and where it came from.
 
 Accounts stuck at *awaiting activation* can be activated by hand from their
 member screen under **Admin → Members**, and anybody who never received a link

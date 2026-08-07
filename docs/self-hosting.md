@@ -83,11 +83,23 @@ cat > .env <<EOF
 POSTGRES_PASSWORD=$(openssl rand -hex 32)
 AUTH_SECRET=$(openssl rand -base64 32)
 TICK_SECRET=$(openssl rand -base64 32)
-APP_URL=https://board.example
 PORT=127.0.0.1:3000
 EOF
 chmod 600 .env
 ```
+
+**Nothing in that needs editing.** Three `openssl rand` outputs and a fixed
+literal — you can paste it as it stands, which is the point: the board's own
+address used to be a fifth line here and is asked for by the installer now,
+prefilled from the address you load it at.
+
+> [!WARNING]
+> If you add `APP_URL` back, it has to be your real origin. A value set here
+> **wins over the installer**, so a placeholder left in — `https://board.example`
+> — is not a value the installer will correct. It is the origin every password
+> reset and confirmation link is built from, and those links go out pointing at a
+> domain you do not own. Leaving it out is safer than filling it in with
+> something approximate.
 
 > [!NOTE]
 > `hex` for the database password and `base64` for the two secrets, and the
@@ -97,27 +109,27 @@ chmod 600 .env
 > URL` from the migration and a stack trace that says nothing about passwords.
 > Hex has no such characters. The two secrets are never part of a URL.
 
-Rerunning that heredoc rewrites all five values. If the board is already
+Rerunning that heredoc rewrites all four values. If the board is already
 installed, changing `POSTGRES_PASSWORD` locks it out of its own database —
 Postgres keeps the password from when the volume was created.
 
-Five lines, and each one matters:
+Four lines, and each one matters:
 
 | | |
 |---|---|
 | `POSTGRES_PASSWORD` | The database's own password. Generated, never typed, and hex — see the note above. |
 | `AUTH_SECRET` | Signs sessions. There is deliberately no default — a shipped one is a board every reader of the source can sign a session for. |
 | `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. |
-| `APP_URL` | Your real origin, absolute, no trailing slash. Optional now: leave it out and the installer asks, prefilled from the address you load `/install` at, and `/admin/settings?group=board` changes it later without a redeploy. Set here, it wins and the settings field goes read-only. |
 | `PORT` | **`127.0.0.1:3000`, not `3000`.** Binding to all interfaces publishes the board on port 3000 alongside your HTTPS one — plaintext, no certificate, and Docker writes its own iptables rules, so `ufw` does not stop it. |
 
 Rotating `AUTH_SECRET` later signs everybody out. That is the whole consequence;
 it is a safe thing to do if you think it leaked.
 
 [`.env.example`](../.env.example) at the repository root documents every other
-variable. Of the five above, four are mechanical — three `openssl rand` outputs
-and a fixed literal — and `APP_URL` is the only one you have to know, which is
-why the installer will ask for it if you leave it out.
+variable, including `APP_URL` and the `MAIL_*` set — both optional, both
+overriding the board's own settings when present, and both worth setting here if
+you would rather this deployment were configured entirely from files than from a
+screen.
 
 ## 4. Start it
 
