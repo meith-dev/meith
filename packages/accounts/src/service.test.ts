@@ -12,7 +12,8 @@ import { rejectionMessage } from './test-support.fixture'
 import { hashToken } from './crypto/tokens'
 import { createMemoryStore } from './memory-repos'
 import { MemoryBanFilters } from './memory-bans'
-import { IdentityService, VERIFICATION_TTL_HOURS } from './service'
+import { rejectedField, type RegisterField } from './register-fields'
+import { IdentityService, VERIFICATION_TTL_HOURS, type RegisterInput } from './service'
 import type { AccountStore, AuthConfig } from './ports'
 
 const BASE_CONFIG: AuthConfig = {
@@ -106,6 +107,59 @@ describe('register', () => {
     await expect(
       service.register({ username: 'Dave', email: 'd@example.com', password: 'short' }),
     ).rejects.toThrow(/at least 8/i)
+  })
+
+  /*
+   * Every refusal names the box it is about.
+   *
+   * Without this a caller has a sentence and no idea where to put it, so the
+   * message becomes a banner — survivable on `/register`, and not survivable in
+   * the installer, where a rejected administrator name arrived as "the 'admin'
+   * step failed" and pointed at nothing. The uniqueness refusals are
+   * `ConflictError` rather than `ValidationError`, which is exactly why the
+   * field travels in `meta` instead of in `fieldErrors`.
+   */
+  describe('names the field it refused', () => {
+    const cases: readonly [string, RegisterInput, RegisterField][] = [
+      ['a reserved name', { username: 'admin', email: 'a@example.com', password: 'correct horse battery' }, 'username'],
+      ['a name of the wrong length', { username: 'ab', email: 'a@example.com', password: 'correct horse battery' }, 'username'],
+      ['a name with invalid characters', { username: 'a b/c', email: 'a@example.com', password: 'correct horse battery' }, 'username'],
+      ['a malformed address', { username: 'Erin', email: 'not-an-address', password: 'correct horse battery' }, 'email'],
+      ['a short password', { username: 'Erin', email: 'e@example.com', password: 'short' }, 'password'],
+    ]
+
+    for (const [what, input, field] of cases) {
+      it(`blames ${field} for ${what}`, async () => {
+        const { service } = makeService(store)
+        const error = await service.register(input).catch((err: unknown) => err)
+        expect(rejectedField(error)).toBe(field)
+      })
+    }
+
+    it('blames the taken name, and the taken address', async () => {
+      const { service } = makeService(store)
+      await service.register({ username: 'Frank', email: 'f@example.com', password: 'correct horse battery' })
+
+      const takenName = await service
+        .register({ username: 'FRANK', email: 'other@example.com', password: 'correct horse battery' })
+        .catch((err: unknown) => err)
+      expect(rejectedField(takenName)).toBe('username')
+
+      const takenEmail = await service
+        .register({ username: 'Grace', email: 'F@EXAMPLE.COM', password: 'correct horse battery' })
+        .catch((err: unknown) => err)
+      expect(rejectedField(takenEmail)).toBe('email')
+    })
+
+    /*
+     * A fault is not an answer. A caller that treated one as a field error would
+     * send somebody editing a value that was never the problem.
+     */
+    it('blames no field for anything that is not a refusal', () => {
+      expect(rejectedField(new Error('the database went away'))).toBeNull()
+      expect(rejectedField(new ValidationError('something else entirely'))).toBeNull()
+      expect(rejectedField(undefined)).toBeNull()
+    })
   })
 })
 

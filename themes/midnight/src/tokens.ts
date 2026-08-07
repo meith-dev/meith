@@ -86,6 +86,7 @@ export const LIGHT_TOKENS: Record<string, string> = {
   'density-unit': '0.2rem',
   'font-mono-stack': '"IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace',
   'font-sans-stack': '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+  'font-heading-stack': 'var(--font-sans-stack)',
   /*
    * No shadows at all, which is the same decision `radius: 0rem` is. A terminal
    * is flat: regions are separated by rules and by colour, never by pretending
@@ -138,6 +139,7 @@ export const DARK_TOKENS: Record<string, string> = {
   'density-unit': '0.2rem',
   'font-mono-stack': '"IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace',
   'font-sans-stack': '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+  'font-heading-stack': 'var(--font-sans-stack)',
   elevation: 'none',
   'forum-unread': 'oklch(0.8 0.13 195)',
   'forum-read': 'oklch(0.44 0.014 250)',

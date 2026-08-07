@@ -14,6 +14,38 @@ export const E2E_DB_PORT = 55_432
 
 export const E2E_DATABASE_URL = `postgres://postgres:postgres@127.0.0.1:${E2E_DB_PORT}/postgres`
 
+/* ------------------------------------------------------------------ *
+ * The installer's own stack
+ * ------------------------------------------------------------------ */
+
+/**
+ * A second database, with **no schema at all**.
+ *
+ * `/install` is the one screen that cannot run against the board above: it
+ * refuses to render a form when the database already holds accounts, and its
+ * first step is applying the migrations that database already has. Testing it
+ * needs an empty one — which `plan-status.md` recorded as the reason F83 had no
+ * browser coverage, feature after feature.
+ *
+ * A second PGlite is the whole fix. It costs one more WASM instance, which is
+ * cheap next to being unable to test the first screen anybody sees.
+ */
+export const E2E_INSTALL_DB_PORT = 55_433
+
+export const E2E_INSTALL_DATABASE_URL = `postgres://postgres:postgres@127.0.0.1:${E2E_INSTALL_DB_PORT}/postgres`
+
+/**
+ * A second app, pointed at that database.
+ *
+ * `DATABASE_URL` is read once at boot, so an install spec cannot borrow the
+ * board's server — and it must not, because installing *seals* the board it runs
+ * against. One server per database keeps the two suites from destroying each
+ * other's fixture.
+ */
+export const E2E_INSTALL_PORT = 3002
+
+export const E2E_INSTALL_BASE_URL = `http://127.0.0.1:${E2E_INSTALL_PORT}`
+
 /**
  * Where uploaded files land.
  *

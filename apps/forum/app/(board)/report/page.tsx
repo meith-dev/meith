@@ -62,7 +62,7 @@ export default async function ReportPage({
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">Report {what}</h1>
+        <h1 className="font-heading text-2xl font-semibold">Report {what}</h1>
         <p className="text-sm text-muted-foreground">
           A moderator will look at this. Your report is private.
         </p>

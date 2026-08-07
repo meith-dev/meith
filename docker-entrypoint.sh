@@ -1,9 +1,11 @@
 #!/bin/sh
-# F04 — one image, two roles.
+# F04 — one image, three roles.
 #
-# The web server and the worker run the same task code from the same build; the
-# only difference is which process starts. A flag rather than a second image
-# means they cannot drift, which is the whole point of the acceptance criterion.
+# The web server, the worker and the migrator run the same code from the same
+# build; the only difference is which process starts. A flag rather than three
+# images means they cannot drift, which is the whole point of the acceptance
+# criterion — and it is why a board migrated by the `migrate` service has been
+# through the same `runMigrations()` as one migrated by `forum migrate`.
 set -e
 
 # An explicit command wins over the role. `docker run image node
@@ -27,7 +29,10 @@ case "${FORUM_ROLE:-web}" in
     exec node apps/forum/server.js
     ;;
   *)
-    echo "Unknown FORUM_ROLE: ${FORUM_ROLE}. Expected 'web' or 'worker'." >&2
+    # Every role this file handles, not two of the three. `migrate` is the one
+    # `docker-compose.coolify.yml` sets, so a typo in it was answered by a list
+    # that did not contain the value the operator was trying to spell.
+    echo "Unknown FORUM_ROLE: ${FORUM_ROLE}. Expected 'web', 'worker' or 'migrate'." >&2
     exit 1
     ;;
 esac

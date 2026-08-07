@@ -6,6 +6,18 @@ import { LoginForm } from "@/components/auth/login-form"
 export const metadata: Metadata = { title: "Sign in" }
 
 const NOTICES: Record<string, string> = {
+  /*
+   * Where `/install` sends the new administrator, and the last thing the
+   * installer does that the operator can see.
+   *
+   * The redirect has always carried `?installed=1`; this page had no entry for
+   * it, so the one screen confirming that a five-step irreversible install
+   * *worked* was an ordinary sign-in form. The installer is gone by then — it
+   * answers 404 — so there was nothing left anywhere that said the board
+   * existed.
+   */
+  installed:
+    "Your board is installed. Sign in with the administrator account you just created.",
   registered: "Account created. You can sign in now.",
   reset: "Your password has been changed. Sign in with your new password.",
   activated: "Your address is confirmed. You can sign in now.",
@@ -34,6 +46,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{
     next?: string
+    installed?: string
     registered?: string
     reset?: string
     activated?: string
@@ -44,22 +57,25 @@ export default async function LoginPage({
 }) {
   const params = await searchParams
   const failedVerification = params.verify === "failed"
-  const notice = params.registered
-    ? NOTICES.registered
-    : params.reset
-      ? NOTICES.reset
-      : params.activated
-        ? NOTICES.activated
-        : params.confirmed
-          ? NOTICES.confirmed
-          : params.already
-            ? NOTICES.already
-            : undefined
+  /* First, because it is the only one that can be somebody's first ever visit. */
+  const notice = params.installed
+    ? NOTICES.installed
+    : params.registered
+      ? NOTICES.registered
+      : params.reset
+        ? NOTICES.reset
+        : params.activated
+          ? NOTICES.activated
+          : params.confirmed
+            ? NOTICES.confirmed
+            : params.already
+              ? NOTICES.already
+              : undefined
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold text-foreground">Welcome back</h1>
+        <h1 className="font-heading text-2xl font-semibold text-foreground">Welcome back</h1>
         <p className="text-sm text-muted-foreground">Sign in to your account.</p>
       </div>
       {failedVerification && (

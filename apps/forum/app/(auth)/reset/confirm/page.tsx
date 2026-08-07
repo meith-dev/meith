@@ -16,7 +16,7 @@ export default async function ResetConfirmPage({
   if (!token) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="font-serif text-2xl font-semibold text-foreground">Invalid reset link</h1>
+        <h1 className="font-heading text-2xl font-semibold text-foreground">Invalid reset link</h1>
         <p className="text-sm text-muted-foreground">
           This link is missing its token. Request a new one to continue.
         </p>
@@ -30,7 +30,7 @@ export default async function ResetConfirmPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold text-foreground">Choose a new password</h1>
+        <h1 className="font-heading text-2xl font-semibold text-foreground">Choose a new password</h1>
         <p className="text-sm text-muted-foreground">Enter a new password for your account.</p>
       </div>
       <ResetConfirmForm token={token} minLength={(await boardAuthConfig()).minPasswordLength} />

@@ -8528,3 +8528,341 @@ the only candidate that is certainly the right board's SQL. It is wrapped in a
 `try`, since `import.meta.url` is undefined in the CJS bundles esbuild produces
 — which is the same fact the worker's comment recorded, now handled rather than
 described.
+
+### D111 — The installer that blamed the migrations for a typo in a string (F15, F18, F63, F83)
+
+D110 got `/install` as far as submitting on a compose board. It then failed at
+step 3 of 5, on every fresh board, with:
+
+> The “admin” step failed. The usergroup ladder is missing. Migrations did not
+> seed it.
+
+The migrations had run. They had seeded it. Thirty-four applied, seven groups in
+`usergroups`, exactly as `seed-usergroups.test.ts` asserts on every commit.
+
+#### A group key is a string, and nothing was checking the spelling
+
+`runInstall` resolves the two groups it needs **by key rather than by seeded id**
+— deliberately, and for a good reason: ids that drifted would put the founding
+administrator in the wrong group, which is the least recoverable mistake that
+function could make. It asked for `'registered'`, which exists, and
+`'administrator'`, which does not. Migration `0001` seeds `'administrators'`.
+
+`findGroup` returned `null`, as it should for a group nobody has ever created,
+and the null check raised the only message it had — one that blames the
+migrations, because a missing ladder is the only reason its author imagined for
+the lookup coming back empty. It type-checked. It read correctly. It was wrong by
+one character, in the one place where being wrong is invisible to the compiler.
+
+So the keys are now a constant, `SEED_GROUP_KEY` in `@meith/db`, beside the SQL
+that writes them — a typo in a property name is a build failure where a typo in a
+string literal is a support request. `seed-usergroups.test.ts` asserts the
+constant and the applied migration name the same seven groups, in both
+directions, so neither can be renamed alone. The ids already had this treatment
+(`SEED_GROUP` in `@meith/runtime`); the keys had nothing, which is why the keys
+are what broke.
+
+**The general point is that the message was worse than the bug.** A one-character
+typo is a minute's work. A message that names an innocent subsystem sends an
+operator to read migration logs that say `applied: 34`, and then to their
+database, and then to the issue tracker. So the null check now prints the key it
+wanted beside the keys the board actually has — and says *"the usergroups table
+is empty, so the seed migration did not run"* only in the case where that is
+observably true. Either way the message describes what was found rather than
+what its author assumed, which is the property the old one lacked.
+
+#### The refusals that were reported as breakage
+
+Fixing the lookup exposed the next one immediately, because the natural thing to
+type into a box labelled "Administrator's name" is `admin` — which is
+`reservedUsernames[0]`, since an account by that name could impersonate the
+board. `register()` refused it, correctly, and the screen said:
+
+> The “admin” step failed. That username is reserved.
+
+Three things wrong in eleven words. The quoted `admin` is the *step id*, and the
+reader has just typed `admin` into the box the message is about. "Step failed"
+describes a fault in the installer, when what happened is that the board declined
+an answer. And the message named no field, so on a form long enough that the
+administrator's name is off-screen there was nothing to click and nothing marked.
+
+The fix runs through three layers, because the information genuinely starts three
+layers down:
+
+- **`@meith/accounts`** — every refusal `register()` raises now carries the field
+  it is about in `meta`, read back by `rejectedField()`. `meta` rather than
+  `ValidationError.fieldErrors` because two of the five refusals are
+  `ConflictError` (a taken name is not a malformed one), and no caller should
+  have to know which class it caught to find out which box to point at.
+- **`@meith/install`** — `StepOutcome` gained an optional `field`, and
+  `fieldErrorsFromReport` turns a refusal into a field error while leaving a
+  genuine fault contributing nothing. A database that went away mid-write is not
+  a problem with anything that was typed, and offering to fix it beside a box
+  would send somebody editing a correct answer.
+- **the form** — the headline names the step by its **title** ("Create the
+  administrator"), never its id, and the summary D110 built lists the box with a
+  link to it. Both, not one: how far the install got is what decides whether
+  retrying is safe, and which box to change is what makes retrying possible.
+
+And the reserved names are now listed under the box, from
+`DEFAULT_AUTH_POLICY.reservedUsernames` rather than written out again — so the
+likeliest first answer is refused *before* it costs a submit. That is the cheaper
+half of this fix by a distance: the best error message is one nobody reads.
+
+#### The two dead ends after the last step
+
+Both were found by running the flow to the end rather than to the redirect.
+
+`installAction` has always redirected to `/login?installed=1`, and
+`login/page.tsx` had no entry for `installed` — so the parameter was inert and
+the screen confirming that a five-step irreversible install had *worked* was an
+ordinary sign-in form. The installer is gone by then (it answers 404, by
+design), so nothing anywhere said the board existed. One line in `NOTICES`.
+
+Then the handbook's next sentence — "sign in and go to `/admin`" — met *"Your
+control panel session has expired."* on a board four minutes old. `resolveAdmin`
+collapsed "no ACP cookie at all" and "cookie present, session gone" into one
+`signin` denial, and the layout passed `reason="expired"` for it unconditionally.
+The sign-in form has carried a sentence for the first-visit case since it was
+written and had never once been given it. The denial is split into `signin` and
+`expired`, which is what the type's own comment — *"each maps to a different
+screen"* — had been claiming all along.
+
+#### What actually found all five
+
+Running it. A database, the real Next server, and a browser filling in the form —
+the same lesson as D106, which is the entry that exists because the deployment
+bugs were all found by running it and none by reading it. Every one of these five
+is in a path with tests around it: the ladder is asserted, the preflight is
+asserted, the schema is asserted. What none of them covered is the seam between
+`runInstall` and the rows a real migration writes, which is exactly where a
+mistyped string lives.
+
+The lasting guard is the one that costs nothing: `SEED_GROUP_KEY` moves that seam
+from a runtime lookup to a compile-time one, so the class of bug is gone rather
+than the instance.
+
+### D112 — The installer read like a report and worked like a form (F83)
+
+D111 made `/install` succeed. It was still two and a half screens, and the form —
+the thing anybody opens this page to use — began forty per cent of the way down,
+after two sections of reading.
+
+#### Seven findings at equal weight is not a preflight
+
+The page rendered every check as an identical bordered row: five saying "ready",
+one saying the address comes from the form, one warning. An installer's stated
+job is explaining why a board is not working, and a screen where the single
+finding that needs a decision is seventh in a list of look-alikes is not doing
+that job — it is asking the reader to audit a list in order to discover there was
+nothing to audit.
+
+Blockers and warnings stay on the page. Everything that passed collapses into one
+line — *"6 checks passed"* — which is openable for the roll call and is, for most
+readers, the sentence that lets them stop reading. `<details>`, so it costs no
+scripting (R5).
+
+**Warnings fold too when a blocker is present**, which is the less obvious half.
+Every warning is written for somebody looking at the form — the mail one says *"the
+form below can set it up"* — and when there is a blocker there is no form below.
+Two open warnings above an absent form is a screen asking for three decisions
+when only one of them can be made.
+
+#### An administrator's password was filed under "Your board"
+
+One box, headed "Your board", held the board's name, the board's address, and
+then the founding administrator's name, e-mail and password. They are three
+different questions and the third is optional, so they are now three numbered
+sections: **your board**, **your account**, **sending mail**.
+
+The numbering is the entire progress indicator, and that is a deliberate refusal
+of the obvious alternative. A real wizard needs multi-page state, and with no
+scripting that means either a session on a board that does not have sessions yet,
+or an administrator's password making three round trips through hidden inputs.
+One page that posts once has neither problem, and three numbered headings answer
+"how much of this is left" by being looked at.
+
+#### The step list was data so the screen could report it, and no screen did
+
+`freshReport()` and `installed()` have been exported and tested since F83, with a
+comment saying the screen renders the same component before and after a run —
+"one set of states, rather than a before view and an after view that disagree
+about what a step is". Nothing ever called either. The page rendered five static
+titles above the form, and a failure produced one sentence naming one step.
+
+So the step list now lives beside the button, folded, as **What installing does**
+— and after a failure the same list reopens as **How far it got**, marking each
+step *done*, *failed* or *not run*. That is the difference between an operator
+who knows migrations applied and the administrator was not created, and one who
+is guessing; the handbook already told them to reason about exactly that
+distinction, and the screen would not tell them which case they were in.
+
+*Not run*, never *failed*, for the steps after the first failure — the steps are
+sequential, and reporting four failures caused by one is how an error screen
+stops being read. Words beside every state rather than colour or a tick alone,
+for the same reason the check levels are spelled out.
+
+#### Small things that were each wrong on their own
+
+- The button said **Install** after a failed install. It says **Try again**.
+- The note under it said "retype them before pressing Install", which named a
+  button that no longer says that. It names no button now.
+- The failure headline and the field bullet printed the same sentence three lines
+  apart, which reads as two problems. The headline names the step; the message
+  goes to the box when it belongs to one.
+- *"Fix them, redeploy if they were environment variables"* appeared over a
+  single blocker. Both halves agree with the count now.
+- "You can install with the warnings above unresolved" sat **below** the button,
+  a page and a half from the warnings it was about. It is beside them.
+
+### D113 — The installer looked like a different product, and nothing in a browser had ever run it (F04, F83)
+
+Two gaps that had been recorded rather than closed.
+
+#### It was styled by hand, on a board with a component set
+
+`@meith/ui` is the board's design system, and `components/auth/form-controls` is
+the app's form vocabulary on top of it — twenty-odd screens across the panel, the
+moderation tools and the account pages use both. `/install` used neither. Every
+control was a class string written in place, so the installer's inputs were a
+different height from the board's, its cards had no header band, its folds had no
+caret, and its error box carried no `role` at all. The first screen an operator
+ever sees looked like a different product from the one it was installing.
+
+It is now `Card`, `Field`, `Input`, `NativeSelect`, `Alert`, `Disclosure`,
+`Badge` and `Button`, and the local `Field` — a fourteen-line reimplementation of
+the shared one, minus the id derivation and the error-first `aria-describedby`
+— is deleted.
+
+**"No theme" and "no component set" were being treated as the same claim, and
+they are not.** The page still renders no `PageShell`, resolves no slots and
+calls no `currentTheme()`: it runs before there is a board, and it has to render
+when the database is unreachable. None of that is an argument for hand-writing a
+text input. `@meith/ui` reads no database and holds no state; using it is what
+makes the page match, and the "no theme" reasoning is unchanged and still in
+`page.tsx`.
+
+Two things fell out of the swap rather than being aimed at. `Alert` derives
+`role` from its tone — `alert` for a blocker, `status` for a warning — so the
+most important sentence on the page is now announced, where a hand-written
+`<div>` had no role and was read only if somebody happened to reach it. And
+`CardTitle` is not serif, because panel headings on this board stopped being
+serif when the component set did; the hand-rolled headings here were still
+wearing the previous design.
+
+#### And no browser had ever installed a board
+
+`plan-status.md` had carried this since F83: *"No e2e spec drives it — the
+browser suite would need a database with no schema, which is a fixture the
+harness does not yet have."* Every install bug fixed in this branch was in code
+with unit tests around it, and invisible to all of them, because each lived in
+the seam between two tested things: a group key misspelled by one character, a
+refusal reported as a system fault, a redirect to a page with no notice for its
+own query parameter.
+
+The fixture is a second PGlite — `startDatabase({ seeded: false })`, same file,
+`--empty` — on its own port, with its own `next dev` pointed at it. Two servers
+rather than one because `DATABASE_URL` is read at boot, and because installing
+**seals** the database it runs against: a spec that installed the shared board
+would destroy the fixture every other spec reads. The two Playwright projects
+share one regex, used once to include and once to exclude, so they cannot drift
+into overlapping or leaving a gap.
+
+Three details were not obvious and are worth keeping:
+
+- **The health check waits on `/install`, not `/`.** The board's index cannot
+  render against a schema-less database, and correctly so. `/install` is the one
+  route written to work anyway — so it is both the only usable health check and
+  a standing assertion of that property: if the page ever starts needing a table,
+  the harness stops booting.
+- **That database allows two connections where every other one allows one.**
+  `runMigrations()` opens its own, and must: it takes a session-level advisory
+  lock that is only meaningful on a dedicated session. Against the
+  one-connection server this surfaced as `read ECONNRESET`, reported on screen
+  as a failed "Apply migrations" step — a harness limit wearing a product bug's
+  clothes. Safe here because the clobbering the limit exists to prevent needs two
+  clients issuing extended-protocol queries *at the same time*, and this is one
+  worker doing one thing at a time.
+- **The spec is one test, in order.** Installing has one irreversible end, so
+  splitting refuse/retry/install/seal into four tests would be four tests sharing
+  a fixture that cannot be reset, three of which break when the first changes
+  what it leaves behind.
+
+It runs with **scripting off**, which is the harder case and the one that has
+broken twice: every message arrives on a re-rendered page, so the `<details>`
+that opens on a failure has to open from an attribute in the HTML rather than
+from React state, and the fields have to be repopulated by the server rather than
+kept in the DOM. It asserts the things the unit tests structurally cannot — that
+the failure names the step by *title* and not by the id `admin`, that the
+report reads two *done*, one *failed* and two *not run*, that the password box
+comes back empty while the board name does not, that the seal answers 404, and
+that `/admin` asks for a password without claiming a session expired.
+
+### D114 — The heading face was the one typographic decision an operator could not make (F25, F26, F83)
+
+The board set every heading in Newsreader, a serif, through a `font-serif`
+utility whose value was a literal in `globals.css`. Beside it, `font-mono-stack`
+and `font-sans-stack` had been **tokens** — editable from the theme screen,
+validated against `TOKEN_NAMES`, stored per board — since F26.
+
+That is backwards twice. The heading face is the more visible of the three by a
+distance, and it is the one a board with its own identity is likeliest to have an
+opinion about; the *code* face is the one almost nobody will ever touch. And a
+literal in a stylesheet is not a decision an operator can make at all — it is a
+decision they can file an issue about.
+
+#### `font-heading`, and no `font-serif`
+
+`--font-heading-stack` is a scheme-independent token defaulting to
+`var(--font-sans-stack)` — not to a repeat of its value, so a board that changes
+the face it is *read* in gets headings that follow, which is what an operator
+means nine times in ten by "change the font". Setting the token is the tenth
+case: headings alone, to anything, including a serif (`Georgia, ui-serif, serif`
+downloads nothing).
+
+The Tailwind mapping for `font-serif` is **deleted** rather than repointed. Left
+in place it would have been forty call sites compiling to a face the board no
+longer ships, and the next heading anybody wrote would have reached for it out of
+habit. There is no `font-serif` utility now; there is `font-heading`, and it
+resolves to whatever the board says.
+
+Newsreader is no longer loaded. A webfont fetched on every page for a default
+nothing uses is a cost with no reader at the other end of it.
+
+**The midnight theme's distinctness test needed one entry, and the reason is the
+interesting part.** Both themes set `font-heading-stack` to the literal
+`var(--font-sans-stack)`, so the values match — but that is agreement about a
+*rule*, "headings follow the body face", not about a value. It resolves to Inter
+in one theme and IBM Plex Sans in the other, so the two boards do not look alike
+because of it. The exclusion list says so.
+
+### D115 — A cookie notice that sticks, and the button it used to cover
+
+The notice was in the ordinary flow at the foot of the document, which was a
+correction of an earlier `fixed` version — recorded in that file, along with the
+bug it caused: a bar pinned to the viewport sits on top of whatever the page has
+at the bottom of the viewport, which here was the appearance strip on every page
+and the **"Post reply" button** at the foot of a reply form. The e2e suite caught
+it by failing to click a control a member could not have clicked either.
+
+In flow it covered nothing and cost prominence: on a long page a reader had to
+reach the foot to find it. Asked for a notice that stays visible, the shape that
+gets both is `sticky`, because a sticky element *stays in flow* — it owns space
+at the end of the document rather than being lifted out of the layout.
+
+**It was not enough on its own, and the same spec said so again.** Sticky still
+floats over the bottom of the viewport while there is document left to scroll, so
+the reply button was intercepted exactly as before — the third time this one
+control has failed the same way. The fix is a reserve: `body:has(> aside[aria-label='Cookies'])`
+gets bottom padding, so the end of every page clears the bar and any control can
+be scrolled out from under it. `:has()` scopes the reserve to pages that actually
+render the notice, which is only ever pages where the question is unanswered — a
+permanent gap under a board nobody was asked to consent on would be a footer that
+never quite reaches the bottom.
+
+The wording is generic now: the headline says the site needs cookies to work and
+asks whether it may also set optional ones, and *which* cookies is behind the
+disclosure. The enumeration was the half people have trained themselves to skip,
+and the half that ages worst. It is not deleted, because consent has to be
+informed to be consent — it is one click away and still generated from
+`@/view/consent` rather than written out by hand.

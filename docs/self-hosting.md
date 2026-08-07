@@ -200,8 +200,14 @@ Open `https://board.example/install` — your domain, over the proxy you just se
 up, not `127.0.0.1:3000`. The address you load it at is the one it will offer to
 keep, so loading it the way your members will is the point.
 
-The form asks five things: a board name, **the board's address**, your username,
-your e-mail and a password — plus how the board should send mail.
+The form is three numbered sections. **Your board** asks for a name and — unlike
+the Coolify route — **the board's address**; **your account** asks for a
+username, an e-mail and a password; **sending mail** is optional.
+
+Your username is the name you post under, not a role, and the obvious ones are
+reserved so that no account can impersonate the board — see
+[Quickstart § Run the installer](./quickstart.md#4-run-the-installer). The form
+lists them under the box.
 
 **The address is prefilled from the URL you loaded**, because that is almost
 always right and because nothing else on the form is as easy to get subtly wrong.

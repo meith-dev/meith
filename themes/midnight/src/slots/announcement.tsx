@@ -14,7 +14,7 @@ import { UserRef } from '../shared'
 export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: AnnouncementModel) {
   return (
     <article className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-4">
-      <h2 className="font-serif text-lg font-semibold text-foreground">{title}</h2>
+      <h2 className="font-heading text-lg font-semibold text-foreground">{title}</h2>
 
       <div
         className="prose-md text-sm text-foreground"

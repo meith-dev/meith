@@ -106,12 +106,19 @@ describe('the midnight palette', () => {
            * they may legitimately match. `shadow-tint` is deliberately not on
            * this list — it is a colour, and two themes agreeing on it would be
            * the same reskin-in-disguise the rest of this test is looking for.
+           *
+           * `font-heading-stack` is the interesting one: both themes set it to
+           * the literal `var(--font-sans-stack)`, and that is agreement about a
+           * *rule* rather than about a value — "headings follow the body face".
+           * It resolves to Inter here and IBM Plex Sans there, so the two boards
+           * do not look alike because of it.
            */
           ![
             'radius',
             'density-unit',
             'font-mono-stack',
             'font-sans-stack',
+            'font-heading-stack',
             'elevation',
           ].includes(name),
       )

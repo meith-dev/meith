@@ -57,7 +57,7 @@ export default async function AdminThemesPage() {
       */}
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <h2 className="font-serif text-lg font-semibold">Logo</h2>
+          <h2 className="font-heading text-lg font-semibold">Logo</h2>
           <p className="text-sm text-muted-foreground">
             Shown in the header instead of the board&rsquo;s name. Two images, because one
             that reads on a white page usually disappears on a black one — upload only the
@@ -94,7 +94,7 @@ export default async function AdminThemesPage() {
         </p>
       </section>
 
-      <h2 className="font-serif text-lg font-semibold">Installed themes</h2>
+      <h2 className="font-heading text-lg font-semibold">Installed themes</h2>
 
       <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
         {themes.map((theme) => (
@@ -152,7 +152,7 @@ export default async function AdminThemesPage() {
       </ul>
 
       <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">
+        <h2 className="font-heading text-lg font-semibold">
           What a member&rsquo;s choice changes
         </h2>
         <p className="text-muted-foreground">

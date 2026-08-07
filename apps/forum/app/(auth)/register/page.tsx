@@ -33,7 +33,7 @@ export default async function RegisterPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold text-foreground">Create your account</h1>
+        <h1 className="font-heading text-2xl font-semibold text-foreground">Create your account</h1>
         <p className="text-sm text-muted-foreground">Join the discussion.</p>
       </div>
       <RegisterForm

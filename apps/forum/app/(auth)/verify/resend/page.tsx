@@ -31,7 +31,7 @@ export default async function ResendVerificationPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold text-foreground">
+        <h1 className="font-heading text-2xl font-semibold text-foreground">
           Confirm your account
         </h1>
         {params.sent === '1' ? (

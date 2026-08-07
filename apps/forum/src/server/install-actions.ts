@@ -20,10 +20,14 @@ import {
   ECHOED_FIELDS,
   MAIL_SKIP,
   canProceed,
+  fieldErrorsFromReport,
+  firstFailure,
   installInputFromForm,
   mailConfigFromInstallInput,
   parseInstallInput,
+  stepTitle,
   withEnvironmentAnswers,
+  type StepOutcome,
 } from '@meith/install'
 import { mailConfigFromEnvironment } from '@meith/settings'
 import { redirect } from 'next/navigation'
@@ -33,7 +37,23 @@ import { sendTestMail } from './mail-test'
 
 export interface InstallFormState {
   readonly errors?: Record<string, string>
-  readonly failedStep?: { readonly id: string; readonly error: string }
+  readonly failedStep?: {
+    readonly id: string
+    /** What the step list beside the button calls it. The id is not for reading. */
+    readonly title: string
+    readonly error: string
+  }
+  /**
+   * Every step and how it went, so the screen can show *how far it got*.
+   *
+   * The step list has always been data precisely so the page could report it
+   * afterwards, and the page never did — it rendered a static list of five
+   * titles, and a failure produced one sentence naming one step. "Migrations
+   * applied, settings written, administrator not created" is the difference
+   * between an operator who knows retrying is safe and one who is guessing, and
+   * the handbook tells them to reason about exactly that.
+   */
+  readonly report?: readonly StepOutcome[]
   readonly values?: Record<string, string>
 }
 
@@ -118,11 +138,26 @@ export async function installAction(
   }
 
   const report = await runInstall(parsed.value)
-  const failure = report.find((step) => step.status === 'failed')
+  const failure = firstFailure(report)
 
-  if (failure !== undefined) {
+  if (failure !== null) {
+    /*
+     * Both, when the step refused an answer rather than breaking.
+     *
+     * The headline still names the step, because how far the install got is what
+     * decides whether trying again is safe — and the form's summary additionally
+     * lists the box to change, with a link to it. Reporting only the step is what
+     * produced *"the 'admin' step failed: That username is reserved"*: true,
+     * unactionable, and pointing at nothing on a form the operator has to scroll.
+     */
     return {
-      failedStep: { id: failure.id, error: failure.error ?? 'Unknown failure.' },
+      failedStep: {
+        id: failure.id,
+        title: stepTitle(failure.id),
+        error: failure.error ?? 'Unknown failure.',
+      },
+      errors: fieldErrorsFromReport(report),
+      report,
       values,
     }
   }

@@ -123,7 +123,10 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD ["/app/docker-healthcheck.sh"]
 
-# FORUM_ROLE=worker runs the scheduler loop instead of the web server. Anything
-# else runs the web server, so the default is unchanged and existing deployments
-# keep working without setting anything.
+# FORUM_ROLE picks which of the three programs in this image starts: `worker`
+# runs the scheduler loop, `migrate` applies the schema and exits, and unset —
+# the default — runs the web server, so existing deployments keep working
+# without setting anything. An unrecognised value exits rather than quietly
+# serving the board, because a typo that started a *fourth* web server beside
+# the real one is the failure that mode would hide. See docker-entrypoint.sh.
 ENTRYPOINT ["./docker-entrypoint.sh"]

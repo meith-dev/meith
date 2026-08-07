@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Database } from './client'
 import { groupRowToPermissionSet } from './permissions-map'
 import { createTestDb, type TestDb } from './pglite.fixture'
+import { SEED_GROUP_KEY } from './seed-groups'
 import { usergroups } from './schema'
 
 let harness: TestDb
@@ -58,6 +59,39 @@ describe('seeded usergroups', () => {
       'awaiting_activation',
       'banned',
     ])
+  })
+
+  /*
+   * The constant and the SQL, against each other.
+   *
+   * `SEED_GROUP_KEY` exists because a group key written out as a string literal
+   * is a spelling nothing checks: the installer looked up `'administrator'`
+   * where this migration writes `'administrators'`, so `findGroup` returned null
+   * and every fresh board died at "Create the administrator" claiming the
+   * migrations had not seeded the ladder — which they had, correctly.
+   *
+   * Asserting the constant against the real applied SQL is what makes the
+   * compiler's check worth anything. A key renamed in one and not the other is
+   * a red test here rather than a failed install on somebody's server.
+   */
+  it('seeds exactly the keys SEED_GROUP_KEY names', async () => {
+    const rows = await db.select({ key: usergroups.key }).from(usergroups)
+    const seeded = new Set(rows.map((r) => r.key))
+
+    for (const key of Object.values(SEED_GROUP_KEY)) {
+      expect(seeded.has(key), `SEED_GROUP_KEY names "${key}", which no migration seeds`).toBe(true)
+    }
+    expect(seeded.size).toBe(Object.values(SEED_GROUP_KEY).length)
+  })
+
+  /*
+   * The two the installer resolves by name, called out separately because they
+   * are the pair whose absence is unrecoverable: no administrator is created,
+   * and the board is left half-installed with a message blaming migrations.
+   */
+  it('carries the two groups the installer promotes between', async () => {
+    expect((await byKey(SEED_GROUP_KEY.registered))?.id).toBe(2)
+    expect((await byKey(SEED_GROUP_KEY.administrators))?.isAdministrator).toBe(true)
   })
 
   /*

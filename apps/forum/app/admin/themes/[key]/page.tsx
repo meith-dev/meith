@@ -81,7 +81,7 @@ export default async function AdminThemePage({
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Export</h2>
+        <h2 className="font-heading text-lg font-semibold">Export</h2>
         <p className="text-sm text-muted-foreground">
           Everything this board has changed, as a document another board can import. It
           carries no timestamp and no board identity — only the overrides themselves.
@@ -95,12 +95,12 @@ export default async function AdminThemePage({
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Import</h2>
+        <h2 className="font-heading text-lg font-semibold">Import</h2>
         <ImportThemeForm themeKey={view.key} />
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Reset</h2>
+        <h2 className="font-heading text-lg font-semibold">Reset</h2>
         {view.customised ? (
           <>
             <p className="text-sm text-muted-foreground">

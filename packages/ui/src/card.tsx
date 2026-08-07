@@ -97,6 +97,12 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
  * longer exists in that form. The board reads in one face now; a heading is
  * distinguished by weight and by a slightly tighter fit, which is what the sans
  * scale is built for and what the redesigned site does.
+ *
+ * It stays face-less rather than becoming `font-heading` like the app's page
+ * headings. A panel title is a *label* on a region — "Latest posts", a category
+ * name — and it sits at 16px in a dense listing; a board that gives its headings
+ * a display face means the ones somebody reads as headings, not every ruled bar
+ * on the index. An operator who wants those too can say so in their own CSS.
  */
 function CardTitle({ className, ...props }: React.ComponentProps<'h2'>) {
   return (

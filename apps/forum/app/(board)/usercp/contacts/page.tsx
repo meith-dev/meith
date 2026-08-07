@@ -71,7 +71,7 @@ export default async function ContactsPage({
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">
+        <h2 className="font-heading text-lg font-semibold">
           Buddies{' '}
           <span className="text-sm font-normal text-muted-foreground">
             {view.onlineCount > 0 ? `${view.onlineCount} online now` : null}
@@ -92,7 +92,7 @@ export default async function ContactsPage({
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">Ignored</h2>
+        <h2 className="font-heading text-lg font-semibold">Ignored</h2>
         <p className="text-sm text-muted-foreground">
           Their posts are hidden behind a link rather than removed, so a thread still
           reads in order and its numbering is the same for everybody. They cannot send you

@@ -15,6 +15,7 @@ export {
 } from './client'
 
 export { runMigrations } from './migrate'
+export { SEED_GROUP_KEY, type SeedGroupKey } from './seed-groups'
 export { resultRows } from './result-rows'
 
 export {

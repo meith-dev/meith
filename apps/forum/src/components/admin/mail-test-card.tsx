@@ -41,7 +41,7 @@ export function MailTestCard({
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div className="flex flex-col gap-1">
-        <h2 className="font-serif text-lg font-semibold">How this board sends mail</h2>
+        <h2 className="font-heading text-lg font-semibold">How this board sends mail</h2>
         <p className="text-sm">
           {summary}
           {!sends && (

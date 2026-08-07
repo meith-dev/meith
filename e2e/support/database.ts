@@ -52,7 +52,13 @@ import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
 
-import { E2E_DATABASE_URL, E2E_DB_PORT, E2E_UPLOADS_DIR } from './config'
+import {
+  E2E_DATABASE_URL,
+  E2E_DB_PORT,
+  E2E_INSTALL_DATABASE_URL,
+  E2E_INSTALL_DB_PORT,
+  E2E_UPLOADS_DIR,
+} from './config'
 import { samplePng } from './png'
 
 import {
@@ -415,15 +421,53 @@ function seedSql(): string {
     .join('\n')
 }
 
-export async function startDatabase(): Promise<{ stop: () => Promise<void> }> {
+export interface DatabaseOptions {
+  /**
+   * `false` starts a database with **no schema and no rows** — which is what
+   * `/install` requires and what nothing here could produce before.
+   *
+   * The installer's first step applies the migrations itself, and its preflight
+   * refuses to offer a form when the database already holds accounts. So the
+   * board seeded above is precisely the one thing it cannot run against, and
+   * "an empty database" is a fixture rather than an omission.
+   */
+  readonly seeded?: boolean
+  readonly port?: number
+  /**
+   * How many sockets the server accepts. One everywhere except the installer.
+   *
+   * The installer needs two because **`runMigrations()` opens its own
+   * connection** and must: it takes a session-level advisory lock so concurrent
+   * deploys serialise, which is only meaningful on a single dedicated session,
+   * and it prefers `DIRECT_DATABASE_URL` for the same reason. So while the app's
+   * pool holds one socket, the migrator dials a second — and against a
+   * one-connection server that is `read ECONNRESET` reported as a failed
+   * "Apply migrations" step.
+   *
+   * Two is safe here where it would not be in general: the unnamed-statement
+   * clobbering described below needs two clients issuing extended-protocol
+   * queries *at the same time*, and the install spec is one worker doing one
+   * thing at a time — the migrator runs to completion and closes its connection
+   * before the next step queries anything.
+   */
+  readonly maxConnections?: number
+}
+
+export async function startDatabase(
+  options: DatabaseOptions = {},
+): Promise<{ stop: () => Promise<void> }> {
+  const seeded = options.seeded ?? true
+
   const db = await PGlite.create()
-  await db.exec(migrationSql())
-  await db.exec(seedSql())
-  await seedBadgeFiles()
+  if (seeded) {
+    await db.exec(migrationSql())
+    await db.exec(seedSql())
+    await seedBadgeFiles()
+  }
 
   const server = new PGLiteSocketServer({
     db,
-    port: E2E_DB_PORT,
+    port: options.port ?? E2E_DB_PORT,
     host: '127.0.0.1',
     /*
      * **One backend, therefore one connection.** This is not a tuning choice.
@@ -442,7 +486,7 @@ export async function startDatabase(): Promise<{ stop: () => Promise<void> }> {
      * which is fine: the suite runs one worker, and `DATABASE_POOL_MAX=1` in
      * `playwright.config.ts` means the app asks for one anyway.
      */
-    maxConnections: 1,
+    maxConnections: options.maxConnections ?? 1,
   })
   await server.start()
 
@@ -460,14 +504,28 @@ const invokedDirectly = process.argv[1] !== undefined &&
 
 if (invokedDirectly) {
   /*
+   * `--empty` starts the installer's database: same PGlite, no migrations, no
+   * rows. A flag rather than a second file because the two differ by three
+   * lines, and a copy would be a second place for the socket settings below —
+   * every one of which is load-bearing and none of which is obvious.
+   */
+  const empty = process.argv.includes('--empty')
+
+  /*
    * Not top-level `await`: the workspace root is CommonJS, so `tsx` transforms
    * this file to CJS and top-level await does not compile. An IIFE costs
    * nothing and keeps the file runnable both ways.
    */
   void (async () => {
-    const { stop } = await startDatabase()
+    const { stop } = await startDatabase(
+      empty ? { seeded: false, port: E2E_INSTALL_DB_PORT, maxConnections: 2 } : {},
+    )
     // eslint-disable-next-line no-console -- this is a process; its output is its status
-    console.log(`e2e database listening on ${E2E_DATABASE_URL}`)
+    console.log(
+      empty
+        ? `e2e install database (empty) listening on ${E2E_INSTALL_DATABASE_URL}`
+        : `e2e database listening on ${E2E_DATABASE_URL}`,
+    )
 
     for (const signal of ['SIGINT', 'SIGTERM'] as const) {
       process.on(signal, () => {

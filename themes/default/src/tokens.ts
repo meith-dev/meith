@@ -98,6 +98,7 @@ export const TOKEN_NAMES = [
   'density-unit',
   'font-mono-stack',
   'font-sans-stack',
+  'font-heading-stack',
   'elevation',
   'forum-unread',
   'forum-read',
@@ -147,6 +148,7 @@ export const SCHEME_INDEPENDENT_TOKENS = [
   'density-unit',
   'font-mono-stack',
   'font-sans-stack',
+  'font-heading-stack',
   'elevation',
 ] as const
 
@@ -186,6 +188,7 @@ export const LIGHT_TOKENS: Record<TokenName, string> = {
   'density-unit': '0.25rem',
   'font-mono-stack': 'ui-monospace, "SFMono-Regular", "Menlo", monospace',
   'font-sans-stack': 'var(--font-inter), ui-sans-serif, system-ui, sans-serif',
+  'font-heading-stack': 'var(--font-sans-stack)',
   elevation: '0 1px 2px var(--shadow-tint), 0 12px 32px -16px var(--shadow-tint)',
   'forum-unread': 'oklch(0.205 0 0)',
   'forum-read': 'oklch(0.556 0 0)',
@@ -233,6 +236,7 @@ export const DARK_TOKENS: Record<TokenName, string> = {
   'density-unit': '0.25rem',
   'font-mono-stack': 'ui-monospace, "SFMono-Regular", "Menlo", monospace',
   'font-sans-stack': 'var(--font-inter), ui-sans-serif, system-ui, sans-serif',
+  'font-heading-stack': 'var(--font-sans-stack)',
   elevation: '0 1px 2px var(--shadow-tint), 0 12px 32px -16px var(--shadow-tint)',
   'forum-unread': 'oklch(0.967 0 0)',
   'forum-read': 'oklch(0.6 0 0)',

@@ -84,7 +84,7 @@ export default async function AdminForumsPage() {
       </ul>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Add a forum</h2>
+        <h2 className="font-heading text-lg font-semibold">Add a forum</h2>
         <CreateForumForm
           parents={rows
             .filter(({ forum }) => forum.type !== 'link')

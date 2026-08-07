@@ -111,7 +111,7 @@ export default async function AdminMergePage({
             key={row.id}
             className="flex flex-col gap-3 rounded-lg border border-border p-4"
           >
-            <h2 className="font-serif text-lg font-semibold">Keep {row.username}</h2>
+            <h2 className="font-heading text-lg font-semibold">Keep {row.username}</h2>
             <p className="text-sm text-muted-foreground">
               {preview.posts} post{preview.posts === 1 ? '' : 's'}, {preview.threads}{' '}
               thread{preview.threads === 1 ? '' : 's'}, {preview.privateMessages} private

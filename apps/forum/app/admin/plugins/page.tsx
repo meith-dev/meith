@@ -145,7 +145,7 @@ export default async function AdminPluginsPage() {
 
       {listeners.length > 0 && (
         <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-          <h2 className="font-serif text-lg font-semibold">Hooks in use</h2>
+          <h2 className="font-heading text-lg font-semibold">Hooks in use</h2>
           <p className="text-muted-foreground">
             Only hooks something is listening on. The full list of every extension point
             is in the generated reference, and reproducing all ninety-one here would bury
@@ -167,7 +167,7 @@ export default async function AdminPluginsPage() {
       )}
 
       <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">Installing a plugin</h2>
+        <h2 className="font-heading text-lg font-semibold">Installing a plugin</h2>
         <p className="text-muted-foreground">
           A plugin is code, so it has to be in the build before it can run:{' '}
           <code className="text-xs">pnpm add</code> the package, add it to the{' '}

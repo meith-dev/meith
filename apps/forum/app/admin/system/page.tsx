@@ -59,7 +59,7 @@ export default async function AdminSystemPage() {
           role="alert"
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
-          <h2 className="font-serif text-lg font-semibold text-destructive">
+          <h2 className="font-heading text-lg font-semibold text-destructive">
             The scheduler is not running
           </h2>
           <p className="text-sm">
@@ -102,7 +102,7 @@ export default async function AdminSystemPage() {
           role="alert"
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
-          <h2 className="font-serif text-lg font-semibold text-destructive">
+          <h2 className="font-heading text-lg font-semibold text-destructive">
             No new member can activate their account
           </h2>
           <p className="text-sm">
@@ -135,7 +135,7 @@ export default async function AdminSystemPage() {
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">Mail</h2>
+        <h2 className="font-heading text-lg font-semibold">Mail</h2>
         <p className="text-sm">
           {mail.summary}
           {!mail.sends && (
@@ -164,7 +164,7 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">Scheduled tasks</h2>
+        <h2 className="font-heading text-lg font-semibold">Scheduled tasks</h2>
         {scheduler.tasks.length === 0 ? (
           <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
             No tasks are registered. A build registers a task only when it has a worker
@@ -207,7 +207,7 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">Recent runs</h2>
+        <h2 className="font-heading text-lg font-semibold">Recent runs</h2>
         {view.runs.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nothing has run yet.</p>
         ) : (
@@ -233,7 +233,7 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">Volumes</h2>
+        <h2 className="font-heading text-lg font-semibold">Volumes</h2>
         <ul className="grid gap-2 text-sm sm:grid-cols-3">
           <li>{volumes.users} members</li>
           <li>{volumes.threads} threads</li>
@@ -251,7 +251,7 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">Recount &amp; rebuild</h2>
+        <h2 className="font-heading text-lg font-semibold">Recount &amp; rebuild</h2>
         <p className="text-sm text-muted-foreground">
           Counters are denormalised, so they can drift. The recount walks the content and
           corrects them in bounded batches, keeping its phase and cursor in the database —
@@ -272,7 +272,7 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">Search index</h2>
+        <h2 className="font-heading text-lg font-semibold">Search index</h2>
         <p className="text-sm text-muted-foreground">
           A post is indexed when it is written or edited, so this is only ever a backfill
           — an existing board adopting search, or one whose index was invalidated. It
@@ -294,7 +294,7 @@ export default async function AdminSystemPage() {
       </section>
 
       <section className="flex flex-col gap-4 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Maintenance</h2>
+        <h2 className="font-heading text-lg font-semibold">Maintenance</h2>
         <p className="text-sm text-muted-foreground">
           Each of these is bounded to one batch. Nothing here destroys anything an
           operator would want back: expired sessions no longer authenticate anybody,

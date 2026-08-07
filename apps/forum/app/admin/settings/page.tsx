@@ -181,7 +181,7 @@ export default async function AdminSettingsPage({
           role="alert"
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
-          <h2 className="font-serif text-lg font-semibold text-destructive">
+          <h2 className="font-heading text-lg font-semibold text-destructive">
             This board does not know its own address
           </h2>
           <p className="text-sm">
@@ -206,7 +206,7 @@ export default async function AdminSettingsPage({
           role="alert"
           className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
         >
-          <h2 className="font-serif text-lg font-semibold text-destructive">
+          <h2 className="font-heading text-lg font-semibold text-destructive">
             Nobody can finish registering
           </h2>
           <p className="text-sm">

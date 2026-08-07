@@ -79,7 +79,7 @@ export default async function AdminForumPage({
       />
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Move</h2>
+        <h2 className="font-heading text-lg font-semibold">Move</h2>
         <MoveForumForm
           forumId={forum.id}
           currentParentId={forum.parentId}

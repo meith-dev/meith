@@ -291,11 +291,17 @@ board starts and where most stay.
 - **The default** — what a member who has chosen nothing sees. It need not be
   the theme the board is built with: setting `midnight` as the default gives
   every visitor midnight, without a deploy.
-- **Token values** — colours, corner radius, spacing step, monospace stack.
-  Grouped and described on the screen, with the platform colour picker beside
-  each one, and **separate light and dark values**: a page background set to
-  white no longer follows you into dark mode. The sample repaints as you drag,
-  in both schemes at once.
+- **Token values** — colours, corner radius, spacing step, and the three font
+  stacks: **body**, **heading** and **monospace**. Grouped and described on the
+  screen, with the platform colour picker beside each colour, and **separate
+  light and dark values**: a page background set to white no longer follows you
+  into dark mode. The sample repaints as you drag, in both schemes at once.
+
+  The board reads in one face by default — the heading stack is
+  `var(--font-sans-stack)`, so changing the body font moves headings with it.
+  Set **Heading font** on its own if you want headings in a different voice; any
+  CSS font stack works, and one built from faces the reader already has
+  (`Georgia, ui-serif, serif`) downloads nothing.
 - **Custom CSS.** On a board with more than one theme enabled this is nested
   under that theme's own selector, so it stops applying when a member picks
   another one. A rule aimed at `:root` will not match there — target `body` or a

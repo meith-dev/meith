@@ -10,10 +10,13 @@
 #
 # So the check follows the role, and each answer means something:
 #
-#  - **web**: the board answers on its own port *and* can reach its database,
-#    which is what `/api/health` reports. A server that bound the port and
-#    cannot serve is not healthy, and saying otherwise would let a deploy swap
-#    to it.
+#  - **web**: the board answers on its own port. `/api/health` reports whether
+#    *this process* can serve a request and deliberately says nothing about the
+#    database — a probe that failed during a failover would have the orchestrator
+#    kill every replica and turn a blip into an outage. So a server that bound
+#    the port and cannot render is unhealthy; one whose database is briefly away
+#    is not. Database reachability is a separate signal, and the installer's
+#    preflight is where it is reported to a human.
 #  - **worker**: the scheduler process is alive. There is nothing to fetch, and
 #    "the process a container exists to run is running" is the honest question.
 #  - **migrate**: healthy while it lasts. The container runs to completion and

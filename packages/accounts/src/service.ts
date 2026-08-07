@@ -18,6 +18,7 @@ import {
   verifyPassword,
 } from './crypto/password'
 import { generateToken, hashToken } from './crypto/tokens'
+import { REGISTER_FIELD } from './register-fields'
 import { matchBanFilter, type BanFilterSubject } from './ban-filter'
 import { foldIdentifier } from './case-fold'
 import type {
@@ -153,6 +154,8 @@ export class IdentityService {
     if (input.password.length < this.config.minPasswordLength) {
       throw new ValidationError(
         `Password must be at least ${this.config.minPasswordLength} characters.`,
+        {},
+        { meta: { field: REGISTER_FIELD.password } },
       )
     }
 
@@ -160,10 +163,14 @@ export class IdentityService {
     // on username_lower/email_lower is the real arbiter under a race — the
     // Postgres repo maps its violation onto ConflictError too.
     if (await this.store.accounts.findByUsernameLower(usernameLower)) {
-      throw new ConflictError('That username is taken.')
+      throw new ConflictError('That username is taken.', {
+        meta: { field: REGISTER_FIELD.username },
+      })
     }
     if (await this.store.accounts.findByEmailLower(emailLower)) {
-      throw new ConflictError('That email is already registered.')
+      throw new ConflictError('That email is already registered.', {
+        meta: { field: REGISTER_FIELD.email },
+      })
     }
 
     const encoded = await hashPassword(input.password)
@@ -481,13 +488,21 @@ export class IdentityService {
     ) {
       throw new ValidationError(
         `Username must be between ${this.config.usernameMin} and ${this.config.usernameMax} characters.`,
+        {},
+        { meta: { field: REGISTER_FIELD.username } },
       )
     }
     if (!USERNAME_RE.test(username)) {
-      throw new ValidationError('Username contains invalid characters.')
+      throw new ValidationError('Username contains invalid characters.', {}, {
+        meta: { field: REGISTER_FIELD.username },
+      })
     }
     if (this.config.reservedUsernames.includes(usernameLower)) {
-      throw new ConflictError('That username is reserved.')
+      throw new ConflictError(
+        'That username is reserved. Pick another — the board keeps a few names ' +
+          'for itself so an account cannot impersonate it.',
+        { meta: { field: REGISTER_FIELD.username } },
+      )
     }
   }
 
@@ -496,7 +511,9 @@ export class IdentityService {
     // is a delivered verification email, so over-strict regexes just reject
     // valid addresses. This catches obvious garbage, nothing more.
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      throw new ValidationError('Please enter a valid email address.')
+      throw new ValidationError('Please enter a valid email address.', {}, {
+        meta: { field: REGISTER_FIELD.email },
+      })
     }
   }
 }

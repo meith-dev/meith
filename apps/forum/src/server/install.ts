@@ -20,10 +20,11 @@ import 'server-only'
 import {
   IdentityService,
   DEFAULT_AUTH_POLICY,
+  rejectedField,
   resolveAuthPolicy,
   type AuthConfig,
 } from '@meith/accounts'
-import { PostgresAdminRepository } from '@meith/db'
+import { PostgresAdminRepository, SEED_GROUP_KEY } from '@meith/db'
 import {
   countUsers,
   canConnect as canConnectTo,
@@ -178,7 +179,19 @@ export async function runInstall(input: InstallInput): Promise<readonly StepOutc
        */
       const message = error instanceof Error ? error.message : String(error)
       logger().error({ step: id, err: message }, 'install step failed')
-      report.push({ id, status: 'failed', error: message.slice(0, 300) })
+      /*
+       * A refusal of one of the operator's answers carries the box it is about,
+       * so the screen can put the message beside that box rather than beside a
+       * step id. `rejectedField` returns null for everything else, which keeps a
+       * genuine fault reported as a fault.
+       */
+      const field = rejectedField(error)
+      report.push({
+        id,
+        status: 'failed',
+        error: message.slice(0, 300),
+        ...(field === null ? {} : { field }),
+      })
       return false
     }
   }
@@ -262,11 +275,34 @@ export async function runInstall(input: InstallInput): Promise<readonly StepOutc
        * are what the migration actually promises — a board whose ids shifted for
        * any reason would otherwise get an administrator in the wrong group, which
        * is the least recoverable mistake this function could make.
+       *
+       * Through `SEED_GROUP_KEY` rather than a literal, because the literal was
+       * wrong: `'administrator'` where the seed writes `'administrators'`. It
+       * type-checked, it read correctly, and it failed every install with a
+       * message blaming the migrations. A key the compiler can check is the only
+       * version of this lookup that stays right.
        */
-      const registered = await admin.findGroup('registered')
-      const administrator = await admin.findGroup('administrator')
+      const registered = await admin.findGroup(SEED_GROUP_KEY.registered)
+      const administrator = await admin.findGroup(SEED_GROUP_KEY.administrators)
       if (registered === null || administrator === null) {
-        throw new Error('The usergroup ladder is missing. Migrations did not seed it.')
+        /*
+         * Naming the key, and what is actually there.
+         *
+         * The message used to be "The usergroup ladder is missing. Migrations
+         * did not seed it." — which was the author's only theory for an empty
+         * lookup, and was false: the ladder was seeded and the *key* was
+         * misspelled. It sent operators to read a migration log that said
+         * `applied: 34`. A message that prints the key it wanted beside the keys
+         * that exist cannot mislead like that, whichever of the two is wrong.
+         */
+        const missing = registered === null ? SEED_GROUP_KEY.registered : SEED_GROUP_KEY.administrators
+        const present = await admin.listGroupKeys()
+        throw new Error(
+          `No usergroup has the key "${missing}". ` +
+            (present.length === 0
+              ? 'The usergroups table is empty, so the seed migration did not run.'
+              : `The board has: ${present.join(', ')}.`),
+        )
       }
 
       /*

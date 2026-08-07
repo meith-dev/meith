@@ -104,7 +104,7 @@ export function PanelPage({
               ← {back.label}
             </a>
           )}
-          <h1 className="font-serif text-2xl font-semibold text-foreground">
+          <h1 className="font-heading text-2xl font-semibold text-foreground">
             {title}
           </h1>
           {lede !== undefined && (
@@ -156,7 +156,7 @@ export function PanelSection({
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2
             id={id}
-            className="font-serif text-lg font-semibold text-foreground"
+            className="font-heading text-lg font-semibold text-foreground"
           >
             {title}
           </h2>

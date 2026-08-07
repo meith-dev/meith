@@ -49,12 +49,12 @@ export default async function AdminApiTokensPage() {
       gap="loose"
     >
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">Issue a token</h2>
+        <h2 className="font-heading text-lg font-semibold">Issue a token</h2>
         <IssueTokenForm scopes={view.scopes} />
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-lg font-semibold">Existing tokens</h2>
+        <h2 className="font-heading text-lg font-semibold">Existing tokens</h2>
 
         {view.tokens.length === 0 ? (
           <p className="text-sm text-muted-foreground">No tokens have been issued.</p>

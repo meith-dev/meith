@@ -71,7 +71,7 @@ export default async function AdminAntispamPage() {
       )}
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-        <h2 className="font-serif text-lg font-semibold">Registration questions</h2>
+        <h2 className="font-heading text-lg font-semibold">Registration questions</h2>
         <p className="text-sm text-muted-foreground">
           Asked on the registration form when the challenge is set to{' '}
           <strong>Ask a question</strong>. One is chosen at random per visitor. Pick
@@ -110,7 +110,7 @@ export default async function AdminAntispamPage() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">What each control is worth</h2>
+        <h2 className="font-heading text-lg font-semibold">What each control is worth</h2>
         <dl className="flex flex-col gap-3 text-muted-foreground">
           <div>
             <dt className="font-medium text-foreground">Hidden-field trap</dt>
@@ -169,7 +169,7 @@ export default async function AdminAntispamPage() {
       </section>
 
       <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">Using a hosted captcha</h2>
+        <h2 className="font-heading text-lg font-semibold">Using a hosted captcha</h2>
         <p className="text-muted-foreground">
           Not offered here, and not because it would be hard. A hosted captcha means every
           visitor&rsquo;s browser contacting a third party before they can join, which is

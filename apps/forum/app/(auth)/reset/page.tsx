@@ -9,7 +9,7 @@ export default function ResetPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold text-foreground">Reset your password</h1>
+        <h1 className="font-heading text-2xl font-semibold text-foreground">Reset your password</h1>
         <p className="text-sm text-muted-foreground">
           Enter your email and we&apos;ll send a reset link.
         </p>
