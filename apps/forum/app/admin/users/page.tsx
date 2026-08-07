@@ -1,12 +1,9 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
 import { formatTime } from '@/view/time'
-import {
-  nextPageQuery,
-  parseUserFilter,
-  userAdminRepository,
-} from '@/server/user-admin'
+import { nextPageQuery, parseUserFilter, userAdminRepository } from '@/server/user-admin'
 
 export const metadata: Metadata = { title: 'Members' }
 
@@ -38,13 +35,12 @@ export default async function AdminUsersPage({
   const repository = userAdminRepository()
   if (repository === null) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">Members</h1>
+      <PanelPage title="Members" width="wide">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so its members cannot
-          be searched or edited.
+          This board is running on in-memory sample data, so its members cannot be
+          searched or edited.
         </p>
-      </div>
+      </PanelPage>
     )
   }
 
@@ -63,26 +59,36 @@ export default async function AdminUsersPage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold">Members</h1>
-        <p className="text-sm text-muted-foreground">
-          Every criterion is combined, and every one is optional — an empty
-          search is everybody. The filter is in the address bar, so this page
-          can be bookmarked or handed to somebody else.
-        </p>
-      </div>
-
+    <PanelPage
+      title="Members"
+      lede={
+        <>
+          Every criterion is combined, and every one is optional — an empty search is
+          everybody. The filter is in the address bar, so this page can be bookmarked or
+          handed to somebody else.
+        </>
+      }
+      width="wide"
+    >
       <nav className="flex flex-wrap gap-4 text-sm">
-        <a href="/admin/users/prune" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+        <a
+          href="/admin/users/prune"
+          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+        >
           Prune dormant accounts
         </a>
-        <a href="/admin/users/mail" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+        <a
+          href="/admin/users/mail"
+          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+        >
           Mass mail
         </a>
       </nav>
 
-      <form method="get" className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <form
+        method="get"
+        className="flex flex-col gap-3 rounded-lg border border-border p-4"
+      >
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Username contains</span>
@@ -126,22 +132,44 @@ export default async function AdminUsersPage({
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Registered before</span>
-            <input type="date" name="before" defaultValue={value('before')} className={INPUT} />
+            <input
+              type="date"
+              name="before"
+              defaultValue={value('before')}
+              className={INPUT}
+            />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Registered after</span>
-            <input type="date" name="after" defaultValue={value('after')} className={INPUT} />
+            <input
+              type="date"
+              name="after"
+              defaultValue={value('after')}
+              className={INPUT}
+            />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Posts at least</span>
-            <input type="number" name="minPosts" min={0} defaultValue={value('minPosts')} className={INPUT} />
+            <input
+              type="number"
+              name="minPosts"
+              min={0}
+              defaultValue={value('minPosts')}
+              className={INPUT}
+            />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Posts at most</span>
-            <input type="number" name="maxPosts" min={0} defaultValue={value('maxPosts')} className={INPUT} />
+            <input
+              type="number"
+              name="maxPosts"
+              min={0}
+              defaultValue={value('maxPosts')}
+              className={INPUT}
+            />
           </label>
         </div>
 
@@ -174,13 +202,16 @@ export default async function AdminUsersPage({
 
       {page.rows.length === 0 ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          No members match. An empty result from a filled-in filter is a real
-          answer — check the spelling before widening it.
+          No members match. An empty result from a filled-in filter is a real answer —
+          check the spelling before widening it.
         </p>
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
           {page.rows.map((row) => (
-            <li key={row.id} className="flex items-center justify-between gap-3 px-4 py-3">
+            <li
+              key={row.id}
+              className="flex items-center justify-between gap-3 px-4 py-3"
+            >
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-sm font-medium">
                   {row.username}
@@ -222,6 +253,6 @@ export default async function AdminUsersPage({
           Next {50} members →
         </a>
       )}
-    </div>
+    </PanelPage>
   )
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { MassMailForm } from '@/components/admin/user-forms'
 import { requireAdmin } from '@/server/admin'
 import { userAdminRepository, userBulkRepository } from '@/server/user-admin'
@@ -30,13 +31,13 @@ export default async function AdminMassMailPage() {
   const users = userAdminRepository()
   if (bulk === null || users === null) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">Mass mail</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it has nobody to
-          mail.
-        </p>
-      </div>
+      <PanelPage
+        back={{ href: '/admin/users', label: 'All members' }}
+        title="Mass mail"
+        lede="This board is running on in-memory sample data, so it has nobody to mail."
+      >
+        {null}
+      </PanelPage>
     )
   }
 
@@ -46,20 +47,17 @@ export default async function AdminMassMailPage() {
   ])
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/users" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← All members
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">Mass mail</h1>
-        <p className="text-sm text-muted-foreground">
-          Sends one message to every member of a group. It goes only to
-          addresses the board has <strong>verified</strong> — an unverified
-          address is as often a typo, or somebody else&rsquo;s mailbox, as it is
-          the member&rsquo;s.
-        </p>
-      </div>
-
+    <PanelPage
+      back={{ href: '/admin/users', label: 'All members' }}
+      title="Mass mail"
+      lede={
+        <>
+          Sends one message to every member of a group. It goes only to addresses the
+          board has <strong>verified</strong> — an unverified address is as often a typo,
+          or somebody else&rsquo;s mailbox, as it is the member&rsquo;s.
+        </>
+      }
+    >
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <MassMailForm groups={groups} audience={audience} />
       </section>
@@ -68,21 +66,20 @@ export default async function AdminMassMailPage() {
         <p>Before you press it:</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
           <li>
-            Nothing is sent immediately. Messages are queued and go out as the
-            scheduled tick drains them.
+            Nothing is sent immediately. Messages are queued and go out as the scheduled
+            tick drains them.
           </li>
           <li>
-            There is no unsubscribe link and no per-member opt-out, so this is
-            for things every member needs to know rather than for anything
-            promotional.
+            There is no unsubscribe link and no per-member opt-out, so this is for things
+            every member needs to know rather than for anything promotional.
           </li>
           <li>
-            A campaign that stops half way is continued, never restarted —
-            restarting would mail everybody a second time.
+            A campaign that stops half way is continued, never restarted — restarting
+            would mail everybody a second time.
           </li>
           <li>An email cannot be unsent.</li>
         </ul>
       </div>
-    </div>
+    </PanelPage>
   )
 }

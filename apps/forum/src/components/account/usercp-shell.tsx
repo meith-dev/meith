@@ -10,50 +10,65 @@
  *
  * So each of those segments has a layout, and each layout is this component.
  * A rail that vanished the moment you opened your inbox would be worse than no
- * rail: it would teach a member that the panel is somewhere they leave.
+ * rail: it would teach a member that the panel is somewhere they leave. The
+ * ModCP has since met the same problem — its queue and reports are under
+ * `/moderation` — and `ModCpShell` is the same answer.
  *
  * ## It is not the ACP's shell, and should not be
  *
  * The ACP replaces the board's chrome entirely, because it is a different
  * surface with different authority. This one sits *inside* the board — same
  * header, same footer, same theme — because it is the member's own corner of
- * the board rather than somewhere else. What it borrows is the arrangement:
- * sticky rail on the left from `lg` up, a `<details>` above the content below
- * that, and the section you are in marked in both.
+ * the board rather than somewhere else. What it borrows is the *arrangement*,
+ * and it borrows it literally: `PanelShell` is the sticky rail, the
+ * `<details>` below `lg`, and the measure, for all three panels at once.
  *
- * The page keeps its own `<main id="board-content">`. This wraps it in a plain
- * `<div>` rather than adding a second landmark, so the skip link still lands on
- * the page's content and not on the rail that precedes it.
+ * The page keeps its own `<main id="board-content">`, through `PanelPage`, so
+ * the skip link still lands on the page's content and not on the rail that
+ * precedes it.
  *
- * `flex-1` on the row is load-bearing and easy to lose: `Shell` is a
- * `min-h-dvh` column whose footer claims the slack with `mt-auto`, and the page
- * body claims it with `flex-1`. Interposing a wrapper without one breaks that
- * chain — the footer takes everything and the jump box above it strands itself
- * under a short page with a band of empty background beneath. See the note in
- * the `ForumJump` slot, which is the other half of the same arrangement.
+ * ## The counts on the rail cost nothing
+ *
+ * `PageShell` reads both for the user panel's badges on every page a signed-in
+ * member loads, and both are `React.cache`d — so the rail's "3" beside
+ * Notifications is the same read the header's badge made, and cannot disagree
+ * with it. A count that renders as 0 renders as nothing (see `countFor`).
  */
+
+import { getActor } from '@/server/context'
+import { unreadMessageCount } from '@/server/messages'
+import { unreadNotificationCount } from '@/server/notifications'
+import type { PanelLink } from '@/components/shell/panel-links'
+import { PanelShell } from '@/components/shell/panel-shell'
 
 import { UserCpNav } from './usercp-nav'
 
-export function UserCpShell({ children }: { children: React.ReactNode }) {
-  return (
-    /*
-     * No horizontal padding on the row: the rail carries its own and every
-     * page under this shell already carries its own, so a gutter here would be
-     * a second one. The gap between the rail and the content is the content's
-     * left padding, which is the same arrangement the ACP's shell uses.
-     */
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col lg:flex-row">
-      {/*
-        `self-start` is what makes `sticky` work in a flex row — a stretched
-        item is already as tall as the row and has nowhere to stick to.
-      */}
-      <aside className="px-6 pt-6 lg:sticky lg:top-6 lg:w-56 lg:shrink-0 lg:self-start lg:py-8 lg:pr-0">
-        <UserCpNav />
-      </aside>
+export async function UserCpShell({ children }: { children: React.ReactNode }) {
+  const actor = await getActor()
 
-      {/* `min-w-0`: without it a wide table inside a page stretches the row. */}
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
+  const [messages, notifications] = await Promise.all([
+    unreadMessageCount(actor.userId),
+    unreadNotificationCount(actor.userId),
+  ])
+
+  /*
+   * A member who moderates gets the way through to the other panel. It is a
+   * permission field read off the already-resolved actor, so it costs no query.
+   * The ACP is deliberately never linked from the board — see `PanelLinks`.
+   */
+  const links: readonly PanelLink[] =
+    actor.global.canAccessModCp === true
+      ? [{ href: '/modcp', label: 'Moderator CP' }]
+      : []
+
+  return (
+    <PanelShell
+      nav={
+        <UserCpNav counts={{ '/messages': messages, '/notifications': notifications }} />
+      }
+      links={links}
+    >
+      {children}
+    </PanelShell>
   )
 }

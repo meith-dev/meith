@@ -14,14 +14,18 @@ import 'server-only'
  * "holds `modcp.access` **or** moderates at least one forum", and the sections
  * inside it are filtered by what that resolves to.
  */
+import { cache } from 'react'
+
 import {
   hasAnyModeratorRight,
   type Actor,
   type ModeratorRights,
 } from '@meith/authorization'
+import { ModerationQueue } from '@meith/moderation'
 
 import { getActor } from './context'
 import { getContainer } from './container'
+import { hasReportScope, resolveReportScope } from './report-scope'
 
 /** What the panel offers this actor. */
 export interface ModCpAccess {
@@ -52,28 +56,79 @@ export interface ModCpAccess {
  * `null` rather than a thrown error so every route can answer with `notFound()`:
  * the existence of a moderator panel is not something to confirm to somebody who
  * may not open it, which is the same answer F48's queue gives.
+ *
+ * `React.cache`d, because the panel's shell now asks as well as the page under
+ * it — a layout is not a security boundary, so both have to, and the double
+ * check should not be a double query. Same request, same answer, one read.
  */
-export async function resolveModCpAccess(): Promise<ModCpAccess | null> {
-  const actor = await getActor()
-  const { authorizer, modcp } = getContainer()
+export const resolveModCpAccess = cache(
+  async function resolveModCpAccess(): Promise<ModCpAccess | null> {
+    const actor = await getActor()
+    const { authorizer, modcp } = getContainer()
 
-  /* Fixture mode has no panel: every section would list nothing (D38/D32). */
-  if (modcp === null || actor.userId === null) return null
+    /* Fixture mode has no panel: every section would list nothing (D38/D32). */
+    if (modcp === null || actor.userId === null) return null
 
-  const hasGroupAccess = authorizer.can(actor, 'modcp.access')
-  const forumIds = await authorizer.moderatedForumIds(actor)
-  if (!hasGroupAccess && forumIds.length === 0) return null
+    const hasGroupAccess = authorizer.can(actor, 'modcp.access')
+    const forumIds = await authorizer.moderatedForumIds(actor)
+    if (!hasGroupAccess && forumIds.length === 0) return null
 
-  return {
-    actor,
-    userId: actor.userId,
-    forumIds,
-    hasGroupAccess,
-    canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
-    canLookUpIp:
-      actor.global.isAdministrator === true || actor.global.isSuperModerator === true,
-  }
+    return {
+      actor,
+      userId: actor.userId,
+      forumIds,
+      hasGroupAccess,
+      canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
+      canLookUpIp:
+        actor.global.isAdministrator === true || actor.global.isSuperModerator === true,
+    }
+  },
+)
+
+/** How much is outstanding in this moderator's two queues. */
+export interface ModCpCounts {
+  readonly pending: number
+  readonly openReports: number
 }
+
+/**
+ * The two numbers the panel puts on its rail and on its overview.
+ *
+ * **The same counts those screens show.** `countPending` and `countOpen` are
+ * called with the scope resolved for *this* actor, exactly as the queue and the
+ * report list resolve it for themselves — a moderator who reads "3 waiting" on
+ * the rail and opens the queue must not find four, and the only way to
+ * guarantee that is to ask the same question through the same authorizer rather
+ * than to count rows.
+ *
+ * Two indexed counts on every ModCP screen, `React.cache`d so the rail and the
+ * overview share one pair. That is the honest cost of a rail that is worth
+ * glancing at, on a surface only staff can open.
+ *
+ * Both degrade to nothing rather than throwing. A board in fixture mode has no
+ * queue and no report store, and a panel is not worth a 500.
+ */
+export const modCpCounts = cache(async function modCpCounts(): Promise<ModCpCounts> {
+  const access = await resolveModCpAccess()
+  if (access === null) return { pending: 0, openReports: 0 }
+
+  const { moderationQueue, reports } = getContainer()
+
+  const [pending, openReports] = await Promise.all([
+    moderationQueue === null
+      ? Promise.resolve(0)
+      : new ModerationQueue({ queue: moderationQueue })
+          .countPending(access.forumIds)
+          .catch(() => 0),
+    reports === null
+      ? Promise.resolve(0)
+      : resolveReportScope()
+          .then((scope) => (hasReportScope(scope) ? reports.countOpen(scope) : 0))
+          .catch(() => 0),
+  ])
+
+  return { pending, openReports }
+})
 
 /** One forum this actor moderates, with the rights they hold there. */
 export interface ModeratedForumRights {
@@ -144,7 +199,9 @@ export async function moderatedForumRights(
 export async function moderatorTargetFor(
   actor: Actor,
   forumId: number,
-  forum: Awaited<ReturnType<ReturnType<typeof getContainer>['authorizer']['forumMatrix']>>,
+  forum: Awaited<
+    ReturnType<ReturnType<typeof getContainer>['authorizer']['forumMatrix']>
+  >,
 ): Promise<{
   forumId: number
   forum: typeof forum

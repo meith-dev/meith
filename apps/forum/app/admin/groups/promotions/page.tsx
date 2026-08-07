@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { ApplyPromotionsForm } from '@/components/admin/group-forms'
 import { requireAdmin } from '@/server/admin'
 import { groupAdminRepository, previewPromotions } from '@/server/group-admin'
@@ -28,42 +29,40 @@ export default async function AdminPromotionsPage() {
 
   if (repository === null || result === null) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">Promotions</h1>
+      <PanelPage title="Promotions">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so promotions cannot
-          run.
+          This board is running on in-memory sample data, so promotions cannot run.
         </p>
-      </div>
+      </PanelPage>
     )
   }
 
-  const titles = new Map((await repository.list()).map((group) => [group.id, group.title]))
+  const titles = new Map(
+    (await repository.list()).map((group) => [group.id, group.title]),
+  )
   const title = (id: number | null): string =>
     id === null ? 'no group' : (titles.get(id) ?? `group ${id}`)
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/groups" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← All groups
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">Promotions</h1>
-        <p className="text-sm text-muted-foreground">
-          What the promotion rules would do right now. Nothing on this page has
-          been written — it is the same evaluation the scheduled task runs, with
-          the writing turned off.
-        </p>
-      </div>
-
+    <PanelPage
+      back={{ href: '/admin/groups', label: 'All groups' }}
+      title="Promotions"
+      lede={
+        <>
+          What the promotion rules would do right now. Nothing on this page has been
+          written — it is the same evaluation the scheduled task runs, with the writing
+          turned off.
+        </>
+      }
+    >
       <p className="text-sm text-muted-foreground">
         {result.examined} member{result.examined === 1 ? '' : 's'} examined.
       </p>
 
       {result.outcomes.length === 0 ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          Nobody would be promoted. Either no rule is configured, or everyone
-          who qualifies is already where the rules would put them.
+          Nobody would be promoted. Either no rule is configured, or everyone who
+          qualifies is already where the rules would put them.
         </p>
       ) : (
         <>
@@ -94,10 +93,10 @@ export default async function AdminPromotionsPage() {
         operator might expect — and an unexplained absence reads as a bug.
       */}
       <p className="text-xs text-muted-foreground">
-        A promotion never lifts a ban, never demotes, and never re-applies to
-        somebody already in the target group. Banned members and staff are
-        skipped entirely, whatever the rules say.
+        A promotion never lifts a ban, never demotes, and never re-applies to somebody
+        already in the target group. Banned members and staff are skipped entirely,
+        whatever the rules say.
       </p>
-    </div>
+    </PanelPage>
   )
 }

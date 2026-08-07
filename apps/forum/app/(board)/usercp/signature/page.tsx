@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { signatureHtml, signatureLimit } from '@meith/signatures'
 import { requireSlot } from '@meith/theme-kit'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { SignatureForm } from '@/components/account/usercp-forms'
 import { getActor } from '@/server/context'
 import { signatureStore, viewerSignatureLimits } from '@/server/signatures'
@@ -50,21 +51,17 @@ export default async function SignaturePage({
    * each other and half a screen apart.
    */
   return (
-    <main
-      id="board-content"
-      tabIndex={-1}
-      className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-8"
+    <PanelPage
+      title="Your signature"
+      lede="Shown under every post you have made, past and future."
     >
       {notice !== null && (
-        <Notice kind={notice.kind} message={notice.message} dismissHref="/usercp/signature" />
+        <Notice
+          kind={notice.kind}
+          message={notice.message}
+          dismissHref="/usercp/signature"
+        />
       )}
-
-      <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold">Your signature</h1>
-        <p className="text-sm text-muted-foreground">
-          Shown under every post you have made, past and future.
-        </p>
-      </div>
 
       <SignatureForm
         signature={stored.signature}
@@ -87,6 +84,6 @@ export default async function SignaturePage({
           />
         </section>
       )}
-    </main>
+    </PanelPage>
   )
 }

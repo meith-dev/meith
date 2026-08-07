@@ -5,6 +5,7 @@ import {
   CopyPermissionsForm,
   ForumPermissionRowForm,
 } from '@/components/admin/forum-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
 import { buildForumMatrixView, previewCopy } from '@/server/forum-admin'
 
@@ -42,22 +43,19 @@ export default async function ForumPermissionsPage({
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/forums" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← All forums
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">
-          Permissions: {view.forum.title}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          <strong>Inherit</strong> is not the same as <strong>Deny</strong>. A
-          cell left on Inherit follows the nearest ancestor that sets it, and
-          the group&rsquo;s own default if none does — so changing that ancestor
-          later still reaches this forum. Setting Deny pins it here.
-        </p>
-      </div>
-
+    <PanelPage
+      back={{ href: '/admin/forums', label: 'All forums' }}
+      title={<>Permissions: {view.forum.title}</>}
+      lede={
+        <>
+          <strong>Inherit</strong> is not the same as <strong>Deny</strong>. A cell left
+          on Inherit follows the nearest ancestor that sets it, and the group&rsquo;s own
+          default if none does — so changing that ancestor later still reaches this forum.
+          Setting Deny pins it here.
+        </>
+      }
+      gap="loose"
+    >
       <div className="flex flex-col gap-6">
         {view.rows.map((row) => (
           <ForumPermissionRowForm
@@ -78,8 +76,7 @@ export default async function ForumPermissionsPage({
           </p>
         ) : plan.changes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Every forum beneath this one already matches it. There is nothing to
-            copy.
+            Every forum beneath this one already matches it. There is nothing to copy.
           </p>
         ) : (
           <>
@@ -119,7 +116,7 @@ export default async function ForumPermissionsPage({
           </>
         )}
       </section>
-    </div>
+    </PanelPage>
   )
 }
 

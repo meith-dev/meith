@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation'
 
 import { ModerationQueue } from '@meith/moderation'
 import { requireSlot } from '@meith/theme-kit'
+import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { QueueForm } from '@/components/moderation/queue-form'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -79,36 +81,45 @@ export default async function ModerationPage({
   const notice = parts.length === 0 ? null : parts.join(' ')
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-6 py-8">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h1 className="font-serif text-2xl font-semibold">Moderation queue</h1>
-          <p className="text-sm text-muted-foreground">
-            {view.pending} awaiting approval
-          </p>
-        </div>
+    <PanelPage
+      title="Approval queue"
+      lede={
+        view.pending === 1
+          ? '1 post awaiting approval.'
+          : `${view.pending} posts awaiting approval.`
+      }
+    >
+      {notice !== null && (
+        <Notice kind="info" message={notice} dismissHref="/moderation" />
+      )}
 
-        {notice !== null && (
-          <Notice kind="info" message={notice} dismissHref="/moderation" />
-        )}
+      {view.emptyReason !== null && (
+        <Card>
+          <Empty className="py-8">
+            <EmptyTitle>
+              {view.emptyReason === 'nothing-moderated'
+                ? 'You do not moderate any forums'
+                : 'Nothing is waiting'}
+            </EmptyTitle>
+            <EmptyDescription>
+              {view.emptyReason === 'nothing-moderated'
+                ? 'Posts held for approval appear here once you are appointed to a forum, or given a group permission that moderates one.'
+                : 'Every post held for approval in the forums you moderate has been dealt with.'}
+            </EmptyDescription>
+          </Empty>
+        </Card>
+      )}
 
-        {view.emptyReason === 'nothing-moderated' && (
-          <p className="text-sm text-muted-foreground">
-            You do not moderate any forums.
-          </p>
-        )}
-        {view.emptyReason === 'queue-empty' && (
-          <p className="text-sm text-muted-foreground">Nothing is waiting. </p>
-        )}
+      {view.rows.length > 0 && <QueueForm rows={view.rows} />}
 
-        {view.rows.length > 0 && <QueueForm rows={view.rows} />}
-
-        {view.nextHref !== null && (
-          <a href={view.nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-            Older items
-          </a>
-        )}
-      </div>
-    </main>
+      {view.nextHref !== null && (
+        <a
+          href={view.nextHref}
+          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+        >
+          Older items
+        </a>
+      )}
+    </PanelPage>
   )
 }

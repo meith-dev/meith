@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { buildAdminLogView } from '@/view/admin-log'
@@ -50,14 +51,11 @@ export default async function AdminLogPage({
   })
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="font-serif text-2xl font-semibold">Admin log</h1>
-        <p className="text-sm text-muted-foreground">
-          Every administrative and moderation action, newest first.
-        </p>
-      </div>
-
+    <PanelPage
+      title="Admin log"
+      lede={<>Every administrative and moderation action, newest first.</>}
+      width="wide"
+    >
       {/*
         A GET form, because filtering is a read. It works with scripting off:
         a native `<select>` and a submit button, no on-change handler.
@@ -96,9 +94,14 @@ export default async function AdminLogPage({
                 <code className="text-xs font-medium">{row.action}</code>
                 <span>{row.actor}</span>
                 {row.ipPrefix !== null && (
-                  <span className="text-xs text-muted-foreground">from {row.ipPrefix}</span>
+                  <span className="text-xs text-muted-foreground">
+                    from {row.ipPrefix}
+                  </span>
                 )}
-                <time dateTime={row.at.iso} className="ml-auto text-xs text-muted-foreground">
+                <time
+                  dateTime={row.at.iso}
+                  className="ml-auto text-xs text-muted-foreground"
+                >
                   {row.at.label}
                 </time>
               </div>
@@ -113,10 +116,13 @@ export default async function AdminLogPage({
       )}
 
       {view.nextHref !== null && (
-        <a href={view.nextHref} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+        <a
+          href={view.nextHref}
+          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+        >
           Older entries
         </a>
       )}
-    </div>
+    </PanelPage>
   )
 }

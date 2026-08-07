@@ -3,11 +3,10 @@ import { notFound } from 'next/navigation'
 
 import { ReportService } from '@meith/moderation'
 import { requireSlot } from '@meith/theme-kit'
+import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
-import {
-  AssignReportForm,
-  CloseReportForm,
-} from '@/components/moderation/report-forms'
+import { PanelPage } from '@/components/shell/panel-page'
+import { AssignReportForm, CloseReportForm } from '@/components/moderation/report-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { messageService } from '@/server/messages'
@@ -64,21 +63,26 @@ export default async function ReportsPage({
         : null
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-6 py-8">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h1 className="font-serif text-2xl font-semibold">Reports</h1>
-          <p className="text-sm text-muted-foreground">{open} open</p>
-        </div>
+    <PanelPage
+      title="Reports"
+      lede={open === 1 ? '1 report still open.' : `${open} reports still open.`}
+    >
+      {notice !== null && (
+        <Notice kind="info" message={notice} dismissHref="/moderation/reports" />
+      )}
 
-        {notice !== null && (
-          <Notice kind="info" message={notice} dismissHref="/moderation/reports" />
-        )}
+      {page.rows.length === 0 && (
+        <Card>
+          <Empty className="py-8">
+            <EmptyTitle>Nothing outstanding</EmptyTitle>
+            <EmptyDescription>
+              Every report in the forums you moderate has been resolved or dismissed.
+            </EmptyDescription>
+          </Empty>
+        </Card>
+      )}
 
-        {page.rows.length === 0 && (
-          <p className="text-sm text-muted-foreground">Nothing outstanding.</p>
-        )}
-
+      {page.rows.length > 0 && (
         <ul className="flex flex-col gap-3">
           {page.rows.map((report) => {
             const posted = formatTime(report.createdAt, now)
@@ -93,7 +97,10 @@ export default async function ReportsPage({
                     : `/thread/${report.threadId ?? 0}#post-${report.targetId}`
 
             return (
-              <li key={report.id} className="rounded-lg border border-border bg-card p-4">
+              <li
+                key={report.id}
+                className="rounded-lg border border-border bg-card p-4 text-card-foreground shadow-elevation"
+              >
                 <div className="flex flex-wrap items-baseline gap-2 text-sm">
                   <span className="font-medium capitalize">
                     {report.kind === 'private_message' ? 'Private message' : report.kind}
@@ -101,7 +108,10 @@ export default async function ReportsPage({
                   {href === null ? (
                     <span className="font-medium">{report.targetLabel}</span>
                   ) : (
-                    <a href={href} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+                    <a
+                      href={href}
+                      className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                    >
                       {report.targetLabel}
                     </a>
                   )}
@@ -122,7 +132,9 @@ export default async function ReportsPage({
                       {message === undefined
                         ? 'The reported message'
                         : `The reported message, from ${
-                            message.authorUsername === '' ? 'a deleted member' : message.authorUsername
+                            message.authorUsername === ''
+                              ? 'a deleted member'
+                              : message.authorUsername
                           }`}
                     </p>
                     {/*
@@ -132,7 +144,8 @@ export default async function ReportsPage({
                       second rendering surface for attacker-controlled markup.
                     */}
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm">
-                      {message?.message ?? 'This message has since been deleted by everybody who held it.'}
+                      {message?.message ??
+                        'This message has since been deleted by everybody who held it.'}
                     </p>
                   </div>
                 )}
@@ -154,17 +167,17 @@ export default async function ReportsPage({
             )
           })}
         </ul>
+      )}
 
-        {page.nextCursor !== undefined && (
-          <a
-            href={`/moderation/reports?after=${encodeURIComponent(page.nextCursor)}`}
-            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
-            Older reports
-          </a>
-        )}
-      </div>
-    </main>
+      {page.nextCursor !== undefined && (
+        <a
+          href={`/moderation/reports?after=${encodeURIComponent(page.nextCursor)}`}
+          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+        >
+          Older reports
+        </a>
+      )}
+    </PanelPage>
   )
 }
 
@@ -179,7 +192,9 @@ export default async function ReportsPage({
 async function reportedPrivateMessages(
   rows: readonly { kind: string; targetId: number }[],
 ): Promise<ReadonlyMap<number, { authorUsername: string; message: string }>> {
-  const ids = rows.filter((row) => row.kind === 'private_message').map((row) => row.targetId)
+  const ids = rows
+    .filter((row) => row.kind === 'private_message')
+    .map((row) => row.targetId)
   if (ids.length === 0) return new Map()
 
   const service = messageService()
@@ -189,7 +204,10 @@ async function reportedPrivateMessages(
   for (const id of new Set(ids)) {
     const message = await service.forReport(id).catch(() => null)
     if (message !== null) {
-      found.set(id, { authorUsername: message.authorUsername, message: message.message })
+      found.set(id, {
+        authorUsername: message.authorUsername,
+        message: message.message,
+      })
     }
   }
   return found

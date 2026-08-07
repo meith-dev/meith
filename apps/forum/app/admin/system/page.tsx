@@ -8,6 +8,7 @@ import {
   ReindexSearchForm,
   RetryJobForm,
 } from '@/components/admin/system-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
 import { buildSystemHealthView } from '@/server/system-admin'
 import { formatTime } from '@/view/time'
@@ -36,27 +37,23 @@ export default async function AdminSystemPage() {
 
   if (view === null) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-semibold">System health</h1>
+      <PanelPage title="System health">
         <p className="mt-2 text-sm text-muted-foreground">
-          This board is running on in-memory sample data, so it has no scheduler
-          and nothing to maintain.
+          This board is running on in-memory sample data, so it has no scheduler and
+          nothing to maintain.
         </p>
-      </div>
+      </PanelPage>
     )
   }
 
   const { mail, scheduler, volumes } = view
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold">System health</h1>
-        <p className="text-sm text-muted-foreground">
-          What the board does on a schedule, and whether it is doing it.
-        </p>
-      </div>
-
+    <PanelPage
+      title="System health"
+      lede={<>What the board does on a schedule, and whether it is doing it.</>}
+      gap="loose"
+    >
       {scheduler.schedulerStopped && (
         <section
           role="alert"
@@ -66,16 +63,15 @@ export default async function AdminSystemPage() {
             The scheduler is not running
           </h2>
           <p className="text-sm">
-            Every task is overdue, which means the tick is not firing at all.
-            While this is true: <strong>bans do not expire</strong>, digests and
-            notification emails are not sent, counters drift, uploads that failed
-            to process are not retried, and queued mail sits in the queue.
+            Every task is overdue, which means the tick is not firing at all. While this
+            is true: <strong>bans do not expire</strong>, digests and notification emails
+            are not sent, counters drift, uploads that failed to process are not retried,
+            and queued mail sits in the queue.
           </p>
           <p className="text-sm">
-            Nothing is broken and nothing is lost — the tasks are written to
-            catch up, so they will work through the backlog once it runs again.
-            Check that whatever invokes the scheduled endpoint is still
-            configured and still authorised.
+            Nothing is broken and nothing is lost — the tasks are written to catch up, so
+            they will work through the backlog once it runs again. Check that whatever
+            invokes the scheduled endpoint is still configured and still authorised.
           </p>
         </section>
       )}
@@ -87,14 +83,15 @@ export default async function AdminSystemPage() {
         >
           {scheduler.stale > 0 && (
             <p>
-              {scheduler.stale} task{scheduler.stale === 1 ? ' is' : 's are'} overdue
-              by several of their own intervals.
+              {scheduler.stale} task{scheduler.stale === 1 ? ' is' : 's are'} overdue by
+              several of their own intervals.
             </p>
           )}
           {scheduler.failing > 0 && (
             <p>
-              {scheduler.failing} task{scheduler.failing === 1 ? ' is' : 's are'} failing
-              repeatedly — running, and losing. The log below says why.
+              {scheduler.failing} task
+              {scheduler.failing === 1 ? ' is' : 's are'} failing repeatedly — running,
+              and losing. The log below says why.
             </p>
           )}
         </section>
@@ -111,14 +108,14 @@ export default async function AdminSystemPage() {
           <p className="text-sm">
             Registration is set to <strong>{mail.activationMethod}</strong>, so every new
             account waits for a confirmation link — and <code>MAIL_DRIVER</code> is{' '}
-            <code>log</code>, which writes each message to the server log and sends none of
-            them. Password reset is silently failing for the same reason.
+            <code>log</code>, which writes each message to the server log and sends none
+            of them. Password reset is silently failing for the same reason.
           </p>
           <p className="text-sm">
-            Configure a mail driver, or set the activation method to{' '}
-            <strong>none</strong> or <strong>admin</strong> on the registration settings
-            screen. Accounts already stuck at &ldquo;awaiting activation&rdquo; can be
-            activated by hand from the member screen.
+            Configure a mail driver, or set the activation method to <strong>none</strong>{' '}
+            or <strong>admin</strong> on the registration settings screen. Accounts
+            already stuck at &ldquo;awaiting activation&rdquo; can be activated by hand
+            from the member screen.
           </p>
         </section>
       )}
@@ -146,14 +143,17 @@ export default async function AdminSystemPage() {
         <h2 className="font-serif text-lg font-semibold">Scheduled tasks</h2>
         {scheduler.tasks.length === 0 ? (
           <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-            No tasks are registered. A build registers a task only when it has a
-            worker that can genuinely do the work, so an absent one means the
-            feature behind it is not wired up on this deployment.
+            No tasks are registered. A build registers a task only when it has a worker
+            that can genuinely do the work, so an absent one means the feature behind it
+            is not wired up on this deployment.
           </p>
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
             {scheduler.tasks.map((task) => (
-              <li key={task.key} className="flex items-center justify-between gap-3 px-4 py-3">
+              <li
+                key={task.key}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium">{task.key}</span>
                   <span className="truncate text-xs text-muted-foreground">
@@ -217,7 +217,9 @@ export default async function AdminSystemPage() {
           <li>{volumes.attachments} attachments</li>
           <li>{volumes.queuedJobs} jobs waiting</li>
           <li
-            className={volumes.deadLetteredJobs > 0 ? 'font-medium text-destructive' : undefined}
+            className={
+              volumes.deadLetteredJobs > 0 ? 'font-medium text-destructive' : undefined
+            }
           >
             {volumes.deadLetteredJobs} dead-lettered
           </li>
@@ -227,10 +229,10 @@ export default async function AdminSystemPage() {
       <section className="flex flex-col gap-3">
         <h2 className="font-serif text-lg font-semibold">Recount &amp; rebuild</h2>
         <p className="text-sm text-muted-foreground">
-          Counters are denormalised, so they can drift. The recount walks the
-          content and corrects them in bounded batches, keeping its phase and
-          cursor in the database — so it resumes where it stopped rather than
-          starting over, which is what makes it finish at all on a large board.
+          Counters are denormalised, so they can drift. The recount walks the content and
+          corrects them in bounded batches, keeping its phase and cursor in the database —
+          so it resumes where it stopped rather than starting over, which is what makes it
+          finish at all on a large board.
         </p>
         {view.recount.length > 0 && (
           <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -248,11 +250,11 @@ export default async function AdminSystemPage() {
       <section className="flex flex-col gap-3">
         <h2 className="font-serif text-lg font-semibold">Search index</h2>
         <p className="text-sm text-muted-foreground">
-          A post is indexed when it is written or edited, so this is only ever a
-          backfill — an existing board adopting search, or one whose index was
-          invalidated. It resumes by construction: the batch is &ldquo;posts with
-          no index entry&rdquo;, a set that only shrinks, so an interrupted run
-          costs nothing and a repeated one does nothing.
+          A post is indexed when it is written or edited, so this is only ever a backfill
+          — an existing board adopting search, or one whose index was invalidated. It
+          resumes by construction: the batch is &ldquo;posts with no index entry&rdquo;, a
+          set that only shrinks, so an interrupted run costs nothing and a repeated one
+          does nothing.
         </p>
         <p className="text-sm">
           {view.searchIndex.indexed} indexed
@@ -270,10 +272,10 @@ export default async function AdminSystemPage() {
       <section className="flex flex-col gap-4 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Maintenance</h2>
         <p className="text-sm text-muted-foreground">
-          Each of these is bounded to one batch. Nothing here destroys anything
-          an operator would want back: expired sessions no longer authenticate
-          anybody, expired tokens can no longer be used, and a cleared cache is a
-          copy of data that still exists.
+          Each of these is bounded to one batch. Nothing here destroys anything an
+          operator would want back: expired sessions no longer authenticate anybody,
+          expired tokens can no longer be used, and a cleared cache is a copy of data that
+          still exists.
         </p>
 
         <PruneSessionsForm prunable={view.prunableSessions} />
@@ -281,6 +283,6 @@ export default async function AdminSystemPage() {
         <ClearCacheForm />
         <RetryJobForm />
       </section>
-    </div>
+    </PanelPage>
   )
 }

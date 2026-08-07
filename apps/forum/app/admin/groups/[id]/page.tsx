@@ -6,6 +6,7 @@ import {
   GroupIdentityForm,
   GroupPermissionsForm,
 } from '@/components/admin/group-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { BadgeUploadForm } from '@/components/admin/badge-forms'
 import { requireAdmin } from '@/server/admin'
 import { badgeKey, badgeSrc } from '@/server/group-badge'
@@ -55,19 +56,19 @@ export default async function AdminGroupPage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/groups" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← All groups
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">{view.group.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          <code className="text-xs">{view.group.key}</code> ·{' '}
-          {view.group.memberCount} member{view.group.memberCount === 1 ? '' : 's'}
+    <PanelPage
+      back={{ href: '/admin/groups', label: 'All groups' }}
+      title={view.group.title}
+      lede={
+        <>
+          <code className="text-xs">{view.group.key}</code> · {view.group.memberCount}{' '}
+          member
+          {view.group.memberCount === 1 ? '' : 's'}
           {view.group.isSystem && ' · a system group: the board resolves it by key'}
-        </p>
-      </div>
-
+        </>
+      }
+      gap="loose"
+    >
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Details</h2>
         <GroupIdentityForm
@@ -94,10 +95,9 @@ export default async function AdminGroupPage({
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Badge</h2>
         <p className="text-sm text-muted-foreground">
-          A small image shown beside a member&rsquo;s name. Two of them, for the
-          reason the colours have two: an icon drawn for a white page usually
-          disappears on a black one. Upload only the light one and it is used in
-          both.
+          A small image shown beside a member&rsquo;s name. Two of them, for the reason
+          the colours have two: an icon drawn for a white page usually disappears on a
+          black one. Upload only the light one and it is used in both.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -121,10 +121,10 @@ export default async function AdminGroupPage({
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Permissions</h2>
         <p className="text-sm text-muted-foreground">
-          These are this group&rsquo;s answers, not a forum&rsquo;s. A member in
-          several groups gets the most permissive of them — a tick can only ever
-          grant, never take away — except for the restrictions, where any group
-          that lifts one lifts it everywhere.
+          These are this group&rsquo;s answers, not a forum&rsquo;s. A member in several
+          groups gets the most permissive of them — a tick can only ever grant, never take
+          away — except for the restrictions, where any group that lifts one lifts it
+          everywhere.
         </p>
         <GroupPermissionsForm groupId={view.group.id} cells={view.cells} />
       </section>
@@ -133,9 +133,9 @@ export default async function AdminGroupPage({
         <h2 className="font-serif text-lg font-semibold">Delete</h2>
         {view.group.isSystem ? (
           <p className="text-sm text-muted-foreground">
-            This group is part of how the board works — registration, bans and
-            the control panel resolve it by key — so it cannot be deleted. Its
-            permissions are still yours to change.
+            This group is part of how the board works — registration, bans and the control
+            panel resolve it by key — so it cannot be deleted. Its permissions are still
+            yours to change.
           </p>
         ) : (
           <DeleteGroupForm
@@ -148,6 +148,6 @@ export default async function AdminGroupPage({
           />
         )}
       </section>
-    </div>
+    </PanelPage>
   )
 }

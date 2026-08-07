@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { SubscriptionService } from '@meith/subscriptions'
 import { requireSlot } from '@meith/theme-kit'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -63,46 +64,47 @@ export default async function SubscriptionsPage({
   const notice = subscriptionNotice(query)
 
   return (
-    <main id="board-content" tabIndex={-1} className="flex-1">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
-        {notice !== null && (
-          <Notice kind="info" message={notice} dismissHref="/subscriptions" />
-        )}
+    <PanelPage
+      title="Subscriptions"
+      lede={
+        <>
+          What you follow, and how often you hear about it.{' '}
+          <a
+            href="/notifications/preferences"
+            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+          >
+            Whether any of it also arrives by e-mail
+          </a>{' '}
+          is a separate setting.
+        </>
+      }
+    >
+      {notice !== null && (
+        <Notice kind="info" message={notice} dismissHref="/subscriptions" />
+      )}
 
-        <div>
-          <h1 className="font-serif text-2xl font-semibold">Subscriptions</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            What you follow, and how often you hear about it.{' '}
-            <a href="/notifications/preferences" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-              Whether any of it also arrives by e-mail
-            </a>{' '}
-            is a separate setting.
-          </p>
-        </div>
-
-        {view.total === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            You are not following anything yet. Use the “Follow” control on a
-            thread or a forum, or tick the box when you post.
-          </p>
-        ) : (
-          <>
-            <Section
-              title="Threads"
-              empty="You are not following any threads."
-              rows={view.threads}
-              modes={view.modes}
-            />
-            <Section
-              title="Forums"
-              empty="You are not following any forums."
-              rows={view.forums}
-              modes={view.modes}
-            />
-          </>
-        )}
-      </div>
-    </main>
+      {view.total === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          You are not following anything yet. Use the “Follow” control on a thread or a
+          forum, or tick the box when you post.
+        </p>
+      ) : (
+        <>
+          <Section
+            title="Threads"
+            empty="You are not following any threads."
+            rows={view.threads}
+            modes={view.modes}
+          />
+          <Section
+            title="Forums"
+            empty="You are not following any forums."
+            rows={view.forums}
+            modes={view.modes}
+          />
+        </>
+      )}
+    </PanelPage>
   )
 }
 
@@ -128,7 +130,10 @@ function Section({
           {rows.map((row) => (
             <li key={row.key} className="rounded-lg border border-border bg-card p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <a href={row.href} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+                <a
+                  href={row.href}
+                  className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                >
                   {row.title}
                 </a>
                 <span className="text-xs text-muted-foreground">

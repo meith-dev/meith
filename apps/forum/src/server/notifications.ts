@@ -15,6 +15,8 @@ import 'server-only'
  * inside a moderation command — the same argument D52 makes for giving the
  * warning service one `ban` verb instead of the whole `BanService`.
  */
+import { cache } from 'react'
+
 import { NotificationService } from '@meith/notifications'
 import type { ReportNotifierPort, WarningNotifierPort } from '@meith/moderation'
 
@@ -99,10 +101,16 @@ export function reportNotifier(): ReportNotifierPort | null {
  * cost and the reason the migration gives it a partial index over unread rows
  * only. Guests and fixture mode never query.
  *
+ * `React.cache`d, for the reason `unreadMessageCount` records: the header's
+ * badge, the member panel's rail and the panel index all want it on the same
+ * render, and they must not be able to disagree.
+ *
  * Never throws: the shell renders the error pages too, and a notification count
  * is not worth failing a page over.
  */
-export async function unreadNotificationCount(userId: number | null): Promise<number> {
+export const unreadNotificationCount = cache(async function unreadNotificationCount(
+  userId: number | null,
+): Promise<number> {
   if (userId === null) return 0
   const service = notificationService()
   if (service === null) return 0
@@ -112,4 +120,4 @@ export async function unreadNotificationCount(userId: number | null): Promise<nu
   } catch {
     return 0
   }
-}
+})

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { PluginEnableForm, PluginSettingsForm } from '@/components/admin/plugin-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
 import { pluginRow } from '@/server/plugin-admin'
 import { renderPluginAdminPage } from '@/server/plugin-pages'
@@ -50,26 +51,29 @@ export default async function AdminPluginPage({
     if (rendered === null) notFound()
 
     return (
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
-        <div className="flex flex-col gap-1">
-          <a href={`/admin/plugins/${key}`} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-            ← {plugin.name ?? plugin.key}
-          </a>
-          <h1 className="font-serif text-2xl font-semibold">{rendered.title}</h1>
-          <p className="text-xs text-muted-foreground">
-            Rendered by the <code className="text-xs">{key}</code> plugin.
-          </p>
-        </div>
-
+      <PanelPage
+        back={{
+          href: `/admin/plugins/${key}`,
+          label: plugin.name ?? plugin.key,
+        }}
+        title={rendered.title}
+        meta={
+          <>
+            Rendered by the <code className="font-mono">{key}</code> plugin.
+          </>
+        }
+      >
         {rendered.node === null ? (
           <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-            This page failed to render. The plugin&rsquo;s error is in the server
-            log, and the rest of the panel is unaffected.
+            This page failed to render. The plugin&rsquo;s error is in the server log, and
+            the rest of the panel is unaffected.
           </p>
         ) : (
-          <section className="rounded-lg border border-border p-4">{rendered.node}</section>
+          <section className="rounded-lg border border-border p-4">
+            {rendered.node}
+          </section>
         )}
-      </div>
+      </PanelPage>
     )
   }
 
@@ -77,26 +81,23 @@ export default async function AdminPluginPage({
   const pendingMigrations = plugin.migrations.filter((migration) => !migration.applied)
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/plugins" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← All plugins
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">{plugin.name ?? plugin.key}</h1>
-        <p className="text-sm text-muted-foreground">
-          <code className="text-xs">{plugin.key}</code>
+    <PanelPage
+      back={{ href: '/admin/plugins', label: 'All plugins' }}
+      title={plugin.name ?? plugin.key}
+      gap="loose"
+      lede={
+        <>
+          <code className="font-mono text-xs">{plugin.key}</code>
           {plugin.version !== null && ` · ${plugin.version}`}
-        </p>
-        {plugin.description !== null && (
-          <p className="text-sm text-muted-foreground">{plugin.description}</p>
-        )}
-        {plugin.dependsOn.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            Needs {plugin.dependsOn.join(', ')} installed and upgraded first.
-          </p>
-        )}
-      </div>
-
+          {plugin.description !== null && ` — ${plugin.description}`}
+        </>
+      }
+      {...(plugin.dependsOn.length > 0
+        ? {
+            meta: `Needs ${plugin.dependsOn.join(', ')} installed and upgraded first.`,
+          }
+        : {})}
+    >
       {/*
         The three states, spelled out rather than folded into a badge. Each has
         a different remedy and the row says which one applies.
@@ -116,15 +117,13 @@ export default async function AdminPluginPage({
           </div>
           <div className="flex flex-wrap justify-between gap-2">
             <dt className="text-muted-foreground">Switched on here</dt>
-            <dd>{plugin.operatorEnabled ? 'yes' : 'no — an administrator turned it off'}</dd>
+            <dd>
+              {plugin.operatorEnabled ? 'yes' : 'no — an administrator turned it off'}
+            </dd>
           </div>
           <div className="flex flex-wrap justify-between gap-2">
             <dt className="text-muted-foreground">Running on this server</dt>
-            <dd>
-              {plugin.running
-                ? 'yes'
-                : (plugin.health?.disabledReason ?? 'no')}
-            </dd>
+            <dd>{plugin.running ? 'yes' : (plugin.health?.disabledReason ?? 'no')}</dd>
           </div>
         </dl>
 
@@ -139,10 +138,10 @@ export default async function AdminPluginPage({
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
           <h2 className="font-serif text-lg font-semibold">Health</h2>
           <p className="text-sm text-muted-foreground">
-            Counted by <em>this</em> server since it started, not across the
-            board and not since the plugin was installed. On a platform that
-            recycles instances these numbers reset without warning, which is why
-            they are a symptom to look at rather than a total to trust.
+            Counted by <em>this</em> server since it started, not across the board and not
+            since the plugin was installed. On a platform that recycles instances these
+            numbers reset without warning, which is why they are a symptom to look at
+            rather than a total to trust.
           </p>
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             <div>
@@ -164,7 +163,8 @@ export default async function AdminPluginPage({
           </dl>
           {plugin.health.lastError !== null && (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-              Last failure in <code className="text-xs">{plugin.health.lastError.hook}</code>:{' '}
+              Last failure in{' '}
+              <code className="text-xs">{plugin.health.lastError.hook}</code>:{' '}
               {plugin.health.lastError.message}
             </p>
           )}
@@ -175,8 +175,8 @@ export default async function AdminPluginPage({
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
           <h2 className="font-serif text-lg font-semibold">Settings</h2>
           <p className="text-sm text-muted-foreground">
-            Stored under this plugin&rsquo;s own namespace, so two plugins cannot
-            collide and neither can reach a board setting.
+            Stored under this plugin&rsquo;s own namespace, so two plugins cannot collide
+            and neither can reach a board setting.
           </p>
           <PluginSettingsForm pluginKey={plugin.key} settings={visibleSettings} />
         </section>
@@ -186,11 +186,11 @@ export default async function AdminPluginPage({
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
           <h2 className="font-serif text-lg font-semibold">Migrations</h2>
           <p className="text-sm text-muted-foreground">
-            Applied by <code className="text-xs">forum upgrade</code>, in one
-            transaction each, recorded as they run. There is no button here on
-            purpose: schema changes belong to the deploy that shipped the code
-            expecting them, and a panel that could run them out of band is a
-            panel that can put a board&rsquo;s schema ahead of its code.
+            Applied by <code className="text-xs">forum upgrade</code>, in one transaction
+            each, recorded as they run. There is no button here on purpose: schema changes
+            belong to the deploy that shipped the code expecting them, and a panel that
+            could run them out of band is a panel that can put a board&rsquo;s schema
+            ahead of its code.
           </p>
           <ul className="flex flex-col divide-y divide-border text-sm">
             {plugin.migrations.map((migration) => (
@@ -198,7 +198,9 @@ export default async function AdminPluginPage({
                 <code className="text-xs">{migration.id}</code>
                 <span
                   className={
-                    migration.applied ? 'text-xs text-muted-foreground' : 'text-xs text-destructive'
+                    migration.applied
+                      ? 'text-xs text-muted-foreground'
+                      : 'text-xs text-destructive'
                   }
                 >
                   {migration.applied ? 'applied' : 'not applied'}
@@ -208,9 +210,9 @@ export default async function AdminPluginPage({
           </ul>
           {pendingMigrations.length > 0 && (
             <p className="text-sm text-destructive">
-              Run <code className="text-xs">forum upgrade</code> before relying on
-              this plugin — until then its code is running against a schema that
-              does not have what it expects.
+              Run <code className="text-xs">forum upgrade</code> before relying on this
+              plugin — until then its code is running against a schema that does not have
+              what it expects.
             </p>
           )}
         </section>
@@ -222,7 +224,10 @@ export default async function AdminPluginPage({
           <ul className="flex flex-col divide-y divide-border text-sm">
             {plugin.pages.map((page) => (
               <li key={page.path} className="flex justify-between gap-3 py-2">
-                <a href={page.href} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+                <a
+                  href={page.href}
+                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                >
                   {page.title}
                 </a>
                 <code className="text-xs text-muted-foreground">{page.href}</code>
@@ -236,9 +241,12 @@ export default async function AdminPluginPage({
         <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
           <h2 className="font-serif text-lg font-semibold">Scheduled tasks</h2>
           <p className="text-sm text-muted-foreground">
-            Registered in the board&rsquo;s own task registry and run by the same
-            tick. Their runs and failures are on the{' '}
-            <a href="/admin/system" className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
+            Registered in the board&rsquo;s own task registry and run by the same tick.
+            Their runs and failures are on the{' '}
+            <a
+              href="/admin/system"
+              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+            >
               system health
             </a>{' '}
             screen with everything else.
@@ -285,6 +293,6 @@ export default async function AdminPluginPage({
           )}
         </section>
       )}
-    </div>
+    </PanelPage>
   )
 }

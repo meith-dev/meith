@@ -8,6 +8,7 @@ import {
   MemberStateForm,
   SecondaryGroupsForm,
 } from '@/components/admin/user-forms'
+import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
 import { buildMemberView } from '@/server/user-admin'
 import { formatTime } from '@/view/time'
@@ -47,13 +48,12 @@ export default async function AdminMemberPage({
   const now = new Date()
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href="/admin/users" className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← All members
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">{member.username}</h1>
-        <p className="text-sm text-muted-foreground">
+    <PanelPage
+      back={{ href: '/admin/users', label: 'All members' }}
+      title={member.username}
+      gap="loose"
+      lede={
+        <>
           #{member.id} · registered{' '}
           <time dateTime={member.createdAt.toISOString()}>
             {formatTime(member.createdAt, now).label}
@@ -68,16 +68,18 @@ export default async function AdminMemberPage({
             </>
           )}
           {member.deletedAt !== null && ' · account deleted'}
-        </p>
-        <p className="text-xs text-muted-foreground">
+        </>
+      }
+      meta={
+        <>
           {member.postCount} post{member.postCount === 1 ? '' : 's'} ·{' '}
           {member.threadCount} thread{member.threadCount === 1 ? '' : 's'} ·{' '}
           {member.reputation} reputation · {member.warningPoints} warning point
           {member.warningPoints === 1 ? '' : 's'} ·{' '}
           {member.emailVerifiedAt === null ? 'email unverified' : 'email verified'}
-        </p>
-      </div>
-
+        </>
+      }
+    >
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Account</h2>
         <MemberAccountForm
@@ -97,9 +99,9 @@ export default async function AdminMemberPage({
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Additional groups</h2>
         <p className="text-sm text-muted-foreground">
-          Groups held <em>as well as</em> the primary one. They grant in exactly
-          the same way — a member gets the most permissive answer across all of
-          them — so an extra group can only ever add.
+          Groups held <em>as well as</em> the primary one. They grant in exactly the same
+          way — a member gets the most permissive answer across all of them — so an extra
+          group can only ever add.
         </p>
         <SecondaryGroupsForm
           userId={member.id}
@@ -115,8 +117,8 @@ export default async function AdminMemberPage({
         <h2 className="font-serif text-lg font-semibold">State</h2>
         {member.state === 'banned' ? (
           <p className="text-sm text-muted-foreground">
-            This member is banned. Lift the ban below to change their state —
-            flipping the column here would leave the ban record active.
+            This member is banned. Lift the ban below to change their state — flipping the
+            column here would leave the ban record active.
           </p>
         ) : (
           <MemberStateForm userId={member.id} state={member.state} />
@@ -161,8 +163,8 @@ export default async function AdminMemberPage({
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Merge</h2>
         <p className="text-sm text-muted-foreground">
-          Fold this account into another one — for a member who registered
-          twice, or a duplicate made by an importer.
+          Fold this account into another one — for a member who registered twice, or a
+          duplicate made by an importer.
         </p>
         <p>
           <a
@@ -177,9 +179,10 @@ export default async function AdminMemberPage({
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-serif text-lg font-semibold">Network</h2>
         <p className="text-sm text-muted-foreground">
-          Registered from {member.registrationIpPrefix ?? 'an address that was not recorded'}
-          {member.lastIpPrefix !== null && `, last seen from ${member.lastIpPrefix}`}. Only a
-          prefix is stored, so these are networks rather than machines.
+          Registered from{' '}
+          {member.registrationIpPrefix ?? 'an address that was not recorded'}
+          {member.lastIpPrefix !== null && `, last seen from ${member.lastIpPrefix}`}.
+          Only a prefix is stored, so these are networks rather than machines.
         </p>
 
         {view.sharedNetwork.length === 0 ? (
@@ -190,8 +193,8 @@ export default async function AdminMemberPage({
           <>
             <p className="text-sm">
               {view.sharedNetwork.length} other account
-              {view.sharedNetwork.length === 1 ? '' : 's'} on the same network.
-              A household, an office and a campus all look like this.
+              {view.sharedNetwork.length === 1 ? '' : 's'} on the same network. A
+              household, an office and a campus all look like this.
             </p>
             <ul className="flex flex-col gap-1 text-sm">
               {view.sharedNetwork.map((row) => (
@@ -212,6 +215,6 @@ export default async function AdminMemberPage({
           </>
         )}
       </section>
-    </div>
+    </PanelPage>
   )
 }

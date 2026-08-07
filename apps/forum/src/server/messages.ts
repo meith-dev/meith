@@ -13,7 +13,13 @@ import 'server-only'
  * `globalLimit` for the number. Neither is read off the actor directly, which
  * is the rule that keeps every permission answer inside one package.
  */
-import { MessageService, type MessageNotifierPort, type MessagePolicy } from '@meith/messages'
+import { cache } from 'react'
+
+import {
+  MessageService,
+  type MessageNotifierPort,
+  type MessagePolicy,
+} from '@meith/messages'
 
 import { EMPTY_VOCABULARY } from '@meith/markdown'
 
@@ -162,10 +168,17 @@ export function messageNotifier(): MessageNotifierPort | null {
  * Counted on every page render for every signed-in member, which is why the
  * migration gives it a partial index over unread inbox rows only.
  *
+ * `React.cache`d, because three callers now want the same number on the same
+ * render: the header's badge, the member panel's rail, and the panel index. One
+ * read, and — more to the point — one *answer*, so a header that says 3 and a
+ * rail that says 2 is not a state the board can get into.
+ *
  * Never throws: the shell renders the error pages too, and a message count is
  * not worth failing a page over.
  */
-export async function unreadMessageCount(userId: number | null): Promise<number> {
+export const unreadMessageCount = cache(async function unreadMessageCount(
+  userId: number | null,
+): Promise<number> {
   if (userId === null) return 0
   const service = messageService()
   if (service === null) return 0
@@ -175,4 +188,4 @@ export async function unreadMessageCount(userId: number | null): Promise<number>
   } catch {
     return 0
   }
-}
+})

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { PanelPage } from '@/components/shell/panel-page'
 import { MergeForm } from '@/components/admin/user-forms'
 import { requireAdmin } from '@/server/admin'
 import { userAdminRepository } from '@/server/user-admin'
@@ -51,9 +52,9 @@ export default async function AdminMergePage({
   const candidates =
     into === ''
       ? []
-      : (await repository.search({ username: into, afterUserId: 0, limit: 10 })).rows.filter(
-          (row) => row.id !== member.id,
-        )
+      : (
+          await repository.search({ username: into, afterUserId: 0, limit: 10 })
+        ).rows.filter((row) => row.id !== member.id)
 
   const merge = new PostgresUserMergeRepository(getDb())
   const previews = await Promise.all(
@@ -64,24 +65,29 @@ export default async function AdminMergePage({
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <a href={`/admin/users/${member.id}`} className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
-          ← {member.username}
-        </a>
-        <h1 className="font-serif text-2xl font-semibold">Merge {member.username}</h1>
-        <p className="text-sm text-muted-foreground">
-          <strong>{member.username}</strong> is the account that disappears.
-          Everything it ever posted becomes the other account&rsquo;s, and this
-          one is closed. Check the direction before you press anything — there
-          is no undo.
-        </p>
-      </div>
-
-      <form method="get" className="flex flex-col gap-3 rounded-lg border border-border p-4">
+    <PanelPage
+      back={{ href: `/admin/users/${member.id}`, label: member.username }}
+      title={`Merge ${member.username}`}
+      lede={
+        <>
+          <strong>{member.username}</strong> is the account that disappears. Everything it
+          ever posted becomes the other account&rsquo;s, and this one is closed. Check the
+          direction before you press anything — there is no undo.
+        </>
+      }
+    >
+      <form
+        method="get"
+        className="flex flex-col gap-3 rounded-lg border border-border p-4"
+      >
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Keep which account?</span>
-          <input name="into" defaultValue={into} className={INPUT} placeholder="Username" />
+          <input
+            name="into"
+            defaultValue={into}
+            className={INPUT}
+            placeholder="Username"
+          />
         </label>
         <div>
           <button
@@ -109,16 +115,17 @@ export default async function AdminMergePage({
             <p className="text-sm text-muted-foreground">
               {preview.posts} post{preview.posts === 1 ? '' : 's'}, {preview.threads}{' '}
               thread{preview.threads === 1 ? '' : 's'}, {preview.privateMessages} private
-              message{preview.privateMessages === 1 ? '' : 's'} and {preview.attachments}{' '}
-              attachment{preview.attachments === 1 ? '' : 's'} would move from{' '}
-              {member.username} to {row.username}.
+              message
+              {preview.privateMessages === 1 ? '' : 's'} and {preview.attachments}{' '}
+              attachment
+              {preview.attachments === 1 ? '' : 's'} would move from {member.username} to{' '}
+              {row.username}.
             </p>
 
             {preview.blockedByBan ? (
               <p className="text-sm text-muted-foreground">
-                One of these accounts is banned. A merge carries the ban record
-                across, which would lock out an account nobody decided to ban —
-                lift it first.
+                One of these accounts is banned. A merge carries the ban record across,
+                which would lock out an account nobody decided to ban — lift it first.
               </p>
             ) : (
               <MergeForm
@@ -140,27 +147,25 @@ export default async function AdminMergePage({
         <p>What a merge does, in full:</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
           <li>
-            Every post, thread, message, attachment, warning and report moves,
-            including the names shown beside them.
+            Every post, thread, message, attachment, warning and report moves, including
+            the names shown beside them.
           </li>
           <li>
             The losing account&rsquo;s sessions and login tokens are{' '}
-            <strong>destroyed</strong>, not moved — a merge is not a way to hand
-            somebody a login.
+            <strong>destroyed</strong>, not moved — a merge is not a way to hand somebody
+            a login.
           </li>
           <li>
-            Where both accounts had the same subscription, group or preference,
-            the kept account&rsquo;s wins.
+            Where both accounts had the same subscription, group or preference, the kept
+            account&rsquo;s wins.
           </li>
           <li>
-            Ratings and relations between the two accounts are removed, because
-            after a merge they would say somebody rated or ignored themselves.
+            Ratings and relations between the two accounts are removed, because after a
+            merge they would say somebody rated or ignored themselves.
           </li>
-          <li>
-            The losing account is closed, not deleted. Its username stays taken.
-          </li>
+          <li>The losing account is closed, not deleted. Its username stays taken.</li>
         </ul>
       </div>
-    </div>
+    </PanelPage>
   )
 }

@@ -1,10 +1,18 @@
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 
+import { Card, CardContent, CardFooter, Input, buttonVariants, cn } from '@meith/ui'
+
+import { PanelPage } from '@/components/shell/panel-page'
 import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { requireAdmin } from '@/server/admin'
 import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
-import { buildAdminSettingsModel, settingsHref } from '@/view/admin-settings'
+import {
+  DEFAULT_SETTING_GROUP,
+  buildAdminSettingsModel,
+  settingsHref,
+} from '@/view/admin-settings'
 
 export const metadata: Metadata = { title: 'Board settings' }
 
@@ -29,6 +37,22 @@ export default async function AdminSettingsPage({
   await requireAdmin()
 
   const query = await searchParams
+
+  /*
+   * A bare `/admin/settings` names the group it is about to show.
+   *
+   * The screen has always defaulted to the first group; the URL simply did not
+   * say so, which was invisible until the groups moved into the rail — an
+   * address with no `group=` lit nothing, so an operator arriving at Board
+   * settings saw the board's fields with no indication of which of the ten
+   * groups that was. Stating the default costs one redirect on the way in and
+   * makes every settings address bookmarkable as what it actually shows.
+   */
+  if (query.group === undefined && query.q === undefined) {
+    redirect(
+      settingsHref({ group: DEFAULT_SETTING_GROUP, advanced: query.advanced === '1' }),
+    )
+  }
   const model = buildAdminSettingsModel({
     snapshot: await getSettings(),
     query: query.q,
@@ -42,94 +66,85 @@ export default async function AdminSettingsPage({
    * dropdown that causes it lives — the same warning on the theme tab would be
    * noise, and F70's health view is where it is stated unconditionally.
    */
-  const mail =
-    model.activeGroup === 'registration' ? await assessMailReadiness() : null
+  const mail = model.activeGroup === 'registration' ? await assessMailReadiness() : null
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-2xl font-semibold">Board settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Every setting this build has, with what it does. A value equal to its
-          default is not stored, so changing a default in a later release reaches
-          a board that never touched it.
-        </p>
-      </div>
+    <PanelPage
+      title="Board settings"
+      lede={
+        <>
+          Every setting this build has, with what it does. A value equal to its default is
+          not stored, so changing a default in a later release reaches a board that never
+          touched it.
+        </>
+      }
+    >
+      {/*
+        The two filters, together, in a bar that looks like one.
 
-      {/* A GET form: the search term lands in the URL and is shareable. */}
-      <form method="get" className="flex flex-wrap items-center gap-2">
-        <label className="flex-1">
-          <span className="sr-only">Search settings</span>
-          <input
-            type="search"
-            name="q"
-            defaultValue={model.query}
-            placeholder="Search by name or description"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-          />
-        </label>
-        {model.showAdvanced && <input type="hidden" name="advanced" value="1" />}
-        <button
-          type="submit"
-          className="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm font-medium"
-        >
-          Search
-        </button>
-      </form>
+        They used to be a search form, then a row of group chips, then a line of
+        muted prose carrying the advanced toggle as an underlined word. Only one
+        of those three is navigation — the groups, which are in the rail now —
+        and the other two are filters over the list below. Putting them in one
+        bounded row says that: this is what is narrowing what you are about to
+        read, and here is how to widen it.
+      */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3 p-3">
+          {/* A GET form: the search term lands in the URL and is shareable. */}
+          <form method="get" className="flex min-w-64 flex-1 items-center gap-2">
+            <label className="flex-1">
+              <span className="sr-only">Search settings</span>
+              <Input
+                type="search"
+                name="q"
+                defaultValue={model.query}
+                placeholder="Search every group by name or description"
+              />
+            </label>
+            {model.showAdvanced && <input type="hidden" name="advanced" value="1" />}
+            <button type="submit" className={buttonVariants({ variant: 'outline' })}>
+              Search
+            </button>
+          </form>
 
-      <nav className="flex flex-wrap gap-2 text-sm" aria-label="Setting groups">
-        {model.tabs.map((tab) => (
-          <a
-            key={tab.group}
-            href={settingsHref({ group: tab.group, advanced: model.showAdvanced })}
-            aria-current={model.activeGroup === tab.group ? 'page' : undefined}
-            className={
-              model.activeGroup === tab.group
-                ? 'rounded-md bg-secondary px-3 py-1 font-medium'
-                : 'rounded-md px-3 py-1 text-muted-foreground hover:text-foreground'
-            }
-          >
-            {tab.label}
-          </a>
-        ))}
-      </nav>
+          {/*
+            A link rather than a checkbox, because the state is in the URL and
+            has to survive with scripting off — a checkbox would need a submit
+            of its own, and a second submit button in a filter bar is a thing
+            operators press expecting it to save the form below.
 
-      <p className="text-xs text-muted-foreground">
-        {model.query === ''
-          ? null
-          : `Searching every group for “${model.query}”. `}
-        {model.showAdvanced ? (
-          <a
-            href={settingsHref({
-              group: model.activeGroup,
-              query: model.query,
-              advanced: false,
-            })}
-            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
-            Hide advanced settings
-          </a>
-        ) : (
-          <>
-            {model.hiddenAdvanced > 0 && (
-              <>
-                {model.hiddenAdvanced} advanced setting
-                {model.hiddenAdvanced === 1 ? ' is' : 's are'} hidden.{' '}
-              </>
-            )}
+            It carries its own count so the offer is concrete: "Show 2 advanced"
+            rather than a standing invitation to a screen that may have none.
+          */}
+          {(model.showAdvanced || model.hiddenAdvanced > 0) && (
             <a
               href={settingsHref({
                 group: model.activeGroup,
                 query: model.query,
-                advanced: true,
+                advanced: !model.showAdvanced,
               })}
-              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+              className={cn(
+                buttonVariants({ variant: model.showAdvanced ? 'secondary' : 'outline' }),
+                'shrink-0',
+              )}
             >
-              Show advanced settings
+              {model.showAdvanced
+                ? 'Hide advanced'
+                : `Show ${model.hiddenAdvanced} advanced`}
             </a>
-          </>
-        )}
-      </p>
+          )}
+        </CardContent>
+
+        <CardFooter>
+          {model.query === ''
+            ? `${model.total} setting${model.total === 1 ? '' : 's'} in ${
+                model.groups[0]?.label ?? 'this group'
+              }.`
+            : `${model.total} match${model.total === 1 ? '' : 'es'} for “${model.query}”, across every group.`}
+          {model.showAdvanced && ' Advanced settings are shown.'}
+        </CardFooter>
+      </Card>
 
       {mail?.unactivatable && (
         <section
@@ -148,15 +163,16 @@ export default async function AdminSettingsPage({
             link that would release it never arrives.
           </p>
           <p className="text-sm">
-            Either set the activation method to <strong className="font-medium">none</strong>{' '}
-            or <strong className="font-medium">admin</strong>, or configure a mail driver.
-            The driver is an environment variable and takes a restart; see the Mail section
-            of the operator handbook.
+            Either set the activation method to{' '}
+            <strong className="font-medium">none</strong> or{' '}
+            <strong className="font-medium">admin</strong>, or configure a mail driver.
+            The driver is an environment variable and takes a restart; see the Mail
+            section of the operator handbook.
           </p>
         </section>
       )}
 
       <AdminSettingsForm groups={model.groups} />
-    </div>
+    </PanelPage>
   )
 }
