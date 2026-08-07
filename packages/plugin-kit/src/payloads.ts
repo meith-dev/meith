@@ -49,6 +49,8 @@ import type {
   ForumDisplayModel,
   ForumRowSlotModel,
   HeaderModel,
+  LatestPostsModel,
+  LatestThreadsModel,
   MemberProfileModel,
   NavigationModel,
   NoticeModel,
@@ -166,6 +168,8 @@ export interface HookSignatures {
   'view.member-profile': { value: MemberProfileModel; context: ViewerRef }
   'view.board-stats': { value: BoardStatsModel; context: ViewerRef }
   'view.who-is-online': { value: WhoIsOnlineModel; context: ViewerRef }
+  'view.latest-threads': { value: LatestThreadsModel; context: ViewerRef }
+  'view.latest-posts': { value: LatestPostsModel; context: ViewerRef }
   'view.pagination': { value: PaginationModel; context: ViewerRef }
   'view.search-form': { value: SearchFormModel; context: ViewerRef }
   'view.error-notice': { value: ErrorNoticeModel; context: ViewerRef & RequestRef }

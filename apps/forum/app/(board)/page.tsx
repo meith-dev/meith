@@ -5,6 +5,9 @@ import { requireSlot } from "@meith/theme-kit"
 import { boardRegion, filterView, viewerRef } from "@/server/plugin-view"
 
 import { liveAnnouncements } from "@/server/announcements"
+import { LATEST_REFRESH_SECONDS, renderLatestPanels } from "@/server/board-latest"
+import { refreshLatestPanels } from "@/server/board-latest-actions"
+import { LiveRegion } from "@/components/board/live-region"
 import { getContainer } from "@/server/container"
 import { getActor } from "@/server/context"
 import { getViewerPreferences } from "@/server/viewer-preferences"
@@ -65,10 +68,17 @@ export default async function BoardIndexPage() {
    * reading is visibly false.
    */
   const now = new Date()
-  const [online, totals, record] = await Promise.all([
+  const [online, totals, record, latest] = await Promise.all([
     readOnline(actor, now),
     readTotals(),
     presenceRepository()?.readRecord() ?? Promise.resolve({ count: 0, at: null }),
+    /*
+     * The sidebar's live pair, already rendered — the same function the refresh
+     * action calls, so the page and every subsequent minute produce the same
+     * two panels from one implementation. Null on a board with no thread index,
+     * exactly like the two above it.
+     */
+    renderLatestPanels(),
   ])
 
   /*
@@ -193,6 +203,23 @@ export default async function BoardIndexPage() {
         )),
         stats: stats === null ? null : <BoardStats {...stats} />,
         online: whoIsOnline === null ? null : <WhoIsOnline {...whoIsOnline} />,
+        /*
+         * The island wraps the panels rather than replacing them: what is here
+         * on the first response is the server's render, and with scripting off
+         * that is all this ever is. The action it polls returns the same two
+         * slots rendered again — see `board-latest-actions.ts` for why markup
+         * rather than JSON, and why not `router.refresh()`.
+         */
+        latest:
+          latest === null ? null : (
+            <LiveRegion
+              refresh={refreshLatestPanels}
+              seconds={LATEST_REFRESH_SECONDS}
+              label="Latest activity"
+            >
+              {latest}
+            </LiveRegion>
+          ),
         /* F80's `index.footer` region, rendered by the theme at the foot of the body. */
         plugins: boardRegion('index.footer', actor),
         /*

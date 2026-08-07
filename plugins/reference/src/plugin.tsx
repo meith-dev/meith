@@ -205,6 +205,14 @@ export const referencePlugin = definePlugin({
       record('view.who-is-online', value)
       return value
     },
+    'view.latest-threads': (value) => {
+      record('view.latest-threads', value)
+      return value
+    },
+    'view.latest-posts': (value) => {
+      record('view.latest-posts', value)
+      return value
+    },
 
     /* ---- Forum and thread (F30/F31) ---- */
     'view.forum-display': (value) => {

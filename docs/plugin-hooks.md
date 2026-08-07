@@ -9,7 +9,7 @@
   disagree.
 -->
 
-**93 hooks** — 48 filters, 45 events — and 6 UI regions. **23 are wired**: something in the board fires
+**95 hooks** — 50 filters, 45 events — and 6 UI regions. **25 are wired**: something in the board fires
 them today, and the rest are declared but not yet reached by a call site.
 
 The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
@@ -71,6 +71,8 @@ the limits.
 | `view.member-profile` | filter | yes | `MemberProfileModel` | `ViewerRef` |
 | `view.board-stats` | filter | yes | `BoardStatsModel` | `ViewerRef` |
 | `view.who-is-online` | filter | yes | `WhoIsOnlineModel` | `ViewerRef` |
+| `view.latest-threads` | filter | yes | `LatestThreadsModel` | `ViewerRef` |
+| `view.latest-posts` | filter | yes | `LatestPostsModel` | `ViewerRef` |
 | `view.pagination` | filter | yes | `PaginationModel` | `ViewerRef` |
 | `view.search-form` | filter | yes | `SearchFormModel` | `ViewerRef` |
 | `view.error-notice` | filter | yes | `ErrorNoticeModel` | `ViewerRef & RequestRef` |
@@ -97,6 +99,8 @@ the limits.
 - **`view.member-profile`** — A member’s profile model, including its custom fields and action links.
 - **`view.board-stats`** — The board totals block.
 - **`view.who-is-online`** — The online list, already resolved against the reader.
+- **`view.latest-threads`** — The index sidebar’s newest-threads panel. Runs again on every refresh of the live region, not only on the page load — keep it cheap.
+- **`view.latest-posts`** — The index sidebar’s newest-posts panel. Same refresh cost as view.latest-threads.
 - **`view.pagination`** — A resolved page-link window.
 - **`view.search-form`** — The search form model, including its filter options.
 - **`view.error-notice`** — The error page model. Runs on the page that renders when things are broken.

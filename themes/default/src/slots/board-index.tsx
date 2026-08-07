@@ -6,24 +6,42 @@ import { PAGE_BODY } from '../shared'
 /**
  * The board index body (F29).
  *
- * A frame around four regions the page fills. `stats` and `online` are `null` on
- * a board with no rollup yet — rendering nothing rather than an empty box,
- * because a "0 members online" panel on a board with no online tracking is a lie
- * with a number in it.
+ * A frame around five regions the page fills, in three bands: the forums, a
+ * rail beside them, and a footer under both. Every region may be absent —
+ * `stats` and `online` are `null` on a board with no rollup, `latest` on a board
+ * with no thread index — and absent means *nothing rendered*, not an empty box.
+ * A "0 members online" line on a board that keeps no presence is a lie with a
+ * number in it.
  *
- * ## The two panels sit side by side
+ * ## The rail is for what moves
  *
- * They used to be stacked, which on a wide screen put the board's totals below
- * the fold on a page whose whole job is to fit. They are both short, they are
- * both summaries, and neither is more important than the other — which is
- * exactly the case a two-column grid is for. Below `lg` they stack again, since
- * two 40%-width panels on a phone are two unreadable panels.
+ * The newest threads and the newest posts change while somebody is looking at
+ * the page — the host refreshes that region on a timer — so they sit beside the
+ * forum listing where a reader can see them change, rather than under it where
+ * nobody is looking.
  *
- * Order matters at both widths: who is here now, then how much is here in total.
- * A board's liveness is the thing a returning member is checking for.
+ * Two columns above `lg`: the forums, and a 20rem rail. Below `lg` the rail
+ * becomes panels stacked under the listing, because 20rem of sidebar on a phone
+ * is a second page nobody scrolled to. `lg:items-start` is load-bearing rather
+ * than tidy — grid items stretch by default, so without it the rail's last card
+ * would grow to the height of a fifty-forum listing.
+ *
+ * ## The totals and the online list are the page's footer
+ *
+ * They were cards under the listing, then cards at the foot of the rail, and
+ * they are neither now: they are two lines across the bottom of the page, above
+ * the board's own footer bar. A card is a container for something a reader acts
+ * on, and these are facts *about* the board — three numbers, a name, and who
+ * else is here. As lines they cost one row each instead of two panels, and they
+ * read as what they are: the small print under the board.
+ *
+ * The order is the same argument the two-column version made: who is here now,
+ * then how much is here in total. A returning member is checking for the first.
  */
 export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
-  const hasPanels = regions.stats !== null || regions.online !== null
+  /* `?? null` folds "the host did not send it" and "there was none" together. */
+  const rail = (regions.latest ?? null) !== null
+  const footer = regions.stats !== null || regions.online !== null
 
   return (
     <div className={PAGE_BODY}>
@@ -53,10 +71,29 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
         </form>
       )}
 
-      <div className="flex flex-col gap-4">{regions.categories}</div>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        <div className="flex min-w-0 flex-col gap-4">{regions.categories}</div>
 
-      {hasPanels && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        {rail && (
+          /*
+           * A landmark with a name. A rail of panels is a region a screen
+           * reader user should be able to jump to and skip, and an unlabelled
+           * `<aside>` on a page that also has `<main>` is a complementary
+           * region announced as "complementary".
+           */
+          <aside aria-label="Board activity" className="flex min-w-0 flex-col gap-4">
+            {regions.latest}
+          </aside>
+        )}
+      </div>
+
+      {footer && (
+        /*
+         * A rule and two lines, not a panel. The border is the whole visual
+         * device: it separates the board from the facts about the board, which
+         * is the only thing a container was doing here.
+         */
+        <div className="flex flex-col gap-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
           {regions.online}
           {regions.stats}
         </div>

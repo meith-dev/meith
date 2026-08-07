@@ -180,6 +180,18 @@ export const HOOKS = {
     feature: 'F75',
     purpose: 'The online list, already resolved against the reader.',
   },
+  'view.latest-threads': {
+    kind: 'filter',
+    feature: 'F29',
+    purpose:
+      'The index sidebar’s newest-threads panel. Runs again on every refresh ' +
+      'of the live region, not only on the page load — keep it cheap.',
+  },
+  'view.latest-posts': {
+    kind: 'filter',
+    feature: 'F29',
+    purpose: 'The index sidebar’s newest-posts panel. Same refresh cost as view.latest-threads.',
+  },
   'view.pagination': {
     kind: 'filter',
     feature: 'F30',

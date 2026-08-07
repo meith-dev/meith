@@ -93,8 +93,18 @@ import { SLOT_NAMES, isSlotName, type SlotName } from './slots'
  * any earlier minor renders exactly what it did before. It is a `LinkModel`
  * rather than a string each theme hardcodes because the app owns the words and
  * the URL, which is the same reason `links` is one.
+ *
+ * **0.9** added the `LatestThreads` and `LatestPosts` slots and the optional
+ * `BoardIndexModel.regions.latest` that places them. Two new slots and one
+ * optional field — additive by construction, since no theme can have
+ * implemented a slot that did not exist, and a theme written against 0.8
+ * compiles and renders an index without a sidebar. The third exercise of the
+ * policy on a new slot, and the first where the *page* rather than the theme
+ * gained a moving part: the region refreshes itself while somebody is looking
+ * at it, and the slots stay `server` regardless, because what polls is an
+ * island the app owns and what it fetches is these two slots rendered again.
  */
-export const THEME_API_VERSION = '0.8'
+export const THEME_API_VERSION = '0.9'
 
 /**
  * How much of a promise a slot carries.
@@ -140,6 +150,14 @@ export const SLOT_STABILITY: Readonly<Record<SlotName, Stability>> = {
   ForumRow: 'stable',
   BoardStats: 'stable',
   WhoIsOnline: 'stable',
+  /*
+   * Rendered by both themes and by the index from the day they landed, which is
+   * the same bar `Announcement` cleared. The models were handed to real
+   * components before this line was written — that is what separates these from
+   * the provisional pair below.
+   */
+  LatestThreads: 'stable',
+  LatestPosts: 'stable',
 
   ForumDisplay: 'stable',
   ThreadRow: 'stable',

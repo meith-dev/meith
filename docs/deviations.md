@@ -8245,3 +8245,92 @@ new operator what is wrong, that did not merely fail to help: it sent them to
 change something that cannot have any effect, and the link in every password
 reset stayed broken. Found while adding the mail check beside it, which is the
 usual way.
+
+### D108 — The index has a sidebar, and its two live panels poll a Server Action rather than the page
+
+**Plan:** nothing. F29 built the index as a forum listing, and F75 added the
+statistics and the online list as a two-column strip underneath it. Neither
+names a sidebar or a "latest threads" panel; both are the classic furniture of
+the boards this one is a successor to, and both were absent.
+
+**Implemented:** two new stable slots, `LatestThreads` and `LatestPosts`, a new
+optional `BoardIndexModel.regions.latest` that places them (theme contract
+0.8 → 0.9), and three bands in the default theme's index: the forum listing, a
+right-hand rail holding the live pair, and a two-line footer under both carrying
+the board's totals and its online list. `themes/midnight` keeps its own
+arrangement and stacks everything above the forums, which is the region contract
+working: the page hands both themes the same nodes.
+
+**The rail is for what moves; the footer is for what the board is.** The live
+pair sits beside the listing because it changes while somebody is looking at the
+page, and content that changes below the fold changes where nobody is looking.
+The totals and the online list went the other way and stopped being cards at
+all: a card is a container for something a reader acts on, and three numbers, a
+name and a list of who else is here are facts *about* the board. As two lines
+above the board's own footer bar they cost one row each instead of two panels,
+and they read as what they are — the small print under the board. Their
+headings survive as `sr-only`, because a visible "Board statistics" title above
+one line of text is a label longer than the thing it labels, and a region with
+no accessible name is an unannounced run of numbers.
+
+**The three decisions worth recording.**
+
+**1. The panels refresh themselves, and what refreshes them is one Server Action
+returning markup.** Three shapes were available and two are worse:
+
+- `router.refresh()` on an interval is three lines and no action at all, and it
+  re-runs *the whole index* — forum listing, permission resolution, read state,
+  presence, totals, announcements — to keep two panels current. A tab left open
+  for a working day would ask for the board's most expensive page several
+  hundred times. This asks for the two panels.
+- A JSON endpoint plus a client-side renderer means a second copy of both panels
+  living in `apps/forum`, outside the theme contract, which an operator's theme
+  could no longer restyle. The markup is the theme's; the app owns only *when*
+  it changes.
+
+So `refreshLatestPanels` renders the same two server slots the page rendered and
+returns the tree; React streams it as an RSC payload and `LiveRegion` swaps it
+in. Nothing crosses as HTML and nothing is assigned to `innerHTML`. The page and
+the action call one function — `renderLatestPanels` — because two paths
+producing the same two panels would drift, and the drift would only be visible
+to people who left a tab open.
+
+That is also what keeps both slots `server`. Marking them `client` so they could
+re-render in the browser would ship both panels and everything they import to
+every reader of the index, which is the cost `slots.ts` exists to argue against.
+
+**2. A tick is skipped four ways, and each of them is a person.** Paused (WCAG
+2.2.2 asks for a stop, and more plainly: the fifth row should not be replaced
+mid-sentence); the tab is hidden (nobody is reading, and returning refreshes
+immediately rather than up to a minute late); focus is inside the region
+(swapping the tree moves the link under somebody's cursor); and the action
+failed (the panel keeps what it has — a sidebar is the least important thing on
+the page it is on). There is deliberately no `aria-live`: announcing five thread
+titles a minute is an interruption, not an accessibility feature, and the pause
+control is what the guideline actually asks for.
+
+**3. "Who's online" is a list of names now, and the detail moved to `/online`.**
+The panel used to render a row per member — name, location, last seen — which is
+right for a page and wrong anywhere on the index: sixty people reading is three
+lines each, and everything under it is unreachable. The names are an inline run,
+the first twelve always shown and the rest behind a native `<details>`, so the
+collapse costs no JavaScript and the keyboard and screen-reader behaviour are
+the browser's.
+
+This is the reverse of the change F75's slot header records — that one restored
+the location after a version of the panel had dropped it — so the distinction
+matters: the information is not gone, it is on `/online`, which the panel's
+footer links to and which exists to show exactly that. What the rail carries is
+the question a rail can answer at a glance.
+
+**Consequence:** `PostgresLatestRepository` is a fifth cross-board listing
+alongside search (F72), discovery (F74) and the feeds (F76), and it builds its
+own permission scope for the same reason each of those does — narrowing one must
+not silently widen another. Both statements order by `id desc` rather than
+`created_at desc`: ids are assigned in insertion order, so the primary key
+already *is* the creation index and a backward scan needs no sort and no index
+nothing else on this board would use.
+
+The panels are absent in fixture mode, exactly as the totals and the online list
+already are (D38). A board with no thread index renders an index with no rail,
+which is better than a rail with five invented rows in it.

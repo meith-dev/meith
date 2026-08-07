@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.8.** 27 slots: 25 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.9.** 29 slots: 27 stable, 2 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -32,6 +32,8 @@ works and has a removal scheduled below.
 | [`ForumRow`](#forumrow) | `server` | stable | `ForumRowSlotModel` |
 | [`BoardStats`](#boardstats) | `server` | stable | `BoardStatsModel` |
 | [`WhoIsOnline`](#whoisonline) | `server` | stable | `WhoIsOnlineModel` |
+| [`LatestThreads`](#latestthreads) | `server` | stable | `LatestThreadsModel` |
+| [`LatestPosts`](#latestposts) | `server` | stable | `LatestPostsModel` |
 | [`ForumDisplay`](#forumdisplay) | `server` | stable | `ForumDisplayModel` |
 | [`ThreadRow`](#threadrow) | `server` | stable | `ThreadRowSlotModel` |
 | [`SubforumList`](#subforumlist) | `server` | stable | `SubforumListModel` |
@@ -165,7 +167,7 @@ Props: `BoardIndexModel`
 | Field | Type | Notes |
 |---|---|---|
 | `markAllReadAction` | `string \| null` | The "mark all read" target — a form target, not a client handler. |
-| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * The `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the * versioning policy — a theme written against 0.1 keeps compiling and simply * does not render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode /** * Live announcements, already rendered — one `Announcement` per row, * or absent when there are none. * * Optional for the same reason the plugin region is, and under the same * policy: a theme written against an earlier minor compiles and simply does * not show them. */ readonly announcements?: ReactNode }` |  |
+| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * The self-refreshing pair: newest threads and newest posts, already * rendered, or absent on a board that cannot answer either question. * * **One region rather than two, and that is the contract rather than a * convenience.** The pair is refreshed by a single round trip while the page * is open, so it arrives as one node; two regions would be two polls of the * same board for the same reason, or one poll that could only update half of * what a theme had placed. A theme places it — the default puts it at the * top of a sidebar — but does not take it apart. * * Optional, so a theme written against an earlier minor compiles and simply * does not show it. Same rule as every other region field here. */ readonly latest?: ReactNode /** * The `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the * versioning policy — a theme written against 0.1 keeps compiling and simply * does not render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode /** * Live announcements, already rendered — one `Announcement` per row, * or absent when there are none. * * Optional for the same reason the plugin region is, and under the same * policy: a theme written against an earlier minor compiles and simply does * not show them. */ readonly announcements?: ReactNode }` |  |
 
 ### CategoryBlock
 
@@ -224,6 +226,32 @@ Props: `WhoIsOnlineModel`
 | `recordCount` | `number` |  |
 | `recordAt` | `TimeModel \| null` |  |
 | `fullListHref` | `string` | The full list, for a theme that shows only a summary here. |
+
+### LatestThreads
+
+`server` · stable
+
+The newest threads on the board, for the index sidebar. Server, not client, even though the panel refreshes itself: the app polls a Server Action that renders this slot again, so the live half is one island around the region rather than a client component per panel.
+
+Props: `LatestThreadsModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `threads` | `readonly LatestThreadModel[]` |  |
+| `capturedAt` | `TimeModel` |  |
+
+### LatestPosts
+
+`server` · stable
+
+The newest posts on the board, with an excerpt of each. Same server rendering and same refresh path as LatestThreads.
+
+Props: `LatestPostsModel`
+
+| Field | Type | Notes |
+|---|---|---|
+| `posts` | `readonly LatestPostModel[]` |  |
+| `capturedAt` | `TimeModel` |  |
 
 ### ForumDisplay
 
@@ -501,6 +529,32 @@ The last post in a forum or thread, as a listing shows it.
 | `author` | `UserRefModel` |  |
 | `at` | `TimeModel` |  |
 
+### LatestPostModel
+
+One post in the index's "latest posts" panel.
+
+| Field | Type | Notes |
+|---|---|---|
+| `threadTitle` | `string` | The thread it is in. A post has no title of its own. |
+| `href` | `string` | `/thread/12-slug#post-34` — the post, not the top of its thread. |
+| `forum` | `LinkModel` |  |
+| `author` | `UserRefModel` |  |
+| `excerpt` | `string` | The post as text: flattened out of its Markdown source and cut on a word boundary, the same way a feed entry's summary is. Flattened rather than rendered, because the board's HTML carries quotes, directives and attachment markup whose meaning is lost in two lines — and because a theme dropping raw post HTML into a sidebar is one plugin away from being an injection point. |
+| `postedAt` | `TimeModel` |  |
+
+### LatestThreadModel
+
+One thread in the index's "latest threads" panel. Every row carries its forum, because these two panels are the only lists on the board that cross it: without the forum, two identically-titled threads in two forums are the same row printed twice.
+
+| Field | Type | Notes |
+|---|---|---|
+| `title` | `string` |  |
+| `href` | `string` |  |
+| `forum` | `LinkModel` | The forum it was started in, resolved — a theme never builds an href. |
+| `author` | `UserRefModel` |  |
+| `replyCount` | `number` |  |
+| `startedAt` | `TimeModel` |  |
+
 ### LinkModel
 
 A resolved link. Themes never build hrefs; the app owns URL shape.
@@ -682,5 +736,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.8. Nothing can be: this is the first
+Nothing is deprecated in v0.9. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.
