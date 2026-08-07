@@ -52,6 +52,7 @@ not the same as encrypted, and is worth knowing before choosing.
 | `DATA_SOURCE` | No | `postgres` or `fixture`. Defaults to `fixture` when `DATABASE_URL` is unset. |
 | `ADMIN_IP_ALLOWLIST` | No | Comma-separated address prefixes. Empty allows everything. |
 | `FILESTORE_DRIVER` | No | `local` or `s3`. Defaults to `local`, which is right for a board with a disk. See below. |
+| `MIGRATIONS_DIR` | No | The folder holding the generated SQL and its `meta/_journal.json`. Normally unset — the migrator looks beside `@meith/db` in a checkout and in `/app/migrations` in the image, which is where the Dockerfile puts it. Set it only if yours is somewhere else. |
 
 ### Where uploads go
 
@@ -1049,6 +1050,20 @@ a board that has stopped sending them — see [Mail](#mail). Verification and
 password-reset links do not wait for it; if *those* are missing, mail itself is
 what to check, and the **Send a test message** button on
 `/admin/settings?group=mail` settles it in one click.
+
+### The installer's "migrate" step says it cannot find `meta/_journal.json`
+
+The migrator was looking in the wrong place. The generated SQL is *data*, so
+Next never traces it into the standalone output — the Dockerfile copies it to
+`/app/migrations` instead, and a build where that copy did not happen leaves the
+web server with no migrations to apply.
+
+Check the folder is in the image (`docker compose run --rm web ls /app/migrations`)
+and rebuild if it is not. If your deployment keeps the SQL somewhere else, name
+it with `MIGRATIONS_DIR` and redeploy.
+
+Nothing has been written when this fails: migrations are the installer's first
+step, and it stops at the first failure precisely so a retry is safe.
 
 ### "Too many connections"
 

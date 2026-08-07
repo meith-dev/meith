@@ -8497,3 +8497,34 @@ knows which kind it is asking for, and the operator has exactly one thing to
 paste either way. It is trimmed, which the SMTP password was not — surrounding
 whitespace on a pasted credential is never meaningful, and is one of the ways a
 correct key fails to send.
+
+#### And then the "migrate" step could not find its own SQL
+
+With the form finally submitting on a compose board, the first step failed with
+drizzle's answer to a missing folder: *"Can't find meta/\_journal.json file"* — a
+message naming a file nobody has heard of and no variable to set, on the page
+whose whole job is explaining what is wrong.
+
+`runMigrations()` defaulted to `path.resolve(dirname(import.meta.url), '..',
+'migrations')`, which is correct wherever the source tree is present. The
+standalone Next server is precisely where it is not: `@meith/db` has been
+compiled into a chunk under `.next/server`, and the SQL is *data*, so Next never
+traced it — the Dockerfile copies it to `/app/migrations` instead, and nothing
+told the web server that. `apps/worker/src/migrate.ts` had already worked this
+out for the `FORUM_ROLE=migrate` bundle and passes the folder explicitly; the
+installer, `forum migrate` and `forum upgrade` all called the default.
+
+The default is now a list rather than a guess: `MIGRATIONS_DIR` if set (and then
+*only* that, so an operator who gets it wrong is told rather than silently
+served a different folder), the module-relative path, `/app/migrations`, and
+then upwards from the working directory in both the workspace shape and the
+image shape. `migrationFolderCandidates` is pure, so the ordering is a unit test
+rather than something discovered on a deployment, and the impure wrapper throws
+naming `MIGRATIONS_DIR` when nothing matches — one of those two messages tells
+an operator what to do.
+
+The `import.meta.url` guess is kept and kept *first*, because in a checkout it is
+the only candidate that is certainly the right board's SQL. It is wrapped in a
+`try`, since `import.meta.url` is undefined in the CJS bundles esbuild produces
+— which is the same fact the worker's comment recorded, now handled rather than
+described.

@@ -115,6 +115,21 @@ const envSchema = z
     /** Root for FILESTORE_DRIVER=local. Ephemeral on serverless — see F05. */
     UPLOADS_DIR: nonEmpty.default(".uploads"),
 
+    /**
+     * Where the generated SQL lives, for the programs that apply it.
+     *
+     * Optional, and normally unset: `runMigrations()` looks in the places this
+     * repository actually puts it — beside `@meith/db` in a checkout, and
+     * `/app/migrations` in the image, where the Dockerfile copies it because the
+     * SQL is *data* and Next never traces it into the standalone output.
+     *
+     * It exists for the deployment that puts it somewhere else, and because the
+     * failure it prevents is unreadable: drizzle's migrator answers a missing
+     * folder with "Can't find meta/_journal.json file", which names a file
+     * nobody has heard of and no variable to set.
+     */
+    MIGRATIONS_DIR: nonEmpty.optional(),
+
     S3_BUCKET: nonEmpty.optional(),
     S3_REGION: nonEmpty.optional(),
     S3_ACCESS_KEY_ID: nonEmpty.optional(),
