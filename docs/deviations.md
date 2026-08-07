@@ -8113,3 +8113,135 @@ shared uploads volume, and that each shape publishes exactly the ports it should
 (localhost only for Compose, none at all for Coolify, whose proxy is meant to be
 the only way in). A deployment shape with no job behind it is one that is
 documented rather than supported, which is how all five of these got in.
+
+
+### D107 — Mail is board configuration, and an installer that does not prove it has not configured it (F05, F55, F83)
+
+Mail was four environment variables read once at boot. Every consequence of that
+followed from one fact: **the only way to configure mail was to redeploy.**
+
+A board is installed by somebody who does not yet have a working forum to read
+the handbook on, and the first thing that needs mail is the confirmation link for
+the second member. Putting that behind an env-var edit put it *after* the board
+went live, which is where it stayed — and the failure is silent by construction.
+The log driver does not error. The password-reset form still says "check your
+inbox". `/admin/system` warned about it, which is the right place to notice a
+problem and the wrong place to be told about one for the first time.
+
+#### The precedence rule is keyed on the value, not on presence
+
+Mail configuration now lives in `settings`, and the environment keeps a veto:
+**`MAIL_DRIVER=http` or `=smtp` wins outright; `log` or unset hands the decision
+to the board.**
+
+The obvious rule — "the environment wins if `MAIL_DRIVER` was *set*" — is not
+implementable on this side of the schema and would be wrong if it were.
+`MAIL_DRIVER` carries a zod default, the compose files forward it as
+`${MAIL_DRIVER:-log}`, and `withoutEmptyValues` deletes empty strings on the way
+in, so "present" means something different in Docker than in a shell. A rule with
+that property is worse than no rule.
+
+Keying on the value gives the property that actually matters: **every board with
+working mail keeps it.** Configuring mail through the environment has always
+meant `MAIL_DRIVER=http`, and that stays authoritative and stays ignoring the
+database. What changed is only the board that never set it — which previously
+could not send at all.
+
+The cost is stated rather than hidden: an API key stored on the board sits in the
+`settings` table in plaintext, readable by anything with database access. The
+registry already had `secret: true` for exactly this — these are its first users,
+so the values are never rendered back into the page and never reach the audit log
+— but "never displayed" is not "encrypted", and an operator who wants the
+credential out of the database has the environment. Both are supported; neither
+is silently better.
+
+#### The driver resolves per send, because the worker outlives the decision
+
+`drivers()` is memoised for the life of the process and the worker's life is
+measured in weeks. A driver chosen at boot from a *database row* would keep
+sending through last month's provider until somebody restarted the container —
+and on a board that configured mail after installing, would keep sending nothing
+forever.
+
+So `ConfiguredMailDriver` asks for the configuration on every `send`, and caches
+the built transport against a **fingerprint of the config that built it**. That
+is what makes a rotated password take effect on the next message with no
+invalidation call for anybody to forget, while a digest run still builds one SMTP
+transport rather than one per recipient.
+
+Two failure modes are deliberately different. A config that cannot send logs and
+returns — a board with mail switched off is a supported state, and throwing would
+fill the dead-letter queue with messages that, on a board which later configures
+mail, would all arrive at once weeks late. A config that could not be *read*
+throws, so the queue retries: a database hiccup must never be answered by
+discarding the message and reporting success, which is the whole reason
+`resolve.ts` refuses to downgrade a configured transport.
+
+#### SMTP was refused for a reason that stopped being true
+
+`MAIL_DRIVER=smtp` threw, and the comment beside the throw was right — silently
+downgrading a configured transport to the log driver is exactly the failure this
+codebase keeps refusing. What was wrong was the reason there was no
+implementation, recorded in the driver's own header: "HTTP rather than SMTP by
+default because SMTP's long-lived sockets are a poor fit for serverless, where a
+function may be frozen mid-handshake."
+
+D105 removed the serverless route. Mail has never gone out on a request path
+regardless — every message is queued and sent from the worker or the tick. The
+constraint was load-bearing when it was written and had been inert for a while
+before anybody noticed, which is the ordinary way a comment becomes false.
+
+Implementing it is the single highest-leverage transport available: one driver
+reaches Resend, Brevo, Postmark, Mailgun, SES, every mailbox host, and a relay the
+operator runs themselves, where the HTTP driver reaches only those providers that
+copied Resend's field names. More to the point it is the only option requiring
+**no DNS work at all** for a self-hoster who already receives mail on their
+domain — SPF and DKIM are published for it already, and that is the step standing
+between installing a board and being able to mail anybody.
+
+`security` is three values rather than nodemailer's `secure` boolean, because
+that boolean has two meanings and operators reasonably assume it has one:
+`secure: false` does not mean plaintext, it means STARTTLS. Somebody who unticks
+"secure" for port 587 believes they have turned encryption off; somebody who
+ticks it gets a hang rather than an error. The third state, `starttls`, also sets
+`requireTLS` — without it nodemailer will complete the session unencrypted if the
+server does not advertise the upgrade, which is a board sending its SMTP password
+in the clear with nothing in any log to say so.
+
+#### The installer sends before it writes, and that ordering is the feature
+
+The install form asks for mail — the one exception to F83's "three questions
+worth asking, and no more". It earns it by being the only piece of configuration
+that is *harder* to add later than now, and not for a technical reason: a board
+with no mail works, looks finished, and stays that way until the first member
+forgets their password.
+
+Asking is not the interesting half. **The action sends a real message to the
+administrator's address before the first migration runs, and refuses to install
+if it fails.** A mail step inside `INSTALL_STEPS` would be too late by
+definition — it would run after the account exists and after the marker could be
+written, so a wrong API key would leave a board that is installed, sealed, and
+unable to mail anybody, fixable only from a panel the operator has not seen yet.
+Failing before the first write leaves nothing behind and puts the provider's own
+refusal on the form beside the field that caused it.
+
+The same message text is the reason the failure is passed through verbatim rather
+than replaced with something tidy. "The domain example.com is not verified" is
+the whole answer; "Could not send test message" is a support request.
+
+Everything about mail's *shape* — is there a host, is there a key, is the sender
+an address — is one function, `mailConfigProblems`, shared by the installer's
+schema, the settings screen, the driver factory and the health view. They agree
+today; the point is that they cannot drift apart tomorrow without a test failing,
+because an installer that accepted a config the driver would refuse is a board
+that installs and then cannot send.
+
+#### And a variable that never existed
+
+The preflight told operators to set `PUBLIC_URL`. There is no `PUBLIC_URL` in the
+schema, nothing reads it, and the probe two files away has read `env.APP_URL`
+since the day it was written. On the one screen whose entire purpose is telling a
+new operator what is wrong, that did not merely fail to help: it sent them to
+change something that cannot have any effect, and the link in every password
+reset stayed broken. Found while adding the mail check beside it, which is the
+usual way.

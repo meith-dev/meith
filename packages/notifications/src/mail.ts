@@ -39,7 +39,8 @@ export interface MailBrand {
   readonly boardName: string
   /**
    * Display name for the sender, from `mail.from_name`. Empty means the bare
-   * `MAIL_FROM` address — the address itself is the driver's and never travels
+   * sender address — that address belongs to the transport, whether it came
+   * from `MAIL_FROM` or from the board's own mail settings, and never travels
    * with a message.
    */
   readonly fromName?: string

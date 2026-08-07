@@ -145,13 +145,14 @@ export interface OutgoingMail {
   /**
    * Display name for the sender, shown beside the address.
    *
-   * The **address** is the driver's, fixed from `MAIL_FROM` at boot; only the
-   * name travels with the message. That split is not tidiness — the name is the
-   * `mail.from_name` setting, which an operator can change on a running board,
-   * and a worker process outlives several settings changes. A name resolved
-   * once at construction would send last week's board name for as long as the
-   * process lived, which is the bug `resolveMailBrand` already exists to avoid
-   * for the board name inside the message.
+   * The **address** belongs to the transport — `MAIL_FROM`, or the board's
+   * `mail.from` setting when the environment does not decide (see
+   * `@meith/settings/mail`) — and only the name travels with the message. That
+   * split is not tidiness: the name is `mail.from_name`, which an operator can
+   * change on a running board, and a worker process outlives several settings
+   * changes. A name resolved once at construction would send last week's board
+   * name for as long as the process lived, which is the bug `resolveMailBrand`
+   * already exists to avoid for the board name inside the message.
    *
    * Absent or empty means the bare address, which is what every message sent
    * before this field existed looked like.

@@ -94,7 +94,9 @@ export async function resolveMailBrand(deps: {
      * board name and for the same reason: it is a setting, this runs per
      * delivery, and a worker that resolved it once at startup would sign every
      * message for the rest of its life with whatever the board was called then.
-     * The *address* is `MAIL_FROM` and belongs to the driver.
+     * The *address* belongs to the driver — `MAIL_FROM`, or the board's
+     * `mail.from` setting when the environment leaves that decision to the
+     * board (see `@meith/settings/mail`).
      */
     fromName = settings.get('mail.from_name')
   } catch (err) {

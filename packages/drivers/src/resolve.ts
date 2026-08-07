@@ -16,11 +16,20 @@ import {
   type QueueDriver,
 } from '@meith/core'
 
+import { PostgresSettingsRepository, getDb } from '@meith/db'
+import {
+  NO_MAIL,
+  SettingsSnapshot,
+  mailConfigFromEnvironment,
+  mailConfigFromSettings,
+  type MailConfig,
+} from '@meith/settings'
+
 import { MemoryCache } from './cache/memory-cache'
 import { NextCacheDriver } from './cache/next-cache'
 import { LocalFileStore } from './files/local-file-store'
 import { S3FileStore } from './files/s3-file-store'
-import { HttpMailDriver, LogMailDriver } from './mail'
+import { ConfiguredMailDriver } from './mail'
 import { MemoryQueue } from './queue/memory-queue'
 import { PostgresQueue } from './queue/postgres-queue'
 
@@ -85,36 +94,50 @@ function buildFiles(): FileStore {
   }
 }
 
+/**
+ * The mail configuration, as of right now.
+ *
+ * Exported so the health view and the settings screen can ask the same question
+ * the driver asks, through the same precedence rule, rather than each
+ * reimplementing "does the environment override this".
+ *
+ * Reads the settings table directly rather than through the app's cached
+ * `getSettings()`, for the reason `resolveMailBrand` already does: this runs in
+ * the worker and in the CLI, neither of which has Next's data cache, and a mail
+ * job must not depend on a caching layer that only exists in one of the three
+ * processes that send mail.
+ */
+export async function currentMailConfig(): Promise<MailConfig> {
+  const fromEnvironment = mailConfigFromEnvironment(env)
+  if (fromEnvironment !== null) return fromEnvironment
+
+  /*
+   * Fixture mode has no `settings` table. Every other source of configuration
+   * has already been consulted by this point, so the honest answer is that this
+   * board sends nothing — which is also the right default for the development
+   * and test runs that fixture mode exists for.
+   */
+  if (env.DATA_SOURCE !== 'postgres') return NO_MAIL
+
+  const overrides = await new PostgresSettingsRepository(getDb()).loadAll()
+  return mailConfigFromSettings(SettingsSnapshot.fromOverrides(new Map(overrides)))
+}
+
+/**
+ * Mail is the one driver not chosen here.
+ *
+ * Every other driver in this file is selected by an environment variable and
+ * fixed for the life of the process, which is correct for a queue or a file
+ * store: changing one is a deployment decision. Mail is not. It is board
+ * configuration an administrator edits — see `@meith/settings/mail` — so what
+ * this returns is a driver that resolves its own transport per message.
+ *
+ * That also removes the `MAIL_DRIVER=smtp` refusal that used to live here.
+ * SMTP is implemented now (see `mail/smtp.ts`), and the reason it was not — a
+ * serverless host freezing a function mid-handshake — went away with D105.
+ */
 function buildMail(): MailDriver {
-  switch (env.MAIL_DRIVER) {
-    case 'log':
-      return new LogMailDriver()
-
-    case 'http': {
-      /*
-       * env's cross-field rules already require these together, but narrowing
-       * here keeps the driver's constructor honest about needing non-optional
-       * strings rather than asserting non-null.
-       */
-      const { MAIL_HTTP_ENDPOINT, MAIL_HTTP_TOKEN, MAIL_FROM } = env
-      if (!MAIL_HTTP_ENDPOINT || !MAIL_HTTP_TOKEN || !MAIL_FROM) {
-        throw new ConfigurationError(
-          'MAIL_DRIVER=http requires MAIL_HTTP_ENDPOINT, MAIL_HTTP_TOKEN and MAIL_FROM.',
-        )
-      }
-      return new HttpMailDriver(MAIL_HTTP_ENDPOINT, MAIL_HTTP_TOKEN, MAIL_FROM)
-    }
-
-    case 'smtp':
-      /*
-       * Not silently downgraded to the log driver: an operator who configured
-       * SMTP and saw no errors would assume password resets were being
-       * delivered while every one was discarded.
-       */
-      throw new ConfigurationError(
-        'MAIL_DRIVER=smtp is not implemented yet. Use "http" or "log".',
-      )
-  }
+  return new ConfiguredMailDriver(currentMailConfig)
 }
 
 export function drivers(): Drivers {
