@@ -269,8 +269,15 @@ export const posts = pgTable(
      * The alternative was `invalidateIndex()`: null every vector and let the
      * backfill refill them. That works and it takes search away from the whole
      * board while it runs, which is the one thing a fix for search must not do.
+     *
+     * `1` here and `0` in the migration's `ADD COLUMN`, exactly as `body_format`
+     * next door: the migration stamps the rows already there as *old* and then
+     * sets what new ones get, and this declares the second of those. Nothing
+     * relies on it — every write path names the column — and a row that somehow
+     * reached the table without one is still caught by the backfill, because a
+     * current version with no vector is outstanding on the vector alone.
      */
-    searchVersion: smallint('search_version').notNull().default(0),
+    searchVersion: smallint('search_version').notNull().default(1),
 
     legacyMybbPid: integer('legacy_mybb_pid'),
 

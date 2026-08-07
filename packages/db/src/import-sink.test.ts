@@ -1,8 +1,11 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeEach, beforeAll, describe, expect, it } from 'vitest'
 
+import { PUBLIC_CONTENT } from '@meith/core'
+
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresImportSink } from './import-sink'
+import { PostgresSearchRepository } from './search-repo'
 import { resultRows } from './result-rows'
 
 /*
@@ -319,6 +322,63 @@ describe('the first post', () => {
     const rows = await rowsOf<{ message: string; message_html: string | null }>(sql`select message, message_html from posts where legacy_mybb_pid = 4102`)
 
     expect(rows[0]).toEqual({ message: '[b]bold[/b]', message_html: null })
+  })
+})
+
+/**
+ * F72. An import writes no search document, and that is the right call for a
+ * bulk insert of two million rows — but it is also how a board ends up with a
+ * search box that works, runs its query, and answers every term with nothing.
+ *
+ * So the property worth pinning is not "the import indexes"; it is that the
+ * board **knows** it has work outstanding and can finish it without anybody
+ * being told to go and find a command.
+ */
+describe('the search index after an import', () => {
+  const searchFor = async (terms: string) =>
+    (
+      await new PostgresSearchRepository(harness.db).search(
+        { terms, grouping: 'posts', sort: 'relevance', limit: 10, after: null },
+        { forumIds: [1], viewerUserId: null, content: PUBLIC_CONTENT },
+      )
+    ).hits.length
+
+  it('leaves imported posts outstanding rather than looking finished', async () => {
+    /*
+     * The row arrives with no vector and the column's default version, so the
+     * *version* alone would call it current. It is the missing vector that
+     * makes it outstanding, and this is the assertion that says so — kills the
+     * mutant that checks the version and not the vector, which would leave an
+     * entire imported board reported as indexed and searchable for nothing.
+     */
+    await seedTree()
+    await sink.putPosts([post(4200, 91, 3, 1)])
+
+    expect(await new PostgresSearchRepository(harness.db).indexProgress()).toEqual({
+      indexed: 0,
+      pending: 1,
+    })
+    expect(await searchFor('body')).toBe(0)
+  })
+
+  it('becomes searchable once the backfill has run, by title as well as body', async () => {
+    /*
+     * The whole of the third fix, at the layer that motivates it. The title
+     * matters twice over here: an imported post carries no `subject` of its
+     * own, so the thread's title is the only weight-A field it will ever have,
+     * and MyBB boards are searched by thread title more than by anything else.
+     */
+    await seedTree()
+    await sink.putPosts([post(4201, 91, 3, 1)])
+
+    const search = new PostgresSearchRepository(harness.db)
+    const run = await search.reindexChunk(0, 100)
+
+    expect(run.indexed).toBe(1)
+    expect(await search.indexProgress()).toEqual({ indexed: 1, pending: 0 })
+    expect(await searchFor('body')).toBe(1)
+    /* `Thread 91` is the imported thread's title; no post body contains it. */
+    expect(await searchFor('Thread 91')).toBe(1)
   })
 })
 

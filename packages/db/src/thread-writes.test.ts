@@ -325,18 +325,26 @@ describe('PostgresThreadWriteRepository and the search index', () => {
     expect(await vectorOf(created.postId)).toBe(written)
   })
 
-  it('stamps a new post with the current document version', async () => {
+  it('leaves the board with nothing outstanding to reindex', async () => {
     /*
-     * Or every post the board writes would queue itself for a rebuild it does
-     * not need, and `search.reindex` would never report itself finished.
+     * A post the write path indexed must not also be queued for the backfill,
+     * or `search.reindex` never reports itself finished and an operator reads a
+     * pending count that never falls.
+     *
+     * This does not separately pin the `search_version` stamp: the column's own
+     * default is the current version too, so a writer that omitted it would
+     * still land on the right number. Naming it is for the day the version
+     * moves ahead of the default, and for the row saying which rule wrote it
+     * rather than which rule the table happens to assume. What this *does* kill
+     * is a writer that leaves the vector unwritten — four tests here catch that
+     * one, and this is the one that catches it as an operator would see it.
      */
-    const created = await repo.create(RECORD)
+    await repo.create(RECORD)
 
     expect(await new PostgresSearchRepository(db).indexProgress()).toEqual({
       indexed: 1,
       pending: 0,
     })
-    expect(created.postId).toBeGreaterThan(0)
   })
 
   it('indexes a reply on its own words, not on the thread’s title', async () => {

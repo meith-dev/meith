@@ -307,13 +307,26 @@ describe('applyEdit', () => {
     expect(found.hits.map((hit) => hit.postId)).toEqual([first])
   })
 
-  it('leaves the board with nothing outstanding to reindex', async () => {
-    /* An edit that forgot the version stamp would queue its post for a rebuild
-       it does not need, for ever. */
+  it('brings a post from an older document version up to date', async () => {
+    /*
+     * An edit writes the document under the *current* rule, so it has to stamp
+     * the row with that rule too. This is only observable on a row that was
+     * behind — a legacy board's post, edited after the upgrade — which is why
+     * the two posts here are pushed back to version 0 first. Without the stamp
+     * the edited row keeps a vector the backfill will rewrite to something
+     * identical, for ever, and `indexProgress` goes on reporting work that has
+     * already been done.
+     */
     const { threadId, postIds } = await seedThread()
+    await db.execute(sql`update posts set search_version = 0`)
+
+    const search = new PostgresSearchRepository(db)
+    expect(await search.indexProgress()).toEqual({ indexed: 0, pending: 2 })
+
     await repo.applyEdit(edit(postIds[1]!, threadId))
 
-    expect((await new PostgresSearchRepository(db).indexProgress()).pending).toBe(0)
+    /* Exactly the edited post came forward; the untouched one is still behind. */
+    expect(await search.indexProgress()).toEqual({ indexed: 1, pending: 1 })
   })
 
   it('numbers a second revision after the first', async () => {

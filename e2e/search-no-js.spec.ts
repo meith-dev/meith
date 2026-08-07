@@ -1,9 +1,8 @@
 /**
  * Search, in a browser, with JavaScript off.
  *
- * There was no spec here, and the two failures it now pins are both invisible
- * from below — each one produces a search that runs, returns cleanly, and finds
- * nothing:
+ * There was no spec here, and the three failures it now pins all produce the
+ * same thing: a search that runs, returns cleanly, and finds nothing.
  *
  *   - **A guest could not search at all.** The stored search that carries the
  *     query is owned by an account or by a session, and a logged-out reader has
@@ -13,9 +12,17 @@
  *     `posts.subject`, a column nothing on this board writes; the thread's
  *     title is on `threads`. Bodies matched, titles did not, and searching for
  *     the title of a thread is the most common search a forum gets.
+ *   - **Nothing filled the index by itself.** A bulk insert writes no document,
+ *     so an imported board answered everything with nothing until an operator
+ *     knew to run a command.
  *
- * Both needed a browser to see. Every layer underneath was individually correct
- * about a query nobody could reach with the words they would actually type.
+ * One test each, and they are kept apart on purpose: the guest case searches a
+ * term that matches nothing, so it needs no index and cannot be mistaken for a
+ * board that has not been indexed yet. A regression in one should not read as a
+ * failure of another — which is exactly what these three did to each other.
+ *
+ * All of it needed a browser to see. Every layer underneath was individually
+ * correct about a query nobody could reach with the words they would type.
  */
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
@@ -35,13 +42,18 @@ const PASSWORD = 'long-enough-password'
  *
  * The tick URL is the production path — a cron drives it on a real board — so
  * this is not a test hook.
+ *
+ * The wait is shorter than the test timeout on purpose: a task that is due runs
+ * on the first tick, so this passes in a second or two, and a failure should
+ * report as "the index never filled" rather than as the whole test running out
+ * of time with no reason attached.
  */
 async function indexed(request: APIRequestContext, page: Page): Promise<void> {
   await expect(async () => {
     await request.get('/api/system/tick?secret=e2e-only-tick-secret-000000000000')
     await page.goto('/search?q=version')
     await expect(page.getByRole('link', { name: 'Version 0.1 is live' })).toBeVisible()
-  }).toPass({ timeout: 60_000, intervals: [500, 1_000, 2_000, 5_000] })
+  }).toPass({ timeout: 20_000, intervals: [500, 1_000, 2_000, 5_000] })
 }
 
 /** Register through the form, then sign in. The only way to get a session. */
@@ -66,26 +78,50 @@ async function signUp(page: Page, label: string): Promise<string> {
   return username
 }
 
-test('a guest searches the board, by a word that is only in a title', async ({
+test('a guest reaches their own results page', async ({ page }) => {
+  /*
+   * The guest fix, isolated from everything else — deliberately searching a
+   * term that matches nothing, so this test needs no index and cannot be
+   * confused with one that is failing because the board is not indexed yet.
+   *
+   * A stored search is owned by an account or by a session, and the session key
+   * is a hash of the session cookie — which a logged-out reader does not have.
+   * So every guest search was stored with neither owner, and the ownership
+   * check refused exactly those rows: the form submitted, the redirect landed,
+   * and `/search/<token>` answered **404**, on every term, for everybody who
+   * had not signed in. Reaching the page at all is the whole assertion.
+   */
+  await page.goto('/search')
+  await page.getByLabel('Search for').fill('zzunlikelyzz')
+  await page.getByRole('button', { name: 'Search' }).click()
+
+  await expect(page).toHaveURL(/\/search\/[\w-]+$/)
+  await expect(page.getByRole('heading', { name: /Results for/ })).toBeVisible()
+  /*
+   * And an empty result reads as one. The reason the other fixes here are not
+   * "make search always return something": "nothing matched" has to stay
+   * reachable and legible, or the next real bug looks exactly like this one.
+   */
+  await expect(page.getByText('Nothing matched')).toBeVisible()
+})
+
+test('the board indexes itself, and a title-only word finds its thread', async ({
   page,
   request,
 }) => {
   /*
-   * Three fixes in one navigation, which is roughly how they were found.
+   * The other two fixes, in one navigation.
    *
    * The backfill: the seeded board arrives with no index at all, exactly as an
    * imported one does, and `indexed()` waits for the task that fills it. Until
-   * that task existed the wait would never have ended — an operator had to know
-   * to run a command.
+   * that task existed this wait would never have ended — an operator had to
+   * know to run a command, and a board nobody told answered every search with
+   * nothing for ever.
    *
-   * The guest half: this used to be a 404 on the redirect target, for every
-   * term, for everybody who had not signed in — and the address bar still read
-   * `/search/<token>`, so it looked like a broken link rather than like search
-   * being unavailable.
-   *
-   * The title half: "version" appears in the seeded thread's *title* and in no
+   * The title: "version" appears in the seeded thread's *title* and in no
    * post's body, so a board indexing bodies alone answers this with nothing at
-   * all while looking entirely healthy.
+   * all while looking entirely healthy. Still a guest, so the fix above carries
+   * this one too.
    */
   await indexed(request, page)
 
@@ -94,7 +130,6 @@ test('a guest searches the board, by a word that is only in a title', async ({
   await page.getByRole('button', { name: 'Search' }).click()
 
   await expect(page).toHaveURL(/\/search\/[\w-]+$/)
-  await expect(page.getByRole('heading', { name: /Results for/ })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Version 0.1 is live' })).toBeVisible()
 })
 
@@ -109,8 +144,13 @@ test('a member pages through their own results and searches within them', async 
    * from the other side, so a change that widened one and broke the other would
    * fail here rather than in production.
    */
-  await indexed(request, page)
+  /*
+   * Signed in *before* the index is waited on, so the wait itself runs as a
+   * member: a regression in the guest path should fail the guest test and leave
+   * this one reporting on what it is named for.
+   */
   await signUp(page, 'searcher')
+  await indexed(request, page)
 
   await page.goto('/search')
   await page.getByLabel('Search for').fill('desk')
@@ -135,24 +175,4 @@ test('a member pages through their own results and searches within them', async 
   await page.getByLabel('Search within these results').fill('desk notebook')
   await page.getByRole('button', { name: 'Search within' }).click()
   await expect(page.getByRole('heading', { name: /Results for/ })).toBeVisible()
-})
-
-test('a search that matches nothing says so rather than failing', async ({ page, request }) => {
-  /*
-   * The other half of the pair, and the reason the fixes above are not "make
-   * search always return something": an empty result has to stay reachable and
-   * legible, or the next real bug looks exactly like this.
-   *
-   * On an indexed board, so the assertion means "this term matched nothing"
-   * rather than "nothing was matchable" — which is the state the whole of this
-   * spec exists to tell apart.
-   */
-  await indexed(request, page)
-
-  await page.goto('/search')
-  await page.getByLabel('Search for').fill('zzunlikelyzz')
-  await page.getByRole('button', { name: 'Search' }).click()
-
-  await expect(page).toHaveURL(/\/search\/[\w-]+$/)
-  await expect(page.getByText('Nothing matched')).toBeVisible()
 })

@@ -197,3 +197,55 @@ describe('the statistics rollup', () => {
     }
   })
 })
+
+/**
+ * F72. The seam between "the tick wants a batch indexed" and the repository
+ * that indexes one — untestable from either end, and the reason it matters is
+ * that the failure it can produce is silent: a board whose search answers
+ * nothing, with a task reporting healthy runs above it.
+ */
+describe('the search index backfill', () => {
+  const base = {
+    ...unusedDeps,
+    queue: new MemoryQueue(),
+    outbox: new FakeOutbox([]),
+    events: buildEventRegistry({
+      counters: { rollUpAncestors: async () => true, applyVisibilityChange: async () => false },
+    }),
+  }
+
+  it('indexes a batch and reports how many it wrote', async () => {
+    const calls: Array<[number, number]> = []
+    const workers = taskWorkers({
+      ...base,
+      searchIndex: {
+        reindexChunk: async (afterPostId, limit) => {
+          calls.push([afterPostId, limit])
+          return { indexed: 12 }
+        },
+      },
+    })
+
+    expect(await workers.reindexSearch!(200)).toBe(12)
+    /*
+     * From the start every run, on purpose. "What is left" is a predicate on
+     * the row, so a cursor buys nothing across ticks and would be wrong the
+     * moment a release moved the document and made an older post outstanding
+     * again. Kills the mutant that threads a cursor through.
+     */
+    expect(calls).toEqual([[0, 200]])
+  })
+
+  it('is absent, not a stub, when there is no index to fill', async () => {
+    /*
+     * D32. A board with no database has no index, and `builtinTasks` reads the
+     * *presence of the key* — so a worker returning 0 here would register
+     * `search.reindex` and let it report a healthy run of nothing, for ever, on
+     * a board where search cannot work at all.
+     */
+    const workers = taskWorkers(base)
+
+    expect(workers.reindexSearch).toBeUndefined()
+    expect('reindexSearch' in workers).toBe(false)
+  })
+})
