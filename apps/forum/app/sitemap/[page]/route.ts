@@ -1,6 +1,13 @@
 import { renderSitemap } from '@/view/feed'
 import { noFeed, xmlResponse } from '@/server/feed-routes'
-import { SITEMAP_CHUNK, absolute, feedRepository, isIndexable, publicScope } from '@/server/syndication'
+import {
+  SITEMAP_CHUNK,
+  absoluteTo,
+  feedRepository,
+  isIndexable,
+  origin,
+  publicScope,
+} from '@/server/syndication'
 
 /**
  * F76 — one chunk of the sitemap.
@@ -30,13 +37,15 @@ export async function GET(
 
   const { page } = await params
   const scope = await publicScope()
+  /* Resolved once: a threads page builds up to SITEMAP_CHUNK of these. */
+  const site = await origin()
 
   if (page === 'forums.xml') {
     const forums = await repo.sitemapForums(scope)
     return xmlResponse(
       renderSitemap(
         forums.map((forum) => ({
-          loc: absolute(`/forum/${forum.forumId}-${forum.slug}`),
+          loc: absoluteTo(site, `/forum/${forum.forumId}-${forum.slug}`),
           ...(forum.lastPostAt === null ? {} : { lastmod: forum.lastPostAt }),
         })),
       ),
@@ -69,7 +78,7 @@ export async function GET(
   return xmlResponse(
     renderSitemap(
       threads.map((thread) => ({
-        loc: absolute(`/thread/${thread.threadId}-${thread.slug}`),
+        loc: absoluteTo(site, `/thread/${thread.threadId}-${thread.slug}`),
         lastmod: thread.lastPostAt,
       })),
     ),

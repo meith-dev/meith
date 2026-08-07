@@ -8334,3 +8334,93 @@ nothing else on this board would use.
 The panels are absent in fixture mode, exactly as the totals and the online list
 already are (D38). A board with no thread index renders an index with no rail,
 which is better than a rail with five invented rows in it.
+
+
+### D109 — The board's own address, and two variables that did nothing (F02, F76, F83)
+
+Three changes, and they came out of one question: what is left in the
+environment that a person has to *know*?
+
+#### `APP_URL` was the last one
+
+The `.env` the self-hosting guide tells an operator to write has five entries.
+Three are `openssl rand` output, one is the fixed literal `127.0.0.1:3000`, and
+one — `APP_URL` — is a fact about their deployment that only they have. It was
+therefore the single thing standing between that file and a script.
+
+It is also the value the handbook already called "the single most likely
+misconfiguration on a new board", and its failure is the silent kind: nothing
+errors, the password-reset form still says "check your inbox", and the message
+arrives carrying no link at all. Feeds and canonical URLs degrade to a localhost
+origin, which is at least obviously wrong.
+
+So the installer asks, with the box **prefilled from the address the operator is
+already looking at**, and the answer is stored as `board.url` where the settings
+screen can change it without a redeploy. `APP_URL` keeps the veto it has over
+mail, under the same one-sentence rule, so a deployment configured from files
+stays configured from files.
+
+**The prefill comes from `Host`, and that header is attacker-controlled.** A
+board that stored it unread would write an attacker's origin into every future
+password-reset link — host-header poisoning, self-inflicted. What makes it safe
+is the step in between: it lands in a visible, required field on a form the
+operator submits, so the value that gets stored is one a human looked at and
+confirmed. The suggestion only exists so the common case is a glance rather than
+typing an origin from memory; `suggestBoardUrl` returns empty rather than a
+guess when there is no usable header, because an empty required box asks the
+question where a wrong prefilled one answers it badly.
+
+`normaliseOrigin` and `isUsableOrigin` live in a third module, `origin.ts`, with
+no imports at all. They belong beside `resolveBoardUrl`, but `definitions.ts`
+needs `isUsableOrigin` for the setting's schema and `board-url.ts` needs
+`SettingsSnapshot` — so keeping them together made a cycle,
+definitions → board-url → store → definitions. Depcruise caught it, which is
+what that rule is for: a type-only import is still an import to a tool reading
+the source, and to a bundler deciding initialisation order.
+
+The validation is deliberately not `z.string().url()`. This value is
+concatenated with a path and emitted into an `href`, and `mailto:` and
+`javascript:` both parse as URLs — so `isUsableOrigin` tests the *scheme*, and
+rejects a pasted page address as well, since every link built from
+`https://forum.example/board` would carry `/board` in the middle.
+
+#### The knock-on: `origin()` had to become async
+
+Resolving the address can now mean a database read, so `syndication.ts`'s
+`origin()` and `absolute()` are `async`. That would have made
+`threads.map(threadEntry)` impossible, so `feed-builder` became `feedFor(origin)`
+— a factory whose three builders share one already-resolved origin.
+
+The result is better than the thing it replaced, and not by accident: R2 has
+always said "take the value as an argument". `threadEntry` is a pure function
+over a row now, testable for `https://board.example` with no environment, no
+database and no request, where before it reached into `env` from inside a
+mapping function.
+
+`absoluteTo(origin, path)` exists beside `absolute(path)` for the sitemap, which
+builds hundreds of URLs in one response and would otherwise ask the same
+question per row.
+
+#### `TICK_DEADLINE_MS` and `TICK_MAX_JOBS` were read by nothing
+
+Declared in the schema with a doc comment each, documented in `.env.example`,
+and written into the `.env` that `create-meith` scaffolds — three files
+describing behaviour that did not exist. `tick()` takes
+`{ repository, tasks, onError }`; a task's wall-clock budget comes from its own
+`maxDurationSeconds`, and the worker bounds the tick with a constant of its own.
+
+This is the D10 failure in its purest form: not a comment that drifted from its
+code, but two *variables* that drifted from theirs. An operator who tuned them
+would have changed nothing and had no way to find that out. Deleted rather than
+wired, because nothing has asked for the knob in the time it has been inert.
+(D105 mentions `TICK_DEADLINE_MS` in its argument for deleting the serverless
+route; that passage is a record of the reasoning at the time and stays as it is.)
+
+#### The tick-secret warning was wrong for the default deployment
+
+It said that without `TICK_SECRET` "the endpoint refuses every call — and nothing
+fails visibly, the work simply never happens". On the compose stack the handbook
+documents, the worker container calls `tick()` **in-process** and never touches
+`/api/system/tick`, so the work happens either way. The warning was telling the
+majority of self-hosters something untrue about their own deployment, on the
+screen they trust most. It now says which of the two shapes it applies to.

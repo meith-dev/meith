@@ -36,10 +36,20 @@ vi.mock('./container', () => ({
   }),
 }))
 vi.mock('./context', () => ({ getActor: async () => ({ userId: 42, tag: 'member' }) }))
-vi.mock('./settings', () => ({ getSettings: async () => ({ get: () => false }) }))
+/*
+ * `board.search_indexable` is the boolean this file reads; `board.url` joined it
+ * when the board's address stopped being `APP_URL` alone. A blanket `() => false`
+ * answered both, which was fine while every consumer wanted a boolean and became
+ * a `value.trim is not a function` the moment one wanted a string.
+ */
+vi.mock('./settings', () => ({
+  getSettings: async () => ({
+    get: (key: string) => (key === 'board.url' ? '' : false),
+  }),
+}))
 vi.mock('@meith/db', () => ({ getDb: () => ({}), PostgresFeedRepository: class {} }))
 
-const { absolute, origin, publicScope } = await import('./syndication')
+const { absolute, absoluteTo, origin, publicScope } = await import('./syndication')
 
 describe('publicScope', () => {
   it('asks the authorizer about the guest, never the request’s actor', async () => {
@@ -69,21 +79,35 @@ describe('publicScope', () => {
 })
 
 describe('origin', () => {
-  it('has no trailing slash, so a path is appended cleanly', () => {
+  it('has no trailing slash, so a path is appended cleanly', async () => {
     /*
      * `https://board.test//feed.xml` is a second URL for the same document,
      * published in the feed's own self-link — which is the one place a
      * duplicate is guaranteed to be followed.
+     *
+     * `async` since the board's address became a setting as well as `APP_URL`:
+     * resolving it can mean a database read, so every caller awaits.
      */
-    expect(origin().endsWith('/')).toBe(false)
-    expect(absolute('/feed.xml')).toBe(`${origin()}/feed.xml`)
+    const site = await origin()
+    expect(site.endsWith('/')).toBe(false)
+    expect(await absolute('/feed.xml')).toBe(`${site}/feed.xml`)
   })
 
-  it('is absolute, because a feed is read where the host is unknown', () => {
+  it('is absolute, because a feed is read where the host is unknown', async () => {
     /*
      * A relative link in a feed entry is not a shortcut, it is a broken link:
      * the reader has no idea what host served the document.
      */
-    expect(absolute('/thread/1-a')).toMatch(/^https?:\/\//)
+    expect(await absolute('/thread/1-a')).toMatch(/^https?:\/\//)
+  })
+
+  it('joins an already-resolved origin without resolving it again', () => {
+    /*
+     * The escape hatch for the sitemap, which builds hundreds of these. A route
+     * that awaited each one separately would ask the same question per row.
+     */
+    expect(absoluteTo('https://board.test', '/thread/1-a')).toBe(
+      'https://board.test/thread/1-a',
+    )
   })
 })

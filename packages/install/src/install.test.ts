@@ -168,10 +168,6 @@ describe('warnings — the dangerous category', () => {
     expect(canProceed(checks)).toBe(true)
   })
 
-  it.each([null, ''])('warns about an APP_URL of %o', (publicUrl) => {
-    expect(idsOf(warnings(preflight(ready({ publicUrl }))))).toContain('public-url')
-  })
-
   it('never lets a warning stop the install', () => {
     const checks = preflight(
       ready({
@@ -180,7 +176,7 @@ describe('warnings — the dangerous category', () => {
         publicUrl: null,
       }),
     )
-    expect(warnings(checks)).toHaveLength(3)
+    expect(warnings(checks)).toHaveLength(2)
     expect(canProceed(checks)).toBe(true)
   })
 })
@@ -242,6 +238,7 @@ describe('the form', () => {
     boardName: 'The Bike Shed',
     username: 'wren',
     email: 'wren@example.test',
+    boardUrl: 'https://board.example',
     password: 'a-long-enough-password',
   }
 
@@ -288,6 +285,7 @@ describe('the form', () => {
     if (!result.ok) {
       expect(Object.keys(result.errors).sort()).toEqual([
         'boardName',
+        'boardUrl',
         'email',
         'password',
         'username',
@@ -333,6 +331,7 @@ describe('the mail half of the form', () => {
     boardName: 'The Bike Shed',
     username: 'wren',
     email: 'wren@example.test',
+    boardUrl: 'https://board.example',
     password: 'a-long-enough-password',
   }
 
@@ -597,23 +596,110 @@ describe('the preflight’s mail check', () => {
 })
 
 /**
- * The variable the installer used to name, which does not exist.
+ * The board's address, and the variable the installer used to name.
  *
  * Two checks said `PUBLIC_URL`; the probe beside them has read `APP_URL` since
  * the day it was written, and nothing anywhere reads `PUBLIC_URL`. On the one
  * screen whose job is telling a new operator what to fix, that did not merely
  * fail to help — it sent them to set something that can have no effect, and the
  * link in the password reset stayed broken.
+ *
+ * It stopped being a warning at the same time, because the form now asks for the
+ * address and requires an answer. What is left is reporting which of the two
+ * places the answer comes from — one of which makes the form's box inert.
  */
-describe('the public URL check names the variable that exists', () => {
-  it.each([[null], ['']])('warns about APP_URL when it is %o', (publicUrl) => {
-    const check = preflight(ready({ publicUrl })).find((c) => c.id === 'public-url')
+describe('the board address check', () => {
+  it.each([[null], ['']])(
+    'says the form supplies it when APP_URL is %o, without warning',
+    (publicUrl) => {
+      const checks = preflight(ready({ publicUrl }))
+      const check = checks.find((c) => c.id === 'public-url')
+
+      expect(check?.level).toBe('ok')
+      expect(check?.title).toContain('form below')
+      /* Not a warning: there is nothing for the operator to go and fix. */
+      expect(idsOf(warnings(checks))).not.toContain('public-url')
+    },
+  )
+
+  it('names APP_URL, and its value, when the environment supplies it', () => {
+    const check = preflight(ready()).find((c) => c.id === 'public-url')
     expect(check?.title).toContain('APP_URL')
+    expect(check?.title).toContain('https://board.example')
+    /* The variable that does not exist must never come back. */
     expect(check?.title).not.toContain('PUBLIC_URL')
   })
+})
 
-  it('confirms APP_URL by name when it is set', () => {
-    const check = preflight(ready()).find((c) => c.id === 'public-url')
-    expect(check?.title).toBe('APP_URL is set')
+/**
+ * Whether a missing `TICK_SECRET` matters depends on what drives the tick.
+ *
+ * The warning said the work "simply never happens". On the compose stack the
+ * handbook documents, the worker container runs the tick *in-process* and never
+ * calls the endpoint the secret guards — so the work happens either way, and the
+ * warning was telling the majority of self-hosters something untrue about their
+ * own deployment.
+ */
+describe('the tick-secret warning', () => {
+  it('says which deployments it actually applies to', () => {
+    const check = preflight(ready({ hasTickSecret: false })).find(
+      (c) => c.id === 'tick-secret',
+    )
+
+    expect(check?.level).toBe('warning')
+    expect(check?.detail).toContain('worker')
+    expect(check?.detail).toContain('HTTP')
+  })
+})
+
+/**
+ * The board's own address, asked on the form rather than set in a file.
+ *
+ * `APP_URL` was the last value on the documented self-hosting path that a human
+ * had to *know* — the other four in that `.env` are `openssl rand` output and a
+ * fixed literal. Collecting it here is what makes the file generatable, and the
+ * validation is stricter than "is a URL" because the value is concatenated with
+ * a path and emitted into an `href`.
+ */
+describe('the board address', () => {
+  const valid = {
+    boardName: 'The Bike Shed',
+    username: 'wren',
+    email: 'wren@example.test',
+    boardUrl: 'https://board.example',
+    password: 'a-long-enough-password',
+  }
+
+  it('normalises away a trailing slash, so no link is ever double-slashed', () => {
+    /*
+     * `https://board.example//thread/1` works everywhere except the canonical
+     * tag and the feed id, where it silently splits one thread into two entries
+     * for every subscriber.
+     */
+    const result = parseInstallInput({ ...valid, boardUrl: 'https://board.example///' })
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.value.boardUrl).toBe('https://board.example')
+  })
+
+  it.each([
+    ['', 'nothing at all'],
+    ['board.example', 'no scheme, so nothing can be built from it'],
+    ['mailto:hi@board.example', 'a URL, and not one a link can be made from'],
+    ['javascript:alert(1)', 'the reason this is not z.string().url()'],
+    ['https://board.example/forum', 'a page address, not the board’s'],
+    ['https://board.example/?ref=x', 'a query nobody meant to keep'],
+  ])('refuses %o — %s', (boardUrl) => {
+    const result = parseInstallInput({ ...valid, boardUrl })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(Object.keys(result.errors)).toContain('boardUrl')
+  })
+
+  it.each([
+    'https://board.example',
+    'http://localhost:3000',
+    'https://board.example:8443',
+    'https://forum.board.example/',
+  ])('accepts %o', (boardUrl) => {
+    expect(parseInstallInput({ ...valid, boardUrl }).ok).toBe(true)
   })
 })

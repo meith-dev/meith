@@ -1,7 +1,7 @@
-import { channel, threadEntry } from '@/server/feed-builder'
+import { feedFor } from '@/server/feed-builder'
 import { feedResponse, noFeed } from '@/server/feed-routes'
 import { getContainer } from '@/server/container'
-import { FEED_LIMIT, feedRepository, publicScope } from '@/server/syndication'
+import { FEED_LIMIT, feedRepository, origin, publicScope } from '@/server/syndication'
 
 /**
  * F76 — one forum's feed.
@@ -46,13 +46,15 @@ export async function GET(
 
   const threads = await repo.recentThreads(FEED_LIMIT, scope, id)
 
+  const feed = feedFor(await origin())
+
   return feedResponse(
-    channel({
+    feed.channel({
       title: forum.title,
       description: forum.description ?? '',
       path: `/forum/${forum.id}-${forum.slug}`,
       selfPath: `/forum/${forum.id}-${forum.slug}/feed.xml`,
-      entries: threads.map(threadEntry),
+      entries: threads.map(feed.threadEntry),
       now: new Date(),
     }),
     'rss',

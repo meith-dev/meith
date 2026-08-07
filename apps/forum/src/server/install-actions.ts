@@ -43,6 +43,7 @@ function field(form: FormData, name: string): string {
  */
 const ECHOED_FIELDS = [
   'boardName',
+  'boardUrl',
   'username',
   'email',
   'mailPreset',

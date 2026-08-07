@@ -7,6 +7,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { MailTestCard } from '@/components/admin/mail-test-card'
 import { requireAdmin } from '@/server/admin'
+import { boardUrlResolution } from '@/server/board-url'
 import { assessMailReadiness } from '@/server/mail-health'
 import { getSettings } from '@/server/settings'
 import {
@@ -76,6 +77,15 @@ export default async function AdminSettingsPage({
     model.activeGroup === 'registration' || model.activeGroup === 'mail'
       ? await assessMailReadiness()
       : null
+
+  /*
+   * The board group's equivalent of the mail card's environment notice, and it
+   * exists for the same reason: `APP_URL` overrides `board.url`, so an operator
+   * editing that box while the variable is set would be editing a value the
+   * board never reads. A screen that accepts a change it will ignore is worse
+   * than one that has no box at all.
+   */
+  const address = model.activeGroup === 'board' ? await boardUrlResolution() : null
 
   return (
     <PanelPage
@@ -154,6 +164,34 @@ export default async function AdminSettingsPage({
           {model.showAdvanced && ' Advanced settings are shown.'}
         </CardFooter>
       </Card>
+
+      {address?.source === 'environment' && (
+        <section className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
+          <p>
+            The board’s address is <code>{address.url}</code>, from{' '}
+            <code>APP_URL</code> in this deployment’s environment. It overrides the
+            “Board address” field below, which is stored but not read until{' '}
+            <code>APP_URL</code> is unset and the board redeployed.
+          </p>
+        </section>
+      )}
+
+      {address?.source === 'none' && (
+        <section
+          role="alert"
+          className="flex flex-col gap-2 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
+        >
+          <h2 className="font-serif text-lg font-semibold text-destructive">
+            This board does not know its own address
+          </h2>
+          <p className="text-sm">
+            Every link the board sends is built from it, so password resets and
+            confirmations arrive carrying no link at all — they are polite and useless.
+            Feeds and canonical URLs fall back to a localhost address. Set “Board
+            address” below.
+          </p>
+        </section>
+      )}
 
       {model.activeGroup === 'mail' && mail !== null && (
         <MailTestCard

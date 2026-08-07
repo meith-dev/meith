@@ -108,14 +108,16 @@ Five lines, and each one matters:
 | `POSTGRES_PASSWORD` | The database's own password. Generated, never typed, and hex — see the note above. |
 | `AUTH_SECRET` | Signs sessions. There is deliberately no default — a shipped one is a board every reader of the source can sign a session for. |
 | `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. |
-| `APP_URL` | Your real origin, absolute, no trailing slash. Every link in an e-mail is built against it, so a board with this wrong sends password resets that go nowhere. |
+| `APP_URL` | Your real origin, absolute, no trailing slash. Optional now: leave it out and the installer asks, prefilled from the address you load `/install` at, and `/admin/settings?group=board` changes it later without a redeploy. Set here, it wins and the settings field goes read-only. |
 | `PORT` | **`127.0.0.1:3000`, not `3000`.** Binding to all interfaces publishes the board on port 3000 alongside your HTTPS one — plaintext, no certificate, and Docker writes its own iptables rules, so `ufw` does not stop it. |
 
 Rotating `AUTH_SECRET` later signs everybody out. That is the whole consequence;
 it is a safe thing to do if you think it leaked.
 
 [`.env.example`](../.env.example) at the repository root documents every other
-variable. The five above are the ones with no sensible default.
+variable. Of the five above, four are mechanical — three `openssl rand` outputs
+and a fixed literal — and `APP_URL` is the only one you have to know, which is
+why the installer will ask for it if you leave it out.
 
 ## 4. Start it
 

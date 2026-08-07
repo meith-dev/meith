@@ -1,6 +1,8 @@
 import { INSTALL_STEPS, blockers, canProceed, warnings } from '@meith/install'
-import { MAIL_PRESETS } from '@meith/settings'
+import { env } from '@meith/core'
+import { MAIL_PRESETS, isUsableOrigin, normaliseOrigin } from '@meith/settings'
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 
 import { InstallForm } from '@/components/install/install-form'
@@ -48,6 +50,7 @@ export default async function InstallPage() {
    * wording.
    */
   const mail = await probeMail()
+  const suggestedBoardUrl = await suggestBoardUrl()
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
@@ -121,7 +124,12 @@ export default async function InstallPage() {
          * schemas, and none of that belongs in a browser bundle to render eight
          * `<option>` elements.
          */
-        <InstallForm presets={MAIL_PRESETS} mailIsFromEnvironment={mail.source === 'environment'} />
+        <InstallForm
+          presets={MAIL_PRESETS}
+          mailIsFromEnvironment={mail.source === 'environment'}
+          suggestedBoardUrl={suggestedBoardUrl}
+          boardUrlIsFromEnvironment={(env.APP_URL ?? '') !== ''}
+        />
       ) : (
         <p
           role="alert"
@@ -142,4 +150,45 @@ export default async function InstallPage() {
       )}
     </main>
   )
+}
+
+/**
+ * The address this page was served at, as a *prefill*.
+ *
+ * ## This value is attacker-controlled, and that is the point of the design
+ *
+ * `Host` and `X-Forwarded-Host` are request headers. Anything that can reach
+ * this route can set them, and a board that wrote one straight into `board.url`
+ * would put whatever an attacker chose into every future password-reset link —
+ * the classic host-header poisoning bug, self-inflicted.
+ *
+ * What makes it safe is what happens next: it lands in a **visible, required
+ * box on a form the operator submits**. They look at it, and either it says the
+ * address they typed into their own browser or it does not. Confirmation is the
+ * control; the suggestion is only there so the common case is one glance rather
+ * than typing an origin from memory.
+ *
+ * Returns empty rather than a guess when there is no usable header — an empty
+ * required box asks the question, where a wrong prefilled one answers it badly.
+ */
+async function suggestBoardUrl(): Promise<string> {
+  try {
+    const incoming = await headers()
+    /*
+     * `x-forwarded-host` first: every deployment this project documents runs
+     * behind a proxy, so `host` there is the internal name the proxy dialled —
+     * `web:3000` — and prefilling that would suggest an address no member can
+     * reach.
+     */
+    const host = incoming.get('x-forwarded-host') ?? incoming.get('host') ?? ''
+    if (host === '') return ''
+
+    const proto = incoming.get('x-forwarded-proto') ?? 'https'
+    const candidate = `${proto.split(',')[0]?.trim() ?? 'https'}://${host.split(',')[0]?.trim() ?? ''}`
+
+    /* Offered only if it is something the board could actually send. */
+    return isUsableOrigin(candidate) ? normaliseOrigin(candidate) : ''
+  } catch {
+    return ''
+  }
 }

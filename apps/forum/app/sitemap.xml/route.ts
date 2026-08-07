@@ -1,6 +1,13 @@
 import { renderSitemapIndex } from '@/view/feed'
 import { noFeed, xmlResponse } from '@/server/feed-routes'
-import { SITEMAP_CHUNK, absolute, feedRepository, isIndexable, publicScope } from '@/server/syndication'
+import {
+  SITEMAP_CHUNK,
+  absoluteTo,
+  feedRepository,
+  isIndexable,
+  origin,
+  publicScope,
+} from '@/server/syndication'
 
 /**
  * F76 — the sitemap index.
@@ -28,12 +35,14 @@ export async function GET(): Promise<Response> {
   const scope = await publicScope()
   const threads = await repo.sitemapThreadCount(scope)
   const chunks = Math.max(1, Math.ceil(threads / SITEMAP_CHUNK))
+  /* Resolved once: every `loc` below shares it, and it can be a database read. */
+  const site = await origin()
 
   return xmlResponse(
     renderSitemapIndex([
-      { loc: absolute('/sitemap/forums.xml') },
+      { loc: absoluteTo(site, '/sitemap/forums.xml') },
       ...Array.from({ length: chunks }, (_, index) => ({
-        loc: absolute(`/sitemap/threads-${index + 1}.xml`),
+        loc: absoluteTo(site, `/sitemap/threads-${index + 1}.xml`),
       })),
     ]),
   )

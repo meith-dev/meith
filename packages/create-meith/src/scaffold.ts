@@ -177,6 +177,10 @@ DATA_SOURCE=postgres
 
 # Absolute, no trailing slash. Used in mail, feeds and canonical URLs — every
 # place a relative URL cannot work because there is no request to be relative to.
+#
+# Optional: leave it blank and the installer asks, prefilled from the address you
+# load /install at, and stores the answer on the board where the settings screen
+# can change it without a redeploy. Set it here and it wins outright.
 APP_URL=
 
 # Mail. Leave these alone and the installer asks for mail on first run, storing
@@ -194,9 +198,6 @@ APP_URL=
 # MAIL_SMTP_PASSWORD=
 # MAIL_FROM=noreply@yourdomain.com
 
-# How long a tick may spend before it yields and finishes the backlog next time.
-TICK_DEADLINE_MS=50000
-TICK_MAX_JOBS=25
 `,
   )
 

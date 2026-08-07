@@ -57,8 +57,20 @@ const SKIP = 'skip'
 export function InstallForm({
   presets,
   mailIsFromEnvironment,
+  suggestedBoardUrl,
+  boardUrlIsFromEnvironment,
 }: {
   presets: readonly InstallMailPreset[]
+  /**
+   * The origin this page was served from, as a *suggestion*.
+   *
+   * It comes from the request's `Host`, which is attacker-controlled, so it is
+   * prefilled into a visible box the operator submits rather than stored
+   * unread — see `board-url.ts`. Confirming it is the whole safety property.
+   */
+  suggestedBoardUrl: string
+  /** `APP_URL` is set, so the box below would be ignored. */
+  boardUrlIsFromEnvironment: boolean
   /**
    * `MAIL_DRIVER` is set, so the environment decides and these boxes would be
    * ignored. The section is replaced by a statement of that rather than being
@@ -99,6 +111,22 @@ export function InstallForm({
         error={state.errors?.boardName}
         autoComplete="organization"
       />
+      {boardUrlIsFromEnvironment ? (
+        <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          The board’s address comes from <code>APP_URL</code> in this deployment’s
+          environment, which overrides anything stored on the board.
+        </p>
+      ) : (
+        <Field
+          name="boardUrl"
+          label="Board address"
+          type="url"
+          defaultValue={state.values?.boardUrl ?? suggestedBoardUrl}
+          error={state.errors?.boardUrl}
+          hint="Every link the board sends is built from this. Filled in from the address you are reading — check it."
+        />
+      )}
+
       <Field
         name="username"
         label="Administrator’s name"

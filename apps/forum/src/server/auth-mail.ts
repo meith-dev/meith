@@ -20,10 +20,11 @@ import 'server-only'
  * its own call site rather than here.
  */
 import { VERIFICATION_TTL_HOURS } from '@meith/accounts'
-import { env, logger } from '@meith/core'
+import { logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
 
 import { AUTH_CONFIG } from './auth-config'
+import { boardUrl } from './board-url'
 import { getSettings } from './settings'
 
 /** Where each link lands. Must match the routes that redeem the tokens. */
@@ -39,8 +40,8 @@ const RESET_PATH = '/reset/confirm'
  * all — it is a dead string. Every message below says what to do instead, which
  * is the same call `usercp-mail.ts` makes and for the same reason.
  */
-function boardOrigin(): string | null {
-  const origin = env.APP_URL?.replace(/\/+$/, '') ?? ''
+async function boardOrigin(): Promise<string | null> {
+  const origin = await boardUrl()
   return origin === '' ? null : origin
 }
 
@@ -59,8 +60,8 @@ async function boardIdentity(): Promise<{ name: string; fromName: string }> {
   }
 }
 
-function linkTo(path: string, token: string): string | null {
-  const origin = boardOrigin()
+async function linkTo(path: string, token: string): Promise<string | null> {
+  const origin = await boardOrigin()
   return origin === null ? null : `${origin}${path}?token=${encodeURIComponent(token)}`
 }
 
@@ -77,7 +78,7 @@ export async function sendVerificationEmail(input: {
   readonly username: string
 }): Promise<void> {
   const { name, fromName } = await boardIdentity()
-  const link = linkTo(VERIFY_PATH, input.token)
+  const link = await linkTo(VERIFY_PATH, input.token)
 
   const lines = [
     `Hello ${input.username},`,
@@ -130,7 +131,7 @@ export async function sendPasswordResetEmail(input: {
   readonly username: string
 }): Promise<void> {
   const { name, fromName } = await boardIdentity()
-  const link = linkTo(RESET_PATH, input.token)
+  const link = await linkTo(RESET_PATH, input.token)
 
   const lines = [
     `Hello ${input.username},`,

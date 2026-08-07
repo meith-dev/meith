@@ -204,7 +204,19 @@ export async function runInstall(input: InstallInput): Promise<readonly StepOutc
   const settings = new PostgresSettingsRepository(db)
   if (
     !(await step('settings', async () => {
-      await settings.save(new Map([['board.name', input.boardName]]))
+      /*
+       * The name and the address together, because they are the two facts the
+       * board cannot derive and both were typed on the same form. The address
+       * matters more than it looks: every link the board ever sends is built
+       * from it, and it is the value that used to be an environment variable
+       * somebody set after going live, if at all.
+       */
+      await settings.save(
+        new Map([
+          ['board.name', input.boardName],
+          ['board.url', input.boardUrl],
+        ]),
+      )
 
       const mail = mailConfigFromInstallInput(input)
       if (mail.transport === 'log') return

@@ -26,9 +26,10 @@ import 'server-only'
  * F47's guard has never had a feed to fire on until now, and this is the shape
  * that keeps it quiet for the right reason.
  */
-import { PUBLIC_CONTENT, env } from '@meith/core'
+import { PUBLIC_CONTENT } from '@meith/core'
 import { PostgresFeedRepository, getDb, type FeedScope } from '@meith/db'
 
+import { boardUrl } from './board-url'
 import { getContainer } from './container'
 import { getSettings } from './settings'
 
@@ -55,17 +56,38 @@ export function feedRepository(): PostgresFeedRepository | null {
  *
  * A feed entry's link is read in an application that has no idea what host
  * served the document, so a relative URL there is not a shortcut, it is a
- * broken link. `APP_URL` is optional in the environment schema, and the
- * fallback is a localhost origin rather than an empty string: a feed with
- * obviously-local URLs in a development build is diagnosable, and one with
- * `href=""` is not.
+ * broken link.
+ *
+ * `async` where this used to be a synchronous environment read: the origin is
+ * configurable in two places now — `APP_URL`, or the `board.url` setting the
+ * installer collects — and one of them is a database row.
+ *
+ * The fallback stays a localhost origin rather than an empty string, and this is
+ * the one place on the board that guesses: a feed with obviously-local URLs in a
+ * development build is diagnosable, and one with `href=""` is not. The mail
+ * paths make the opposite call on the same evidence — a wrong link in a feed is
+ * noticed by whoever is testing it, and a wrong one in a password reset is
+ * noticed by a member who cannot get back in.
  */
-export function origin(): string {
-  return (env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '')
+export async function origin(): Promise<string> {
+  return (await boardUrl()) || 'http://localhost:3000'
 }
 
-export function absolute(path: string): string {
-  return `${origin()}${path}`
+/**
+ * Join an already-resolved origin to a path.
+ *
+ * Exported beside `absolute` because a sitemap builds hundreds of these, and a
+ * route awaiting each one separately would ask the same question hundreds of
+ * times. Callers with more than one URL to build resolve the origin once and
+ * use this.
+ */
+export function absoluteTo(base: string, path: string): string {
+  return `${base}${path}`
+}
+
+/** For the callers with exactly one URL, where resolving once is the same thing. */
+export async function absolute(path: string): Promise<string> {
+  return absoluteTo(await origin(), path)
 }
 
 /**

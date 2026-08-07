@@ -2,10 +2,10 @@
  * F18/F19 — what the two auth messages actually say.
  *
  * The interesting content is the link: it is the whole point of both messages,
- * it is built from `APP_URL`, and `APP_URL` is the single most likely thing to
- * be missing on a fresh deployment. So both the working link and the degraded
- * "no origin configured" copy are pinned here, along with the rule that a
- * failure is reported to the caller rather than swallowed at this level.
+ * it is built from the board's own address, and that address is the single most
+ * likely thing to be missing on a fresh deployment. So both the working link and
+ * the degraded "no origin configured" copy are pinned here, along with the rule
+ * that a failure is reported to the caller rather than swallowed at this level.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -24,9 +24,19 @@ vi.mock('@meith/drivers', () => ({
   }),
 }))
 
-/** Both values this file reads come from the registry; the mock supplies them. */
+/**
+ * The three registry values this path reads; the mock supplies them.
+ *
+ * `board.url` joined the list when the board's address stopped being `APP_URL`
+ * alone — it is the fallback the resolver consults when the environment says
+ * nothing, so a mock without it is a snapshot that lies about its own contract.
+ */
 const settings = vi.hoisted(() => ({
-  values: { 'board.name': 'The Townland', 'mail.from_name': '' } as Record<string, string>,
+  values: {
+    'board.name': 'The Townland',
+    'mail.from_name': '',
+    'board.url': '',
+  } as Record<string, string>,
 }))
 
 vi.mock('./settings', () => ({
@@ -37,7 +47,14 @@ const { sendPasswordResetEmail, sendVerificationEmail } = await import('./auth-m
 
 const RECIPIENT = { email: 'ivan@example.test', username: 'ivan' }
 
-/** Run `body` with APP_URL set (or deliberately absent). */
+/**
+ * Run `body` with the board's address set in the environment (or absent).
+ *
+ * Still `APP_URL` rather than the setting, because that is the half these tests
+ * are about: the messages' degraded copy is what happens when *neither* source
+ * has an answer, and `board.url` is left empty below so the environment is the
+ * only thing that can supply one.
+ */
 async function withOrigin<T>(origin: string | undefined, body: () => Promise<T>): Promise<T> {
   /* `undefined` removes the variable; an empty string would fail env's URL check. */
   vi.stubEnv('APP_URL', origin)
@@ -53,7 +70,11 @@ async function withOrigin<T>(origin: string | undefined, body: () => Promise<T>)
 beforeEach(() => {
   sent.mail.length = 0
   sent.fail = false
-  settings.values = { 'board.name': 'The Townland', 'mail.from_name': '' }
+  settings.values = {
+    'board.name': 'The Townland',
+    'mail.from_name': '',
+    'board.url': '',
+  }
 })
 
 describe('sendVerificationEmail', () => {

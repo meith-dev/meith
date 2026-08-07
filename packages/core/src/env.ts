@@ -146,11 +146,6 @@ const envSchema = z
     MAIL_SMTP_USERNAME: nonEmpty.optional(),
     MAIL_SMTP_PASSWORD: nonEmpty.optional(),
 
-    /** Wall-clock budget for one `/api/system/tick` invocation. */
-    TICK_DEADLINE_MS: z.coerce.number().int().positive().default(50_000),
-    /** Max jobs drained per tick before yielding, regardless of remaining time. */
-    TICK_MAX_JOBS: z.coerce.number().int().positive().default(25),
-
     /**
      * Optional address allowlist for `/admin` (F63).
      *
