@@ -15,12 +15,30 @@ changing it costs.
 |---|---|---|
 | Environment variables | Secrets, and anything needed before the board can read its own database. | A redeploy |
 | `forum.config.ts` | What is *installed*: themes and plugins. | An edit and a redeploy |
-| `/admin/settings` | Everything else: board name, registration mode, posting limits, search. | Nothing — it takes effect immediately |
+| `/admin/settings` | Everything else: board name, registration mode, posting limits, search, mail. | Nothing — it takes effect immediately |
 
 **Why the split.** Anything in `forum.config.ts` has to be visible to the
 bundler, because a production build contains only what it could see statically.
 So "install a plugin" cannot be a database row. Anything in `/admin/settings` is
 a value the running board reads, so it can change without a deploy.
+
+**Two things live in the overlap, on purpose.** Mail and the board's own address
+are ordinary settings *and* environment variables, and when both are present the
+environment wins outright — the screen says so rather than accepting an edit it
+would ignore.
+
+They are there because each has two legitimate owners. A board installed by one
+person on one server wants to configure mail on the day they need it, from a
+screen, without a redeploy; a deployment built from files in a repository wants
+its credentials in the environment where the rest of them are, and wants the
+panel unable to change them. Neither is the wrong answer, so both work, and the
+precedence rule is one sentence rather than a per-field table.
+
+The trade is explicit: a credential stored on the board sits in the `settings`
+table, readable by anything with database access, and one in the environment
+takes a redeploy to rotate. The registry marks the stored ones as secrets, so
+they are never rendered back into a page or written to the audit log — which is
+not the same as encrypted, and is worth knowing before choosing.
 
 ### Environment variables
 
@@ -28,8 +46,9 @@ a value the running board reads, so it can change without a deploy.
 |---|---|---|
 | `DATABASE_URL` | For a real board | On a *managed* database, use the transaction-mode pooler string. See [connection pooling](#connection-pooling). |
 | `AUTH_SECRET` | Yes | Signs sessions and tokens. No default, deliberately. |
-| `TICK_SECRET` | In practice, yes | Without it the scheduled tick refuses every call — and nothing fails visibly. |
-| `APP_URL` | For mail and feeds | Absolute, no trailing slash. A digest sent from the worker has no request to be relative to. |
+| `TICK_SECRET` | Depends how you tick | Guards `/api/system/tick`, and without it that route refuses every call. It is **not** what drives the tick on the Docker Compose stack: the `worker` container runs the loop in-process and never calls the route, so scheduled work happens there either way. Required if anything external — a cron, a platform scheduler, the `curl-tick` sidecar — is what calls it. |
+| `APP_URL` | No | The board's public origin, absolute and with no trailing slash. Optional since the installer began asking for it: unset, it comes from **Board address** in the settings, and set here it wins and the settings field goes read-only. Something has to supply it — a digest sent from the worker has no request to be relative to. |
+| `MAIL_DRIVER` | No | `log`, `http` or `smtp`. Optional for the same reason as `APP_URL`: `http` or `smtp` here wins outright and makes the mail settings screen read-only, while `log` or unset leaves mail to the board. See [Mail](#mail) for the companions each transport needs. |
 | `DATA_SOURCE` | No | `postgres` or `fixture`. Defaults to `fixture` when `DATABASE_URL` is unset. |
 | `ADMIN_IP_ALLOWLIST` | No | Comma-separated address prefixes. Empty allows everything. |
 | `FILESTORE_DRIVER` | No | `local` or `s3`. Defaults to `local`, which is right for a board with a disk. See below. |
@@ -652,6 +671,87 @@ The installer does the same thing and goes further: it sends the test **before
 the first migration**, and refuses to install if it fails. A wrong API key
 therefore costs a retry rather than a sealed board that cannot mail anybody.
 
+### Queued mail needs the tick
+
+Notification and mass mail are delivered by a job that runs on the tick. A
+stopped tick means no mail and **no error anywhere** — the messages sit in the
+queue looking fine. `/admin/system` says loudly when the tick is stale; see
+[Nothing happens on a schedule](#nothing-happens-on-a-schedule).
+
+The three that are sent during the request — password reset, e-mail change, and
+registration confirmation — do not wait for it. So "the reset arrived but the
+digest did not" points at the tick, and "nothing arrives at all" points at mail.
+
+### The sender name and the sender address are different settings
+
+The address is `mail.from` (or `MAIL_FROM`); **Sender name** is the display name
+beside it. Together they become `"The Townland" <noreply@yourdomain.com>`; leave
+the name empty — the default — and messages go out as the bare address.
+
+The split predates mail being a board setting, and it still earns its keep: the
+address has to be on a domain your provider has verified, so getting it wrong
+means nothing is delivered, while the name is only what people see in their inbox.
+
+The name is read **per message**, not once at startup, so renaming your board
+changes the next message rather than the next restart — a worker process can
+outlive several settings changes.
+
+### Activation and mail are one decision
+
+`registration.method` in `/admin/settings` chooses what a new account has to do
+before it can sign in:
+
+| Method | What happens |
+|---|---|
+| `none` | The account works immediately. |
+| `email` | A confirmation link is sent. Until it is followed, the account cannot sign in. |
+| `admin` | The account waits for an administrator. No mail involved. |
+| `both` | The link first, then an administrator. |
+
+The default is `none`, and it is `none` because a board that has not configured
+mail sends nothing: asking for confirmation out of the box would mint links it
+cannot deliver. Choosing anything else is a decision to make *after* mail works
+— which is now one button away rather than a redeploy away.
+
+> [!IMPORTANT]
+> **`email` or `both` on a board with no working mail is a board nobody can
+> join.** The links are minted, printed to the log, and never delivered. This
+> cannot be a boot check — mail and the method are both rows you can change on a
+> running board — so instead the registration settings screen and `/admin/system`
+> both say so, loudly, while it is true.
+
+> [!NOTE]
+> **Upgrading an existing board?** This setting had no effect until recently —
+> whatever the dropdown showed, accounts were created as though it said `none`.
+> A board that stored `admin` or `both` gets the vetting it asked for as soon as
+> it upgrades. See
+> [Settings that gained a reader](./upgrading.md#settings-that-gained-a-reader).
+
+An account already stuck at "awaiting activation" can be activated by hand from
+its member screen in `/admin/users`. Somebody who never received their link can
+ask for another at `/verify/resend`, which is linked from the sign-in page.
+
+### What happens when a provider fails
+
+- **A rejection that will not change** — a bad address, an unverified domain, a
+  bad token, or any SMTP 5xx — is treated as configuration and **not retried**,
+  because it would fail identically every time.
+- **A transient failure** — 5xx or 429 over HTTP, a 4xx SMTP reply, a refused
+  connection — is retried by the queue's backoff for queued mail. A greylisting
+  relay answering "try later" is the case this exists for. A direct send has no
+  retry: the member asks again.
+- Drivers hold no retry logic of their own. The queue is the retry mechanism,
+  deliberately, so one place decides how often to try again.
+- Every send is **bounded by a timeout**, including each stage of an SMTP
+  conversation. Without it a hung provider would hold a job's lease open for its
+  full duration and consume the tick's whole budget — and a host that accepts the
+  connection and never greets, the classic symptom of a port that disagrees with
+  the security mode, would do it on every attempt.
+- A failed send never fails the thing that caused it. A registration whose
+  confirmation could not be sent still created the account — reporting
+  "registration failed" would be a lie about a state you now have to live with —
+  and the screen it lands on offers to send the link again.
+
 ### The board has to know its own address
 
 Every message that carries a link — confirm your address, reset your password, a
@@ -874,17 +974,23 @@ and nothing errors, because nothing ran.*
 
 1. Check `/admin/system`. The tick's status is there, and a stale one is called
    out loudly.
-2. Check `TICK_SECRET` is set.
-3. Check something is actually calling `/api/system/tick`. On the documented
-   deployment that is the `worker` container — `docker compose ps` should show
-   it up, and `docker compose logs worker` should show `worker started` once
-   rather than every few seconds. Anywhere else, it is whatever you pointed at
-   the tick.
+2. Check something is actually running the tick. **On the documented deployment
+   that is the `worker` container, which runs the loop in-process** — it does not
+   call `/api/system/tick` and does not need `TICK_SECRET` to do its job.
+   `docker compose ps` should show it up, and `docker compose logs worker` should
+   show `worker started` **once** rather than every few seconds, which is a crash
+   loop with the reason logged above each restart.
+3. If instead you drive the tick from outside — a cron, a platform scheduler, the
+   `curl-tick` sidecar — then it is the route that runs it, and `TICK_SECRET`
+   has to be set *and* presented. Without it the route answers 404 to everything,
+   deliberately, so an unauthorised caller cannot confirm the endpoint exists;
+   from the caller's side that looks identical to a wrong URL.
 
 Notification and mass mail are delivered on this tick, so a stopped one is also
 a board that has stopped sending them — see [Mail](#mail). Verification and
-password-reset links do not wait for it; if *those* are missing, the driver is
-the thing to check.
+password-reset links do not wait for it; if *those* are missing, mail itself is
+what to check, and the **Send a test message** button on
+`/admin/settings?group=mail` settles it in one click.
 
 ### "Too many connections"
 
