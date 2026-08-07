@@ -104,13 +104,20 @@ export const hero = {
    * measure it also got a line to itself, so the vaguest words on the page were
    * set largest and coloured.
    *
-   * What is emphasised now is the contrast the lede below spends three sentences
-   * making, and the reason somebody self-hosts a forum at all. Naming the
-   * category is not this line's job: `site.tagline` carries it into the
-   * description meta tag, the footer and `llms.txt`, where it is read by people
-   * and machines that need the plain sentence.
+   * What replaced it says where the software puts people rather than what it is.
+   * "Gather" is `site.description`'s own verb, and is deliberately not
+   * "connect" — the word every social network already uses about its groups, and
+   * therefore the one word here that cannot tell a reader why they are on this
+   * page rather than that one.
+   *
+   * The headline argues against nothing, and does not need to. The lede below it
+   * makes the neighbourhood-against-crowd case in two sentences and makes it
+   * better than five words can; a combative headline above that would be the
+   * same point twice. Naming the category is not this line's job either —
+   * `site.tagline` carries it into the description meta tag, the footer and
+   * `llms.txt`, where the readers who need the plain sentence are.
    */
-  headline: { before: "Open-source forum software ", emphasis: "for communities, not platforms." },
+  headline: { before: "Open-source forum software ", emphasis: "where communities gather." },
   /*
    * Kept in full. This paragraph is the one piece of copy on the site that does
    * the actual arguing, and shortening it in the name of concision took the
