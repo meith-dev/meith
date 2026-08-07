@@ -43,10 +43,13 @@ export const MAIL_SKIP = 'skip'
  * ## Every field is optional, and the requirements are conditional
  *
  * The form has no scripting (R5), so it cannot show and hide the SMTP half when
- * the preset changes — every box is on the page at once. Making them
- * individually required would therefore demand an API endpoint from somebody
- * configuring SMTP. The `superRefine` below asks only for what the *chosen*
- * transport needs, which is the same thing the visible grouping implies.
+ * the preset changes — every box is *on* the page at once, whichever transport
+ * is chosen. (The four that only ever override what a preset already knows are
+ * folded into a `<details>`, which is presentation: they still submit.) Making
+ * them individually required would therefore demand an API endpoint from
+ * somebody configuring SMTP. The `superRefine` below asks only for what the
+ * *chosen* transport needs, which is the same thing the visible grouping
+ * implies.
  */
 const mailFields = {
   mailPreset: z.string().trim().default(MAIL_SKIP),
@@ -77,9 +80,23 @@ const mailFields = {
     z.enum(['tls', 'starttls', 'none']).optional(),
   ),
   mailUsername: z.string().trim().default(''),
-  mailPassword: z.string().default(''),
+  /*
+   * One box for the credential, whichever kind the chosen transport wants — an
+   * SMTP password or an API key.
+   *
+   * It used to be two, and the second box was the form's worst question: an
+   * operator who picked "Resend (API)" had to know that their key went in "API
+   * key" and not in "SMTP password", when both were on the page, both were
+   * empty, and both were plausible. The transport already knows which one it is
+   * asking for; the operator has exactly one secret to paste either way.
+   *
+   * Trimmed, which the SMTP password was not. Surrounding whitespace on a
+   * pasted credential is never meaningful and is one of the ways a correct key
+   * fails to send — see `mail-test.ts`, where "pasted with a trailing space" is
+   * listed among the failures no schema catches.
+   */
+  mailSecret: z.string().trim().default(''),
   mailEndpoint: z.string().trim().default(''),
-  mailToken: z.string().trim().default(''),
 }
 
 /**
@@ -90,7 +107,7 @@ const mailFields = {
  * admin screen; a board name and an administrator are the two things that cannot
  * be defaulted, and mail is the one that can be defaulted but should not be.
  */
-export const installInputSchema = z
+const installInputObject = z
   .object({
     boardName: z
       .string()
@@ -139,6 +156,8 @@ export const installInputSchema = z
       .max(200, 'That password is too long.'),
     ...mailFields,
   })
+
+export const installInputSchema = installInputObject
   .superRefine((value, ctx) => {
     if (value.mailPreset === MAIL_SKIP) return
 
@@ -181,10 +200,10 @@ export const installInputSchema = z
           message: 'That is not a URL.',
         })
       }
-      if (value.mailToken === '') {
+      if (value.mailSecret === '') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ['mailToken'],
+          path: ['mailSecret'],
           message: 'This provider needs an API key.',
         })
       }
@@ -217,14 +236,14 @@ export const installInputSchema = z
      * operator will otherwise meet as an authentication failure in the log.
      */
     const username = value.mailUsername === '' ? (preset.username ?? '') : value.mailUsername
-    if (username !== '' && value.mailPassword === '') {
+    if (username !== '' && value.mailSecret === '') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['mailPassword'],
+        path: ['mailSecret'],
         message: 'This server is being given a username, so it needs a password too.',
       })
     }
-    if (username === '' && value.mailPassword !== '') {
+    if (username === '' && value.mailSecret !== '') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['mailUsername'],
@@ -234,6 +253,106 @@ export const installInputSchema = z
   })
 
 export type InstallInput = z.infer<typeof installInputSchema>
+
+/**
+ * Every box the form posts — **derived from the schema, not listed beside it.**
+ *
+ * The action used to carry its own list, and the two drifted the way a copied
+ * list always does: `mailToken` was on the form and absent from the list, so an
+ * API key was read off the page and thrown away, and the operator was told the
+ * provider needed a key they had just typed. A hand-maintained second copy of a
+ * field list is a bug waiting for the next field, so there is no second copy.
+ */
+export const INSTALL_FIELDS: readonly string[] = Object.keys(installInputObject.shape)
+
+/**
+ * The boxes that are never rendered back into HTML on a failed submit.
+ *
+ * A password re-echoed into the page is a password in a proxy log and in the
+ * browser's back-forward cache. The mail credential is somebody else's system's
+ * password, which makes it no less of one. Both are retyped, and the form says
+ * so rather than leaving the operator to notice.
+ */
+export const SECRET_FIELDS: readonly string[] = ['password', 'mailSecret']
+
+/** What survives a failed submit: everything typed except the two secrets. */
+export const ECHOED_FIELDS: readonly string[] = INSTALL_FIELDS.filter(
+  (name) => !SECRET_FIELDS.includes(name),
+)
+
+/** The one method of `FormData` this needs. Structural, so a test can pass a `Map`. */
+export interface FormLike {
+  get(name: string): unknown
+}
+
+/**
+ * The submitted form as a flat record, blanks included.
+ *
+ * Blanks rather than omissions, because the schema decides what an empty box
+ * means per field and it can only do that if the box arrives. `mailSecurity`'s
+ * blank is "use the preset's"; `mailPort`'s is "use the preset's"; `mailPreset`'s
+ * is **not** "skip", which is the point of `MAIL_SKIP` being a value.
+ */
+export function installInputFromForm(form: FormLike): Record<string, string> {
+  return Object.fromEntries(
+    INSTALL_FIELDS.map((name) => {
+      const value = form.get(name)
+      return [name, typeof value === 'string' ? value : '']
+    }),
+  )
+}
+
+/** The answers the deployment's environment has already given. */
+export interface EnvironmentAnswers {
+  /** `APP_URL`, or null when the environment leaves the address to the form. */
+  readonly boardUrl: string | null
+  /** `MAIL_DRIVER` is set, so the environment owns mail and the form does not. */
+  readonly mailIsFromEnvironment: boolean
+}
+
+/**
+ * Fold in what the environment has already decided, before validating.
+ *
+ * ## This is the fix for an installer that did nothing when you pressed Install
+ *
+ * The page *hides* a box the environment owns — there is no board-address field
+ * when `APP_URL` is set, and no mail section when `MAIL_DRIVER` is — because a
+ * form whose values are discarded is worse than no form. A hidden box posts
+ * nothing; the schema then refused a form the operator had filled in correctly,
+ * and named a field that **was not on the page**, so there was nowhere to show
+ * the error. What the operator saw was the password box emptying and nothing
+ * else happening. Every `docker compose` deployment hit it, since the compose
+ * file sets `APP_URL` for you.
+ *
+ * So the environment's answer is substituted here, on the server, rather than
+ * posted in a hidden input: the address the board stores is then the one the
+ * deployment configured, and not a string the browser was asked to hand back.
+ */
+export function withEnvironmentAnswers(
+  raw: Record<string, string>,
+  environment: EnvironmentAnswers,
+): Record<string, string> {
+  const answered = { ...raw }
+
+  if (environment.boardUrl !== null && environment.boardUrl !== '') {
+    answered.boardUrl = environment.boardUrl
+  }
+
+  if (environment.mailIsFromEnvironment) {
+    /*
+     * Skip, and blank the rest. Not because the operator chose to skip, but
+     * because there is nothing for this form to store: `MAIL_DRIVER` overrides
+     * anything on the board, so a value written here would be a setting the
+     * board reads back and ignores.
+     */
+    answered.mailPreset = MAIL_SKIP
+    for (const name of INSTALL_FIELDS) {
+      if (name.startsWith('mail') && name !== 'mailPreset') answered[name] = ''
+    }
+  }
+
+  return answered
+}
 
 /**
  * What the operator typed, resolved against the preset they chose.
@@ -255,7 +374,7 @@ export function mailConfigFromInstallInput(input: InstallInput): MailConfig {
       transport: 'http',
       from: input.mailFrom,
       endpoint: input.mailEndpoint === '' ? (preset.endpoint ?? '') : input.mailEndpoint,
-      token: input.mailToken,
+      token: input.mailSecret,
     }
   }
 
@@ -280,7 +399,7 @@ export function mailConfigFromInstallInput(input: InstallInput): MailConfig {
         : Number(input.mailPort),
     security,
     username: input.mailUsername === '' ? (preset.username ?? '') : input.mailUsername,
-    password: input.mailPassword,
+    password: input.mailSecret,
   }
 }
 

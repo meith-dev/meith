@@ -6334,16 +6334,19 @@ A blocker means installing cannot succeed. A **warning means it will succeed and
 something will be wrong later**, which is worse precisely because nothing
 complains at the time.
 
-The pooler check is the archetype and the reason the distinction exists: a board
-on the direct connection string installs perfectly, works in testing, and starts
-refusing connections under the first real traffic — with an error that names the
-database rather than the cause. It warns rather than blocks because a self-hosted
-board on 5432 is entirely correct, and telling that operator they are wrong
-trains them to ignore the installer.
+`TICK_SECRET` is the archetype: a board without it, on a deployment that drives
+the tick over HTTP, installs perfectly and looks finished — and then bans do not
+expire, digests do not send and counters do not reconcile, with nothing failing
+anywhere to say so.
 
-`looksLikePooler` is explicitly a heuristic (port 6543, a host that says so, or
-`pgbouncer=true`), which is defensible for a warning and would not be for a
-blocker.
+The pooler check used to hold that place, and it is gone (D110). It was written
+for serverless deployments, where every function instance opens its own
+connection; that way of running this board is no longer supported (D105). What
+was left was a warning that fired on the *correct* configuration for every
+deployment this project documents, which is how an operator learns to read past
+the warnings that matter. Pooling advice that is still true for a managed
+database lives in the handbook, next to the `pg_dump` note that needs the same
+distinction.
 
 #### Two independent gates, because either alone leaves a hole
 
@@ -8424,3 +8427,73 @@ documents, the worker container calls `tick()` **in-process** and never touches
 `/api/system/tick`, so the work happens either way. The warning was telling the
 majority of self-hosters something untrue about their own deployment, on the
 screen they trust most. It now says which of the two shapes it applies to.
+
+### D110 — The installer that cleared the password box and did nothing (F83)
+
+On a `docker compose` board — the deployment the handbook documents — filling in
+`/install` and pressing Install emptied the password box and changed nothing
+else. No error, no redirect, no rows written. Three faults stacked into one
+symptom, and only the third is interesting.
+
+#### A hidden box posts nothing, and the error had nowhere to land
+
+The form does not render a field the environment owns: `APP_URL` set means no
+board-address box, because a form whose values are discarded is worse than no
+form. But the schema still requires `boardUrl`, and a box that is not on the page
+does not submit — so the action refused, with the message *"The board needs to
+know its own address"* keyed to a field that **was not rendered**, and the form
+had nowhere to show it. `docker-compose.yml` sets `APP_URL` for you, so this was
+every compose deployment. `MAIL_DRIVER` had the identical shape one section
+below.
+
+The fix is `withEnvironmentAnswers`, which folds what the environment has already
+decided into the submission before it is validated — server-side, rather than by
+posting the value back through a hidden input. The address the board stores is
+then the one the deployment configured, and not a string the browser was asked to
+hand back to a form that has no session yet.
+
+#### The action's field list was one short
+
+The API key never reached the schema. The action carried a hand-written list of
+field names, `mailToken` was not on it, and the operator who pasted a key was
+told the provider needed one. The list is now `INSTALL_FIELDS`, derived from
+`Object.keys(installInputObject.shape)` — the second copy is deleted rather than
+corrected, because a copied list is a bug waiting for the next field.
+
+#### The interesting one: an error message with no field is invisible
+
+Both faults above are ordinary. What made them cost an afternoon is that this
+form could *fail silently at all* — and it could because every message was
+rendered beside its own input, so a message about a field the page does not
+render is a message nobody sees. React empties the two password boxes after every
+submit (they are the values this form deliberately never echoes), so the only
+visible effect of a failed install was a cleared password.
+
+So the form now states the outcome **beside the button**, as a list of what needs
+changing built from whatever came back — not from a fixed set of fields — with
+each item linking to its input by id. A message about a box that is not on the
+page is still listed, under the field's name. That is the property worth having:
+the summary cannot silently drop an error, because it does not know in advance
+which errors exist.
+
+Beside the button rather than at the top of the form, which is where a summary
+conventionally goes: after a failed submit the operator is standing at the bottom
+of a long form, and with scripting on the page does not scroll. A summary they
+have to go looking for is the failure mode being fixed, one screen further up.
+
+#### And the mail section asks four questions instead of eight
+
+Every box was on the page at once because with no scripting there is nothing to
+hide the SMTP half when an API provider is chosen. That argument justifies the
+*fields*; it does not justify their *prominence*. Sender, username and the one
+credential stay visible; host, port, security and endpoint — every one of which
+the chosen preset already answers — are in a `<details>`, which needs no
+scripting and opens itself when something inside it is wrong.
+
+"SMTP password" and "API key" were also two boxes for one secret, both empty,
+both plausible, and picking the wrong one produced a provider error hours later.
+They are now one box, `mailSecret`, labelled "Password or API key": the transport
+knows which kind it is asking for, and the operator has exactly one thing to
+paste either way. It is trimmed, which the SMTP password was not — surrounding
+whitespace on a pasted credential is never meaningful, and is one of the ways a
+correct key fails to send.
