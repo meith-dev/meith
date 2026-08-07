@@ -7,6 +7,7 @@ import {
   warnings,
   type Check,
 } from '@meith/install'
+import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
 import { env } from '@meith/core'
 import { MAIL_PRESETS, isUsableOrigin, normaliseOrigin } from '@meith/settings'
 import type { Metadata } from 'next'
@@ -177,33 +178,37 @@ function Preflight({ checks }: { checks: readonly Check[] }) {
         </>
       ) : (
         warned.length > 0 && (
-          <details className="rounded-md border border-thread-pinned px-3 py-2 text-sm">
-            {/*
-              The pronoun is about the *blockers* — what has to be fixed first —
-              so it agrees with `stopping`, not with the number of warnings
-              behind this summary.
-            */}
-            <summary className="cursor-pointer text-muted-foreground">
-              {warned.length === 1 ? '1 warning' : `${warned.length} warnings`}
-              {stopping.length === 1 ? ', for after that is fixed' : ', for after those are fixed'}
-            </summary>
-            <div className="mt-2 flex flex-col gap-2">
+          /*
+            The pronoun is about the *blockers* — what has to be fixed first — so
+            it agrees with `stopping`, not with the number of warnings behind
+            this summary.
+          */
+          <Disclosure
+            summary={`${warned.length === 1 ? '1 warning' : `${warned.length} warnings`}${
+              stopping.length === 1 ? ', for after that is fixed' : ', for after those are fixed'
+            }`}
+          >
+            <div className="flex flex-col gap-2">
               {warned.map((check) => (
                 <Finding key={check.id} check={check} />
               ))}
             </div>
-          </details>
+          </Disclosure>
         )
       )}
 
       {passed.length > 0 && (
-        <details className="rounded-md border border-border px-3 py-2 text-sm">
-          <summary className="cursor-pointer text-muted-foreground">
-            {passed.length === 1 ? '1 check passed' : `${passed.length} checks passed`}
-          </summary>
-          <ul className="mt-2 flex flex-col gap-1">
+        <Disclosure
+          summary={passed.length === 1 ? '1 check passed' : `${passed.length} checks passed`}
+        >
+          <ul className="flex flex-col gap-1 text-sm">
             {passed.map((check) => (
               <li key={check.id} className="flex gap-2">
+                {/*
+                  Decorative. The sentence beside it already says the check
+                  passed, and a tick announced before every one of six lines is
+                  six words nobody needs.
+                */}
                 <span aria-hidden className="text-muted-foreground">
                   ✓
                 </span>
@@ -211,23 +216,25 @@ function Preflight({ checks }: { checks: readonly Check[] }) {
               </li>
             ))}
           </ul>
-        </details>
+        </Disclosure>
       )}
     </section>
   )
 }
 
-/** One finding that needs a decision. */
+/**
+ * One finding that needs a decision, as the board's own notice.
+ *
+ * `Alert` maps the level onto a tone, and the tone onto `role` — `alert` for a
+ * blocker, `status` for a warning — so a blocker interrupts a screen reader and
+ * a warning does not. That was a hand-written `<div>` with no role at all, which
+ * meant the most important sentence on the page was announced only if somebody
+ * happened to be reading past it.
+ */
 function Finding({ check }: { check: Check }) {
   return (
-    <div
-      className={`rounded-md border px-3 py-2 text-sm ${
-        check.level === 'blocker'
-          ? 'border-destructive bg-destructive/5'
-          : 'border-thread-pinned bg-muted'
-      }`}
-    >
-      <p className="font-medium">
+    <Alert tone={check.level === 'blocker' ? 'error' : 'warning'}>
+      <AlertDescription>
         {/*
           A word, not only a colour. "blocker" and "warning" are information, and
           information carried by a hue alone is absent for a substantial number
@@ -238,10 +245,10 @@ function Finding({ check }: { check: Check }) {
           {check.level}
           {' · '}
         </span>
-        {check.title}
-      </p>
-      {check.detail !== '' && <p className="mt-1 text-muted-foreground">{check.detail}</p>}
-    </div>
+        <AlertTitle>{check.title}</AlertTitle>
+        {check.detail !== '' && <span className="mt-1 block text-muted-foreground">{check.detail}</span>}
+      </AlertDescription>
+    </Alert>
   )
 }
 

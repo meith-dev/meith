@@ -8714,3 +8714,86 @@ for the same reason the check levels are spelled out.
   single blocker. Both halves agree with the count now.
 - "You can install with the warnings above unresolved" sat **below** the button,
   a page and a half from the warnings it was about. It is beside them.
+
+### D113 — The installer looked like a different product, and nothing in a browser had ever run it (F04, F83)
+
+Two gaps that had been recorded rather than closed.
+
+#### It was styled by hand, on a board with a component set
+
+`@meith/ui` is the board's design system, and `components/auth/form-controls` is
+the app's form vocabulary on top of it — twenty-odd screens across the panel, the
+moderation tools and the account pages use both. `/install` used neither. Every
+control was a class string written in place, so the installer's inputs were a
+different height from the board's, its cards had no header band, its folds had no
+caret, and its error box carried no `role` at all. The first screen an operator
+ever sees looked like a different product from the one it was installing.
+
+It is now `Card`, `Field`, `Input`, `NativeSelect`, `Alert`, `Disclosure`,
+`Badge` and `Button`, and the local `Field` — a fourteen-line reimplementation of
+the shared one, minus the id derivation and the error-first `aria-describedby`
+— is deleted.
+
+**"No theme" and "no component set" were being treated as the same claim, and
+they are not.** The page still renders no `PageShell`, resolves no slots and
+calls no `currentTheme()`: it runs before there is a board, and it has to render
+when the database is unreachable. None of that is an argument for hand-writing a
+text input. `@meith/ui` reads no database and holds no state; using it is what
+makes the page match, and the "no theme" reasoning is unchanged and still in
+`page.tsx`.
+
+Two things fell out of the swap rather than being aimed at. `Alert` derives
+`role` from its tone — `alert` for a blocker, `status` for a warning — so the
+most important sentence on the page is now announced, where a hand-written
+`<div>` had no role and was read only if somebody happened to reach it. And
+`CardTitle` is not serif, because panel headings on this board stopped being
+serif when the component set did; the hand-rolled headings here were still
+wearing the previous design.
+
+#### And no browser had ever installed a board
+
+`plan-status.md` had carried this since F83: *"No e2e spec drives it — the
+browser suite would need a database with no schema, which is a fixture the
+harness does not yet have."* Every install bug fixed in this branch was in code
+with unit tests around it, and invisible to all of them, because each lived in
+the seam between two tested things: a group key misspelled by one character, a
+refusal reported as a system fault, a redirect to a page with no notice for its
+own query parameter.
+
+The fixture is a second PGlite — `startDatabase({ seeded: false })`, same file,
+`--empty` — on its own port, with its own `next dev` pointed at it. Two servers
+rather than one because `DATABASE_URL` is read at boot, and because installing
+**seals** the database it runs against: a spec that installed the shared board
+would destroy the fixture every other spec reads. The two Playwright projects
+share one regex, used once to include and once to exclude, so they cannot drift
+into overlapping or leaving a gap.
+
+Three details were not obvious and are worth keeping:
+
+- **The health check waits on `/install`, not `/`.** The board's index cannot
+  render against a schema-less database, and correctly so. `/install` is the one
+  route written to work anyway — so it is both the only usable health check and
+  a standing assertion of that property: if the page ever starts needing a table,
+  the harness stops booting.
+- **That database allows two connections where every other one allows one.**
+  `runMigrations()` opens its own, and must: it takes a session-level advisory
+  lock that is only meaningful on a dedicated session. Against the
+  one-connection server this surfaced as `read ECONNRESET`, reported on screen
+  as a failed "Apply migrations" step — a harness limit wearing a product bug's
+  clothes. Safe here because the clobbering the limit exists to prevent needs two
+  clients issuing extended-protocol queries *at the same time*, and this is one
+  worker doing one thing at a time.
+- **The spec is one test, in order.** Installing has one irreversible end, so
+  splitting refuse/retry/install/seal into four tests would be four tests sharing
+  a fixture that cannot be reset, three of which break when the first changes
+  what it leaves behind.
+
+It runs with **scripting off**, which is the harder case and the one that has
+broken twice: every message arrives on a re-rendered page, so the `<details>`
+that opens on a failure has to open from an attribute in the HTML rather than
+from React state, and the fields have to be repopulated by the server rather than
+kept in the DOM. It asserts the things the unit tests structurally cannot — that
+the failure names the step by *title* and not by the id `admin`, that the
+report reads two *done*, one *failed* and two *not run*, that the password box
+comes back empty while the board name does not, that the seal answers 404, and
+that `/admin` asks for a password without claiming a session expired.

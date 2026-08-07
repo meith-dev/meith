@@ -57,16 +57,49 @@
  * next to the schemas they belong to, and importing either module into a client
  * component would pull a registry — zod included — into the browser bundle for
  * the sake of a few strings.
+ *
+ * ## It is built out of the board's components, and it still uses no theme
+ *
+ * Those are two different claims and this file used to fail the first one. Every
+ * control here was a hand-written class string, so the installer's inputs, cards
+ * and folds had their own heights, borders and focus treatment — a screen that
+ * looked like a different product from the board it was installing, which is a
+ * strange first impression for the one page every operator sees.
+ *
+ * `@meith/ui` is the board's component set, not a theme: `Card`, `Field`,
+ * `Disclosure` and the rest are token-driven server components that read no
+ * database and resolve no slots. Using them is what makes this page match; the
+ * page still renders no `PageShell` and calls no `currentTheme()`, for the
+ * reasons `page.tsx` gives. The app's own form vocabulary
+ * (`components/auth/form-controls`) sits on top of that and is what twenty-odd
+ * screens already use, so a field here is now the same field as one in the ACP.
  */
 
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Badge,
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Disclosure,
+  Field as UiFieldGroup,
+  NativeSelect,
+} from '@meith/ui'
+import { Button } from '@meith/ui/button'
 import { useActionState } from 'react'
 
+import { Field } from '@/components/auth/form-controls'
+
+/** The ids and ARIA `Field` hands its control. Named so the callbacks can type it. */
+type FieldControl = Parameters<React.ComponentProps<typeof UiFieldGroup>['children']>[0]
 import { installAction, type InstallFormState } from '@/server/install-actions'
 
 const EMPTY: InstallFormState = {}
-
-const INPUT =
-  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 /** The subset of `MailPreset` the form needs. Kept structural to avoid the import. */
 export interface InstallMailPreset {
@@ -174,9 +207,10 @@ export function InstallForm({
 
   return (
     <form action={submit} className="flex flex-col gap-6">
-      <Step n={1} title="Your board" hint="What it is called, and where it lives.">
+      <FormSection n={1} title="Your board" hint="What it is called, and where it lives.">
         <Field
           name="boardName"
+          id="boardName"
           label="Board name"
           defaultValue={state.values?.boardName ?? ''}
           error={state.errors?.boardName}
@@ -184,13 +218,16 @@ export function InstallForm({
           hint="Shown in the header, in the page title, and on every message it sends."
         />
         {boardUrlIsFromEnvironment ? (
-          <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-            The board’s address comes from <code>APP_URL</code> in this deployment’s
-            environment, which overrides anything stored on the board.
-          </p>
+          <Alert tone="info">
+            <AlertDescription>
+              The board’s address comes from <code>APP_URL</code> in this deployment’s
+              environment, which overrides anything stored on the board.
+            </AlertDescription>
+          </Alert>
         ) : (
           <Field
             name="boardUrl"
+            id="boardUrl"
             label="Board address"
             type="url"
             defaultValue={state.values?.boardUrl ?? suggestedBoardUrl}
@@ -198,7 +235,7 @@ export function InstallForm({
             hint="Every link the board sends is built from this. Filled in from the address you are reading — check it."
           />
         )}
-      </Step>
+      </FormSection>
 
       {/*
         Its own section, rather than three more boxes under "Your board".
@@ -206,13 +243,14 @@ export function InstallForm({
         under one made the first section five fields long and the form look like
         a settings screen.
       */}
-      <Step
+      <FormSection
         n={2}
         title="Your account"
         hint="The first account on the board, and the only one that can reach the control panel."
       >
         <Field
           name="username"
+          id="username"
           label="Your name on the board"
           defaultValue={state.values?.username ?? ''}
           error={state.errors?.username}
@@ -232,6 +270,7 @@ export function InstallForm({
         />
         <Field
           name="email"
+          id="email"
           label="Your e-mail"
           type="email"
           defaultValue={state.values?.email ?? ''}
@@ -241,6 +280,7 @@ export function InstallForm({
         />
         <Field
           name="password"
+          id="password"
           label="Your password"
           type="password"
           /*
@@ -253,17 +293,19 @@ export function InstallForm({
           autoComplete="new-password"
           hint="At least 12 characters. Nothing on this board can reset it until mail works."
         />
-      </Step>
+      </FormSection>
 
       {mailIsFromEnvironment ? (
-        <Step n={3} title="Sending mail" hint="Decided by this deployment’s environment.">
-          <p className="text-sm text-muted-foreground">
-            <code>MAIL_DRIVER</code> is set in this deployment’s environment, which
-            overrides anything stored on the board. Mail is configured there and cannot be
-            changed from this form or from the settings screen — unset it if you would
-            rather configure mail on the board.
-          </p>
-        </Step>
+        <FormSection n={3} title="Sending mail" hint="Decided by this deployment’s environment.">
+          <Alert tone="info">
+            <AlertDescription>
+              <code>MAIL_DRIVER</code> is set in this deployment’s environment, which
+              overrides anything stored on the board. Mail is configured there and cannot
+              be changed from this form or from the settings screen — unset it if you
+              would rather configure mail on the board.
+            </AlertDescription>
+          </Alert>
+        </FormSection>
       ) : (
         <MailSection presets={presets} state={state} />
       )}
@@ -274,39 +316,49 @@ export function InstallForm({
         how far it got. These used to be spread from the top of the page to below
         the form, so the operator had to hold three screens in their head.
       */}
-      <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/30 p-4">
-        <Outcome state={state} />
+      <Card>
+        <CardContent className="flex flex-col gap-4">
+          <Outcome state={state} />
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            disabled={pending}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
-          >
-            {pending ? 'Installing…' : failed ? 'Try again' : 'Install'}
-          </button>
-          <p className="text-xs text-muted-foreground">
-            {pending
-              ? 'Applying migrations. This can take a few seconds — do not reload.'
-              : 'Takes a few seconds. When it finishes, this page stops existing.'}
-          </p>
-        </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {/*
+              The board's primary button, not a hand-rolled one. `Button` rather
+              than `buttonVariants` on a plain `<button>` because this is already
+              an island and the pending state is real: a double-clicked installer
+              would run the whole thing twice.
+            */}
+            <Button type="submit" variant="primary" size="lg" disabled={pending}>
+              {pending ? 'Installing…' : failed ? 'Try again' : 'Install'}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              {pending
+                ? 'Applying migrations. This can take a few seconds — do not reload.'
+                : 'Takes a few seconds. When it finishes, this page stops existing.'}
+            </p>
+          </div>
 
-        <StepReport steps={steps} report={state.report ?? initialReport} />
-      </div>
+          <StepReport steps={steps} report={state.report ?? initialReport} />
+        </CardContent>
+      </Card>
     </form>
   )
 }
 
 /**
- * A numbered section of the form.
+ * A numbered section of the form, as one of the board's panels.
  *
  * The number is the progress indicator. There is no wizard here (see the module
  * comment), so "how much of this is left" has to be answerable by looking, and
  * three numbered headings answer it in the one way that costs no state and no
  * scripting.
+ *
+ * `Card` rather than a bordered `<section>` of its own, and `CardTitle` rather
+ * than a serif heading: panel headings on this board stopped being serif when
+ * the component set did, so a hand-rolled one here was the installer wearing the
+ * previous design. The number rides in `CardHeader`'s trailing slot as a
+ * `Badge`, which is the same control the board uses for a count anywhere else.
  */
-function Step({
+function FormSection({
   n,
   title,
   hint,
@@ -317,25 +369,27 @@ function Step({
   hint: string
   children: React.ReactNode
 }) {
-  const id = `install-step-${n}`
+  const id = `install-section-${n}`
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-4 rounded-lg border border-border p-4">
-      <div className="flex gap-3">
-        <span
-          aria-hidden
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-muted font-mono text-xs text-muted-foreground"
-        >
-          {n}
-        </span>
-        <div className="flex flex-col gap-0.5">
-          <h2 id={id} className="font-serif text-lg font-semibold leading-tight">
-            {title}
-          </h2>
-          <p className="text-sm text-muted-foreground">{hint}</p>
+    <Card aria-labelledby={id}>
+      <CardHeader>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <CardTitle id={id}>{title}</CardTitle>
+          <CardDescription>{hint}</CardDescription>
         </div>
-      </div>
-      {children}
-    </section>
+        <CardAction>
+          {/*
+            Decorative. The heading already carries the section's name, and
+            "Badge 2" announced before "Your account" is one more thing between
+            a screen-reader user and the fields.
+          */}
+          <Badge aria-hidden tone="outline" className="font-mono">
+            {n}
+          </Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">{children}</CardContent>
+    </Card>
   )
 }
 
@@ -365,11 +419,13 @@ function StepReport({
   const anyFailed = report.some((outcome) => outcome.status === 'failed')
 
   return (
-    <details open={anyFailed} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-      <summary className="cursor-pointer text-muted-foreground">
-        {anyFailed ? 'How far it got' : 'What installing does'}
-      </summary>
-      <ol className="mt-2 flex flex-col gap-2">
+    <Disclosure
+      open={anyFailed}
+      summary={anyFailed ? 'How far it got' : 'What installing does'}
+      aside={anyFailed ? undefined : `${steps.length} steps`}
+      contentClassName="p-4"
+    >
+      <ol className="flex flex-col gap-2 text-sm">
         {steps.map((step, index) => {
           const status = statusOf(step.id)
           return (
@@ -412,7 +468,7 @@ function StepReport({
           )
         })}
       </ol>
-    </details>
+    </Disclosure>
   )
 }
 
@@ -432,66 +488,71 @@ function Outcome({ state }: { state: InstallFormState }) {
   if (formError === undefined && failed === undefined && fieldErrors.length === 0) return null
 
   return (
-    <div
-      role="alert"
-      className="flex flex-col gap-2 rounded-md border border-destructive bg-destructive/5 px-3 py-2 text-sm"
-    >
-      {failed !== undefined ? (
-        <p>
-          {/*
-            The step's title, not its id. The ids are `migrate`, `settings`,
-            `admin`, `forum`, `seal` — and the third one printed as *The “admin”
-            step failed* beside the message “That username is reserved”, which
-            reads as though the installer were quoting the name that had just
-            been typed into the box above.
-          */}
-          <span className="font-medium">“{failed.title}” did not finish.</span>{' '}
-          {/*
-            The message goes in the list below when it belongs to a box, and here
-            when it does not. Printing it in both places said the same sentence
-            twice, three lines apart — which reads as two problems.
-          */}
-          {fieldErrors.length > 0 ? 'One answer needs changing:' : failed.error}
-        </p>
-      ) : (
-        <p className="font-medium">
-          {formError ??
-            (fieldErrors.length === 1
-              ? 'Nothing has been installed — one answer needs changing.'
-              : `Nothing has been installed — ${fieldErrors.length} answers need changing.`)}
-        </p>
-      )}
+    /*
+     * `Alert tone="error"`, which resolves `role="alert"` from the tone — so the
+     * announcement is the component's job rather than an attribute every caller
+     * has to remember, and this box now matches the failure box on every other
+     * form on the board.
+     */
+    <Alert tone="error" className="flex-col items-stretch gap-2">
+      <AlertDescription>
+        {failed !== undefined ? (
+          <>
+            {/*
+              The step's title, not its id. The ids are `migrate`, `settings`,
+              `admin`, `forum`, `seal` — and the third one printed as *The “admin”
+              step failed* beside the message “That username is reserved”, which
+              reads as though the installer were quoting the name that had just
+              been typed into the box above.
+            */}
+            <AlertTitle>“{failed.title}” did not finish.</AlertTitle>{' '}
+            {/*
+              The message goes in the list below when it belongs to a box, and
+              here when it does not. Printing it in both places said the same
+              sentence twice, three lines apart — which reads as two problems.
+            */}
+            {fieldErrors.length > 0 ? 'One answer needs changing:' : failed.error}
+          </>
+        ) : (
+          <AlertTitle>
+            {formError ??
+              (fieldErrors.length === 1
+                ? 'Nothing has been installed — one answer needs changing.'
+                : `Nothing has been installed — ${fieldErrors.length} answers need changing.`)}
+          </AlertTitle>
+        )}
 
-      {fieldErrors.length > 0 && (
-        <ul className="flex list-disc flex-col gap-1 pl-5">
-          {fieldErrors.map(([name, message]) => (
-            <li key={name}>
-              {/*
-                An anchor rather than a scripted focus: it is a link to an id on
-                the page, so it works with scripting off and it opens the
-                `<details>` around a folded field in every browser that supports
-                fragment navigation into one — which is also why that fold opens
-                itself below when it contains an error.
-              */}
-              <a href={`#${name}`} className="font-medium underline">
-                {FIELD_LABELS[name] ?? name}
-              </a>
-              {' — '}
-              {message}
-            </li>
-          ))}
-        </ul>
-      )}
+        {fieldErrors.length > 0 && (
+          <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">
+            {fieldErrors.map(([name, message]) => (
+              <li key={name}>
+                {/*
+                  An anchor rather than a scripted focus: it is a link to an id on
+                  the page, so it works with scripting off and it opens the
+                  `<details>` around a folded field in every browser that supports
+                  fragment navigation into one — which is also why that fold opens
+                  itself below when it contains an error.
+                */}
+                <a href={`#${name}`} className="font-medium underline">
+                  {FIELD_LABELS[name] ?? name}
+                </a>
+                {' — '}
+                {message}
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {/*
-        Names no button. This used to say "before pressing Install", and the
-        button says "Try again" once a step has failed.
-      */}
-      <p className="text-xs text-muted-foreground">
-        Passwords are never sent back to this page, so any you typed are empty
-        again — retype them.
-      </p>
-    </div>
+        {/*
+          Names no button. This used to say "before pressing Install", and the
+          button says "Try again" once a step has failed.
+        */}
+        <p className="mt-2 text-xs text-muted-foreground">
+          Passwords are never sent back to this page, so any you typed are empty
+          again — retype them.
+        </p>
+      </AlertDescription>
+    </Alert>
   )
 }
 
@@ -507,7 +568,7 @@ function MailSection({
   const foldedError = FOLDED_FIELDS.some((name) => state.errors?.[name] !== undefined)
 
   return (
-    <Step
+    <FormSection
       n={3}
       title="Sending mail"
       hint="Optional, and the one thing that is harder to add later than now."
@@ -525,41 +586,41 @@ function MailSection({
       </p>
 
       {state.errors?.mailPreset !== undefined && (
-        <p
-          role="alert"
-          className="rounded-md border border-destructive bg-destructive/5 px-3 py-2 text-sm"
-        >
-          {state.errors.mailPreset}
-        </p>
+        <Alert tone="error">
+          <AlertDescription>{state.errors.mailPreset}</AlertDescription>
+        </Alert>
       )}
 
-      <label className="flex flex-col gap-1 text-sm" htmlFor="mailPreset">
-        <span className="font-medium">How mail is sent</span>
-        <select id="mailPreset" name="mailPreset" defaultValue={chosen} className={INPUT}>
-          <option value={SKIP}>Skip for now — this board sends no mail</option>
-          {presets.map((preset) => (
-            <option key={preset.id} value={preset.id}>
-              {preset.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <UiFieldGroup
+        name="mailPreset"
+        id="mailPreset"
+        label="How mail is sent"
+        error={state.errors?.mailPreset ?? null}
+      >
+        {(control: FieldControl) => (
+          <NativeSelect {...control} defaultValue={chosen}>
+            <option value={SKIP}>Skip for now — this board sends no mail</option>
+            {presets.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.label}
+              </option>
+            ))}
+          </NativeSelect>
+        )}
+      </UiFieldGroup>
 
       {/*
         Every provider's caveat, in one place, expanded by default for nobody.
 
-        A `<details>` rather than the note for the current choice, because
-        without scripting there is no "current choice" until the form is
-        submitted. Collapsed so the section stays short for the operator who is
-        skipping, and openable by the one who is not — and the thing it says
-        about all of them is the thing that matters: the domain has to be
-        verified with the provider first, and this board cannot do that step.
+        A disclosure rather than the note for the current choice, because without
+        scripting there is no "current choice" until the form is submitted.
+        Collapsed so the section stays short for the operator who is skipping,
+        and openable by the one who is not — and the thing it says about all of
+        them is the thing that matters: the domain has to be verified with the
+        provider first, and this board cannot do that step.
       */}
-      <details className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-        <summary className="cursor-pointer font-medium">
-          What each of these needs before it will send
-        </summary>
-        <ul className="mt-2 flex flex-col gap-2">
+      <Disclosure summary="What each of these needs before it will send">
+        <ul className="flex flex-col gap-2 text-sm">
           {presets.map((preset) => (
             <li key={preset.id}>
               <span className="font-medium">{preset.label}</span>
@@ -567,13 +628,14 @@ function MailSection({
             </li>
           ))}
         </ul>
-      </details>
+      </Disclosure>
 
       <Field
         name="mailFrom"
+        id="mailFrom"
         label="Sender address"
         type="email"
-        optional
+        required={false}
         defaultValue={state.values?.mailFrom ?? ''}
         error={state.errors?.mailFrom}
         hint="Must be on a domain the provider has verified. Not needed if you are skipping."
@@ -581,8 +643,9 @@ function MailSection({
 
       <Field
         name="mailUsername"
+        id="mailUsername"
         label="Username"
-        optional
+        required={false}
         autoComplete="off"
         defaultValue={state.values?.mailUsername ?? ''}
         error={state.errors?.mailUsername}
@@ -591,9 +654,10 @@ function MailSection({
 
       <Field
         name="mailSecret"
+        id="mailSecret"
         label="Password or API key"
         type="password"
-        optional
+        required={false}
         autoComplete="new-password"
         /* Retyped rather than echoed, on the administrator's password's reasoning. */
         defaultValue=""
@@ -607,19 +671,16 @@ function MailSection({
         one running their own relay, or working around a hostname a provider has
         moved since this release, finds all four together.
       */}
-      <details
+      <Disclosure
         open={foldedError}
-        className="rounded-md border border-border px-3 py-2 text-sm"
+        summary="Server details — only if yours differ from the choice above"
       >
-        <summary className="cursor-pointer font-medium">
-          Server details — only if yours differ from the choice above
-        </summary>
-
-        <div className="mt-3 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <Field
             name="mailHost"
+            id="mailHost"
             label="SMTP host"
-            optional
+            required={false}
             defaultValue={state.values?.mailHost ?? ''}
             error={state.errors?.mailHost}
             hint="Leave blank to use the host the choice above already knows."
@@ -629,101 +690,42 @@ function MailSection({
             <div className="w-28">
               <Field
                 name="mailPort"
+                id="mailPort"
                 label="Port"
-                optional
-                inputMode="numeric"
+                required={false}
                 defaultValue={state.values?.mailPort ?? ''}
                 error={state.errors?.mailPort}
               />
             </div>
-            <label className="flex min-w-56 flex-1 flex-col gap-1 text-sm" htmlFor="mailSecurity">
-              <span className="font-medium">Security</span>
-              <select
-                id="mailSecurity"
-                name="mailSecurity"
-                defaultValue={state.values?.mailSecurity ?? ''}
-                className={INPUT}
-              >
-                <option value="">Whatever the choice above uses</option>
-                <option value="starttls">STARTTLS, required (port 587)</option>
-                <option value="tls">Implicit TLS (port 465)</option>
-                <option value="none">None — local relay only</option>
-              </select>
-            </label>
+            <UiFieldGroup
+              name="mailSecurity"
+              id="mailSecurity"
+              label="Security"
+              className="min-w-56 flex-1"
+              error={state.errors?.mailSecurity ?? null}
+            >
+              {(control: FieldControl) => (
+                <NativeSelect {...control} defaultValue={state.values?.mailSecurity ?? ''}>
+                  <option value="">Whatever the choice above uses</option>
+                  <option value="starttls">STARTTLS, required (port 587)</option>
+                  <option value="tls">Implicit TLS (port 465)</option>
+                  <option value="none">None — local relay only</option>
+                </NativeSelect>
+              )}
+            </UiFieldGroup>
           </div>
 
           <Field
             name="mailEndpoint"
+            id="mailEndpoint"
             label="API endpoint"
-            optional
+            required={false}
             defaultValue={state.values?.mailEndpoint ?? ''}
             error={state.errors?.mailEndpoint}
             hint="For the API choices. Leave blank to use the endpoint the choice above already knows."
           />
         </div>
-      </details>
-    </Step>
-  )
-}
-
-function Field({
-  name,
-  label,
-  error,
-  hint,
-  type = 'text',
-  defaultValue,
-  autoComplete,
-  inputMode,
-  optional = false,
-}: {
-  name: string
-  label: string
-  error?: string | undefined
-  hint?: string | undefined
-  type?: string
-  defaultValue: string
-  autoComplete?: string
-  inputMode?: 'numeric'
-  /**
-   * Not required by the browser.
-   *
-   * Every mail field is optional at this level because which of them are needed
-   * depends on a `<select>` this page cannot read without scripting. The server
-   * asks for the right ones; `required` here would only ever be wrong.
-   */
-  optional?: boolean
-}) {
-  const describedBy = [error !== undefined ? `${name}-error` : null, hint !== undefined ? `${name}-hint` : null]
-    .filter((id): id is string => id !== null)
-    .join(' ')
-
-  return (
-    <label className="flex flex-col gap-1 text-sm" htmlFor={name}>
-      <span className="font-medium">{label}</span>
-      <input
-        /* The id is what the failure summary's links point at. */
-        id={name}
-        name={name}
-        type={type}
-        defaultValue={defaultValue}
-        autoComplete={autoComplete}
-        inputMode={inputMode}
-        required={!optional}
-        aria-invalid={error !== undefined}
-        aria-describedby={describedBy === '' ? undefined : describedBy}
-        className={INPUT}
-      />
-      {hint !== undefined && (
-        <span id={`${name}-hint`} className="text-xs text-muted-foreground">
-          {hint}
-        </span>
-      )}
-      {error !== undefined && (
-        <span id={`${name}-error`} className="text-xs text-destructive">
-          {error}
-        </span>
-      )}
-    </label>
+      </Disclosure>
+    </FormSection>
   )
 }
