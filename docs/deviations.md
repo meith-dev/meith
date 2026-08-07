@@ -8528,3 +8528,116 @@ the only candidate that is certainly the right board's SQL. It is wrapped in a
 `try`, since `import.meta.url` is undefined in the CJS bundles esbuild produces
 — which is the same fact the worker's comment recorded, now handled rather than
 described.
+
+### D111 — The installer that blamed the migrations for a typo in a string (F15, F18, F63, F83)
+
+D110 got `/install` as far as submitting on a compose board. It then failed at
+step 3 of 5, on every fresh board, with:
+
+> The “admin” step failed. The usergroup ladder is missing. Migrations did not
+> seed it.
+
+The migrations had run. They had seeded it. Thirty-four applied, seven groups in
+`usergroups`, exactly as `seed-usergroups.test.ts` asserts on every commit.
+
+#### A group key is a string, and nothing was checking the spelling
+
+`runInstall` resolves the two groups it needs **by key rather than by seeded id**
+— deliberately, and for a good reason: ids that drifted would put the founding
+administrator in the wrong group, which is the least recoverable mistake that
+function could make. It asked for `'registered'`, which exists, and
+`'administrator'`, which does not. Migration `0001` seeds `'administrators'`.
+
+`findGroup` returned `null`, as it should for a group nobody has ever created,
+and the null check raised the only message it had — one that blames the
+migrations, because a missing ladder is the only reason its author imagined for
+the lookup coming back empty. It type-checked. It read correctly. It was wrong by
+one character, in the one place where being wrong is invisible to the compiler.
+
+So the keys are now a constant, `SEED_GROUP_KEY` in `@meith/db`, beside the SQL
+that writes them — a typo in a property name is a build failure where a typo in a
+string literal is a support request. `seed-usergroups.test.ts` asserts the
+constant and the applied migration name the same seven groups, in both
+directions, so neither can be renamed alone. The ids already had this treatment
+(`SEED_GROUP` in `@meith/runtime`); the keys had nothing, which is why the keys
+are what broke.
+
+**The general point is that the message was worse than the bug.** A one-character
+typo is a minute's work. A message that names an innocent subsystem sends an
+operator to read migration logs that say `applied: 34`, and then to their
+database, and then to the issue tracker. So the null check now prints the key it
+wanted beside the keys the board actually has — and says *"the usergroups table
+is empty, so the seed migration did not run"* only in the case where that is
+observably true. Either way the message describes what was found rather than
+what its author assumed, which is the property the old one lacked.
+
+#### The refusals that were reported as breakage
+
+Fixing the lookup exposed the next one immediately, because the natural thing to
+type into a box labelled "Administrator's name" is `admin` — which is
+`reservedUsernames[0]`, since an account by that name could impersonate the
+board. `register()` refused it, correctly, and the screen said:
+
+> The “admin” step failed. That username is reserved.
+
+Three things wrong in eleven words. The quoted `admin` is the *step id*, and the
+reader has just typed `admin` into the box the message is about. "Step failed"
+describes a fault in the installer, when what happened is that the board declined
+an answer. And the message named no field, so on a form long enough that the
+administrator's name is off-screen there was nothing to click and nothing marked.
+
+The fix runs through three layers, because the information genuinely starts three
+layers down:
+
+- **`@meith/accounts`** — every refusal `register()` raises now carries the field
+  it is about in `meta`, read back by `rejectedField()`. `meta` rather than
+  `ValidationError.fieldErrors` because two of the five refusals are
+  `ConflictError` (a taken name is not a malformed one), and no caller should
+  have to know which class it caught to find out which box to point at.
+- **`@meith/install`** — `StepOutcome` gained an optional `field`, and
+  `fieldErrorsFromReport` turns a refusal into a field error while leaving a
+  genuine fault contributing nothing. A database that went away mid-write is not
+  a problem with anything that was typed, and offering to fix it beside a box
+  would send somebody editing a correct answer.
+- **the form** — the headline names the step by its **title** ("Create the
+  administrator"), never its id, and the summary D110 built lists the box with a
+  link to it. Both, not one: how far the install got is what decides whether
+  retrying is safe, and which box to change is what makes retrying possible.
+
+And the reserved names are now listed under the box, from
+`DEFAULT_AUTH_POLICY.reservedUsernames` rather than written out again — so the
+likeliest first answer is refused *before* it costs a submit. That is the cheaper
+half of this fix by a distance: the best error message is one nobody reads.
+
+#### The two dead ends after the last step
+
+Both were found by running the flow to the end rather than to the redirect.
+
+`installAction` has always redirected to `/login?installed=1`, and
+`login/page.tsx` had no entry for `installed` — so the parameter was inert and
+the screen confirming that a five-step irreversible install had *worked* was an
+ordinary sign-in form. The installer is gone by then (it answers 404, by
+design), so nothing anywhere said the board existed. One line in `NOTICES`.
+
+Then the handbook's next sentence — "sign in and go to `/admin`" — met *"Your
+control panel session has expired."* on a board four minutes old. `resolveAdmin`
+collapsed "no ACP cookie at all" and "cookie present, session gone" into one
+`signin` denial, and the layout passed `reason="expired"` for it unconditionally.
+The sign-in form has carried a sentence for the first-visit case since it was
+written and had never once been given it. The denial is split into `signin` and
+`expired`, which is what the type's own comment — *"each maps to a different
+screen"* — had been claiming all along.
+
+#### What actually found all five
+
+Running it. A database, the real Next server, and a browser filling in the form —
+the same lesson as D106, which is the entry that exists because the deployment
+bugs were all found by running it and none by reading it. Every one of these five
+is in a path with tests around it: the ladder is asserted, the preflight is
+asserted, the schema is asserted. What none of them covered is the seam between
+`runInstall` and the rows a real migration writes, which is exactly where a
+mistyped string lives.
+
+The lasting guard is the one that costs nothing: `SEED_GROUP_KEY` moves that seam
+from a runtime lookup to a compile-time one, so the class of bug is gone rather
+than the instance.

@@ -6,8 +6,10 @@ import {
   canProceed,
   defaultForumSlug,
   ECHOED_FIELDS,
+  fieldErrorsFromReport,
   firstFailure,
   freshReport,
+  stepTitle,
   installed,
   installInputFromForm,
   INSTALL_FIELDS,
@@ -223,6 +225,79 @@ describe('the step plan', () => {
     ]
     expect(firstFailure(report)?.error).toBe('first')
     expect(firstFailure(freshReport())).toBeNull()
+  })
+
+  /*
+   * The step ids are `migrate`, `settings`, `admin`, `forum`, `seal`. They are
+   * keys, and the screen used to print them: *The "admin" step failed. That
+   * username is reserved.* — where the quoted word is the step, and the reader
+   * has just typed `admin` into the box the message is about. Titles are the
+   * only version of that sentence anybody can read.
+   */
+  it('gives every step a title a screen can print', () => {
+    for (const step of INSTALL_STEPS) {
+      expect(stepTitle(step.id)).toBe(step.title)
+      expect(stepTitle(step.id)).not.toBe(step.id)
+    }
+  })
+
+  it('falls back to the id for a step it does not know', () => {
+    expect(stepTitle('nonexistent')).toBe('nonexistent')
+  })
+})
+
+/*
+ * A refusal of the operator's answers, told apart from a fault.
+ *
+ * "Create the administrator" runs the board's own registration command, which
+ * refuses a reserved name, a taken address and a short password. Reported as a
+ * bare step failure those read as breakage, name no box, and cannot be linked
+ * to — on a form long enough that the field is off-screen.
+ */
+describe('a step that refused an answer', () => {
+  it('re-aims the message at the box that caused it', () => {
+    const report = [
+      { id: 'migrate', status: 'done' as const },
+      { id: 'settings', status: 'done' as const },
+      {
+        id: 'admin',
+        status: 'failed' as const,
+        error: 'That username is reserved.',
+        field: 'username',
+      },
+    ]
+
+    expect(fieldErrorsFromReport(report)).toEqual({
+      username: 'That username is reserved.',
+    })
+  })
+
+  /*
+   * The distinction that matters: a database that went away mid-write is not a
+   * problem with anything the operator typed, and offering to fix it beside a
+   * box would send them editing a correct answer.
+   */
+  it('contributes no field error when the step simply broke', () => {
+    const report = [
+      { id: 'migrate', status: 'failed' as const, error: 'connection refused' },
+    ]
+    expect(fieldErrorsFromReport(report)).toEqual({})
+  })
+
+  it('says nothing about a report with nothing wrong in it', () => {
+    expect(fieldErrorsFromReport(freshReport())).toEqual({})
+    expect(
+      fieldErrorsFromReport(INSTALL_STEPS.map((s) => ({ id: s.id, status: 'done' as const }))),
+    ).toEqual({})
+  })
+
+  /* The first failure's field, for the same reason `firstFailure` exists. */
+  it('follows the first failure when a report carries two', () => {
+    const report = [
+      { id: 'settings', status: 'failed' as const, error: 'first', field: 'boardName' },
+      { id: 'admin', status: 'failed' as const, error: 'second', field: 'username' },
+    ]
+    expect(fieldErrorsFromReport(report)).toEqual({ boardName: 'first' })
   })
 })
 

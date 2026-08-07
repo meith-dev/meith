@@ -211,14 +211,24 @@ describe('permission', () => {
 })
 
 describe('the ACP session', () => {
-  it('asks for a password when there is no cookie', async () => {
+  /*
+   * `signin` and `expired` are the same outcome — the password form — and
+   * deliberately different denials, because they are different *sentences*.
+   *
+   * No cookie is a first visit. Every administrator makes one, immediately after
+   * installing, following the handbook's "then go to /admin"; while both
+   * collapsed into one denial the screen told them their control panel session
+   * had expired, on a board minutes old that had never had one. Anything that
+   * merges these two again puts that sentence back.
+   */
+  it('asks for a password, blaming nothing, when there is no cookie', async () => {
     tokenRef.current = null
     expect(await resolveAdmin()).toEqual({ denied: 'signin' })
   })
 
-  it('asks for a password when the session is not live', async () => {
+  it('reports a cookie whose session is not live as expired', async () => {
     adminSessions.row = null
-    expect(await resolveAdmin()).toEqual({ denied: 'signin' })
+    expect(await resolveAdmin()).toEqual({ denied: 'expired' })
   })
 
   it('refuses a session belonging to somebody else', async () => {
@@ -226,9 +236,13 @@ describe('the ACP session', () => {
      * The case this exists for: somebody signed out and somebody else signed in
      * on the same browser, and the ACP cookie — which has its own path and its
      * own lifetime — survived. Kills the mutant that drops the comparison.
+     *
+     * `expired` rather than `signin`: a cookie was presented, so this browser
+     * has been in the panel before and "your session has ended" is the true
+     * account of it.
      */
     adminSessions.row = session({ userId: BOB })
-    expect(await resolveAdmin()).toEqual({ denied: 'signin' })
+    expect(await resolveAdmin()).toEqual({ denied: 'expired' })
   })
 
   it('refuses a board with no admin session store', async () => {

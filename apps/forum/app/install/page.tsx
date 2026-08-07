@@ -1,3 +1,4 @@
+import { DEFAULT_AUTH_POLICY } from '@meith/accounts'
 import { INSTALL_STEPS, blockers, canProceed, warnings } from '@meith/install'
 import { env } from '@meith/core'
 import { MAIL_PRESETS, isUsableOrigin, normaliseOrigin } from '@meith/settings'
@@ -126,6 +127,13 @@ export default async function InstallPage() {
          */
         <InstallForm
           presets={MAIL_PRESETS}
+          /*
+           * The same list `runInstall` will enforce. `resolveAuthPolicy` does
+           * not make this one board-configurable, and nothing has been stored
+           * yet in any case, so the policy's own value is what the administrator
+           * will actually be checked against.
+           */
+          reservedUsernames={DEFAULT_AUTH_POLICY.reservedUsernames}
           mailIsFromEnvironment={mail.source === 'environment'}
           suggestedBoardUrl={suggestedBoardUrl}
           boardUrlIsFromEnvironment={(env.APP_URL ?? '') !== ''}

@@ -118,6 +118,13 @@ password — and **how the board should send mail**. Fill the mail part in here 
 you can; the reasons are in step 5, and doing it now costs one extra minute
 rather than one extra visit.
 
+> [!NOTE]
+> **Your username is the name you post under**, not a role. `admin` and
+> `administrator` are both reserved — along with `root`, `moderator`, `mod`,
+> `staff`, `system`, `guest`, `anonymous`, `me` and `you` — so that no account
+> can impersonate the board. The form lists them under the box. Being an
+> administrator is a group, and this account is put in it either way.
+
 It does not ask for the board's address. Coolify supplies that (`APP_URL`), so
 the installer shows it as already decided rather than asking you to retype your
 own domain.
@@ -139,7 +146,14 @@ on this form rather than a finished board that cannot e-mail anybody.
 > are running this against the production database, which is the right place —
 > just do not do it twice against two different ones.
 
-That is a board. Sign in and go to `/admin`.
+That is a board. It sends you to the sign-in page and says so; sign in with the
+account you just made.
+
+Then go to **`/admin`**, which asks for your password a second time. That is not
+a bug and not a failed sign-in: the control panel keeps a session of its own,
+separate from your board session, so an unattended browser that is still signed
+in to the board is not also signed in to the panel. It lapses after 30 minutes
+idle, and again after 8 hours whatever you are doing.
 
 ## 5. Mail
 
@@ -214,6 +228,13 @@ A backup nobody has restored is a file, not a backup.
 
 The run stops at the first failed step and names it, with the error. Later steps
 are reported as *not run* rather than as further failures.
+
+Most of what stops it is an **answer**, not a fault. "Create the administrator"
+runs the board's ordinary registration, so a reserved name, an address already in
+use or a password below the board's own minimum all stop the run there. When that
+is what happened, the message is repeated beside the box that caused it and the
+summary links straight to it — change that one answer, retype the passwords, and
+press Install again.
 
 Sealing is deliberately last, so a failure before it leaves a board you can fix
 and retry. What to do depends on how far it got:

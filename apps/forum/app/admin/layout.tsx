@@ -74,9 +74,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         tabIndex={-1}
         className="flex min-h-screen items-center justify-center px-6 py-12"
       >
+        {/*
+          `null` where the panel has simply never been opened. The form has
+          always carried a sentence for that case and never been given it: this
+          branch passed "expired" unconditionally, so the first administrator of
+          every board was told a session they had never had had run out.
+        */}
         <AdminSignInForm
           next="/admin"
-          reason="expired"
+          reason={resolved.denied === 'expired' ? 'expired' : null}
           idleMinutes={ADMIN_IDLE_MINUTES}
         />
       </main>

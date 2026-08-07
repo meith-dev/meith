@@ -21,9 +21,11 @@ export {
 
 export {
   INSTALL_STEPS,
+  fieldErrorsFromReport,
   firstFailure,
   freshReport,
   installed,
+  stepTitle,
   type InstallStep,
   type StepOutcome,
   type StepStatus,

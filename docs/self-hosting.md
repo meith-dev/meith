@@ -203,6 +203,11 @@ keep, so loading it the way your members will is the point.
 The form asks five things: a board name, **the board's address**, your username,
 your e-mail and a password — plus how the board should send mail.
 
+Your username is the name you post under, not a role, and the obvious ones are
+reserved so that no account can impersonate the board — see
+[Quickstart § Run the installer](./quickstart.md#4-run-the-installer). The form
+lists them under the box.
+
 **The address is prefilled from the URL you loaded**, because that is almost
 always right and because nothing else on the form is as easy to get subtly wrong.
 Check it before you submit: it is the origin every password-reset and

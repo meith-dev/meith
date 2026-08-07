@@ -97,11 +97,18 @@ const FOLDED_FIELDS = ['mailHost', 'mailPort', 'mailSecurity', 'mailEndpoint']
 
 export function InstallForm({
   presets,
+  reservedUsernames,
   mailIsFromEnvironment,
   suggestedBoardUrl,
   boardUrlIsFromEnvironment,
 }: {
   presets: readonly InstallMailPreset[]
+  /**
+   * The names the board keeps for itself, from the policy the install will
+   * apply. Handed down for the same reason `presets` is: this is a client
+   * component, and the alternative to a prop is a second copy of the list.
+   */
+  reservedUsernames: readonly string[]
   /**
    * The origin this page was served from, as a *suggestion*.
    *
@@ -162,6 +169,18 @@ export function InstallForm({
         defaultValue={state.values?.username ?? ''}
         error={state.errors?.username}
         autoComplete="username"
+        /*
+         * Said here rather than discovered on submit. The board reserves a
+         * handful of names so that no account can impersonate it — and the two
+         * most obvious things to type into a box labelled "administrator" are
+         * both on that list, which made the single likeliest first answer a
+         * failed install.
+         *
+         * The list is handed down from the policy rather than written out here:
+         * a second copy of it would go stale the first time a name was added,
+         * and this one is read by somebody who is about to trip over it.
+         */
+        hint={`Your own name on the board — this is the account you post from. Reserved, so that nothing can impersonate the board: ${reservedUsernames.join(', ')}.`}
       />
       <Field
         name="email"
@@ -243,7 +262,14 @@ function Outcome({ state }: { state: InstallFormState }) {
     >
       {failed !== undefined ? (
         <p>
-          <span className="font-medium">The “{failed.id}” step failed.</span> {failed.error}
+          {/*
+            The step's title, not its id. The ids are `migrate`, `settings`,
+            `admin`, `forum`, `seal` — and the third one printed as *The “admin”
+            step failed* beside the message “That username is reserved”, which
+            reads as though the installer were quoting the name that had just
+            been typed into the box above.
+          */}
+          <span className="font-medium">“{failed.title}” did not finish.</span> {failed.error}
         </p>
       ) : (
         <p className="font-medium">

@@ -42,6 +42,12 @@ export {
   type ResumeOutcome,
 } from './session-service'
 
+export {
+  REGISTER_FIELD,
+  rejectedField,
+  type RegisterField,
+} from './register-fields'
+
 export { createMemoryStore } from './memory-repos'
 
 export { foldIdentifier } from './case-fold'

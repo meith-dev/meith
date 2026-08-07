@@ -76,6 +76,41 @@ export interface StepOutcome {
   readonly status: StepStatus
   /** Present on a failure, and safe to show: never a connection string. */
   readonly error?: string
+  /**
+   * The form field the board refused, when the step failed because of an
+   * *answer* rather than because something broke.
+   *
+   * The distinction is the whole point. "Create the administrator" runs the
+   * board's own registration command, which refuses a reserved name, a taken
+   * address or a short password — all of them things the operator typed into a
+   * box a screen above the button. Without this the refusal arrived as *"the
+   * 'admin' step failed: That username is reserved"*, which reads as a fault in
+   * the installer, names no box, and — since the step id is `admin` — appears to
+   * be quoting the very name that was rejected.
+   *
+   * Absent for a genuine fault, because there is no box that would fix one.
+   */
+  readonly field?: string
+}
+
+/**
+ * The failed step's message re-aimed at the box that caused it.
+ *
+ * Empty when the failure was not about an answer, so a caller can spread it
+ * unconditionally: a broken step contributes no field errors and keeps the
+ * step-failure headline to itself.
+ */
+export function fieldErrorsFromReport(
+  report: readonly StepOutcome[],
+): Record<string, string> {
+  const failure = firstFailure(report)
+  if (failure === null || failure.field === undefined) return {}
+  return { [failure.field]: failure.error ?? 'That answer was refused.' }
+}
+
+/** A step's title, for a screen that would otherwise print the raw id. */
+export function stepTitle(id: string): string {
+  return INSTALL_STEPS.find((step) => step.id === id)?.title ?? id
 }
 
 /**

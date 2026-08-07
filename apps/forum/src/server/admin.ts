@@ -38,8 +38,19 @@ export type AdminDenial =
   | 'address'
   /** Not signed in, or no `admincp.access`. */
   | 'permission'
-  /** Signed in and permitted, but no live ACP session: show the password form. */
+  /**
+   * Permitted, and has never opened the panel on this browser: ask for the
+   * password with no suggestion that anything went wrong.
+   *
+   * Split from `expired` because the two produce different sentences and the
+   * screen used to print the wrong one for both. Every administrator meets this
+   * denial once — immediately after installing, following the handbook's "sign
+   * in and go to /admin" — and was told their control panel session had expired,
+   * on a board minutes old that had never had one.
+   */
   | 'signin'
+  /** Had an ACP session; it is gone, stale, or belongs to another account. */
+  | 'expired'
   /** Fixture mode, which has no admin session store. */
   | 'unavailable'
 
@@ -98,18 +109,22 @@ export const resolveAdmin = cache(
       return { denied: 'permission' }
     }
 
+    /*
+     * No cookie at all is a *first* visit, not a lapsed one — including the
+     * first visit every administrator makes, straight after installing.
+     */
     const token = await readAdminToken()
     if (token === null || token === '') return { denied: 'signin' }
 
     const context = await service.resolve(await hashToken(token))
-    if (context === null) return { denied: 'signin' }
+    if (context === null) return { denied: 'expired' }
 
     /*
      * The ACP session belongs to a member; the board session says who is here.
      * If they disagree — somebody signed out and somebody else signed in on the
      * same browser, and the ACP cookie survived — the ACP session is not theirs.
      */
-    if (context.userId !== actor.userId) return { denied: 'signin' }
+    if (context.userId !== actor.userId) return { denied: 'expired' }
 
     return { context }
   },
@@ -132,7 +147,16 @@ export async function requireAdmin(): Promise<AdminContext> {
         ? 'This board is running on in-memory sample data, so it has no control panel.'
         : resolved.denied === 'permission'
           ? 'You cannot reach the control panel.'
-          : 'Your control panel session has expired. Sign in again.',
+          : /*
+             * Both remaining denials, in one sentence, and deliberately.
+             *
+             * This is the *action* path: there is no screen, the caller is a
+             * form post that did nothing, and the next step is the same either
+             * way. The distinction between "never signed in" and "signed in and
+             * lapsed" exists for the panel's sign-in screen, which has room to
+             * say it kindly; here it would be a difference nobody can act on.
+             */
+            'Sign in to the control panel and try that again.',
   )
 }
 
