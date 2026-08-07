@@ -170,8 +170,18 @@ export default async function LandingPage() {
             full width underneath. The other way round — cards beside the
             transcript — makes two narrow columns of eight lines each next to a
             window of four, and leaves the bottom right of the band empty.
+
+            `minmax(0, 1fr)` at both widths, and the phone one is the one that
+            matters. A grid track sized `auto` — which is what a single stacked
+            column is, unless you say otherwise — takes its floor from the
+            min-content width of what is in it, and what is in it is a shell
+            transcript whose longest line is a clone URL that cannot wrap. The
+            track therefore refused to go below about 430px, and on a 375px
+            phone the whole page scrolled sideways to reach it. The transcript
+            scrolls inside its own window instead, which is what
+            `.terminal-body`'s `overflow-x` was always there to do.
           */}
-          <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_27rem] lg:items-center">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_27rem] lg:items-center">
             <header className="max-w-[44rem]">
               <p className="eyebrow">{deployment.eyebrow}</p>
               <h2 className="display mt-3 text-large leading-[1.15]">{deployment.heading}</h2>
