@@ -15,6 +15,7 @@ import process from 'node:process'
 import { loadEnvFiles, type LoadedEnvFiles } from '@meith/core/env-files'
 
 import { importCommand } from './import'
+import { SECRET_ENV_KEYS } from './redaction'
 import { searchReindex } from './search'
 import { taskList, taskRun } from './tasks'
 import {
@@ -80,20 +81,15 @@ const commands: Command[] = [
        * Secrets are reported as present/absent only. An operator running this
        * over a shared terminal or pasting output into an issue must not leak
        * AUTH_SECRET.
+       *
+       * The list lives in `redaction.ts` with the reason it moved there: it is a
+       * deny-list, so a credential added to the schema and not to it gets
+       * printed, silently, by the one command whose output people paste into bug
+       * reports. `redaction.test.ts` holds it against the schema.
        */
-      const secretKeys = new Set([
-        'AUTH_SECRET',
-        'TICK_SECRET',
-        'DATABASE_URL',
-        'DIRECT_DATABASE_URL',
-        'MAIL_HTTP_TOKEN',
-        'REDIS_URL',
-        'S3_SECRET_ACCESS_KEY',
-      ])
-
       const rows = Object.entries(env)
         .filter(([, v]) => v !== undefined)
-        .map(([k, v]) => [k, secretKeys.has(k) ? '<set>' : String(v)] as const)
+        .map(([k, v]) => [k, SECRET_ENV_KEYS.has(k) ? '<set>' : String(v)] as const)
         .sort(([a], [b]) => a.localeCompare(b))
 
       const width = Math.max(...rows.map(([k]) => k.length))
