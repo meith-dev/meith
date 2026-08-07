@@ -598,18 +598,32 @@ which is ample for a forum and not for a newsletter.
 Free for 3,000 messages a month, and the provider whose API the `http` transport
 was written against.
 
+On the installer, pick **Resend (API)** and give it two things — the sender
+address and the API key. The endpoint comes with the preset. On
+`/admin/settings?group=mail` after the fact, the same three fields by hand:
+
+```
+How mail is sent:  Provider API
+Sender address:    noreply@yourdomain.com
+API endpoint:      https://api.resend.com/emails
+API key:           re_…
+```
+
+Or the same account over SMTP — host `smtp.resend.com`, port 465, implicit TLS,
+username the literal word `resend`, password the API key. **Resend (SMTP)** is a
+preset too and fills those four in for you; on the settings screen you type them,
+because the screen is generated from the setting registry and has no provider
+list.
+
+Only if the credential must not live in the database, the environment says the
+same thing and overrides both — at the cost of a redeploy to rotate it:
+
 ```sh
 MAIL_DRIVER=http
 MAIL_HTTP_ENDPOINT=https://api.resend.com/emails
 MAIL_HTTP_TOKEN=re_…
 MAIL_FROM=noreply@yourdomain.com
 ```
-
-Or the same account over SMTP — host `smtp.resend.com`, port 465, implicit TLS,
-username the literal word `resend`, password the API key. The installer offers
-that as a preset and fills those four in for you; on the settings screen you type
-them, because the screen is generated from the setting registry and has no
-provider list.
 
 Two things will bite you before the first message arrives:
 
@@ -993,7 +1007,10 @@ perfectly while you were the only visitor starts refusing connections the first
 day it is busy — with an error that names the database rather than the cause.
 
 **Use the transaction-mode pooler string.** On Supabase that is port `6543`, not
-`5432`. The installer warns when the URL does not look like a pooler.
+`5432`. The installer used to warn about this and no longer does: it could only
+guess from the shape of the URL, and on a board running against its own Postgres
+— which is the deployment this handbook documents — the direct string is correct
+and the warning was noise.
 
 Two consequences:
 

@@ -18,10 +18,19 @@
  *
  * A **blocker** means installing cannot succeed. A **warning** means it will
  * succeed and something will be wrong later — which is the more dangerous
- * category, because nothing complains at the time. The pooler check is the
- * archetype: a board on the direct connection string installs perfectly, works
- * in testing, and starts refusing connections under the first real traffic, with
- * an error that names the database rather than the cause.
+ * category, because nothing complains at the time. `TICK_SECRET` is the
+ * archetype: a board without it installs perfectly and looks finished, and then
+ * bans do not expire and digests do not send, with nothing failing anywhere to
+ * say so.
+ *
+ * There used to be a third: a warning that the connection string did not look
+ * like a pooler. It was written for serverless deployments, where every function
+ * instance opens its own connection — a way of running this board that is no
+ * longer supported (D105). What was left was a warning that fired on the correct
+ * configuration for every deployment this project documents, which is how an
+ * operator learns to read past the ones that matter. Pooling advice that is still
+ * true for a managed database lives in the handbook, where it can be read by
+ * somebody who has one.
  */
 
 import type { MailSource } from '@meith/settings'
@@ -89,32 +98,6 @@ export interface PreflightProbe {
   readonly alreadyInstalled: boolean
 }
 
-/**
- * Does this look like a pooler connection string?
- *
- * A heuristic, and it is honest about being one: the check *warns*, it does not
- * block, because a self-hosted board talking to Postgres on 5432 is entirely
- * correct and telling that operator they are wrong would train them to ignore
- * the installer.
- *
- * Three signals, any of which is enough — Supabase's pooler port, a host that
- * says so, or an explicit `pgbouncer=true`. Missing all three on a *serverless*
- * deployment is what the warning is for.
- */
-export function looksLikePooler(url: string): boolean {
-  let parsed: URL
-  try {
-    parsed = new URL(url)
-  } catch {
-    return false
-  }
-
-  if (parsed.port === '6543') return true
-  if (/pooler|pgbouncer|proxy/i.test(parsed.hostname)) return true
-  if (parsed.searchParams.get('pgbouncer') === 'true') return true
-  return false
-}
-
 function ok(id: string, title: string): Check {
   return { id, level: 'ok', title, detail: '' }
 }
@@ -178,22 +161,6 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
     })
   } else {
     checks.push(ok('database-url', 'DATABASE_URL is set'))
-
-    if (!looksLikePooler(probe.databaseUrl)) {
-      checks.push({
-        id: 'pooler',
-        level: 'warning',
-        title: 'This does not look like a pooler connection string',
-        detail:
-          'On a serverless platform every function instance opens its own connection, and ' +
-          'Postgres runs out at around a hundred — so a board on the direct string works in ' +
-          'testing and starts refusing connections under real traffic, with an error that ' +
-          'names the database rather than the cause. Use the transaction-mode pooler URL. ' +
-          'If you are self-hosting against your own Postgres, this warning does not apply.',
-      })
-    } else {
-      checks.push(ok('pooler', 'The connection string looks like a pooler'))
-    }
   }
 
   if (probe.canConnect === false) {

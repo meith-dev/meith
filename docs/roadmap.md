@@ -235,7 +235,7 @@ contracts without reading core source.
 | ID | Depends on | Deliverable and acceptance |
 |---|---|---|
 | F82 | F04 | `npx create-meith` scaffold with config/env/README; the generated project builds without a database and names what runs the tick. *(Was "Deploy-to-Vercel; push-to-deploy" — see D105.)* |
-| F83 | F82/F63 | One-time `/install`: safe preflight, migrations/setup/admin/default forum, pooler warning, then irreversible self-disable. |
+| F83 | F82/F63 | One-time `/install`: safe preflight, migrations/setup/admin/default forum, then irreversible self-disable. |
 | F84 | F83 | Core/plugin upgrade command, dependency order, version/ACP notice, documented two-version no-data-loss upgrade. |
 | F85 | F83 | Chunked, resumable, idempotent MyBB import preserving legacy IDs across all supported content; fixture round trip/report/counter proof. |
 | F86 | F85 | Legacy hash verify-and-upgrade plus toggleable, table-tested 301s for every MyBB URL form. |

@@ -14,15 +14,29 @@
  * connection. An installer that needs JavaScript to submit is an installer that
  * sometimes cannot.
  *
- * ## The mail section, and why every box is visible at once
+ * ## Why a failure is summarised beside the button rather than only at the field
+ *
+ * React empties both password boxes after every submit, because they are the
+ * two values this form deliberately never renders back. On a failed submit that
+ * is the *only* change an operator standing at the bottom of a long form can
+ * see: the message explaining why is beside a field that may be a screen and a
+ * half above them, and — when the environment owns the field — may not be on the
+ * page at all. That combination produced a form that appeared to clear the
+ * password and do nothing.
+ *
+ * So every failure is also stated where the button is, as a list of what needs
+ * changing, each item linking to its field. It lists whatever came back, not a
+ * fixed set, which is what makes a message about a box this page does not render
+ * impossible to lose.
+ *
+ * ## The mail section, and why the fiddly half is folded away
  *
  * With no scripting there is nothing to hide the SMTP fields when the operator
- * picks an API provider, and a `<details>` that collapses half the form would
- * hide the fields somebody has just been told to fill in. So both sets are
- * shown, grouped and labelled with which choices use them, and the server asks
- * only for the ones the chosen transport needs. A form that shows two boxes too
- * many is a smaller failure than one that requires a box for a provider the
- * operator is not using.
+ * picks an API provider, so the questions everybody answers are on the page —
+ * how mail is sent, who it comes from, and the one credential — and the boxes
+ * that exist only to override what the chosen provider already knows are in a
+ * `<details>`, which needs no scripting to open. It opens itself when something
+ * inside it is wrong.
  *
  * The presets arrive as a prop rather than being imported here. They live in
  * `@meith/settings` next to the config they prefill, and importing that module
@@ -54,6 +68,33 @@ export interface InstallMailPreset {
 /** Mirrors `MAIL_SKIP`. A literal here so the client bundle imports nothing. */
 const SKIP = 'skip'
 
+/**
+ * What each field is called in the summary beside the button.
+ *
+ * The label the field carries, so the list names the box the operator is being
+ * sent to. Anything not on this list is shown under its own name rather than
+ * dropped — an error with no label is still an error, and losing it is the
+ * failure this summary exists to prevent.
+ */
+const FIELD_LABELS: Record<string, string> = {
+  boardName: 'Board name',
+  boardUrl: 'Board address',
+  username: 'Administrator’s name',
+  email: 'Administrator’s e-mail',
+  password: 'Administrator’s password',
+  mailPreset: 'How mail is sent',
+  mailFrom: 'Sender address',
+  mailUsername: 'Mail username',
+  mailSecret: 'Mail password or API key',
+  mailHost: 'SMTP host',
+  mailPort: 'Port',
+  mailSecurity: 'Security',
+  mailEndpoint: 'API endpoint',
+}
+
+/** The boxes behind the “server details” fold, so an error can open it. */
+const FOLDED_FIELDS = ['mailHost', 'mailPort', 'mailSecurity', 'mailEndpoint']
+
 export function InstallForm({
   presets,
   mailIsFromEnvironment,
@@ -69,7 +110,14 @@ export function InstallForm({
    * unread — see `board-url.ts`. Confirming it is the whole safety property.
    */
   suggestedBoardUrl: string
-  /** `APP_URL` is set, so the box below would be ignored. */
+  /**
+   * `APP_URL` is set, so the box below would be ignored — and is not rendered.
+   *
+   * The action substitutes the environment's value server-side rather than
+   * asking the browser to post it back in a hidden input, which is both safer
+   * and the reason a hidden field is not the fix here: see
+   * `withEnvironmentAnswers`.
+   */
   boardUrlIsFromEnvironment: boolean
   /**
    * `MAIL_DRIVER` is set, so the environment decides and these boxes would be
@@ -84,25 +132,6 @@ export function InstallForm({
   return (
     <form action={submit} className="flex flex-col gap-4 rounded-lg border border-border p-4">
       <h2 className="text-xl font-semibold tracking-tight">Your board</h2>
-
-      {state.errors?.form !== undefined && (
-        <p role="alert" className="rounded-md border border-destructive bg-destructive/5 px-3 py-2 text-sm">
-          {state.errors.form}
-        </p>
-      )}
-
-      {state.failedStep !== undefined && (
-        /*
-         * Which step, not just "it failed". The steps are listed above this form,
-         * so naming one tells the operator exactly how far the board got — and
-         * whether trying again is safe or whether they now have a half-installed
-         * board to look at.
-         */
-        <p role="alert" className="rounded-md border border-destructive bg-destructive/5 px-3 py-2 text-sm">
-          <span className="font-medium">The “{state.failedStep.id}” step failed.</span>{' '}
-          {state.failedStep.error}
-        </p>
-      )}
 
       <Field
         name="boardName"
@@ -172,6 +201,8 @@ export function InstallForm({
         <MailSection presets={presets} state={state} />
       )}
 
+      <Outcome state={state} />
+
       <div>
         <button
           type="submit"
@@ -190,6 +221,68 @@ export function InstallForm({
   )
 }
 
+/**
+ * What happened, next to the button that made it happen.
+ *
+ * Renders nothing at all when there is nothing to say, so a first visit is not
+ * greeted by an empty box. The failed *step* takes the headline when there is
+ * one, because "which step" tells the operator how far the board got and
+ * therefore whether trying again is safe — the steps are listed above this form.
+ */
+function Outcome({ state }: { state: InstallFormState }) {
+  const fieldErrors = Object.entries(state.errors ?? {}).filter(([name]) => name !== 'form')
+  const formError = state.errors?.form
+  const failed = state.failedStep
+
+  if (formError === undefined && failed === undefined && fieldErrors.length === 0) return null
+
+  return (
+    <div
+      role="alert"
+      className="flex flex-col gap-2 rounded-md border border-destructive bg-destructive/5 px-3 py-2 text-sm"
+    >
+      {failed !== undefined ? (
+        <p>
+          <span className="font-medium">The “{failed.id}” step failed.</span> {failed.error}
+        </p>
+      ) : (
+        <p className="font-medium">
+          {formError ??
+            (fieldErrors.length === 1
+              ? 'Nothing has been installed — one answer needs changing.'
+              : `Nothing has been installed — ${fieldErrors.length} answers need changing.`)}
+        </p>
+      )}
+
+      {fieldErrors.length > 0 && (
+        <ul className="flex list-disc flex-col gap-1 pl-5">
+          {fieldErrors.map(([name, message]) => (
+            <li key={name}>
+              {/*
+                An anchor rather than a scripted focus: it is a link to an id on
+                the page, so it works with scripting off and it opens the
+                `<details>` around a folded field in every browser that supports
+                fragment navigation into one — which is also why that fold opens
+                itself below when it contains an error.
+              */}
+              <a href={`#${name}`} className="font-medium underline">
+                {FIELD_LABELS[name] ?? name}
+              </a>
+              {' — '}
+              {message}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Passwords are never sent back to this page, so any you typed are empty
+        again. Retype them before pressing Install.
+      </p>
+    </div>
+  )
+}
+
 function MailSection({
   presets,
   state,
@@ -198,6 +291,8 @@ function MailSection({
   state: InstallFormState
 }) {
   const chosen = state.values?.mailPreset ?? SKIP
+  /* Folded away, but never folded over a message. */
+  const foldedError = FOLDED_FIELDS.some((name) => state.errors?.[name] !== undefined)
 
   return (
     <section className="flex flex-col gap-4 rounded-md border border-border p-3">
@@ -205,9 +300,9 @@ function MailSection({
         <h3 className="text-base font-semibold tracking-tight">Sending mail</h3>
         <p className="text-sm text-muted-foreground">
           Nothing is installed until a test message reaches the address above, so a wrong
-          key here costs a retry rather than a broken board. You can also skip this and
-          set it up later from the settings screen — but until you do, nobody can reset a
-          forgotten password, including you.
+          key here costs a retry rather than a broken board. You can skip this and set it
+          up later — but until you do, nobody can reset a forgotten password, including
+          you.
         </p>
       </div>
 
@@ -220,9 +315,9 @@ function MailSection({
         </p>
       )}
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1 text-sm" htmlFor="mailPreset">
         <span className="font-medium">How mail is sent</span>
-        <select name="mailPreset" defaultValue={chosen} className={INPUT}>
+        <select id="mailPreset" name="mailPreset" defaultValue={chosen} className={INPUT}>
           <option value={SKIP}>Skip for now — this board sends no mail</option>
           {presets.map((preset) => (
             <option key={preset.id} value={preset.id}>
@@ -266,90 +361,89 @@ function MailSection({
         hint="Must be on a domain the provider has verified. Not needed if you are skipping."
       />
 
-      <fieldset className="flex flex-col gap-4 rounded-md border border-border p-3">
-        <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          For the SMTP choices
-        </legend>
+      <Field
+        name="mailUsername"
+        label="Username"
+        optional
+        autoComplete="off"
+        defaultValue={state.values?.mailUsername ?? ''}
+        error={state.errors?.mailUsername}
+        hint="For the SMTP choices. Leave blank when the choice above already knows it, and for the API choices."
+      />
 
-        <Field
-          name="mailHost"
-          label="SMTP host"
-          optional
-          defaultValue={state.values?.mailHost ?? ''}
-          error={state.errors?.mailHost}
-          hint="Leave blank to use the host the choice above already knows."
-        />
+      <Field
+        name="mailSecret"
+        label="Password or API key"
+        type="password"
+        optional
+        autoComplete="new-password"
+        /* Retyped rather than echoed, on the administrator's password's reasoning. */
+        defaultValue=""
+        error={state.errors?.mailSecret}
+        hint="Whichever the choice above uses — an app password for SMTP, or the provider’s API key."
+      />
 
-        <div className="flex flex-wrap gap-4">
-          <div className="w-28">
-            <Field
-              name="mailPort"
-              label="Port"
-              optional
-              inputMode="numeric"
-              defaultValue={state.values?.mailPort ?? ''}
-              error={state.errors?.mailPort}
-            />
+      {/*
+        The overrides. Every box here has an answer the chosen provider already
+        supplies, so the operator who picks a preset never opens this — and the
+        one running their own relay, or working around a hostname a provider has
+        moved since this release, finds all four together.
+      */}
+      <details
+        open={foldedError}
+        className="rounded-md border border-border px-3 py-2 text-sm"
+      >
+        <summary className="cursor-pointer font-medium">
+          Server details — only if yours differ from the choice above
+        </summary>
+
+        <div className="mt-3 flex flex-col gap-4">
+          <Field
+            name="mailHost"
+            label="SMTP host"
+            optional
+            defaultValue={state.values?.mailHost ?? ''}
+            error={state.errors?.mailHost}
+            hint="Leave blank to use the host the choice above already knows."
+          />
+
+          <div className="flex flex-wrap gap-4">
+            <div className="w-28">
+              <Field
+                name="mailPort"
+                label="Port"
+                optional
+                inputMode="numeric"
+                defaultValue={state.values?.mailPort ?? ''}
+                error={state.errors?.mailPort}
+              />
+            </div>
+            <label className="flex min-w-56 flex-1 flex-col gap-1 text-sm" htmlFor="mailSecurity">
+              <span className="font-medium">Security</span>
+              <select
+                id="mailSecurity"
+                name="mailSecurity"
+                defaultValue={state.values?.mailSecurity ?? ''}
+                className={INPUT}
+              >
+                <option value="">Whatever the choice above uses</option>
+                <option value="starttls">STARTTLS, required (port 587)</option>
+                <option value="tls">Implicit TLS (port 465)</option>
+                <option value="none">None — local relay only</option>
+              </select>
+            </label>
           </div>
-          <label className="flex min-w-56 flex-1 flex-col gap-1 text-sm">
-            <span className="font-medium">Security</span>
-            <select
-              name="mailSecurity"
-              defaultValue={state.values?.mailSecurity ?? ''}
-              className={INPUT}
-            >
-              <option value="">Whatever the choice above uses</option>
-              <option value="starttls">STARTTLS, required (port 587)</option>
-              <option value="tls">Implicit TLS (port 465)</option>
-              <option value="none">None — local relay only</option>
-            </select>
-          </label>
+
+          <Field
+            name="mailEndpoint"
+            label="API endpoint"
+            optional
+            defaultValue={state.values?.mailEndpoint ?? ''}
+            error={state.errors?.mailEndpoint}
+            hint="For the API choices. Leave blank to use the endpoint the choice above already knows."
+          />
         </div>
-
-        <Field
-          name="mailUsername"
-          label="SMTP username"
-          optional
-          autoComplete="off"
-          defaultValue={state.values?.mailUsername ?? ''}
-          error={state.errors?.mailUsername}
-        />
-        <Field
-          name="mailPassword"
-          label="SMTP password"
-          type="password"
-          optional
-          autoComplete="new-password"
-          /* Retyped rather than echoed, on the administrator's password's reasoning. */
-          defaultValue=""
-          error={state.errors?.mailPassword}
-          hint="An app password, where your provider offers one."
-        />
-      </fieldset>
-
-      <fieldset className="flex flex-col gap-4 rounded-md border border-border p-3">
-        <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          For the API choices
-        </legend>
-
-        <Field
-          name="mailEndpoint"
-          label="API endpoint"
-          optional
-          defaultValue={state.values?.mailEndpoint ?? ''}
-          error={state.errors?.mailEndpoint}
-          hint="Leave blank to use the endpoint the choice above already knows."
-        />
-        <Field
-          name="mailToken"
-          label="API key"
-          type="password"
-          optional
-          autoComplete="off"
-          defaultValue=""
-          error={state.errors?.mailToken}
-        />
-      </fieldset>
+      </details>
     </section>
   )
 }
@@ -387,9 +481,11 @@ function Field({
     .join(' ')
 
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className="flex flex-col gap-1 text-sm" htmlFor={name}>
       <span className="font-medium">{label}</span>
       <input
+        /* The id is what the failure summary's links point at. */
+        id={name}
         name={name}
         type={type}
         defaultValue={defaultValue}

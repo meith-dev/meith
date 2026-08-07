@@ -15,7 +15,17 @@
  * trusting the render is the same rule every other Server Action here follows.
  */
 
-import { MAIL_SKIP, canProceed, mailConfigFromInstallInput, parseInstallInput } from '@meith/install'
+import { env } from '@meith/core'
+import {
+  ECHOED_FIELDS,
+  MAIL_SKIP,
+  canProceed,
+  installInputFromForm,
+  mailConfigFromInstallInput,
+  parseInstallInput,
+  withEnvironmentAnswers,
+} from '@meith/install'
+import { mailConfigFromEnvironment } from '@meith/settings'
 import { redirect } from 'next/navigation'
 
 import { gatherPreflight, installerIsSealed, runInstall } from './install'
@@ -27,40 +37,25 @@ export interface InstallFormState {
   readonly values?: Record<string, string>
 }
 
-function field(form: FormData, name: string): string {
-  const value = form.get(name)
-  return typeof value === 'string' ? value : ''
-}
-
-/**
- * Which fields survive a failed submit.
- *
- * Everything the operator typed except the two passwords. Re-rendering a
- * password into HTML puts it in a proxy log and in the browser's
- * back-forward cache, and the SMTP one is a credential for a system this board
- * does not own — so it is retyped, like the administrator's, rather than
- * echoed. Every other mail field is long, fiddly and tedious to lose.
- */
-const ECHOED_FIELDS = [
-  'boardName',
-  'boardUrl',
-  'username',
-  'email',
-  'mailPreset',
-  'mailFrom',
-  'mailHost',
-  'mailPort',
-  'mailSecurity',
-  'mailUsername',
-  'mailEndpoint',
-] as const
-
 export async function installAction(
   _previous: InstallFormState,
   form: FormData,
 ): Promise<InstallFormState> {
+  /*
+   * Everything the form submitted, blanks included, read from the schema's own
+   * field list — plus whatever the environment has already answered for boxes
+   * the page therefore did not render. Both live in `@meith/install`, where
+   * they are unit-tested; a list of field names maintained here is a list that
+   * silently loses a field the next time the form grows one, which is how the
+   * API key used to be dropped between the page and the schema.
+   */
+  const submitted = withEnvironmentAnswers(installInputFromForm(form), {
+    boardUrl: env.APP_URL ?? null,
+    mailIsFromEnvironment: mailConfigFromEnvironment(env) !== null,
+  })
+
   const values = Object.fromEntries(
-    ECHOED_FIELDS.map((name) => [name, field(form, name)]),
+    ECHOED_FIELDS.map((name) => [name, submitted[name] ?? '']),
   ) as Record<string, string>
 
   if (await installerIsSealed()) {
@@ -73,16 +68,11 @@ export async function installAction(
   }
 
   /*
-   * Everything the form submitted, blanks included. The schema decides what an
-   * empty box means per field — `mailSecurity`'s blank is "use the preset's",
-   * which `installInputSchema` handles rather than this adapter, so the two
-   * cannot disagree about it.
+   * The schema decides what an empty box means per field — `mailSecurity`'s
+   * blank is "use the preset's", which `installInputSchema` handles rather than
+   * this adapter, so the two cannot disagree about it.
    */
-  const parsed = parseInstallInput({
-    ...values,
-    password: field(form, 'password'),
-    mailPassword: field(form, 'mailPassword'),
-  })
+  const parsed = parseInstallInput(submitted)
   if (!parsed.ok) return { errors: parsed.errors, values }
 
   if (!canProceed(await gatherPreflight())) {

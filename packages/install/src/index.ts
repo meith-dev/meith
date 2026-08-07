@@ -11,7 +11,6 @@
 export {
   blockers,
   canProceed,
-  looksLikePooler,
   preflight,
   warnings,
   type Check,
@@ -31,10 +30,17 @@ export {
 } from './plan'
 
 export {
+  ECHOED_FIELDS,
+  INSTALL_FIELDS,
   MAIL_SKIP,
+  SECRET_FIELDS,
   defaultForumSlug,
+  installInputFromForm,
   installInputSchema,
   mailConfigFromInstallInput,
   parseInstallInput,
+  withEnvironmentAnswers,
+  type EnvironmentAnswers,
+  type FormLike,
   type InstallInput,
 } from './form'

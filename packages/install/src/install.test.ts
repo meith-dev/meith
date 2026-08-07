@@ -5,15 +5,19 @@ import {
   blockers,
   canProceed,
   defaultForumSlug,
+  ECHOED_FIELDS,
   firstFailure,
   freshReport,
   installed,
-  looksLikePooler,
+  installInputFromForm,
+  INSTALL_FIELDS,
   MAIL_SKIP,
   mailConfigFromInstallInput,
   parseInstallInput,
   preflight,
+  SECRET_FIELDS,
   warnings,
+  withEnvironmentAnswers,
   type PreflightProbe,
 } from './index'
 
@@ -130,42 +134,27 @@ describe('blockers', () => {
 
 describe('warnings — the dangerous category', () => {
   /*
-   * The archetype. A board on the direct string installs perfectly, works in
-   * testing, and starts refusing connections under the first real traffic, with
-   * an error that names the database rather than the cause. It warns rather than
-   * blocks because a self-hosted board on 5432 is entirely correct — and telling
-   * that operator they are wrong trains them to ignore the installer.
+   * The archetype, now that the pooler check is gone: a board with no
+   * `TICK_SECRET` and an HTTP-driven tick installs perfectly and looks finished,
+   * and then bans do not expire and digests do not send — with nothing failing
+   * anywhere to say so.
    */
-  it('warns about a connection string that is not a pooler', () => {
-    const checks = preflight(
-      ready({ databaseUrl: 'postgresql://user:pw@db.example.com:5432/forum' }),
-    )
-    expect(idsOf(warnings(checks))).toContain('pooler')
-    expect(canProceed(checks)).toBe(true)
-  })
-
-  it.each([
-    'postgresql://u:p@aws-0-eu-west-1.pooler.supabase.com:6543/postgres',
-    'postgresql://u:p@db.example.com:6543/forum',
-    'postgresql://u:p@pgbouncer.internal:5432/forum',
-    'postgresql://u:p@db.example.com:5432/forum?pgbouncer=true',
-  ])('recognises %o as a pooler', (url) => {
-    expect(looksLikePooler(url)).toBe(true)
-  })
-
-  it.each([
-    'postgresql://u:p@db.example.com:5432/forum',
-    'postgresql://u:p@localhost/forum',
-    'not a url at all',
-    '',
-  ])('does not claim %o is a pooler', (url) => {
-    expect(looksLikePooler(url)).toBe(false)
-  })
-
   it('warns about a missing TICK_SECRET without blocking', () => {
     const checks = preflight(ready({ hasTickSecret: false }))
     expect(idsOf(warnings(checks))).toContain('tick-secret')
     expect(canProceed(checks)).toBe(true)
+  })
+
+  /*
+   * There is no longer a warning here at all. It was written for serverless
+   * deployments, which this project no longer supports (D105), so all it did was
+   * fire on the correct configuration for every documented deployment — which is
+   * how an operator learns to read past the warnings that matter.
+   */
+  it('says nothing about the connection string beyond it being set', () => {
+    const direct = idsOf(preflight(ready({ databaseUrl: 'postgresql://u:p@db:5432/forum' })))
+    expect(direct).toContain('database-url')
+    expect(direct).not.toContain('pooler')
   })
 
   it('never lets a warning stop the install', () => {
@@ -173,7 +162,11 @@ describe('warnings — the dangerous category', () => {
       ready({
         databaseUrl: 'postgresql://u:p@db.example.com:5432/forum',
         hasTickSecret: false,
-        publicUrl: null,
+        mail: {
+          configured: false,
+          source: 'board',
+          summary: 'Not sending — messages are written to the server log',
+        },
       }),
     )
     expect(warnings(checks)).toHaveLength(2)
@@ -359,7 +352,7 @@ describe('the mail half of the form', () => {
       ...valid,
       mailPreset: 'resend-smtp',
       mailFrom: 'noreply@board.example',
-      mailPassword: 're_a_key',
+      mailSecret: 're_a_key',
       mailSecurity: '',
     })
     expect(chosen.ok).toBe(true)
@@ -388,7 +381,7 @@ describe('the mail half of the form', () => {
       ...valid,
       mailPreset: 'resend-smtp',
       mailFrom: 'noreply@board.example',
-      mailPassword: 're_a_key',
+      mailSecret: 're_a_key',
     })
 
     expect(result.ok).toBe(true)
@@ -416,7 +409,7 @@ describe('the mail half of the form', () => {
       mailPreset: 'resend-smtp',
       mailFrom: 'noreply@board.example',
       mailHost: 'smtp2.resend.com',
-      mailPassword: 're_a_key',
+      mailSecret: 're_a_key',
     })
 
     expect(result.ok).toBe(true)
@@ -438,7 +431,7 @@ describe('the mail half of the form', () => {
       mailPreset: 'resend-smtp',
       mailFrom: 'noreply@board.example',
       mailSecurity: 'starttls',
-      mailPassword: 're_a_key',
+      mailSecret: 're_a_key',
     })
 
     expect(result.ok).toBe(true)
@@ -455,7 +448,7 @@ describe('the mail half of the form', () => {
       ...valid,
       mailPreset: 'resend-http',
       mailFrom: 'noreply@board.example',
-      mailToken: 're_a_key',
+      mailSecret: 're_a_key',
     })
 
     expect(result.ok).toBe(true)
@@ -470,8 +463,8 @@ describe('the mail half of the form', () => {
   })
 
   it.each([
-    ['mailFrom', { mailPreset: 'resend-http', mailToken: 're_key' }],
-    ['mailToken', { mailPreset: 'resend-http', mailFrom: 'noreply@board.example' }],
+    ['mailFrom', { mailPreset: 'resend-http', mailSecret: 're_key' }],
+    ['mailSecret', { mailPreset: 'resend-http', mailFrom: 'noreply@board.example' }],
     ['mailHost', { mailPreset: 'smtp', mailFrom: 'noreply@board.example' }],
   ])('asks for %s when the chosen transport needs it', (field, input) => {
     const result = parseInstallInput({ ...valid, ...input })
@@ -498,7 +491,7 @@ describe('the mail half of the form', () => {
     })
 
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(Object.keys(result.errors)).toContain('mailPassword')
+    if (!result.ok) expect(Object.keys(result.errors)).toContain('mailSecret')
   })
 
   it('accepts an unauthenticated relay, which is a real deployment', () => {
@@ -548,6 +541,146 @@ describe('the mail half of the form', () => {
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(Object.keys(result.errors)).toContain('mailPreset')
+  })
+})
+
+/**
+ * Reading the form, and the failure this replaced.
+ *
+ * The action used to carry its own list of field names, and the list was one
+ * shorter than the form: the API key was read off the page and dropped on the
+ * floor, so an operator who pasted one was told the provider needed a key. The
+ * list is now derived from the schema, and these are the tests that keep it
+ * derived rather than merely correct today.
+ */
+describe('reading the submitted form', () => {
+  /** A `FormData` in the only respect this code uses one. */
+  const formOf = (values: Record<string, string>) => ({
+    get: (name: string) => values[name] ?? null,
+  })
+
+  it('reads every field the schema defines, and no others', () => {
+    const seen = new Set<string>()
+    installInputFromForm({
+      get: (name: string) => {
+        seen.add(name)
+        return null
+      },
+    })
+
+    expect([...seen].sort()).toEqual([...INSTALL_FIELDS].sort())
+  })
+
+  it('never echoes a secret back to the page', () => {
+    expect([...SECRET_FIELDS].sort()).toEqual(['mailSecret', 'password'])
+    for (const secret of SECRET_FIELDS) expect(ECHOED_FIELDS).not.toContain(secret)
+    /* Everything else is long, fiddly and tedious to lose. */
+    expect([...ECHOED_FIELDS, ...SECRET_FIELDS].sort()).toEqual([...INSTALL_FIELDS].sort())
+  })
+
+  it('carries the API key through to the schema', () => {
+    const raw = installInputFromForm(
+      formOf({
+        boardName: 'The Bike Shed',
+        boardUrl: 'https://board.example',
+        username: 'wren',
+        email: 'wren@example.test',
+        password: 'a-long-enough-password',
+        mailPreset: 'resend-http',
+        mailFrom: 'noreply@board.example',
+        mailSecret: 're_a_key',
+      }),
+    )
+
+    const result = parseInstallInput(raw)
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(mailConfigFromInstallInput(result.value)).toMatchObject({ token: 're_a_key' })
+    }
+  })
+
+  it('reads a box that was not on the page as blank rather than as missing', () => {
+    /*
+     * Blank, so the schema decides what an empty box means per field. It must
+     * not become `undefined` and fall through to a default — `mailPreset`'s
+     * default is "skip", and a select that failed to submit would then install a
+     * mailless board while the operator believed they had configured one.
+     */
+    expect(installInputFromForm(formOf({})).mailPreset).toBe('')
+    expect(parseInstallInput(installInputFromForm(formOf({}))).ok).toBe(false)
+  })
+})
+
+/**
+ * What the environment has already answered.
+ *
+ * This is the bug report "pressing Install clears the password and does
+ * nothing", in a unit test. The page does not render a box the environment
+ * owns, so the box posts nothing, so the schema refused the form — naming a
+ * field that was not on the page, which left nowhere to show the error. Every
+ * `docker compose` deployment hit it, because the compose file sets `APP_URL`.
+ */
+describe('the answers the environment has already given', () => {
+  const typed = {
+    boardName: 'The Bike Shed',
+    username: 'wren',
+    email: 'wren@example.test',
+    password: 'a-long-enough-password',
+    boardUrl: '',
+  }
+
+  it('installs when APP_URL supplies the address the form did not ask for', () => {
+    const raw = withEnvironmentAnswers(
+      { ...typed },
+      { boardUrl: 'https://board.example', mailIsFromEnvironment: false },
+    )
+
+    const result = parseInstallInput(raw)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.value.boardUrl).toBe('https://board.example')
+  })
+
+  it('lets the environment win, not the browser', () => {
+    /*
+     * The substitution is unconditional rather than a fallback. `APP_URL`
+     * overrides the stored value at read time, so a board that stored something
+     * else would be a board whose settings screen shows an address it does not
+     * use — and the posted value is a string the browser was asked to hand back.
+     */
+    const raw = withEnvironmentAnswers(
+      { ...typed, boardUrl: 'https://attacker.example' },
+      { boardUrl: 'https://board.example', mailIsFromEnvironment: false },
+    )
+    expect(raw.boardUrl).toBe('https://board.example')
+  })
+
+  it('leaves the form to answer when the environment has not', () => {
+    const raw = withEnvironmentAnswers(
+      { ...typed, boardUrl: 'https://board.example' },
+      { boardUrl: null, mailIsFromEnvironment: false },
+    )
+    expect(raw.boardUrl).toBe('https://board.example')
+  })
+
+  it('stores no mail settings when MAIL_DRIVER owns mail', () => {
+    /*
+     * Not because the operator chose to skip — because there is nothing for the
+     * form to store. The environment overrides anything on the board, so a value
+     * written here is a setting the board reads back and ignores.
+     */
+    const raw = withEnvironmentAnswers(
+      { ...typed, boardUrl: 'https://board.example', mailPreset: '', mailFrom: 'x@y.example' },
+      { boardUrl: null, mailIsFromEnvironment: true },
+    )
+
+    expect(raw.mailPreset).toBe(MAIL_SKIP)
+    expect(raw.mailFrom).toBe('')
+
+    const result = parseInstallInput(raw)
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(mailConfigFromInstallInput(result.value)).toEqual({ transport: 'log' })
+    }
   })
 })
 
