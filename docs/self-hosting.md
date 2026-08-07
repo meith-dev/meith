@@ -222,19 +222,21 @@ installer does not ask.
 > this deployment were configured from files — and the wrong one if the value is
 > a placeholder, since nothing will correct it.
 
-Fill in mail here too. It sends a **test message to your address before the
-first migration** and installs nothing if that fails, so a wrong key costs a
-retry rather than a sealed board that cannot e-mail anybody.
+Fill in mail here too. It is a list of providers rather than a page of server
+details — pick the one you have and the host, the port and the TLS mode come with
+it — and it sends a **test message to your address before the first migration**,
+installing nothing if that fails. A wrong key costs a retry rather than a sealed
+board that cannot e-mail anybody.
 
 Everything else about the installer — the preflight report, the five steps, the
 sealing that cannot be undone — is the same on both routes and written once:
 
 - **[Quickstart § Run the installer](./quickstart.md#4-run-the-installer)**
-- **[Quickstart § Mail](./quickstart.md#5-mail)** — what to put in the mail
-  fields, whichever provider you have. `/admin/settings?group=mail` changes it
-  afterwards with no redeploy; the `MAIL_*` variables in the `.env` beside this
-  stack override it when you would rather keep the credential out of the
-  database. A board configured neither way sends no mail at all.
+- **[Quickstart § Mail](./quickstart.md#5-mail)** — the answer sheet for that
+  list, provider by provider. `/admin/settings?group=mail` changes it afterwards
+  with no redeploy; the `MAIL_*` variables in the `.env` beside this stack
+  override both, for a deployment you would rather configure from files than from
+  a screen. A board that uses none of the three sends no mail at all.
 - **[Running a board](./operating.md)** — the operator handbook, and everything
   from the day after you install: backups, the operator CLI, upgrades,
   permissions, spam, and the failures that actually happen.
