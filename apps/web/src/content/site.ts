@@ -89,7 +89,22 @@ export const hero = {
    * through a README.
    */
   badge: "Open source · Self-hosted · Postgres",
-  headline: { before: "Self-hosted forum software that ", emphasis: "holds up." },
+  /*
+   * The emphasis is the claim, so it has to be worth the accent colour.
+   *
+   * This line used to read "Self-hosted forum software that *holds up*", and two
+   * thirds of it repeated the pill directly above — leaving "holds up" as the
+   * only argument in the headline, which is a hedge rather than a claim. At this
+   * measure it also got a line to itself, so the vaguest words on the page were
+   * set largest and coloured.
+   *
+   * What is emphasised now is the contrast the lede below spends three sentences
+   * making, and the reason somebody self-hosts a forum at all. Naming the
+   * category is not this line's job: `site.tagline` carries it into the
+   * description meta tag, the footer and `llms.txt`, where it is read by people
+   * and machines that need the plain sentence.
+   */
+  headline: { before: "Open-source forum software ", emphasis: "for communities, not platforms." },
   /*
    * Kept in full. This paragraph is the one piece of copy on the site that does
    * the actual arguing, and shortening it in the name of concision took the
