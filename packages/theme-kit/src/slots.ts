@@ -138,6 +138,26 @@ export const SLOTS = {
     feature: 'F75',
     purpose: 'The online list and its record.',
   },
+  /*
+   * Both are `F29` — the board index is the page they appear on, which is what
+   * this field records. Neither is in the plan text; D107 has the reasoning.
+   */
+  LatestThreads: {
+    kind: 'server',
+    feature: 'F29',
+    purpose:
+      'The newest threads on the board, for the index sidebar. Server, not ' +
+      'client, even though the panel refreshes itself: the app polls a Server ' +
+      'Action that renders this slot again, so the live half is one island ' +
+      'around the region rather than a client component per panel.',
+  },
+  LatestPosts: {
+    kind: 'server',
+    feature: 'F29',
+    purpose:
+      'The newest posts on the board, with an excerpt of each. Same server ' +
+      'rendering and same refresh path as LatestThreads.',
+  },
 
   /* ---- Forum display ---- */
   ForumDisplay: {

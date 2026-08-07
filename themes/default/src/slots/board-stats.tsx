@@ -1,13 +1,3 @@
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  Empty,
-  EmptyDescription,
-  EmptyTitle,
-} from '@meith/ui'
 import type { BoardStatsModel } from '@meith/theme-kit'
 
 import { NUMERIC, Stamp, UserRef } from '../shared'
@@ -15,22 +5,31 @@ import { NUMERIC, Stamp, UserRef } from '../shared'
 /**
  * The board's totals (F75).
  *
- * Two decisions here rather than styling.
+ * ## It is a line, not a panel
+ *
+ * This was a card with a three-column `<dl>` in it, sitting under the forum
+ * listing beside the online list. Both have moved to the foot of the index,
+ * where they belong: they are facts *about* the board rather than things to do
+ * on it, and a card is a container for something a reader acts on. Three
+ * numbers and a name are a sentence, and a sentence in a footer is one line
+ * that costs no vertical space on the page it summarises.
+ *
+ * The heading survives as `sr-only`. A visible "Board statistics" title above
+ * one line of text is a label longer than the thing it labels — but a region
+ * with no accessible name is one a screen-reader user meets as an unannounced
+ * run of numbers, so the name stays and only its pixels go.
+ *
+ * ## The two decisions that did not change with the layout
  *
  * **The panel says when the numbers were computed.** They are a rollup, not a
  * live count — the member count is a count of `users`, and the index is the
  * most-requested page on the board. A number that is ten minutes old and says
- * so is honest; the same number presented as "now" is wrong. It sits in the
- * card's footer, which is where a caveat belongs: readable, not shouted.
+ * so is honest; the same number presented as "now" is wrong.
  *
  * **Before the first rollup it says so rather than showing zeroes.** Three
  * convincing zeroes on a board with content is the worst of the three possible
  * outputs, because nobody doubts it — and on a board that genuinely has nothing
  * yet it is indistinguishable from a rollup that has failed for a week.
- *
- * The figures are a `<dl>` and the numbers lead: somebody reading this panel is
- * comparing three quantities, and putting the word first makes them read three
- * sentences instead.
  */
 export function BoardStats({
   threadCount,
@@ -40,50 +39,42 @@ export function BoardStats({
   computedAt,
 }: BoardStatsModel) {
   return (
-    <Card aria-labelledby="board-stats-heading">
-      <CardHeader>
-        <CardTitle id="board-stats-heading">Board statistics</CardTitle>
-      </CardHeader>
+    <section
+      aria-labelledby="board-stats-heading"
+      className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
+    >
+      <h2 id="board-stats-heading" className="sr-only">
+        Board statistics
+      </h2>
 
       {computedAt === null ? (
-        <Empty className="py-8">
-          <EmptyTitle>Not counted yet</EmptyTitle>
-          <EmptyDescription>
-            The board totals are rolled up on a schedule, and the first run has not happened.
-          </EmptyDescription>
-        </Empty>
+        <span>The board&rsquo;s totals are rolled up on a schedule, and the first run has not happened.</span>
       ) : (
         <>
-          <CardContent>
-            <dl className="grid grid-cols-3 gap-3">
-              {[
-                { label: 'Threads', value: threadCount },
-                { label: 'Posts', value: postCount },
-                { label: 'Members', value: memberCount },
-              ].map((figure) => (
-                <div key={figure.label}>
-                  <dd className={`text-xl font-semibold text-foreground ${NUMERIC}`}>
-                    {figure.value.toLocaleString('en')}
-                  </dd>
-                  <dt className="text-xs text-muted-foreground">{figure.label}</dt>
-                </div>
-              ))}
-            </dl>
-
-            {newestMember !== null && (
-              <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
-                Newest member: <UserRef user={newestMember} className="text-foreground" />
-              </p>
-            )}
-          </CardContent>
-
-          <CardFooter>
-            <span>
-              Counted <Stamp at={computedAt} />
+          {[
+            { label: 'threads', value: threadCount },
+            { label: 'posts', value: postCount },
+            { label: 'members', value: memberCount },
+          ].map((figure) => (
+            <span key={figure.label}>
+              <span className={`font-medium text-foreground ${NUMERIC}`}>
+                {figure.value.toLocaleString('en')}
+              </span>{' '}
+              {figure.label}
             </span>
-          </CardFooter>
+          ))}
+
+          {newestMember !== null && (
+            <span>
+              newest member <UserRef user={newestMember} className="text-foreground" />
+            </span>
+          )}
+
+          <span className={`ms-auto ${NUMERIC}`}>
+            Counted <Stamp at={computedAt} />
+          </span>
         </>
       )}
-    </Card>
+    </section>
   )
 }

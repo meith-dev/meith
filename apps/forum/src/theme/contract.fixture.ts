@@ -291,6 +291,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         categories: region('categories'),
         stats: region('stats'),
         online: region('online'),
+        latest: region('latest'),
         plugins: pluginRegion('index.footer'),
         announcements: region('announcements'),
       },
@@ -299,6 +300,14 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       region('categories'),
       region('stats'),
       region('online'),
+      /*
+       * A theme is free to put the live pair anywhere — the default builds a
+       * rail out of it and midnight stacks it above the forums — and not free
+       * to drop it. A region silently absent is the failure the whole
+       * rendering contract exists to catch, and it is the likeliest one here
+       * because the field is optional for compatibility.
+       */
+      region('latest'),
       pluginRegion('index.footer'),
       region('announcements'),
     ],
@@ -351,6 +360,56 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       fullListHref: '/online',
     },
     requires: ['Marlow', '14'],
+  },
+
+  LatestThreads: {
+    model: {
+      threads: [
+        {
+          title: 'Bikeshedding the bike shed',
+          href: '/thread/91-bikeshedding',
+          forum: { label: 'General discussion', href: '/f/3-general' },
+          author: AUTHOR,
+          replyCount: 27,
+          startedAt: TIME,
+        },
+      ],
+      capturedAt: TIME,
+    },
+    /*
+     * The title, its link, and the forum it is in. The forum is required rather
+     * than optional here for the reason the panel exists: this list crosses the
+     * whole board, and a row that does not say where it came from is a row two
+     * forums can both claim.
+     */
+    requires: ['Bikeshedding the bike shed', '/thread/91-bikeshedding', 'General discussion'],
+  },
+
+  LatestPosts: {
+    model: {
+      posts: [
+        {
+          threadTitle: 'Bikeshedding the bike shed',
+          href: '/thread/91-bikeshedding?post=4102#post-4102',
+          forum: { label: 'General discussion', href: '/f/3-general' },
+          author: AUTHOR,
+          excerpt: 'The roof should be corrugated, not slate.',
+          postedAt: TIME,
+        },
+      ],
+      capturedAt: TIME,
+    },
+    /*
+     * The **permalink**, not the thread's address: a "latest posts" panel whose
+     * links land at the top of a forty-page thread is a panel that answers a
+     * question nobody asked. The excerpt is required for the same reason — it
+     * is the only thing here that says what was actually said.
+     */
+    requires: [
+      '/thread/91-bikeshedding?post=4102#post-4102',
+      'The roof should be corrugated, not slate.',
+      'General discussion',
+    ],
   },
 
   ForumDisplay: {

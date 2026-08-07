@@ -3,15 +3,24 @@ import type { BoardIndexModel } from '@meith/theme-kit'
 /**
  * The index body.
  *
- * Midnight puts the statistics and the online list **above** the forum list
- * rather than below it, which is the classic arrangement and a real difference:
- * the page hands over three rendered regions and the theme decides the order.
- * Neither region is invented when it is absent — a "0 online" panel on a board
- * that keeps no presence is a lie with a number in it.
+ * Midnight puts the panels **above** the forum list rather than beside it,
+ * which is the classic arrangement and a real difference: the default theme
+ * builds a right-hand rail out of the same regions, and the page hands both
+ * themes exactly the same nodes. Neither region is invented when it is absent —
+ * a "0 online" panel on a board that keeps no presence is a lie with a number
+ * in it.
+ *
+ * The live pair leads, because it is the part that moves. This theme is a log
+ * of what is happening; the totals and the online list are the header on that
+ * log, not the subject of it.
  */
 export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
+  const latest = regions.latest ?? null
+
   return (
     <div className="flex flex-col gap-3 p-3">
+      {latest !== null && <div className="flex flex-col gap-3">{latest}</div>}
+
       {(regions.online !== null || regions.stats !== null) && (
         <div className="flex flex-col gap-3">
           {regions.online}

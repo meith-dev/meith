@@ -567,6 +567,21 @@ export interface BoardIndexModel {
     readonly stats: ReactNode
     readonly online: ReactNode
     /**
+     * The self-refreshing pair: newest threads and newest posts, already
+     * rendered, or absent on a board that cannot answer either question.
+     *
+     * **One region rather than two, and that is the contract rather than a
+     * convenience.** The pair is refreshed by a single round trip while the page
+     * is open, so it arrives as one node; two regions would be two polls of the
+     * same board for the same reason, or one poll that could only update half of
+     * what a theme had placed. A theme places it — the default puts it at the
+     * top of a sidebar — but does not take it apart.
+     *
+     * Optional, so a theme written against an earlier minor compiles and simply
+     * does not show it. Same rule as every other region field here.
+     */
+    readonly latest?: ReactNode
+    /**
      * The `index.footer` region: whatever plugins contributed, already
      * rendered and ordered by the host.
      *
@@ -633,6 +648,64 @@ export interface WhoIsOnlineModel {
   readonly recordAt: TimeModel | null
   /** The full list, for a theme that shows only a summary here. */
   readonly fullListHref: string
+}
+
+/**
+ * One thread in the index's "latest threads" panel.
+ *
+ * Every row carries its forum, because these two panels are the only lists on
+ * the board that cross it: without the forum, two identically-titled threads in
+ * two forums are the same row printed twice.
+ */
+export interface LatestThreadModel {
+  readonly title: string
+  readonly href: string
+  /** The forum it was started in, resolved — a theme never builds an href. */
+  readonly forum: LinkModel
+  readonly author: UserRefModel
+  readonly replyCount: number
+  readonly startedAt: TimeModel
+}
+
+/**
+ * The newest threads on the board.
+ *
+ * `capturedAt` is not decoration. This panel refreshes itself while somebody is
+ * looking at it, and a list that changes with nothing saying when it was read is
+ * a list nobody can tell apart from one that has frozen. It is the same
+ * argument `BoardStatsModel.computedAt` makes about a rollup, applied to the
+ * opposite problem: that one is old and says so, this one is new and says so.
+ */
+export interface LatestThreadsModel {
+  readonly threads: readonly LatestThreadModel[]
+  readonly capturedAt: TimeModel
+}
+
+/** One post in the index's "latest posts" panel. */
+export interface LatestPostModel {
+  /** The thread it is in. A post has no title of its own. */
+  readonly threadTitle: string
+  /** `/thread/12-slug#post-34` — the post, not the top of its thread. */
+  readonly href: string
+  readonly forum: LinkModel
+  readonly author: UserRefModel
+  /**
+   * The post as text: flattened out of its Markdown source and cut on a word
+   * boundary, the same way a feed entry's summary is.
+   *
+   * Flattened rather than rendered, because the board's HTML carries quotes,
+   * directives and attachment markup whose meaning is lost in two lines — and
+   * because a theme dropping raw post HTML into a sidebar is one plugin away
+   * from being an injection point.
+   */
+  readonly excerpt: string
+  readonly postedAt: TimeModel
+}
+
+/** The newest posts on the board. See `LatestThreadsModel` for `capturedAt`. */
+export interface LatestPostsModel {
+  readonly posts: readonly LatestPostModel[]
+  readonly capturedAt: TimeModel
 }
 
 export interface ForumDisplayModel {
@@ -1012,6 +1085,8 @@ export interface SlotModels {
   ForumRow: ForumRowSlotModel
   BoardStats: BoardStatsModel
   WhoIsOnline: WhoIsOnlineModel
+  LatestThreads: LatestThreadsModel
+  LatestPosts: LatestPostsModel
 
   ForumDisplay: ForumDisplayModel
   ThreadRow: ThreadRowSlotModel

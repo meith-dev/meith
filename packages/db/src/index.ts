@@ -196,6 +196,12 @@ export {
   type DiscoveryScope,
 } from './discovery-repo'
 export {
+  PostgresLatestRepository,
+  type LatestPostRow,
+  type LatestScope,
+  type LatestThreadRow,
+} from './latest-repo'
+export {
   PostgresSearchStore,
   ownsSearch,
   type CreateSearchInput,

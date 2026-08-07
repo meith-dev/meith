@@ -17,11 +17,12 @@
  * new one and keeps rendering, while a copy silently has a hole in it until
  * somebody notices the page is missing a region.
  *
- * Nineteen slots are overridden — every surface that carries the look. Four are
- * inherited: `PostForm`, `SearchForm`, `RedirectNotice` and `ErrorNotice`, which
- * are forms and interstitials whose default markup is already plain, token-only
- * and correct. Inheriting them is not laziness; it is the partial override that
- * `extends` exists for, and it means this theme's diff is the part that differs.
+ * Twenty-two slots are overridden — every surface that carries the look. Five
+ * are inherited: `PostForm`, `SearchForm`, `ForumJump`, `RedirectNotice` and
+ * `ErrorNotice`, which are forms and interstitials whose default markup is
+ * already plain, token-only and correct. Inheriting them is not laziness; it is
+ * the partial override that `extends` exists for, and it means this theme's
+ * diff is the part that differs.
  *
  * ## The pairing rule a theme author needs to know
  *
@@ -45,6 +46,8 @@ import { Footer } from './slots/footer'
 import { ForumDisplay } from './slots/forum-display'
 import { ForumRow } from './slots/forum-row'
 import { Header } from './slots/header'
+import { LatestPosts } from './slots/latest-posts'
+import { LatestThreads } from './slots/latest-threads'
 import { MemberProfile } from './slots/member-profile'
 import { Navigation } from './slots/navigation'
 import { Notice } from './slots/notice'
@@ -77,6 +80,8 @@ export const midnightTheme = defineTheme({
     ForumRow,
     BoardStats,
     WhoIsOnline,
+    LatestThreads,
+    LatestPosts,
 
     ForumDisplay,
     ThreadRow,

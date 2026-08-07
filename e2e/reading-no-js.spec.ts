@@ -7,7 +7,13 @@ test('the fixture board, registration, and login work without JavaScript', async
   const password = 'long-enough-password'
 
   await page.goto('/')
-  await page.getByRole('link', { name: 'Version 0.1 is live' }).click()
+  /*
+   * Scoped to the category block, because the index now says this thread's name
+   * three times: the forum row's last post, and both panels in the activity
+   * rail. The one this test is about is the listing's — an unscoped locator
+   * here stopped being unambiguous the day the rail landed.
+   */
+  await page.getByLabel('Community').getByRole('link', { name: 'Version 0.1 is live' }).click()
   await expect(page).toHaveURL(/\/thread\/4(?:#|$)/)
 
   /*
@@ -157,4 +163,54 @@ test('a legacy MyBB URL 404s with a page, not an empty response', async ({ page 
 test('jumping with no selection goes to the index rather than erroring', async ({ page }) => {
   await page.goto('/jump')
   await expect(page).toHaveURL(/\/$/)
+})
+
+/**
+ * The index rail and the index footer, with scripting off.
+ *
+ * The two live panels are the board's only self-updating surface, and the rule
+ * they were built against is the one this whole file exists for: an island
+ * enhances, it never enables. So with JavaScript off the panels are still here
+ * with real rows in them — what disappears is the control that pauses updates,
+ * because a paused/resume button in a page that cannot run its handler is a lie
+ * in the interface rather than a graceful degradation.
+ *
+ * The board's totals and its online list are the page's footer, and they are
+ * *not* in the rail — a fact worth asserting rather than assuming, because
+ * moving one back would be invisible in every other test.
+ */
+test('the index rail renders, and only its pause control needs JavaScript', async ({ page }) => {
+  await page.goto('/')
+
+  const rail = page.getByRole('complementary', { name: 'Board activity' })
+  await expect(rail).toBeVisible()
+
+  /* Both live panels, with rows the seeded board actually has. */
+  await expect(rail.getByRole('heading', { name: 'Latest threads' })).toBeVisible()
+  await expect(rail.getByRole('heading', { name: 'Latest posts' })).toBeVisible()
+  await expect(rail.locator('section', { hasText: 'Latest threads' }).locator('li')).not.toHaveCount(
+    0,
+  )
+
+  /*
+   * The two summaries are on the page and outside the rail. Their headings are
+   * `sr-only` — a visible title above one line of text is a label longer than
+   * the thing it labels — so this asks for them by accessible name, which is
+   * the only name they have. The apostrophe is a typographic one.
+   */
+  await expect(page.getByRole('region', { name: 'Board statistics' })).toBeAttached()
+  await expect(page.getByRole('region', { name: 'Who’s online' })).toBeAttached()
+  await expect(rail.getByRole('region', { name: 'Board statistics' })).toHaveCount(0)
+  await expect(rail.getByRole('region', { name: 'Who’s online' })).toHaveCount(0)
+
+  /*
+   * The island's own markup is absent rather than inert. Asserting the count is
+   * zero rather than "not visible" is deliberate: a hidden button is still a
+   * tab stop.
+   */
+  await expect(page.getByRole('button', { name: 'Pause' })).toHaveCount(0)
+
+  /* A latest-posts row links to the post, not to the top of its thread. */
+  const post = rail.locator('section', { hasText: 'Latest posts' }).locator('li a').first()
+  await expect(post).toHaveAttribute('href', /\/thread\/\d+-[^?]+\?post=\d+#post-\d+$/)
 })

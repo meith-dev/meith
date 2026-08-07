@@ -29,13 +29,18 @@ describe('the midnight theme', () => {
 
   /*
    * The point of inheriting. The theme-kit contract promises a minor release may add a
-   * slot; midnight fills nineteen and gets the rest from its parent, so a slot
-   * added tomorrow renders here without this package being touched. A copy would
-   * have a hole in it and nothing would say so.
+   * slot; midnight fills the surfaces that carry its look and gets the rest
+   * from its parent, so a slot added tomorrow renders here without this package
+   * being touched. A copy would have a hole in it and nothing would say so.
+   *
+   * The count moves when a slot is added — `LatestThreads` and `LatestPosts`
+   * took it from twenty to twenty-two — and that is the assertion doing its
+   * job: it forces whoever adds one to decide whether this theme overrides it
+   * or inherits it, rather than letting the answer be whichever happened.
    */
   it('fills the surfaces that carry the look and inherits the rest', () => {
     const own = Object.keys(midnightTheme.slots)
-    expect(own).toHaveLength(20)
+    expect(own).toHaveLength(22)
     expect(own).toContain('PostBit')
     expect(own).not.toContain('ErrorNotice')
 

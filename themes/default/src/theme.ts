@@ -50,6 +50,8 @@ import { CategoryBlock } from './slots/category-block'
 import { WhoIsOnline } from './slots/who-is-online'
 import { Footer } from './slots/footer'
 import { ForumRow } from './slots/forum-row'
+import { LatestPosts } from './slots/latest-posts'
+import { LatestThreads } from './slots/latest-threads'
 import { ForumDisplay } from './slots/forum-display'
 import { Header } from './slots/header'
 import { Navigation } from './slots/navigation'
@@ -87,6 +89,8 @@ export const defaultTheme = defineTheme({
     ForumRow,
     BoardStats,
     WhoIsOnline,
+    LatestThreads,
+    LatestPosts,
 
     ForumDisplay,
     ThreadRow,
