@@ -118,10 +118,15 @@ visible on that screen on day one.
 If there is a blocker, there is no form: fix it, redeploy if it was an
 environment variable, and reload.
 
-Otherwise the form is three numbered sections — **your board**, **your account**,
-and **how the board should send mail**. The first two are four boxes between
-them. Fill the mail one in here if you can; the reasons are in step 5, and doing
-it now costs one extra minute rather than one extra visit.
+Otherwise the form is three numbered sections — **Your board**, **Your account**
+and **Sending mail**. The first two are four boxes between them: what the board
+is called, and the name, address and password of the first account.
+
+The third is a **list of providers**, not a page of server details. Pick the one
+you already have and it fills in the host, the port and the TLS mode, leaving you
+a sender address and a single credential to paste. Fill it in here:
+[step 5](#5-mail) is the answer sheet for that list, and mail is the one thing on
+this form that is harder to add later than now.
 
 > [!NOTE]
 > **Your username is the name you post under**, not a role. `admin` and
@@ -144,9 +149,10 @@ Pressing Install runs five steps. They are listed beside the button under
 4. **Create a first forum** — so the index is not empty.
 5. **Disable the installer**.
 
-If you gave it mail, it sends a **test message to your address before step 1**,
-and installs nothing at all if that fails. A mistyped API key costs you a retry
-on this form rather than a finished board that cannot e-mail anybody.
+If you filled in section 3, it sends a **test message to the address from section
+2 before step 1**, and installs nothing at all if that fails. A mistyped API key
+costs you a retry on this form rather than a finished board that cannot e-mail
+anybody.
 
 > [!CAUTION]
 > Step 5 is irreversible. `/install` answers 404 from then on, on purpose. You
@@ -164,11 +170,10 @@ idle, and again after 8 hours whatever you are doing.
 
 ## 5. Mail
 
-If you filled it in on the installer, a test message already reached your inbox
-and there is nothing to do here. Skip to backups.
-
-If you skipped it, do it now at **`/admin/settings?group=mail`**. It takes effect
-on the next message — no redeploy, no environment variables.
+**This is the answer sheet for section 3 of the installer**, so read it before
+you fill that section in. If the board is already installed, the same settings
+are at **`/admin/settings?group=mail`** and take effect on the next message — no
+redeploy either way.
 
 > [!IMPORTANT]
 > A board with no mail configured **sends nothing at all**. Each message is
@@ -176,44 +181,81 @@ on the next message — no redeploy, no environment variables.
 > and if registration asks for a confirmation link, nobody can finish signing up.
 > Nobody notices until the first member cannot get back in.
 
-**Pick whichever of these you already have:**
+### Pick the one you already have
+
+**How mail is sent** is a list of providers that opens on *Skip for now — this
+board sends no mail*, which is a real answer and the wrong one for most boards.
+Every other row is the ordinary SMTP or API transport with the fiddly half typed
+in for you: prefills rather than integrations, so anything you type yourself wins
+over the choice and a provider that moves a hostname cannot make the board
+un-installable.
+
+| Choose | It already knows | You give it |
+|---|---|---|
+| **A mailbox I already have (SMTP)** | Port 465, implicit TLS | Sender address, your provider's SMTP host, your mailbox address as the username, and an app password — never the password you sign in with |
+| **Resend (API)** | The endpoint | Sender address and the API key |
+| **Resend (SMTP)** | `smtp.resend.com`, 465, implicit TLS, username `resend` | Sender address, and the API key as the password |
+| **Brevo (SMTP)** | `smtp-relay.brevo.com`, 587, STARTTLS | Sender address, and Brevo's SMTP login and key |
+| **Postmark (SMTP)** | `smtp.postmarkapp.com`, 587, STARTTLS | Sender address, and the server API token as **both** username and password |
+| **Amazon SES (SMTP)** | Port 587, STARTTLS | Sender address, `email-smtp.<region>.amazonaws.com`, and SMTP credentials — *not* your AWS access keys |
+| **Any other SMTP server** | Port 587, STARTTLS | Sender address, the host, and credentials if the server wants them |
+| **Any other JSON API** | Nothing | Sender address, endpoint and key — and only works if the provider takes Resend's exact field names |
+
+Three boxes are on the page whichever you pick: **Sender address**, **Username**
+and **Password or API key** — one credential box, because the transport already
+knows whether it is asking for an app password or an API key. Everything else
+lives behind **Server details — only if yours differ from the choice above**,
+which is where the two rows that still need a hostname go: a mailbox provider's,
+and the SES host for your region. A box left blank uses the choice's own value.
 
 *You receive mail on this domain already* — Fastmail, Migadu, Google Workspace,
-your host's mailbox. This is the shortest path by a distance, because SPF and
-DKIM are already published for the domain and there are **no DNS records to
-add**:
+your host's mailbox. Take the first row. It is the shortest path by a distance,
+because SPF and DKIM are published for the domain already and there are **no DNS
+records to add**.
 
-```
-How mail is sent:  SMTP server
-Sender address:    an address on that domain
-SMTP host:         your provider's SMTP host
-SMTP port:         465
-SMTP security:     Implicit TLS
-SMTP username:     your mailbox address
-SMTP password:     an app password — never the password you sign in with
-```
+*Everything else on the list needs the sending domain verified with the
+provider first*, and the board cannot do that step for you. Until it finishes, a
+new account can usually only mail the address you signed up with, whatever the
+board is configured to do — and SES starts in a sandbox that needs a support
+request to leave. The installer says which caveat belongs to which provider,
+under *What each of these needs before it will send*; free tiers and
+deliverability are compared in
+[Running a board § Mail](./operating.md#mail).
 
-*You do not* — use [Resend](https://resend.com), free for 3,000 messages a
-month. Set **How mail is sent** to *Provider API*, the endpoint to
-`https://api.resend.com/emails`, and paste the API key. You will have to add the
-DNS records Resend asks for and wait for them to verify: until that finishes a
-new account can only mail the address you signed up with, whatever the board is
-configured to do.
+### The installer proves it before it writes anything
 
-**Then press *Send a test message to me*** and read what comes back. A provider
-that refuses says why, and that sentence is shown to you word for word — "the
-domain example.com is not verified" is the whole answer, and it is the one that
-saves the afternoon.
+Press Install and a real message goes to the address you gave for the
+administrator **before the first migration**, with nothing installed if it fails.
+A provider that refuses says why, and that sentence is put on the form word for
+word — "the domain example.com is not verified" is the whole answer, and it is
+the one that saves the afternoon.
+
+That is what makes this a minute now rather than a visit later: a wrong key found
+here costs a retry, and the same key found afterwards costs a sealed board that
+cannot e-mail anybody, fixable only from a panel you have not seen yet.
+
+### If you skipped it
+
+Do it at **`/admin/settings?group=mail`**. Same settings, minus the provider list
+— that screen is generated from the setting registry and has never heard of
+Brevo, so **How mail is sent** there is the transport rather than the provider
+(*SMTP server*, or *Provider API (Resend-compatible JSON)*) and you type the
+host, the port and the security mode from the table above.
+
+Then **save**, and press **Send a test message to me**. It goes to the address on
+your own account and sends through what is *stored*, so save first or you are
+testing the old configuration. The provider's refusal is shown here verbatim too.
 
 Last, check **Activation method** under `/admin/settings?group=registration`. It
 decides whether new members need a confirmation link at all, and it is the one
 setting that turns a mail problem into a board nobody can join.
 
-> Prefer to keep the credential out of the database, or configure this
-> deployment entirely from files? Mail can come from environment variables
-> instead, and they win over this screen when set. That is
-> [Running a board § Mail](./operating.md#mail), along with SMTP for every other
-> provider.
+> None of this is an environment variable, and on this route none of it needs to
+> be. `MAIL_DRIVER` and its companions still exist and still win outright when
+> set — the installer then hides its mail section and says so, and the settings
+> screen goes read-only. That is for a deployment configured wholly from files,
+> at the cost of a redeploy to rotate a key, and it is
+> [Running a board § Mail](./operating.md#mail).
 
 ## 6. Set up backups
 

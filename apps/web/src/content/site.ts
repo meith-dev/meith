@@ -87,9 +87,37 @@ export const hero = {
    * is, whose machine it runs on, and what it will ask them to operate — and
    * every one of them is a question that otherwise sends somebody hunting
    * through a README.
+   *
+   * The first slot said "Open source", which the headline below now says in its
+   * first two words: three lines apart, in the two largest treatments on the
+   * page. Naming the licence spends that slot on something the headline cannot
+   * carry, and it comes from `licence` rather than being retyped, so the pill
+   * cannot claim a licence the repository does not ship.
    */
-  badge: "Open source · Self-hosted · Postgres",
-  headline: { before: "Self-hosted forum software that ", emphasis: "holds up." },
+  badge: `${licence.short} · Self-hosted · Postgres`,
+  /*
+   * The emphasis is the claim, so it has to be worth the accent colour.
+   *
+   * This line used to read "Self-hosted forum software that *holds up*", and two
+   * thirds of it repeated the pill directly above — leaving "holds up" as the
+   * only argument in the headline, which is a hedge rather than a claim. At this
+   * measure it also got a line to itself, so the vaguest words on the page were
+   * set largest and coloured.
+   *
+   * What replaced it says where the software puts people rather than what it is.
+   * "Gather" is `site.description`'s own verb, and is deliberately not
+   * "connect" — the word every social network already uses about its groups, and
+   * therefore the one word here that cannot tell a reader why they are on this
+   * page rather than that one.
+   *
+   * The headline argues against nothing, and does not need to. The lede below it
+   * makes the neighbourhood-against-crowd case in two sentences and makes it
+   * better than five words can; a combative headline above that would be the
+   * same point twice. Naming the category is not this line's job either —
+   * `site.tagline` carries it into the description meta tag, the footer and
+   * `llms.txt`, where the readers who need the plain sentence are.
+   */
+  headline: { before: "Open-source forum software ", emphasis: "where communities gather." },
   /*
    * Kept in full. This paragraph is the one piece of copy on the site that does
    * the actual arguing, and shortening it in the name of concision took the

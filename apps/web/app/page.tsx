@@ -71,7 +71,7 @@ export default async function LandingPage() {
               {hero.badge}
             </p>
 
-            <h1 className="display-hero max-w-[15ch] text-hero leading-[1.02]">
+            <h1 className="display-hero max-w-[20ch] text-hero leading-[1.02]">
               {hero.headline.before}
               <span className="text-accent">{hero.headline.emphasis}</span>
             </h1>
