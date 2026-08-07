@@ -87,8 +87,14 @@ export const hero = {
    * is, whose machine it runs on, and what it will ask them to operate — and
    * every one of them is a question that otherwise sends somebody hunting
    * through a README.
+   *
+   * The first slot said "Open source", which the headline below now says in its
+   * first two words: three lines apart, in the two largest treatments on the
+   * page. Naming the licence spends that slot on something the headline cannot
+   * carry, and it comes from `licence` rather than being retyped, so the pill
+   * cannot claim a licence the repository does not ship.
    */
-  badge: "Open source · Self-hosted · Postgres",
+  badge: `${licence.short} · Self-hosted · Postgres`,
   /*
    * The emphasis is the claim, so it has to be worth the accent colour.
    *
