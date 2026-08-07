@@ -1,9 +1,10 @@
 import { INSTALL_STEPS, blockers, canProceed, warnings } from '@meith/install'
+import { MAIL_PRESETS } from '@meith/settings'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { InstallForm } from '@/components/install/install-form'
-import { gatherPreflight, installerIsSealed } from '@/server/install'
+import { gatherPreflight, installerIsSealed, probeMail } from '@/server/install'
 
 export const metadata: Metadata = { title: 'Install' }
 
@@ -40,6 +41,13 @@ export default async function InstallPage() {
 
   const checks = await gatherPreflight()
   const ready = canProceed(checks)
+  /*
+   * Asked again rather than dug back out of `checks`. The checks are prose for a
+   * reader; deciding whether to render a form by matching a sentence in one of
+   * them would be a coupling that survives exactly until somebody improves the
+   * wording.
+   */
+  const mail = await probeMail()
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
@@ -107,7 +115,13 @@ export default async function InstallPage() {
       </section>
 
       {ready ? (
-        <InstallForm />
+        /*
+         * The presets are handed down rather than imported by the form, which is
+         * a client component: `@meith/settings` is the registry and its zod
+         * schemas, and none of that belongs in a browser bundle to render eight
+         * `<option>` elements.
+         */
+        <InstallForm presets={MAIL_PRESETS} mailIsFromEnvironment={mail.source === 'environment'} />
       ) : (
         <p
           role="alert"

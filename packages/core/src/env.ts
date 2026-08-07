@@ -121,9 +121,30 @@ const envSchema = z
     S3_SECRET_ACCESS_KEY: nonEmpty.optional(),
     S3_ENDPOINT: z.string().url().optional(),
 
+    /**
+     * Mail, and the one subsystem here that is *also* configurable from the
+     * board's own settings screen.
+     *
+     * `MAIL_DRIVER=http` or `=smtp` makes this environment authoritative and the
+     * stored settings inert; leaving it at `log` hands the decision to the
+     * board. The rule and its reasoning live in `@meith/settings/mail`, which is
+     * the one place that decides it — this schema only supplies the values.
+     */
     MAIL_FROM: z.string().email().optional(),
     MAIL_HTTP_ENDPOINT: z.string().url().optional(),
     MAIL_HTTP_TOKEN: nonEmpty.optional(),
+
+    MAIL_SMTP_HOST: nonEmpty.optional(),
+    MAIL_SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+    /**
+     * Three values rather than a boolean, because `secure=false` does not mean
+     * "unencrypted" — it means STARTTLS — and an operator who reads it as the
+     * former turns encryption off believing they have left it on. See
+     * `MailSecurity`.
+     */
+    MAIL_SMTP_SECURITY: z.enum(["tls", "starttls", "none"]).optional(),
+    MAIL_SMTP_USERNAME: nonEmpty.optional(),
+    MAIL_SMTP_PASSWORD: nonEmpty.optional(),
 
     /** Wall-clock budget for one `/api/system/tick` invocation. */
     TICK_DEADLINE_MS: z.coerce.number().int().positive().default(50_000),
@@ -193,12 +214,49 @@ const envSchema = z
       }
     }
 
-    if (value.MAIL_DRIVER === "http" && !value.MAIL_HTTP_ENDPOINT) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["MAIL_HTTP_ENDPOINT"],
-        message: "is required when MAIL_DRIVER=http",
-      })
+    /*
+     * A transport named in the environment overrides the board's settings
+     * entirely, so a half-specified one is worse than none: it silently disables
+     * the screen an operator would otherwise have fixed it on. Refusing to boot
+     * names the missing variable while they are still looking at the deploy.
+     */
+    if (value.MAIL_DRIVER === "http") {
+      for (const key of ["MAIL_HTTP_ENDPOINT", "MAIL_HTTP_TOKEN", "MAIL_FROM"] as const) {
+        if (!value[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: "is required when MAIL_DRIVER=http",
+          })
+        }
+      }
+    }
+
+    if (value.MAIL_DRIVER === "smtp") {
+      for (const key of ["MAIL_SMTP_HOST", "MAIL_FROM"] as const) {
+        if (!value[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: "is required when MAIL_DRIVER=smtp",
+          })
+        }
+      }
+
+      /*
+       * Checked as a pair rather than each alone. A relay on localhost that
+       * authenticates nobody is a legitimate configuration and needs neither; a
+       * username with no password is always a typo, and one that reached the
+       * driver would produce an auth failure the queue reports as a rejected
+       * message rather than as a missing variable.
+       */
+      if (Boolean(value.MAIL_SMTP_USERNAME) !== Boolean(value.MAIL_SMTP_PASSWORD)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [value.MAIL_SMTP_USERNAME ? "MAIL_SMTP_PASSWORD" : "MAIL_SMTP_USERNAME"],
+          message: "MAIL_SMTP_USERNAME and MAIL_SMTP_PASSWORD must be set together",
+        })
+      }
     }
 
     /*

@@ -107,15 +107,29 @@ export default async function AdminSystemPage() {
           </h2>
           <p className="text-sm">
             Registration is set to <strong>{mail.activationMethod}</strong>, so every new
-            account waits for a confirmation link — and <code>MAIL_DRIVER</code> is{' '}
-            <code>log</code>, which writes each message to the server log and sends none
-            of them. Password reset is silently failing for the same reason.
+            account waits for a confirmation link — and this board sends no mail:{' '}
+            {mail.summary.toLowerCase()}. Password reset is silently failing for the same
+            reason.
           </p>
           <p className="text-sm">
-            Configure a mail driver, or set the activation method to <strong>none</strong>{' '}
-            or <strong>admin</strong> on the registration settings screen. Accounts
-            already stuck at &ldquo;awaiting activation&rdquo; can be activated by hand
-            from the member screen.
+            {mail.source === 'environment' ? (
+              <>
+                Mail is configured from this deployment’s environment, so it has to be
+                fixed there: complete the <code>MAIL_*</code> variables and redeploy, or
+                unset <code>MAIL_DRIVER</code> to configure mail on the board instead.
+              </>
+            ) : (
+              <>
+                Set it up on the{' '}
+                <a href="/admin/settings?group=mail" className="underline">
+                  mail settings screen
+                </a>{' '}
+                — no redeploy needed — or set the activation method to{' '}
+                <strong>none</strong> or <strong>admin</strong>.
+              </>
+            )}{' '}
+            Accounts already stuck at &ldquo;awaiting activation&rdquo; can be activated by
+            hand from the member screen.
           </p>
         </section>
       )}
@@ -123,15 +137,25 @@ export default async function AdminSystemPage() {
       <section className="flex flex-col gap-3">
         <h2 className="font-serif text-lg font-semibold">Mail</h2>
         <p className="text-sm">
-          Driver: <code>{mail.driver}</code>
-          {mail.driver === 'log' && (
+          {mail.summary}
+          {!mail.sends && (
             <span className="text-muted-foreground">
               {' '}
-              — messages are written to the server log and not sent.
+              — nothing this board sends reaches anybody.
             </span>
           )}{' '}
-          · activation method: <code>{mail.activationMethod}</code>
+          · activation method: <code>{mail.activationMethod}</code> · configured from{' '}
+          <code>{mail.source === 'environment' ? 'the environment' : 'board settings'}</code>
         </p>
+        {mail.source === 'board' && (
+          <p className="text-sm text-muted-foreground">
+            Change it — and send a test message to prove it works — on the{' '}
+            <a href="/admin/settings?group=mail" className="underline">
+              mail settings screen
+            </a>
+            .
+          </p>
+        )}
         <p className="text-sm text-muted-foreground">
           Notification and mass mail leave on the tick above, so a stopped scheduler is
           also a board that sends none of them. Verification and password-reset links are

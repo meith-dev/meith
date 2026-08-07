@@ -484,14 +484,150 @@ export const SETTING_DEFINITIONS = [
   }),
 
   /* -------------------------------- mail ------------------------------- */
+  /*
+   * Mail is configured here rather than only in the environment, and the reason
+   * is the whole of `mail.ts`'s header: an env-var edit means a redeploy, a
+   * redeploy means "later", and "later" for the one subsystem that has to work
+   * before the second member can finish registering is how a board goes live
+   * unable to send a password reset.
+   *
+   * `MAIL_DRIVER=http` or `=smtp` in the environment still wins outright and
+   * makes every key below inert — see `resolveMailConfig`. The screen says so
+   * when that is the case, rather than offering boxes whose values are ignored.
+   */
+  define({
+    key: 'mail.transport',
+    group: 'mail',
+    label: 'How mail is sent',
+    description:
+      'A provider’s JSON API, an SMTP server, or nothing at all. "Not sending" ' +
+      'writes each message to the server log and delivers none of them — which ' +
+      'is the right default for a board nobody has configured yet, and a broken ' +
+      'board the moment registration asks anybody to confirm an address.',
+    schema: z.enum(['log', 'http', 'smtp']),
+    default: 'log',
+    ui: {
+      options: [
+        { value: 'log', label: 'Not sending (log only)' },
+        { value: 'smtp', label: 'SMTP server' },
+        { value: 'http', label: 'Provider API (Resend-compatible JSON)' },
+      ],
+    },
+  }),
+  define({
+    key: 'mail.from',
+    group: 'mail',
+    label: 'Sender address',
+    description:
+      'The address every message comes from. It must be on a domain the ' +
+      'provider has verified — a sender the provider does not recognise is ' +
+      'rejected outright, and the rejection is not retried because it would ' +
+      'fail identically every time.',
+    /*
+     * Empty is valid and means "not configured yet", which is what a board that
+     * has never touched this screen has. A required-email schema would make the
+     * default unrepresentable and every fresh board's settings snapshot fall
+     * back through the invalid-value path in `SettingsSnapshot.fromOverrides`.
+     */
+    schema: z.string().trim().refine(
+      (value) => value === '' || z.string().email().safeParse(value).success,
+      'That does not look like an e-mail address.',
+    ),
+    default: '',
+  }),
   define({
     key: 'mail.from_name',
     group: 'mail',
     label: 'Sender name',
     description:
-      'Display name on outgoing mail. The address is MAIL_FROM (env).',
+      'Display name shown beside the sender address. Empty sends the bare ' +
+      'address.',
     schema: z.string().max(100),
     default: '',
+  }),
+  define({
+    key: 'mail.http_endpoint',
+    group: 'mail',
+    label: 'Provider API endpoint',
+    description:
+      'Only for the provider-API transport. The board posts Resend’s exact ' +
+      'field names with a Bearer token, so this works for Resend and for ' +
+      'anything that copies it — and not for Postmark or Mailgun, whose SMTP ' +
+      'hosts are the way in.',
+    schema: z.string().trim().refine(
+      (value) => value === '' || z.string().url().safeParse(value).success,
+      'That is not a URL.',
+    ),
+    default: '',
+  }),
+  define({
+    key: 'mail.http_token',
+    group: 'mail',
+    label: 'Provider API key',
+    description: 'Only for the provider-API transport. Stored on the board.',
+    schema: z.string().trim().max(500),
+    default: '',
+    secret: true,
+  }),
+  define({
+    key: 'mail.smtp_host',
+    group: 'mail',
+    label: 'SMTP host',
+    description: 'Only for the SMTP transport. For example smtp.resend.com.',
+    schema: z.string().trim().max(255),
+    default: '',
+  }),
+  define({
+    key: 'mail.smtp_port',
+    group: 'mail',
+    label: 'SMTP port',
+    description:
+      '465 for implicit TLS, 587 for STARTTLS. Picking the security mode below ' +
+      'that does not match the port is the usual cause of a connection that ' +
+      'hangs rather than failing.',
+    schema: z.number().int().min(1).max(65535),
+    default: 587,
+    ui: { min: 1, max: 65535 },
+  }),
+  define({
+    key: 'mail.smtp_security',
+    group: 'mail',
+    label: 'SMTP security',
+    description:
+      'Implicit TLS encrypts the socket before the first byte (port 465). ' +
+      'STARTTLS connects in the clear and upgrades, and the board refuses to ' +
+      'continue if the upgrade fails (port 587). "None" is genuinely ' +
+      'unencrypted and is for a relay on this machine and nothing else.',
+    schema: z.enum(['tls', 'starttls', 'none']),
+    default: 'starttls',
+    ui: {
+      options: [
+        { value: 'starttls', label: 'STARTTLS, required (port 587)' },
+        { value: 'tls', label: 'Implicit TLS (port 465)' },
+        { value: 'none', label: 'None — local relay only' },
+      ],
+    },
+  }),
+  define({
+    key: 'mail.smtp_username',
+    group: 'mail',
+    label: 'SMTP username',
+    description:
+      'Empty only for a relay that does not authenticate. Resend wants the ' +
+      'literal word “resend” here, with the API key as the password.',
+    schema: z.string().trim().max(255),
+    default: '',
+  }),
+  define({
+    key: 'mail.smtp_password',
+    group: 'mail',
+    label: 'SMTP password',
+    description:
+      'Use an app password rather than the password you sign in with, wherever ' +
+      'the provider offers one. Stored on the board.',
+    schema: z.string().trim().max(500),
+    default: '',
+    secret: true,
   }),
 
   /* ---------------------------- reputation ----------------------------- */

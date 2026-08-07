@@ -16,6 +16,7 @@ export {
   warnings,
   type Check,
   type Level,
+  type MailProbe,
   type PreflightProbe,
 } from './preflight'
 
@@ -30,8 +31,10 @@ export {
 } from './plan'
 
 export {
+  MAIL_SKIP,
   defaultForumSlug,
   installInputSchema,
+  mailConfigFromInstallInput,
   parseInstallInput,
   type InstallInput,
 } from './form'

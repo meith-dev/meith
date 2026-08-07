@@ -500,11 +500,32 @@ corrected.
 
 ## Mail
 
-> [!IMPORTANT]
-> **The default driver sends nothing.** `MAIL_DRIVER=log` writes each message to
-> the server log and stops there. It is the right default — a board booted for
-> the first time should not be able to e-mail strangers — but until you change
-> it, password reset silently fails and nobody can confirm a registration.
+Mail is the one subsystem a new board gets wrong silently. Nothing errors: the
+password-reset form says "check your inbox", the registration confirmation is
+written to a log file, and the member waits. So it is asked for on the installer
+and provable from the control panel, rather than being an environment variable
+somebody sets after going live.
+
+### Two places it can be configured, and which one wins
+
+| Where | How | When to use it |
+|---|---|---|
+| **The board** — `/admin/settings?group=mail` | Stored in the `settings` table. Takes effect on the next message, no redeploy. Has a **Send a test message** button. | The default, and what the installer writes. |
+| **The environment** — `MAIL_DRIVER` and friends | Read at boot. Overrides the board entirely. | When the credential must not live in the database, or the deployment is configured wholly from files. |
+
+**The rule is one line: `MAIL_DRIVER=http` or `MAIL_DRIVER=smtp` in the
+environment wins outright.** Anything else — `log`, or unset — hands the
+decision to the board's own settings. Every board that already configures mail
+through the environment therefore keeps working exactly as it did; what changed
+is only the board that never set it, which previously could not send at all and
+can now be fixed from the panel.
+
+When the environment wins, the settings screen says so and does not pretend its
+fields are live. Storing a credential in the environment is the more careful
+choice, at the cost of a redeploy to rotate it; storing it on the board means
+the API key sits in the `settings` table, readable by anything with database
+access. Neither is wrong, and the panel marks the stored ones as secrets so they
+are never rendered back into the page or written to the audit log.
 
 ### What sends mail
 
@@ -522,15 +543,39 @@ front of a screen who will retry within seconds if nothing arrives, and two of
 the three go to an address the board has not proven yet — a queued job cannot
 be a notification to an account that may not be reachable.
 
-### Choosing a driver
+### Choosing a transport
 
-| `MAIL_DRIVER` | What it does |
+| Transport | What it does |
 |---|---|
-| `log` (default) | Writes `mail (not actually sent)` to the log with the recipient and subject. Sends nothing. |
-| `http` | Posts to a transactional-mail provider's HTTP API. This is the one to use. |
-| `smtp` | **Not implemented.** The board refuses to boot rather than downgrading to `log`, because an operator who configured SMTP and saw no errors would assume mail was being delivered. |
+| Not sending (`log`) | Writes `mail (not actually sent)` to the log with the recipient and subject. Delivers nothing. The default. |
+| **SMTP** | Speaks SMTP to any server. Reaches every provider, and every mailbox host. |
+| **Provider API** (`http`) | Posts Resend's JSON body with a Bearer token. Works for Resend and anything that copies it. |
+
+### The shortest path, if you already receive mail on your domain
+
+Use SMTP against the mailbox you already have — Fastmail, Migadu, Google
+Workspace, your VPS host's mail service, whatever it is. It is the only option
+with **no DNS work at all**, because SPF and DKIM are already published for that
+domain; every provider below needs new records before it will carry a message to
+anybody.
+
+```
+Transport: SMTP
+Host:      your provider's SMTP host
+Port:      465     (or 587)
+Security:  Implicit TLS (or STARTTLS for 587)
+Username:  your mailbox address
+Password:  an app password — never your login password
+Sender:    an address on that domain
+```
+
+Mailbox providers rate-limit sending (Workspace is around 2,000 messages a day),
+which is ample for a forum and not for a newsletter.
 
 ### Resend, copy-pasteable
+
+Free for 3,000 messages a month, and the provider whose API the `http` transport
+was written against.
 
 ```sh
 MAIL_DRIVER=http
@@ -539,32 +584,73 @@ MAIL_HTTP_TOKEN=re_…
 MAIL_FROM=noreply@yourdomain.com
 ```
 
-All four are required together; boot fails naming whichever is missing.
+Or the same account over SMTP, which the panel offers as a preset — host
+`smtp.resend.com`, port 465, implicit TLS, username the literal word `resend`,
+password the API key.
 
 Two things will bite you before the first message arrives:
 
 1. **Verify the sending domain with the provider first.** Every provider
-   requires it, and the board cannot do it for you.
-2. **`MAIL_FROM` must be an address on that verified domain.** If it is not,
+   requires it, the board cannot do it for you, and until it is done a new
+   Resend account can only mail the address you signed up with.
+2. **The sender must be an address on that verified domain.** If it is not,
    every message is rejected with a 4xx — which the driver reports as a
    *configuration error* and does not retry, because it would fail identically
    on every attempt.
 
+### SMTP, in the environment
+
+```sh
+MAIL_DRIVER=smtp
+MAIL_SMTP_HOST=smtp.provider.example
+MAIL_SMTP_PORT=465
+MAIL_SMTP_SECURITY=tls          # tls | starttls | none
+MAIL_SMTP_USERNAME=…
+MAIL_SMTP_PASSWORD=…
+MAIL_FROM=noreply@yourdomain.com
+```
+
+`MAIL_SMTP_HOST` and `MAIL_FROM` are required; the username and password must be
+set together or not at all, since a relay on the same machine legitimately needs
+neither. Boot fails naming whatever is missing.
+
+**Security is three values, not a checkbox, and this is the setting people get
+wrong.** `tls` is implicit TLS — the socket is encrypted before the first byte,
+which is port 465. `starttls` connects in the clear and upgrades, which is port
+587, and the board *refuses to continue if the upgrade fails* rather than
+sending your password in plaintext. `none` is genuinely unencrypted and is for a
+relay on this machine and nothing else. A mode that disagrees with the port
+produces a connection that hangs instead of failing, which is the single most
+confusing way for this to go wrong.
+
 ### Other providers
 
-The driver is generic HTTP, not a Resend client. It posts JSON with a Bearer
-token:
+Brevo (~300/day free), Postmark (the best deliverability, 100/month free),
+Mailgun and Amazon SES all speak SMTP, and the panel carries presets for them.
+
+The **provider API** transport is not a Resend client but it is Resend-shaped. It
+posts:
 
 ```json
 { "from": "…", "to": "…", "subject": "…", "text": "…", "html": "…", "reply_to": "…" }
 ```
 
-Resend's `POST /emails` takes exactly that, which is why it works with no
-adapter. **Postmark and Mailgun do not** — Postmark uses `From`/`To`/`TextBody`
-and an `X-Postmark-Server-Token` header, Mailgun takes form-encoded fields on a
-per-domain URL. Both need a change to `packages/drivers/src/mail`, which is a
-small file. Do not assume any provider URL will work here because it is "an
-HTTP mail API"; the field names are the contract.
+Resend's `POST /emails` takes exactly that. **Postmark and Mailgun do not** —
+Postmark uses `From`/`To`/`TextBody` and an `X-Postmark-Server-Token` header,
+Mailgun takes form-encoded fields on a per-domain URL. Use their SMTP hosts
+instead; that is what the SMTP transport is for, and it needs no code change.
+
+### Prove it, rather than assuming it
+
+`/admin/settings?group=mail` has a **Send a test message to me** button. It sends
+through the configuration the board has *saved* — so save first — to the address
+on your own account, and shows the provider's own refusal verbatim when there is
+one. "The domain example.com is not verified" is the whole answer; a tidier
+message would not be.
+
+The installer does the same thing and goes further: it sends the test **before
+the first migration**, and refuses to install if it fails. A wrong API key
+therefore costs a retry rather than a sealed board that cannot mail anybody.
 
 ### `APP_URL` is not optional if you want working links
 
@@ -577,86 +663,6 @@ With `APP_URL` unset the board does **not** emit a relative link, which would be
 a dead string in a mail client. It degrades to written instructions instead. The
 mail arrives, it is polite, and it is useless. Set `APP_URL` to the absolute
 public origin, with no trailing slash.
-
-### Queued mail needs the tick
-
-Notification and mass mail are delivered by a job that runs inside
-`/api/system/tick`. No cron means no mail, and **no error anywhere** — the
-messages sit in the queue looking fine. `/admin/system` says loudly when the
-tick is stale; see [Nothing happens on a schedule](#nothing-happens-on-a-schedule).
-
-### The sender name and the sender address are different settings
-
-`MAIL_FROM` (environment) is the address. `mail.from_name` in `/admin/settings`
-is the display name beside it, and the split surprises people: one is a
-deploy-time variable and the other is a row in the database. Together they
-become `"The Townland" <noreply@yourdomain.com>`; leave the name empty — the
-default — and messages go out as the bare address.
-
-The reason for the split is deliverability. The address has to be on a domain
-you verified with your provider, which makes it a deployment fact; the name is
-just what people see in their inbox, and changing it should not need a redeploy.
-
-It is read **per message**, not once at startup, so renaming your board changes
-the next message rather than the next restart — a worker process can outlive
-several settings changes.
-
-### Activation and mail are one decision
-
-`registration.method` in `/admin/settings` chooses what a new account has to do
-before it can sign in:
-
-| Method | What happens |
-|---|---|
-| `none` | The account works immediately. |
-| `email` | A confirmation link is sent. Until it is followed, the account cannot sign in. |
-| `admin` | The account waits for an administrator. No mail involved. |
-| `both` | The link first, then an administrator. |
-
-The default is `none`, and it is `none` because `MAIL_DRIVER` defaults to `log`:
-a board that asked for confirmation out of the box would mint links it cannot
-send. Choosing anything else is a decision to make *after* mail works.
-
-> [!NOTE]
-> **Upgrading an existing board?** This setting had no effect until recently —
-> whatever the dropdown showed, accounts were created as though it said `none`.
-> A board that stored `admin` or `both` gets the vetting it asked for as soon as
-> it upgrades. See
-> [Settings that gained a reader](./upgrading.md#settings-that-gained-a-reader).
-
-**`email` or `both` over `MAIL_DRIVER=log` is a board nobody can join.** The
-links are minted, printed to the log, and never delivered. This cannot be a boot
-check — the driver is fixed at boot and the method is a row you can change on a
-running board — so instead the registration settings screen and `/admin/system`
-both say so, loudly, while it is true.
-
-An account already stuck at "awaiting activation" can be activated by hand from
-its member screen in `/admin/users`. Somebody who never received their link can
-ask for another at `/verify/resend`, which is linked from the sign-in page.
-
-### Checking that it works
-
-- Register a throwaway account, or use the "forgot your password" form on one
-  you own. Both send during the request, so there is nothing to wait for.
-- On the `log` driver, watch for `mail (not actually sent)` in the log — it
-  prints `to` and `subject`, which is enough to prove the flow reached the
-  driver.
-- `/admin/system` shows the resolved driver and activation method together.
-
-### What happens when a provider fails
-
-- **4xx** (bad address, unverified domain, bad token) is treated as
-  configuration and **not retried** — it would fail identically every time.
-- **5xx and 429** are retried by the queue's backoff, for queued mail. A direct
-  send has no retry: the member asks again.
-- Drivers hold no retry logic of their own. The queue is the retry mechanism,
-  deliberately, so there is one place that decides how often to try again.
-- Every send has a **10-second timeout**. Without it a hung provider would hold
-  a job's lease open for its full duration and consume the tick's whole budget.
-- A failed send never fails the thing that caused it. A registration whose
-  confirmation could not be sent still created the account — reporting
-  "registration failed" would be a lie about a state you now have to live with —
-  and the screen it lands on offers to send the link again.
 
 ## Spam
 

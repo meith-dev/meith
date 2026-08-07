@@ -104,7 +104,34 @@ describe('assessMailReadiness', () => {
     )
     expect(readiness.unactivatable).toBe(false)
     /* Still reported, so the screen can say what is configured. */
-    expect(readiness.driver).toBe('log')
+    expect(readiness.sends).toBe(false)
     expect(readiness.activationMethod).toBe('email')
+  })
+
+  /*
+   * The precedence rule, from the screen's side.
+   *
+   * `source` is what decides whether the settings screen offers editable mail
+   * fields or a statement that the environment has taken the decision. Getting
+   * it backwards would render boxes whose values are silently discarded, which
+   * is the failure the field exists to prevent — so it is asserted rather than
+   * left to the one caller that reads it.
+   */
+  it('says the environment owns mail when MAIL_DRIVER names a transport', async () => {
+    const readiness = await withEnv({ driver: 'http', nodeEnv: 'test' }, () =>
+      assessMailReadiness(),
+    )
+    expect(readiness.source).toBe('environment')
+    expect(readiness.sends).toBe(true)
+    /* Names the host and never the token, because this string reaches a page. */
+    expect(readiness.summary).toContain('api.resend.com')
+    expect(readiness.summary).not.toContain('re_test_token')
+  })
+
+  it('leaves mail to the board when MAIL_DRIVER does not', async () => {
+    const readiness = await withEnv({ driver: 'log', nodeEnv: 'test' }, () =>
+      assessMailReadiness(),
+    )
+    expect(readiness.source).toBe('board')
   })
 })

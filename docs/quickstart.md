@@ -128,15 +128,38 @@ Then it runs five steps, naming each before it runs it:
 
 That is a board. Sign in and go to `/admin`.
 
-## 5. Configure mail, before you invite anybody
+## 5. Mail
+
+The installer asks for this on the way through, and sends a test message to the
+administrator's address before it writes anything — so if you filled it in at
+step 4, it already works and you can skip to backups.
+
+If you skipped it, do it now, at `/admin/settings?group=mail`. It takes effect
+on the next message; there is no redeploy.
 
 > [!IMPORTANT]
-> A board that has never had `MAIL_DRIVER` set **sends no mail at all**. The
-> default writes each message to the container log and stops. Password reset
-> fails silently, and if registration asks for a confirmation link, nobody can
-> finish signing up. Nobody notices until the first member cannot get back in.
+> A board with no mail configured **sends nothing at all** — each message is
+> written to the container log and stops there. Password reset fails silently,
+> and if registration asks for a confirmation link, nobody can finish signing
+> up. Nobody notices until the first member cannot get back in.
 
-In Coolify, these go in the resource's **environment variables**:
+**The shortest path, if you already receive mail on this domain** — Fastmail,
+Migadu, Google Workspace, your host's mailbox — is SMTP against that mailbox.
+SPF and DKIM are already published for the domain, so there are no DNS records
+to add: host, port 465, implicit TLS, your address, and an **app password**.
+
+**Otherwise, Resend** is free for 3,000 messages a month and is the first preset
+on the screen. You will have to add the DNS records it asks for and wait for
+verification — until you do, a new Resend account can only mail the address you
+signed up with, whatever the board is configured to do.
+
+Either way, press **Send a test message to me** and read what comes back. A
+provider that refuses says why, and that sentence is shown verbatim.
+
+You can also configure mail from the environment instead, which keeps the
+credential out of the database; setting `MAIL_DRIVER` there overrides the screen
+entirely. In Coolify those go in the resource's **environment variables** and
+need a redeploy:
 
 ```sh
 MAIL_DRIVER=http
@@ -145,13 +168,10 @@ MAIL_HTTP_TOKEN=re_…
 MAIL_FROM=noreply@your-domain          # on a domain verified with the provider
 ```
 
-Redeploy. All four are required together — the board refuses to boot naming
-whichever is missing, which is deliberate: a board that boots with mail
-half-configured is one that silently swallows every message.
-
 Then check `registration.method` in `/admin/settings`; it decides whether new
-members need a confirmation link at all. The full picture, including what
-another provider needs, is in [Running a board § Mail](./operating.md#mail).
+members need a confirmation link at all. The full picture, including SMTP in the
+environment and what other providers need, is in
+[Running a board § Mail](./operating.md#mail).
 
 ## 6. Set up backups
 
@@ -198,7 +218,7 @@ and retry. What to do depends on how far it got:
 | `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
 | The worker logs `worker started` every few seconds | It is crash-looping; the throw is in the log above each restart. |
 | 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |
-| Password reset "sent" and never arrives | `MAIL_DRIVER` is still `log`. The message is sitting in the web container's log. |
+| Password reset "sent" and never arrives | Mail is not configured, so the message is sitting in the web container's log. Check `/admin/settings?group=mail` and press the test button. |
 | Nothing happens on a schedule | The `worker` container is not running. Every catch-up operation is on that loop, and when it stops **nothing errors** — see `/admin` → System health. |
 
 [Running a board § Troubleshooting](./operating.md#troubleshooting) covers the

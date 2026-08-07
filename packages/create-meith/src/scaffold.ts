@@ -179,12 +179,19 @@ DATA_SOURCE=postgres
 # place a relative URL cannot work because there is no request to be relative to.
 APP_URL=
 
-# Mail. The default writes each message to the server log and SENDS NOTHING, so
-# password reset fails silently until this is configured. All three are required
-# together once MAIL_DRIVER=http.
-# MAIL_DRIVER=http
-# MAIL_HTTP_ENDPOINT=https://api.resend.com/emails
-# MAIL_HTTP_TOKEN=
+# Mail. Leave these alone and the installer asks for mail on first run, storing
+# it on the board — a settings screen with a test button, no redeploy. Set
+# MAIL_DRIVER here instead and the environment wins outright, which is what you
+# want if the credential must not live in the database.
+#
+# The default sends NOTHING: each message goes to the server log, so password
+# reset fails silently until mail is configured one way or the other.
+# MAIL_DRIVER=smtp
+# MAIL_SMTP_HOST=smtp.example.com
+# MAIL_SMTP_PORT=465
+# MAIL_SMTP_SECURITY=tls        # tls (465) | starttls (587) | none
+# MAIL_SMTP_USERNAME=
+# MAIL_SMTP_PASSWORD=
 # MAIL_FROM=noreply@yourdomain.com
 
 # How long a tick may spend before it yields and finishes the backlog next time.

@@ -186,9 +186,12 @@ From here the two routes are identical, so those steps are written once:
 
 - **[Quickstart § Run the installer](./quickstart.md#4-run-the-installer)** —
   the preflight report, the five steps, and the sealing that cannot be undone.
-- **[Quickstart § Configure mail](./quickstart.md#5-configure-mail-before-you-invite-anybody)**
-  — the four settings, which go in your `.env` here rather than in a panel. A
-  board that has never had `MAIL_DRIVER` set sends no mail at all.
+- **[Quickstart § Mail](./quickstart.md#5-mail)** — the installer asks for it and
+  proves it with a real test message before writing anything, and
+  `/admin/settings?group=mail` changes it afterwards with no redeploy. You can
+  instead put `MAIL_DRIVER` and its companions in the `.env` beside this stack,
+  which overrides the screen and keeps the credential out of the database. A
+  board configured neither way sends no mail at all.
 - **[Running a board](./operating.md)** — the operator handbook, and everything
   from the day after you install: backups, the operator CLI, upgrades,
   permissions, spam, and the failures that actually happen.
