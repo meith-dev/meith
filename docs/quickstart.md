@@ -113,13 +113,26 @@ kinds of problem:
 Read the warnings. Nearly every way a new board disappoints somebody a month in
 is visible on that screen on day one.
 
+The form asks four things — a board name, your username, your e-mail and a
+password — and **how the board should send mail**. Fill the mail part in here if
+you can; the reasons are in step 5, and doing it now costs one extra minute
+rather than one extra visit.
+
+It does not ask for the board's address. Coolify supplies that (`APP_URL`), so
+the installer shows it as already decided rather than asking you to retype your
+own domain.
+
 Then it runs five steps, naming each before it runs it:
 
 1. **Apply migrations** — every table, index and seeded usergroup.
-2. **Record the board's name** — the only setting it writes.
+2. **Record the board's name and mail settings** — the only settings it writes.
 3. **Create the administrator** — your account.
 4. **Create a first forum** — so the index is not empty.
 5. **Disable the installer**.
+
+If you gave it mail, it sends a **test message to your address before step 1**,
+and installs nothing at all if that fails. A mistyped API key costs you a retry
+on this form rather than a finished board that cannot e-mail anybody.
 
 > [!CAUTION]
 > Step 5 is irreversible. `/install` answers 404 from then on, on purpose. You
@@ -130,48 +143,56 @@ That is a board. Sign in and go to `/admin`.
 
 ## 5. Mail
 
-The installer asks for this on the way through, and sends a test message to the
-administrator's address before it writes anything — so if you filled it in at
-step 4, it already works and you can skip to backups.
+If you filled it in on the installer, a test message already reached your inbox
+and there is nothing to do here. Skip to backups.
 
-If you skipped it, do it now, at `/admin/settings?group=mail`. It takes effect
-on the next message; there is no redeploy.
+If you skipped it, do it now at **`/admin/settings?group=mail`**. It takes effect
+on the next message — no redeploy, no environment variables.
 
 > [!IMPORTANT]
-> A board with no mail configured **sends nothing at all** — each message is
+> A board with no mail configured **sends nothing at all**. Each message is
 > written to the container log and stops there. Password reset fails silently,
-> and if registration asks for a confirmation link, nobody can finish signing
-> up. Nobody notices until the first member cannot get back in.
+> and if registration asks for a confirmation link, nobody can finish signing up.
+> Nobody notices until the first member cannot get back in.
 
-**The shortest path, if you already receive mail on this domain** — Fastmail,
-Migadu, Google Workspace, your host's mailbox — is SMTP against that mailbox.
-SPF and DKIM are already published for the domain, so there are no DNS records
-to add: host, port 465, implicit TLS, your address, and an **app password**.
+**Pick whichever of these you already have:**
 
-**Otherwise, Resend** is free for 3,000 messages a month and is the first preset
-on the screen. You will have to add the DNS records it asks for and wait for
-verification — until you do, a new Resend account can only mail the address you
-signed up with, whatever the board is configured to do.
+*You receive mail on this domain already* — Fastmail, Migadu, Google Workspace,
+your host's mailbox. This is the shortest path by a distance, because SPF and
+DKIM are already published for the domain and there are **no DNS records to
+add**:
 
-Either way, press **Send a test message to me** and read what comes back. A
-provider that refuses says why, and that sentence is shown verbatim.
-
-You can also configure mail from the environment instead, which keeps the
-credential out of the database; setting `MAIL_DRIVER` there overrides the screen
-entirely. In Coolify those go in the resource's **environment variables** and
-need a redeploy:
-
-```sh
-MAIL_DRIVER=http
-MAIL_HTTP_ENDPOINT=https://api.resend.com/emails
-MAIL_HTTP_TOKEN=re_…
-MAIL_FROM=noreply@your-domain          # on a domain verified with the provider
+```
+How mail is sent:  SMTP server
+Sender address:    an address on that domain
+SMTP host:         your provider's SMTP host
+SMTP port:         465
+SMTP security:     Implicit TLS
+SMTP username:     your mailbox address
+SMTP password:     an app password — never the password you sign in with
 ```
 
-Then check `registration.method` in `/admin/settings`; it decides whether new
-members need a confirmation link at all. The full picture, including SMTP in the
-environment and what other providers need, is in
-[Running a board § Mail](./operating.md#mail).
+*You do not* — use [Resend](https://resend.com), free for 3,000 messages a
+month. Set **How mail is sent** to *Provider API*, the endpoint to
+`https://api.resend.com/emails`, and paste the API key. You will have to add the
+DNS records Resend asks for and wait for them to verify: until that finishes a
+new account can only mail the address you signed up with, whatever the board is
+configured to do.
+
+**Then press *Send a test message to me*** and read what comes back. A provider
+that refuses says why, and that sentence is shown to you word for word — "the
+domain example.com is not verified" is the whole answer, and it is the one that
+saves the afternoon.
+
+Last, check **Activation method** under `/admin/settings?group=registration`. It
+decides whether new members need a confirmation link at all, and it is the one
+setting that turns a mail problem into a board nobody can join.
+
+> Prefer to keep the credential out of the database, or configure this
+> deployment entirely from files? Mail can come from environment variables
+> instead, and they win over this screen when set. That is
+> [Running a board § Mail](./operating.md#mail), along with SMTP for every other
+> provider.
 
 ## 6. Set up backups
 
