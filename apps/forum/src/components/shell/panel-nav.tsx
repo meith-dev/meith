@@ -59,8 +59,15 @@ import {
   visibleChildren,
 } from '@/view/panel-nav'
 
+/*
+ * `items-baseline` rather than `items-center`, and the label is allowed to
+ * wrap: "Buddies and ignored members" does not fit a 224px rail on one line,
+ * and truncating it to "Buddies and ignored me…" hides the word that says what
+ * the screen is. A count stays on the first line, beside the first line of the
+ * label, which is where the eye already is.
+ */
 const ITEM =
-  'flex items-center gap-2 rounded-md px-3 py-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'flex items-baseline gap-2 rounded-md px-3 py-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 /** The item you are on: filled, so it reads as a position and not as a link. */
 const HERE = 'bg-muted font-medium text-foreground'
@@ -148,7 +155,7 @@ function SectionList({
                 )}
                 {...currentProps(pathname, section.href, deepest)}
               >
-                <span className="min-w-0 flex-1 truncate">{section.title}</span>
+                <span className="min-w-0 flex-1">{section.title}</span>
                 {count !== null && <Count count={count} />}
               </a>
 
@@ -167,7 +174,7 @@ function SectionList({
                       return (
                         <li key={child.href}>
                           <span className={cn(ITEM, HERE)} aria-current="page">
-                            <span className="min-w-0 flex-1 truncate">{child.title}</span>
+                            <span className="min-w-0 flex-1">{child.title}</span>
                           </span>
                         </li>
                       )
@@ -180,7 +187,7 @@ function SectionList({
                           className={cn(ITEM, pathname === child.href ? HERE : ELSEWHERE)}
                           {...currentProps(pathname, child.href, deepest)}
                         >
-                          <span className="min-w-0 flex-1 truncate">{child.title}</span>
+                          <span className="min-w-0 flex-1">{child.title}</span>
                           {childCount !== null && <Count count={childCount} />}
                         </a>
                       </li>
