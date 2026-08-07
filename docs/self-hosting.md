@@ -194,18 +194,41 @@ Prefer nginx? The equivalent is a `proxy_pass` to `127.0.0.1:3000` with
 `client_max_body_size 25m`, `proxy_set_header X-Forwarded-Proto https`, and
 certbot for the certificate. Nothing about the board cares which you pick.
 
-## 6. Install it, and configure mail
+## 6. Install it
 
-From here the two routes are identical, so those steps are written once:
+Open `https://board.example/install` — your domain, over the proxy you just set
+up, not `127.0.0.1:3000`. The address you load it at is the one it will offer to
+keep, so loading it the way your members will is the point.
 
-- **[Quickstart § Run the installer](./quickstart.md#4-run-the-installer)** —
-  the preflight report, the five steps, and the sealing that cannot be undone.
-- **[Quickstart § Mail](./quickstart.md#5-mail)** — the installer asks for it and
-  proves it with a real test message before writing anything, and
-  `/admin/settings?group=mail` changes it afterwards with no redeploy. You can
-  instead put `MAIL_DRIVER` and its companions in the `.env` beside this stack,
-  which overrides the screen and keeps the credential out of the database. A
-  board configured neither way sends no mail at all.
+The form asks five things: a board name, **the board's address**, your username,
+your e-mail and a password — plus how the board should send mail.
+
+**The address is prefilled from the URL you loaded**, because that is almost
+always right and because nothing else on the form is as easy to get subtly wrong.
+Check it before you submit: it is the origin every password-reset and
+confirmation link is built from, and it is stored as you confirm it. This is the
+one difference from the Coolify route, where the panel supplies `APP_URL` and the
+installer does not ask.
+
+> [!TIP]
+> If you set `APP_URL` in `.env` after all, the field is not shown and the
+> environment's value is used. That is the right choice when you would rather
+> this deployment were configured from files — and the wrong one if the value is
+> a placeholder, since nothing will correct it.
+
+Fill in mail here too. It sends a **test message to your address before the
+first migration** and installs nothing if that fails, so a wrong key costs a
+retry rather than a sealed board that cannot e-mail anybody.
+
+Everything else about the installer — the preflight report, the five steps, the
+sealing that cannot be undone — is the same on both routes and written once:
+
+- **[Quickstart § Run the installer](./quickstart.md#4-run-the-installer)**
+- **[Quickstart § Mail](./quickstart.md#5-mail)** — what to put in the mail
+  fields, whichever provider you have. `/admin/settings?group=mail` changes it
+  afterwards with no redeploy; the `MAIL_*` variables in the `.env` beside this
+  stack override it when you would rather keep the credential out of the
+  database. A board configured neither way sends no mail at all.
 - **[Running a board](./operating.md)** — the operator handbook, and everything
   from the day after you install: backups, the operator CLI, upgrades,
   permissions, spam, and the failures that actually happen.
@@ -265,6 +288,8 @@ things doing one job.
 | 413 on an upload | The proxy's body limit, not the board's. See `max_size` above. |
 | Uploads vanish after a redeploy | The `uploads` volume is not mounted. `docker volume ls` and `docker compose config` will show it. |
 | The board is reachable on `:3000` as well as `:443` | `PORT` is `3000` rather than `127.0.0.1:3000`. Docker writes its own iptables rules, so `ufw` will not have stopped it. |
+| Password reset says "check your inbox" and nothing arrives | Mail is not configured, or the provider is refusing it. `/admin/settings?group=mail` → **Send a test message to me** answers which in one click, and prints the provider's own refusal. |
+| Mail arrives, but its links point at the wrong host | The board's address is wrong. If `APP_URL` is in `.env` it wins — fix it there and redeploy; otherwise fix **Board address** under `/admin/settings?group=board`. |
 
 [Running a board § Troubleshooting](./operating.md#troubleshooting) covers the
 failures that are about the board rather than about the deployment.

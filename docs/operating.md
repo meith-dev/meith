@@ -578,14 +578,16 @@ with **no DNS work at all**, because SPF and DKIM are already published for that
 domain; every provider below needs new records before it will carry a message to
 anybody.
 
+On `/admin/settings?group=mail`, using the screen's own labels:
+
 ```
-Transport: SMTP
-Host:      your provider's SMTP host
-Port:      465     (or 587)
-Security:  Implicit TLS (or STARTTLS for 587)
-Username:  your mailbox address
-Password:  an app password — never your login password
-Sender:    an address on that domain
+How mail is sent:  SMTP server
+Sender address:    an address on that domain
+SMTP host:         your provider's SMTP host
+SMTP port:         465            (or 587)
+SMTP security:     Implicit TLS   (or STARTTLS, for 587)
+SMTP username:     your mailbox address
+SMTP password:     an app password — never the password you sign in with
 ```
 
 Mailbox providers rate-limit sending (Workspace is around 2,000 messages a day),
@@ -603,9 +605,11 @@ MAIL_HTTP_TOKEN=re_…
 MAIL_FROM=noreply@yourdomain.com
 ```
 
-Or the same account over SMTP, which the panel offers as a preset — host
-`smtp.resend.com`, port 465, implicit TLS, username the literal word `resend`,
-password the API key.
+Or the same account over SMTP — host `smtp.resend.com`, port 465, implicit TLS,
+username the literal word `resend`, password the API key. The installer offers
+that as a preset and fills those four in for you; on the settings screen you type
+them, because the screen is generated from the setting registry and has no
+provider list.
 
 Two things will bite you before the first message arrives:
 
@@ -645,7 +649,11 @@ confusing way for this to go wrong.
 ### Other providers
 
 Brevo (~300/day free), Postmark (the best deliverability, 100/month free),
-Mailgun and Amazon SES all speak SMTP, and the panel carries presets for them.
+Mailgun and Amazon SES all speak SMTP, so all four work as-is. The **installer**
+carries prefilled presets for Brevo, Postmark and SES; Mailgun has none, and
+neither does any provider added after this was written — pick *Any other SMTP
+server* and type the host. A preset is a convenience, not an integration, and
+nothing behaves differently without one.
 
 The **provider API** transport is not a Resend client but it is Resend-shaped. It
 posts:
@@ -670,6 +678,39 @@ message would not be.
 The installer does the same thing and goes further: it sends the test **before
 the first migration**, and refuses to install if it fails. A wrong API key
 therefore costs a retry rather than a sealed board that cannot mail anybody.
+
+### The settings behind the screen
+
+The screen is generated from the setting registry, so every field on it is a key
+`forum settings:set` can write. That matters exactly once, and it is the once
+that counts: **when mail is broken and the panel is not reachable**, which is the
+same situation as being locked out, because password reset is the thing mail was
+going to fix.
+
+| Key | Field | Notes |
+|---|---|---|
+| `mail.transport` | How mail is sent | `log`, `smtp` or `http` |
+| `mail.from` | Sender address | Must be on the verified domain |
+| `mail.from_name` | Sender name | Empty sends the bare address |
+| `mail.smtp_host` | SMTP host | |
+| `mail.smtp_port` | SMTP port | 465 for `tls`, 587 for `starttls` |
+| `mail.smtp_security` | SMTP security | `tls`, `starttls` or `none` |
+| `mail.smtp_username` | SMTP username | Both credentials, or neither |
+| `mail.smtp_password` | SMTP password | Stored as a secret — never echoed back |
+| `mail.http_endpoint` | Provider API endpoint | Only for the `http` transport |
+| `mail.http_token` | Provider API key | Stored as a secret |
+
+```sh
+forum settings:set mail.transport smtp
+forum settings:set mail.smtp_host smtp.provider.example
+forum settings:set mail.from noreply@yourdomain.com
+forum task:run                     # run the tick once, so queued mail leaves now
+```
+
+The two secrets are write-only from the operator's side: the panel renders them
+as empty password boxes and a blank one means *unchanged* rather than *clear it*,
+and `forum env:check` and the audit log both refuse to print them. To clear one
+deliberately, set it to the empty string.
 
 ### Queued mail needs the tick
 
