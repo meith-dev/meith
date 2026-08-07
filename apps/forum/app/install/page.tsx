@@ -1,5 +1,12 @@
 import { DEFAULT_AUTH_POLICY } from '@meith/accounts'
-import { INSTALL_STEPS, blockers, canProceed, warnings } from '@meith/install'
+import {
+  INSTALL_STEPS,
+  blockers,
+  canProceed,
+  freshReport,
+  warnings,
+  type Check,
+} from '@meith/install'
 import { env } from '@meith/core'
 import { MAIL_PRESETS, isUsableOrigin, normaliseOrigin } from '@meith/settings'
 import type { Metadata } from 'next'
@@ -63,70 +70,29 @@ export default async function InstallPage() {
         </p>
       </header>
 
-      <section aria-labelledby="preflight" className="flex flex-col gap-3">
-        <h2 id="preflight" className="font-serif text-xl font-semibold">
-          Before installing
-        </h2>
+      <Preflight checks={checks} />
 
-        <ul className="flex flex-col gap-2">
-          {checks.map((check) => (
-            <li
-              key={check.id}
-              className={`rounded-md border px-3 py-2 text-sm ${
-                check.level === 'blocker'
-                  ? 'border-destructive bg-destructive/5'
-                  : check.level === 'warning'
-                    ? 'border-thread-pinned bg-muted'
-                    : 'border-border'
-              }`}
-            >
-              <p className="font-medium">
-                {/*
-                  A word, not only a colour. "blocker" and "warning" are
-                  information, and information carried by a hue alone is absent
-                  for a substantial number of readers — on the one page whose
-                  entire purpose is telling somebody what is wrong.
-                */}
-                <span className="font-mono text-xs uppercase text-muted-foreground">
-                  {check.level === 'ok' ? 'ready' : check.level}
-                  {' · '}
-                </span>
-                {check.title}
-              </p>
-              {check.detail !== '' && (
-                <p className="mt-1 text-muted-foreground">{check.detail}</p>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section aria-labelledby="steps" className="flex flex-col gap-3">
-        <h2 id="steps" className="font-serif text-xl font-semibold">
-          What installing does
-        </h2>
-        <ol className="flex flex-col gap-2 text-sm">
-          {INSTALL_STEPS.map((step, index) => (
-            <li key={step.id} className="flex gap-3">
-              <span className="font-mono text-xs text-muted-foreground">{index + 1}</span>
-              <span>
-                <span className="font-medium">{step.title}</span>
-                <span className="block text-muted-foreground">{step.detail}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {ready ? (
+      {ready && (
         /*
          * The presets are handed down rather than imported by the form, which is
          * a client component: `@meith/settings` is the registry and its zod
          * schemas, and none of that belongs in a browser bundle to render eight
-         * `<option>` elements.
+         * `<option>` elements. `INSTALL_STEPS` travels the same way and for the
+         * same reason — importing `@meith/install` for five titles would carry
+         * the whole form schema, zod included, into the browser.
          */
         <InstallForm
           presets={MAIL_PRESETS}
+          steps={INSTALL_STEPS}
+          /*
+           * The step list as it stands before anything has run.
+           *
+           * The form renders the *same* component for "what this will do" and
+           * "how far it got", which is what `freshReport` is for: one set of
+           * states, rather than a before view and an after view that disagree
+           * about what a step is.
+           */
+          initialReport={freshReport()}
           /*
            * The same list `runInstall` will enforce. `resolveAuthPolicy` does
            * not make this one board-configurable, and nothing has been stored
@@ -138,25 +104,144 @@ export default async function InstallPage() {
           suggestedBoardUrl={suggestedBoardUrl}
           boardUrlIsFromEnvironment={(env.APP_URL ?? '') !== ''}
         />
-      ) : (
-        <p
-          role="alert"
-          className="rounded-md border border-destructive bg-destructive/5 px-3 py-2 text-sm"
-        >
-          {blockers(checks).length === 1
-            ? 'One thing above has to be fixed before this board can be installed.'
-            : `${blockers(checks).length} things above have to be fixed before this board can be installed.`}{' '}
-          Fix them, redeploy if they were environment variables, and reload this page.
-        </p>
-      )}
-
-      {ready && warnings(checks).length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          You can install with the warnings above unresolved. Nothing will fail at
-          the time — that is what makes them worth reading.
-        </p>
       )}
     </main>
+  )
+}
+
+/**
+ * What the environment looks like, weighted by whether anybody has to act.
+ *
+ * ## Why the passing checks are folded away
+ *
+ * This section used to render all seven findings as equal rows, five of which
+ * said "ready". An installer's job is explaining what is wrong, and a screen
+ * where the one warning is seventh in a list of identical boxes is not doing
+ * that — it is making the reader audit a list to discover there is nothing to
+ * audit. The two categories that need a decision are on the page; the rest is
+ * one line saying how many were fine, openable by anybody who wants the roll
+ * call. `<details>` because this page must work with scripting off (R5).
+ *
+ * The counts are the point of the summary line: "6 checks passed" is a claim
+ * about the whole environment, and it is the sentence that lets somebody stop
+ * reading.
+ */
+function Preflight({ checks }: { checks: readonly Check[] }) {
+  const stopping = blockers(checks)
+  const warned = warnings(checks)
+  const passed = checks.filter((check) => check.level === 'ok')
+
+  return (
+    <section aria-labelledby="preflight" className="flex flex-col gap-3">
+      <h2 id="preflight" className="font-serif text-xl font-semibold">
+        Before installing
+      </h2>
+
+      {stopping.length > 0 && (
+        <div role="alert" className="flex flex-col gap-2">
+          {stopping.map((check) => (
+            <Finding key={check.id} check={check} />
+          ))}
+          <p className="text-sm text-muted-foreground">
+            {stopping.length === 1
+              ? 'That has to be fixed before this board can be installed. Fix it, redeploy if it was an environment variable, and reload this page.'
+              : `Those ${stopping.length} things have to be fixed before this board can be installed. Fix them, redeploy if they were environment variables, and reload this page.`}
+          </p>
+        </div>
+      )}
+
+      {/*
+        Warnings are shown when they can be acted on, and folded when they cannot.
+        Every one of them is written for somebody looking at the form — the mail
+        warning literally says "the form below can set it up" — and when a blocker
+        is present there is no form below. Two open warnings above an absent form
+        is a screen asking for three decisions when only one of them is available.
+      */}
+      {stopping.length === 0 ? (
+        <>
+          {warned.map((check) => (
+            <Finding key={check.id} check={check} />
+          ))}
+          {/*
+            Said beside the warnings rather than under the button, which is where
+            it used to be — a page and a half below the thing it is about,
+            referring to "the warnings above" that were no longer on screen.
+          */}
+          {warned.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {warned.length === 1
+                ? 'You can install without resolving that. Nothing will fail at the time — which is what makes it worth reading.'
+                : 'You can install without resolving those. Nothing will fail at the time — which is what makes them worth reading.'}
+            </p>
+          )}
+        </>
+      ) : (
+        warned.length > 0 && (
+          <details className="rounded-md border border-thread-pinned px-3 py-2 text-sm">
+            {/*
+              The pronoun is about the *blockers* — what has to be fixed first —
+              so it agrees with `stopping`, not with the number of warnings
+              behind this summary.
+            */}
+            <summary className="cursor-pointer text-muted-foreground">
+              {warned.length === 1 ? '1 warning' : `${warned.length} warnings`}
+              {stopping.length === 1 ? ', for after that is fixed' : ', for after those are fixed'}
+            </summary>
+            <div className="mt-2 flex flex-col gap-2">
+              {warned.map((check) => (
+                <Finding key={check.id} check={check} />
+              ))}
+            </div>
+          </details>
+        )
+      )}
+
+      {passed.length > 0 && (
+        <details className="rounded-md border border-border px-3 py-2 text-sm">
+          <summary className="cursor-pointer text-muted-foreground">
+            {passed.length === 1 ? '1 check passed' : `${passed.length} checks passed`}
+          </summary>
+          <ul className="mt-2 flex flex-col gap-1">
+            {passed.map((check) => (
+              <li key={check.id} className="flex gap-2">
+                <span aria-hidden className="text-muted-foreground">
+                  ✓
+                </span>
+                <span>{check.title}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </section>
+  )
+}
+
+/** One finding that needs a decision. */
+function Finding({ check }: { check: Check }) {
+  return (
+    <div
+      className={`rounded-md border px-3 py-2 text-sm ${
+        check.level === 'blocker'
+          ? 'border-destructive bg-destructive/5'
+          : 'border-thread-pinned bg-muted'
+      }`}
+    >
+      <p className="font-medium">
+        {/*
+          A word, not only a colour. "blocker" and "warning" are information, and
+          information carried by a hue alone is absent for a substantial number
+          of readers — on the one page whose entire purpose is telling somebody
+          what is wrong.
+        */}
+        <span className="font-mono text-xs uppercase text-muted-foreground">
+          {check.level}
+          {' · '}
+        </span>
+        {check.title}
+      </p>
+      {check.detail !== '' && <p className="mt-1 text-muted-foreground">{check.detail}</p>}
+    </div>
   )
 }
 

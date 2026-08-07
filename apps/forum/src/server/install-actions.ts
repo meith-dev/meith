@@ -27,6 +27,7 @@ import {
   parseInstallInput,
   stepTitle,
   withEnvironmentAnswers,
+  type StepOutcome,
 } from '@meith/install'
 import { mailConfigFromEnvironment } from '@meith/settings'
 import { redirect } from 'next/navigation'
@@ -38,10 +39,21 @@ export interface InstallFormState {
   readonly errors?: Record<string, string>
   readonly failedStep?: {
     readonly id: string
-    /** What the step list above the form calls it. The id is not for reading. */
+    /** What the step list beside the button calls it. The id is not for reading. */
     readonly title: string
     readonly error: string
   }
+  /**
+   * Every step and how it went, so the screen can show *how far it got*.
+   *
+   * The step list has always been data precisely so the page could report it
+   * afterwards, and the page never did — it rendered a static list of five
+   * titles, and a failure produced one sentence naming one step. "Migrations
+   * applied, settings written, administrator not created" is the difference
+   * between an operator who knows retrying is safe and one who is guessing, and
+   * the handbook tells them to reason about exactly that.
+   */
+  readonly report?: readonly StepOutcome[]
   readonly values?: Record<string, string>
 }
 
@@ -145,6 +157,7 @@ export async function installAction(
         error: failure.error ?? 'Unknown failure.',
       },
       errors: fieldErrorsFromReport(report),
+      report,
       values,
     }
   }

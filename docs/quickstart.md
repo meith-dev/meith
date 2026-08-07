@@ -110,13 +110,18 @@ kinds of problem:
 | **Blocker** | Installing cannot succeed. A missing variable, or the database is unreachable. |
 | **Warning** | Installing will succeed and something will be wrong *later*. |
 
-Read the warnings. Nearly every way a new board disappoints somebody a month in
-is visible on that screen on day one.
+Anything that passed is folded into a "*N* checks passed" line you can open if
+you want the roll call. What is on the page is what needs a decision — so read
+the warnings. Nearly every way a new board disappoints somebody a month in is
+visible on that screen on day one.
 
-The form asks four things — a board name, your username, your e-mail and a
-password — and **how the board should send mail**. Fill the mail part in here if
-you can; the reasons are in step 5, and doing it now costs one extra minute
-rather than one extra visit.
+If there is a blocker, there is no form: fix it, redeploy if it was an
+environment variable, and reload.
+
+Otherwise the form is three numbered sections — **your board**, **your account**,
+and **how the board should send mail**. The first two are four boxes between
+them. Fill the mail one in here if you can; the reasons are in step 5, and doing
+it now costs one extra minute rather than one extra visit.
 
 > [!NOTE]
 > **Your username is the name you post under**, not a role. `admin` and
@@ -129,7 +134,9 @@ It does not ask for the board's address. Coolify supplies that (`APP_URL`), so
 the installer shows it as already decided rather than asking you to retype your
 own domain.
 
-Then it runs five steps, naming each before it runs it:
+Pressing Install runs five steps. They are listed beside the button under
+**What installing does**, and if anything goes wrong the same list reopens as
+**How far it got**, marking each one *done*, *failed* or *not run*:
 
 1. **Apply migrations** — every table, index and seeded usergroup.
 2. **Record the board's name and mail settings** — the only settings it writes.
@@ -226,8 +233,10 @@ A backup nobody has restored is a file, not a backup.
 
 ## If the install fails halfway
 
-The run stops at the first failed step and names it, with the error. Later steps
-are reported as *not run* rather than as further failures.
+The run stops at the first failed step, and the step list beside the button
+reopens as **How far it got** — each step marked *done*, *failed* or *not run*.
+That list is the answer to "is it safe to press this again", so read it before
+you do.
 
 Most of what stops it is an **answer**, not a fault. "Create the administrator"
 runs the board's ordinary registration, so a reserved name, an address already in

@@ -8641,3 +8641,76 @@ mistyped string lives.
 The lasting guard is the one that costs nothing: `SEED_GROUP_KEY` moves that seam
 from a runtime lookup to a compile-time one, so the class of bug is gone rather
 than the instance.
+
+### D112 — The installer read like a report and worked like a form (F83)
+
+D111 made `/install` succeed. It was still two and a half screens, and the form —
+the thing anybody opens this page to use — began forty per cent of the way down,
+after two sections of reading.
+
+#### Seven findings at equal weight is not a preflight
+
+The page rendered every check as an identical bordered row: five saying "ready",
+one saying the address comes from the form, one warning. An installer's stated
+job is explaining why a board is not working, and a screen where the single
+finding that needs a decision is seventh in a list of look-alikes is not doing
+that job — it is asking the reader to audit a list in order to discover there was
+nothing to audit.
+
+Blockers and warnings stay on the page. Everything that passed collapses into one
+line — *"6 checks passed"* — which is openable for the roll call and is, for most
+readers, the sentence that lets them stop reading. `<details>`, so it costs no
+scripting (R5).
+
+**Warnings fold too when a blocker is present**, which is the less obvious half.
+Every warning is written for somebody looking at the form — the mail one says *"the
+form below can set it up"* — and when there is a blocker there is no form below.
+Two open warnings above an absent form is a screen asking for three decisions
+when only one of them can be made.
+
+#### An administrator's password was filed under "Your board"
+
+One box, headed "Your board", held the board's name, the board's address, and
+then the founding administrator's name, e-mail and password. They are three
+different questions and the third is optional, so they are now three numbered
+sections: **your board**, **your account**, **sending mail**.
+
+The numbering is the entire progress indicator, and that is a deliberate refusal
+of the obvious alternative. A real wizard needs multi-page state, and with no
+scripting that means either a session on a board that does not have sessions yet,
+or an administrator's password making three round trips through hidden inputs.
+One page that posts once has neither problem, and three numbered headings answer
+"how much of this is left" by being looked at.
+
+#### The step list was data so the screen could report it, and no screen did
+
+`freshReport()` and `installed()` have been exported and tested since F83, with a
+comment saying the screen renders the same component before and after a run —
+"one set of states, rather than a before view and an after view that disagree
+about what a step is". Nothing ever called either. The page rendered five static
+titles above the form, and a failure produced one sentence naming one step.
+
+So the step list now lives beside the button, folded, as **What installing does**
+— and after a failure the same list reopens as **How far it got**, marking each
+step *done*, *failed* or *not run*. That is the difference between an operator
+who knows migrations applied and the administrator was not created, and one who
+is guessing; the handbook already told them to reason about exactly that
+distinction, and the screen would not tell them which case they were in.
+
+*Not run*, never *failed*, for the steps after the first failure — the steps are
+sequential, and reporting four failures caused by one is how an error screen
+stops being read. Words beside every state rather than colour or a tick alone,
+for the same reason the check levels are spelled out.
+
+#### Small things that were each wrong on their own
+
+- The button said **Install** after a failed install. It says **Try again**.
+- The note under it said "retype them before pressing Install", which named a
+  button that no longer says that. It names no button now.
+- The failure headline and the field bullet printed the same sentence three lines
+  apart, which reads as two problems. The headline names the step; the message
+  goes to the box when it belongs to one.
+- *"Fix them, redeploy if they were environment variables"* appeared over a
+  single blocker. Both halves agree with the count now.
+- "You can install with the warnings above unresolved" sat **below** the button,
+  a page and a half from the warnings it was about. It is beside them.

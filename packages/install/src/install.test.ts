@@ -301,6 +301,42 @@ describe('a step that refused an answer', () => {
   })
 })
 
+/*
+ * The report the screen renders as "how far it got".
+ *
+ * `freshReport` is what makes one component serve both "what installing does"
+ * and "how far it got" — the same five entries, all `pending` before a run.
+ * These pin the properties that component relies on, because a report that
+ * disagreed with `INSTALL_STEPS` about the set or the order would render a step
+ * with no status or a status with no step.
+ */
+describe('the report a screen renders', () => {
+  it('covers every step, in the order the steps are declared', () => {
+    expect(idsOf(freshReport())).toEqual(idsOf(INSTALL_STEPS))
+  })
+
+  it('starts with nothing claimed, so it reads as a description', () => {
+    expect(freshReport().every((step) => step.status === 'pending')).toBe(true)
+    /*
+     * No failure in a fresh report is what lets the screen tell "will run" from
+     * "did not run" — it labels a pending step only once something has failed.
+     */
+    expect(firstFailure(freshReport())).toBeNull()
+  })
+
+  /*
+   * A step id in the report that names no step would render a status the reader
+   * cannot attach to anything, and a step with no entry would render blank. The
+   * screen looks each step up by id, so the two lists have to agree by id.
+   */
+  it('is joinable to the step list by id alone', () => {
+    const titles = new Map(INSTALL_STEPS.map((step) => [step.id, step.title]))
+    for (const outcome of freshReport()) {
+      expect(titles.get(outcome.id)).toBeDefined()
+    }
+  })
+})
+
 describe('the form', () => {
   const valid = {
     boardName: 'The Bike Shed',

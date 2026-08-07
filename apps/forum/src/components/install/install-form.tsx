@@ -38,10 +38,25 @@
  * `<details>`, which needs no scripting to open. It opens itself when something
  * inside it is wrong.
  *
- * The presets arrive as a prop rather than being imported here. They live in
- * `@meith/settings` next to the config they prefill, and importing that module
- * into a client component would pull the whole settings registry — zod included
- * — into the browser bundle for the sake of eight strings.
+ * ## Three numbered sections, and no wizard
+ *
+ * Everything here used to sit in one box headed "Your board", which is what an
+ * administrator's password was filed under. They are three different questions —
+ * what the board is, who you are, and how it sends mail — and the last is
+ * optional while the first two are not. Numbering them is the whole of the
+ * progress indicator: it says how much is left without needing a step counter,
+ * and it survives scripting being off, which a real wizard would not.
+ *
+ * A wizard was the obvious alternative and is the wrong shape here. Multi-page
+ * state with no JavaScript means either a session for a board that has none yet,
+ * or hidden inputs carrying an administrator's password through three round
+ * trips. One page that posts once has neither problem.
+ *
+ * The presets, the step list and the reserved names all arrive as props rather
+ * than being imported here. They live in `@meith/settings` and `@meith/install`
+ * next to the schemas they belong to, and importing either module into a client
+ * component would pull a registry — zod included — into the browser bundle for
+ * the sake of a few strings.
  */
 
 import { useActionState } from 'react'
@@ -63,6 +78,19 @@ export interface InstallMailPreset {
   readonly port?: number | undefined
   readonly endpoint?: string | undefined
   readonly username?: string | undefined
+}
+
+/** The subset of `InstallStep` the form renders. Structural, like the presets. */
+export interface InstallStepView {
+  readonly id: string
+  readonly title: string
+  readonly detail: string
+}
+
+/** The subset of `StepOutcome` the form renders. */
+export interface InstallStepOutcome {
+  readonly id: string
+  readonly status: 'pending' | 'done' | 'failed'
 }
 
 /** Mirrors `MAIL_SKIP`. A literal here so the client bundle imports nothing. */
@@ -97,12 +125,18 @@ const FOLDED_FIELDS = ['mailHost', 'mailPort', 'mailSecurity', 'mailEndpoint']
 
 export function InstallForm({
   presets,
+  steps,
+  initialReport,
   reservedUsernames,
   mailIsFromEnvironment,
   suggestedBoardUrl,
   boardUrlIsFromEnvironment,
 }: {
   presets: readonly InstallMailPreset[]
+  /** The five steps, in order, for the fold beside the button. */
+  steps: readonly InstallStepView[]
+  /** Those steps as an all-pending report, for before anything has run. */
+  initialReport: readonly InstallStepOutcome[]
   /**
    * The names the board keeps for itself, from the policy the install will
    * apply. Handed down for the same reason `presets` is: this is a client
@@ -136,107 +170,249 @@ export function InstallForm({
 }) {
   const [state, submit, pending] = useActionState(installAction, EMPTY)
 
+  const failed = state.failedStep !== undefined
+
   return (
-    <form action={submit} className="flex flex-col gap-4 rounded-lg border border-border p-4">
-      <h2 className="text-xl font-semibold tracking-tight">Your board</h2>
-
-      <Field
-        name="boardName"
-        label="Board name"
-        defaultValue={state.values?.boardName ?? ''}
-        error={state.errors?.boardName}
-        autoComplete="organization"
-      />
-      {boardUrlIsFromEnvironment ? (
-        <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          The board’s address comes from <code>APP_URL</code> in this deployment’s
-          environment, which overrides anything stored on the board.
-        </p>
-      ) : (
+    <form action={submit} className="flex flex-col gap-6">
+      <Step n={1} title="Your board" hint="What it is called, and where it lives.">
         <Field
-          name="boardUrl"
-          label="Board address"
-          type="url"
-          defaultValue={state.values?.boardUrl ?? suggestedBoardUrl}
-          error={state.errors?.boardUrl}
-          hint="Every link the board sends is built from this. Filled in from the address you are reading — check it."
+          name="boardName"
+          label="Board name"
+          defaultValue={state.values?.boardName ?? ''}
+          error={state.errors?.boardName}
+          autoComplete="organization"
+          hint="Shown in the header, in the page title, and on every message it sends."
         />
-      )}
+        {boardUrlIsFromEnvironment ? (
+          <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            The board’s address comes from <code>APP_URL</code> in this deployment’s
+            environment, which overrides anything stored on the board.
+          </p>
+        ) : (
+          <Field
+            name="boardUrl"
+            label="Board address"
+            type="url"
+            defaultValue={state.values?.boardUrl ?? suggestedBoardUrl}
+            error={state.errors?.boardUrl}
+            hint="Every link the board sends is built from this. Filled in from the address you are reading — check it."
+          />
+        )}
+      </Step>
 
-      <Field
-        name="username"
-        label="Administrator’s name"
-        defaultValue={state.values?.username ?? ''}
-        error={state.errors?.username}
-        autoComplete="username"
-        /*
-         * Said here rather than discovered on submit. The board reserves a
-         * handful of names so that no account can impersonate it — and the two
-         * most obvious things to type into a box labelled "administrator" are
-         * both on that list, which made the single likeliest first answer a
-         * failed install.
-         *
-         * The list is handed down from the policy rather than written out here:
-         * a second copy of it would go stale the first time a name was added,
-         * and this one is read by somebody who is about to trip over it.
-         */
-        hint={`Your own name on the board — this is the account you post from. Reserved, so that nothing can impersonate the board: ${reservedUsernames.join(', ')}.`}
-      />
-      <Field
-        name="email"
-        label="Administrator’s e-mail"
-        type="email"
-        defaultValue={state.values?.email ?? ''}
-        error={state.errors?.email}
-        autoComplete="email"
-        hint="The test message below goes here, so use an address you can read now."
-      />
-      <Field
-        name="password"
-        label="Administrator’s password"
-        type="password"
-        /*
-         * Never echoed back on a failed submit — unlike the three fields above,
-         * which are. A password re-rendered into HTML is a password in a proxy
-         * log and in the browser's back-forward cache.
-         */
-        defaultValue=""
-        error={state.errors?.password}
-        autoComplete="new-password"
-        hint="At least 12 characters. This account can reconfigure the board."
-      />
+      {/*
+        Its own section, rather than three more boxes under "Your board".
+        An administrator's password is not a property of the board, and filing it
+        under one made the first section five fields long and the form look like
+        a settings screen.
+      */}
+      <Step
+        n={2}
+        title="Your account"
+        hint="The first account on the board, and the only one that can reach the control panel."
+      >
+        <Field
+          name="username"
+          label="Your name on the board"
+          defaultValue={state.values?.username ?? ''}
+          error={state.errors?.username}
+          autoComplete="username"
+          /*
+           * Said here rather than discovered on submit. The board reserves a
+           * handful of names so that no account can impersonate it — and the two
+           * most obvious things to type into a box labelled "administrator" are
+           * both on that list, which made the single likeliest first answer a
+           * failed install.
+           *
+           * The list is handed down from the policy rather than written out here:
+           * a second copy of it would go stale the first time a name was added,
+           * and this one is read by somebody who is about to trip over it.
+           */
+          hint={`This is what you post under. Reserved, so nothing can impersonate the board: ${reservedUsernames.join(', ')}.`}
+        />
+        <Field
+          name="email"
+          label="Your e-mail"
+          type="email"
+          defaultValue={state.values?.email ?? ''}
+          error={state.errors?.email}
+          autoComplete="email"
+          hint="Where the test message goes, so use an address you can read now."
+        />
+        <Field
+          name="password"
+          label="Your password"
+          type="password"
+          /*
+           * Never echoed back on a failed submit — unlike the three fields above,
+           * which are. A password re-rendered into HTML is a password in a proxy
+           * log and in the browser's back-forward cache.
+           */
+          defaultValue=""
+          error={state.errors?.password}
+          autoComplete="new-password"
+          hint="At least 12 characters. Nothing on this board can reset it until mail works."
+        />
+      </Step>
 
       {mailIsFromEnvironment ? (
-        <section className="flex flex-col gap-2 rounded-md border border-border bg-muted/40 p-3">
-          <h3 className="text-base font-semibold tracking-tight">Sending mail</h3>
+        <Step n={3} title="Sending mail" hint="Decided by this deployment’s environment.">
           <p className="text-sm text-muted-foreground">
             <code>MAIL_DRIVER</code> is set in this deployment’s environment, which
             overrides anything stored on the board. Mail is configured there and cannot be
             changed from this form or from the settings screen — unset it if you would
             rather configure mail on the board.
           </p>
-        </section>
+        </Step>
       ) : (
         <MailSection presets={presets} state={state} />
       )}
 
-      <Outcome state={state} />
+      {/*
+        The button and everything that decides whether to press it, in one block:
+        what went wrong last time, what pressing it does, and — after a failure —
+        how far it got. These used to be spread from the top of the page to below
+        the form, so the operator had to hold three screens in their head.
+      */}
+      <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/30 p-4">
+        <Outcome state={state} />
 
-      <div>
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
-        >
-          {pending ? 'Installing…' : 'Install'}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={pending}
+            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+          >
+            {pending ? 'Installing…' : failed ? 'Try again' : 'Install'}
+          </button>
+          <p className="text-xs text-muted-foreground">
+            {pending
+              ? 'Applying migrations. This can take a few seconds — do not reload.'
+              : 'Takes a few seconds. When it finishes, this page stops existing.'}
+          </p>
+        </div>
+
+        <StepReport steps={steps} report={state.report ?? initialReport} />
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        Pressing this applies every migration and creates the account above. When
-        it finishes, this page stops existing.
-      </p>
     </form>
+  )
+}
+
+/**
+ * A numbered section of the form.
+ *
+ * The number is the progress indicator. There is no wizard here (see the module
+ * comment), so "how much of this is left" has to be answerable by looking, and
+ * three numbered headings answer it in the one way that costs no state and no
+ * scripting.
+ */
+function Step({
+  n,
+  title,
+  hint,
+  children,
+}: {
+  n: number
+  title: string
+  hint: string
+  children: React.ReactNode
+}) {
+  const id = `install-step-${n}`
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-4 rounded-lg border border-border p-4">
+      <div className="flex gap-3">
+        <span
+          aria-hidden
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-muted font-mono text-xs text-muted-foreground"
+        >
+          {n}
+        </span>
+        <div className="flex flex-col gap-0.5">
+          <h2 id={id} className="font-serif text-lg font-semibold leading-tight">
+            {title}
+          </h2>
+          <p className="text-sm text-muted-foreground">{hint}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  )
+}
+
+/**
+ * What pressing the button does — and, afterwards, how far it got.
+ *
+ * One component for both, which is what `freshReport()` exists to make possible:
+ * before a submit every step is `pending` and this reads as a description; after
+ * a failure the same list carries real statuses and reads as a report. A
+ * separate "what will happen" list and "what happened" list would be two places
+ * to keep the five steps in agreement.
+ *
+ * Folded by default and forced open on a failure. Nobody reads five steps before
+ * pressing a button they have already decided to press — but *"which step failed"*
+ * is precisely what decides whether trying again is safe, so a failure opens it
+ * rather than leaving the answer behind a summary.
+ */
+function StepReport({
+  steps,
+  report,
+}: {
+  steps: readonly InstallStepView[]
+  report: readonly InstallStepOutcome[]
+}) {
+  const statusOf = (id: string) =>
+    report.find((outcome) => outcome.id === id)?.status ?? 'pending'
+  const anyFailed = report.some((outcome) => outcome.status === 'failed')
+
+  return (
+    <details open={anyFailed} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+      <summary className="cursor-pointer text-muted-foreground">
+        {anyFailed ? 'How far it got' : 'What installing does'}
+      </summary>
+      <ol className="mt-2 flex flex-col gap-2">
+        {steps.map((step, index) => {
+          const status = statusOf(step.id)
+          return (
+            <li key={step.id} className="flex gap-3">
+              <span className="font-mono text-xs text-muted-foreground">{index + 1}</span>
+              <span className="flex-1">
+                <span className="font-medium">{step.title}</span>
+                {/*
+                  A word, never a mark alone. The three states are information,
+                  and a green tick with no text is absent for anybody using a
+                  screen reader — on the list whose whole job is saying what
+                  happened.
+
+                  `pending` says nothing before a run and "not run" after a
+                  failure: the steps are sequential, so a step that never
+                  started is not a second problem, and labelling it one is how
+                  an error screen stops being read.
+                */}
+                {status === 'done' && (
+                  <span className="ml-2 font-mono text-xs uppercase text-muted-foreground">
+                    {' '}
+                    done
+                  </span>
+                )}
+                {status === 'failed' && (
+                  <span className="ml-2 font-mono text-xs uppercase text-destructive">
+                    {' '}
+                    failed
+                  </span>
+                )}
+                {status === 'pending' && anyFailed && (
+                  <span className="ml-2 font-mono text-xs uppercase text-muted-foreground">
+                    {' '}
+                    not run
+                  </span>
+                )}
+                <span className="block text-muted-foreground">{step.detail}</span>
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+    </details>
   )
 }
 
@@ -269,7 +445,13 @@ function Outcome({ state }: { state: InstallFormState }) {
             reads as though the installer were quoting the name that had just
             been typed into the box above.
           */}
-          <span className="font-medium">“{failed.title}” did not finish.</span> {failed.error}
+          <span className="font-medium">“{failed.title}” did not finish.</span>{' '}
+          {/*
+            The message goes in the list below when it belongs to a box, and here
+            when it does not. Printing it in both places said the same sentence
+            twice, three lines apart — which reads as two problems.
+          */}
+          {fieldErrors.length > 0 ? 'One answer needs changing:' : failed.error}
         </p>
       ) : (
         <p className="font-medium">
@@ -301,9 +483,13 @@ function Outcome({ state }: { state: InstallFormState }) {
         </ul>
       )}
 
+      {/*
+        Names no button. This used to say "before pressing Install", and the
+        button says "Try again" once a step has failed.
+      */}
       <p className="text-xs text-muted-foreground">
         Passwords are never sent back to this page, so any you typed are empty
-        again. Retype them before pressing Install.
+        again — retype them.
       </p>
     </div>
   )
@@ -321,16 +507,22 @@ function MailSection({
   const foldedError = FOLDED_FIELDS.some((name) => state.errors?.[name] !== undefined)
 
   return (
-    <section className="flex flex-col gap-4 rounded-md border border-border p-3">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-base font-semibold tracking-tight">Sending mail</h3>
-        <p className="text-sm text-muted-foreground">
-          Nothing is installed until a test message reaches the address above, so a wrong
-          key here costs a retry rather than a broken board. You can skip this and set it
-          up later — but until you do, nobody can reset a forgotten password, including
-          you.
-        </p>
-      </div>
+    <Step
+      n={3}
+      title="Sending mail"
+      hint="Optional, and the one thing that is harder to add later than now."
+    >
+      {/*
+        What is true *here* and nowhere else. The consequences of skipping — no
+        password resets, for anybody — are on the preflight warning at the top of
+        this page, and saying them twice in sixty words each is how a screen
+        teaches people to skim it.
+      */}
+      <p className="text-sm text-muted-foreground">
+        A test message is sent to the address above <em>before</em> anything is
+        written, so a wrong key costs a retry rather than a board that cannot mail
+        anybody.
+      </p>
 
       {state.errors?.mailPreset !== undefined && (
         <p
@@ -470,7 +662,7 @@ function MailSection({
           />
         </div>
       </details>
-    </section>
+    </Step>
   )
 }
 
