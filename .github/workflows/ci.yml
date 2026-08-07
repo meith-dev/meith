@@ -356,12 +356,31 @@ jobs:
       # in. Docker writes its own iptables rules, so a board published on all
       # interfaces is plaintext on 3000 whatever ufw says — worth asserting the
       # file honours PORT rather than trusting the sentence.
+      #
+      # The worker half asks Docker what it bound, rather than reading the CLI's
+      # output for a service that bound nothing. It used to be `test -z "$(docker
+      # compose port worker 3000)"` — an assertion resting on an *empty string*,
+      # which is a convention rather than a contract, and Compose stopped
+      # honouring it: the command now answers with a placeholder where it used to
+      # say nothing, so the check read "no mapping" as "a mapping" and every
+      # branch went red at once with the compose files untouched.
+      #
+      # `.HostConfig.PortBindings` is the thing the assertion is actually about
+      # and cannot be reformatted out from under it. It is also what the Coolify
+      # step below has always used, so the two halves of one invariant are now
+      # measured the same way — the divergence is what let this rot on the side
+      # nobody looked at.
       - name: Nothing is published beyond the proxy's port
         run: |
           docker compose port web 3000 | grep -q '^127\.0\.0\.1:' \
             || { echo "::error::web is not bound to localhost"; docker compose port web 3000; exit 1; }
-          test -z "$(docker compose port worker 3000 2>/dev/null)" \
-            || { echo "::error::the worker publishes a port"; exit 1; }
+          worker=$(docker compose ps -q worker)
+          bindings=$(docker inspect --format '{{len .HostConfig.PortBindings}}' "$worker")
+          test "$bindings" = "0" || {
+            echo "::error::the worker publishes a port; it serves no HTTP and should bind nothing"
+            docker inspect --format '{{json .HostConfig.PortBindings}}' "$worker"
+            exit 1
+          }
 
       # Sixty seconds is one tick interval, so a worker that dies between ticks
       # dies inside this window.

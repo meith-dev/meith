@@ -15,9 +15,10 @@ import 'server-only'
  * reporting a provider outage as "your e-mail change failed" would be a lie
  * about what happened.
  */
-import { env, logger } from '@meith/core'
+import { logger } from '@meith/core'
 import { drivers } from '@meith/drivers'
 
+import { boardUrl } from './board-url'
 import { getSettings } from './settings'
 
 /** Where the link lands. Must match the route that redeems the token. */
@@ -37,7 +38,7 @@ export async function sendEmailChangeConfirmation(input: {
    * a confirmation whose link is relative is a message that cannot be acted on
    * at all, so it says where to go instead of pretending.
    */
-  const origin = env.APP_URL?.replace(/\/+$/, '') ?? ''
+  const origin = await boardUrl()
   const link =
     origin === ''
       ? null

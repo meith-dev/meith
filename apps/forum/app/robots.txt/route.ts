@@ -43,7 +43,7 @@ export async function GET(): Promise<Response> {
         'User-agent: *',
         ...[...COMPUTED, ...PRIVATE].map((path) => `Disallow: ${path}`),
         '',
-        `Sitemap: ${absolute('/sitemap.xml')}`,
+        `Sitemap: ${await absolute('/sitemap.xml')}`,
         '',
       ].join('\n')
     : ['User-agent: *', 'Disallow: /', ''].join('\n')

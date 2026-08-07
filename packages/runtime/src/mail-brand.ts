@@ -7,10 +7,11 @@
  *
  *  - **name** — the `board.name` setting (F08), which is what the board calls
  *    itself everywhere else.
- *  - **origin** — `APP_URL`, because a link in an e-mail has to be absolute and
- *    nothing in a queued job knows the request that caused it. When it is
- *    unset, `renderNotificationMail` sends the message *without* its link
- *    rather than with a broken one.
+ *  - **origin** — the board's address, because a link in an e-mail has to be
+ *    absolute and nothing in a queued job knows the request that caused it.
+ *    `APP_URL` or the `board.url` setting, in that order. When neither is set,
+ *    `renderNotificationMail` sends the message *without* its link rather than
+ *    with a broken one.
  *  - **accent** — the board's own accent token, including a database override
  *    (F26), so a board that has been recoloured sends mail that matches it.
  *
@@ -22,7 +23,7 @@
 import { env, logger } from '@meith/core'
 import { PostgresSettingsRepository, PostgresThemeRepository, type Database } from '@meith/db'
 import type { MailBrand } from '@meith/notifications'
-import { SettingsSnapshot } from '@meith/settings'
+import { SettingsSnapshot, resolveBoardUrl } from '@meith/settings'
 
 /**
  * The theme whose tokens brand the mail.
@@ -83,6 +84,7 @@ export async function resolveMailBrand(deps: {
 
   let boardName = ''
   let fromName = ''
+  let boardUrl = ''
   let accent: string | null = null
 
   try {
@@ -99,6 +101,13 @@ export async function resolveMailBrand(deps: {
      * board (see `@meith/settings/mail`).
      */
     fromName = settings.get('mail.from_name')
+    /*
+     * Resolved from the snapshot already in hand rather than from `env` alone.
+     * The board's address is a setting as well as `APP_URL` now (the installer
+     * collects it), and the worker has no request and no Next cache — so this
+     * read, which was happening anyway for the name, answers it too.
+     */
+    boardUrl = resolveBoardUrl({ environment: env, settings }).url
   } catch (err) {
     logger({ module: 'mail-brand' }).warn({ err }, 'could not read board name for mail')
   }
@@ -113,7 +122,7 @@ export async function resolveMailBrand(deps: {
   return {
     boardName,
     fromName,
-    boardUrl: env.APP_URL ?? '',
+    boardUrl,
     accent: accent ?? FALLBACK_ACCENT,
   }
 }

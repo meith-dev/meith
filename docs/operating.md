@@ -652,17 +652,29 @@ The installer does the same thing and goes further: it sends the test **before
 the first migration**, and refuses to install if it fails. A wrong API key
 therefore costs a retry rather than a sealed board that cannot mail anybody.
 
-### `APP_URL` is not optional if you want working links
+### The board has to know its own address
 
-This is the single most likely misconfiguration on a new board. Every message
-that carries a link — confirm your address, reset your password, a notification
-pointing at a post — builds it from `APP_URL`, because nothing in a queued job
-or a mail template knows the request that caused it.
+Every message that carries a link — confirm your address, reset your password, a
+notification pointing at a post — builds it from the board's own origin, because
+nothing in a queued job or a mail template knows the request that caused it. So
+do feeds, sitemaps and every canonical URL.
 
-With `APP_URL` unset the board does **not** emit a relative link, which would be
-a dead string in a mail client. It degrades to written instructions instead. The
-mail arrives, it is polite, and it is useless. Set `APP_URL` to the absolute
-public origin, with no trailing slash.
+This used to be `APP_URL` and nothing else, which made it the single most likely
+misconfiguration on a new board. It is asked for on the installer now — prefilled
+from the address you loaded `/install` at — and lives at **Board address** on
+`/admin/settings?group=board`, changeable without a redeploy.
+
+`APP_URL` still wins when set, on the same rule as mail, and the settings screen
+says so rather than accepting an edit it will ignore.
+
+With neither set, the board does **not** emit a relative link, which would be a
+dead string in a mail client. It degrades to written instructions instead: the
+mail arrives, it is polite, and it is useless. Feeds and canonical URLs fall back
+to a localhost origin, which is obviously wrong rather than subtly wrong.
+
+The address is an **origin** — scheme, host, optional port, nothing else.
+`https://forum.example/board` is rejected on the way in, because every link the
+board built from it would carry `/board` in the middle.
 
 ## Spam
 

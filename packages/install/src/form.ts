@@ -12,7 +12,9 @@
 import {
   MAIL_PRESET_BY_ID,
   defaultPort,
+  isUsableOrigin,
   mailConfigProblems,
+  normaliseOrigin,
   type MailConfig,
   type MailSecurity,
 } from '@meith/settings'
@@ -101,6 +103,30 @@ export const installInputSchema = z
       .min(3, 'The administrator’s name must be at least 3 characters.')
       .max(30, 'That name is too long.'),
     email: z.string().trim().email('That does not look like an e-mail address.'),
+    /*
+     * The board's own address, prefilled by the page from the request's `Host`
+     * and **confirmed here**.
+     *
+     * Required, unlike every mail field: a board that does not know its own
+     * address sends password resets with no link in them, and unlike mail there
+     * is no "skip" that leaves the board in a coherent state — the value is
+     * needed by feeds, canonical URLs and every message, and the operator is
+     * looking at the answer in their address bar right now.
+     *
+     * Validated with `isUsableOrigin` rather than `z.string().url()` because
+     * this is concatenated with a path and emitted into an `href`: `mailto:` and
+     * `javascript:` are URLs, and a pasted page address would put that page's
+     * path in the middle of every link the board ever sends.
+     */
+    boardUrl: z
+      .string()
+      .trim()
+      .min(1, 'The board needs to know its own address.')
+      .refine(
+        isUsableOrigin,
+        'Give the absolute address, with no path — https://forum.example.',
+      )
+      .transform(normaliseOrigin),
     /*
      * Twelve, not eight, and only for this account. It is the one credential that
      * can reconfigure the board, it is created before any rate limiting or lockout

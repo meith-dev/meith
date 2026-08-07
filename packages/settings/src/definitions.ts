@@ -12,6 +12,8 @@
 
 import { z } from 'zod'
 
+import { isUsableOrigin } from './origin'
+
 export type SettingGroup =
   | 'board'
   | 'registration'
@@ -136,6 +138,33 @@ export const SETTING_DEFINITIONS = [
     description: 'Shown in the header, page titles, and outgoing e-mail.',
     schema: z.string().min(1).max(100),
     default: 'Meith',
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
+    key: 'board.url',
+    group: 'board',
+    label: 'Board address',
+    description:
+      'The absolute public origin, with no trailing slash — https://forum.example. ' +
+      'Every link the board sends is built from it, because nothing in a queued ' +
+      'job or a mail template knows the request that caused it. Left empty, mail ' +
+      'still arrives and carries no link. Setting APP_URL in the environment ' +
+      'overrides this and makes the box below inert.',
+    /*
+     * Empty is valid and means "not set yet", like `mail.from`. The board still
+     * renders; what degrades is every absolute URL it produces.
+     *
+     * The refine is stricter than `z.string().url()` on purpose: this value is
+     * concatenated with a path and emitted into an `href`, so `mailto:` and
+     * `javascript:` parsing cleanly as URLs is the whole problem, and a pasted
+     * page address rather than an origin would put that page's path in the
+     * middle of every link.
+     */
+    schema: z.string().trim().refine(
+      (value) => value === '' || isUsableOrigin(value),
+      'Give an absolute http(s) address with no path — https://forum.example.',
+    ),
+    default: '',
     invalidates: ['settings', 'layout'],
   }),
   define({

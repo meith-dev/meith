@@ -243,37 +243,51 @@ export function preflight(probe: PreflightProbe): readonly Check[] {
       level: 'warning',
       title: 'TICK_SECRET is not set',
       detail:
-        'The scheduled tick is how bans expire, digests send and counters reconcile. Without ' +
-        'the secret the endpoint refuses every call — and nothing fails visibly, the work ' +
-        'simply never happens.',
+        'The scheduled tick is how bans expire, digests send and counters reconcile. ' +
+        'Whether that matters here depends on what drives it: a deployment with a worker ' +
+        'process runs the tick in-process and never calls the endpoint, so the work happens ' +
+        'either way — this is the compose stack the handbook documents. A deployment that ' +
+        'drives the tick over HTTP needs the secret, because without it the endpoint ' +
+        'refuses every call and nothing fails visibly; the work simply never happens.',
     })
   } else {
     checks.push(ok('tick-secret', 'TICK_SECRET is set'))
   }
 
   /*
-   * `APP_URL`, and it has always been `APP_URL`.
+   * The board's own address — and it has always been `APP_URL`, never
+   * `PUBLIC_URL`.
    *
-   * These two checks said `PUBLIC_URL` — a variable that appears nowhere in the
+   * These two checks said `PUBLIC_URL`: a variable that appears nowhere in the
    * schema, is read by nothing, and would have done nothing had anybody set it.
    * The probe beside them has read `env.APP_URL` since the day it was written.
    * On the one screen whose entire job is telling a new operator what to fix,
-   * naming the wrong variable does not merely fail to help: it sends them to
+   * naming the wrong variable does not merely fail to help — it sends them to
    * change something that cannot have any effect, and the link in the password
    * reset stays broken.
+   *
+   * It is no longer a *warning*, because the form below now asks for it and
+   * requires an answer. What is left to report is which of the two places the
+   * answer will come from, since one of them makes the form's box inert.
    */
-  if (probe.publicUrl === null || probe.publicUrl === '') {
+  if (probe.publicUrl !== null && probe.publicUrl !== '') {
+    checks.push(
+      ok(
+        'public-url',
+        `The board's address comes from APP_URL — ${probe.publicUrl}`,
+      ),
+    )
+  } else {
     checks.push({
       id: 'public-url',
-      level: 'warning',
-      title: 'APP_URL is not set',
+      level: 'ok',
+      title: 'The form below sets the board’s address',
       detail:
-        'Mail, feeds and canonical URLs need an absolute address — there is no request to be ' +
-        'relative to when a digest is sent from the worker. Every link in an e-mail is built ' +
-        'from it, so a board without it sends password resets that carry no link at all.',
+        'Mail, feeds and canonical URLs need an absolute address — there is no request to ' +
+        'be relative to when a digest is sent from the worker. The box is filled in from ' +
+        'the address you are reading this at; check it before installing, because every ' +
+        'link the board ever sends is built from what you confirm.',
     })
-  } else {
-    checks.push(ok('public-url', 'APP_URL is set'))
   }
 
   /* ---- Mail ---- */

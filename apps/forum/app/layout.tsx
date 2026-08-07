@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter, Newsreader } from "next/font/google"
 
 import { env } from "@meith/core"
+import { resolveBoardUrl } from "@meith/settings"
 /*
  * Read through the registry, not from the theme package directly (invariant 6).
  * Importing `@meith/theme-default` here would hardcode *which* theme the shell
@@ -80,11 +81,14 @@ const newsreader = Newsreader({
 export async function generateMetadata(): Promise<Metadata> {
   let name = BOARD_TITLE
   let description: string | undefined
+  /* The feed builder's fallback, and for its reason — see `metadataBase` below. */
+  let origin = "http://localhost:3000"
 
   try {
     const settings = await getSettings()
     name = settings.get("board.name").trim() || BOARD_TITLE
     description = settings.get("board.description").trim() || undefined
+    origin = resolveBoardUrl({ environment: env, settings }).url || origin
   } catch {
     /* The constant, and no description. */
   }
@@ -100,6 +104,18 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s · ${name}`,
     },
     description,
+    /*
+     * F76. `metadataBase` is what turns every relative `canonical` and `og:url`
+     * on the board into an absolute one — a social card with a relative URL in
+     * it is a card that unfurls to nothing, and Next warns about this rather
+     * than failing, which is exactly how it ships broken.
+     *
+     * The localhost fallback is the feed builder's, deliberately: a board that
+     * does not know its own address renders obviously-local canonical URLs,
+     * which is diagnosable, where an omitted `metadataBase` is a warning in a
+     * build log nobody reads.
+     */
+    metadataBase: new URL(origin),
     ...BASE_METADATA,
   }
 }
@@ -107,17 +123,15 @@ export async function generateMetadata(): Promise<Metadata> {
 /** Everything about the board's metadata that does not depend on a setting. */
 const BASE_METADATA: Metadata = {
   /*
-   * F76. `metadataBase` is what turns every relative `canonical` and `og:url`
-   * on the board into an absolute one — a social card with a relative URL in it
-   * is a card that unfurls to nothing, and Next warns about this rather than
-   * failing, which is exactly how it ships broken.
-   *
    * The two feed links are declared here so every page carries them, which is
    * how a browser's feed discovery and every reader's "find the feed" button
    * work. Pages that have a feed of their own add it in their own metadata; a
    * page-level `alternates` merges rather than replaces.
+   *
+   * `metadataBase` is *not* here any more: the board's address became a setting
+   * as well as an environment variable, so it is resolved in `generateMetadata`
+   * alongside the name and the description it now sits beside.
    */
-  metadataBase: new URL(env.APP_URL ?? "http://localhost:3000"),
   alternates: {
     types: {
       "application/rss+xml": "/feed.xml",
