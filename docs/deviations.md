@@ -8866,3 +8866,133 @@ disclosure. The enumeration was the half people have trained themselves to skip,
 and the half that ages worst. It is not deleted, because consent has to be
 informed to be consent — it is one click away and still generated from
 `@/view/consent` rather than written out by hand.
+
+### D116 — The theme editor could not say what it was changing, and three of its promises were quietly unkept (F26, F68)
+
+The screen worked. An operator could reach every token a theme declares, each
+one described in English and grouped, each colour with an OKLCH picker beside a
+text box, light and dark as separate fields, and a sample that repainted as a
+slider moved. What it could not do was answer the question somebody asks with
+their finger over Save: **what am I about to change?**
+
+Forty-four tokens is a very long form, and the only thing on it that spoke about
+change was one line under each field reading "Overridden by this board." Nothing
+counted them. Nothing distinguished an override the board is *serving* from one
+typed thirty seconds ago — the form opened on the stored values, so an edit and a
+save looked identical the moment it was typed. Clearing a stored override was the
+worst of the three: the line switched to "Using the theme's own value" while the
+board carried on painting the old colour until a save, so the screen and the
+board disagreed and neither said so.
+
+**Four values per token, and they are four different questions.** What the theme
+ships, what the board has stored, what is in the form, and what the sample is
+painting. `@/view/theme-draft` names all four and derives a change list from
+them; every row in that list says which state it is in — live, added, edited, or
+cleared — and shows what the board paints now beside what a save would paint.
+It is a `.ts` module rather than lines inside the component because nothing in
+this repository can test a `.tsx` file, and "the screen said this colour was live
+when the board was painting another one" is a bug no type catches.
+
+**Colour is the one design decision whose failure is invisible to the person
+making it.** An operator picks a colour they can read, on their screen, with
+their eyes; the member who cannot read the result is somewhere else and is not in
+the conversation. So `@/view/contrast` measures the thirty-one pairs the board
+actually paints — the label on a primary button, a timestamp in a forum row, a
+locked thread's title, the focus ring against both surfaces — per scheme, as the
+form moves, and reports them beside the field being changed as well as in a panel
+at the side. A failure is attributed: one the board was already serving before
+the screen was opened says so, because "you broke this" and "this was already
+broken" call for different actions from the same person.
+
+`contrast.test.ts` holds the **default theme** to every pair in both schemes, and
+it passes 31/31 either way. That gate is what makes a red panel mean something: a
+board that ships failures teaches its operator within a day to ignore the panel,
+and the one failure they caused themselves then scrolls past with the rest. It
+also runs the other way — a pair added later that the default fails is either a
+wrong pair or a real bug in the palette, and somebody has to decide which.
+
+**The same check says `midnight` has twelve pairs below AA** — eight in its light
+scheme (`forum-unread`, `forum-read`, `thread-pinned`, `thread-unapproved`,
+`moderation-pending` and `moderation-approved` against `card`, the focus ring
+against the page, and `input` against `card` at 1.48:1) and four in its dark one.
+They are left alone and reported by the screen rather than corrected here:
+repainting a second theme's palette is a design change to somebody else's stated
+look, and the first job of a measuring instrument is to be believed rather than
+to be quietly satisfied. It is the tool finding real work on its first run.
+
+Three promises turned out not to be kept, and none of them was visible in a diff.
+
+**A light-only override was not light-only.** F26 grew the scheme-keyed
+`{ light, dark }` shape precisely so that setting a light-mode brand colour would
+stop repainting dark mode. It emitted `:root{--primary:…}` and — the theme's dark
+value being equal to the compiled baseline — no dark block at all, on the
+reasoning that `globals.css` already carries it. It does, in a `.dark` rule of
+exactly the same specificity, *earlier* in the document than the runtime block,
+so it loses on document order. Every board that set a colour in one scheme got it
+in both, which is the bug the feature was introduced to end, surviving the
+feature. `restatedForDark` now restates the theme's own dark value for any token
+the light block declares. The asymmetry is real and is asserted so nobody
+"corrects" it: the dark block is scoped to `.dark` and to the media query, and
+neither is in force in light mode, so a dark-only override has nothing to leak
+into. Two of the tests that covered this file encoded the old behaviour; they
+were written from the same wrong premise.
+
+**Preview without saving did nothing without JavaScript.** The screen has always
+had two submits written as two `useActionState` hooks, with the second on the
+button's `formAction`. React threads an action's return value back across a no-JS
+post by writing an `$ACTION_KEY` field into the form, and a form carrying two of
+them posts both: the form's own action wins, so the preview's validated style
+block was computed on the server, returned, and dropped. Every unit test passed,
+because both actions do exactly what they claim when called — what was broken was
+the wiring, and only a browser with scripting off exercises it. The form now has
+one action state and the button carries `name="intent"`, which a browser sends
+for the submitter that was pressed and React sends for the same reason.
+
+**And previewing custom CSS could blank the panel that would have undone it.**
+The tokens were carefully scoped to `[data-theme-preview]` and then arbitrary
+author CSS was appended unscoped, so `body{display:none}` in the box applied to
+the control panel. It is nested under the same attribute now, which is what
+`renderBoardStyle` already does for an alternate theme's CSS, and carries the
+same consequence: a rule aimed at `:root` or `body` does not match inside the
+sample. The screen says so beside the preview.
+
+**And the list was the wrong shape for what it lists.** The first pass at its
+length folded the groups and added a filter box; both help and both treat the
+symptom. A hundred-and-twenty-pixel row for a value that is one colour is the
+wrong unit, and the thing being edited is a *palette* — a visual object that a
+column of rows is the one presentation unable to show. Nothing in a list tells an
+operator that six of their greys are one ramp, that `surface` and `card` are now
+within a hair of each other so the band has disappeared on the live board, or
+that one semantic colour is the odd one out.
+
+So the tokens are swatches, each split light-half/dark-half because *is this
+colour doing the same job in both schemes?* is the comparison that matters and
+two grids would put it a scroll apart. The whole palette is about a screen — the
+column went from 11,900 pixels with every group open to about 3,000 — and one
+control opens under its group when a swatch is pressed. A token that is not a
+colour shows its value in the monospace face instead of a square, because a grey
+square painted with `0.5rem` is a square painted with nothing.
+
+**The second index is the sample itself.** A swatch grid still asks somebody to
+recognise a colour out of context, and a token list of any shape asks them to
+translate "the bit I do not like" into a name before they can start — the search
+box such a list needs is evidence of the problem rather than a solution to it.
+Every element in the preview knows which token paints it (`data-token`), and one
+handler on the frame opens that token's control and puts the cursor in it. Click
+the locked thread; you are editing `thread-locked`. Between them the two indexes
+cover both ways an operator arrives: *I know what it is called* and *I know what
+it looks like*.
+
+It is a pointer shortcut and deliberately not the only route. Turning those spans
+into buttons would put a control's focus ring and hit area inside the very thing
+being judged for its appearance, so the keyboard path is the grid beside it,
+which reaches every token in the same order with the same result.
+
+Two smaller things came out of driving the page rather than reading it. The Save
+bar is sticky, so it collided with the cookie notice — the fourth appearance of
+the bug D115 records three of — and the rule that lifts it has to live in
+`@layer utilities`, because a base-layer rule loses to `bottom-0` however
+specific it is. And filtering or folding the token list **hides** rows instead of
+unmounting them, which is correctness rather than taste: this form posts every
+token at once, so a field that is not in the DOM is not submitted, and an
+unmounted row would have silently deleted the override it was hiding.

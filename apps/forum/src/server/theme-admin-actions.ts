@@ -193,6 +193,40 @@ export async function previewThemeAction(_prev: FormState, form: FormData): Prom
 }
 
 /**
+ * The editor's one form action, which is a fix for a broken promise.
+ *
+ * ## Two action states on one form, and what it cost
+ *
+ * The screen has always had two submits — Save, and Preview without saving —
+ * written as two `useActionState` hooks with the second on the button's
+ * `formAction`. With JavaScript that is exactly right. Without it, it silently
+ * half-works, and it took driving the page in a browser with scripting off to
+ * see it: React threads an action's return value back into `useActionState`
+ * across a no-JS post by writing an `$ACTION_KEY` field into the form, and a
+ * form carrying **two** of them posts both. The form's own action wins, so the
+ * button's result — the validated style block, and the values that keep the
+ * fields filled — was computed on the server, returned, and dropped.
+ *
+ * The visible symptom was a preview that did nothing at all: the page came back
+ * with the stored values and no sample. Every unit test passed, because both
+ * actions do exactly what they claim when called; what was broken was the
+ * wiring, which only a browser with scripting off exercises.
+ *
+ * So the form has one action state, and the button says which of the two it
+ * wants. `intent` is read from the submitter, which a browser includes in the
+ * form data for the button that was pressed and React includes for the same
+ * reason — one mechanism, no JavaScript required at either end.
+ *
+ * The two actions stay exported and separately tested: this is a router, and a
+ * router with logic in it is the thing it was supposed to remove.
+ */
+export async function themeEditorAction(prev: FormState, form: FormData): Promise<FormState> {
+  return text(form, 'intent') === 'preview'
+    ? previewThemeAction(prev, form)
+    : saveThemeAction(prev, form)
+}
+
+/**
  * The scoped style block a preview paints with.
  *
  * Scoped to `[data-theme-preview]` rather than `:root`, so previewing cannot
@@ -200,6 +234,14 @@ export async function previewThemeAction(_prev: FormState, form: FormData): Prom
  * colour must still be able to see the form to change it back. The dark sample
  * is scoped one level further, to the element that carries `.dark`, so both
  * schemes can be shown side by side on one page.
+ *
+ * **The custom CSS is nested inside that scope too**, which it was not: the
+ * tokens were carefully confined and then arbitrary author CSS was appended
+ * unscoped, so previewing `body{display:none}` blanked the control panel that
+ * would have undone it. Native nesting is the same tool `renderBoardStyle` uses
+ * for an alternate theme's CSS, and it has the same consequence — a rule aimed
+ * at `:root` or `body` does not match inside the sample, because neither is a
+ * descendant of it. The screen says so beside the preview.
  */
 function declarationBlock(
   overrides: { light: Readonly<Record<string, string>>; dark: Readonly<Record<string, string>> },
@@ -213,7 +255,7 @@ function declarationBlock(
   return (
     `[data-theme-preview]{${declarations(overrides.light)}}` +
     `[data-theme-preview].dark{${declarations(overrides.dark)}}` +
-    (customCss ?? '')
+    (customCss === null ? '' : `[data-theme-preview]{${customCss}}`)
   )
 }
 

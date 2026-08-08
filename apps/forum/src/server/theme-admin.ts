@@ -26,7 +26,8 @@ import { ForbiddenError } from '@meith/core'
 import { PostgresThemeAdminRepository, getDb, type ThemeRecord } from '@meith/db'
 
 import forumConfig from '../../forum.config'
-import { tokenMeta, type TokenKind } from '@/view/theme-tokens'
+import { tokenMeta } from '@/view/theme-tokens'
+import type { EditableToken } from '@/view/theme-draft'
 
 import { getContainer } from './container'
 import { validateTokenOverrides, type TokenOverrides } from './theme-style'
@@ -47,19 +48,15 @@ export function requireThemeAdmin(): PostgresThemeAdminRepository {
   return repository
 }
 
-/** One editable token: what the theme ships, and what this board overrides. */
-export interface TokenRow {
-  readonly name: string
-  readonly label: string
-  readonly hint: string
-  readonly kind: TokenKind
-  /** The compiled value, light and dark, straight from the theme package. */
-  readonly light: string
-  readonly dark: string
-  /** This board's override per scheme, or `''` for "use the theme's". */
-  readonly overrideLight: string
-  readonly overrideDark: string
-}
+/**
+ * One editable token: what the theme ships, and what this board overrides.
+ *
+ * The shape lives in `@/view/theme-draft` because the *rules* about it do — what
+ * a blank override means, which of the four values per token answers which
+ * question — and those rules are tested. This name stays because it is what the
+ * screen and its callers have always used for a row of the editor.
+ */
+export type TokenRow = EditableToken
 
 export interface ThemeAdminView {
   readonly key: string

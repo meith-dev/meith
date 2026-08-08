@@ -511,6 +511,12 @@
     }
   }
 
+  /*
+   * See `@layer utilities` at the foot of this file for the third rule this
+   * notice needs — a page's own sticky bar. It cannot live here, because it has
+   * to beat a Tailwind utility and `base` loses to `utilities` by definition.
+   */
+
   h1, h2, h3, h4 {
     text-wrap: balance;
   }
@@ -833,4 +839,33 @@ ol.md-list {
  */
 div.md-directive {
   margin-block: 0.85em;
+}
+
+/*
+ * A page's own sticky bar has to clear the cookie notice, which nothing in
+ * `@layer base` can do.
+ *
+ * The reserve up there fixes the *end of the document* and the scroll margin
+ * fixes *what the browser scrolls to*. A bar the page pins to the foot of the
+ * viewport is neither: it sits at `bottom: 0` for the whole scroll, which is
+ * exactly where the notice sits — so the two share one strip and the bar's
+ * controls cannot be clicked. That is the fourth version of the bug D115
+ * records three of, and it was found the same way as the other three: a driver
+ * failing to click a control an operator could not have clicked either.
+ *
+ * It is in `utilities` because it has to beat `bottom-0`, which is a utility;
+ * a base-layer rule loses to any utility by definition, however specific it is.
+ * The theme editor's Save bar is the first of these. Anything else that pins
+ * itself to the bottom of the viewport opts in by carrying the attribute.
+ */
+@layer utilities {
+  body:has(> aside[aria-label='Cookies']) [data-sticky-bottom] {
+    bottom: 7rem;
+  }
+
+  @media (min-width: 640px) {
+    body:has(> aside[aria-label='Cookies']) [data-sticky-bottom] {
+      bottom: 5rem;
+    }
+  }
 }
