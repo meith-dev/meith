@@ -50,15 +50,40 @@ function migrationSql(): string {
 const URL = process.env.TEST_DATABASE_URL
 const describeIfPg = URL ? describe : describe.skip
 
+/**
+ * The suite runs in a scratch database it creates and drops itself, not in the
+ * one `TEST_DATABASE_URL` names. That database is not this suite's to assume
+ * anything about: CI's migrations job migrates it before `pnpm test` runs, so
+ * applying `migrationSql()` there hits "relation already exists" on the first
+ * CREATE TABLE — and a developer's `TEST_DATABASE_URL` could point anywhere.
+ * A scratch database makes the suite rerunnable against any server, at the
+ * cost of requiring a role that may CREATEDB — which the superuser CI supplies
+ * (and most local setups) can.
+ */
+const SCRATCH = `meith_pg_test_${process.pid}`
+
+function scratchUrl(adminUrl: string): string {
+  const url = new globalThis.URL(adminUrl)
+  url.pathname = `/${SCRATCH}`
+  return url.toString()
+}
+
 describeIfPg('against real Postgres', () => {
+  let admin: ReturnType<typeof createIsolatedDb>
   let harness: ReturnType<typeof createIsolatedDb>
 
-  beforeAll(() => {
-    harness = createIsolatedDb(URL!)
+  beforeAll(async () => {
+    admin = createIsolatedDb(URL!)
+    /* CREATE DATABASE cannot run in a transaction; execute it on its own. */
+    await admin.db.execute(sql.raw(`DROP DATABASE IF EXISTS "${SCRATCH}" WITH (FORCE)`))
+    await admin.db.execute(sql.raw(`CREATE DATABASE "${SCRATCH}"`))
+    harness = createIsolatedDb(scratchUrl(URL!))
   })
 
   afterAll(async () => {
     await harness.close()
+    await admin.db.execute(sql.raw(`DROP DATABASE IF EXISTS "${SCRATCH}" WITH (FORCE)`))
+    await admin.close()
   })
 
   describe('Date parameters in raw sql templates', () => {

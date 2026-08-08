@@ -21,7 +21,7 @@ import { runMigrations } from './migrate'
 /* Bound where it is used, not at module scope (guard F02). */
 const log = () => logger({ module: 'migrate' })
 
-/* Ahead of the first `process.env` read, so a checkout's `.env` is seen. */
+/* Ahead of the first environment read, so a checkout's `.env` is seen. */
 loadEnvFiles()
 
 runMigrations()
