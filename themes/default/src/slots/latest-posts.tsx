@@ -61,8 +61,8 @@ export function LatestPosts({ posts, capturedAt }: LatestPostsModel) {
                 <p className="truncate text-xs text-muted-foreground">
                   <UserRef user={post.author} className="font-normal" />
                   {' in '}
-                  <a href={post.forum.href} className={MUTED_LINK}>
-                    {post.forum.label}
+                  <a href={post.community.href} className={MUTED_LINK}>
+                    {post.community.label}
                   </a>
                   {' · '}
                   <Stamp at={post.postedAt} />

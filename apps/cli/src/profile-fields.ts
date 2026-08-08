@@ -51,7 +51,7 @@ export async function profileFieldList(): Promise<number> {
   if (fields.length === 0) {
     console.log(
       'No custom profile fields.\n' +
-        'Add one:  forum profile-field:add --key pronouns --label Pronouns --type text',
+        'Add one:  community profile-field:add --key pronouns --label Pronouns --type text',
     )
     return 0
   }
@@ -136,7 +136,7 @@ export async function profileFieldRemove(args: readonly string[]): Promise<numbe
   const { positional } = parseFlags(args)
   const key = positional[0]
   if (key === undefined) {
-    throw new ValidationError('Usage: forum profile-field:remove <key>')
+    throw new ValidationError('Usage: community profile-field:remove <key>')
   }
 
   const removed = await service().remove(key)

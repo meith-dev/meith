@@ -175,7 +175,7 @@ describe('the host’s operator switch', () => {
 
   it('ignores a key naming a plugin this build does not have', () => {
     const host = new PluginHost({ plugins: [plugin] })
-    /* A row left behind by a plugin removed from forum.config.ts. */
+    /* A row left behind by a plugin removed from community.config.ts. */
     expect(() => host.setOperatorDisabled(['gone'])).not.toThrow()
     expect(host.health()).toHaveLength(1)
   })

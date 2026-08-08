@@ -1,0 +1,231 @@
+/**
+ * F29 — the board index view model.
+ *
+ * The cases here are the ones that make a listing wrong rather than ugly: a
+ * community the viewer may not see, a *child* of one, a deleted author, and an empty
+ * community. All four are invisible on the fixture board unless asked for
+ * deliberately, and all four are how a real board differs from a demo.
+ */
+
+import type { CommunityListingRow } from '@meith/communities'
+import { describe, expect, it } from 'vitest'
+
+import { buildBoardIndexView } from './board-index'
+
+const NOW = new Date('2026-07-30T12:00:00Z')
+
+function community(over: Partial<CommunityListingRow> & { id: number }): CommunityListingRow {
+  return {
+    type: 'community',
+    title: `Community ${over.id}`,
+    slug: `community-${over.id}`,
+    description: null,
+    parentId: null,
+    path: String(over.id),
+    depth: 0,
+    displayOrder: over.id,
+    linkUrl: null,
+    threadCount: 0,
+    postCount: 0,
+    lastPost: null,
+    ...over,
+  }
+}
+
+function view(rows: readonly CommunityListingRow[], visible: readonly number[]) {
+  return buildBoardIndexView({
+    rows,
+    visibleCommunityIds: new Set(visible),
+    now: NOW,
+  })
+}
+
+describe('buildBoardIndexView', () => {
+  it('groups communities under their top-level block', () => {
+    const result = view(
+      [
+        community({ id: 1, type: 'category', title: 'Community' }),
+        community({ id: 2, title: 'General', parentId: 1 }),
+        community({ id: 3, title: 'Announcements', parentId: 1 }),
+      ],
+      [1, 2, 3],
+    )
+
+    expect(result.blocks).toHaveLength(1)
+    expect(result.blocks[0]!.block.category.title).toBe('Community')
+    expect(result.blocks[0]!.communities.map((f) => f.title)).toEqual([
+      'General',
+      'Announcements',
+    ])
+  })
+
+  it('shows a root-level community as its own block', () => {
+    const result = view([community({ id: 1, title: 'Lonely' })], [1])
+
+    expect(result.blocks[0]!.block.category.title).toBe('Lonely')
+    expect(result.blocks[0]!.communities).toEqual([])
+  })
+
+  it('omits a community the viewer cannot see', () => {
+    const result = view(
+      [
+        community({ id: 1, type: 'category' }),
+        community({ id: 2, title: 'Public', parentId: 1 }),
+        community({ id: 3, title: 'Staff only', parentId: 1 }),
+      ],
+      [1, 2],
+    )
+
+    expect(result.blocks[0]!.communities.map((f) => f.title)).toEqual(['Public'])
+  })
+
+  /*
+   * The case this file exists for. `buildTree` promotes orphans to roots (D22),
+   * so filtering the flat list and building the tree would surface a visible
+   * child of a hidden category as a top-level block — telling a guest both that
+   * the community exists and what it is called.
+   */
+  it('drops a visible child whose parent is hidden, rather than promoting it', () => {
+    const result = view(
+      [
+        community({ id: 1, type: 'category', title: 'Staff' }),
+        community({ id: 2, title: 'Visible child', parentId: 1 }),
+      ],
+      [2],
+    )
+
+    expect(result.blocks).toEqual([])
+  })
+
+  /*
+   * One pass is not enough: the grandchild's parent survives the *filter* and is
+   * then dropped for being orphaned, so anything hanging off it has to go in a
+   * later pass. An implementation that filters once leaves the grandchild as a
+   * top-level block — the same leak, one level deeper and much easier to miss.
+   */
+  it('drops a grandchild whose parent was dropped for being orphaned', () => {
+    const result = view(
+      [
+        community({ id: 1, type: 'category', title: 'Staff' }),
+        community({ id: 2, title: 'Child', parentId: 1 }),
+        community({ id: 3, title: 'Grandchild', parentId: 2 }),
+      ],
+      [2, 3],
+    )
+
+    expect(result.blocks).toEqual([])
+  })
+
+  it('lists deeper communities as subcommunity links on their parent row', () => {
+    const result = view(
+      [
+        community({ id: 1, type: 'category' }),
+        community({ id: 2, title: 'General', parentId: 1 }),
+        community({ id: 3, title: 'Off Topic', parentId: 2 }),
+      ],
+      [1, 2, 3],
+    )
+
+    expect(result.blocks[0]!.communities).toHaveLength(1)
+    expect(result.blocks[0]!.communities[0]!.subcommunities).toEqual([
+      { label: 'Off Topic', href: '/community/3-community-3' },
+    ])
+  })
+
+  it('formats the last post, and links the thread rather than the community', () => {
+    const result = view(
+      [
+        community({
+          id: 1,
+          lastPost: {
+            postId: 99,
+            threadId: 7,
+            threadTitle: 'Hello',
+            userId: 3,
+            username: 'ada',
+            at: new Date('2026-07-30T09:14:00Z'),
+          },
+        }),
+      ],
+      [1],
+    )
+
+    const last = result.blocks[0]!.block.category.lastPost!
+    expect(last.href).toBe('/thread/7#post-99')
+    expect(last.at.label).toBe('Today, 09:14')
+    expect(last.author.username).toBe('ada')
+    expect(last.author.profileHref).toBe('/member/3')
+  })
+
+  /*
+   * `posts.author_user_id` is ON DELETE SET NULL while the username is kept, so
+   * a listing must render the name without a link. Assuming an author is always
+   * linkable is what turns a deleted account into a broken row.
+   */
+  it('renders a deleted author by name with no profile link', () => {
+    const result = view(
+      [
+        community({
+          id: 1,
+          lastPost: {
+            postId: 1,
+            threadId: 1,
+            threadTitle: 'Old thread',
+            userId: null,
+            username: 'departed',
+            at: NOW,
+          },
+        }),
+      ],
+      [1],
+    )
+
+    const author = result.blocks[0]!.block.category.lastPost!.author
+    expect(author.username).toBe('departed')
+    expect(author.userId).toBeNull()
+    expect(author.profileHref).toBeNull()
+  })
+
+  it('reports no last post for an empty community', () => {
+    const result = view([community({ id: 1 })], [1])
+
+    expect(result.blocks[0]!.block.category.lastPost).toBeNull()
+  })
+
+  it('sends a link community to its target and everything else to its community page', () => {
+    const result = view(
+      [
+        community({ id: 1, type: 'category' }),
+        community({ id: 2, slug: 'general', parentId: 1 }),
+        community({ id: 3, type: 'link', linkUrl: 'https://example.com/docs', parentId: 1 }),
+      ],
+      [1, 2, 3],
+    )
+
+    expect(result.blocks[0]!.communities.map((f) => f.href)).toEqual([
+      '/community/2-general',
+      'https://example.com/docs',
+    ])
+  })
+
+  it('offers no mark-all-read action until read tracking exists', () => {
+    expect(view([community({ id: 1 })], [1]).index.markAllReadAction).toBeNull()
+  })
+
+  it('marks the supplied unread communities and exposes the native mark-all target', () => {
+    const result = buildBoardIndexView({
+      rows: [community({ id: 1 })],
+      visibleCommunityIds: new Set([1]),
+      unreadCommunityIds: new Set([1]),
+      markAllReadAction: '/api/read/all',
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+
+    expect(result.blocks[0]?.block.category.isUnread).toBe(true)
+    expect(result.index.markAllReadAction).toBe('/api/read/all')
+  })
+
+  it('renders an empty board as no blocks rather than throwing', () => {
+    expect(view([], []).blocks).toEqual([])
+  })
+})

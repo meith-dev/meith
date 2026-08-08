@@ -1,5 +1,5 @@
 /**
- * F48 — reading `forum_moderators`, which nothing had ever done.
+ * F48 — reading `community_moderators`, which nothing had ever done.
  *
  * The table has existed since F21 with no reader, so this is the first evidence
  * that the columns are the ones the resolver expects. It runs against real
@@ -13,13 +13,13 @@ import { sql } from 'drizzle-orm'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresAuthorizationSource } from './authorization-source'
-import { forums, users } from './schema'
+import { communities, users } from './schema'
 
 let harness: TestDb
 let db: Database
 let source: PostgresAuthorizationSource
 
-const FORUM = 4
+const COMMUNITY = 4
 const MODERATOR = 1
 
 beforeAll(async () => {
@@ -33,8 +33,8 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
-  await db.execute(sql`delete from forum_moderators`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from community_moderators`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -47,23 +47,23 @@ beforeEach(async () => {
     passwordAlgo: 'argon2id',
     primaryGroupId: 2,
   })
-  await db.insert(forums).values([
-    { id: FORUM, title: 'General', slug: 'general', path: '4', depth: 0 },
+  await db.insert(communities).values([
+    { id: COMMUNITY, title: 'General', slug: 'general', path: '4', depth: 0 },
   ])
 })
 
 describe('moderatorAppointments', () => {
   it('reads a personal appointment with its granular rights', async () => {
     await db.execute(sql`
-      insert into forum_moderators (forum_id, user_id, cascade_to_subforums,
+      insert into community_moderators (community_id, user_id, cascade_to_subcommunities,
                                     can_approve_content, can_edit_posts)
-      values (${FORUM}, ${MODERATOR}, true, true, false)
+      values (${COMMUNITY}, ${MODERATOR}, true, true, false)
     `)
 
     expect(await source.moderatorAppointments(MODERATOR, [2])).toEqual([
       {
-        forumId: FORUM,
-        cascadeToSubforums: true,
+        communityId: COMMUNITY,
+        cascadeToSubcommunities: true,
         canApproveContent: true,
         canEditPosts: false,
         canSoftDeletePosts: false,
@@ -79,8 +79,8 @@ describe('moderatorAppointments', () => {
 
   it('reads a group appointment for a member of that group', async () => {
     await db.execute(sql`
-      insert into forum_moderators (forum_id, group_id, can_approve_content)
-      values (${FORUM}, 5, true)
+      insert into community_moderators (community_id, group_id, can_approve_content)
+      values (${COMMUNITY}, 5, true)
     `)
 
     expect(await source.moderatorAppointments(999, [5])).toHaveLength(1)
@@ -89,8 +89,8 @@ describe('moderatorAppointments', () => {
 
   it('returns nothing for somebody with no appointment', async () => {
     await db.execute(sql`
-      insert into forum_moderators (forum_id, user_id, can_approve_content)
-      values (${FORUM}, ${MODERATOR}, true)
+      insert into community_moderators (community_id, user_id, can_approve_content)
+      values (${COMMUNITY}, ${MODERATOR}, true)
     `)
     expect(await source.moderatorAppointments(999, [2])).toEqual([])
   })
@@ -102,8 +102,8 @@ describe('moderatorAppointments', () => {
 
   it('does not fail on an actor with a user id but no groups', async () => {
     await db.execute(sql`
-      insert into forum_moderators (forum_id, user_id, can_approve_content)
-      values (${FORUM}, ${MODERATOR}, true)
+      insert into community_moderators (community_id, user_id, can_approve_content)
+      values (${COMMUNITY}, ${MODERATOR}, true)
     `)
     expect(await source.moderatorAppointments(MODERATOR, [])).toHaveLength(1)
   })

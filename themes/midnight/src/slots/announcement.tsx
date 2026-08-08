@@ -11,7 +11,7 @@ import { UserRef } from '../shared'
  * a dated statement here too, because styling it as an alert would be a theme
  * deciding what a piece of board content means.
  */
-export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: AnnouncementModel) {
+export function Announcement({ title, bodyHtml, postedBy, postedAt, community }: AnnouncementModel) {
   return (
     <article className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-4">
       <h2 className="font-heading text-lg font-semibold text-foreground">{title}</h2>
@@ -37,11 +37,11 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
           </>
         )}{' '}
         <time dateTime={postedAt.iso}>{postedAt.label}</time>
-        {forum !== null && (
+        {community !== null && (
           <>
             {' · '}
-            <a href={forum.href} className="text-primary hover:underline">
-              {forum.label}
+            <a href={community.href} className="text-primary hover:underline">
+              {community.label}
             </a>
           </>
         )}

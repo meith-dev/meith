@@ -201,7 +201,7 @@ function render({ budgets, results, indexes, plans }) {
   out.push('  Regenerate with `pnpm perf:docs`; `pnpm verify` fails when this is stale.')
   out.push('-->')
   out.push('')
-  out.push('The p95 budgets for the pages a forum’s traffic actually goes to, and what')
+  out.push('The p95 budgets for the pages a board’s traffic actually goes to, and what')
   out.push('the last recorded run measured against a full-scale board.')
   out.push('')
 
@@ -295,7 +295,7 @@ function render({ budgets, results, indexes, plans }) {
   out.push('')
   out.push('Each partial index has an unfiltered twin, and the twins are checked too. A')
   out.push('moderator seeing unapproved and deleted content *cannot* use the partial')
-  out.push('index — their predicate does not imply it — so without the twin their forum')
+  out.push('index — their predicate does not imply it — so without the twin their community')
   out.push('view is a sequential scan. That failure is invisible to every test written')
   out.push('from a member’s point of view, which is most of them.')
   out.push('')

@@ -13,7 +13,7 @@
  *  - greets readers at the bottom of the board index (`index.footer`, a
  *    **UI region contribution**)
  *  - declares one **setting**, editable at /admin/plugins/hello
- *  - ships one **migration**, applied by `forum upgrade`
+ *  - ships one **migration**, applied by `community upgrade`
  *  - registers one **task** on the scheduler's tick
  *  - mounts one **admin page** at /admin/plugins/hello/status
  *
@@ -56,7 +56,7 @@ export const helloPlugin = definePlugin({
   ],
 
   /*
-   * Forward-only SQL, applied by `forum upgrade` in ascending id order and
+   * Forward-only SQL, applied by `community upgrade` in ascending id order and
    * recorded per plugin. A plugin never opens a database connection itself —
    * these are statements the *host* runs, one transaction per migration.
    * Prefix your tables with your plugin key: nothing else namespaces them.

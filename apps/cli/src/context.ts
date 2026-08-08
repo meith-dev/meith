@@ -1,7 +1,7 @@
 /**
  * The CLI's composition root.
  *
- * `apps/forum` has its own (`src/server/container.ts`) and this deliberately
+ * `apps/community` has its own (`src/server/container.ts`) and this deliberately
  * does not import it: that one is `server-only` and pulls in `next/headers`,
  * which has no meaning in a plain Node process. What the two must share is
  * *policy*, not wiring — hence `DEFAULT_AUTH_POLICY` and `resolveAuthPolicy` in
@@ -10,7 +10,7 @@
  *
  * Postgres only. Every command below mutates a board an operator intends to
  * keep, and the fixture store lives in the heap of whichever process happens to
- * be running — `forum user:create` against it would report success and change
+ * be running — `community user:create` against it would report success and change
  * nothing, which is worse than refusing.
  */
 import {
@@ -22,7 +22,7 @@ import {
 import { ConfigurationError, env } from '@meith/core'
 import {
   PostgresAdminRepository,
-  PostgresForumRepository,
+  PostgresCommunityRepository,
   PostgresSettingsRepository,
   createPostgresAccountStore,
   getDb,
@@ -33,7 +33,7 @@ import { SettingsSnapshot } from '@meith/settings'
 export interface CliContext {
   readonly db: Database
   readonly identity: IdentityService
-  readonly forums: PostgresForumRepository
+  readonly communities: PostgresCommunityRepository
   readonly settings: PostgresSettingsRepository
   readonly admin: PostgresAdminRepository
 }
@@ -47,7 +47,7 @@ export function requirePostgres(): void {
   if (env.DATA_SOURCE !== 'postgres') {
     throw new ConfigurationError(
       'This command needs a database: DATA_SOURCE is "fixture".\n' +
-        'Set DATABASE_URL (see .env.example) and run `forum migrate` first.',
+        'Set DATABASE_URL (see .env.example) and run `community migrate` first.',
     )
   }
 }
@@ -64,7 +64,7 @@ export async function defaultMemberGroupId(admin: PostgresAdminRepository): Prom
   const id = await admin.registeredGroupId()
   if (id === null) {
     throw new ConfigurationError(
-      'No "registered" usergroup found. Run `forum migrate` to seed the group ladder.',
+      'No "registered" usergroup found. Run `community migrate` to seed the group ladder.',
     )
   }
   return id
@@ -99,7 +99,7 @@ export async function createContext(): Promise<CliContext> {
     /*
      * 'none' — an operator at a terminal has already proven more than an email
      * round-trip would, and cannot click a link in somebody else's mailbox.
-     * Making `forum user:create` mint an inactive account would mean the first
+     * Making `community user:create` mint an inactive account would mean the first
      * administrator could not log in to activate anyone, including themselves.
      *
      * Deliberately *after* the spread: the board's activation method is
@@ -113,7 +113,7 @@ export async function createContext(): Promise<CliContext> {
   return {
     db,
     identity: new IdentityService({ store: createPostgresAccountStore(db), config }),
-    forums: new PostgresForumRepository(db),
+    communities: new PostgresCommunityRepository(db),
     settings,
     admin,
   }

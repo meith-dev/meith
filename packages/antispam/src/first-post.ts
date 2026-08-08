@@ -1,19 +1,19 @@
 /**
  * F46 — holding a new member's first posts for review.
  *
- * The single most effective anti-spam control a forum has, and the cheapest:
+ * The single most effective anti-spam control a board has, and the cheapest:
  * spam accounts post once or twice and never come back, so a threshold of two
  * or three catches nearly all of it and costs a real member one wait.
  *
  * ## It is a third reason to hold a post, not a replacement for the other two
  *
- * The composer already has two — the forum's own queue (`moderateNewThreads`)
+ * The composer already has two — the community's own queue (`moderateNewThreads`)
  * and a warning restriction — and they compose by OR with one asymmetry F53
- * documented: `bypassesModeration` cancels the forum's queue and deliberately
+ * documented: `bypassesModeration` cancels the community's queue and deliberately
  * does *not* cancel a warning, because a moderator under a warning whose bypass
  * cancelled it would be the one person the restriction could not reach.
  *
- * This one follows the **forum queue's** rule rather than the warning's. It is
+ * This one follows the **community queue's** rule rather than the warning's. It is
  * a statement about trust in an account, and somebody the board has explicitly
  * granted `moderation.bypass` is an account it has already decided to trust —
  * so their first post is not held. The alternative would hold the first post of

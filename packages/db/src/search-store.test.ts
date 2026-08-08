@@ -60,11 +60,11 @@ const input = (overrides: Record<string, unknown> = {}) => ({
 describe('create', () => {
   it('stores the query and its filters', async () => {
     const stored = await store.create(
-      input({ terms: 'kestrel', filters: { sort: 'newest', forumIds: [3] } }),
+      input({ terms: 'kestrel', filters: { sort: 'newest', communityIds: [3] } }),
     )
 
     expect(stored).toMatchObject({ terms: 'kestrel', userId: ANN })
-    expect(stored?.filters).toEqual({ sort: 'newest', forumIds: [3] })
+    expect(stored?.filters).toEqual({ sort: 'newest', communityIds: [3] })
   })
 
   it('refuses a second search inside the flood interval', async () => {

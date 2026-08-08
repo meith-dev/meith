@@ -24,16 +24,16 @@ import { PostgresThreadWriteRepository } from './thread-writes'
 import { resultRows } from './result-rows'
 import { applyAncestorVisibilityChange } from './visibility-counters'
 import { rollUpAncestorCounters } from './content-counters'
-import { forums, users } from './schema'
+import { communities, users } from './schema'
 
 let harness: TestDb
 let db: Database
 let repo: PostgresPostWriteRepository
 let threads: PostgresThreadWriteRepository
 
-/** Two levels, so "ancestor" means something: category 1 > forum 4 > forum 5. */
+/** Two levels, so "ancestor" means something: category 1 > community 4 > community 5. */
 const CATEGORY = 1
-const FORUM = 4
+const COMMUNITY = 4
 const CHILD = 5
 const AUTHOR = 1
 
@@ -57,7 +57,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from outbox`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -70,21 +70,21 @@ beforeEach(async () => {
     passwordAlgo: 'argon2id',
     primaryGroupId: 2,
   })
-  await db.insert(forums).values([
+  await db.insert(communities).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
-    { id: CHILD, title: 'Nested', slug: 'nested', path: '1.4.5', depth: 2, parentId: FORUM },
+    { id: COMMUNITY, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: CHILD, title: 'Nested', slug: 'nested', path: '1.4.5', depth: 2, parentId: COMMUNITY },
   ])
 })
 
 /** A thread with an opening post and `replies` replies, counters and all. */
 async function seedThread(
-  forumId = FORUM,
+  communityId = COMMUNITY,
   replies = 1,
   at = AT,
 ): Promise<{ threadId: number; postIds: number[] }> {
   const thread = await threads.create({
-    forumId,
+    communityId,
     title: 'Hello there',
     slug: 'hello-there',
     message: 'the opening post',
@@ -100,7 +100,7 @@ async function seedThread(
   for (let n = 0; n < replies; n += 1) {
     const { postId } = await threads.createReply({
       threadId: thread.threadId,
-      forumId,
+      communityId,
       threadTitle: 'Hello there',
       message: `reply ${n}`,
       authorUserId: AUTHOR,
@@ -118,14 +118,14 @@ async function seedThread(
   return { threadId: thread.threadId, postIds }
 }
 
-async function forumRow(id: number): Promise<{
+async function communityRow(id: number): Promise<{
   post_count: number
   thread_count: number
   last_post_id: number | null
 }> {
   const rows = resultRows(
     await db.execute(sql`
-      select post_count, thread_count, last_post_id from forums where id = ${id}
+      select post_count, thread_count, last_post_id from communities where id = ${id}
     `),
   ) as Array<{ post_count: number; thread_count: number; last_post_id: number | null }>
   const row = rows[0]!
@@ -185,21 +185,21 @@ async function postRow(id: number): Promise<{
 }
 
 describe('findEditTarget', () => {
-  it('returns the post with its thread and forum', async () => {
+  it('returns the post with its thread and community', async () => {
     const { threadId, postIds } = await seedThread()
     const target = await repo.findEditTarget(threadId, postIds[1]!)
 
     expect(target).toMatchObject({
       post: { id: postIds[1], message: 'reply 0', visibility: 'visible', isFirstPost: false },
       thread: { id: threadId, slug: 'hello-there', isLocked: false },
-      forum: { id: FORUM, slug: 'general', isOpen: true },
+      community: { id: COMMUNITY, slug: 'general', isOpen: true },
     })
   })
 
   /*
    * Thread-scoped, like F40's quote lookup. Without the thread in the lookup a
    * post id from a URL addresses any post on the board, including one in a
-   * forum the actor was authorised against a different thread for.
+   * community the actor was authorised against a different thread for.
    */
   it('refuses a post that is not in the given thread', async () => {
     const { postIds } = await seedThread()
@@ -211,7 +211,7 @@ describe('applyEdit', () => {
   const edit = (postId: number, threadId: number, overrides = {}) => ({
     postId,
     threadId,
-    forumId: FORUM,
+    communityId: COMMUNITY,
     authorUserId: AUTHOR,
     isFirstPost: false,
     message: 'a **revised** body',
@@ -263,22 +263,22 @@ describe('applyEdit', () => {
 
   it('moves no counter when the post stays visible', async () => {
     const { threadId, postIds } = await seedThread()
-    const before = await forumRow(FORUM)
+    const before = await communityRow(COMMUNITY)
 
     await repo.applyEdit(edit(postIds[1]!, threadId))
 
-    expect(await forumRow(FORUM)).toMatchObject({ post_count: before.post_count })
+    expect(await communityRow(COMMUNITY)).toMatchObject({ post_count: before.post_count })
     expect(await threadRow(threadId)).toMatchObject({ reply_count: 1 })
   })
 
   it('takes the post off the board when the edit sends it back for approval', async () => {
     const { threadId, postIds } = await seedThread()
-    const before = await forumRow(FORUM)
+    const before = await communityRow(COMMUNITY)
     const beforeAuthor = await userPostCount()
 
     await repo.applyEdit(edit(postIds[1]!, threadId, { toVisibility: 'unapproved' }))
 
-    expect(await forumRow(FORUM)).toMatchObject({ post_count: before.post_count - 1 })
+    expect(await communityRow(COMMUNITY)).toMatchObject({ post_count: before.post_count - 1 })
     expect(await threadRow(threadId)).toMatchObject({ reply_count: 0 })
     expect(await userPostCount()).toBe(beforeAuthor - 1)
     expect((await postRow(postIds[1]!)).visibility).toBe('unapproved')
@@ -302,7 +302,7 @@ describe('applyEdit', () => {
 
     const found = await new PostgresSearchRepository(db).search(
       { terms: 'hello', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
-      { forumIds: [FORUM], viewerUserId: null, content: PUBLIC_CONTENT },
+      { communityIds: [COMMUNITY], viewerUserId: null, content: PUBLIC_CONTENT },
     )
     expect(found.hits.map((hit) => hit.postId)).toEqual([first])
   })
@@ -362,7 +362,7 @@ describe('applyVisibility', () => {
   ) => ({
     postId,
     threadId,
-    forumId: FORUM,
+    communityId: COMMUNITY,
     authorUserId: AUTHOR,
     isFirstPost,
     from,
@@ -373,15 +373,15 @@ describe('applyVisibility', () => {
 
   it('reverses exactly what creating the post applied', async () => {
     const { threadId, postIds } = await seedThread()
-    const before = { forum: await forumRow(FORUM), author: await userPostCount() }
+    const before = { community: await communityRow(COMMUNITY), author: await userPostCount() }
 
     expect(await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))).toBe(true)
 
-    expect(await forumRow(FORUM)).toMatchObject({
-      post_count: before.forum.post_count - 1,
+    expect(await communityRow(COMMUNITY)).toMatchObject({
+      post_count: before.community.post_count - 1,
       /* A reply is not a thread. Decrementing here is the mistake that shows a
-       * forum with more threads than it has. */
-      thread_count: before.forum.thread_count,
+       * community with more threads than it has. */
+      thread_count: before.community.thread_count,
     })
     expect(await threadRow(threadId)).toMatchObject({ reply_count: 0 })
     expect(await userPostCount()).toBe(before.author - 1)
@@ -396,24 +396,24 @@ describe('applyVisibility', () => {
     const { threadId, postIds } = await seedThread()
     await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))
     await db.execute(sql`update posts set visibility = 'unapproved' where id = ${postIds[1]!}`)
-    const before = { forum: await forumRow(FORUM), thread: await threadRow(threadId) }
+    const before = { community: await communityRow(COMMUNITY), thread: await threadRow(threadId) }
 
     expect(await repo.applyVisibility(move(postIds[1]!, threadId, 'unapproved', 'deleted'))).toBe(
       true,
     )
 
-    expect(await forumRow(FORUM)).toMatchObject({ post_count: before.forum.post_count })
+    expect(await communityRow(COMMUNITY)).toMatchObject({ post_count: before.community.post_count })
     expect(await threadRow(threadId)).toMatchObject({ reply_count: before.thread.reply_count })
   })
 
   it('puts the counters back on restore', async () => {
     const { threadId, postIds } = await seedThread()
-    const before = { forum: await forumRow(FORUM), author: await userPostCount() }
+    const before = { community: await communityRow(COMMUNITY), author: await userPostCount() }
 
     await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))
     await repo.applyVisibility(move(postIds[1]!, threadId, 'deleted', 'visible'))
 
-    expect(await forumRow(FORUM)).toMatchObject({ post_count: before.forum.post_count })
+    expect(await communityRow(COMMUNITY)).toMatchObject({ post_count: before.community.post_count })
     expect(await threadRow(threadId)).toMatchObject({ reply_count: 1 })
     expect(await userPostCount()).toBe(before.author)
   })
@@ -426,23 +426,23 @@ describe('applyVisibility', () => {
   it('is a no-op on a second submit', async () => {
     const { threadId, postIds } = await seedThread()
     await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))
-    const after = await forumRow(FORUM)
+    const after = await communityRow(COMMUNITY)
 
     expect(await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))).toBe(false)
-    expect(await forumRow(FORUM)).toMatchObject({ post_count: after.post_count })
+    expect(await communityRow(COMMUNITY)).toMatchObject({ post_count: after.post_count })
   })
 
   describe('last-post pointers', () => {
-    it('moves the thread and forum pointers back to the newest survivor', async () => {
-      const { threadId, postIds } = await seedThread(FORUM, 2)
+    it('moves the thread and community pointers back to the newest survivor', async () => {
+      const { threadId, postIds } = await seedThread(COMMUNITY, 2)
       const newest = postIds[2]!
       expect(await threadRow(threadId)).toMatchObject({ last_post_id: newest })
-      expect(await forumRow(FORUM)).toMatchObject({ last_post_id: newest })
+      expect(await communityRow(COMMUNITY)).toMatchObject({ last_post_id: newest })
 
       await repo.applyVisibility(move(newest, threadId, 'visible', 'deleted'))
 
       expect(await threadRow(threadId)).toMatchObject({ last_post_id: postIds[1] })
-      expect(await forumRow(FORUM)).toMatchObject({ last_post_id: postIds[1] })
+      expect(await communityRow(COMMUNITY)).toMatchObject({ last_post_id: postIds[1] })
     })
 
     /*
@@ -450,37 +450,37 @@ describe('applyVisibility', () => {
      * post anywhere beneath it. Decrementing a count cannot fix this: the
      * replacement has to be found.
      */
-    it('repairs every ancestor, not just the posting forum', async () => {
-      const { threadId, postIds } = await seedThread(FORUM, 1)
+    it('repairs every ancestor, not just the posting community', async () => {
+      const { threadId, postIds } = await seedThread(COMMUNITY, 1)
       const newest = postIds[1]!
-      expect(await forumRow(CATEGORY)).toMatchObject({ last_post_id: newest })
+      expect(await communityRow(CATEGORY)).toMatchObject({ last_post_id: newest })
 
       await repo.applyVisibility(move(newest, threadId, 'visible', 'deleted'))
 
-      expect(await forumRow(CATEGORY)).toMatchObject({ last_post_id: postIds[0] })
+      expect(await communityRow(CATEGORY)).toMatchObject({ last_post_id: postIds[0] })
     })
 
     it('finds the replacement in a sibling subtree', async () => {
       const older = await seedThread(CHILD, 0, new Date('2026-07-30T10:00:00Z'))
-      const newer = await seedThread(FORUM, 0, new Date('2026-07-30T12:00:00Z'))
-      expect(await forumRow(CATEGORY)).toMatchObject({ last_post_id: newer.postIds[0] })
+      const newer = await seedThread(COMMUNITY, 0, new Date('2026-07-30T12:00:00Z'))
+      expect(await communityRow(CATEGORY)).toMatchObject({ last_post_id: newer.postIds[0] })
 
       /* The opening post of the newer thread, taken down by a moderator. */
       await repo.applyVisibility(
         move(newer.postIds[0]!, newer.threadId, 'visible', 'deleted', true),
       )
 
-      expect(await forumRow(CATEGORY)).toMatchObject({ last_post_id: older.postIds[0] })
-      expect(await forumRow(FORUM)).toMatchObject({ last_post_id: older.postIds[0] })
+      expect(await communityRow(CATEGORY)).toMatchObject({ last_post_id: older.postIds[0] })
+      expect(await communityRow(COMMUNITY)).toMatchObject({ last_post_id: older.postIds[0] })
     })
 
     it('nulls the pointer when nothing visible is left', async () => {
-      const { threadId, postIds } = await seedThread(FORUM, 0)
+      const { threadId, postIds } = await seedThread(COMMUNITY, 0)
       await repo.applyVisibility(move(postIds[0]!, threadId, 'visible', 'deleted', true))
 
       expect(await threadRow(threadId)).toMatchObject({ last_post_id: null })
-      expect(await forumRow(FORUM)).toMatchObject({ last_post_id: null })
-      expect(await forumRow(CATEGORY)).toMatchObject({ last_post_id: null })
+      expect(await communityRow(COMMUNITY)).toMatchObject({ last_post_id: null })
+      expect(await communityRow(CATEGORY)).toMatchObject({ last_post_id: null })
     })
   })
 
@@ -505,12 +505,12 @@ describe('applyVisibility', () => {
 describe('applyAncestorVisibilityChange', () => {
   it('takes a deleted post off its ancestors', async () => {
     const { threadId, postIds } = await seedThread()
-    const before = await forumRow(CATEGORY)
+    const before = await communityRow(CATEGORY)
 
     await repo.applyVisibility({
       postId: postIds[1]!,
       threadId,
-      forumId: FORUM,
+      communityId: COMMUNITY,
       authorUserId: AUTHOR,
       isFirstPost: false,
       from: 'visible',
@@ -520,7 +520,7 @@ describe('applyAncestorVisibilityChange', () => {
     })
     expect(await applyAncestorVisibilityChange(db, postIds[1]!)).toBe(true)
 
-    expect(await forumRow(CATEGORY)).toMatchObject({ post_count: before.post_count - 1 })
+    expect(await communityRow(CATEGORY)).toMatchObject({ post_count: before.post_count - 1 })
   })
 
   /*
@@ -533,7 +533,7 @@ describe('applyAncestorVisibilityChange', () => {
     await repo.applyVisibility({
       postId: postIds[1]!,
       threadId,
-      forumId: FORUM,
+      communityId: COMMUNITY,
       authorUserId: AUTHOR,
       isFirstPost: false,
       from: 'visible',
@@ -543,9 +543,9 @@ describe('applyAncestorVisibilityChange', () => {
     })
 
     expect(await applyAncestorVisibilityChange(db, postIds[1]!)).toBe(true)
-    const after = await forumRow(CATEGORY)
+    const after = await communityRow(CATEGORY)
     expect(await applyAncestorVisibilityChange(db, postIds[1]!)).toBe(false)
-    expect(await forumRow(CATEGORY)).toMatchObject({ post_count: after.post_count })
+    expect(await communityRow(CATEGORY)).toMatchObject({ post_count: after.post_count })
   })
 
   /*
@@ -555,11 +555,11 @@ describe('applyAncestorVisibilityChange', () => {
    */
   it('converges when a delete and a restore arrive in the wrong order', async () => {
     const { threadId, postIds } = await seedThread()
-    const before = await forumRow(CATEGORY)
+    const before = await communityRow(CATEGORY)
     const args = {
       postId: postIds[1]!,
       threadId,
-      forumId: FORUM,
+      communityId: COMMUNITY,
       authorUserId: AUTHOR,
       isFirstPost: false,
       actedByUserId: AUTHOR,
@@ -573,16 +573,16 @@ describe('applyAncestorVisibilityChange', () => {
     await applyAncestorVisibilityChange(db, postIds[1]!)
     await applyAncestorVisibilityChange(db, postIds[1]!)
 
-    expect(await forumRow(CATEGORY)).toMatchObject({ post_count: before.post_count })
+    expect(await communityRow(CATEGORY)).toMatchObject({ post_count: before.post_count })
   })
 
   it('restores an ancestor count that a delete removed', async () => {
     const { threadId, postIds } = await seedThread()
-    const before = await forumRow(CATEGORY)
+    const before = await communityRow(CATEGORY)
     const args = {
       postId: postIds[1]!,
       threadId,
-      forumId: FORUM,
+      communityId: COMMUNITY,
       authorUserId: AUTHOR,
       isFirstPost: false,
       actedByUserId: AUTHOR,
@@ -591,10 +591,10 @@ describe('applyAncestorVisibilityChange', () => {
 
     await repo.applyVisibility({ ...args, from: 'visible', to: 'deleted' })
     await applyAncestorVisibilityChange(db, postIds[1]!)
-    expect(await forumRow(CATEGORY)).toMatchObject({ post_count: before.post_count - 1 })
+    expect(await communityRow(CATEGORY)).toMatchObject({ post_count: before.post_count - 1 })
 
     await repo.applyVisibility({ ...args, from: 'deleted', to: 'visible' })
     await applyAncestorVisibilityChange(db, postIds[1]!)
-    expect(await forumRow(CATEGORY)).toMatchObject({ post_count: before.post_count })
+    expect(await communityRow(CATEGORY)).toMatchObject({ post_count: before.post_count })
   })
 })

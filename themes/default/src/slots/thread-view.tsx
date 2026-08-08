@@ -47,21 +47,21 @@ import { Counts, MUTED_LINK, PAGE_BODY, Prefix } from '../shared'
  * the end (1.4) fixed the question they were asking, which was "what do you
  * think of this?" above the thing to think about.
  */
-export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {
+export function ThreadView({ thread, community, replyHref, markReadAction, regions }: ThreadViewModel) {
   return (
     <div className={PAGE_BODY}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
           {/*
-            The forum, `sm:hidden`. The page renders a breadcrumb above this —
-            "Forums / Community / General Discussion / this thread" — so on any
+            The community, `sm:hidden`. The page renders a breadcrumb above this —
+            "Communities / Community / General Discussion / this thread" — so on any
             screen wide enough to show that trail comfortably, repeating the
-            forum's name one line under it is the same link twice. The trail
+            community's name one line under it is the same link twice. The trail
             scrolls on a phone, where the last crumb is what stays in view, so
             the narrow width keeps the parent link.
           */}
-          <a href={forum.href} className={`text-sm sm:hidden ${MUTED_LINK}`}>
-            {forum.label}
+          <a href={community.href} className={`text-sm sm:hidden ${MUTED_LINK}`}>
+            {community.label}
           </a>
 
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance sm:mt-0">

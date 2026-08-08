@@ -30,7 +30,7 @@ export type ThreadTool =
 /** The thread as the tools need it. */
 export interface ThreadToolTarget {
   readonly id: number
-  readonly forumId: number
+  readonly communityId: number
   readonly slug: string
   readonly title: string
   readonly isLocked: boolean
@@ -41,7 +41,7 @@ export interface ThreadToolTarget {
 /** Where a thread may be moved to. */
 export interface MoveDestination {
   readonly id: number
-  readonly type: 'category' | 'forum' | 'link'
+  readonly type: 'category' | 'community' | 'link'
 }
 
 /** What the caller has already resolved from the actor's rights. */
@@ -63,8 +63,8 @@ export interface ThreadToolOutcome {
 
 export interface ThreadToolsRepository {
   find(threadId: number): Promise<ThreadToolTarget | null>
-  /** The destination as the move needs it, or null when it is not a forum. */
-  findDestination(forumId: number): Promise<MoveDestination | null>
+  /** The destination as the move needs it, or null when it is not a community. */
+  findDestination(communityId: number): Promise<MoveDestination | null>
 
   setLocked(input: {
     readonly threadId: number
@@ -91,14 +91,14 @@ export interface ThreadToolsRepository {
 
   move(input: {
     readonly threadId: number
-    readonly fromForumId: number
-    readonly toForumId: number
+    readonly fromCommunityId: number
+    readonly toCommunityId: number
     readonly actorUserId: number
     readonly at: Date
   }): Promise<boolean>
 
   /**
-   * Duplicate a thread and its visible posts into another forum.
+   * Duplicate a thread and its visible posts into another community.
    *
    * Returns the new thread, because a copy is the one tool that produces
    * something to go and look at — every other one leaves the moderator where
@@ -106,7 +106,7 @@ export interface ThreadToolsRepository {
    */
   copy(input: {
     readonly threadId: number
-    readonly toForumId: number
+    readonly toCommunityId: number
     readonly actorUserId: number
     readonly at: Date
   }): Promise<{ threadId: number; slug: string; posts: number }>
@@ -125,12 +125,12 @@ export class ThreadTools {
     readonly threadId: number
     readonly tool: ThreadTool
     /** Required for `move`, ignored otherwise. */
-    readonly toForumId?: number | undefined
+    readonly toCommunityId?: number | undefined
     readonly actorUserId: number
     readonly rights: ThreadToolRights
     /**
-     * The actor's rights in the *destination* forum, for a move. Resolved by
-     * the caller because it is a second forum and therefore a second matrix.
+     * The actor's rights in the *destination* community, for a move. Resolved by
+     * the caller because it is a second community and therefore a second matrix.
      */
     readonly destinationRights?: ThreadToolRights | undefined
   }): Promise<ThreadToolOutcome> {
@@ -232,7 +232,7 @@ export class ThreadTools {
 
   private async moveTo(
     input: {
-      readonly toForumId?: number | undefined
+      readonly toCommunityId?: number | undefined
       readonly actorUserId: number
       readonly rights: ThreadToolRights
       readonly destinationRights?: ThreadToolRights | undefined
@@ -243,61 +243,61 @@ export class ThreadTools {
     this.require(input.rights.move, 'move threads')
     this.requireLive(target)
 
-    if (input.toForumId === undefined) {
-      throw new ValidationError('Choose a forum to move it to.')
+    if (input.toCommunityId === undefined) {
+      throw new ValidationError('Choose a community to move it to.')
     }
-    if (input.toForumId === target.forumId) {
-      throw new ValidationError('That thread is already in that forum.')
+    if (input.toCommunityId === target.communityId) {
+      throw new ValidationError('That thread is already in that community.')
     }
 
     /*
      * The rule that matters, and the one a "can this actor moderate here" check
-     * alone gets wrong: **both ends**. A moderator with rights in one forum
-     * only could otherwise move a thread out of the forum whose moderators are
-     * watching it and into one where nobody is — or into a forum they have no
-     * standing in at all, which is how a private forum acquires content its own
+     * alone gets wrong: **both ends**. A moderator with rights in one community
+     * only could otherwise move a thread out of the community whose moderators are
+     * watching it and into one where nobody is — or into a community they have no
+     * standing in at all, which is how a private community acquires content its own
      * moderators never approved.
      */
     if (input.destinationRights?.move !== true) {
-      throw new ValidationError('You cannot move threads into that forum.')
+      throw new ValidationError('You cannot move threads into that community.')
     }
 
-    const destination = await this.threads.findDestination(input.toForumId)
-    if (destination === null || destination.type !== 'forum') {
+    const destination = await this.threads.findDestination(input.toCommunityId)
+    if (destination === null || destination.type !== 'community') {
       /*
-       * A category holds forums, not threads, and a link forum holds nothing at
+       * A category holds communities, not threads, and a link community holds nothing at
        * all. Both would produce a thread nobody can navigate to.
        */
-      throw new ValidationError('That is not a forum threads can live in.')
+      throw new ValidationError('That is not a community threads can live in.')
     }
 
     return this.threads.move({
       threadId: target.id,
-      fromForumId: target.forumId,
-      toForumId: input.toForumId,
+      fromCommunityId: target.communityId,
+      toCommunityId: input.toCommunityId,
       actorUserId: input.actorUserId,
       at,
     })
   }
 
   /**
-   * Copy a thread into another forum.
+   * Copy a thread into another community.
    *
    * **Authorised by `thread.move`, at both ends**, and not by a right of its
    * own. Copying is moving that leaves the original behind: it puts content
-   * into a destination forum exactly as a move does, so the destination's
+   * into a destination community exactly as a move does, so the destination's
    * moderators have the same interest in it, and inventing a `thread.copy`
-   * right would mean an eighth column on `forum_moderators` distinguishing two
+   * right would mean an eighth column on `community_moderators` distinguishing two
    * acts nobody grants separately. D49's two-ended rule therefore applies
    * unchanged.
    *
-   * Unlike a move, the destination **may** be the source forum: copying a
-   * thread within its own forum is a legitimate way to fork a discussion, and
+   * Unlike a move, the destination **may** be the source community: copying a
+   * thread within its own community is a legitimate way to fork a discussion, and
    * there is no pointer to repair because nothing left.
    */
   private async copyTo(
     input: {
-      readonly toForumId?: number | undefined
+      readonly toCommunityId?: number | undefined
       readonly actorUserId: number
       readonly rights: ThreadToolRights
       readonly destinationRights?: ThreadToolRights | undefined
@@ -308,21 +308,21 @@ export class ThreadTools {
     this.require(input.rights.move, 'copy threads')
     this.requireLive(target)
 
-    if (input.toForumId === undefined) {
-      throw new ValidationError('Choose a forum to copy it to.')
+    if (input.toCommunityId === undefined) {
+      throw new ValidationError('Choose a community to copy it to.')
     }
     if (input.destinationRights?.move !== true) {
-      throw new ValidationError('You cannot copy threads into that forum.')
+      throw new ValidationError('You cannot copy threads into that community.')
     }
 
-    const destination = await this.threads.findDestination(input.toForumId)
-    if (destination === null || destination.type !== 'forum') {
-      throw new ValidationError('That is not a forum threads can live in.')
+    const destination = await this.threads.findDestination(input.toCommunityId)
+    if (destination === null || destination.type !== 'community') {
+      throw new ValidationError('That is not a community threads can live in.')
     }
 
     return this.threads.copy({
       threadId: target.id,
-      toForumId: input.toForumId,
+      toCommunityId: input.toCommunityId,
       actorUserId: input.actorUserId,
       at,
     })
@@ -336,7 +336,7 @@ export class ThreadTools {
    * Flag flips and moves apply to threads that are actually on the board.
    *
    * Pinning a deleted thread is not wrong so much as meaningless, and allowing
-   * it means the forum listing's sort key depends on a flag set on something
+   * it means the community listing's sort key depends on a flag set on something
    * nobody can see. Deletion and restoration have their own checks.
    */
   private requireLive(target: ThreadToolTarget): void {

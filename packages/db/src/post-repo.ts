@@ -20,7 +20,7 @@ const editors = alias(users, 'editors')
 function toPost(row: {
   id: number
   threadId: number
-  forumId: number
+  communityId: number
   beforeCount: number
   authorUserId: number | null
   authorUsername: string
@@ -40,7 +40,7 @@ function toPost(row: {
   return {
     id: row.id,
     threadId: row.threadId,
-    forumId: row.forumId,
+    communityId: row.communityId,
     number: Number(row.beforeCount) + 1,
     authorUserId: row.authorUserId,
     authorUsername: row.authorUsername,
@@ -145,7 +145,7 @@ export class PostgresPostRepository implements PostRepository {
       .select({
         id: posts.id,
         threadId: posts.threadId,
-        forumId: posts.forumId,
+        communityId: posts.communityId,
         beforeCount,
         authorUserId: posts.authorUserId,
         authorUsername: posts.authorUsername,

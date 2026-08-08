@@ -6,7 +6,7 @@ import { UserRef } from '../shared'
  * The newest threads, as a log.
  *
  * Midnight renders listings as rows of monospace rather than as cards, and this
- * panel is the same idea at one line per thread: title, then the forum and the
+ * panel is the same idea at one line per thread: title, then the community and the
  * author in the muted colour, then the time. No excerpt and no reply count —
  * the point of a log is that the lines are the same shape, and a wrapped one
  * breaks the column this theme is made of.
@@ -36,8 +36,8 @@ export function LatestThreads({ threads, capturedAt }: LatestThreadsModel) {
               </a>
               <span className="text-muted-foreground">
                 {' · '}
-                <a href={thread.forum.href} className="hover:text-foreground">
-                  {thread.forum.label}
+                <a href={thread.community.href} className="hover:text-foreground">
+                  {thread.community.label}
                 </a>
                 {' · '}
                 <UserRef user={thread.author} className="hover:text-foreground" />

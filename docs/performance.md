@@ -8,7 +8,7 @@
   Regenerate with `pnpm perf:docs`; `pnpm verify` fails when this is stale.
 -->
 
-The p95 budgets for the pages a forum’s traffic actually goes to, and what
+The p95 budgets for the pages a board’s traffic actually goes to, and what
 the last recorded run measured against a full-scale board.
 
 ## The board these numbers came from
@@ -34,8 +34,8 @@ page costs more than a first page. Compare ratios, not milliseconds.
 |---|---:|---|---:|---:|---:|---:|
 | Thread, page 1 | 50 ms | target | 3.3 ms | 1.8 ms | 10.3 ms | 7% |
 | Thread, deep page | 60 ms | target | 4.7 ms | 3.6 ms | 7.1 ms | 8% |
-| Forum, page 1 | 50 ms | target | 6.2 ms | 4.7 ms | 8.4 ms | 12% |
-| Forum, deep page | 60 ms | target | 5.0 ms | 3.6 ms | 6.5 ms | 8% |
+| Community, page 1 | 50 ms | target | 6.2 ms | 4.7 ms | 8.4 ms | 12% |
+| Community, deep page | 60 ms | target | 5.0 ms | 3.6 ms | 6.5 ms | 8% |
 | Board index | 80 ms | target | 1.6 ms | 1.2 ms | 3.1 ms | 2% |
 | Permission filter | 40 ms | target | 5.9 ms | 3.6 ms | 6.6 ms | 15% |
 | Latest threads | 150 ms | target | 44.3 ms | 31.7 ms | 47.6 ms | 30% |
@@ -56,15 +56,15 @@ onto a sequential scan of the largest table on the board. Nothing errors.
 
 | Page | Index | Used | Warm |
 |---|---|---|---:|
-| Forum listing, as a member | `threads_forum_listing_idx` | yes | 2.7 ms |
-| Forum listing, as a moderator | `threads_forum_listing_all_idx` | yes | 2.9 ms |
+| Community listing, as a member | `threads_community_listing_idx` | yes | 2.7 ms |
+| Community listing, as a moderator | `threads_community_listing_all_idx` | yes | 2.9 ms |
 | Thread page, as a member | `posts_thread_visible_idx` | yes | 0.0 ms |
 | Thread page, as a moderator | `posts_thread_all_idx` | yes | 0.0 ms |
-| Moderation queue | `posts_forum_visibility_idx` | yes | 1.2 ms |
+| Moderation queue | `posts_community_visibility_idx` | yes | 1.2 ms |
 
 Each partial index has an unfiltered twin, and the twins are checked too. A
 moderator seeing unapproved and deleted content *cannot* use the partial
-index — their predicate does not imply it — so without the twin their forum
+index — their predicate does not imply it — so without the twin their community
 view is a sequential scan. That failure is invisible to every test written
 from a member’s point of view, which is most of them.
 
@@ -74,7 +74,7 @@ from a member’s point of view, which is most of them.
 
 `thread-page-first` — listThread(limit 20) on a long thread.
 
-The single most requested page on any forum. Everything else is rounding.
+The single most requested page on any community. Everything else is rounding.
 
 ### Thread, deep page
 
@@ -82,35 +82,35 @@ The single most requested page on any forum. Everything else is rounding.
 
 The keyset claim. Under OFFSET this degrades with depth; it must not.
 
-### Forum, page 1
+### Community, page 1
 
-`forum-page-first` — listForum(limit 20) on the busiest forum.
+`community-page-first` — listCommunity(limit 20) on the busiest community.
 
 Sticky-first ordering over the largest thread set on the board.
 
-### Forum, deep page
+### Community, deep page
 
-`forum-page-deep` — listForum(after cursor) deep into the busiest forum.
+`community-page-deep` — listCommunity(after cursor) deep into the busiest community.
 
 Same keyset claim on the other axis, and the one an archive crawler hits.
 
 ### Board index
 
-`board-index` — listListing() — every forum with its counters and last post.
+`board-index` — listListing() — every community with its counters and last post.
 
 One query for the whole tree, and the page every visitor lands on.
 
 ### Permission filter
 
-`visible-forums` — forumIdsWhere(actor, thread.view).
+`visible-communities` — communityIdsWhere(actor, thread.view).
 
 Every list page pays this before it reads anything, so its cost multiplies.
 
 ### Latest threads
 
-`discovery-latest` — Discovery page 1, scoped to visible forums.
+`discovery-latest` — Discovery page 1, scoped to visible communities.
 
-Ordered across the whole board rather than within one forum — the widest scan, and the most run-to-run variance of anything here. It was budgeted at 80ms against a typical p95 near 50, which is 1.6× and breaks the 2–3× rule stated at the top of this file; it duly went red on a noisy run at 110ms with a 621ms outlier. Raised to 150ms — not to make it pass, but because the original number was set tighter than the methodology the rest of the table follows.
+Ordered across the whole board rather than within one community — the widest scan, and the most run-to-run variance of anything here. It was budgeted at 80ms against a typical p95 near 50, which is 1.6× and breaks the 2–3× rule stated at the top of this file; it duly went red on a noisy run at 110ms with a 621ms outlier. Raised to 150ms — not to make it pass, but because the original number was set tighter than the methodology the rest of the table follows.
 
 ### Search, near-universal term
 

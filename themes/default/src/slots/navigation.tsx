@@ -12,10 +12,10 @@ import { MUTED_LINK, PAGE } from '../shared'
  *
  * ## The trail scrolls rather than wrapping
  *
- * A thread four forums deep has a crumb ending in a thread title somebody wrote,
+ * A thread four communities deep has a crumb ending in a thread title somebody wrote,
  * and thread titles are unbounded. Wrapped, that trail is three lines of small
  * grey text above every post on the page. Scrolled, it is one line, and the crumb
- * a reader wants — the forum they came from — is at the left where they left it.
+ * a reader wants — the community they came from — is at the left where they left it.
  *
  * The separator is a `<span aria-hidden>` rather than a CSS `::before`, because
  * generated content is announced by some screen readers and not others, and

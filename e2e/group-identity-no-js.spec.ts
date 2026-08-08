@@ -24,7 +24,7 @@ import { expect, test, type Page } from '@playwright/test'
  */
 test.use({ javaScriptEnabled: false })
 
-const THREAD = '/thread/4-welcome-to-the-forum'
+const THREAD = '/thread/4-welcome-to-the-community'
 
 /** The seeded group's light colour, resolved by the browser to `rgb(...)`. */
 const LIGHT = 'oklch(0.45 0.13 155)'
@@ -156,7 +156,7 @@ test("the group's title, badge and reputation are in the postbit", async ({ page
  * listing.
  */
 test('the same member is the same colour in a listing', async ({ page }) => {
-  await page.goto('/forum/100-announcements')
+  await page.goto('/community/100-announcements')
 
   const started = page.getByRole('link', { name: 'admin', exact: true }).first()
   await expect(started).toBeVisible()

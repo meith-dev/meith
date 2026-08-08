@@ -6,11 +6,11 @@ import { Counts, LINK, Prefix, ReadSpacer, Stamp, UnreadDot, UserRef } from '../
 /**
  * One thread in a listing (F30).
  *
- * The same column shape as `ForumRow`, on purpose: a member moves from the
- * index into a forum and the columns do not move under them. Markers, subject,
+ * The same column shape as `CommunityRow`, on purpose: a member moves from the
+ * index into a community and the columns do not move under them. Markers, subject,
  * counters, then the last reply — and the markers are a column of their own at
  * every width, so a row that stacks on a phone keeps its three lines on one
- * left edge. See `ForumRow` for what that was fixing.
+ * left edge. See `CommunityRow` for what that was fixing.
  *
  * ## The states a thread can be in are all rendered, and all in words
  *

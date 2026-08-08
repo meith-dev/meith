@@ -3,7 +3,7 @@
  *
  * Four things about this file are the feature.
  *
- * **The permission filter is in the query, not around it.** The visible forum
+ * **The permission filter is in the query, not around it.** The visible community
  * ids go into the `where` clause. Fetching a page and filtering it afterwards
  * would be wrong twice over: the page would come back short — twenty hits
  * becoming three — and the *cursor* would be computed from rows the viewer
@@ -141,16 +141,16 @@ export class PostgresSearchRepository {
 
     /* Narrowing only: a caller cannot widen its own scope by asking. */
     const allowed =
-      query.forumIds === undefined
-        ? scope.forumIds
-        : scope.forumIds.filter((id) => query.forumIds!.includes(id))
+      query.communityIds === undefined
+        ? scope.communityIds
+        : scope.communityIds.filter((id) => query.communityIds!.includes(id))
 
     /*
      * The short-circuit that makes the permission model safe by construction:
-     * no visible forums means no results, without a query running at all.
+     * no visible communities means no results, without a query running at all.
      *
      * One guard rather than two. An earlier version also checked
-     * `scope.forumIds.length === 0` above, which reads as defensive and is
+     * `scope.communityIds.length === 0` above, which reads as defensive and is
      * unprovable — this line already covers it, and no mutation of the first
      * check could fail a test. A guard that cannot be shown to matter is one
      * the next reader will trust for the wrong reason.
@@ -158,7 +158,7 @@ export class PostgresSearchRepository {
     if (allowed.length === 0) return { hits: [], nextCursor: null }
 
     const conditions: SQL[] = [
-      sql`p.forum_id in (${sql.join(allowed.map((id) => sql`${id}`), sql`, `)})`,
+      sql`p.community_id in (${sql.join(allowed.map((id) => sql`${id}`), sql`, `)})`,
       sql`p.search_vector @@ websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms})`,
     ]
 
@@ -252,7 +252,7 @@ export class PostgresSearchRepository {
      * bug. Measured at 140ms against the 5.5s it replaces.
      */
     const ranked = sql`
-      select p.id as post_id, p.thread_id, p.forum_id,
+      select p.id as post_id, p.thread_id, p.community_id,
              t.title as thread_title, t.slug as thread_slug,
              p.author_user_id, p.author_username, p.created_at, p.message,
              ${rank} as rank
@@ -267,7 +267,7 @@ export class PostgresSearchRepository {
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select post_id, thread_id, forum_id, thread_title, thread_slug,
+        select post_id, thread_id, community_id, thread_title, thread_slug,
                author_user_id, author_username, created_at, rank,
                ts_headline(${SEARCH_CONFIG}, message,
                            websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms}),
@@ -281,7 +281,7 @@ export class PostgresSearchRepository {
     const hits: SearchHit[] = rows.map((row) => ({
       postId: Number(row.post_id),
       threadId: Number(row.thread_id),
-      forumId: Number(row.forum_id),
+      communityId: Number(row.community_id),
       threadTitle: String(row.thread_title),
       threadSlug: String(row.thread_slug),
       authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),

@@ -82,11 +82,11 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
         private: true,
         type: 'module',
         scripts: {
-          dev: 'forum-web dev',
-          build: 'forum-web build',
-          start: 'forum-web start',
-          /* The operator CLI: migrations, users, forums, settings, tasks (F13). */
-          forum: 'forum',
+          dev: 'community-web dev',
+          build: 'community-web build',
+          start: 'community-web start',
+          /* The operator CLI: migrations, users, communities, settings, tasks (F13). */
+          community: 'community',
         },
         dependencies: {
           '@meith/web': version,
@@ -101,7 +101,7 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
   )
 
   files.set(
-    'forum.config.ts',
+    'community.config.ts',
     `/**
  * The board's build-time registry.
  *
@@ -113,7 +113,7 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
  *
  * Adding a theme or a plugin is: \`npm install\` it, add a line here, redeploy.
  */
-import { defineForumConfig } from '@meith/web/config'
+import { defineCommunityConfig } from '@meith/web/config'
 import {
   BROWSER_THEME_COLOR,
   DARK_TOKENS,
@@ -121,7 +121,7 @@ import {
   LIGHT_TOKENS,
 } from '@meith/theme-default'
 
-export default defineForumConfig({
+export default defineCommunityConfig({
   themes: {
     default: {
       key: 'default',
@@ -217,7 +217,7 @@ APP_URL=
     'README.md',
     `# ${name}
 
-A forum, built on [Meith](${repositoryUrl}).
+A community, built on [Meith](${repositoryUrl}).
 
 ## Deploy
 
@@ -243,7 +243,7 @@ Two things nothing configures for you:
   written to the log and delivered to nobody, so password reset fails silently.
 - **The tick.** It runs in the worker process, which the compose file starts
   beside the web server. Deploy this some other way and something has to run
-  \`forum task:run\` every minute, or nothing catches up and nothing errors.
+  \`community task:run\` every minute, or nothing catches up and nothing errors.
 
 ## Local
 
@@ -257,26 +257,26 @@ With no \`DATABASE_URL\`, the board runs on deterministic in-memory sample data 
 enough to click through every reading surface. Posting needs a database:
 
 \`\`\`sh
-npm run forum -- migrate
-npm run forum -- user:create --admin
+npm run community -- migrate
+npm run community -- user:create --admin
 \`\`\`
 
 ## Configuring
 
-- **\`forum.config.ts\`** — installed themes and plugins. Everything installable
+- **\`community.config.ts\`** — installed themes and plugins. Everything installable
   is named here so the bundler can see it; nothing is found by scanning a
   directory at runtime.
-- **\`/admin\`** — settings, forums, groups, members, themes, maintenance. An
+- **\`/admin\`** — settings, communities, groups, members, themes, maintenance. An
   administrator re-enters their password to get in, and again for anything
   destructive.
-- **\`npm run forum -- --help\`** — the operator CLI. Everything the panel does
+- **\`npm run community -- --help\`** — the operator CLI. Everything the panel does
   and a few things it cannot, without a browser.
 
 ## Upgrading
 
 \`\`\`sh
 npm install @meith/web@latest @meith/cli@latest
-npm run forum -- upgrade
+npm run community -- upgrade
 \`\`\`
 
 Migrations are forward-only. Recovery is by restore, so take a backup first —

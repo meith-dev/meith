@@ -7,28 +7,28 @@
  * that has only ever been run against a hand-built three-row fixture proves
  * nothing about a board with a real tree in it.
  */
-import { PostgresForumRepository, schema } from '@meith/db'
+import { PostgresCommunityRepository, schema } from '@meith/db'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
-import { buildTree, flattenTree } from '@meith/forums'
+import { buildTree, flattenTree } from '@meith/communities'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { expectQueryBudget, measureQueries } from './query-budget'
 import { SMOKE_SCALE, seedBoard } from './seed'
 
 let harness: TestDb
-let repo: PostgresForumRepository
+let repo: PostgresCommunityRepository
 
 beforeAll(async () => {
   harness = await createTestDb()
   await seedBoard(harness.db, SMOKE_SCALE)
-  repo = new PostgresForumRepository(harness.db)
+  repo = new PostgresCommunityRepository(harness.db)
 }, 60_000)
 
 afterAll(async () => {
   await harness.close()
 })
 
-describe('forum tree reads (F16)', () => {
+describe('community tree reads (F16)', () => {
   /*
    * F16's acceptance says "tree read is one query regardless of depth". Until
    * now that was asserted by reading the code. This measures it, against a tree
@@ -39,7 +39,7 @@ describe('forum tree reads (F16)', () => {
     const { value, count } = await measureQueries(harness, () => repo.listAll())
 
     expect(count).toBe(1)
-    expect(value.length).toBe(SMOKE_SCALE.forums + SMOKE_SCALE.categories)
+    expect(value.length).toBe(SMOKE_SCALE.communities + SMOKE_SCALE.categories)
 
     // And the tree really is deep enough for that claim to mean something.
     const depth = Math.max(...value.map((f) => f.depth))
@@ -55,7 +55,7 @@ describe('forum tree reads (F16)', () => {
     })
   })
 
-  it('costs one query per forum lookup, so callers know to use the cache', async () => {
+  it('costs one query per community lookup, so callers know to use the cache', async () => {
     const rows = await repo.listAll()
     const ids = rows.slice(0, 5).map((r) => r.id)
 
@@ -65,7 +65,7 @@ describe('forum tree reads (F16)', () => {
 
     /*
      * Deliberately asserting the *un*cached cost. This is why
-     * CachedForumRepository serves findById from the cached tree rather than
+     * CachedCommunityRepository serves findById from the cached tree rather than
      * its own query — five lookups here are five round trips, and a board index
      * doing this per row is the classic N+1.
      */
@@ -73,11 +73,11 @@ describe('forum tree reads (F16)', () => {
   })
 })
 
-describe('moving a forum', () => {
+describe('moving a community', () => {
   it('stays within a fixed budget regardless of subtree size', async () => {
     const rows = await repo.listAll()
     const category = rows.find((r) => r.type === 'category')
-    const movable = rows.find((r) => r.type === 'forum' && r.parentId !== category?.id)
+    const movable = rows.find((r) => r.type === 'community' && r.parentId !== category?.id)
 
     expect(movable).toBeDefined()
 
@@ -93,11 +93,11 @@ describe('moving a forum', () => {
 })
 
 describe('the seeded board is big enough to mean something', () => {
-  it('has more forums than a naive implementation has queries to spare', async () => {
-    const forums = await harness.db.select({ id: schema.forums.id }).from(schema.forums)
+  it('has more communities than a naive implementation has queries to spare', async () => {
+    const communities = await harness.db.select({ id: schema.communities.id }).from(schema.communities)
 
     // If this ever shrinks below ~10, an N+1 would fit inside a plausible
     // budget and the assertions above would stop catching anything.
-    expect(forums.length).toBeGreaterThanOrEqual(10)
+    expect(communities.length).toBeGreaterThanOrEqual(10)
   })
 })

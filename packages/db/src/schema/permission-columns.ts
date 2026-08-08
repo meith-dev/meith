@@ -1,11 +1,11 @@
 /**
- * Generates the permission columns for `usergroups` and `forum_permissions`
+ * Generates the permission columns for `usergroups` and `community_permissions`
  * from the single registry in `@meith/core`.
  *
  * The two tables carry the same field list with different nullability:
  *
  *   - `usergroups`        — NOT NULL with a default. A group always has an answer.
- *   - `forum_permissions` — every column NULLABLE, where NULL means "inherit"
+ *   - `community_permissions` — every column NULLABLE, where NULL means "inherit"
  *                           (R4.1 layer 2). Resolution walks the ancestor chain
  *                           and takes the first non-NULL.
  *
@@ -49,15 +49,15 @@ export function groupPermissionColumns() {
 }
 
 /**
- * NULLABLE permission columns for `forum_permissions`, restricted to fields
- * whose scope is 'forum'. A global-only field such as `canUsePrivateMessages`
- * has no meaning attached to a single forum, and allowing it to be set there
+ * NULLABLE permission columns for `community_permissions`, restricted to fields
+ * whose scope is 'community'. A global-only field such as `canUsePrivateMessages`
+ * has no meaning attached to a single community, and allowing it to be set there
  * would create a value that the resolver must then decide to ignore.
  */
-export function forumPermissionColumns() {
+export function communityPermissionColumns() {
   const out: Record<string, ReturnType<typeof declare>> = {}
   for (const field of PERMISSION_FIELDS) {
-    if ((field.scope satisfies PermissionScope) !== 'forum') continue
+    if ((field.scope satisfies PermissionScope) !== 'community') continue
     out[field.key] = declare(field, true)
   }
   return out

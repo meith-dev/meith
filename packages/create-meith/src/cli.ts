@@ -46,11 +46,11 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
     return {
       code: 0,
       lines: [
-        'create-meith — scaffold a forum project.',
+        'create-meith — scaffold a community project.',
         '',
         '  npx create-meith <name> [--repo <url>]',
         '',
-        'Writes package.json, forum.config.ts, .env.example, .gitignore and',
+        'Writes package.json, community.config.ts, .env.example, .gitignore and',
         'README.md into ./<name>, then tells you what to run.',
       ],
     }
@@ -92,7 +92,7 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
       '',
       'Then set DATABASE_URL, AUTH_SECRET and TICK_SECRET and deploy.',
       'Something must run the tick every minute — the worker process, or',
-      '`forum task:run`. Without it nothing catches up, and nothing errors.',
+      '`community task:run`. Without it nothing catches up, and nothing errors.',
     ],
   }
 }

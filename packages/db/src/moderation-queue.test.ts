@@ -15,14 +15,14 @@ import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresModerationQueueRepository } from './moderation-queue'
 import { resultRows } from './result-rows'
-import { forums, users } from './schema'
+import { communities, users } from './schema'
 
 let harness: TestDb
 let db: Database
 let repo: PostgresModerationQueueRepository
 
 const CATEGORY = 1
-const FORUM = 4
+const COMMUNITY = 4
 const OTHER = 5
 const AUTHOR = 1
 const MODERATOR = 2
@@ -44,7 +44,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from outbox`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values([
@@ -69,26 +69,26 @@ beforeEach(async () => {
       primaryGroupId: 2,
     },
   ])
-  await db.insert(forums).values([
+  await db.insert(communities).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: COMMUNITY, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
     { id: OTHER, title: 'Elsewhere', slug: 'elsewhere', path: '1.5', depth: 1, parentId: CATEGORY },
   ])
 })
 
 /** A held thread, exactly as F39 writes one: thread and opening post both held. */
-async function heldThread(id: number, forumId = FORUM, at = AT): Promise<number> {
+async function heldThread(id: number, communityId = COMMUNITY, at = AT): Promise<number> {
   const postId = id * 10
   await db.execute(sql`
-    insert into threads (id, forum_id, title, slug, author_user_id, author_username,
+    insert into threads (id, community_id, title, slug, author_user_id, author_username,
                          visibility, first_post_id, last_post_at, created_at, updated_at)
-    values (${id}, ${forumId}, ${'Held ' + String(id)}, ${'held-' + String(id)},
+    values (${id}, ${communityId}, ${'Held ' + String(id)}, ${'held-' + String(id)},
             ${AUTHOR}, 'ada', 'unapproved', ${postId}, ${at}, ${at}, ${at})
   `)
   await db.execute(sql`
-    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+    insert into posts (id, thread_id, community_id, author_user_id, author_username,
                        message, visibility, is_first_post, created_at)
-    values (${postId}, ${id}, ${forumId}, ${AUTHOR}, 'ada', ${'body ' + String(id)},
+    values (${postId}, ${id}, ${communityId}, ${AUTHOR}, 'ada', ${'body ' + String(id)},
             'unapproved', true, ${at})
   `)
   return postId
@@ -97,23 +97,23 @@ async function heldThread(id: number, forumId = FORUM, at = AT): Promise<number>
 /** A visible thread with one held reply. */
 async function heldReply(threadId: number, postId: number, at = AT): Promise<void> {
   await db.execute(sql`
-    insert into threads (id, forum_id, title, slug, author_user_id, author_username,
+    insert into threads (id, community_id, title, slug, author_user_id, author_username,
                          visibility, first_post_id, last_post_at, created_at, updated_at)
-    values (${threadId}, ${FORUM}, ${'Open ' + String(threadId)},
+    values (${threadId}, ${COMMUNITY}, ${'Open ' + String(threadId)},
             ${'open-' + String(threadId)}, ${AUTHOR}, 'ada', 'visible', null,
             ${at}, ${at}, ${at})
   `)
   await db.execute(sql`
-    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+    insert into posts (id, thread_id, community_id, author_user_id, author_username,
                        message, visibility, is_first_post, created_at)
-    values (${postId}, ${threadId}, ${FORUM}, ${AUTHOR}, 'ada', 'a reply',
+    values (${postId}, ${threadId}, ${COMMUNITY}, ${AUTHOR}, 'ada', 'a reply',
             'unapproved', false, ${at})
   `)
 }
 
-async function forumCounts(id: number): Promise<{ posts: number; threads: number }> {
+async function communityCounts(id: number): Promise<{ posts: number; threads: number }> {
   const rows = resultRows(
-    await db.execute(sql`select post_count, thread_count from forums where id = ${id}`),
+    await db.execute(sql`select post_count, thread_count from communities where id = ${id}`),
   ) as Array<{ post_count: number; thread_count: number }>
   return { posts: Number(rows[0]!.post_count), threads: Number(rows[0]!.thread_count) }
 }
@@ -129,17 +129,17 @@ async function stateOf(table: 'threads' | 'posts', id: number): Promise<string> 
 
 describe('the queue read', () => {
   it('returns held threads and held replies in one page, oldest first', async () => {
-    await heldThread(100, FORUM, new Date('2026-07-30T09:00:00Z'))
+    await heldThread(100, COMMUNITY, new Date('2026-07-30T09:00:00Z'))
     await heldReply(200, 2000, new Date('2026-07-30T10:00:00Z'))
 
-    const page = await repo.list([FORUM], { limit: 10 })
+    const page = await repo.list([COMMUNITY], { limit: 10 })
 
     expect(page.items.map((i) => [i.kind, i.id])).toEqual([
       ['thread', 100],
       ['post', 2000],
     ])
     expect(page.items[0]).toMatchObject({
-      forumTitle: 'General',
+      communityTitle: 'General',
       threadTitle: 'Held 100',
       authorUsername: 'ada',
       excerpt: 'body 100',
@@ -154,51 +154,51 @@ describe('the queue read', () => {
   it('does not list a reply whose thread is itself waiting', async () => {
     await heldThread(100)
     await db.execute(sql`
-      insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+      insert into posts (id, thread_id, community_id, author_user_id, author_username,
                          message, visibility, is_first_post, created_at)
-      values (999, 100, ${FORUM}, ${AUTHOR}, 'ada', 'later', 'unapproved', false, ${AT})
+      values (999, 100, ${COMMUNITY}, ${AUTHOR}, 'ada', 'later', 'unapproved', false, ${AT})
     `)
 
-    const page = await repo.list([FORUM], { limit: 10 })
+    const page = await repo.list([COMMUNITY], { limit: 10 })
     expect(page.items.map((i) => i.id)).toEqual([100])
   })
 
-  it('shows only the forums it was asked about', async () => {
-    await heldThread(100, FORUM)
+  it('shows only the communities it was asked about', async () => {
+    await heldThread(100, COMMUNITY)
     await heldThread(101, OTHER)
 
-    expect((await repo.list([FORUM], { limit: 10 })).items.map((i) => i.id)).toEqual([100])
-    expect(await repo.countPending([FORUM])).toBe(1)
-    expect(await repo.countPending([FORUM, OTHER])).toBe(2)
+    expect((await repo.list([COMMUNITY], { limit: 10 })).items.map((i) => i.id)).toEqual([100])
+    expect(await repo.countPending([COMMUNITY])).toBe(1)
+    expect(await repo.countPending([COMMUNITY, OTHER])).toBe(2)
   })
 
   it('pages with a cursor that survives items being handled above it', async () => {
     for (let n = 0; n < 4; n += 1) {
-      await heldThread(100 + n, FORUM, new Date(AT.getTime() + n * 60_000))
+      await heldThread(100 + n, COMMUNITY, new Date(AT.getTime() + n * 60_000))
     }
 
-    const first = await repo.list([FORUM], { limit: 2 })
+    const first = await repo.list([COMMUNITY], { limit: 2 })
     expect(first.items.map((i) => i.id)).toEqual([100, 101])
     expect(first.nextCursor).toBeDefined()
 
     /* Somebody clears the first page while the moderator is on the second. */
     await db.execute(sql`update threads set visibility = 'visible' where id in (100, 101)`)
 
-    const second = await repo.list([FORUM], { limit: 2, after: first.nextCursor! })
+    const second = await repo.list([COMMUNITY], { limit: 2, after: first.nextCursor! })
     expect(second.items.map((i) => i.id)).toEqual([102, 103])
     expect(second.nextCursor).toBeUndefined()
   })
 
   it('treats a corrupt cursor as no cursor rather than failing the page', async () => {
     await heldThread(100)
-    const page = await repo.list([FORUM], { limit: 10, after: 'not-a-cursor' })
+    const page = await repo.list([COMMUNITY], { limit: 10, after: 'not-a-cursor' })
     expect(page.items.map((i) => i.id)).toEqual([100])
   })
 })
 
 describe('resolve', () => {
-  it('returns the forum each selected item is really in', async () => {
-    await heldThread(100, FORUM)
+  it('returns the community each selected item is really in', async () => {
+    await heldThread(100, COMMUNITY)
     await heldThread(101, OTHER)
 
     const resolved = await repo.resolve([
@@ -207,8 +207,8 @@ describe('resolve', () => {
     ])
 
     expect(resolved).toEqual([
-      { kind: 'thread', id: 100, forumId: FORUM },
-      { kind: 'thread', id: 101, forumId: OTHER },
+      { kind: 'thread', id: 100, communityId: COMMUNITY },
+      { kind: 'thread', id: 101, communityId: OTHER },
     ])
   })
 
@@ -245,7 +245,7 @@ describe('approving', () => {
    */
   it('applies the counters creating it would have', async () => {
     await heldThread(100)
-    expect(await forumCounts(FORUM)).toEqual({ posts: 0, threads: 0 })
+    expect(await communityCounts(COMMUNITY)).toEqual({ posts: 0, threads: 0 })
 
     await repo.apply({
       decision: 'approve',
@@ -255,7 +255,7 @@ describe('approving', () => {
       at: AT,
     })
 
-    expect(await forumCounts(FORUM)).toEqual({ posts: 1, threads: 1 })
+    expect(await communityCounts(COMMUNITY)).toEqual({ posts: 1, threads: 1 })
     const author = resultRows(
       await db.execute(sql`select post_count, thread_count from users where id = ${AUTHOR}`),
     ) as Array<{ post_count: number; thread_count: number }>
@@ -265,7 +265,7 @@ describe('approving', () => {
 
   it('raises a reply"s post count without touching the thread count', async () => {
     await heldReply(200, 2000)
-    const before = await forumCounts(FORUM)
+    const before = await communityCounts(COMMUNITY)
 
     await repo.apply({
       decision: 'approve',
@@ -275,7 +275,7 @@ describe('approving', () => {
       at: AT,
     })
 
-    expect(await forumCounts(FORUM)).toEqual({
+    expect(await communityCounts(COMMUNITY)).toEqual({
       posts: before.posts + 1,
       threads: before.threads,
     })
@@ -290,7 +290,7 @@ describe('approving', () => {
       actorUserId: MODERATOR,
       at: AT,
     })
-    const after = await forumCounts(FORUM)
+    const after = await communityCounts(COMMUNITY)
 
     expect(
       await repo.apply({
@@ -301,7 +301,7 @@ describe('approving', () => {
         at: AT,
       }),
     ).toBe(0)
-    expect(await forumCounts(FORUM)).toEqual(after)
+    expect(await communityCounts(COMMUNITY)).toEqual(after)
   })
 })
 
@@ -329,7 +329,7 @@ describe('rejecting', () => {
   it('moves no counter, because held content was never counted', async () => {
     await heldThread(100)
     await heldReply(200, 2000)
-    const before = await forumCounts(FORUM)
+    const before = await communityCounts(COMMUNITY)
 
     await repo.apply({
       decision: 'reject',
@@ -339,7 +339,7 @@ describe('rejecting', () => {
       at: AT,
     })
 
-    expect(await forumCounts(FORUM)).toEqual(before)
+    expect(await communityCounts(COMMUNITY)).toEqual(before)
   })
 })
 
@@ -380,12 +380,12 @@ describe('the audit trail', () => {
 
 describe('through the command', () => {
   /*
-   * The end-to-end shape: a selection arrives, the forums are re-read, and only
-   * the items in a moderated forum move. This is the check that the ids in a
+   * The end-to-end shape: a selection arrives, the communities are re-read, and only
+   * the items in a moderated community move. This is the check that the ids in a
    * POST body buy a permission check rather than a bypass.
    */
-  it('acts only on the forums the actor moderates', async () => {
-    await heldThread(100, FORUM)
+  it('acts only on the communities the actor moderates', async () => {
+    await heldThread(100, COMMUNITY)
     await heldThread(101, OTHER)
     const queue = new ModerationQueue({ queue: repo, now: () => AT })
 
@@ -395,7 +395,7 @@ describe('through the command', () => {
         { kind: 'thread', id: 101 },
       ],
       decision: 'approve',
-      moderatedForumIds: new Set([FORUM]),
+      moderatedCommunityIds: new Set([COMMUNITY]),
       actorUserId: MODERATOR,
     })
 

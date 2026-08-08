@@ -18,7 +18,7 @@
  *
  * ## Why a plan, rather than just doing it
  *
- * The plan is computed first and returned. `forum upgrade --dry-run` prints it,
+ * The plan is computed first and returned. `community upgrade --dry-run` prints it,
  * the ACP notice counts it, and the runner executes it — one description of what
  * will happen, rather than a command whose behaviour can only be discovered by
  * letting it loose on a production database.
@@ -287,6 +287,6 @@ export function upgradeNotice(plan: UpgradePlan, state: UpgradeState): string | 
     `An upgrade is pending: the database is at ${state.recordedVersion} and this deployment ` +
     `is ${state.codeVersion}` +
     (migrations > 0 ? `, with ${migrations} migration(s) to apply` : '') +
-    '. Run `forum upgrade`.'
+    '. Run `community upgrade`.'
   )
 }

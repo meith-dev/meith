@@ -3,7 +3,7 @@
  *
  * Iris is reference code and is not registered on this repository's board, so
  * the app's rendering-contract and contrast suites — which read the theme list
- * out of `forum.config.ts` — do not see it. A board that installs it enrols it
+ * out of `community.config.ts` — do not see it. A board that installs it enrols it
  * in both automatically. Until then this file is its coverage: the contract is
  * asserted directly, and the rest is the shape iris claims for itself.
  */

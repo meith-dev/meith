@@ -171,14 +171,14 @@ export const referencePlugin = definePlugin({
      * Observed and returned unchanged, deliberately.
      *
      * Every other shell filter here appends a link, and the temptation is to
-     * append an option. A jump-box option is a *forum id* the route
-     * re-authorises — a plugin adding one either names a real forum, which the
+     * append an option. A jump-box option is a *community id* the route
+     * re-authorises — a plugin adding one either names a real community, which the
      * board already lists, or names a fake one and the member gets a 404 for
      * their trouble. Demonstrating the hook does not require demonstrating a
      * bad idea.
      */
-    'view.forum-jump': (value) => {
-      record('view.forum-jump', value)
+    'view.community-jump': (value) => {
+      record('view.community-jump', value)
       return value
     },
 
@@ -193,8 +193,8 @@ export const referencePlugin = definePlugin({
       record('view.board-index', value)
       return value
     },
-    'view.forum-row': (value) => {
-      record('view.forum-row', value)
+    'view.community-row': (value) => {
+      record('view.community-row', value)
       return value
     },
     'view.board-stats': (value) => {
@@ -214,17 +214,17 @@ export const referencePlugin = definePlugin({
       return value
     },
 
-    /* ---- Forum and thread (F30/F31) ---- */
-    'view.forum-display': (value) => {
-      record('view.forum-display', value)
+    /* ---- Community and thread (F30/F31) ---- */
+    'view.community-display': (value) => {
+      record('view.community-display', value)
       return value
     },
     'view.thread-row': (value) => {
       record('view.thread-row', value)
       return value
     },
-    'view.subforum-list': (value) => {
-      record('view.subforum-list', value)
+    'view.subcommunity-list': (value) => {
+      record('view.subcommunity-list', value)
       return value
     },
     'view.pagination': (value) => {

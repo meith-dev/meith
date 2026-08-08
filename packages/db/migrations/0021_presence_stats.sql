@@ -18,8 +18,8 @@
 -- ## Why the totals are a rollup and the record is not
 --
 -- `thread_count`, `post_count` and `member_count` are recomputed by a scheduled
--- task. F38's counters already do the incremental work per forum and per user,
--- so summing the forum table is cheap — but `member_count` is a count of
+-- task. F38's counters already do the incremental work per community and per user,
+-- so summing the community table is cheap — but `member_count` is a count of
 -- `users`, and that is not free at two hundred thousand accounts. The page shows
 -- `computed_at` rather than implying "now": a number that is ten minutes old and
 -- says so beats one that is exact and costs a sequential scan per page view.

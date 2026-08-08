@@ -6,7 +6,7 @@ import {
   ThreadComposer,
   threadSlug,
   type CreatedThread,
-  type ForumPostingRules,
+  type CommunityPostingRules,
   type NewThreadRecord,
   type ThreadWriteRepository,
 } from './compose'
@@ -54,9 +54,9 @@ class RecordingWrites implements ThreadWriteRepository {
   }
 }
 
-const FORUM: ForumPostingRules = {
+const COMMUNITY: CommunityPostingRules = {
   id: 10,
-  type: 'forum',
+  type: 'community',
   isOpen: true,
   allowThreads: true,
   allowReplies: true,
@@ -90,10 +90,10 @@ function composer(
 describe('ThreadComposer', () => {
   it('writes the thread with a derived slug and the author attached', async () => {
     const writes = new RecordingWrites()
-    const result = await composer(writes).create(INPUT, AUTHOR, FORUM)
+    const result = await composer(writes).create(INPUT, AUTHOR, COMMUNITY)
 
     expect(writes.written[0]).toMatchObject({
-      forumId: 10,
+      communityId: 10,
       title: 'A perfectly ordinary title',
       slug: 'a-perfectly-ordinary-title',
       authorUserId: 1,
@@ -108,7 +108,7 @@ describe('ThreadComposer', () => {
     const writes = new RecordingWrites()
 
     await expect(
-      composer(writes).create({ ...INPUT, message: '   \n  ' }, AUTHOR, FORUM),
+      composer(writes).create({ ...INPUT, message: '   \n  ' }, AUTHOR, COMMUNITY),
     ).rejects.toThrow(ValidationError)
     expect(writes.written).toEqual([])
   })
@@ -116,13 +116,13 @@ describe('ThreadComposer', () => {
   it.each([
     ['a category', { type: 'category' as const }],
     ['a link', { type: 'link' as const }],
-    ['a closed forum', { isOpen: false }],
-    ['a forum that takes no threads', { allowThreads: false }],
+    ['a closed community', { isOpen: false }],
+    ['a community that takes no threads', { allowThreads: false }],
   ])('refuses %s', async (_label, overrides) => {
     const writes = new RecordingWrites()
 
     await expect(
-      composer(writes).create(INPUT, AUTHOR, { ...FORUM, ...overrides }),
+      composer(writes).create(INPUT, AUTHOR, { ...COMMUNITY, ...overrides }),
     ).rejects.toThrow(ValidationError)
     expect(writes.written).toEqual([])
   })
@@ -132,10 +132,10 @@ describe('ThreadComposer', () => {
     const c = composer(writes)
 
     await expect(
-      c.create({ ...INPUT, title: 'ab' }, AUTHOR, FORUM),
+      c.create({ ...INPUT, title: 'ab' }, AUTHOR, COMMUNITY),
     ).rejects.toThrow(ValidationError)
     await expect(
-      c.create({ ...INPUT, title: 'x'.repeat(121) }, AUTHOR, FORUM),
+      c.create({ ...INPUT, title: 'x'.repeat(121) }, AUTHOR, COMMUNITY),
     ).rejects.toThrow(ValidationError)
   })
 
@@ -146,36 +146,36 @@ describe('ThreadComposer', () => {
       composer(writes, { floodSeconds: 0, maxLength: 10 }).create(
         INPUT,
         AUTHOR,
-        FORUM,
+        COMMUNITY,
       ),
     ).rejects.toThrow(/at most 10 characters/)
   })
 
   describe('prefixes', () => {
-    it('requires one when the forum does', async () => {
+    it('requires one when the community does', async () => {
       const writes = new RecordingWrites()
 
       await expect(
         composer(writes).create(INPUT, AUTHOR, {
-          ...FORUM,
+          ...COMMUNITY,
           requiresPrefix: true,
         }),
       ).rejects.toThrow(/requires a prefix/)
     })
 
-    it('refuses a prefix that is not offered in this forum', async () => {
-      // The whole point of checking against the forum's list rather than mere
+    it('refuses a prefix that is not offered in this community', async () => {
+      // The whole point of checking against the community's list rather than mere
       // existence: prefixes can be scoped to one subtree.
       const writes = new RecordingWrites(null, [7])
 
       await expect(
-        composer(writes).create({ ...INPUT, prefixId: 8 }, AUTHOR, FORUM),
-      ).rejects.toThrow(/cannot be used in this forum/)
+        composer(writes).create({ ...INPUT, prefixId: 8 }, AUTHOR, COMMUNITY),
+      ).rejects.toThrow(/cannot be used in this community/)
     })
 
     it('accepts one that is', async () => {
       const writes = new RecordingWrites(null, [7])
-      await composer(writes).create({ ...INPUT, prefixId: 7 }, AUTHOR, FORUM)
+      await composer(writes).create({ ...INPUT, prefixId: 7 }, AUTHOR, COMMUNITY)
 
       expect(writes.written[0]!.prefixId).toBe(7)
     })
@@ -193,7 +193,7 @@ describe('ThreadComposer', () => {
       await composer(writes).create(
         { ...INPUT, poll, mayPostPoll: true },
         AUTHOR,
-        FORUM,
+        COMMUNITY,
       )
       expect(writes.written[0]!.poll).toEqual({
         question: 'Choose one',
@@ -205,17 +205,17 @@ describe('ThreadComposer', () => {
         composer(writes).create(
           { ...INPUT, poll, mayPostPoll: false },
           AUTHOR,
-          FORUM,
+          COMMUNITY,
         ),
       ).rejects.toThrow(/cannot attach a poll/i)
     })
   })
 
   describe('moderation', () => {
-    it('holds the thread when the forum moderates new threads', async () => {
+    it('holds the thread when the community moderates new threads', async () => {
       const writes = new RecordingWrites()
       const result = await composer(writes).create(INPUT, AUTHOR, {
-        ...FORUM,
+        ...COMMUNITY,
         moderateNewThreads: true,
       })
 
@@ -228,7 +228,7 @@ describe('ThreadComposer', () => {
       const result = await composer(writes).create(
         { ...INPUT, bypassesModeration: true },
         AUTHOR,
-        { ...FORUM, moderateNewThreads: true },
+        { ...COMMUNITY, moderateNewThreads: true },
       )
 
       expect(result.visibility).toBe('visible')
@@ -243,7 +243,7 @@ describe('ThreadComposer', () => {
         composer(writes, { floodSeconds: 15, maxLength: 30_000 }).create(
           INPUT,
           AUTHOR,
-          FORUM,
+          COMMUNITY,
         ),
       ).rejects.toThrow(RateLimitedError)
       expect(writes.written).toEqual([])
@@ -255,7 +255,7 @@ describe('ThreadComposer', () => {
       await composer(writes, { floodSeconds: 15, maxLength: 30_000 }).create(
         INPUT,
         AUTHOR,
-        FORUM,
+        COMMUNITY,
       )
       expect(writes.written).toHaveLength(1)
     })
@@ -267,7 +267,7 @@ describe('ThreadComposer', () => {
       await composer(exempt, { floodSeconds: 15, maxLength: 30_000 }).create(
         { ...INPUT, bypassesFlood: true },
         AUTHOR,
-        FORUM,
+        COMMUNITY,
       )
       expect(exempt.written).toHaveLength(1)
 
@@ -275,7 +275,7 @@ describe('ThreadComposer', () => {
       await composer(disabled, { floodSeconds: 0, maxLength: 30_000 }).create(
         INPUT,
         AUTHOR,
-        FORUM,
+        COMMUNITY,
       )
       expect(disabled.written).toHaveLength(1)
     })
@@ -287,7 +287,7 @@ describe('ThreadComposer', () => {
         composer(writes, { floodSeconds: 15, maxLength: 30_000 }).create(
           INPUT,
           AUTHOR,
-          FORUM,
+          COMMUNITY,
         ),
       ).rejects.toThrow(/wait 3 more seconds/)
     })
@@ -320,7 +320,7 @@ describe('threadSlug', () => {
  *
  * They arrive as booleans like every other decision the caller has already
  * made, and the interesting one is that a *warning* outranks the moderation
- * bypass: `bypassesModeration` says "this forum's queue does not apply to you",
+ * bypass: `bypassesModeration` says "this community's queue does not apply to you",
  * a warning level says "your posts are reviewed", and a moderator whose own
  * bypass cancelled their sanction would be the one person it could not reach.
  */
@@ -337,25 +337,25 @@ describe('warning restrictions (F53)', () => {
           restriction: { suspended: true, moderated: false },
         },
         AUTHOR,
-        FORUM,
+        COMMUNITY,
       ),
     ).rejects.toThrow(/suspended/i)
     expect(writes.written).toEqual([])
   })
 
-  it('holds the post of a moderated author in a forum that moderates nothing', async () => {
+  it('holds the post of a moderated author in a community that moderates nothing', async () => {
     const writes = new RecordingWrites()
 
     await composer(writes).create(
       { ...INPUT, restriction: { suspended: false, moderated: true } },
       AUTHOR,
-      FORUM,
+      COMMUNITY,
     )
 
     expect(writes.written[0]).toMatchObject({ visibility: 'unapproved' })
   })
 
-  it('holds it even for an author who bypasses the forum queue', async () => {
+  it('holds it even for an author who bypasses the community queue', async () => {
     const writes = new RecordingWrites()
 
     await composer(writes).create(
@@ -365,7 +365,7 @@ describe('warning restrictions (F53)', () => {
         restriction: { suspended: false, moderated: true },
       },
       AUTHOR,
-      { ...FORUM, moderateNewThreads: true },
+      { ...COMMUNITY, moderateNewThreads: true },
     )
 
     expect(writes.written[0]).toMatchObject({ visibility: 'unapproved' })
@@ -374,11 +374,11 @@ describe('warning restrictions (F53)', () => {
   it('changes nothing when the restriction is absent or lapsed', async () => {
     const writes = new RecordingWrites()
 
-    await composer(writes).create(INPUT, AUTHOR, FORUM)
+    await composer(writes).create(INPUT, AUTHOR, COMMUNITY)
     await composer(writes).create(
       { ...INPUT, restriction: { suspended: false, moderated: false } },
       AUTHOR,
-      FORUM,
+      COMMUNITY,
     )
 
     expect(writes.written.map((w) => w.visibility)).toEqual([
@@ -389,8 +389,8 @@ describe('warning restrictions (F53)', () => {
 })
 
 /**
- * The `requiresThreadApproval` permission — the group/forum-permission route
- * into the queue, as opposed to the forum's own switch beside it.
+ * The `requiresThreadApproval` permission — the group/community-permission route
+ * into the queue, as opposed to the community's own switch beside it.
  *
  * Its own block because it was the gap the 7 August 2026 audit found: the field
  * existed, the group screen wrote it, the authorizer combined it, and no write
@@ -398,10 +398,10 @@ describe('warning restrictions (F53)', () => {
  * nothing. These tests are what makes that a failure rather than a silence.
  */
 describe('the requiresThreadApproval permission', () => {
-  it('holds a thread in a forum that does not moderate', async () => {
+  it('holds a thread in a community that does not moderate', async () => {
     const writes = new RecordingWrites()
     await composer(writes).create({ ...INPUT, requiresApproval: true }, AUTHOR, {
-      ...FORUM,
+      ...COMMUNITY,
       moderateNewThreads: false,
     })
 
@@ -411,7 +411,7 @@ describe('the requiresThreadApproval permission', () => {
   it('leaves a thread visible when the permission does not ask for approval', async () => {
     const writes = new RecordingWrites()
     await composer(writes).create({ ...INPUT, requiresApproval: false }, AUTHOR, {
-      ...FORUM,
+      ...COMMUNITY,
       moderateNewThreads: false,
     })
 
@@ -420,7 +420,7 @@ describe('the requiresThreadApproval permission', () => {
 
   /*
    * Unlike the new-member hold, this one *does* yield to an explicit moderation
-   * bypass — the same rule the forum's own flag follows, and for the same
+   * bypass — the same rule the community's own flag follows, and for the same
    * reason: an account trusted with the queue does not queue behind itself.
    */
   it('yields to an explicit moderation bypass', async () => {
@@ -428,16 +428,16 @@ describe('the requiresThreadApproval permission', () => {
     await composer(writes).create(
       { ...INPUT, requiresApproval: true, bypassesModeration: true },
       AUTHOR,
-      { ...FORUM, moderateNewThreads: false },
+      { ...COMMUNITY, moderateNewThreads: false },
     )
 
     expect(writes.written[0]?.visibility).toBe('visible')
   })
 
-  it('composes with the forum switch rather than replacing it', async () => {
+  it('composes with the community switch rather than replacing it', async () => {
     const writes = new RecordingWrites()
     await composer(writes).create({ ...INPUT, requiresApproval: false }, AUTHOR, {
-      ...FORUM,
+      ...COMMUNITY,
       moderateNewThreads: true,
     })
 
@@ -450,12 +450,12 @@ describe('the requiresThreadApproval permission', () => {
  * the *third* reason to hold a post, and the three do not obey the same bypass.
  */
 describe('holding a new member’s first posts', () => {
-  it('holds a post in a forum that does not moderate', async () => {
+  it('holds a post in a community that does not moderate', async () => {
     const writes = new RecordingWrites()
     await composer(writes).create(
       { ...INPUT, heldAsNewMember: true },
       AUTHOR,
-      { ...FORUM, moderateNewThreads: false },
+      { ...COMMUNITY, moderateNewThreads: false },
     )
 
     expect(writes.written[0]?.visibility).toBe('unapproved')
@@ -464,7 +464,7 @@ describe('holding a new member’s first posts', () => {
   it('does nothing when the board has not switched it on', async () => {
     const writes = new RecordingWrites()
     await composer(writes).create({ ...INPUT, heldAsNewMember: false }, AUTHOR, {
-      ...FORUM,
+      ...COMMUNITY,
       moderateNewThreads: false,
     })
 
@@ -481,7 +481,7 @@ describe('holding a new member’s first posts', () => {
     await composer(writes).create(
       { ...INPUT, heldAsNewMember: true, bypassesModeration: true },
       AUTHOR,
-      { ...FORUM, moderateNewThreads: true },
+      { ...COMMUNITY, moderateNewThreads: true },
     )
 
     expect(writes.written[0]?.visibility).toBe('unapproved')
@@ -493,7 +493,7 @@ describe('holding a new member’s first posts', () => {
     await composer(writes).create(
       { ...INPUT, heldAsNewMember: false, restriction: { suspended: false, moderated: true } },
       AUTHOR,
-      { ...FORUM, moderateNewThreads: false },
+      { ...COMMUNITY, moderateNewThreads: false },
     )
 
     expect(writes.written[0]?.visibility).toBe('unapproved')

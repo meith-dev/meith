@@ -3,7 +3,7 @@
  *
  * R4.2 gives three different combination rules depending on a field's *kind*,
  * and R4.1 says the same fields appear in two places: global defaults on
- * `usergroups`, and nullable per-forum overrides on `forum_permissions`. If the
+ * `usergroups`, and nullable per-community overrides on `community_permissions`. If the
  * field list were written out in each of those places it would be written three
  * times (schema, schema again, combination logic) and would drift on the first
  * feature that adds a permission.
@@ -34,10 +34,10 @@ export type PermissionKind = 'boolean' | 'numeric' | 'negative'
 
 /** Where a field may be set. */
 export type PermissionScope =
-  /** Global group default only. Meaningless per-forum (e.g. "can use PMs"). */
+  /** Global group default only. Meaningless per-community (e.g. "can use PMs"). */
   | 'global'
-  /** Both a global default and a nullable per-forum override. */
-  | 'forum'
+  /** Both a global default and a nullable per-community override. */
+  | 'community'
 
 export interface PermissionField {
   readonly key: string
@@ -57,123 +57,123 @@ export interface PermissionField {
  * moderator right. The mapping lives in `packages/authorization`.
  */
 export const PERMISSION_FIELDS = [
-  /* ---- Visibility (forum-scoped) ---- */
+  /* ---- Visibility (community-scoped) ---- */
   {
     key: 'canView',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description:
-      'See the forum exists. False makes it invisible everywhere per R4.2 — ' +
+      'See the community exists. False makes it invisible everywhere per R4.2 — ' +
       'index, jump box, search, feeds, and ancestors\u2019 last-post columns.',
   },
   {
     key: 'canViewThreads',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description:
-      'Open threads inside the forum. Separate from canView so a forum can be ' +
+      'Open threads inside the community. Separate from canView so a community can be ' +
       'listed as a teaser while its contents stay private.',
   },
   {
     key: 'canViewOthersThreads',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description:
       'See threads started by other users. False yields a "your threads only" ' +
-      'forum, used for support desks and applications.',
+      'community, used for support desks and applications.',
   },
   {
     key: 'canSearch',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
-    description: 'Include this forum in search results.',
+    description: 'Include this community in search results.',
   },
 
-  /* ---- Posting (forum-scoped) ---- */
+  /* ---- Posting (community-scoped) ---- */
   {
     key: 'canPostThreads',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Start new threads.',
   },
   {
     key: 'canPostReplies',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Reply to existing threads.',
   },
   {
     key: 'canPostPolls',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Attach a poll to a new thread.',
   },
   {
     key: 'canVotePolls',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Vote in polls.',
   },
   {
     key: 'canRateThreads',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Rate threads.',
   },
 
-  /* ---- Editing and deleting own content (forum-scoped) ---- */
+  /* ---- Editing and deleting own content (community-scoped) ---- */
   {
     key: 'canEditOwnPosts',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Edit your own posts, subject to editTimeLimitMinutes.',
   },
   {
     key: 'canDeleteOwnPosts',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Delete your own posts.',
   },
   {
     key: 'canDeleteOwnThreads',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Delete a whole thread you started.',
   },
 
-  /* ---- Moderation-ish, still forum-scoped ---- */
+  /* ---- Moderation-ish, still community-scoped ---- */
   {
     key: 'canEditOthersPosts',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description:
-      'Edit anyone\u2019s post. Normally granted via forum_moderators rather ' +
+      'Edit anyone\u2019s post. Normally granted via community_moderators rather ' +
       'than a group default.',
   },
   {
     key: 'canDeleteOthersPosts',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Hard-delete anyone\u2019s post.',
   },
   {
     key: 'canSoftDeletePosts',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description:
       'Move a post to visibility=deleted, which is reversible. Distinct from ' +
@@ -182,48 +182,48 @@ export const PERMISSION_FIELDS = [
   {
     key: 'canViewUnapproved',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'See content with visibility=unapproved awaiting a moderator.',
   },
   {
     key: 'canViewDeleted',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'See content with visibility=deleted.',
   },
   {
     key: 'canApproveContent',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Move unapproved content to visible.',
   },
 
-  /* ---- Attachments (forum-scoped) ---- */
+  /* ---- Attachments (community-scoped) ---- */
   {
     key: 'canUploadAttachments',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Attach files to a post.',
   },
   {
     key: 'canDownloadAttachments',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
     description: 'Download attachments posted by others.',
   },
 
-  /* ---- Subscriptions (forum-scoped) ---- */
+  /* ---- Subscriptions (community-scoped) ---- */
   {
     key: 'canSubscribe',
     kind: 'boolean',
-    scope: 'forum',
+    scope: 'community',
     fallback: false,
-    description: 'Subscribe to a forum or thread for notifications.',
+    description: 'Subscribe to a community or thread for notifications.',
   },
 
   /* ---- Global-only booleans ---- */
@@ -293,9 +293,9 @@ export const PERMISSION_FIELDS = [
   {
     /*
      * F53. Global, like MyBB's `canwarnusers` and for the same reason: a
-     * warning is aimed at a *person*, not at content in a forum, and points
-     * follow them across the whole board. A per-forum grant would have to
-     * answer "warned where?" about a total that has no forum.
+     * warning is aimed at a *person*, not at content in a community, and points
+     * follow them across the whole board. A per-community grant would have to
+     * answer "warned where?" about a total that has no community.
      */
     key: 'canWarnUsers',
     kind: 'boolean',
@@ -315,7 +315,7 @@ export const PERMISSION_FIELDS = [
     scope: 'global',
     fallback: false,
     description:
-      'Bypasses forum permissions but NOT admin-only actions. Every bypass is ' +
+      'Bypasses community permissions but NOT admin-only actions. Every bypass is ' +
       'logged by the Authorizer.',
   },
   {
@@ -324,7 +324,7 @@ export const PERMISSION_FIELDS = [
     scope: 'global',
     fallback: false,
     description:
-      'Bypasses forum permissions entirely, including admin-only actions. ' +
+      'Bypasses community permissions entirely, including admin-only actions. ' +
       'Every bypass is logged.',
   },
   {
@@ -348,7 +348,7 @@ export const PERMISSION_FIELDS = [
   {
     key: 'editTimeLimitMinutes',
     kind: 'numeric',
-    scope: 'forum',
+    scope: 'community',
     fallback: 0,
     description:
       'Window during which a user may edit their own post. 0 = unlimited, so ' +
@@ -357,14 +357,14 @@ export const PERMISSION_FIELDS = [
   {
     key: 'maxAttachmentsPerPost',
     kind: 'numeric',
-    scope: 'forum',
+    scope: 'community',
     fallback: 0,
     description: 'Attachment count cap per post. 0 = unlimited.',
   },
   {
     key: 'maxAttachmentSizeKb',
     kind: 'numeric',
-    scope: 'forum',
+    scope: 'community',
     fallback: 0,
     description: 'Per-file size cap in KiB. 0 = unlimited.',
   },
@@ -382,7 +382,7 @@ export const PERMISSION_FIELDS = [
     fallback: false,
     description:
       'Rate other members (F62). Global like canReportContent: reputation is ' +
-      'a board-wide capability, so it is not in the F22 forum matrix.',
+      'a board-wide capability, so it is not in the F22 community matrix.',
   },
   {
     key: 'maxReputationPerDay',
@@ -421,7 +421,7 @@ export const PERMISSION_FIELDS = [
   {
     key: 'requiresThreadApproval',
     kind: 'negative',
-    scope: 'forum',
+    scope: 'community',
     fallback: true,
     description:
       'New threads land as unapproved. AND-combined: membership in any group ' +
@@ -430,14 +430,14 @@ export const PERMISSION_FIELDS = [
   {
     key: 'requiresPostApproval',
     kind: 'negative',
-    scope: 'forum',
+    scope: 'community',
     fallback: true,
     description: 'New replies land as unapproved. AND-combined.',
   },
   {
     key: 'requiresApprovalOnEdit',
     kind: 'negative',
-    scope: 'forum',
+    scope: 'community',
     fallback: true,
     description: 'Editing a visible post sends it back for approval.',
   },
@@ -445,14 +445,14 @@ export const PERMISSION_FIELDS = [
 
 export type PermissionKey = (typeof PERMISSION_FIELDS)[number]['key']
 
-/** Fields that may be overridden per forum (R4.1 layer 2). */
-export const FORUM_PERMISSION_FIELDS = PERMISSION_FIELDS.filter(
-  (f) => f.scope === 'forum',
+/** Fields that may be overridden per community (R4.1 layer 2). */
+export const COMMUNITY_PERMISSION_FIELDS = PERMISSION_FIELDS.filter(
+  (f) => f.scope === 'community',
 )
 
-export type ForumPermissionKey = Extract<
+export type CommunityPermissionKey = Extract<
   (typeof PERMISSION_FIELDS)[number],
-  { scope: 'forum' }
+  { scope: 'community' }
 >['key']
 
 /** Lookup by key, built once. */
@@ -472,8 +472,8 @@ export type PermissionSet = {
     : boolean
 }
 
-/** The forum-scoped subset, as returned by `Authorizer.forumMatrix()`. */
-export type ForumPermissions = Pick<PermissionSet, ForumPermissionKey>
+/** The community-scoped subset, as returned by `Authorizer.communityMatrix()`. */
+export type CommunityPermissions = Pick<PermissionSet, CommunityPermissionKey>
 
 /** Deny-by-default permission set, used as the reduction seed. */
 export function emptyPermissionSet(): PermissionSet {

@@ -6,7 +6,7 @@
  * proven here is the two rules that are not about mechanism:
  *
  *  - **a prune cannot reach an account whose loss is unrecoverable.** Anybody
- *    who has posted, any member of a staff group, any forum moderator and any
+ *    who has posted, any member of a staff group, any community moderator and any
  *    banned account are excluded unconditionally. Each exclusion has its own
  *    test because each is a different way for a maintenance sweep to do real
  *    damage;
@@ -43,13 +43,13 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.execute(sql`delete from mass_mails`)
-  await db.execute(sql`delete from forum_moderators`)
+  await db.execute(sql`delete from community_moderators`)
   await db.execute(sql`delete from user_group_memberships`)
   await db.execute(sql`delete from users`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`
-    insert into forums (id, type, title, slug, path)
-    values (1, 'forum', 'General', 'general', '1')
+    insert into communities (id, type, title, slug, path)
+    values (1, 'community', 'General', 'general', '1')
   `)
 })
 
@@ -145,11 +145,11 @@ describe('prunePreview', () => {
     expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1])
   })
 
-  it('excludes a forum moderator, whatever group they are in', async () => {
+  it('excludes a community moderator, whatever group they are in', async () => {
     await seed({ id: 1, username: 'ghost' })
     await seed({ id: 2, username: 'appointee' })
     await db.execute(sql`
-      insert into forum_moderators (forum_id, user_id) values (1, 2)
+      insert into community_moderators (community_id, user_id) values (1, 2)
     `)
 
     expect((await repo.prunePreview(CRITERIA)).sample.map((r) => r.id)).toEqual([1])

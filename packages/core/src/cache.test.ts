@@ -31,8 +31,8 @@ const US = '\u001f'
 
 describe('globalCacheKey', () => {
   it('joins parts', () => {
-    expect(globalCacheKey(['forum-tree'])).toBe('forum-tree')
-    expect(globalCacheKey(['forum', 12])).toBe(`forum${US}12`)
+    expect(globalCacheKey(['community-tree'])).toBe('community-tree')
+    expect(globalCacheKey(['community', 12])).toBe(`community${US}12`)
   })
 
   it('refuses an empty key', () => {
@@ -42,11 +42,11 @@ describe('globalCacheKey', () => {
   /*
    * A separator a part can contain is not a separator: ['a', 'b:c'] and
    * ['a:b', 'c'] would produce the same key, and a cache collision serves one
-   * forum's data under another's identity. A control character cannot occur in
+   * community's data under another's identity. A control character cannot occur in
    * a slug or an id, which is exactly why it was chosen — this pins that.
    */
   it('refuses a part containing the separator', () => {
-    expect(() => globalCacheKey([`forum${US}1`, '2'])).toThrow(/separator/)
+    expect(() => globalCacheKey([`community${US}1`, '2'])).toThrow(/separator/)
   })
 
   it('keeps ordinary punctuation usable in a key part', () => {
@@ -55,7 +55,7 @@ describe('globalCacheKey', () => {
 })
 
 describe('cachedGlobal', () => {
-  const opts = { key: ['forum-tree'], tags: [CacheTags.forumTree()] }
+  const opts = { key: ['community-tree'], tags: [CacheTags.communityTree()] }
 
   it('runs the loader once and serves the rest from cache', async () => {
     const cache = fakeCache()
@@ -71,7 +71,7 @@ describe('cachedGlobal', () => {
     const load = vi.fn().mockResolvedValue('v1')
 
     await cachedGlobal(cache, opts, load)
-    await cache.invalidateTags([CacheTags.forumTree()])
+    await cache.invalidateTags([CacheTags.communityTree()])
 
     load.mockResolvedValue('v2')
     expect(await cachedGlobal(cache, opts, load)).toBe('v2')
@@ -106,8 +106,8 @@ describe('cachedGlobal', () => {
     const set = vi.spyOn(cache, 'set')
 
     await cachedGlobal(cache, { ...opts, revalidate: 30 }, async () => 'v')
-    expect(set).toHaveBeenCalledWith('forum-tree', 'v', {
-      tags: [CacheTags.forumTree()],
+    expect(set).toHaveBeenCalledWith('community-tree', 'v', {
+      tags: [CacheTags.communityTree()],
       ttlSeconds: 30,
     })
   })
@@ -119,6 +119,6 @@ describe('cachedGlobal', () => {
     await cachedGlobal(cache, opts, async () => 'v')
     // Not `ttlSeconds: undefined` — under exactOptionalPropertyTypes that is a
     // different thing, and a driver may treat it as "expire immediately".
-    expect(set).toHaveBeenCalledWith('forum-tree', 'v', { tags: [CacheTags.forumTree()] })
+    expect(set).toHaveBeenCalledWith('community-tree', 'v', { tags: [CacheTags.communityTree()] })
   })
 })

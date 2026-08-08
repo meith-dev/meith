@@ -17,7 +17,7 @@ import { MUTED_LINK, Stamp, UserRef } from '../shared'
  * contract a post body carries, which is why it is inserted rather than escaped.
  * A theme must never be handed member-supplied text to insert; this is not that.
  */
-export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: AnnouncementModel) {
+export function Announcement({ title, bodyHtml, postedBy, postedAt, community }: AnnouncementModel) {
   return (
     <Card as="article" className="border-l-4 border-l-foreground">
       <CardContent className="flex flex-col gap-2 p-4">
@@ -44,11 +44,11 @@ export function Announcement({ title, bodyHtml, postedBy, postedAt, forum }: Ann
           <Stamp at={postedAt} />
         </span>
 
-        {forum !== null && (
+        {community !== null && (
           <>
             <span aria-hidden="true">·</span>
-            <a href={forum.href} className={MUTED_LINK}>
-              {forum.label}
+            <a href={community.href} className={MUTED_LINK}>
+              {community.label}
             </a>
           </>
         )}

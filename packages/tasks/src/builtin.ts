@@ -40,7 +40,7 @@ export interface TaskWorkers {
    * bookkeeping, so none of it is worth keeping once its window has passed.
    */
   pruneRateLimits(): Promise<number>
-  /** Recomputes drifted forum/thread counters. Returns rows corrected. */
+  /** Recomputes drifted community/thread counters. Returns rows corrected. */
   reconcileCounters(batchSize: number): Promise<number>
   /** Folds buffered thread views into `threads.view_count`. Returns threads updated. */
   flushThreadViews(batchSize: number): Promise<number>
@@ -58,7 +58,7 @@ export interface TaskWorkers {
    */
   expireWarnings(batchSize: number): Promise<number>
   /**
-   * Tells members who follow a thread or forum "as it happens" about posts they
+   * Tells members who follow a thread or community "as it happens" about posts they
    * have not been told about. Returns members notified.
    */
   notifySubscribers(batchSize: number): Promise<number>
@@ -180,7 +180,7 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       id: 'counters.reconcile',
       title: 'Reconcile denormalised counters',
       description:
-        'Recomputes forum and thread counters from source rows. Counters are ' +
+        'Recomputes community and thread counters from source rows. Counters are ' +
         'maintained incrementally on the write path for speed; this is the ' +
         'safety net that repairs drift from a crashed request or a bad import. ' +
         'Idempotent by construction — it writes a computed truth, not a delta.',
@@ -330,7 +330,7 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       id: 'subscriptions.instant',
       title: 'Notify subscribers',
       description:
-        'Tells members who follow a thread or forum "as it happens" about ' +
+        'Tells members who follow a thread or community "as it happens" about ' +
         'posts that have arrived since they were last told. Runs on the ' +
         'shortest interval the scheduler has, which is what "instant" means ' +
         'here: fanning out inside the posting request would put an unbounded ' +

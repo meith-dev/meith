@@ -19,10 +19,10 @@ CREATE TABLE "reports" (
   "target_id" integer NOT NULL,
 
   -- Denormalised from the target, and null for a user report. This is what
-  -- scopes the moderator list by `moderatedForumIds` without joining three
+  -- scopes the moderator list by `moderatedCommunityIds` without joining three
   -- tables per row — and it is what keeps a report readable after its target
   -- is hard-deleted.
-  "forum_id" integer REFERENCES "forums"("id") ON DELETE SET NULL,
+  "community_id" integer REFERENCES "communities"("id") ON DELETE SET NULL,
   -- Likewise: the thread a post report is in, so the list can link to it.
   "thread_id" integer REFERENCES "threads"("id") ON DELETE SET NULL,
   -- A label captured at report time. The target may be edited or removed
@@ -62,16 +62,16 @@ CREATE TABLE "report_events" (
 );
 --> statement-breakpoint
 
--- The moderator list: outstanding reports in a set of forums, oldest first.
+-- The moderator list: outstanding reports in a set of communities, oldest first.
 CREATE INDEX IF NOT EXISTS "reports_open_idx"
-  ON "reports" ("forum_id", "created_at")
+  ON "reports" ("community_id", "created_at")
   WHERE "status" = 'open';
 --> statement-breakpoint
 
--- User reports have no forum, so they need their own path to the same list.
+-- User reports have no community, so they need their own path to the same list.
 CREATE INDEX IF NOT EXISTS "reports_open_global_idx"
   ON "reports" ("created_at")
-  WHERE "status" = 'open' AND "forum_id" IS NULL;
+  WHERE "status" = 'open' AND "community_id" IS NULL;
 --> statement-breakpoint
 
 -- One open report per person per target.

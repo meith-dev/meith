@@ -1,7 +1,7 @@
 /**
  * The build-time registry (invariant 6).
  *
- * "Everything installable is registered in `forum.config.ts`. Nothing is
+ * "Everything installable is registered in `community.config.ts`. Nothing is
  * discovered by filesystem scan at runtime."
  *
  * The scan ban is the substance. A runtime `readdir` over a themes or plugins
@@ -16,7 +16,7 @@
  *  - it turns "what is installed" into a property of the filesystem, which
  *    differs between a developer's machine, CI, and production.
  *
- * So the config is a *module*, imported statically. `defineForumConfig` is an
+ * So the config is a *module*, imported statically. `defineCommunityConfig` is an
  * identity function whose only job is to attach the type — the same shape as
  * `defineConfig` in tooling everywhere, and for the same reason: it gives
  * editors and `tsc` something to check without a schema at runtime.
@@ -33,7 +33,7 @@
  *
  * The alternatives were to declare the slot map here as
  * `Record<string, unknown>` and have every reader cast it — casts being exactly
- * what this file's `defineForumConfig` exists to avoid — or to move the slot
+ * what this file's `defineCommunityConfig` exists to avoid — or to move the slot
  * contract into core, which would put React component types in the package the
  * CLI and the worker import. A type parameter costs nothing at runtime, is
  * inferred from the config so no call site spells it out, and keeps core's
@@ -93,7 +93,7 @@ export interface InstalledPlugin<TPlugin = unknown> {
   readonly plugin?: TPlugin | undefined
 }
 
-export interface ForumConfig<TTheme = unknown, TPlugin = unknown> {
+export interface CommunityConfig<TTheme = unknown, TPlugin = unknown> {
   /** Every installed theme, keyed by its `key`. */
   readonly themes: Readonly<Record<string, InstalledTheme<TTheme>>>
   /** Which theme a board uses when it has no preference stored. */
@@ -110,19 +110,19 @@ export interface ForumConfig<TTheme = unknown, TPlugin = unknown> {
  * `themes[key].key !== key` and breaks every lookup that round-trips through
  * one or the other.
  */
-export function defineForumConfig<TTheme, TPlugin>(
-  config: ForumConfig<TTheme, TPlugin>,
-): ForumConfig<TTheme, TPlugin> {
+export function defineCommunityConfig<TTheme, TPlugin>(
+  config: CommunityConfig<TTheme, TPlugin>,
+): CommunityConfig<TTheme, TPlugin> {
   const keys = Object.keys(config.themes)
 
   if (keys.length === 0) {
-    throw new Error('forum.config: at least one theme must be registered.')
+    throw new Error('community.config: at least one theme must be registered.')
   }
 
   for (const [key, theme] of Object.entries(config.themes)) {
     if (theme.key !== key) {
       throw new Error(
-        `forum.config: theme registered under "${key}" declares key "${theme.key}". ` +
+        `community.config: theme registered under "${key}" declares key "${theme.key}". ` +
           'They must match, or lookups that round-trip through one will miss.',
       )
     }
@@ -130,7 +130,7 @@ export function defineForumConfig<TTheme, TPlugin>(
 
   if (!(config.defaultTheme in config.themes)) {
     throw new Error(
-      `forum.config: defaultTheme "${config.defaultTheme}" is not registered. ` +
+      `community.config: defaultTheme "${config.defaultTheme}" is not registered. ` +
         `Available: ${keys.join(', ')}`,
     )
   }
@@ -138,7 +138,7 @@ export function defineForumConfig<TTheme, TPlugin>(
   const pluginKeys = (config.plugins ?? []).map((p) => p.key)
   const duplicate = pluginKeys.find((k, i) => pluginKeys.indexOf(k) !== i)
   if (duplicate !== undefined) {
-    throw new Error(`forum.config: plugin "${duplicate}" is registered twice.`)
+    throw new Error(`community.config: plugin "${duplicate}" is registered twice.`)
   }
 
   /*
@@ -152,7 +152,7 @@ export function defineForumConfig<TTheme, TPlugin>(
     const declared = (entry.plugin as { key?: unknown } | undefined)?.key
     if (typeof declared === 'string' && declared !== entry.key) {
       throw new Error(
-        `forum.config: plugin registered as "${entry.key}" declares key "${declared}". ` +
+        `community.config: plugin registered as "${entry.key}" declares key "${declared}". ` +
           'They must match, or its settings and routes are namespaced under a different ' +
           'name than the one you configured.',
       )

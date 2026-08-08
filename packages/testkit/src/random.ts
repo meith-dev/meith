@@ -4,10 +4,10 @@
  * `Math.random()` would make every seeded board different, which defeats the
  * point: a query-budget or performance assertion that fails only sometimes is
  * worse than no assertion, because the first three green runs teach everyone to
- * re-run it. A fixed seed means "50 forums, 100k threads" is the *same* 50
- * forums and the same 100k threads on every machine and every CI run.
+ * re-run it. A fixed seed means "50 communities, 100k threads" is the *same* 50
+ * communities and the same 100k threads on every machine and every CI run.
  *
- * mulberry32 — small, fast, and good enough for spreading rows across forums
+ * mulberry32 — small, fast, and good enough for spreading rows across communities
  * and dates. It is not cryptographic and must never be used for tokens; the
  * real thing lives in `@meith/accounts/crypto`.
  */
@@ -68,7 +68,7 @@ const WORDS = [
   'rules',
 ]
 
-/** A short readable phrase — titles that look like a forum, not like uuids. */
+/** A short readable phrase — titles that look like a community, not like uuids. */
 export function words(random: Random, count: number): string {
   return Array.from({ length: count }, () => random.pick(WORDS)).join(' ')
 }

@@ -288,7 +288,7 @@ export class IdentityService {
 
   /**
    * `buckets` are the caller-chosen lockout counters, and the policy lives at
-   * the edge: see `loginBuckets` in `apps/forum/src/server/auth-actions.ts`.
+   * the edge: see `loginBuckets` in `apps/community/src/server/auth-actions.ts`.
    *
    * A **list**, because a single counter cannot do the job. Keyed on the
    * username alone — which is what this took until the audit of 7 August 2026

@@ -45,9 +45,9 @@ import type {
   CategoryBlockModel,
   ErrorNoticeModel,
   FooterModel,
-  ForumJumpModel,
-  ForumDisplayModel,
-  ForumRowSlotModel,
+  CommunityJumpModel,
+  CommunityDisplayModel,
+  CommunityRowSlotModel,
   HeaderModel,
   LatestPostsModel,
   LatestThreadsModel,
@@ -61,7 +61,7 @@ import type {
   RedirectNoticeModel,
   SearchFormModel,
   ShellModel,
-  SubforumListModel,
+  SubcommunityListModel,
   ThreadRowSlotModel,
   ThreadViewModel,
   UserPanelModel,
@@ -90,19 +90,19 @@ export interface RequestRef {
   readonly requestId: string | null
 }
 
-export interface ForumRef {
-  readonly forumId: number
+export interface CommunityRef {
+  readonly communityId: number
 }
 
 export interface ThreadRef {
   readonly threadId: number
-  readonly forumId: number
+  readonly communityId: number
 }
 
 export interface PostRef {
   readonly postId: number
   readonly threadId: number
-  readonly forumId: number
+  readonly communityId: number
 }
 
 export interface UserRef {
@@ -120,7 +120,7 @@ export interface DraftPayload {
   readonly subject: string | null
   readonly body: string
   readonly prefixId: number | null
-  readonly forumId: number
+  readonly communityId: number
   readonly authorId: number
 }
 
@@ -141,7 +141,7 @@ export interface HookSignatures {
     value: string
     context: ViewerRef & { source: 'post' | 'signature' | 'pm' }
   }
-  'markdown.directives': { value: readonly string[]; context: ForumRef | Record<string, never> }
+  'markdown.directives': { value: readonly string[]; context: CommunityRef | Record<string, never> }
   'post.body.html': { value: string; context: PostRef & ViewerRef }
   'signature.html': { value: string; context: ViewerRef & { authorId: number } }
   'smilies.list': {
@@ -158,11 +158,11 @@ export interface HookSignatures {
   'view.user-panel': { value: UserPanelModel; context: ViewerRef & RequestRef }
   'view.navigation': { value: NavigationModel; context: ViewerRef & RequestRef }
   'view.footer': { value: FooterModel; context: ViewerRef & RequestRef }
-  'view.forum-jump': { value: ForumJumpModel; context: ViewerRef & RequestRef }
+  'view.community-jump': { value: CommunityJumpModel; context: ViewerRef & RequestRef }
   'view.announcement': { value: AnnouncementModel; context: ViewerRef }
   'view.board-index': { value: BoardIndexModel; context: ViewerRef }
-  'view.forum-row': { value: ForumRowSlotModel; context: ViewerRef }
-  'view.thread-row': { value: ThreadRowSlotModel; context: ViewerRef & ForumRef }
+  'view.community-row': { value: CommunityRowSlotModel; context: ViewerRef }
+  'view.thread-row': { value: ThreadRowSlotModel; context: ViewerRef & CommunityRef }
   'view.post-bit': { value: PostBitSlotModel; context: ViewerRef & ThreadRef }
   'view.post-actions': { value: PostActionsSlotModel; context: ViewerRef & ThreadRef }
   'view.member-profile': { value: MemberProfileModel; context: ViewerRef }
@@ -176,8 +176,8 @@ export interface HookSignatures {
   'view.shell': { value: ShellModel; context: ViewerRef & RequestRef }
   'view.notice': { value: NoticeModel; context: ViewerRef }
   'view.category-block': { value: CategoryBlockModel; context: ViewerRef }
-  'view.subforum-list': { value: SubforumListModel; context: ViewerRef & ForumRef }
-  'view.forum-display': { value: ForumDisplayModel; context: ViewerRef & ForumRef }
+  'view.subcommunity-list': { value: SubcommunityListModel; context: ViewerRef & CommunityRef }
+  'view.community-display': { value: CommunityDisplayModel; context: ViewerRef & CommunityRef }
   'view.thread-view': { value: ThreadViewModel; context: ViewerRef & ThreadRef }
   'view.post-form': { value: PostFormModel; context: ViewerRef }
   'view.redirect-notice': { value: RedirectNoticeModel; context: ViewerRef }
@@ -198,7 +198,7 @@ export interface HookSignatures {
   'post.deleted': { value: PostRef; context: ModerationRef }
   'post.restored': { value: PostRef; context: ModerationRef }
   'thread.moved': {
-    value: { readonly threadId: number; readonly fromForumId: number; readonly toForumId: number }
+    value: { readonly threadId: number; readonly fromCommunityId: number; readonly toCommunityId: number }
     context: ModerationRef
   }
   'thread.merged': {
@@ -339,7 +339,7 @@ export interface HookSignatures {
   'subscription.changed': {
     value: {
       readonly userId: number
-      readonly target: 'thread' | 'forum'
+      readonly target: 'thread' | 'community'
       readonly targetId: number
       readonly subscribed: boolean
     }
@@ -364,7 +364,7 @@ export interface HookSignatures {
       readonly summary: string
     }[]
     /** Always a guest: a feed is cached under a shared URL. */
-    context: { readonly feed: 'board' | 'forum' | 'thread' }
+    context: { readonly feed: 'board' | 'community' | 'thread' }
   }
   'sitemap.entries': {
     value: readonly { readonly href: string; readonly lastModified: string | null }[]

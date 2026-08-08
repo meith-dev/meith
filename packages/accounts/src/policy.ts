@@ -4,7 +4,7 @@
  *
  * Split out because three callers need identical values and must not drift: the
  * app's composition root, the installer and the operator CLI. A user created by
- * `forum user:create` has to satisfy exactly the rules the registration form
+ * `community user:create` has to satisfy exactly the rules the registration form
  * enforces, or the CLI becomes a way to make accounts the app then rejects —
  * the precise failure the CLI's "delegates to the same code" rule exists to
  * prevent. That is also why `resolveAuthPolicy` lives here rather than in the

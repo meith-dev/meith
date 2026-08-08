@@ -1,7 +1,7 @@
 import type { ThreadViewModel } from '@meith/theme-kit'
 
 /** A thread page: heading, posts, paging, and the reply affordance at both ends. */
-export function ThreadView({ thread, forum, replyHref, markReadAction, regions }: ThreadViewModel) {
+export function ThreadView({ thread, community, replyHref, markReadAction, regions }: ThreadViewModel) {
   const reply =
     replyHref === null ? null : (
       <a
@@ -18,7 +18,7 @@ export function ThreadView({ thread, forum, replyHref, markReadAction, regions }
         <div>
           <h1 className="font-mono text-lg font-semibold">{thread.title}</h1>
           <p className="font-mono text-xs text-muted-foreground">
-            in <a href={forum.href} className="hover:text-primary">{forum.label}</a>
+            in <a href={community.href} className="hover:text-primary">{community.label}</a>
           </p>
         </div>
         {reply}

@@ -9,8 +9,8 @@ generated into [Plugin hooks](./plugin-hooks.md).
 ## Writing a plugin
 
 A plugin is a module that calls `definePlugin` and is registered in
-`forum.plugins.ts` — the installed list lives in its own file, beside
-`forum.config.ts`, so the operator CLI can read it without importing the
+`community.plugins.ts` — the installed list lives in its own file, beside
+`community.config.ts`, so the operator CLI can read it without importing the
 themes' component trees.
 
 ```ts
@@ -30,7 +30,7 @@ export const greeter = definePlugin({
 })
 ```
 
-Installing it is `pnpm add`, a line in `forum.plugins.ts`, and a redeploy.
+Installing it is `pnpm add`, a line in `community.plugins.ts`, and a redeploy.
 
 > [!TIP]
 > **[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
@@ -69,7 +69,7 @@ These are not discouraged. There is no API for them.
 | It cannot | Why |
 |---|---|
 | Decide authorization | No hook filters `authorization.can()`, and none ever will. A plugin able to change that answer is a plugin able to grant itself anything |
-| Reach inside the visibility filter | No hook sits in the query path. A plugin that could rewrite a `where` clause could publish a private forum, and no amount of isolation makes that recoverable |
+| Reach inside the visibility filter | No hook sits in the query path. A plugin that could rewrite a `where` clause could publish a private community, and no amount of isolation makes that recoverable |
 | See an `Actor` | Payloads carry `{ userId, isGuest }`. An `Actor` carries resolved group membership, which invites a plugin to make its own permission decision from group ids |
 | Open a database connection | Migrations are SQL text the host runs. A plugin does not import `@meith/db` |
 | Patch core | There is no monkey-patching seam and no way to replace a domain command |
@@ -95,7 +95,7 @@ without negative numbers.
 
 Both halves are declared and total, so two plugins compose the same way on every
 request, on every instance, in every deployment. Nothing depends on registration
-order or on how `forum.config.ts` happens to list its plugins.
+order or on how `community.config.ts` happens to list its plugins.
 
 ## Failure isolation
 
@@ -225,7 +225,7 @@ for the plugin to be correct.
 
 ### The four descriptors execute
 
-Migrations are applied by `forum upgrade` in dependency order, one transaction
+Migrations are applied by `community upgrade` in dependency order, one transaction
 each. Settings are stored at `plugin.<key>.<name>` and edited in the control
 panel. Tasks are registered as `plugin.<key>.<id>` and run by the same tick as
 everything else. Admin pages are mounted at `/admin/plugins/<key>/<path>`.
@@ -249,7 +249,7 @@ What that leaves, stated plainly:
   panel's switch writes a row that every instance reconciles against on its next
   request, so it survives a redeploy — the plugin somebody switched off at 2am is
   exactly the one that must stay off. Removing a plugin is `pnpm remove`, a line
-  out of `forum.plugins.ts`, and a redeploy; a button that dropped the rows and
+  out of `community.plugins.ts`, and a redeploy; a button that dropped the rows and
   left the code running would produce a state neither installing nor removing
   does.
 

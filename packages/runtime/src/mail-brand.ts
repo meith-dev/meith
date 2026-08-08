@@ -28,7 +28,7 @@ import { SettingsSnapshot, resolveBoardUrl } from '@meith/settings'
 /**
  * The theme whose tokens brand the mail.
  *
- * The *installed* theme is app configuration — `forum.config.ts`, read by the
+ * The *installed* theme is app configuration — `community.config.ts`, read by the
  * app tier — and the worker and the CLI have no access to it, so callers that
  * know pass it in and everything else takes the key every board ships with.
  * Getting it wrong costs the fallback colour and nothing else.

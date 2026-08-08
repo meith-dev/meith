@@ -1,5 +1,5 @@
 /**
- * F84 — `forum upgrade`.
+ * F84 — `community upgrade`.
  *
  * Core migrations, then each plugin's in dependency order, then the recorded
  * version. The order and the refusals come from `@meith/upgrade`, which is
@@ -31,7 +31,7 @@ export const CODE_VERSION = '0.1.0'
 /**
  * The installed plugins, as the planner needs them.
  *
- * Taken as an argument rather than imported, because `forum.config.ts` lives in
+ * Taken as an argument rather than imported, because `community.config.ts` lives in
  * the *board's* project rather than in this package — an operator CLI installed
  * from npm has no path to it. The web app passes its own; the CLI passes what it
  * can see, which today is nothing.

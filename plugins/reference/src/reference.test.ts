@@ -123,12 +123,12 @@ describe('driven through a real host', () => {
     resetRecorder()
     await host().emit(
       'post.created',
-      { postId: 1, threadId: 2, forumId: 3, authorId: 4 },
+      { postId: 1, threadId: 2, communityId: 3, authorId: 4 },
       { userId: 4, isGuest: false },
     )
 
     expect(RECORDED.hooks).toEqual([
-      { name: 'post.created', value: { postId: 1, threadId: 2, forumId: 3, authorId: 4 } },
+      { name: 'post.created', value: { postId: 1, threadId: 2, communityId: 3, authorId: 4 } },
     ])
   })
 

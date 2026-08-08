@@ -15,5 +15,5 @@
     "*.ts",
     "*.mts"
   ],
-  "exclude": ["node_modules", "**/dist", "**/.next", "apps/forum"]
+  "exclude": ["node_modules", "**/dist", "**/.next", "apps/community"]
 }

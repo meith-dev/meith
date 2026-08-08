@@ -19,12 +19,12 @@ class FakeModCp implements ModCpRepository {
   matches: IpMatch[] = []
   prefixes = { registration: '203.0.113.', lastVisit: '198.51.100.' }
 
-  readonly logCalls: Array<{ forumIds: readonly number[]; actorUserId: number; limit: number }> =
+  readonly logCalls: Array<{ communityIds: readonly number[]; actorUserId: number; limit: number }> =
     []
   readonly lookups: Array<{ actorUserId: number; subjectUserId: number; matches: number }> = []
 
   async log(input: {
-    forumIds: readonly number[]
+    communityIds: readonly number[]
     actorUserId: number
     limit: number
   }): Promise<ModLogPage> {
@@ -57,40 +57,40 @@ function panelFor(modcp: FakeModCp): ModeratorPanel {
   return new ModeratorPanel({ modcp, now: () => NOW })
 }
 
-const FORUMS = [
-  { forumId: 1, title: 'Quiet corner', slug: 'quiet', rights: ['Approve content'] },
-  { forumId: 2, title: 'Busy place', slug: 'busy', rights: ['Approve content'] },
-  { forumId: 3, title: 'Also quiet', slug: 'also', rights: [] },
+const COMMUNITIES = [
+  { communityId: 1, title: 'Quiet corner', slug: 'quiet', rights: ['Approve content'] },
+  { communityId: 2, title: 'Busy place', slug: 'busy', rights: ['Approve content'] },
+  { communityId: 3, title: 'Also quiet', slug: 'also', rights: [] },
 ]
 
 describe('the dashboard', () => {
-  it('is empty for a moderator with no forums, without asking the database', async () => {
+  it('is empty for a moderator with no communities, without asking the database', async () => {
     const modcp = new FakeModCp()
-    expect(await panelFor(modcp).dashboard({ forums: [] })).toEqual([])
+    expect(await panelFor(modcp).dashboard({ communities: [] })).toEqual([])
   })
 
-  it('attaches both counts to each forum', async () => {
+  it('attaches both counts to each community', async () => {
     const modcp = new FakeModCp()
     modcp.workloads.set(2, { pending: 3, openReports: 1 })
 
-    const dashboard = await panelFor(modcp).dashboard({ forums: FORUMS })
+    const dashboard = await panelFor(modcp).dashboard({ communities: COMMUNITIES })
 
-    expect(dashboard.find((f) => f.forumId === 2)).toMatchObject({
+    expect(dashboard.find((f) => f.communityId === 2)).toMatchObject({
       pending: 3,
       openReports: 1,
     })
-    expect(dashboard.find((f) => f.forumId === 1)).toMatchObject({
+    expect(dashboard.find((f) => f.communityId === 1)).toMatchObject({
       pending: 0,
       openReports: 0,
     })
   })
 
-  /* A moderator with fourteen forums opens the panel to find the one that needs them. */
-  it('puts the busiest forum first, then falls back to the title', async () => {
+  /* A moderator with fourteen communities opens the panel to find the one that needs them. */
+  it('puts the busiest community first, then falls back to the title', async () => {
     const modcp = new FakeModCp()
     modcp.workloads.set(2, { pending: 3, openReports: 1 })
 
-    const dashboard = await panelFor(modcp).dashboard({ forums: FORUMS })
+    const dashboard = await panelFor(modcp).dashboard({ communities: COMMUNITIES })
 
     expect(dashboard.map((f) => f.title)).toEqual([
       'Busy place',
@@ -101,19 +101,19 @@ describe('the dashboard', () => {
 
   it('carries the rights the caller resolved, untouched', async () => {
     const modcp = new FakeModCp()
-    const dashboard = await panelFor(modcp).dashboard({ forums: FORUMS })
-    expect(dashboard.find((f) => f.forumId === 3)!.rights).toEqual([])
-    expect(dashboard.find((f) => f.forumId === 1)!.rights).toEqual(['Approve content'])
+    const dashboard = await panelFor(modcp).dashboard({ communities: COMMUNITIES })
+    expect(dashboard.find((f) => f.communityId === 3)!.rights).toEqual([])
+    expect(dashboard.find((f) => f.communityId === 1)!.rights).toEqual(['Approve content'])
   })
 })
 
 describe('the log', () => {
-  it('passes the actor"s own id as well as their forums', async () => {
+  it('passes the actor"s own id as well as their communities', async () => {
     const modcp = new FakeModCp()
-    await panelFor(modcp).log({ forumIds: [1, 2], actorUserId: 9 })
+    await panelFor(modcp).log({ communityIds: [1, 2], actorUserId: 9 })
 
     expect(modcp.logCalls[0]).toMatchObject({
-      forumIds: [1, 2],
+      communityIds: [1, 2],
       actorUserId: 9,
       limit: MODCP_PAGE_SIZE,
     })

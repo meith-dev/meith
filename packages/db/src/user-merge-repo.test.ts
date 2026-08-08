@@ -46,16 +46,16 @@ beforeEach(async () => {
   await db.execute(sql`delete from reputation`)
   await db.execute(sql`delete from user_relations`)
   await db.execute(sql`delete from thread_subscriptions`)
-  await db.execute(sql`delete from forum_subscriptions`)
+  await db.execute(sql`delete from community_subscriptions`)
   await db.execute(sql`delete from user_group_memberships`)
   await db.execute(sql`delete from sessions`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
   await db.execute(sql`delete from users`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`
-    insert into forums (id, type, title, slug, path)
-    values (1, 'forum', 'General', 'general', '1')
+    insert into communities (id, type, title, slug, path)
+    values (1, 'community', 'General', 'general', '1')
   `)
 })
 
@@ -120,11 +120,11 @@ describe('preview', () => {
   it('counts what would move, and names both accounts', async () => {
     await seedPair()
     await db.execute(sql`
-      insert into threads (id, forum_id, author_user_id, author_username, title, slug)
+      insert into threads (id, community_id, author_user_id, author_username, title, slug)
       values (1, 1, ${LOSER}, 'duplicate', 'T', 't')
     `)
     await db.execute(sql`
-      insert into posts (id, thread_id, forum_id, author_user_id, author_username, message)
+      insert into posts (id, thread_id, community_id, author_user_id, author_username, message)
       values (1, 1, 1, ${LOSER}, 'duplicate', 'x'),
              (2, 1, 1, ${LOSER}, 'duplicate', 'y')
     `)
@@ -156,12 +156,12 @@ describe('mergePostsChunk', () => {
   it('moves a bounded batch and reports what is left', async () => {
     await seedPair()
     await db.execute(sql`
-      insert into threads (id, forum_id, author_user_id, author_username, title, slug)
+      insert into threads (id, community_id, author_user_id, author_username, title, slug)
       values (1, 1, ${LOSER}, 'duplicate', 'T', 't')
     `)
     for (let id = 1; id <= 5; id += 1) {
       await db.execute(sql`
-        insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+        insert into posts (id, thread_id, community_id, author_user_id, author_username,
                            message)
         values (${id}, 1, 1, ${LOSER}, 'duplicate', 'x')
       `)
@@ -189,11 +189,11 @@ describe('finish', () => {
   it('refuses while posts remain, so the chunked stage cannot be skipped', async () => {
     await seedPair()
     await db.execute(sql`
-      insert into threads (id, forum_id, author_user_id, author_username, title, slug)
+      insert into threads (id, community_id, author_user_id, author_username, title, slug)
       values (1, 1, ${LOSER}, 'duplicate', 'T', 't')
     `)
     await db.execute(sql`
-      insert into posts (id, thread_id, forum_id, author_user_id, author_username, message)
+      insert into posts (id, thread_id, community_id, author_user_id, author_username, message)
       values (1, 1, 1, ${LOSER}, 'duplicate', 'x')
     `)
 
@@ -240,7 +240,7 @@ describe('finish', () => {
      */
     await seedPair()
     await db.execute(sql`
-      insert into threads (id, forum_id, author_user_id, author_username, title, slug)
+      insert into threads (id, community_id, author_user_id, author_username, title, slug)
       values (1, 1, ${WINNER}, 'keeper', 'T', 't'), (2, 1, ${WINNER}, 'keeper', 'U', 'u')
     `)
     await db.execute(sql`
@@ -334,12 +334,12 @@ describe('finish', () => {
      */
     await seedPair()
     await db.execute(sql`
-      insert into threads (id, forum_id, author_user_id, author_username, title, slug,
+      insert into threads (id, community_id, author_user_id, author_username, title, slug,
                            last_post_user_id, last_post_username)
       values (1, 1, ${WINNER}, 'keeper', 'T', 't', ${LOSER}, 'duplicate')
     `)
     await db.execute(sql`
-      update forums set last_post_user_id = ${LOSER}, last_post_username = 'duplicate'
+      update communities set last_post_user_id = ${LOSER}, last_post_username = 'duplicate'
        where id = 1
     `)
 
@@ -349,7 +349,7 @@ describe('finish', () => {
       sql`select count(*)::int as n from threads where last_post_user_id = ${WINNER}`,
     )).toBe(1)
     expect(await count(
-      sql`select count(*)::int as n from forums where last_post_user_id = ${WINNER}`,
+      sql`select count(*)::int as n from communities where last_post_user_id = ${WINNER}`,
     )).toBe(1)
 
     /*
@@ -361,18 +361,18 @@ describe('finish', () => {
       sql`select count(*)::int as n from threads where last_post_username = 'keeper'`,
     )).toBe(1)
     expect(await count(
-      sql`select count(*)::int as n from forums where last_post_username = 'keeper'`,
+      sql`select count(*)::int as n from communities where last_post_username = 'keeper'`,
     )).toBe(1)
   })
 
   it('rewrites the author name on posts the winner now owns', async () => {
     await seedPair()
     await db.execute(sql`
-      insert into threads (id, forum_id, author_user_id, author_username, title, slug)
+      insert into threads (id, community_id, author_user_id, author_username, title, slug)
       values (1, 1, ${LOSER}, 'duplicate', 'T', 't')
     `)
     await db.execute(sql`
-      insert into posts (id, thread_id, forum_id, author_user_id, author_username, message)
+      insert into posts (id, thread_id, community_id, author_user_id, author_username, message)
       values (1, 1, 1, ${LOSER}, 'duplicate', 'x')
     `)
 

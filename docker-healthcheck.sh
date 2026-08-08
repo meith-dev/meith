@@ -23,7 +23,7 @@
 #    exits; its *exit code* is the verdict, and a health probe has no opinion.
 set -e
 
-case "${FORUM_ROLE:-web}" in
+case "${COMMUNITY_ROLE:-web}" in
   worker)
     pgrep -f 'apps/worker/worker.cjs' >/dev/null
     ;;

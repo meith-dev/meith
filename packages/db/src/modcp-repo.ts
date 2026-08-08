@@ -9,7 +9,7 @@
  * by an **allow-list of action names** rather than by excluding the
  * administrative ones — a row type added next year is invisible here until
  * somebody names it, which is a build-time omission rather than a disclosure.
- * The forum scope comes out of the JSON detail, because that is where every
+ * The community scope comes out of the JSON detail, because that is where every
  * moderation action already writes the ids it touched.
  *
  * **The address lookup.** It matches on the *truncated prefix* the board
@@ -51,8 +51,8 @@ interface LogRow {
   action: string
   user_id: number | null
   username: string | null
-  forum_id: number | null
-  forum_title: string | null
+  community_id: number | null
+  community_title: string | null
   detail: Record<string, unknown> | null
   created_at: Date
 }
@@ -87,10 +87,10 @@ const DETAIL_LABELS: Readonly<Record<string, string>> = {
   threadIds: 'Threads',
   postId: 'Post',
   postIds: 'Posts',
-  forumId: 'Forum',
-  from: 'From forum',
-  to: 'To forum',
-  toForumId: 'To forum',
+  communityId: 'Community',
+  from: 'From community',
+  to: 'To community',
+  toCommunityId: 'To community',
   applied: 'Applied to',
   posts: 'Posts affected',
   userId: 'Member',
@@ -124,7 +124,7 @@ export class PostgresModCpRepository implements ModCpRepository {
   constructor(private readonly db: Database) {}
 
   async log(input: {
-    readonly forumIds: readonly number[]
+    readonly communityIds: readonly number[]
     readonly actorUserId: number
     readonly limit: number
     readonly after?: string | undefined
@@ -135,10 +135,10 @@ export class PostgresModCpRepository implements ModCpRepository {
       : sql``
 
     /*
-     * The forum an entry belongs to is read out of the detail JSON — every
+     * The community an entry belongs to is read out of the detail JSON — every
      * moderation action already records the ids it touched, and adding a column
-     * to `admin_log` would mean the ACP's rows carrying a forum id that means
-     * nothing. `forum_id` is checked first and `to` second, so a move shows up
+     * to `admin_log` would mean the ACP's rows carrying a community id that means
+     * nothing. `community_id` is checked first and `to` second, so a move shows up
      * for the moderators of *both* ends, which is what D49's two-ended rule
      * implies for the log as well.
      */
@@ -147,29 +147,29 @@ export class PostgresModCpRepository implements ModCpRepository {
         with entry as (
           select l.id, l.action, l.user_id, l.created_at, l.detail,
                  coalesce(
-                   (l.detail->>'forumId')::int,
-                   (l.detail->>'toForumId')::int,
+                   (l.detail->>'communityId')::int,
+                   (l.detail->>'toCommunityId')::int,
                    (l.detail->>'to')::int,
                    (l.detail->>'from')::int
-                 ) as forum_id
+                 ) as community_id
             from admin_log l
            where l.action in ${textList(MOD_LOG_ACTIONS)}
         )
-        select e.id, e.action, e.user_id, u.username, e.forum_id,
-               f.title as forum_title, e.detail, e.created_at
+        select e.id, e.action, e.user_id, u.username, e.community_id,
+               f.title as community_title, e.detail, e.created_at
           from entry e
           left join users u on u.id = e.user_id
-          left join forums f on f.id = e.forum_id
+          left join communities f on f.id = e.community_id
          where (
-                 e.forum_id in ${idList(input.forumIds)}
+                 e.community_id in ${idList(input.communityIds)}
                  /*
-                  * Entries with no forum at all — a warning, an address lookup —
+                  * Entries with no community at all — a warning, an address lookup —
                   * are the actor's own business only. A moderator seeing every
                   * warning on the board through the log would be a wider grant
                   * than the warn screen itself gives.
                   */
-                 or (e.forum_id is null and e.user_id = ${input.actorUserId})
-                 /* Their own acts stay visible even in a forum they have left. */
+                 or (e.community_id is null and e.user_id = ${input.actorUserId})
+                 /* Their own acts stay visible even in a community they have left. */
                  or e.user_id = ${input.actorUserId}
                )
            ${after}
@@ -184,8 +184,8 @@ export class PostgresModCpRepository implements ModCpRepository {
         action: row.action,
         actorUserId: row.user_id === null ? null : Number(row.user_id),
         actorUsername: row.username,
-        forumId: row.forum_id === null ? null : Number(row.forum_id),
-        forumTitle: row.forum_title,
+        communityId: row.community_id === null ? null : Number(row.community_id),
+        communityTitle: row.community_title,
         detail: flattenDetail(row.detail),
         at: new Date(row.created_at),
       }),
@@ -197,48 +197,48 @@ export class PostgresModCpRepository implements ModCpRepository {
   }
 
   /**
-   * Both counts for every moderated forum, in one statement.
+   * Both counts for every moderated community, in one statement.
    *
-   * A dashboard listing fourteen forums must not run twenty-eight queries — the
+   * A dashboard listing fourteen communities must not run twenty-eight queries — the
    * N+1 F11's budget helper exists to catch, and the reason this returns a map
-   * rather than being called per forum.
+   * rather than being called per community.
    */
   async workload(
-    forumIds: readonly number[],
+    communityIds: readonly number[],
   ): Promise<ReadonlyMap<number, { pending: number; openReports: number }>> {
-    if (forumIds.length === 0) return new Map()
+    if (communityIds.length === 0) return new Map()
 
     const rows = resultRows(
       await this.db.execute(sql`
         with held as (
-          select forum_id, count(*)::int as n from threads
-           where forum_id in ${idList(forumIds)} and visibility = ${PENDING_APPROVAL}
-           group by forum_id
+          select community_id, count(*)::int as n from threads
+           where community_id in ${idList(communityIds)} and visibility = ${PENDING_APPROVAL}
+           group by community_id
           union all
-          select p.forum_id, count(*)::int from posts p
+          select p.community_id, count(*)::int from posts p
             join threads t on t.id = p.thread_id
-           where p.forum_id in ${idList(forumIds)}
+           where p.community_id in ${idList(communityIds)}
              and p.visibility = ${PENDING_APPROVAL}
              and t.visibility <> ${PENDING_APPROVAL}
              and p.is_first_post = false
-           group by p.forum_id
+           group by p.community_id
         ),
         reported as (
-          select forum_id, count(*)::int as n from reports
-           where forum_id in ${idList(forumIds)} and status = 'open'
-           group by forum_id
+          select community_id, count(*)::int as n from reports
+           where community_id in ${idList(communityIds)} and status = 'open'
+           group by community_id
         )
-        select f.id as forum_id,
-               coalesce((select sum(n) from held where held.forum_id = f.id), 0)::int as pending,
-               coalesce((select n from reported where reported.forum_id = f.id), 0)::int as open_reports
-          from forums f
-         where f.id in ${idList(forumIds)}
+        select f.id as community_id,
+               coalesce((select sum(n) from held where held.community_id = f.id), 0)::int as pending,
+               coalesce((select n from reported where reported.community_id = f.id), 0)::int as open_reports
+          from communities f
+         where f.id in ${idList(communityIds)}
       `),
-    ) as Array<{ forum_id: number; pending: number; open_reports: number }>
+    ) as Array<{ community_id: number; pending: number; open_reports: number }>
 
     return new Map(
       rows.map((row) => [
-        Number(row.forum_id),
+        Number(row.community_id),
         { pending: Number(row.pending), openReports: Number(row.open_reports) },
       ]),
     )

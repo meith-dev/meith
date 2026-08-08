@@ -1,8 +1,8 @@
 /**
  * F10 — cache tags. Every tag name in the system is spelled exactly once, here.
  *
- * The failure this prevents: a writer invalidating `"forum-tree"` while a reader
- * cached under `"forumTree"`, producing stale data that no test catches because
+ * The failure this prevents: a writer invalidating `"community-tree"` while a reader
+ * cached under `"communityTree"`, producing stale data that no test catches because
  * both strings are individually plausible. Tag builders are functions so the
  * parameterised forms cannot drift either.
  */
@@ -10,8 +10,8 @@
 import type { CacheDriver } from "./ports"
 
 export const CacheTags = {
-  /** The whole forum tree (structure, ordering, per-forum flags). */
-  forumTree: () => "forum-tree",
+  /** The whole community tree (structure, ordering, per-community flags). */
+  communityTree: () => "community-tree",
   /** The entire settings set — read as one unit, so cached as one unit. */
   settings: () => "settings",
   /** Resolved theme tokens/branding for one theme key. */
@@ -34,8 +34,8 @@ export const CacheTags = {
   wordFilters: () => "word-filters",
   /** Board-wide statistics shown on the index. */
   boardStats: () => "board-stats",
-  /** One forum's metadata and counters. */
-  forum: (forumId: number) => `forum:${forumId}`,
+  /** One community's metadata and counters. */
+  community: (communityId: number) => `community:${communityId}`,
   /** One thread's metadata and counters. */
   thread: (threadId: number) => `thread:${threadId}`,
   /** Public profile of one user. */
@@ -59,7 +59,7 @@ export type CacheTag = ReturnType<(typeof CacheTags)[keyof typeof CacheTags]>
  * the viewer, it does not belong under any of these tags.
  */
 export const GLOBAL_TAGS: readonly string[] = [
-  CacheTags.forumTree(),
+  CacheTags.communityTree(),
   CacheTags.settings(),
   CacheTags.markdownVocabulary(),
   CacheTags.prefixes(),
@@ -90,8 +90,8 @@ const KEY_SEPARATOR = '\u001f'
 
 /**
  * Build the cache key, rejecting parts that would let two different reads
- * collide. `['forum', '1:2']` and `['forum:1', '2']` must not produce the same
- * key — a collision here serves one forum's data under another's identity.
+ * collide. `['community', '1:2']` and `['community:1', '2']` must not produce the same
+ * key — a collision here serves one community's data under another's identity.
  */
 export function globalCacheKey(parts: readonly (string | number)[]): string {
   if (parts.length === 0) {
@@ -118,7 +118,7 @@ export function globalCacheKey(parts: readonly (string | number)[]): string {
  *
  * The name is the contract. Everything cached through here is visible to every
  * viewer, so it must not vary by actor — invariant 9, and the reason a cached
- * permission-filtered page is how private forums leak. There is no runtime check
+ * permission-filtered page is how private communities leak. There is no runtime check
  * that can prove a value is actor-independent (a tag cannot tell you what went
  * into the value), so this enforces the two things it *can*:
  *

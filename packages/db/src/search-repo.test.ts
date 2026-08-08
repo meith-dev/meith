@@ -46,12 +46,12 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
   await db.execute(sql`
-    insert into forums (id, type, title, slug, path) values
-      (${OPEN}, 'forum', 'Open', 'open', '1'),
-      (${PRIVATE}, 'forum', 'Private', 'private', '2')
+    insert into communities (id, type, title, slug, path) values
+      (${OPEN}, 'community', 'Open', 'open', '1'),
+      (${PRIVATE}, 'community', 'Private', 'private', '2')
   `)
   /* Two members, because several tests turn on who wrote a post. */
   for (const id of [7, 8]) {
@@ -66,7 +66,7 @@ beforeEach(async () => {
 
 interface SeedPost {
   readonly id: number
-  readonly forumId?: number
+  readonly communityId?: number
   readonly threadId?: number
   readonly title?: string
   readonly subject?: string | null
@@ -88,20 +88,20 @@ interface SeedPost {
  * agreed with a search that could not find a thread by its title.
  */
 async function seed(post: SeedPost): Promise<void> {
-  const forumId = post.forumId ?? OPEN
+  const communityId = post.communityId ?? OPEN
   const threadId = post.threadId ?? post.id
 
   await db.execute(sql`
-    insert into threads (id, forum_id, author_username, title, slug, visibility)
-    values (${threadId}, ${forumId}, 'ann', ${post.title ?? 'A thread'},
+    insert into threads (id, community_id, author_username, title, slug, visibility)
+    values (${threadId}, ${communityId}, 'ann', ${post.title ?? 'A thread'},
             ${`t-${threadId}`}, 'visible')
     on conflict (id) do nothing
   `)
 
   await db.execute(sql`
-    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+    insert into posts (id, thread_id, community_id, author_user_id, author_username,
                        subject, message, visibility, is_first_post)
-    values (${post.id}, ${threadId}, ${forumId}, ${post.authorUserId ?? null}, 'ann',
+    values (${post.id}, ${threadId}, ${communityId}, ${post.authorUserId ?? null}, 'ann',
             ${post.subject ?? null}, ${post.message}, ${post.visibility ?? 'visible'},
             ${post.isFirstPost ?? true})
   `)
@@ -122,7 +122,7 @@ async function index(postId: number): Promise<void> {
 const STAFF_CONTENT = contentScopeFrom({ seesUnapproved: true, seesDeleted: true })
 
 const scope = (overrides: Partial<SearchScope> = {}): SearchScope => ({
-  forumIds: [OPEN, PRIVATE],
+  communityIds: [OPEN, PRIVATE],
   viewerUserId: null,
   content: PUBLIC_CONTENT,
   ...overrides,
@@ -140,36 +140,36 @@ const query = (overrides: Partial<SearchQuery> = {}): SearchQuery => ({
 describe('the permission filter', () => {
   it('is in the query: an empty scope returns nothing', async () => {
     /*
-     * The claim. A provider that omitted the forum clause for an empty list
+     * The claim. A provider that omitted the community clause for an empty list
      * would search the whole board — a permission failure turning into a full
      * disclosure. Kills the mutant that treats an empty scope as unrestricted.
      */
     await seed({ id: 1, message: 'a kestrel flew past' })
 
-    const results = await repo.search(query(), scope({ forumIds: [] }))
+    const results = await repo.search(query(), scope({ communityIds: [] }))
     expect(results.hits).toEqual([])
   })
 
-  it('returns only hits from forums the viewer may see', async () => {
-    await seed({ id: 1, forumId: OPEN, message: 'kestrel in the open forum' })
-    await seed({ id: 2, forumId: PRIVATE, message: 'kestrel in the private forum' })
+  it('returns only hits from communities the viewer may see', async () => {
+    await seed({ id: 1, communityId: OPEN, message: 'kestrel in the open community' })
+    await seed({ id: 2, communityId: PRIVATE, message: 'kestrel in the private community' })
 
-    const results = await repo.search(query(), scope({ forumIds: [OPEN] }))
+    const results = await repo.search(query(), scope({ communityIds: [OPEN] }))
     expect(results.hits.map((hit) => hit.postId)).toEqual([1])
   })
 
   it('lets a query narrow the scope but never widen it', async () => {
     /*
-     * `forumIds` on the query is a member's filter, not an authorisation. A
+     * `communityIds` on the query is a member's filter, not an authorisation. A
      * provider that used it in place of the scope would let anybody search any
-     * forum by naming it. Kills the mutant that replaces rather than intersects.
+     * community by naming it. Kills the mutant that replaces rather than intersects.
      */
-    await seed({ id: 1, forumId: OPEN, message: 'kestrel here' })
-    await seed({ id: 2, forumId: PRIVATE, message: 'kestrel there' })
+    await seed({ id: 1, communityId: OPEN, message: 'kestrel here' })
+    await seed({ id: 2, communityId: PRIVATE, message: 'kestrel there' })
 
     const results = await repo.search(
-      query({ forumIds: [PRIVATE] }),
-      scope({ forumIds: [OPEN] }),
+      query({ communityIds: [PRIVATE] }),
+      scope({ communityIds: [OPEN] }),
     )
     expect(results.hits).toEqual([])
   })
@@ -213,7 +213,7 @@ describe('the indexed document', () => {
      * **The bug this whole change is about.** A thread's subject is
      * `threads.title`; `posts.subject` is null on everything this board writes.
      * Indexing the column alone left the weight-A half of every document empty,
-     * so the most ordinary search anybody runs on a forum — the title of the
+     * so the most ordinary search anybody runs on a community — the title of the
      * thread they are trying to find again — matched nothing at all, on a board
      * where search otherwise looked like it was working.
      *

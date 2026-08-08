@@ -46,13 +46,13 @@ describe('the plain layout', () => {
 
   it('walks up to find it in an ancestor', async () => {
     /*
-     * The ordinary monorepo case: the working directory is `apps/forum` and the
+     * The ordinary monorepo case: the working directory is `apps/community` and the
      * package is installed at the root. Kills the mutant that looks only in the
      * starting directory.
      */
     const root = await tree()
     const expected = await put(root, `node_modules/${SPEC}`)
-    const deep = join(root, 'apps', 'forum')
+    const deep = join(root, 'apps', 'community')
     await mkdir(deep, { recursive: true })
 
     expect(await locateAsset(SPEC, deep)).toBe(expected)
@@ -61,9 +61,9 @@ describe('the plain layout', () => {
   it('prefers the nearest node_modules', async () => {
     const root = await tree()
     await put(root, `node_modules/${SPEC}`, 'far')
-    const near = await put(root, `apps/forum/node_modules/${SPEC}`, 'near')
+    const near = await put(root, `apps/community/node_modules/${SPEC}`, 'near')
 
-    expect(await locateAsset(SPEC, join(root, 'apps', 'forum'))).toBe(near)
+    expect(await locateAsset(SPEC, join(root, 'apps', 'community'))).toBe(near)
   })
 })
 

@@ -32,7 +32,7 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
             </label>
           )}
           {thread.isUnread && (
-            <span className="size-1.5 shrink-0 bg-forum-unread" aria-hidden="true" />
+            <span className="size-1.5 shrink-0 bg-community-unread" aria-hidden="true" />
           )}
           {thread.prefix !== null && (
             <span className="border border-border px-1 font-mono text-xs text-secondary-foreground">
@@ -59,7 +59,7 @@ export function ThreadRow({ thread, select }: ThreadRowSlotModel) {
       </td>
       <td className="w-56 px-3 py-2 text-xs text-muted-foreground">
         {thread.lastPost === null ? (
-          <span className="text-forum-read">—</span>
+          <span className="text-community-read">—</span>
         ) : (
           <a href={thread.lastPost.href} className="hover:text-primary">
             <time dateTime={thread.lastPost.at.iso}>{thread.lastPost.at.label}</time>

@@ -8,23 +8,23 @@
 # Usage:
 #
 #   docker compose -f docker-compose.dev.yml up -d
-#   pnpm forum migrate
-#   echo "<password>" | pnpm forum user:create --username you --email you@example.test
-#   pnpm forum user:promote --user you --group administrators
+#   pnpm community migrate
+#   echo "<password>" | pnpm community user:create --username you --email you@example.test
+#   pnpm community user:promote --user you --group administrators
 #
 # and in `.env` at the workspace root — one file for the app, the CLI and the
 # worker alike:
 #
 #   DATA_SOURCE=postgres
-#   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/forum_test
+#   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test
 #
 # To seed a board's worth of content, `@meith/testkit`'s `seedBoard()` is the
 # deterministic seeder the test suite uses — same seed, same board. It writes
 # *rows*, and two things a board needs are not rows, so both have to be built
 # afterwards:
 #
-#   pnpm forum task:run counters.reconcile   # the counts the listings read
-#   pnpm forum search:reindex                # the tsvector search matches on
+#   pnpm community task:run counters.reconcile   # the counts the listings read
+#   pnpm community search:reindex                # the tsvector search matches on
 #
 # Skipping the first gives a board index of zeroes, which looks wrong
 # immediately. Skipping the second gives a search that runs, succeeds and
@@ -33,23 +33,23 @@
 services:
   postgres:
     image: postgres:16-alpine
-    # A fixed name so `docker exec forum-pg psql …` works without looking it up,
+    # A fixed name so `docker exec community-pg psql …` works without looking it up,
     # and so the container is recognisable among a machine's other databases.
-    container_name: forum-pg
+    container_name: community-pg
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: forum_test
+      POSTGRES_DB: community_test
     ports:
       # 55432, not 5432: a developer machine usually already has something on
       # the default port, and silently connecting to the wrong database is a
       # worse failure than a refused connection.
       - '55432:5432'
     volumes:
-      - forum-pgdata:/var/lib/postgresql/data
+      - community-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d forum_test']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d community_test']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,7 +64,7 @@ volumes:
   # A local board is cheap to lose and annoying to rebuild.
   #
   # `name:` pins the exact volume rather than letting compose prefix it with the
-  # project directory, so `docker volume inspect forum-pgdata` finds it and a
+  # project directory, so `docker volume inspect community-pgdata` finds it and a
   # container started by hand can mount the same data.
-  forum-pgdata:
-    name: forum-pgdata
+  community-pgdata:
+    name: community-pgdata

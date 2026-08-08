@@ -63,7 +63,7 @@ queueDriverContract('PostgresQueue', async () => {
 /* ---- FileStore ---- */
 
 fileStoreContract('LocalFileStore', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'forum-filestore-'))
+  const dir = await mkdtemp(join(tmpdir(), 'community-filestore-'))
   afterAll(async () => {
     await rm(dir, { recursive: true, force: true })
   })

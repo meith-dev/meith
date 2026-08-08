@@ -70,8 +70,8 @@ granularity later means adding a `numeric-min` kind to
 `posting.flood_seconds` is read by the posting path and
 the exemption is asked for as the global action `flood.bypass`, so no permission
 field escapes `@meith/authorization`. Administrators bypass it like any
-other action; the forum matrix does not carry a column for it, because the
-interval is a board setting rather than a per-forum grant.
+other action; the community matrix does not carry a column for it, because the
+interval is a board setting rather than a per-community grant.
 
 ---
 
@@ -100,7 +100,7 @@ importer code can translate a legacy column name in one place.
 
 **Why.** A bypass has to be explicit and logged. Splitting the fields
 makes it possible to grant a trusted role read access to the panel without also
-handing it the ability to bypass every forum permission on the board — and makes
+handing it the ability to bypass every community permission on the board — and makes
 the audit log meaningful, because a bypass entry now implies a specific field.
 
 ---
@@ -240,18 +240,18 @@ map onto the interval as before, with the hourly limits starting at zero.
 pinned thread for the same job.
 
 **We** have announcements, and they are deliberately *not* threads: nobody can
-reply to one, it has a start and an end date, and it lives above the forums
+reply to one, it has a start and an end date, and it lives above the communities
 rather than in the listing.
 
 **Why.** A sticky thread is a conversation — it belongs to its author, members
 reply to it, and taking it down deletes what they said. That is what leaves a
-three-year-old rules post at the top of a forum on every board that pins one:
+three-year-old rules post at the top of a community on every board that pins one:
 removing it costs the discussion attached to it. An announcement expires on its
 own and removing it removes nothing anybody wrote, which is the whole point of
 having both.
 
 Two smaller differences follow. There is no per-group visibility on an
-announcement: a forum's is shown to whoever can see that forum, resolved through
+announcement: a community's is shown to whoever can see that community, resolved through
 the same filter as everything else, and a board-wide one to everybody. And the
 dates are entered in **UTC** rather than in the operator's timezone, because the
 control submits wall-clock text with no zone and the alternative is an
@@ -329,19 +329,19 @@ window is an *allowance*, so MAX is the right rule and no special case is needed
 the moderator rights that decide what somebody can actually *do* about a report.
 
 **We** scope reports by the sets that already exist: a report about a post or a
-thread is visible to the moderators of its forum (`moderatedForumIds`, the same
+thread is visible to the moderators of its community (`moderatedCommunityIds`, the same
 set that scopes the approval queue), and a report about a *member* is visible to
 board staff (`modcp.access`).
 
 **Why.** A third permission would let a board grant "can read reports about
-forum X" to somebody with no power to act on anything in forum X — a role whose
+community X" to somebody with no power to act on anything in community X — a role whose
 only capability is reading complaints about their neighbours. Every report is
 about content or a person, and the people who can act are the people who should
 see it.
 
 **Cost.** An imported board's `canmanagereportedcontent` grants do not map
-one-to-one: anybody who held it without moderating a forum loses report access,
-and anybody who moderates a forum gains it. The importer should surface that
+one-to-one: anybody who held it without moderating a community loses report access,
+and anybody who moderates a community gains it. The importer should surface that
 as a migration note rather than guessing.
 
 ---
@@ -363,23 +363,23 @@ branch; nothing else changes.
 
 ### Who can lock, pin and move threads
 
-**MyBB** grants these through `moderators` rows (per forum, per right) plus the
+**MyBB** grants these through `moderators` rows (per community, per right) plus the
 super-moderator and administrator bypasses. There is no usergroup column for
 them.
 
 **We** do the same, and this is a parity decision only because it is the first
 place our permission model *diverges from its own pattern*: every other action
-on the board reads a field off the resolved forum matrix, and these four read an
+on the board reads a field off the resolved community matrix, and these four read an
 appointment right instead.
 
 **Why.** "May lock threads everywhere on the board" is a thing you are appointed
 to or a thing you bypass into as staff. A usergroup checkbox for it would let a
 board grant board-wide thread control by adding somebody to a group, with no
-record of which forums anybody was ever meant to be responsible for.
+record of which communities anybody was ever meant to be responsible for.
 
 **Cost.** A board that wants a "Junior moderators" group with lock rights
-everywhere has to appoint the group to each forum — `forum_moderators` accepts a
-`group_id`, so that is one row per forum rather than one per person, but it is
+everywhere has to appoint the group to each community — `community_moderators` accepts a
+`group_id`, so that is one row per community rather than one per person, but it is
 not one checkbox.
 
 ---
@@ -405,20 +405,20 @@ and it has to answer the same question.
 ### Splitting a thread, and where the pieces land
 
 **MyBB** offers "split thread", which takes a checkbox selection of posts, lets
-the moderator choose a destination forum, and can leave the split-off posts
+the moderator choose a destination community, and can leave the split-off posts
 credited however they already were.
 
 **We** split "from this post onwards" and land the new thread in the **same
-forum**, always.
+community**, always.
 
 **Why.** The two differences answer two different questions. The cut point is a
 `<select>` of the posts on screen rather than a checkbox set because a select
 cannot name a post that is not on the page, and arbitrary selection needs the
 per-post checkbox surface — two selection mechanisms for one
 operation is worse than one narrower one. The destination is fixed because
-splitting and moving are two acts: a single operation with a second forum to
+splitting and moving are two acts: a single operation with a second community to
 authorise would let a moderator who may split here, but not post there, place
-content in a forum they have no standing in.
+content in a community they have no standing in.
 
 **Cost.** A moderator who wants the split-off thread elsewhere splits, then
 moves — two operations and two audit rows instead of one. A moderator who wants
@@ -463,7 +463,7 @@ leaves open, and it is the reason we built split before copy.
 
 ### Inline moderation offers no "unapprove"
 
-**MyBB:** the inline moderation dropdown on a forum listing includes *Unapprove
+**MyBB:** the inline moderation dropdown on a community listing includes *Unapprove
 threads*, which sends published content back to the queue.
 
 **Here:** it does not. Inline moderation offers approve, delete, restore, lock,
@@ -520,9 +520,9 @@ permissions and moderator status are resolved separately and can conflict.
 
 **Here:** a warning-level restriction is applied *after* `bypassesModeration`
 and wins. A moderator who is themselves under a moderate-posting warning has
-their posts held, in every forum, including ones they moderate.
+their posts held, in every community, including ones they moderate.
 
-**Why:** the bypass means "this forum's approval queue does not apply to you";
+**Why:** the bypass means "this community's approval queue does not apply to you";
 the warning means "your posts are reviewed". They are different statements and
 the second is a sanction a person received. Letting the first cancel the second
 would make the board's moderators the only members a warning could not reach,
@@ -601,19 +601,19 @@ approval queue, and copying removed content would republish it.
 permission as move.
 
 **Here:** `thread.copy` does not exist as a right. Copying reads `thread.move`
-in the source forum *and* in the destination, exactly as a move does.
+in the source community *and* in the destination, exactly as a move does.
 
 **Why:** copying is moving that leaves the original behind. It puts content into
-the destination forum by the same mechanism, so the destination's moderators
+the destination community by the same mechanism, so the destination's moderators
 have precisely the same interest in it — and a separate right would mean an
-eighth column on `forum_moderators` distinguishing two acts nobody grants
-separately. Unlike a move, the destination *may* be the source forum: forking a
+eighth column on `community_moderators` distinguishing two acts nobody grants
+separately. Unlike a move, the destination *may* be the source community: forking a
 discussion in place is legitimate and there is no pointer to repair, because
 nothing left.
 
 ### A moved thread leaves no redirect stub
 
-**MyBB:** moving a thread can leave a "Moved: <title>" row in the source forum,
+**MyBB:** moving a thread can leave a "Moved: <title>" row in the source community,
 linking to its new home, optionally expiring after a set number of days.
 
 **Here:** a move just moves. The schema keeps `moved_to_thread_id` and
@@ -849,7 +849,7 @@ check against the member's group string.
 `can_view` / `can_edit`, resolved by the same rule everything else on this
 board uses: NULL abstains, any explicit grant wins.
 
-**Why:** the same shape as `forum_permissions`, so "who can see this" has
+**Why:** the same shape as `community_permissions`, so "who can see this" has
 one mental model rather than a second one that only applies to profile fields.
 A NULL that abstains is also what makes "staff may edit this" one row instead of
 a row per group with the other answer copied in — and a comma-separated list of
@@ -1145,7 +1145,7 @@ transaction as whatever changed them.
 
 **Why:** an incremented total cannot survive a rating being revised or
 withdrawn, and when it drifts nobody notices until somebody counts by hand. Same
-decision this board made for `warning_points` and for the thread and forum
+decision this board made for `warning_points` and for the thread and community
 counters.
 
 **Cost:** one extra aggregate per rating. It is bounded by the number of ratings
@@ -1257,14 +1257,14 @@ not *formats*, until something can attest to a new one.
 check.
 
 **Here:** the same — a route handler that re-checks `attachment.download` in the
-attachment's forum, checks that the post and thread are visible to this viewer,
+attachment's community, checks that the post and thread are visible to this viewer,
 and sets `Content-Disposition: attachment` with `nosniff` and a sandboxing CSP.
-The stored object is always private, even in a public forum, and a signed
+The stored object is always private, even in a public community, and a signed
 object-store URL is deliberately not used.
 
 **Why:** the parity here is not an accident of implementation. A signed URL is a
 bearer token that outlives the permission that issued it — move a thread into a
-private forum and every URL handed out in the last hour still works — and it
+private community and every URL handed out in the last hour still works — and it
 carries the bucket's headers rather than ours, which is where the safety of
 serving member-supplied bytes actually lives.
 
@@ -1405,15 +1405,15 @@ total a member has ever been shown.
 ### An online list says where somebody is only when the reader may know
 
 **MyBB:** the online list shows each user's location as a description derived
-from the script they are on ("Viewing Thread X"), and the thread and forum
-titles are resolved without reference to the reader. Private forums leak by
+from the script they are on ("Viewing Thread X"), and the thread and community
+titles are resolved without reference to the reader. Private communities leak by
 title through this screen on stock MyBB, which is why several plugins exist to
 suppress it.
 
 **Here:** the location is resolved **in the query, against the reader's own
-permissions**. A forum they cannot see arrives at the page as null and renders
+permissions**. A community they cannot see arrives at the page as null and renders
 "Somewhere on the board" — there is no title in the data for a theme, a feed or
-a debug dump to print. A thread needs its forum to be nameable *and* the thread
+a debug dump to print. A thread needs its community to be nameable *and* the thread
 itself to be in the reader's content scope, so a moderator reading a
 soft-deleted thread does not put its title on the front page.
 
@@ -1439,7 +1439,7 @@ when it last ran. `computed_at` is null before the first run and the panel says
 most-requested page there is. Updating on the write path is the other way to
 avoid that scan, and it makes every post pay for a number nobody reads on the
 posting screen — plus a cache that drifts from the truth with no way to notice.
-The thread and post totals are summed from the root forums, where the counters
+The thread and post totals are summed from the root communities, where the counters
 have already accumulated the tree, so those two are nearly free; the member
 count is what sets the shape.
 
@@ -1452,20 +1452,20 @@ statement than three zeroes.
 ### A feed shows what a signed-out visitor sees, whoever fetches it
 
 **MyBB:** `syndication.php` resolves the requesting user from their cookie and
-filters the feed against that member's forum permissions, so a signed-in
-member's feed carries their private forums.
+filters the feed against that member's community permissions, so a signed-in
+member's feed carries their private communities.
 
 **Here:** every feed is built from the **guest** scope, regardless of who asks.
 
 **Why:** a feed URL is handed to software, not read in the browser that holds
 the cookie. Aggregators, corporate proxies and CDNs cache one response per URL
 and serve it to everybody who asks for that URL next — so a personalised feed
-under a shared address is a private forum served to a stranger, in somebody
+under a shared address is a private community served to a stranger, in somebody
 else's cache, with nothing about the request that caused it visible from here.
 MyBB's version is only safe because most readers never send the cookie at all,
 which means the personalisation mostly does not happen.
 
-**Cost:** a member cannot follow a private forum by RSS. That is a real
+**Cost:** a member cannot follow a private community by RSS. That is a real
 capability lost, and the honest replacement is subscriptions, which
 deliver to a member rather than to a URL. A per-member feed token would restore
 it — a capability URL, cached safely because it is unguessable — and it is a
@@ -1477,12 +1477,12 @@ feature with its own decisions to make, not a flag on this one.
 with and without a `pid`, with and without `page=1` — are left for the crawler
 to work out.
 
-**Here:** every thread and forum page carries `rel="canonical"` naming **the
+**Here:** every thread and community page carries `rel="canonical"` naming **the
 page being read**, with the permalink, cursor and reveal parameters dropped.
 
 **Why:** the tempting version points every page at page 1, and it is worse than
 having none: it asks a crawler to drop every page but the first from its index,
-which is why so many forums are searchable only for their opening posts. What a
+which is why so many communities are searchable only for their opening posts. What a
 canonical is actually for here is collapsing `?post=812`, `?after=…` and
 `?reveal=…` — three ways to reach one document.
 
@@ -1555,7 +1555,7 @@ and `[color=red;background:…]` with varying degrees of filtering by version.
 **Here:** refused. The link keeps its text and loses its destination — no
 anchor, no image element, no attribute.
 
-**Why:** each is an XSS in a forum post, and "MyBB renders it" is a description
+**Why:** each is an XSS in a community post, and "MyBB renders it" is a description
 of MyBB's history rather than a requirement.
 
 **Cost:** an imported post containing one shows the URL as text instead of a

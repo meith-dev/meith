@@ -3,7 +3,7 @@
  *
  * Markdown is a **line** grammar wrapped around an inline one, so this file
  * works in lines and hands runs of prose to `inline.ts`. Three rules decide
- * everything it does, and they are the three places a forum's renderer usually
+ * everything it does, and they are the three places a community's renderer usually
  * goes wrong:
  *
  *  1. **Nothing a member typed is ever dropped.** A fence that never closes, a
@@ -18,7 +18,7 @@
  *  3. **A newline is a line break.** CommonMark folds a single newline into a
  *     space, which is correct for documents and wrong for a message box: people
  *     write addresses, set lists and poetry in posts and press Return where
- *     they mean it. Every forum-flavoured Markdown ever shipped has made this
+ *     they mean it. Every community-flavoured Markdown ever shipped has made this
  *     same change, and a member who has to type two trailing spaces to get a
  *     line break will type them once, see nothing, and go back to BBCode.
  *

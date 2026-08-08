@@ -1,7 +1,7 @@
 /**
  * The marketing site and documentation, at meith.dev.
  *
- * Deliberately unlike `apps/forum/next.config.mjs`. That app is a board: it
+ * Deliberately unlike `apps/community/next.config.mjs`. That app is a board: it
  * reads a database, loads the workspace's `.env` files and ships a standalone
  * server with a worker beside it. This one renders a fixed set of pages from
  * Markdown that is in the repository, so every route is prerendered at build

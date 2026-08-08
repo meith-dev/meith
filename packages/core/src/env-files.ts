@@ -5,14 +5,14 @@
  * Something has to put it there, and only one of the three programs in this
  * workspace had anything doing it: Next reads `.env` files itself, from the
  * directory it is started in. The operator CLI and the worker are plain Node
- * processes with no such machinery, so `pnpm forum migrate` ran in fixture mode
+ * processes with no such machinery, so `pnpm community migrate` ran in fixture mode
  * on a machine whose `.env` said postgres — and reported success, because
  * fixture mode is a legitimate configuration rather than an error. The failure
  * was silent in the worst place: the command whose job is to change a database.
  *
  * **One file, at the workspace root, for every app.** The alternative is a copy
  * of `DATABASE_URL` beside each app, which is three chances to migrate one
- * database and serve another. `apps/forum/.env` is no longer where a developer
+ * database and serve another. `apps/community/.env` is no longer where a developer
  * should put anything.
  *
  * The root is found by walking up for `pnpm-workspace.yaml` rather than resolved

@@ -4,7 +4,7 @@ import { eq, sql } from 'drizzle-orm'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { forums, threads, threadViewBuffer, users } from './schema'
+import { communities, threads, threadViewBuffer, users } from './schema'
 import { PostgresThreadViewBuffer } from './thread-views'
 
 let harness: TestDb
@@ -24,7 +24,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.execute(sql`delete from thread_view_buffer`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -37,10 +37,10 @@ beforeEach(async () => {
     passwordAlgo: 'argon2id',
     primaryGroupId: 2,
   })
-  await db.insert(forums).values({ id: 10, title: 'General', slug: 'general', path: '10' })
+  await db.insert(communities).values({ id: 10, title: 'General', slug: 'general', path: '10' })
   await db.insert(threads).values([
-    { id: 20, forumId: 10, title: 'A', slug: 'a', authorUserId: 1, authorUsername: 'ada' },
-    { id: 21, forumId: 10, title: 'B', slug: 'b', authorUserId: 1, authorUsername: 'ada' },
+    { id: 20, communityId: 10, title: 'A', slug: 'a', authorUserId: 1, authorUsername: 'ada' },
+    { id: 21, communityId: 10, title: 'B', slug: 'b', authorUserId: 1, authorUsername: 'ada' },
   ])
 })
 

@@ -7,7 +7,7 @@
  * moderator pressed "Delete thread" on its page or ticked forty boxes on the
  * listing, and the way that goes wrong is by drifting apart — a fix applied to
  * one path and not the other, discovered a month later as a category whose
- * total disagrees with its forums by seven.
+ * total disagrees with its communities by seven.
  *
  * The reason ancestors are updated *synchronously* here, unlike F38's roll-up
  * and F41's reversal, is unchanged and worth repeating: those are per-post
@@ -26,9 +26,9 @@ export interface CounterTx {
 /**
  * What a thread contributes to the board's totals.
  *
- * Counted once and reused for the forum, the ancestors and every author,
+ * Counted once and reused for the community, the ancestors and every author,
  * because they must agree: three separate counts of the same thing is how a
- * move leaves a forum and its category disagreeing by one.
+ * move leaves a community and its category disagreeing by one.
  */
 export interface ThreadTally {
   readonly posts: number
@@ -66,26 +66,26 @@ export async function tallyThread(
 }
 
 /**
- * Apply a thread's contribution to a forum **and every ancestor**, in one
+ * Apply a thread's contribution to a community **and every ancestor**, in one
  * statement.
  *
  * `f.id = child.id or child.path like f.path || '.%'` is self-plus-ancestors:
  * the separator is D22's prefix trap again, without which `1.4` would be
  * treated as an ancestor of `1.40`.
  */
-export async function applyForumChain(
+export async function applyCommunityChain(
   tx: CounterTx,
-  forumId: number,
+  communityId: number,
   delta: 1 | -1,
   tally: ThreadTally,
 ): Promise<void> {
   await tx.execute(sql`
-    update forums f
+    update communities f
        set post_count = greatest(f.post_count + ${delta * tally.posts}, 0),
            thread_count = greatest(f.thread_count + ${delta}, 0),
            updated_at = now()
-      from forums child
-     where child.id = ${forumId}
+      from communities child
+     where child.id = ${communityId}
        and (f.id = child.id or child.path like f.path || '.%')
   `)
 }

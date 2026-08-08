@@ -15,7 +15,7 @@ import { PostgresThreadSurgeryRepository } from './thread-surgery'
 import { PostgresThreadWriteRepository } from './thread-writes'
 import { rollUpAncestorCounters } from './content-counters'
 import { resultRows } from './result-rows'
-import { forums, users } from './schema'
+import { communities, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -48,7 +48,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from outbox`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values(
@@ -67,7 +67,7 @@ beforeEach(async () => {
       primaryGroupId: 2,
     })),
   )
-  await db.insert(forums).values([
+  await db.insert(communities).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
     { id: LEFT, title: 'Left', slug: 'left', path: '1.4', depth: 1, parentId: CATEGORY },
     { id: RIGHT, title: 'Right', slug: 'right', path: '1.5', depth: 1, parentId: CATEGORY },
@@ -76,12 +76,12 @@ beforeEach(async () => {
 
 /** A thread by Ada with `replies` replies by Bob, written through the real path. */
 async function seedThread(
-  forumId: number,
+  communityId: number,
   title: string,
   replies: number,
 ): Promise<{ threadId: number; postIds: number[] }> {
   const thread = await writes.create({
-    forumId,
+    communityId,
     title,
     slug: title.toLowerCase().replace(/\W+/g, '-'),
     message: 'the opening post',
@@ -96,7 +96,7 @@ async function seedThread(
   for (let n = 0; n < replies; n += 1) {
     const { postId } = await writes.createReply({
       threadId: thread.threadId,
-      forumId,
+      communityId,
       threadTitle: title,
       message: `reply ${n}`,
       authorUserId: BOB,
@@ -111,9 +111,9 @@ async function seedThread(
   return { threadId: thread.threadId, postIds }
 }
 
-async function forumCounts(id: number): Promise<{ posts: number; threads: number }> {
+async function communityCounts(id: number): Promise<{ posts: number; threads: number }> {
   const rows = resultRows(
-    await db.execute(sql`select post_count, thread_count from forums where id = ${id}`),
+    await db.execute(sql`select post_count, thread_count from communities where id = ${id}`),
   ) as Array<{ post_count: number; thread_count: number }>
   return { posts: Number(rows[0]!.post_count), threads: Number(rows[0]!.thread_count) }
 }
@@ -128,20 +128,20 @@ async function userCounts(id: number): Promise<{ posts: number; threads: number 
 async function threadRow(id: number): Promise<{
   reply_count: number
   last_post_id: number | null
-  forum_id: number
+  community_id: number
 } | null> {
   const rows = resultRows(
     await db.execute(sql`
-      select reply_count, last_post_id, forum_id from threads where id = ${id}
+      select reply_count, last_post_id, community_id from threads where id = ${id}
     `),
-  ) as Array<{ reply_count: number; last_post_id: number | null; forum_id: number }>
+  ) as Array<{ reply_count: number; last_post_id: number | null; community_id: number }>
   const row = rows[0]
   return row === undefined
     ? null
     : {
         reply_count: Number(row.reply_count),
         last_post_id: row.last_post_id === null ? null : Number(row.last_post_id),
-        forum_id: Number(row.forum_id),
+        community_id: Number(row.community_id),
       }
 }
 
@@ -216,13 +216,13 @@ describe('splitting', () => {
   })
 
   /*
-   * The forum keeps every post — they never left it — and gains one thread.
-   * Moving the post count too is the mistake that makes a forum's total drop
+   * The community keeps every post — they never left it — and gains one thread.
+   * Moving the post count too is the mistake that makes a community's total drop
    * every time somebody tidies a thread.
    */
-  it('adds a thread to the forum and moves no posts', async () => {
+  it('adds a thread to the community and moves no posts', async () => {
     const { threadId, postIds } = await seedThread(LEFT, 'Original', 3)
-    expect(await forumCounts(LEFT)).toEqual({ posts: 4, threads: 1 })
+    expect(await communityCounts(LEFT)).toEqual({ posts: 4, threads: 1 })
 
     await repo.split({
       sourceThreadId: threadId,
@@ -232,8 +232,8 @@ describe('splitting', () => {
       at: AT,
     })
 
-    expect(await forumCounts(LEFT)).toEqual({ posts: 4, threads: 2 })
-    expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
+    expect(await communityCounts(LEFT)).toEqual({ posts: 4, threads: 2 })
+    expect(await communityCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
   })
 
   /*
@@ -382,10 +382,10 @@ describe('merging', () => {
     expect(await threadRow(target.threadId)).toMatchObject({ reply_count: 4 })
   })
 
-  it('removes one thread from the forum and keeps every post, in the same forum', async () => {
+  it('removes one thread from the community and keeps every post, in the same community', async () => {
     const target = await seedThread(LEFT, 'Keep', 1)
     const source = await seedThread(LEFT, 'Absorb', 1)
-    expect(await forumCounts(LEFT)).toEqual({ posts: 4, threads: 2 })
+    expect(await communityCounts(LEFT)).toEqual({ posts: 4, threads: 2 })
 
     await repo.merge({
       sourceThreadId: source.threadId,
@@ -394,21 +394,21 @@ describe('merging', () => {
       at: AT,
     })
 
-    expect(await forumCounts(LEFT)).toEqual({ posts: 4, threads: 1 })
-    expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 1 })
+    expect(await communityCounts(LEFT)).toEqual({ posts: 4, threads: 1 })
+    expect(await communityCounts(CATEGORY)).toEqual({ posts: 4, threads: 1 })
   })
 
   /*
-   * Across forums the posts really do change home, so both chains move — and
+   * Across communities the posts really do change home, so both chains move — and
    * the shared category must end up exactly one thread down and no posts down,
    * because nothing left it.
    */
-  it('moves the posts between chains when the forums differ', async () => {
+  it('moves the posts between chains when the communities differ', async () => {
     const target = await seedThread(RIGHT, 'Keep', 1)
     const source = await seedThread(LEFT, 'Absorb', 1)
-    expect(await forumCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
-    expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
-    expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
+    expect(await communityCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
+    expect(await communityCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
+    expect(await communityCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
 
     await repo.merge({
       sourceThreadId: source.threadId,
@@ -417,13 +417,13 @@ describe('merging', () => {
       at: AT,
     })
 
-    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
-    expect(await forumCounts(RIGHT)).toEqual({ posts: 4, threads: 1 })
-    expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 1 })
+    expect(await communityCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await communityCounts(RIGHT)).toEqual({ posts: 4, threads: 1 })
+    expect(await communityCounts(CATEGORY)).toEqual({ posts: 4, threads: 1 })
   })
 
-  /* `posts.forum_id` is denormalised, so it follows them (D49). */
-  it('rewrites the denormalised forum id on the absorbed posts', async () => {
+  /* `posts.community_id` is denormalised, so it follows them (D49). */
+  it('rewrites the denormalised community id on the absorbed posts', async () => {
     const target = await seedThread(RIGHT, 'Keep', 1)
     const source = await seedThread(LEFT, 'Absorb', 1)
 
@@ -436,10 +436,10 @@ describe('merging', () => {
 
     const rows = resultRows(
       await db.execute(sql`
-        select distinct forum_id from posts where thread_id = ${target.threadId}
+        select distinct community_id from posts where thread_id = ${target.threadId}
       `),
-    ) as Array<{ forum_id: number }>
-    expect(rows.map((r) => Number(r.forum_id))).toEqual([RIGHT])
+    ) as Array<{ community_id: number }>
+    expect(rows.map((r) => Number(r.community_id))).toEqual([RIGHT])
   })
 
   it('takes one thread off the absorbed thread"s author and no posts off anybody', async () => {
@@ -475,7 +475,7 @@ describe('merging', () => {
 
     const pointer = async (id: number): Promise<number | null> => {
       const rows = resultRows(
-        await db.execute(sql`select last_post_id from forums where id = ${id}`),
+        await db.execute(sql`select last_post_id from communities where id = ${id}`),
       ) as Array<{ last_post_id: number | null }>
       return rows[0]!.last_post_id === null ? null : Number(rows[0]!.last_post_id)
     }
@@ -492,7 +492,7 @@ describe('merging', () => {
     const target = await seedThread(LEFT, 'Keep', 1)
     const source = await seedThread(LEFT, 'Absorb', 1)
     await db.execute(sql`
-      insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+      insert into posts (id, thread_id, community_id, author_user_id, author_username,
                          message, visibility, is_first_post, created_at)
       values (9999, ${source.threadId}, ${LEFT}, ${BOB}, 'bob', 'held', 'unapproved',
               false, ${AT})
@@ -523,10 +523,10 @@ describe('merging', () => {
       await db.execute(sql`select action, detail from admin_log`),
     ) as Array<{
       action: string
-      detail: { from: number; to: number; fromForum: number; toForum: number }
+      detail: { from: number; to: number; fromCommunity: number; toCommunity: number }
     }>
     expect(rows[0]).toMatchObject({ action: 'thread.merge' })
-    expect(rows[0]!.detail).toMatchObject({ fromForum: LEFT, toForum: RIGHT })
+    expect(rows[0]!.detail).toMatchObject({ fromCommunity: LEFT, toCommunity: RIGHT })
   })
 })
 

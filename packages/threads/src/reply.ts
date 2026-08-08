@@ -3,7 +3,7 @@
  *
  * A reply is the same act as opening a thread, one level down: the same length
  * limits, the same flood interval, the same moderation decision. What differs
- * is what can refuse it — a locked thread, a forum that takes threads but not
+ * is what can refuse it — a locked thread, a community that takes threads but not
  * replies, a thread that is no longer visible — and that it joins something
  * other people may have changed since the form was rendered.
  *
@@ -18,7 +18,7 @@ import {
   MESSAGE_MIN,
   UNRESTRICTED,
   type AuthorRestriction,
-  type ForumPostingTarget,
+  type CommunityPostingTarget,
   type ThreadAuthor,
 } from './compose'
 
@@ -33,7 +33,7 @@ export interface ReplyTarget {
   readonly lastPostId: number | null
   /** Visible replies, so the caller can work out which page the new post lands on. */
   readonly replyCount: number
-  readonly forum: ForumPostingTarget
+  readonly community: CommunityPostingTarget
 }
 
 export interface ComposeReplyInput {
@@ -53,24 +53,24 @@ export interface ComposeReplyInput {
    * Resolved by the caller, like `bypassesModeration` and the warning
    * restriction beside it, and for the same reason: it is a fact about the
    * *account* (its post count against a board setting) rather than about this
-   * forum or this message, and the composer is not the thing that reads
+   * community or this message, and the composer is not the thing that reads
    * settings.
    */
   readonly heldAsNewMember: boolean
   /**
    * The `requiresPostApproval` permission, already resolved for this author in
-   * this forum.
+   * this community.
    *
-   * A *fourth* reason to hold, and a different one from `forum.moderateNewPosts`
-   * beside it: that flag is the forum's switch and applies to everybody who
+   * A *fourth* reason to hold, and a different one from `community.moderateNewPosts`
+   * beside it: that flag is the community's switch and applies to everybody who
    * posts there, this is the actor's, AND-combined across their groups with any
-   * per-forum override on top. A board holds a probationary group's replies
-   * everywhere with this, and holds everybody's replies in one forum with that.
+   * per-community override on top. A board holds a probationary group's replies
+   * everywhere with this, and holds everybody's replies in one community with that.
    *
    * Resolved by the caller for the reason `heldAsNewMember` gives — it is a
    * permission lookup, and the composer does not do those. Until the audit of
    * 7 August 2026 nothing resolved it at all: the field existed in the registry,
-   * was editable on the group and forum-permission screens, was combined
+   * was editable on the group and community-permission screens, was combined
    * correctly by the authorizer, and was read by no write path, so ticking it
    * did nothing.
    */
@@ -84,7 +84,7 @@ export interface ComposeReplyInput {
 
 export interface NewReplyRecord {
   readonly threadId: number
-  readonly forumId: number
+  readonly communityId: number
   readonly threadTitle: string
   readonly message: string
   readonly authorUserId: number
@@ -154,8 +154,8 @@ export class ReplyComposer {
     if (target.visibility !== 'visible') {
       throw new ValidationError('That thread is not available.')
     }
-    if (target.forum.type !== 'forum' || !target.forum.isOpen || !target.forum.allowReplies) {
-      throw new ValidationError('This forum is closed to replies.')
+    if (target.community.type !== 'community' || !target.community.isOpen || !target.community.allowReplies) {
+      throw new ValidationError('This community is closed to replies.')
     }
     if (target.isLocked && !input.bypassesLock) {
       throw new ValidationError('This thread is locked.')
@@ -183,7 +183,7 @@ export class ReplyComposer {
      * `bypassesModeration` while F46's new-member hold does not.
      */
     const visibility =
-      ((target.forum.moderateNewPosts || input.requiresApproval) &&
+      ((target.community.moderateNewPosts || input.requiresApproval) &&
         !input.bypassesModeration) ||
       input.heldAsNewMember ||
       restriction.moderated
@@ -192,7 +192,7 @@ export class ReplyComposer {
 
     const { postId } = await this.posts.createReply({
       threadId: target.threadId,
-      forumId: target.forum.id,
+      communityId: target.community.id,
       threadTitle: target.title,
       message,
       authorUserId: author.userId,
@@ -254,7 +254,7 @@ export class ReplyComposer {
  * The attribution names the author and does **not** link to the post. BBCode
  * carried `pid='12'` here and the renderer dropped it, for a reason that has
  * not changed: turning a post id into a link needs the thread it lives in, and
- * a post id alone can address a post in a forum the *reader* cannot see. A
+ * a post id alone can address a post in a community the *reader* cannot see. A
  * quote header that 404s for half the board is worse than one without a link.
  *
  * The quoted body is inserted verbatim: it is somebody's post, already stored

@@ -46,11 +46,11 @@ export const site = {
   domain: "meith.dev",
   url: "https://meith.dev",
   repository: "https://github.com/meith-dev/meith",
-  tagline: "Open-source forum software you run on your own server.",
+  tagline: "Open-source community software you run on your own server.",
   description:
-    "Meith is open-source forum software for communities that want to own where they " +
+    "Meith is open-source community software for people who want to own where they " +
     "gather. One Postgres database and nothing else, permissions resolved per member per " +
-    "forum, typed theme and plugin APIs, and no third-party script between your members " +
+    "community, typed theme and plugin APIs, and no third-party script between your members " +
     "and their board.",
 } as const
 
@@ -117,7 +117,9 @@ export const hero = {
    * "Gather" is `site.description`'s own verb, and is deliberately not
    * "connect" — the word every social network already uses about its groups, and
    * therefore the one word here that cannot tell a reader why they are on this
-   * page rather than that one.
+   * page rather than that one. "Your people" rather than "communities", because
+   * the category two words earlier already says community and the headline
+   * should not say it twice.
    *
    * The headline argues against nothing, and does not need to. The lede below it
    * makes the neighbourhood-against-crowd case in two sentences and makes it
@@ -126,18 +128,18 @@ export const hero = {
    * `site.tagline` carries it into the description meta tag, the footer and
    * `llms.txt`, where the readers who need the plain sentence are.
    */
-  headline: { before: "Open-source forum software ", emphasis: "where communities gather." },
+  headline: { before: "Open-source community software ", emphasis: "where your people gather." },
   /*
    * Kept in full. This paragraph is the one piece of copy on the site that does
    * the actual arguing, and shortening it in the name of concision took the
-   * argument out — "open-source forum software" is a description, and the
+   * argument out — "open-source community software" is a description, and the
    * neighbourhood is the reason anybody would want one. What it no longer has to
    * carry is the etymology: the headline above it makes the claim, the badge
    * above that names the licence and the database, and this is free to say why.
    */
   lede:
     "The internet used to feel like a neighbourhood. Today it more often feels like a " +
-    "fragmented crowd. Meith is forum software for putting the neighbourhood back — " +
+    "fragmented crowd. Meith is community software for putting the neighbourhood back — " +
     "open source, self-hostable, and built for communities that have work to do together.",
   primary: "Start a board",
   secondary: "Read the docs",
@@ -192,17 +194,17 @@ export const terminal: {
  * picture of an interface implies a screenshot unless it tells you otherwise.
  */
 export const boardPreview = {
-  caption: "A board, in outline — forums, what is in them, and the last thing said.",
+  caption: "A board, in outline — its communities, what is in them, and the last thing said.",
   name: "Workshop",
   blurb: "community board",
-  forums: [
+  communities: [
     { title: "Announcements", blurb: "Releases, and what changed.", threads: 96, posts: 1_204 },
     { title: "Build logs", blurb: "Work in progress, in public.", threads: 1_204, posts: 18_332 },
     { title: "Help & support", blurb: "Ask, answer, search first.", threads: 2_891, posts: 21_470 },
   ],
   latest: {
     thread: "Migrating a 12-year MyBB archive",
-    forum: "Help & support",
+    community: "Help & support",
     when: "4 min ago",
   },
 } as const
@@ -275,9 +277,9 @@ export const capabilities: readonly Capability[] = [
   {
     title: "A place for every kind of member",
     body:
-      "Open forums for everyone, a members-only floor, a staff room nobody else sees. Who " +
-      "can read, post, search or reply is decided per member, per forum — and every way into " +
-      "the board, search and feeds included, respects the same rules.",
+      "Open communities for everyone, a members-only floor, a staff room nobody else sees. " +
+      "Who can read, post, search or reply is decided per member, per community — and every " +
+      "way into the board, search and feeds included, respects the same rules.",
     doc: "operating",
     anchor: "permissions",
     link: "How permissions work",
@@ -342,7 +344,7 @@ const HEADLINE_SCENARIO = "Thread, page 1"
  *
  * This band used to be the measurements themselves: a five-row table of p95s
  * against budgets, with the benchmark board's size beside it. The table was
- * honest and it was aimed at the wrong reader — a page of forum software is
+ * honest and it was aimed at the wrong reader — a page of community software is
  * fast or it is not, and the person deciding whether to run one wants the
  * sentence, not the spreadsheet. The sentence is here; the spreadsheet is one
  * click away, unchanged, in the performance reference.

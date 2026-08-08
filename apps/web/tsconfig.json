@@ -8,10 +8,10 @@
      * No path aliases at all, and specifically no `@/*`.
      *
      * `@` is already spoken for across this workspace: it resolves to
-     * `apps/forum/src` in `vitest.config.ts` and in
+     * `apps/community/src` in `vitest.config.ts` and in
      * `.dependency-cruiser.webpack.cjs`, both of which are single-valued and
      * repository-wide. A second app claiming the same prefix would hand a test
-     * importing `@/…` from here a module out of the *forum* — silently, and only
+     * importing `@/…` from here a module out of the *community* — silently, and only
      * in the tools, so `tsc` and `next build` would both be green while
      * `pnpm test` compiled something else entirely.
      *

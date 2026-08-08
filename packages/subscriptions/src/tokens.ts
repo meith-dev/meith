@@ -41,7 +41,7 @@ import type { SubscriptionTarget } from './modes'
 /**
  * What an unsubscribe link can act on.
  *
- * `thread` and `forum` end one subscription — the link in an "as it happens"
+ * `thread` and `community` end one subscription — the link in an "as it happens"
  * notification, where the member knows exactly which thread annoyed them.
  *
  * `email` is the digest's link, and it is a different act on purpose: a digest
@@ -54,14 +54,14 @@ import type { SubscriptionTarget } from './modes'
 export type UnsubscribeScope = SubscriptionTarget | 'email'
 
 export function parseUnsubscribeScope(value: string): UnsubscribeScope | null {
-  return value === 'thread' || value === 'forum' || value === 'email' ? value : null
+  return value === 'thread' || value === 'community' || value === 'email' ? value : null
 }
 
 /** What an unsubscribe token asserts. */
 export interface UnsubscribeClaim {
   readonly userId: number
   readonly scope: UnsubscribeScope
-  /** The thread or forum id; `0` for the board-wide `email` scope. */
+  /** The thread or community id; `0` for the board-wide `email` scope. */
   readonly targetId: number
 }
 

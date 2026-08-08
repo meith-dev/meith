@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { forums, posts, threads, users } from './schema'
+import { communities, posts, threads, users } from './schema'
 import { PostgresReadStateRepository } from './read-state-repo'
 
 let harness: TestDb
@@ -20,9 +20,9 @@ async function seed(threadCount: number): Promise<void> {
     emailLower: 'ada@example.com',
     primaryGroupId: 2,
   }).onConflictDoNothing()
-  await db.insert(forums).values({
+  await db.insert(communities).values({
     id: 1,
-    type: 'forum',
+    type: 'community',
     title: 'General',
     slug: 'general',
     path: '1',
@@ -35,7 +35,7 @@ async function seed(threadCount: number): Promise<void> {
     const at = new Date(`2026-07-30T${String(index % 24).padStart(2, '0')}:00:00Z`)
     await db.insert(threads).values({
       id: threadId,
-      forumId: 1,
+      communityId: 1,
       title: `Thread ${threadId}`,
       slug: `thread-${threadId}`,
       authorUsername: 'ada',
@@ -46,7 +46,7 @@ async function seed(threadCount: number): Promise<void> {
     await db.insert(posts).values({
       id: postId,
       threadId,
-      forumId: 1,
+      communityId: 1,
       authorUsername: 'ada',
       message: `Post ${postId}`,
       isFirstPost: true,
@@ -67,10 +67,10 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.execute(sql`delete from threads_read`)
-  await db.execute(sql`delete from forums_read`)
+  await db.execute(sql`delete from communities_read`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from forums`)
+  await db.execute(sql`delete from communities`)
   await db.execute(sql`delete from users where id = 50`)
 })
 
@@ -84,10 +84,10 @@ describe('PostgresReadStateRepository', () => {
 
     const state = await repo.forUser(50)
     expect(state.threadLastPostId.get(1)).toBe(2)
-    expect(state.unreadForumIds).toEqual(new Set([1]))
+    expect(state.unreadCommunityIds).toEqual(new Set([1]))
 
-    await repo.markForumsRead(50, [1], now)
-    expect((await repo.forUser(50)).unreadForumIds).toEqual(new Set())
+    await repo.markCommunitiesRead(50, [1], now)
+    expect((await repo.forUser(50)).unreadCommunityIds).toEqual(new Set())
   })
 
   it('reads watermarks in a constant three statements', async () => {
@@ -96,10 +96,10 @@ describe('PostgresReadStateRepository', () => {
 
     await db.execute(sql`delete from posts`)
     await db.execute(sql`delete from threads`)
-    await db.execute(sql`delete from forums`)
+    await db.execute(sql`delete from communities`)
     await seed(50)
     const state = await expectQueryBudget(harness, 3, () => repo.forUser(50))
 
-    expect(state.unreadForumIds).toEqual(new Set([1]))
+    expect(state.unreadCommunityIds).toEqual(new Set([1]))
   })
 })

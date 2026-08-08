@@ -14,10 +14,10 @@ changing it costs.
 | Where | What lives there | Changing it costs |
 |---|---|---|
 | Environment variables | Secrets, and anything needed before the board can read its own database. | A redeploy |
-| `forum.config.ts` | What is *installed*: themes and plugins. | An edit and a redeploy |
+| `community.config.ts` | What is *installed*: themes and plugins. | An edit and a redeploy |
 | `/admin/settings` | Everything else: board name, registration mode, posting limits, search, mail. | Nothing — it takes effect immediately |
 
-**Why the split.** Anything in `forum.config.ts` has to be visible to the
+**Why the split.** Anything in `community.config.ts` has to be visible to the
 bundler, because a production build contains only what it could see statically.
 So "install a plugin" cannot be a database row. Anything in `/admin/settings` is
 a value the running board reads, so it can change without a deploy.
@@ -88,14 +88,14 @@ object store the bucket has its own backup story. See
 which is usually the moment you need it.
 
 ```sh
-forum settings:list          # the whole registry, with defaults
-forum settings:get board.name
-forum settings:set board.name "The Townland"
+community settings:list          # the whole registry, with defaults
+community settings:get board.name
+community settings:set board.name "The Townland"
 ```
 
 ## The operator CLI
 
-Everything you should not need a browser for: migrations, users, forums,
+Everything you should not need a browser for: migrations, users, communities,
 settings, scheduled tasks, search reindexing. It ships **inside the image**, so
 a deployed board needs no checkout, no toolchain and no Node on the host.
 
@@ -105,32 +105,32 @@ How you reach it depends on how the board was deployed:
 |---|---|
 | **Coolify** | Open the `web` container's terminal in the panel, then `node apps/cli/cli.cjs <command>`. |
 | **Docker Compose** | `docker compose run --rm --no-deps web node apps/cli/cli.cjs <command>` |
-| **A checkout** | `pnpm forum <command>` |
+| **A checkout** | `pnpm community <command>` |
 
 `--rm` matters on Compose: without it every invocation leaves a stopped
 container behind. `--no-deps` matters too — without it, each command re-runs the
 whole migration container first, which is harmless and slow enough to be
 confusing.
 
-The rest of this page writes **`forum <command>`**, which is worth making true
+The rest of this page writes **`community <command>`**, which is worth making true
 on a Compose board:
 
 ```sh
-alias forum='docker compose -f ~/meith/docker-compose.yml run --rm --no-deps web node apps/cli/cli.cjs'
+alias community='docker compose -f ~/meith/docker-compose.yml run --rm --no-deps web node apps/cli/cli.cjs'
 ```
 
 ```sh
-forum --help                     # everything it can do
-forum env:check                  # is the environment valid? (it does not open a connection)
-forum user:create --group admin  # a second administrator, or the first if /install is sealed — password on stdin
-forum user:promote               # administrator access on a board that already works
-forum task:run                   # run the tick once, by hand
-forum search:reindex             # after a large import, to hurry the tick along
+community --help                     # everything it can do
+community env:check                  # is the environment valid? (it does not open a connection)
+community user:create --group admin  # a second administrator, or the first if /install is sealed — password on stdin
+community user:promote               # administrator access on a board that already works
+community task:run                   # run the tick once, by hand
+community search:reindex             # after a large import, to hurry the tick along
 ```
 
 Search indexes itself. `search.reindex` runs on the tick every ten minutes and
 covers every case that leaves a post unindexed — an import, a restored dump, an
-upgrade that changed what the index holds. `forum search:reindex` does the same
+upgrade that changed what the index holds. `community search:reindex` does the same
 work now instead of over the next few ticks, and runs to completion rather than
 one batch at a time; the Admin CP's button is the same thing, one batch per
 click. None of the three is a prerequisite for search working.
@@ -141,7 +141,7 @@ missing rather than hidden.
 
 ## Permissions
 
-46 permission fields — 27 resolved per member per forum, 19 board-wide. Every
+46 permission fields — 27 resolved per member per community, 19 board-wide. Every
 read path — pages, search, feeds, the REST API — asks the same resolver, so
 there is no route that quietly reads around the rules.
 
@@ -152,16 +152,16 @@ understanding the model.
 
 1. **Group permissions** — the floor. A member's groups are combined, and a
    boolean is granted if *any* of their groups grants it.
-2. **The forum matrix** — per forum, per group. Each cell has three states:
+2. **The community matrix** — per community, per group. Each cell has three states:
    inherit, grant, deny.
-3. **Moderator rights** — per forum, per member or group, granted separately.
+3. **Moderator rights** — per community, per member or group, granted separately.
 
 > [!IMPORTANT]
-> In the forum matrix, **empty means inherit** — it is not the same as "no".
+> In the community matrix, **empty means inherit** — it is not the same as "no".
 > That is why each cell is a three-state control rather than a checkbox: a
 > checkbox writes an explicit value into every cell the first time you save,
-> pinning that forum so later changes at its parent do nothing. Silently pinning
-> a forum is the commonest way a board's permissions end up wrong.
+> pinning that community so later changes at its parent do nothing. Silently pinning
+> a community is the commonest way a board's permissions end up wrong.
 
 ### Numbers behave differently from switches
 
@@ -173,12 +173,12 @@ combine as the **most generous** value across a member's groups.
 
 ### Reading the matrix
 
-`/admin/forums` holds it. Each cell shows what it resolves to *and which forum it
+`/admin/communities` holds it. Each cell shows what it resolves to *and which community it
 inherited from* — "inherit" on its own tells nobody anything.
 
-**Copy to subforums** means *identical*, not *merged*. It clears rows the source
-forum does not have, because a descendant that denied something the source
-inherits would leave you with two forums you had just been told now match. The
+**Copy to subcommunities** means *identical*, not *merged*. It clears rows the source
+community does not have, because a descendant that denied something the source
+inherits would leave you with two communities you had just been told now match. The
 change is previewed cell by cell before it applies.
 
 ### The one door no bypass opens
@@ -221,7 +221,7 @@ control — that reader's page carries no dark-mode class for a theme to match o
 
 ## Themes
 
-A theme is a package named in `apps/forum/forum.config.ts`. Installing one is
+A theme is a package named in `apps/community/community.config.ts`. Installing one is
 three steps, in your checkout of the board:
 
 ```sh
@@ -229,7 +229,7 @@ pnpm --filter @meith/web add @meith/theme-midnight
 ```
 
 ```ts
-// apps/forum/forum.config.ts
+// apps/community/community.config.ts
 import midnight from "@meith/theme-midnight"
 
 export default { theme: midnight }
@@ -251,11 +251,11 @@ any board until you register it.
 
 > [!IMPORTANT]
 > **A member picks a whole theme, components included.** `midnight` renders its
-> forum listings as tables, and a member who picks it gets tables. The choice is
+> community listings as tables, and a member who picks it gets tables. The choice is
 > a cookie the server reads, so the page arrives already correct — no flash, no
 > second paint — and the control works with JavaScript turned off.
 >
-> `defaultTheme` in `forum.config.ts` is now the *fallback*: what the board
+> `defaultTheme` in `community.config.ts` is now the *fallback*: what the board
 > renders when its `themes` table says nothing, and what a palette-only theme
 > borrows its markup from. Changing it is still a deploy; changing what members
 > see is not.
@@ -363,7 +363,7 @@ needs one.
 
 ## Plugins
 
-Same shape as a theme: add the package, a line in `forum.config.ts`, a redeploy.
+Same shape as a theme: add the package, a line in `community.config.ts`, a redeploy.
 The worked example to copy is
 [`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
 — reference code, not installed by default.
@@ -395,7 +395,7 @@ Three things are worth knowing before you need them.
 
 | It says | It means | Fix |
 |---|---|---|
-| Disabled in `forum.config.ts` | The entry in the installed list (`forum.plugins.ts`) sets `enabled: false`. A plugin missing from that list entirely is not shown at all. | Edit the list, redeploy |
+| Disabled in `community.config.ts` | The entry in the installed list (`community.plugins.ts`) sets `enabled: false`. A plugin missing from that list entirely is not shown at all. | Edit the list, redeploy |
 | Switched off | Somebody pressed the button on this screen. | Press it again |
 | Failing | The server stopped calling it after repeated errors. | The error is on the plugin's own page |
 
@@ -404,7 +404,7 @@ the server that handled the click, and it survives a redeploy. Reach for it when
 a plugin is misbehaving — you do not need to deploy to stop one.
 
 **The panel never runs migrations.** It tells you which are outstanding;
-`forum upgrade` applies them.
+`community upgrade` applies them.
 
 > [!WARNING]
 > A plugin with unapplied migrations is running against a schema that does not
@@ -412,7 +412,7 @@ a plugin is misbehaving — you do not need to deploy to stop one.
 
 ### Removing one
 
-`npm uninstall`, a line out of `forum.config.ts`, a redeploy — the three install
+`npm uninstall`, a line out of `community.config.ts`, a redeploy — the three install
 steps in reverse. There is no uninstall button.
 
 Its stored settings stay behind on purpose: reinstalling should not lose your
@@ -594,7 +594,7 @@ SMTP password:     an app password — never the password you sign in with
 ```
 
 Mailbox providers rate-limit sending (Workspace is around 2,000 messages a day),
-which is ample for a forum and not for a newsletter.
+which is ample for a community and not for a newsletter.
 
 ### Resend, copy-pasteable
 
@@ -699,7 +699,7 @@ therefore costs a retry rather than a sealed board that cannot mail anybody.
 ### The settings behind the screen
 
 The screen is generated from the setting registry, so every field on it is a key
-`forum settings:set` can write. That matters exactly once, and it is the once
+`community settings:set` can write. That matters exactly once, and it is the once
 that counts: **when mail is broken and the panel is not reachable**, which is the
 same situation as being locked out, because password reset is the thing mail was
 going to fix.
@@ -718,15 +718,15 @@ going to fix.
 | `mail.http_token` | Provider API key | Stored as a secret |
 
 ```sh
-forum settings:set mail.transport smtp
-forum settings:set mail.smtp_host smtp.provider.example
-forum settings:set mail.from noreply@yourdomain.com
-forum task:run                     # run the tick once, so queued mail leaves now
+community settings:set mail.transport smtp
+community settings:set mail.smtp_host smtp.provider.example
+community settings:set mail.from noreply@yourdomain.com
+community task:run                     # run the tick once, so queued mail leaves now
 ```
 
 The two secrets are write-only from the operator's side: the panel renders them
 as empty password boxes and a blank one means *unchanged* rather than *clear it*,
-and `forum env:check` and the audit log both refuse to print them. To clear one
+and `community env:check` and the audit log both refuse to print them. To clear one
 deliberately, set it to the empty string.
 
 ### Queued mail needs the tick
@@ -831,7 +831,7 @@ mail arrives, it is polite, and it is useless. Feeds and canonical URLs fall bac
 to a localhost origin, which is obviously wrong rather than subtly wrong.
 
 The address is an **origin** — scheme, host, optional port, nothing else.
-`https://forum.example/board` is rejected by the settings screen on the way in,
+`https://community.example/board` is rejected by the settings screen on the way in,
 because every link the board built from it would carry `/board` in the middle.
 `APP_URL` is checked more loosely — only that it is a URL — so a path pasted
 into the environment is the one place this mistake can still get through.
@@ -853,7 +853,7 @@ on by default because no human notices either.
 | Hidden-field trap | Bots that fill every field | Nothing. Leave it on. |
 | Minimum fill time | Instant submissions | Occasionally somebody with a password manager. Keep it to a few seconds. |
 | A question | Scripted registration | A moment, every time. Switch it on when you have a problem. |
-| Hold first posts | Nearly all forum spam | One wait per genuine new member. |
+| Hold first posts | Nearly all community spam | One wait per genuine new member. |
 | Hourly limits | A night's work by one script | Nothing, set sensibly. |
 
 > [!TIP]
@@ -907,8 +907,8 @@ some migrations cannot be reversed at all, so a "roll back" that worked for half
 of them and silently did nothing for the rest would be worse than its absence.
 
 ```sh
-forum migrate      # core only
-forum upgrade      # core, then each installed plugin's, then record the version
+community migrate      # core only
+community upgrade      # core, then each installed plugin's, then record the version
 ```
 
 The admin panel shows a notice when the deployed code is ahead of the database.
@@ -952,7 +952,7 @@ From a container deployment, where `pg_dump` is in the database container rather
 than on the host:
 
 ```sh
-docker compose exec -T postgres pg_dump -U forum forum | gzip > board-$(date +%F).sql.gz
+docker compose exec -T postgres pg_dump -U community community | gzip > board-$(date +%F).sql.gz
 docker run --rm -v meith_uploads:/u -v "$PWD":/out alpine \
   tar czf /out/uploads-$(date +%F).tar.gz -C /u .
 ```
@@ -974,7 +974,7 @@ you will restore into.
 ### Restoring
 
 ```sh
-createdb forum_restored
+createdb community_restored
 pg_restore --no-owner --no-privileges --dbname="$RESTORE_URL" board.dump
 ```
 
@@ -985,7 +985,7 @@ Then check three things, in this order:
 
 1. `select count(*) from posts;` — is the content there?
 2. Sign in as an administrator — did the credentials survive?
-3. `forum migrate` — it applies anything missing and reports what it did, so on
+3. `community migrate` — it applies anything missing and reports what it did, so on
    a good restore it says there was nothing to do.
 
 ### Rehearse it
@@ -1088,9 +1088,9 @@ Three possibilities, in order of likelihood:
 3. Your admin session expired. It has a 30-minute idle timeout and an 8-hour
    ceiling, both separate from your board session.
 
-### A member cannot see a forum they should
+### A member cannot see a community they should
 
-Open `/admin/forums` for that forum and read **the row for their group** rather
+Open `/admin/communities` for that community and read **the row for their group** rather
 than reasoning about the combination. Each cell says what it resolves to and
 where it inherited from.
 
@@ -1117,13 +1117,13 @@ map.
 The CLI does not need the web app:
 
 ```sh
-forum env:check       # is the environment valid? (no connection is opened)
-forum settings:list   # what the board thinks its settings are
-forum task:list       # what is scheduled, and how often each runs
-forum migrate         # apply anything the schema is missing
+community env:check       # is the environment valid? (no connection is opened)
+community settings:list   # what the board thinks its settings are
+community task:list       # what is scheduled, and how often each runs
+community migrate         # apply anything the schema is missing
 ```
 
-`forum --help` lists everything. The commands that exist are the ones listed
+`community --help` lists everything. The commands that exist are the ones listed
 there — this project does not document a command it has not written, so if one
 you expected is missing, it is missing rather than hidden.
 

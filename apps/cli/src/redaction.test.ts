@@ -1,7 +1,7 @@
 /**
  * The test that would have caught the leak.
  *
- * `forum env` redacts a **deny-list**, and a deny-list is only as good as the
+ * `community env` redacts a **deny-list**, and a deny-list is only as good as the
  * discipline of whoever last touched the schema. `MAIL_SMTP_PASSWORD` was added
  * to `env.ts` and not to the list, so the command that exists to be pasted into
  * bug reports would have pasted a mail password. Nothing failed; it was noticed
@@ -52,7 +52,7 @@ function declaredEnvKeys(): readonly string[] {
   return [...new Set(keys)]
 }
 
-describe('forum env never prints a credential', () => {
+describe('community env never prints a credential', () => {
   it('redacts, or explicitly excuses, every credential-shaped variable', () => {
     const unhandled = declaredEnvKeys().filter(
       (key) =>
@@ -64,7 +64,7 @@ describe('forum env never prints a credential', () => {
     expect(
       unhandled,
       `These environment variables read like credentials but are neither redacted ` +
-        `nor excused in apps/cli/src/redaction.ts, so "forum env" prints them in ` +
+        `nor excused in apps/cli/src/redaction.ts, so "community env" prints them in ` +
         `full: ${unhandled.join(', ')}`,
     ).toEqual([])
   })

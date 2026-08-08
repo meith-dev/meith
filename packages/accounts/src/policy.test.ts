@@ -4,7 +4,7 @@
  * Four settings were registered with no reader for a long time, so the rules a
  * board actually enforced were the constants in `policy.ts` whatever the ACP
  * showed. This is the mapping that fixed that, and it is shared by three
- * composition roots — the app, the installer and `forum user:create` — which is
+ * composition roots — the app, the installer and `community user:create` — which is
  * why it is tested here rather than at any one of them.
  */
 import { describe, expect, it } from 'vitest'

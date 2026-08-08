@@ -30,7 +30,7 @@
  * between the dev server, a serverless bundle and the worker.
  *
  * So ordering is **(priority, plugin key)**, both total and both declared: never
- * registration order, never the order `forum.config.ts` happens to list plugins
+ * registration order, never the order `community.config.ts` happens to list plugins
  * in, and never `Object.keys`. See `host.ts`.
  *
  * ## What is deliberately not here
@@ -43,7 +43,7 @@
  *
  * For the same reason there is no hook inside the visibility filter. A
  * plugin that could rewrite a `where` clause is a plugin that can leak a private
- * forum, and no amount of isolation makes that recoverable.
+ * community, and no amount of isolation makes that recoverable.
  */
 
 export type HookKind = 'filter' | 'event'
@@ -123,12 +123,12 @@ export const HOOKS = {
     feature: 'F27',
     purpose: 'The footer model, including its link list.',
   },
-  'view.forum-jump': {
+  'view.community-jump': {
     kind: 'filter',
     feature: 'F27',
     purpose:
       'The jump box model. A plugin adding a destination must give it a real ' +
-      'forum id — the route re-authorises whatever is submitted.',
+      'community id — the route re-authorises whatever is submitted.',
   },
   'view.announcement': {
     kind: 'filter',
@@ -143,10 +143,10 @@ export const HOOKS = {
     feature: 'F29',
     purpose: 'The index page model.',
   },
-  'view.forum-row': {
+  'view.community-row': {
     kind: 'filter',
     feature: 'F29',
-    purpose: 'One forum row in a listing. Runs once per row — keep it cheap.',
+    purpose: 'One community row in a listing. Runs once per row — keep it cheap.',
   },
   'view.thread-row': {
     kind: 'filter',
@@ -220,17 +220,17 @@ export const HOOKS = {
   'view.category-block': {
     kind: 'filter',
     feature: 'F29',
-    purpose: 'One category on the index, with its rendered forum rows.',
+    purpose: 'One category on the index, with its rendered community rows.',
   },
-  'view.subforum-list': {
+  'view.subcommunity-list': {
     kind: 'filter',
     feature: 'F30',
-    purpose: 'The compact child-forum list above a thread listing.',
+    purpose: 'The compact child-community list above a thread listing.',
   },
-  'view.forum-display': {
+  'view.community-display': {
     kind: 'filter',
     feature: 'F30',
-    purpose: 'A forum page’s model, including its rendered regions.',
+    purpose: 'A community page’s model, including its rendered regions.',
   },
   'view.thread-view': {
     kind: 'filter',
@@ -307,7 +307,7 @@ export const HOOKS = {
   'thread.moved': {
     kind: 'event',
     feature: 'F50',
-    purpose: 'A thread changed forum. Carries both forum ids.',
+    purpose: 'A thread changed community. Carries both community ids.',
   },
   'thread.merged': {
     kind: 'event',
@@ -501,7 +501,7 @@ export const HOOKS = {
   'subscription.changed': {
     kind: 'event',
     feature: 'F56',
-    purpose: 'A member subscribed to or unsubscribed from a thread or forum.',
+    purpose: 'A member subscribed to or unsubscribed from a thread or community.',
   },
   'reputation.changed': {
     kind: 'event',

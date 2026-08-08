@@ -25,7 +25,7 @@ import {
   PostgresAuthorizationSource,
   PostgresCounterRecount,
   PostgresDiscoveryRepository,
-  PostgresForumRepository,
+  PostgresCommunityRepository,
   PostgresMemberProfileRepository,
   PostgresPostRepository,
   PostgresSearchRepository,
@@ -98,7 +98,7 @@ async function seed(
 
   if (wanted('posts')) {
     process.stdout.write(
-      `Seeding ${scale.threads.toLocaleString()} threads across ${scale.forums} forums…\n`,
+      `Seeding ${scale.threads.toLocaleString()} threads across ${scale.communities} communities…\n`,
     )
     const board = await seedBoard(db, scale)
     process.stdout.write(
@@ -178,23 +178,23 @@ function argOf(flag: string): string | undefined {
  * ------------------------------------------------------------------ */
 
 interface Landmarks {
-  /** The forum with the most threads — the one whose listing is slowest. */
-  readonly busiestForumId: number
+  /** The community with the most threads — the one whose listing is slowest. */
+  readonly busiestCommunityId: number
   /** The thread with the most posts. */
   readonly longestThreadId: number
   /** How many posts that thread has — the deep-page claim needs a real depth. */
   readonly longestThreadPosts: number
   /** Ids spread through the longest thread, for deep-page reads. */
   readonly deepPostIds: readonly number[]
-  /** A spread of thread ids in the busiest forum, so the cache is not the test. */
+  /** A spread of thread ids in the busiest community, so the cache is not the test. */
   readonly threadIds: readonly number[]
-  /** Cursors deep into the busiest forum's listing. */
-  readonly forumCursors: readonly {
+  /** Cursors deep into the busiest community's listing. */
+  readonly communityCursors: readonly {
     readonly lastPostAt: Date
     readonly id: number
   }[]
   readonly memberIds: readonly number[]
-  readonly forumIds: readonly number[]
+  readonly communityIds: readonly number[]
   readonly viewerUserId: number
 }
 
@@ -207,10 +207,10 @@ interface Landmarks {
  */
 async function findLandmarks(db: Database): Promise<Landmarks> {
   const [busiest] = await db
-    .select({ id: schema.forums.id })
-    .from(schema.forums)
-    .where(eq(schema.forums.type, 'forum'))
-    .orderBy(desc(schema.forums.threadCount))
+    .select({ id: schema.communities.id })
+    .from(schema.communities)
+    .where(eq(schema.communities.type, 'community'))
+    .orderBy(desc(schema.communities.threadCount))
     .limit(1)
 
   const [longest] = await db
@@ -219,10 +219,10 @@ async function findLandmarks(db: Database): Promise<Landmarks> {
     .orderBy(desc(schema.threads.replyCount))
     .limit(1)
 
-  const busiestForumId = busiest?.id
+  const busiestCommunityId = busiest?.id
   const longestThreadId = longest?.id
-  if (busiestForumId === undefined || longestThreadId === undefined) {
-    throw new Error('No forums or threads. Run `pnpm perf seed` first.')
+  if (busiestCommunityId === undefined || longestThreadId === undefined) {
+    throw new Error('No communities or threads. Run `pnpm perf seed` first.')
   }
 
   const postRows = await db
@@ -234,7 +234,7 @@ async function findLandmarks(db: Database): Promise<Landmarks> {
   const threadRows = await db
     .select({ id: schema.threads.id, lastPostAt: schema.threads.lastPostAt })
     .from(schema.threads)
-    .where(eq(schema.threads.forumId, busiestForumId))
+    .where(eq(schema.threads.communityId, busiestCommunityId))
     .orderBy(desc(schema.threads.lastPostAt), desc(schema.threads.id))
     .limit(4_000)
 
@@ -244,10 +244,10 @@ async function findLandmarks(db: Database): Promise<Landmarks> {
     .orderBy(desc(schema.users.postCount))
     .limit(200)
 
-  const forumRows = await db
-    .select({ id: schema.forums.id })
-    .from(schema.forums)
-    .where(eq(schema.forums.type, 'forum'))
+  const communityRows = await db
+    .select({ id: schema.communities.id })
+    .from(schema.communities)
+    .where(eq(schema.communities.type, 'community'))
 
   const viewerUserId = userRows[0]?.id
   if (viewerUserId === undefined)
@@ -263,18 +263,18 @@ async function findLandmarks(db: Database): Promise<Landmarks> {
    * measuring how much data was left, not how fast the query is.
    */
   return {
-    busiestForumId,
+    busiestCommunityId,
     longestThreadId,
     longestThreadPosts: postRows.length,
     /* Spread across the thread rather than clustered: every page is a different page. */
     deepPostIds: spread(postRows.slice(500, -40).map((r) => r.id)),
     threadIds: spread(threadRows.map((r) => r.id)),
-    forumCursors: spread(threadRows.slice(200, -40)).map((r) => ({
+    communityCursors: spread(threadRows.slice(200, -40)).map((r) => ({
       lastPostAt: r.lastPostAt as Date,
       id: r.id,
     })),
     memberIds: userRows.map((r) => r.id),
-    forumIds: forumRows.map((r) => r.id),
+    communityIds: communityRows.map((r) => r.id),
     viewerUserId,
   }
 }
@@ -299,7 +299,7 @@ async function buildScenarios(
 ): Promise<Scenario[]> {
   const threads = new PostgresThreadRepository(db)
   const posts = new PostgresPostRepository(db)
-  const forums = new PostgresForumRepository(db)
+  const communities = new PostgresCommunityRepository(db)
   const discovery = new PostgresDiscoveryRepository(db)
   const search = new PostgresSearchRepository(db)
   const profiles = new PostgresMemberProfileRepository(db)
@@ -312,7 +312,7 @@ async function buildScenarios(
     throw new Error('Could not build an actor for the seeded viewer.')
 
   const scope = PUBLIC_CONTENT
-  const visibleForumIds = await authorizer.forumIdsWhere(actor, 'thread.view')
+  const visibleCommunityIds = await authorizer.communityIdsWhere(actor, 'thread.view')
   const pick = <T>(items: readonly T[], i: number): T =>
     items[i % items.length] as T
 
@@ -341,10 +341,10 @@ async function buildScenarios(
       },
     },
     {
-      id: 'forum-page-first',
+      id: 'community-page-first',
       minRows: 20,
       run: async () => {
-        const page = await threads.listForum(marks.busiestForumId, {
+        const page = await threads.listCommunity(marks.busiestCommunityId, {
           limit: 20,
           scope,
         })
@@ -352,11 +352,11 @@ async function buildScenarios(
       },
     },
     {
-      id: 'forum-page-deep',
+      id: 'community-page-deep',
       minRows: 20,
       run: async (i) => {
-        const cursor = pick(marks.forumCursors, i)
-        const page = await threads.listForum(marks.busiestForumId, {
+        const cursor = pick(marks.communityCursors, i)
+        const page = await threads.listCommunity(marks.busiestCommunityId, {
           after: {
             sort: 'activity',
             lastPostAt: cursor.lastPostAt,
@@ -374,13 +374,13 @@ async function buildScenarios(
     {
       id: 'board-index',
       minRows: 10,
-      run: async () => (await forums.listListing()).length,
+      run: async () => (await communities.listListing()).length,
     },
     {
-      id: 'visible-forums',
+      id: 'visible-communities',
       minRows: 1,
       run: async () =>
-        (await authorizer.forumIdsWhere(actor, 'thread.view')).length,
+        (await authorizer.communityIdsWhere(actor, 'thread.view')).length,
     },
     {
       id: 'discovery-latest',
@@ -388,7 +388,7 @@ async function buildScenarios(
       run: async () => {
         /*
          * `activeSince` with a date early enough to match everything: the point
-         * is the ordering scan across every visible forum, not the filter. A
+         * is the ordering scan across every visible community, not the filter. A
          * recent cut-off would narrow the set and measure a much easier query
          * than the one a quiet board's "latest threads" actually runs.
          */
@@ -396,7 +396,7 @@ async function buildScenarios(
           EPOCH,
           { limit: 20, after: null },
           {
-            forumIds: visibleForumIds,
+            communityIds: visibleCommunityIds,
             content: scope,
             viewerUserId: marks.viewerUserId,
           },
@@ -417,7 +417,7 @@ async function buildScenarios(
             after: null,
           },
           {
-            forumIds: visibleForumIds,
+            communityIds: visibleCommunityIds,
             content: scope,
             viewerUserId: marks.viewerUserId,
           },
@@ -438,7 +438,7 @@ async function buildScenarios(
             after: null,
           },
           {
-            forumIds: visibleForumIds,
+            communityIds: visibleCommunityIds,
             content: scope,
             viewerUserId: marks.viewerUserId,
           },
@@ -526,7 +526,7 @@ async function explainIndexes(db: Database, marks: Landmarks): Promise<number> {
 
   for (const plan of INDEX_PLANS) {
     const statement = plan.sql
-      .replace(/\$1/g, String(marks.busiestForumId))
+      .replace(/\$1/g, String(marks.busiestCommunityId))
       .replace(/\$2/g, String(marks.longestThreadId))
 
     /*

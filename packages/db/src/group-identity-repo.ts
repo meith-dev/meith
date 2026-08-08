@@ -15,7 +15,7 @@
  *
  * ## Why it is a batch
  *
- * A thread page shows twenty posts by up to twenty people, a forum listing
+ * A thread page shows twenty posts by up to twenty people, a community listing
  * shows a last-poster per row, and the online list shows everyone. Resolving
  * this per name would be the classic N+1 on the board's two hottest pages. One
  * query per render, keyed by the ids the page already has.

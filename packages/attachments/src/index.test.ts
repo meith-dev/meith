@@ -220,7 +220,7 @@ describe('storageKeyFor', () => {
   it('is random and unrelated to the filename', () => {
     /*
      * Guessability is the point: a key derived from an id or a name would let
-     * somebody read a private forum's attachment straight out of a bucket.
+     * somebody read a private community's attachment straight out of a bucket.
      */
     let n = 0
     const key = storageKeyFor('source', () => `r${(n += 1)}`)
@@ -372,7 +372,7 @@ class FakeRepo implements AttachmentRepository {
     const row: AttachmentRecord = {
       id: this.nextId++,
       postId: input.postId,
-      forumId: input.forumId,
+      communityId: input.communityId,
       uploaderUserId: input.uploaderUserId,
       filename: input.filename,
       contentType: input.contentType,
@@ -502,7 +502,7 @@ beforeEach(() => {
   })
 })
 
-const POST = { postId: 7, forumId: 3, userId: 11 }
+const POST = { postId: 7, communityId: 3, userId: 11 }
 
 describe('staging', () => {
   it('remembers the key before the object exists', async () => {
@@ -554,10 +554,10 @@ describe('staging', () => {
     ])
   })
 
-  it('stores every object privately, even in a public forum', async () => {
+  it('stores every object privately, even in a public community', async () => {
     /*
-     * The permission that governs a download is forum-scoped, and a public
-     * object is one nobody can revoke — moving a thread into a private forum
+     * The permission that governs a download is community-scoped, and a public
+     * object is one nobody can revoke — moving a thread into a private community
      * would otherwise not take its images with it.
      */
     await service.stage(acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS))
@@ -572,7 +572,7 @@ describe('attaching', () => {
 
     expect(row).toMatchObject({
       postId: 7,
-      forumId: 3,
+      communityId: 3,
       status: 'pending',
       sourceKey: 'attachments/k1/source',
       storageKey: null,

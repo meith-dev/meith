@@ -21,7 +21,7 @@ export const MESSAGE_MIN = 1
 export interface EditablePost {
   readonly id: number
   readonly threadId: number
-  readonly forumId: number
+  readonly communityId: number
   readonly authorUserId: number | null
   readonly subject: string | null
   readonly message: string
@@ -43,11 +43,11 @@ export interface PostEditTarget {
     readonly isLocked: boolean
     readonly visibility: 'visible' | 'unapproved' | 'deleted'
   }
-  readonly forum: { readonly id: number; readonly slug: string; readonly isOpen: boolean }
+  readonly community: { readonly id: number; readonly slug: string; readonly isOpen: boolean }
 }
 
 /**
- * What the caller has already resolved from the forum matrix.
+ * What the caller has already resolved from the community matrix.
  *
  * `editWindowMinutes` is the combined `editTimeLimitMinutes` permission, where
  * **0 means unlimited** — R4.2's rule for every numeric, and the reason this is
@@ -58,10 +58,10 @@ export interface EditCapabilities {
   /** True when the actor is the post's author. Decided by the caller. */
   readonly isOwn: boolean
   readonly editWindowMinutes: number
-  /** `post.editOthers` or forum moderation: neither window nor lock applies. */
+  /** `post.editOthers` or community moderation: neither window nor lock applies. */
   readonly bypassesWindow: boolean
   readonly bypassesLock: boolean
-  /** Forum's `requiresApprovalOnEdit`, already combined. */
+  /** Community's `requiresApprovalOnEdit`, already combined. */
   readonly requiresApprovalOnEdit: boolean
   readonly bypassesModeration: boolean
 }
@@ -77,7 +77,7 @@ export interface EditPostInput {
 export interface PostEditRecord {
   readonly postId: number
   readonly threadId: number
-  readonly forumId: number
+  readonly communityId: number
   readonly authorUserId: number | null
   readonly isFirstPost: boolean
   readonly message: string
@@ -106,7 +106,7 @@ export interface EditedPost {
 export interface PostVisibilityRecord {
   readonly postId: number
   readonly threadId: number
-  readonly forumId: number
+  readonly communityId: number
   readonly authorUserId: number | null
   readonly isFirstPost: boolean
   readonly from: 'visible' | 'unapproved' | 'deleted'
@@ -126,11 +126,11 @@ export interface PostVisibilityChange {
 
 export interface PostWriteRepository {
   /**
-   * The post plus its thread and forum, or null.
+   * The post plus its thread and community, or null.
    *
    * Thread-scoped like F40's quote lookup, and for the same reason: taking the
    * thread as part of the lookup means a post id from a URL cannot address a
-   * post in a forum the actor was never authorised against.
+   * post in a community the actor was never authorised against.
    */
   findEditTarget(threadId: number, postId: number): Promise<PostEditTarget | null>
 
@@ -171,7 +171,7 @@ export class PostEditor {
     editorUserId: number,
     target: PostEditTarget,
   ): Promise<EditedPost> {
-    const { post, thread, forum } = target
+    const { post, thread, community } = target
     const capabilities = input.capabilities
 
     /*
@@ -189,8 +189,8 @@ export class PostEditor {
     if (thread.isLocked && !capabilities.bypassesLock) {
       throw new ValidationError('This thread is locked.')
     }
-    if (!forum.isOpen && !capabilities.bypassesLock) {
-      throw new ValidationError('This forum is closed.')
+    if (!community.isOpen && !capabilities.bypassesLock) {
+      throw new ValidationError('This community is closed.')
     }
 
     this.enforceEditWindow(capabilities, post)
@@ -232,7 +232,7 @@ export class PostEditor {
     await this.posts.applyEdit({
       postId: post.id,
       threadId: post.threadId,
-      forumId: post.forumId,
+      communityId: post.communityId,
       authorUserId: post.authorUserId,
       isFirstPost: post.isFirstPost,
       message,
@@ -293,7 +293,7 @@ export class PostEditor {
     const changed = await this.posts.applyVisibility({
       postId: post.id,
       threadId: post.threadId,
-      forumId: post.forumId,
+      communityId: post.communityId,
       authorUserId: post.authorUserId,
       isFirstPost: post.isFirstPost,
       from: post.visibility,
@@ -325,7 +325,7 @@ export class PostEditor {
     const changed = await this.posts.applyVisibility({
       postId: post.id,
       threadId: post.threadId,
-      forumId: post.forumId,
+      communityId: post.communityId,
       authorUserId: post.authorUserId,
       isFirstPost: post.isFirstPost,
       from: 'deleted',

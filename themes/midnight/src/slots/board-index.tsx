@@ -3,7 +3,7 @@ import type { BoardIndexModel } from '@meith/theme-kit'
 /**
  * The index body.
  *
- * Midnight puts the panels **above** the forum list rather than beside it,
+ * Midnight puts the panels **above** the community list rather than beside it,
  * which is the classic arrangement and a real difference: the default theme
  * builds a right-hand rail out of the same regions, and the page hands both
  * themes exactly the same nodes. Neither region is invented when it is absent —
@@ -29,7 +29,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
       )}
 
       {/*
-        F71. Above the forums here too. Midnight puts stats first and the
+        F71. Above the communities here too. Midnight puts stats first and the
         announcements after them, which is the ordering choice a theme gets to
         make — what it does not get to do is drop the region.
       */}
@@ -43,13 +43,13 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
       {regions.plugins}
 
       {markAllReadAction !== null && (
-        /* A form, not a link: marking every forum read is a state change. */
+        /* A form, not a link: marking every community read is a state change. */
         <form action={markAllReadAction} method="post">
           <button
             type="submit"
             className="border border-border px-2 py-1 font-mono text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            mark all forums read
+            mark all communities read
           </button>
         </form>
       )}

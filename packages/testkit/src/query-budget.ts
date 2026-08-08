@@ -3,9 +3,9 @@
  *
  * The Definition of Done requires one on every list page, because an N+1 does
  * not fail a test — it passes, slowly, and only on an empty board. The board
- * index needs a last-post user and a subforum list per row; fetched naively
- * that is fifty queries on a fifty-forum board and one query in every test
- * fixture that has three forums in it.
+ * index needs a last-post user and a subcommunity list per row; fetched naively
+ * that is fifty queries on a fifty-community board and one query in every test
+ * fixture that has three communities in it.
  *
  * So the assertion is written against the *seeded* dataset, and it asserts a
  * ceiling rather than an exact count: a refactor that legitimately splits one

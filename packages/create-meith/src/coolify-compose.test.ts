@@ -72,7 +72,7 @@ describe('the Coolify compose file', () => {
   })
 
   it('runs the worker, which is the whole tick', () => {
-    expect(service('worker')).toContain('FORUM_ROLE=worker')
+    expect(service('worker')).toContain('COMMUNITY_ROLE=worker')
     /*
      * Not `next`: the worker is a plain Node process, so a cache backed by a
      * framework that is not running would be a cache of nothing.
@@ -81,7 +81,7 @@ describe('the Coolify compose file', () => {
   })
 
   it('migrates before the web server serves anything', () => {
-    expect(service('migrate')).toContain('FORUM_ROLE: migrate')
+    expect(service('migrate')).toContain('COMMUNITY_ROLE: migrate')
     expect(service('web')).toContain('condition: service_completed_successfully')
   })
 
@@ -108,7 +108,7 @@ describe('the Coolify compose file', () => {
    * one-word edit that breaks a third of deploys.
    */
   it('generates the database password from an alphabet a URL can carry', () => {
-    expect(compose).toMatch(/DATABASE_URL[=:] ?postgres:\/\/forum:\$SERVICE_PASSWORD_POSTGRES@/)
-    expect(compose).not.toMatch(/postgres:\/\/forum:\$SERVICE_BASE64/)
+    expect(compose).toMatch(/DATABASE_URL[=:] ?postgres:\/\/community:\$SERVICE_PASSWORD_POSTGRES@/)
+    expect(compose).not.toMatch(/postgres:\/\/community:\$SERVICE_BASE64/)
   })
 })

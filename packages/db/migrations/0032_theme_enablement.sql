@@ -9,7 +9,7 @@
 --
 -- ## Why the default is true
 --
--- A theme registered in `forum.config.ts` is a theme somebody deliberately
+-- A theme registered in `community.config.ts` is a theme somebody deliberately
 -- installed. The state that needs a row is "turned *off*", which is a decision
 -- an administrator made, not the absence of one — and defaulting the other way
 -- would take every board that upgrades and hide every theme it had until

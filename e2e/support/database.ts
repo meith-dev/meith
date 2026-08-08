@@ -33,7 +33,7 @@
  *
  * ## The board it seeds is the fixture board
  *
- * Deliberately the *same* rows — `SEED_FORUM_ROWS`, `SEED_THREAD_ROWS`,
+ * Deliberately the *same* rows — `SEED_COMMUNITY_ROWS`, `SEED_THREAD_ROWS`,
  * `SEED_POST_ROWS` — inserted into real tables. One board definition, two
  * stores. Two consequences worth having: the specs written against fixture mode
  * keep passing unchanged, and a divergence between what the fixture serves and
@@ -62,11 +62,11 @@ import {
 import { samplePng } from './png'
 
 import {
-  SEED_FORUM_ROWS,
+  SEED_COMMUNITY_ROWS,
   SEED_MEMBER_PROFILES,
   SEED_POST_ROWS,
   SEED_THREAD_ROWS,
-} from '../../apps/forum/src/server/seed-board'
+} from '../../apps/community/src/server/seed-board'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const MIGRATIONS = path.resolve(here, '../../packages/db/migrations')
@@ -190,38 +190,38 @@ function seedSql(): string {
     }
   })
 
-  const forums = SEED_FORUM_ROWS.map((forum) => ({
-    id: forum.id,
-    type: forum.type,
-    title: forum.title,
-    slug: forum.slug,
-    description: forum.description,
-    parent_id: forum.parentId,
-    path: forum.path,
-    depth: forum.depth,
-    display_order: forum.displayOrder,
-    link_url: forum.linkUrl,
-    thread_count: forum.threadCount,
-    post_count: forum.postCount,
+  const communities = SEED_COMMUNITY_ROWS.map((community) => ({
+    id: community.id,
+    type: community.type,
+    title: community.title,
+    slug: community.slug,
+    description: community.description,
+    parent_id: community.parentId,
+    path: community.path,
+    depth: community.depth,
+    display_order: community.displayOrder,
+    link_url: community.linkUrl,
+    thread_count: community.threadCount,
+    post_count: community.postCount,
     /*
      * The denormalised last post. The fixture repository carries it as a nested
      * object and the index renders it as the "latest" column; in Postgres it is
-     * six columns on `forums`, maintained on the write path. Seeding it is what
+     * six columns on `communities`, maintained on the write path. Seeding it is what
      * makes the two boards the same board — without it the index renders with
      * no latest-post link and every spec that clicks one fails for a reason
      * that has nothing to do with the code under test.
      */
-    last_post_id: forum.lastPost?.postId ?? null,
-    last_post_thread_id: forum.lastPost?.threadId ?? null,
-    last_post_thread_title: forum.lastPost?.threadTitle ?? null,
-    last_post_user_id: forum.lastPost?.userId ?? null,
-    last_post_username: forum.lastPost?.username ?? null,
-    last_post_at: forum.lastPost?.at ?? null,
+    last_post_id: community.lastPost?.postId ?? null,
+    last_post_thread_id: community.lastPost?.threadId ?? null,
+    last_post_thread_title: community.lastPost?.threadTitle ?? null,
+    last_post_user_id: community.lastPost?.userId ?? null,
+    last_post_username: community.lastPost?.username ?? null,
+    last_post_at: community.lastPost?.at ?? null,
   }))
 
   const threads = SEED_THREAD_ROWS.map((thread) => ({
     id: thread.id,
-    forum_id: thread.forumId,
+    community_id: thread.communityId,
     title: thread.title,
     slug: thread.slug,
     author_user_id: thread.authorUserId,
@@ -251,7 +251,7 @@ function seedSql(): string {
   const posts = SEED_POST_ROWS.map((post) => ({
     id: post.id,
     thread_id: post.threadId,
-    forum_id: post.forumId,
+    community_id: post.communityId,
     author_user_id: post.authorUserId,
     author_username: post.authorUsername,
     message: post.message,
@@ -416,7 +416,7 @@ function seedSql(): string {
     insert('user_group_memberships', memberships),
     insert('settings', settings),
     ...styledGroup,
-    insert('forums', forums),
+    insert('communities', communities),
     insert('threads', threads),
     insert('posts', posts),
     /*
@@ -436,7 +436,7 @@ function seedSql(): string {
      */
     /* Past every seeded id, so the first row a browser creates does not collide. */
     "select setval(pg_get_serial_sequence('users', 'id'), (select max(id) from users));",
-    "select setval(pg_get_serial_sequence('forums', 'id'), (select max(id) from forums));",
+    "select setval(pg_get_serial_sequence('communities', 'id'), (select max(id) from communities));",
     "select setval(pg_get_serial_sequence('threads', 'id'), (select max(id) from threads));",
     "select setval(pg_get_serial_sequence('posts', 'id'), (select max(id) from posts));",
   ]

@@ -28,17 +28,17 @@ import { resultRows } from './result-rows'
 import { visibleIn } from './visibility'
 
 export interface DiscoveryScope {
-  /** Forums this viewer may see, from `Authorizer.forumIdsWhere` (F47). */
-  readonly forumIds: readonly number[]
+  /** Communities this viewer may see, from `Authorizer.communityIdsWhere` (F47). */
+  readonly communityIds: readonly number[]
   readonly content: ContentScope
   readonly viewerUserId: number | null
 }
 
 export interface DiscoveryRow {
   readonly threadId: number
-  readonly forumId: number
-  readonly forumTitle: string
-  readonly forumSlug: string
+  readonly communityId: number
+  readonly communityTitle: string
+  readonly communitySlug: string
   readonly title: string
   readonly slug: string
   readonly authorUserId: number | null
@@ -139,13 +139,13 @@ export class PostgresDiscoveryRepository {
     scope: DiscoveryScope,
   ): Promise<DiscoveryPage> {
     /*
-     * No visible forums, no results — without a query running. A view that
+     * No visible communities, no results — without a query running. A view that
      * omitted this for an empty list would list the whole board.
      */
-    if (scope.forumIds.length === 0) return { rows: [], nextCursor: null }
+    if (scope.communityIds.length === 0) return { rows: [], nextCursor: null }
 
     const where: SQL[] = [
-      sql`t.forum_id in (${sql.join(scope.forumIds.map((id) => sql`${id}`), sql`, `)})`,
+      sql`t.community_id in (${sql.join(scope.communityIds.map((id) => sql`${id}`), sql`, `)})`,
       visibleIn(sql`t.visibility`, scope.content),
       ...conditions,
     ]
@@ -165,12 +165,12 @@ export class PostgresDiscoveryRepository {
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select t.id as thread_id, t.forum_id, f.title as forum_title,
-               f.slug as forum_slug,
+        select t.id as thread_id, t.community_id, f.title as community_title,
+               f.slug as community_slug,
                t.title, t.slug, t.author_user_id, t.author_username,
                t.reply_count, t.last_post_at, t.last_post_username
           from threads t
-          join forums f on f.id = t.forum_id
+          join communities f on f.id = t.community_id
          where ${sql.join(where, sql` and `)}
          order by t.last_post_at desc, t.id desc
          limit ${query.limit}
@@ -179,9 +179,9 @@ export class PostgresDiscoveryRepository {
 
     const mapped: DiscoveryRow[] = rows.map((row) => ({
       threadId: Number(row.thread_id),
-      forumId: Number(row.forum_id),
-      forumTitle: String(row.forum_title),
-      forumSlug: String(row.forum_slug),
+      communityId: Number(row.community_id),
+      communityTitle: String(row.community_title),
+      communitySlug: String(row.community_slug),
       title: String(row.title),
       slug: String(row.slug),
       authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),

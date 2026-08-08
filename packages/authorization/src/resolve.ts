@@ -1,5 +1,5 @@
 /**
- * Forum permission resolution (R4.1 layer 2, R4.2 inheritance rule).
+ * Community permission resolution (R4.1 layer 2, R4.2 inheritance rule).
  *
  * The order of the two operations matters and is easy to get wrong:
  *
@@ -20,37 +20,37 @@
  * here.
  */
 import {
-  FORUM_PERMISSION_FIELDS,
-  type ForumPermissions,
+  COMMUNITY_PERMISSION_FIELDS,
+  type CommunityPermissions,
   type PermissionSet,
 } from '@meith/core'
 
 import { combineGroupValue } from './combine'
-import type { ForumOverride, GroupDefaults } from './types'
+import type { CommunityOverride, GroupDefaults } from './types'
 
 /**
- * Resolve the forum matrix for one forum.
+ * Resolve the community matrix for one community.
  *
- * @param chain        Forum IDs from the target forum up to the root, nearest
- *                     first, inclusive. `[forumId, parentId, ..., rootId]`.
+ * @param chain        Community IDs from the target community up to the root, nearest
+ *                     first, inclusive. `[communityId, parentId, ..., rootId]`.
  * @param groups       The actor's group defaults (global layer).
- * @param overridesByForumGroup  Lookup `"forumId:groupId" -> ForumOverride`.
+ * @param overridesByCommunityGroup  Lookup `"communityId:groupId" -> CommunityOverride`.
  */
-export function resolveForumMatrix(
+export function resolveCommunityMatrix(
   chain: readonly number[],
   groups: readonly GroupDefaults[],
-  overridesByForumGroup: ReadonlyMap<string, ForumOverride>,
-): ForumPermissions {
+  overridesByCommunityGroup: ReadonlyMap<string, CommunityOverride>,
+): CommunityPermissions {
   const out: Record<string, boolean | number> = {}
 
-  for (const field of FORUM_PERMISSION_FIELDS) {
+  for (const field of COMMUNITY_PERMISSION_FIELDS) {
     const key = field.key
 
     // Step 1: resolve this field for each group independently.
     const perGroup: (boolean | number)[] = groups.map((group) => {
-      for (const forumId of chain) {
-        const override = overridesByForumGroup.get(`${forumId}:${group.groupId}`)
-        const value = override?.overrides[key as keyof ForumPermissions]
+      for (const communityId of chain) {
+        const override = overridesByCommunityGroup.get(`${communityId}:${group.groupId}`)
+        const value = override?.overrides[key as keyof CommunityPermissions]
         // Only a present, non-null override stops the walk; null means inherit.
         if (value !== undefined && value !== null) {
           return value as boolean | number
@@ -64,23 +64,23 @@ export function resolveForumMatrix(
     out[key] = combineGroupValue(field.kind, perGroup)
   }
 
-  return out as ForumPermissions
+  return out as CommunityPermissions
 }
 
-/** Build the `"forumId:groupId"` lookup the resolver expects. */
+/** Build the `"communityId:groupId"` lookup the resolver expects. */
 export function indexOverrides(
-  overrides: readonly ForumOverride[],
-): Map<string, ForumOverride> {
-  const map = new Map<string, ForumOverride>()
-  for (const o of overrides) map.set(`${o.forumId}:${o.groupId}`, o)
+  overrides: readonly CommunityOverride[],
+): Map<string, CommunityOverride> {
+  const map = new Map<string, CommunityOverride>()
+  for (const o of overrides) map.set(`${o.communityId}:${o.groupId}`, o)
   return map
 }
 
-/** Extract the forum-scoped subset of a global set (used as an inherit fallback). */
-export function forumSubset(set: PermissionSet): ForumPermissions {
+/** Extract the community-scoped subset of a global set (used as an inherit fallback). */
+export function communitySubset(set: PermissionSet): CommunityPermissions {
   const out: Record<string, boolean | number> = {}
-  for (const field of FORUM_PERMISSION_FIELDS) {
+  for (const field of COMMUNITY_PERMISSION_FIELDS) {
     out[field.key] = (set as Record<string, boolean | number>)[field.key]!
   }
-  return out as ForumPermissions
+  return out as CommunityPermissions
 }

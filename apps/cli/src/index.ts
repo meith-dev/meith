@@ -7,7 +7,7 @@
  *
  * Deliberately a *thin* layer. Each subcommand delegates to the same code the
  * app uses, so a CLI path cannot drift from the request path — the class of bug
- * where `forum settings:set` writes a value the app then rejects.
+ * where `community settings:set` writes a value the app then rejects.
  */
 
 import process from 'node:process'
@@ -24,7 +24,7 @@ import {
   profileFieldRemove,
 } from './profile-fields'
 import {
-  forumCreate,
+  communityCreate,
   settingsGet,
   settingsSet,
   userCreate,
@@ -45,9 +45,9 @@ function usage(commands: readonly Command[]): string {
     (c) => `  ${c.name.padEnd(width)}  ${c.summary}`,
   )
   return [
-    'forum — operator CLI',
+    'community — operator CLI',
     '',
-    'Usage: forum <command> [options]',
+    'Usage: community <command> [options]',
     '',
     'Commands:',
     ...lines,
@@ -141,7 +141,7 @@ const commands: Command[] = [
     name: 'import',
     summary: 'Import a MyBB board. Resumable — run it again to continue.',
     usage:
-      'MYBB_PASSWORD=… forum import --host H --user U --database D ' +
+      'MYBB_PASSWORD=… community import --host H --user U --database D ' +
       '[--prefix mybb_] [--port 3306] [--charset utf8mb4] [--ssl] ' +
       '[--budget 20000] [--page-size 200]',
     async run(args: readonly string[]) {
@@ -160,7 +160,7 @@ const commands: Command[] = [
   {
     name: 'upgrade',
     summary: 'Apply core and plugin migrations, then record the version.',
-    usage: 'forum upgrade [--dry-run]',
+    usage: 'community upgrade [--dry-run]',
     async run(args: readonly string[]) {
       const { assertEnv } = await import('@meith/core')
       const env = assertEnv()
@@ -176,17 +176,17 @@ const commands: Command[] = [
        * it into `cli.cjs`.
        *
        * This used to be `plugins: []` with a comment explaining that an operator
-       * CLI installed from npm cannot see `forum.config.ts`. True of a published
+       * CLI installed from npm cannot see `community.config.ts`. True of a published
        * CLI, and this one is not published — `@meith/cli` is `private: true` and
        * ships inside the image, built from the same tree as the config. Passing
        * nothing meant the panel could tell an operator to run this command to
        * apply a plugin's migrations and the command would report success without
        * applying them, which the 7 August 2026 audit found and this closes.
        *
-       * `forum.plugins.ts` rather than `forum.config.ts`: the latter imports
+       * `community.plugins.ts` rather than `community.config.ts`: the latter imports
        * every theme, and a CLI has no use for a slot map of React components.
        */
-      const { installedPluginDefinitions } = await import('../../forum/forum.plugins')
+      const { installedPluginDefinitions } = await import('../../community/community.plugins')
       return upgrade({
         dryRun: args.includes('--dry-run'),
         plugins: installedPluginDefinitions(),
@@ -227,37 +227,37 @@ const commands: Command[] = [
     name: 'user:create',
     summary: 'Create a user account. Pipe the password in on stdin.',
     usage:
-      'echo "<password>" | forum user:create --username <name> --email <addr> [--group <key>]',
+      'echo "<password>" | community user:create --username <name> --email <addr> [--group <key>]',
     run: userCreate,
   },
 
   {
     name: 'user:promote',
     summary: "Change a user's primary group.",
-    usage: 'forum user:promote --user <id|username> --group <key|id>',
+    usage: 'community user:promote --user <id|username> --group <key|id>',
     run: userPromote,
   },
 
   {
-    name: 'forum:create',
-    summary: 'Create a category, forum or link.',
+    name: 'community:create',
+    summary: 'Create a category, community or link.',
     usage:
-      'forum forum:create --title <title> --slug <slug> [--parent <id>] ' +
-      '[--type category|forum|link] [--description <text>] [--link-url <url>]',
-    run: forumCreate,
+      'community community:create --title <title> --slug <slug> [--parent <id>] ' +
+      '[--type category|community|link] [--description <text>] [--link-url <url>]',
+    run: communityCreate,
   },
 
   {
     name: 'settings:get',
     summary: 'Print one resolved setting value.',
-    usage: 'forum settings:get <key>',
+    usage: 'community settings:get <key>',
     run: settingsGet,
   },
 
   {
     name: 'settings:set',
     summary: 'Set one setting, validated by the registry.',
-    usage: 'forum settings:set <key> <value>',
+    usage: 'community settings:set <key> <value>',
     run: settingsSet,
   },
 
@@ -271,7 +271,7 @@ const commands: Command[] = [
     name: 'profile-field:add',
     summary: 'Define a custom profile field.',
     usage:
-      'forum profile-field:add --key <key> --label <label> ' +
+      'community profile-field:add --key <key> --label <label> ' +
       '--type text|textarea|select|checkbox|url|number ' +
       '[--options a,b,c] [--required] [--postbit] [--order <n>]',
     run: profileFieldAdd,
@@ -280,7 +280,7 @@ const commands: Command[] = [
   {
     name: 'profile-field:remove',
     summary: "Delete a custom profile field and every member's answer to it.",
-    usage: 'forum profile-field:remove <key>',
+    usage: 'community profile-field:remove <key>',
     run: profileFieldRemove,
   },
 
@@ -293,7 +293,7 @@ const commands: Command[] = [
   {
     name: 'task:run',
     summary: 'Run every task that is due now, or one named task if it is due.',
-    usage: 'forum task:run [<task-id>]',
+    usage: 'community task:run [<task-id>]',
     run: taskRun,
   },
 
@@ -318,7 +318,7 @@ const commands: Command[] = [
  * with F70's Recount & Rebuild.
  *
  * Registering it now as a command that throws would be worse than omitting it:
- * `forum --help` would advertise a capability the binary does not have.
+ * `community --help` would advertise a capability the binary does not have.
  */
 
 /**
@@ -354,7 +354,7 @@ async function main(): Promise<number> {
   }
 
   if (rest.includes('--help')) {
-    console.log(command.usage ?? `forum ${command.name}`)
+    console.log(command.usage ?? `community ${command.name}`)
     return 0
   }
 

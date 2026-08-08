@@ -45,13 +45,13 @@ const CAPABILITIES: EditCapabilities = {
 function target(overrides: {
   post?: Partial<PostEditTarget['post']>
   thread?: Partial<PostEditTarget['thread']>
-  forum?: Partial<PostEditTarget['forum']>
+  community?: Partial<PostEditTarget['community']>
 } = {}): PostEditTarget {
   return {
     post: {
       id: 50,
       threadId: 20,
-      forumId: 4,
+      communityId: 4,
       authorUserId: 7,
       subject: null,
       message: 'the original body',
@@ -69,7 +69,7 @@ function target(overrides: {
       visibility: 'visible',
       ...overrides.thread,
     },
-    forum: { id: 4, slug: 'general', isOpen: true, ...overrides.forum },
+    community: { id: 4, slug: 'general', isOpen: true, ...overrides.community },
   }
 }
 
@@ -182,7 +182,7 @@ describe('PostEditor.edit', () => {
       ['a deleted post', target({ post: { visibility: 'deleted' } })],
       ['a thread that is not visible', target({ thread: { visibility: 'unapproved' } })],
       ['a locked thread', target({ thread: { isLocked: true } })],
-      ['a closed forum', target({ forum: { isOpen: false } })],
+      ['a closed community', target({ community: { isOpen: false } })],
     ])('refuses %s', async (_label, blocked) => {
       const posts = new RecordingPosts()
       await expect(
@@ -191,13 +191,13 @@ describe('PostEditor.edit', () => {
       expect(posts.edits).toHaveLength(0)
     })
 
-    it('lets a moderator edit in a locked thread and a closed forum', async () => {
+    it('lets a moderator edit in a locked thread and a closed community', async () => {
       const posts = new RecordingPosts()
       const bypass = { ...CAPABILITIES, bypassesLock: true }
       await editor(posts).edit(
         { message: 'new', reason: '', capabilities: bypass },
         7,
-        target({ thread: { isLocked: true }, forum: { isOpen: false } }),
+        target({ thread: { isLocked: true }, community: { isOpen: false } }),
       )
       expect(posts.edits).toHaveLength(1)
     })

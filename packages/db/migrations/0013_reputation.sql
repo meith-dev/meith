@@ -80,7 +80,7 @@ CREATE INDEX "reputation_given_idx"
 -- Per-group limits (F62).
 --
 -- Two fields, both global: reputation is a board-wide capability, so neither
--- belongs in F22's forum matrix — the same argument `canReportContent` and
+-- belongs in F22's community matrix — the same argument `canReportContent` and
 -- `canWarnUsers` make.
 ALTER TABLE "usergroups" ADD COLUMN "can_give_reputation" boolean DEFAULT false NOT NULL;
 --> statement-breakpoint

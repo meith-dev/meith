@@ -5,7 +5,7 @@
  * would be faster on page two and wrong in two ways that matter: the list goes
  * stale, so it keeps offering posts that have since been deleted or moved
  * somewhere private; and it is a *permission snapshot*, so a member who loses
- * access to a forum would go on seeing its hits for as long as the stored set
+ * access to a community would go on seeing its hits for as long as the stored set
  * lived. Re-resolving costs one indexed query and is correct by construction —
  * every page applies the current viewer's scope.
  *

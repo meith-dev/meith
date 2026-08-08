@@ -30,7 +30,7 @@ describe('derived defaults', () => {
   it('derives the postgres drivers from a bare DATABASE_URL', () => {
     const env = parseEnv({
       NODE_ENV: 'development',
-      DATABASE_URL: 'postgres://u:p@localhost:5432/forum',
+      DATABASE_URL: 'postgres://u:p@localhost:5432/community',
     })
     expect(env.DATA_SOURCE).toBe('postgres')
     expect(env.QUEUE_DRIVER).toBe('postgres')
@@ -51,7 +51,7 @@ describe('an empty variable is an unset one', () => {
   const asCompose = {
     NODE_ENV: 'production',
     DATA_SOURCE: 'postgres',
-    DATABASE_URL: 'postgres://forum:pw@postgres:5432/forum',
+    DATABASE_URL: 'postgres://community:pw@postgres:5432/community',
     AUTH_SECRET: 'a'.repeat(40),
     TICK_SECRET: 'b'.repeat(40),
     QUEUE_DRIVER: 'postgres',

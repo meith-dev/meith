@@ -21,8 +21,8 @@
  * ## Where the line between this package and a theme falls
  *
  * A component belongs here when it is *how a control looks and behaves* — a
- * card, a badge, a field. It belongs in a theme when it is *what a forum row
- * says*. `ForumRow` is not a `<ForumRow>` in this package and never will be: a
+ * card, a badge, a field. It belongs in a theme when it is *what a community row
+ * says*. `CommunityRow` is not a `<CommunityRow>` in this package and never will be: a
  * theme that could not decide the shape of its own listings would not be a
  * theme, and `themes/midnight` renders that same row as a `<tr>`.
  *

@@ -199,7 +199,7 @@ test('a board is installed from an empty database, with no scripting', async ({ 
 
   /*
    * A 404, not an "already installed" page. An informative page would confirm to
-   * anybody who asked that this is a forum, that it is installed, and — more
+   * anybody who asked that this is a board, that it is installed, and — more
    * usefully to them — that the route was once reachable.
    */
   const sealed = await page.goto('/install')
@@ -213,7 +213,7 @@ test('a board is installed from an empty database, with no scripting', async ({ 
   await expect(page).toHaveURL('/')
 
   /*
-   * The board is named, and it has a forum. A board whose index is empty looks
+   * The board is named, and it has a community. A board whose index is empty looks
    * broken rather than new, which is the whole reason the installer creates one.
    */
   await expect(page.getByRole('link', { name: 'General discussion' })).toBeVisible()

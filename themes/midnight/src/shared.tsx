@@ -4,7 +4,7 @@
  * There is one thing in here, and it earns the file. Seven slots each wrote out
  * the same `profileHref === null ? name : <a>name</a>` ternary, which is the
  * duplication the default theme's `shared.tsx` header calls the single
- * commonest bug in forum software — and it became load-bearing the moment a
+ * commonest bug in community software — and it became load-bearing the moment a
  * username acquired a *colour*, because a per-member colour applied at six of
  * seven call sites is a board where a moderator's name is green in a thread and
  * grey in the sidebar.

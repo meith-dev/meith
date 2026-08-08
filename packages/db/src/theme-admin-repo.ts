@@ -33,7 +33,7 @@
  * The *shape* of `token_overrides`. It is stored and returned as raw JSON,
  * because what a valid override is — which token names exist, which values are
  * safe in a stylesheet, whether a scheme-keyed map or a flat one — is decided by
- * the render path (`apps/forum/src/server/theme-style.ts`) and running the same
+ * the render path (`apps/community/src/server/theme-style.ts`) and running the same
  * function before the write is what makes "saved" mean "will render". A second
  * opinion here would eventually disagree with the one that paints.
  */

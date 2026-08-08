@@ -57,7 +57,7 @@ interface RawReport {
   id: number
   target_kind: ReportTargetKind
   target_id: number
-  forum_id: number | null
+  community_id: number | null
   thread_id: number | null
   target_label: string
   reporter_user_id: number | null
@@ -74,7 +74,7 @@ function toReport(row: RawReport): ReportRow {
     id: Number(row.id),
     kind: row.target_kind,
     targetId: Number(row.target_id),
-    forumId: row.forum_id === null ? null : Number(row.forum_id),
+    communityId: row.community_id === null ? null : Number(row.community_id),
     threadId: row.thread_id === null ? null : Number(row.thread_id),
     targetLabel: row.target_label,
     reporterUserId: row.reporter_user_id === null ? null : Number(row.reporter_user_id),
@@ -89,7 +89,7 @@ function toReport(row: RawReport): ReportRow {
 }
 
 const SELECT_REPORT = sql`
-  select r.id, r.target_kind, r.target_id, r.forum_id, r.thread_id, r.target_label,
+  select r.id, r.target_kind, r.target_id, r.community_id, r.thread_id, r.target_label,
          r.reporter_user_id, reporter.username as reporter_username,
          r.reason, r.status, r.assigned_to_user_id,
          assignee.username as assigned_username, r.created_at
@@ -142,11 +142,11 @@ export class PostgresReportRepository implements ReportRepository {
             kind,
             id: Number(row.id),
             /*
-             * No forum, like a user report — so it routes to `modcp.access`
-             * rather than to a forum's moderators, which is right: a private
-             * message belongs to no forum's staff.
+             * No community, like a user report — so it routes to `modcp.access`
+             * rather than to a community's moderators, which is right: a private
+             * message belongs to no community's staff.
              */
-            forumId: null,
+            communityId: null,
             threadId: null,
             label: row.subject,
           }
@@ -161,23 +161,23 @@ export class PostgresReportRepository implements ReportRepository {
       const row = rows[0]
       return row === undefined
         ? null
-        : { kind, id: Number(row.id), forumId: null, threadId: null, label: row.username }
+        : { kind, id: Number(row.id), communityId: null, threadId: null, label: row.username }
     }
 
     if (kind === 'thread') {
       const rows = resultRows(
         await this.db.execute(sql`
-          select id, forum_id, title from threads
+          select id, community_id, title from threads
            where id = ${id} and ${visibleIn(threads.visibility, PUBLIC_CONTENT)}
         `),
-      ) as Array<{ id: number; forum_id: number; title: string }>
+      ) as Array<{ id: number; community_id: number; title: string }>
       const row = rows[0]
       return row === undefined
         ? null
         : {
             kind,
             id: Number(row.id),
-            forumId: Number(row.forum_id),
+            communityId: Number(row.community_id),
             threadId: Number(row.id),
             label: row.title,
           }
@@ -185,21 +185,21 @@ export class PostgresReportRepository implements ReportRepository {
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select p.id, p.forum_id, p.thread_id, t.title
+        select p.id, p.community_id, p.thread_id, t.title
           from posts p
           join threads t on t.id = p.thread_id
          where p.id = ${id}
            and ${visibleIn(sql`p.visibility`, PUBLIC_CONTENT)}
            and ${visibleIn(sql`t.visibility`, PUBLIC_CONTENT)}
       `),
-    ) as Array<{ id: number; forum_id: number; thread_id: number; title: string }>
+    ) as Array<{ id: number; community_id: number; thread_id: number; title: string }>
     const row = rows[0]
     return row === undefined
       ? null
       : {
           kind,
           id: Number(row.id),
-          forumId: Number(row.forum_id),
+          communityId: Number(row.community_id),
           threadId: Number(row.thread_id),
           label: row.title,
         }
@@ -218,10 +218,10 @@ export class PostgresReportRepository implements ReportRepository {
       const inserted = resultRows(
         await tx.execute(sql`
           insert into reports
-            (target_kind, target_id, forum_id, thread_id, target_label,
+            (target_kind, target_id, community_id, thread_id, target_label,
              reporter_user_id, reason, status, created_at, updated_at)
           values
-            (${report.target.kind}, ${report.target.id}, ${report.target.forumId},
+            (${report.target.kind}, ${report.target.id}, ${report.target.communityId},
              ${report.target.threadId}, ${report.target.label},
              ${report.reporterUserId}, ${report.reason}, 'open',
              ${report.at}, ${report.at})
@@ -245,12 +245,12 @@ export class PostgresReportRepository implements ReportRepository {
    * Outstanding reports in scope, oldest first.
    *
    * The two halves of the scope are one predicate rather than two queries: a
-   * moderator who also holds board staff sees their forums *and* the user
+   * moderator who also holds board staff sees their communities *and* the user
    * reports in one page, ordered together.
    */
   private scopePredicate(scope: ReportScope): ReturnType<typeof sql> {
-    const byForum = sql`r.forum_id in ${idList(scope.forumIds)}`
-    return scope.global ? sql`(${byForum} or r.forum_id is null)` : byForum
+    const byCommunity = sql`r.community_id in ${idList(scope.communityIds)}`
+    return scope.global ? sql`(${byCommunity} or r.community_id is null)` : byCommunity
   }
 
   async listOpen(
