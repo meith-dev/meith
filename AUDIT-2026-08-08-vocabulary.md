@@ -166,6 +166,33 @@ Worth stating plainly so the second rename does not overshoot:
 
 ## Recommendation
 
+### Two constraints that narrow the field before taste does
+
+**The word has to cover categories too.** `COMMUNITY_TYPES` is
+`['category', 'community', 'link']` on one table — a category *is* a row of the
+entity, with a type. So the winning word is simultaneously the table name, the
+umbrella type, and the name of one member of that set. Anything that only works
+for the thread-holding case ("discussion", "topic area") is out on this alone.
+MyBB has the same shape — categories live in its `forums` table — which is
+precedent that "forum" survives the constraint.
+
+**Most candidates fail on greppability, not meaning.** A 10,378-occurrence
+rename needs a word that is rare in the existing tree. Measured:
+
+| Word | Existing hits | Verdict |
+|---|---|---|
+| `forum` / `forums` | **6** | free — and all six are MyBB compat, which *should* say forum |
+| `hall`, `commons`, `den` | **0** | free, but too thematic to be a structural noun |
+| `area` / `areas` | **10** | free |
+| `room` | 37 | free enough |
+| `space` / `spaces` | 93 | fine — `white-space`, a markdown token, DigitalOcean Spaces |
+| `corner` | 30 | border radii |
+| `floor` | 49 | `Math.floor` |
+| `section` / `sections` | 562 | un-greppable |
+| `place` / `places` | 401 | "in place", "placeholder", "placement" |
+| `zone` / `zones` | 2,163 | timezones — disqualifying |
+| `board` / `boards` | 4,422 | the installation — see below |
+
 ### The entity: rename `community` → **`space`**
 
 A *community* is a group of people, and a board has one. A *space* is a place,
@@ -208,6 +235,15 @@ visitor forms their impression of what shape the software is, and putting
 "Forum" there is the one place the old category claim survives being told
 otherwise everywhere else.
 
+**But that point is smaller than it looks, and the V2/V3 fixes are why.** Once
+the nav says *Home* and the breadcrumb root is the board's name, the entity noun
+almost disappears from the member-facing UI — the tree renders real titles
+("Announcements", "Off Topic"), not the word for what they are. What is left is
+roughly six strings: the empty state, the subcommunity heading, the search
+scope, the jump control, and the modcp list. Everything else is ACP and modcp
+chrome. So the brand cost of "forum" is paid on a handful of admin screens, and
+the comprehension benefit is paid to every member who meets the word cold.
+
 **Cost is not a tiebreaker.** Reverting is not cheaper than renaming — three
 commits have landed on top of `b468568` (`144ab9f`, `5884a26`, `93a1361`), so
 `git revert` will not do it and either option is a fresh bulk rename of the same
@@ -217,12 +253,15 @@ size. Choose on merit.
 
 | Candidate | Why not |
 |---|---|
-| **board** | Correct in the "message board" sense, but `board` already means the whole installation throughout the codebase. This trades the current collision for a worse one. |
-| **channel** | Chat-shaped: flat, real-time, ephemeral. This entity is threaded, nested under categories, and has last-post counters. Wrong mental model at a glance. |
-| **section** | Accurate and collision-free in meaning, but 562 existing prose/CSS hits make it un-greppable for a bulk rename, and it is a structural word rather than a place — "post in a section" is duller than it needs to be. Second-choice neutral option. |
-| **topic** | Collides with `thread`; half of forum software uses "topic" to mean exactly what this codebase calls a thread. |
+| **area** | The best of the neutral options and essentially free to grep (10 hits). Rejected only on flatness: it names no place a member can picture, and "subarea" is worse than "subforum". Take it if both leaders are vetoed. |
+| **board** | Correct in the "message board" sense — SMF uses exactly `category → board → child board → topic`. But `board` already means the installation in 4,422 places, so adopting it means *also* renaming the installation to "site" — roughly doubling the work — and then fighting forever the fact that forum users call the whole thing a board. |
+| **section** | Accurate in meaning but un-greppable at 562 hits, and it collides with the themes' own `aria-label="Board sections"` on the nav row. |
+| **room** / **channel** | Chat-shaped: flat, live, ephemeral. This entity is threaded, nests under categories, and carries last-post counters and 20k-post totals. Wrong mental model at a glance, and "subroom" is not a word. |
+| **hall**, **commons**, **den**, **corner**, **nook** | Zero collisions and they fit the site's own building metaphor ("a members-only floor, a staff room nobody else sees"), but a structural noun that appears in the ACP, the modcp and every permission screen cannot be whimsical. |
+| **zone**, **floor**, **place** | Disqualified by grep alone — `timezone` (2,163), `Math.floor` (49), "in place"/"placeholder" (401). |
+| **topic**, **discussion**, **conversation** | All collide with `thread`; half of forum software uses "topic" for exactly what this codebase calls a thread. |
 | **group** | Taken by usergroups. |
-| **room** | Chat-flavoured, same problem as channel. |
+| **circle** | Means a group of people — the same scale error as `community`, with worse recognition. |
 | **hub** | No established meaning; reads as marketing. |
 
 ### The index link: fix this regardless of the above
