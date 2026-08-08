@@ -36,22 +36,6 @@ async function signUp(page: Page, label: string): Promise<string> {
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page).toHaveURL('/')
 
-  /*
-   * Answer the cookie notice, the way every member does once.
-   *
-   * The notice is `sticky bottom-0`, so while it is unanswered it rides the foot
-   * of the viewport on every page — and this suite never answers it, which is a
-   * state no real reader stays in past their first click. Left standing it sits
-   * over the "Post reply" button below, and the spec fails on a control a member
-   * would have dismissed the bar before reaching.
-   *
-   * Pressing it here rather than seeding the answer into the database: the
-   * button is the thing that has to work, so using it is coverage rather than a
-   * workaround. `cookie-notice-no-js.spec.ts` covers the notice itself.
-   */
-  await page.getByRole('button', { name: 'No thanks' }).click()
-  await expect(page.getByRole('complementary', { name: 'Cookies' })).toHaveCount(0)
-
   return username
 }
 

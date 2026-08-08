@@ -92,7 +92,11 @@
       "@meith/theme-default": ["themes/default/src/index.ts"],
       "@meith/theme-default/*": ["themes/default/src/*"],
       "@meith/theme-midnight": ["themes/midnight/src/index.ts"],
-      "@meith/theme-midnight/*": ["themes/midnight/src/*"]
+      "@meith/theme-midnight/*": ["themes/midnight/src/*"],
+      "@meith/example-plugin-hello": ["examples/hello-plugin/src/index.ts"],
+      "@meith/example-plugin-hello/*": ["examples/hello-plugin/src/*"],
+      "@meith/example-theme-iris": ["examples/iris-theme/src/index.ts"],
+      "@meith/example-theme-iris/*": ["examples/iris-theme/src/*"]
     }
   },
   "exclude": ["node_modules", "**/dist", "**/.next"]

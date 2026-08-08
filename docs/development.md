@@ -79,6 +79,7 @@ A pnpm workspace. Applications in `apps/`, everything else in `packages/`,
 | `apps/cli` | `@meith/cli` | The operator CLI. `pnpm forum …`. |
 | `packages/*` | `@meith/*` | The domain: accounts, forums, posts, authorization, search, drivers, and the rest. |
 | `themes/*`, `plugins/*` | | The default theme, a second worked theme, and the reference plugin. |
+| `examples/*` | | Reference code to copy, not installed: the worked example plugin and theme. See [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples). |
 
 Every `@meith/*` import resolves through tsconfig path aliases straight to
 `src/index.ts`. There is no build step between packages, which is why a

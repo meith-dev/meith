@@ -39,6 +39,10 @@ import type { PluginDefinition } from '@meith/plugin-kit'
  * edited in the panel, its tasks on the tick and its pages under
  * `/admin/plugins/<key>`.
  *
+ * Installing one is `pnpm add`, a line here, and a redeploy — the worked example
+ * to copy is `examples/hello-plugin`, and registering it verbatim is
+ * `{ key: 'hello', plugin: helloPlugin }` with the matching import.
+ *
  * `plugins/reference` is deliberately *not* registered. It exercises every
  * extension point and records what it was called with, which is a test double —
  * shipping it on a real board would be shipping a fixture.

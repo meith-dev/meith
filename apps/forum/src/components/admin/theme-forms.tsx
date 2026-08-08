@@ -616,15 +616,7 @@ export function ThemeEditorForm({
             the top of the screen — and because "how many changes am I about to
             make?" is a question that should never require scrolling to answer.
           */}
-          <div
-            /*
-              The board's cookie notice is `sticky bottom-0` too, and would sit
-              on top of this. `globals.css` lifts anything carrying this
-              attribute clear of it, for as long as there is a notice.
-            */
-            data-sticky-bottom
-            className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-border bg-background px-1 py-3"
-          >
+          <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-border bg-background px-1 py-3">
             <span className="min-w-40">
               <SubmitButton>
                 {unsaved === 0 ? "Save" : `Save ${unsaved} change${unsaved === 1 ? "" : "s"}`}

@@ -8836,37 +8836,6 @@ interesting part.** Both themes set `font-heading-stack` to the literal
 in one theme and IBM Plex Sans in the other, so the two boards do not look alike
 because of it. The exclusion list says so.
 
-### D115 — A cookie notice that sticks, and the button it used to cover
-
-The notice was in the ordinary flow at the foot of the document, which was a
-correction of an earlier `fixed` version — recorded in that file, along with the
-bug it caused: a bar pinned to the viewport sits on top of whatever the page has
-at the bottom of the viewport, which here was the appearance strip on every page
-and the **"Post reply" button** at the foot of a reply form. The e2e suite caught
-it by failing to click a control a member could not have clicked either.
-
-In flow it covered nothing and cost prominence: on a long page a reader had to
-reach the foot to find it. Asked for a notice that stays visible, the shape that
-gets both is `sticky`, because a sticky element *stays in flow* — it owns space
-at the end of the document rather than being lifted out of the layout.
-
-**It was not enough on its own, and the same spec said so again.** Sticky still
-floats over the bottom of the viewport while there is document left to scroll, so
-the reply button was intercepted exactly as before — the third time this one
-control has failed the same way. The fix is a reserve: `body:has(> aside[aria-label='Cookies'])`
-gets bottom padding, so the end of every page clears the bar and any control can
-be scrolled out from under it. `:has()` scopes the reserve to pages that actually
-render the notice, which is only ever pages where the question is unanswered — a
-permanent gap under a board nobody was asked to consent on would be a footer that
-never quite reaches the bottom.
-
-The wording is generic now: the headline says the site needs cookies to work and
-asks whether it may also set optional ones, and *which* cookies is behind the
-disclosure. The enumeration was the half people have trained themselves to skip,
-and the half that ages worst. It is not deleted, because consent has to be
-informed to be consent — it is one click away and still generated from
-`@/view/consent` rather than written out by hand.
-
 ### D116 — The theme editor could not say what it was changing, and three of its promises were quietly unkept (F26, F68)
 
 The screen worked. An operator could reach every token a theme declares, each
@@ -9010,10 +8979,10 @@ being judged for its appearance, so the keyboard path is the grid beside it,
 which reaches every token in the same order with the same result.
 
 Two smaller things came out of driving the page rather than reading it. The Save
-bar is sticky, so it collided with the cookie notice — the fourth appearance of
-the bug D115 records three of — and the rule that lifts it has to live in
-`@layer utilities`, because a base-layer rule loses to `bottom-0` however
-specific it is. And filtering or folding the token list **hides** rows instead of
+bar is sticky, so anything else pinned to the foot of the viewport would collide
+with it — and a rule that has to beat `bottom-0` must live in `@layer utilities`,
+because a base-layer rule loses to any utility however specific it is. And
+filtering or folding the token list **hides** rows instead of
 unmounting them, which is correctness rather than taste: this form posts every
 token at once, so a field that is not in the DOM is not submitted, and an
 unmounted row would have silently deleted the override it was hiding.

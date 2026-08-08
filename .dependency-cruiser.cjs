@@ -168,7 +168,8 @@ module.exports = {
       comment:
         'R6: a theme renders slots it is handed. It must not query the database or ' +
         'import domain logic, or theming becomes a security surface.',
-      from: { path: '^themes/' },
+      /* examples/*-theme are themes too — same rule, same reason. */
+      from: { path: ['^themes/', '^examples/[^/]+-theme/'] },
       to: {
         path: [
           `^packages/(db|drivers|${DOMAIN})/`,
@@ -190,7 +191,8 @@ module.exports = {
         'A plugin extends the board through @meith/plugin-kit. It must not import ' +
         '@meith/db, a driver, or a domain package: the host isolates failures, not ' +
         'privilege, and a plugin with its own database access can read anything.',
-      from: { path: '^plugins/' },
+      /* examples/*-plugin are plugins too — same rule, same reason. */
+      from: { path: ['^plugins/', '^examples/[^/]+-plugin/'] },
       to: {
         path: [
           `^packages/(db|drivers|${DOMAIN})/`,

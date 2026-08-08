@@ -517,7 +517,7 @@ if (process.argv.includes('--probe')) {
   }
   console.log('✓ slot-kinds fires on a crossing, on an inert island, and spares a clean theme')
 } else {
-  const roots = ['themes', 'packages', 'apps'].map((dir) => join(ROOT, dir))
+  const roots = ['themes', 'packages', 'apps', 'examples'].map((dir) => join(ROOT, dir))
   const files = (await Promise.all(roots.map((dir) => walk(dir)))).flat()
 
   let manifests = 0

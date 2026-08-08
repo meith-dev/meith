@@ -56,6 +56,13 @@ export default defineForumConfig({
       browserThemeColor: MIDNIGHT_BROWSER_THEME_COLOR,
       theme: midnightTheme,
     },
+    /*
+     * A third theme registers the same way — `examples/iris-theme` is the
+     * worked minimal one (a recolour plus a single slot override), kept as
+     * reference code rather than installed here. Registering a theme enrols it
+     * in the rendering-contract and contrast suites, both of which read this
+     * map.
+     */
   },
   defaultTheme: 'default',
 

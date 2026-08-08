@@ -1,4 +1,3 @@
-import { ConsentToggle } from '@/components/shell/cookie-notice'
 import { BOARD_MEASURE } from '@/components/shell/measure'
 import {
   MonitorIcon,
@@ -112,8 +111,7 @@ export async function ThemeSwitcher() {
         {/*
           A landmark, not decoration. This strip is the last thing on every page
           and holds the only controls outside the board's own navigation, so it
-          is worth being able to jump to — and naming it is also what stops the
-          consent toggle beside it being read as part of the same question.
+          is worth being able to jump to.
         */}
         <section
           aria-label="Appearance"
@@ -195,17 +193,6 @@ export async function ThemeSwitcher() {
             </span>
           </form>
         </section>
-
-        {/*
-          Its own section and a sibling form: a `<form>` inside a `<form>` is
-          invalid HTML and browsers resolve it by dropping the inner one, which
-          would silently turn its button into one that posts an appearance form.
-
-          Labelled "Privacy" rather than folded in with the rest, because it is
-          not a question about how the board looks. It renders nothing at all
-          for a reader who was never asked about cookies.
-        */}
-        <ConsentToggle />
       </div>
     </div>
   )

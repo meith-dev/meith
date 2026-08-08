@@ -86,6 +86,7 @@ export default defineConfig({
        */
       'themes/**/*.test.ts',
       'plugins/**/*.test.ts',
+      'examples/**/*.test.ts',
       'tests/**/*.test.ts',
     ],
     exclude: ['**/node_modules/**', '**/.next/**'],

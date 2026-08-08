@@ -38,7 +38,7 @@ import type { SettingKey, SettingValue } from './definitions'
 const NAME: SettingValue<'board.name'> = 'The Townland'
 const OFFLINE: SettingValue<'board.offline'> = false
 const PER_PAGE: SettingValue<'display.posts_per_page'> = 20
-const MODE: SettingValue<'privacy.cookie_consent'> = 'auto'
+const MODE: SettingValue<'registration.method'> = 'none'
 
 /** And a real key is a `SettingKey`. */
 const KEY: SettingKey = 'board.name'

@@ -72,9 +72,6 @@ async function signUp(page: Page, label: string): Promise<string> {
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page).toHaveURL('/')
 
-  /* The cookie notice is `sticky bottom-0` and would sit over the form. */
-  await page.getByRole('button', { name: 'No thanks' }).click()
-
   return username
 }
 

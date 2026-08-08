@@ -238,6 +238,11 @@ export default { theme: midnight }
 Then commit, push, and redeploy — the image is rebuilt from your repository, so
 an installed theme is a commit rather than a state the server drifts into.
 
+Writing your own starts from
+[`examples/iris-theme`](https://github.com/meith-dev/meith/tree/main/examples/iris-theme),
+the worked minimal theme — reference code in the repository, not installed on
+any board until you register it.
+
 > [!NOTE]
 > This is why there is no upload-a-zip path and will not be one. A theme has to
 > be visible to the bundler at build time; a production build contains only what
@@ -337,47 +342,31 @@ everybody's switcher.
 Writing a theme: [The theme API](./theme-api.md). Every slot and view model:
 [Theme slots](./theme-slots.md).
 
-## Cookies and consent
+## Cookies
 
-The board sets six cookies of its own and no third-party ones:
+The board sets five cookies of its own and no third-party ones:
 
 | Cookie | What it is for |
 |---|---|
 | session, remember-me | signing in. The session row also carries the CSRF secret that protects that session's forms — a column, not a cookie of its own |
 | admin session | the control panel's separate sign-in |
 | `meith_theme`, `meith_scheme` | the appearance controls, written only when a member presses one |
-| `meith_consent` | the answer to the notice below |
 
-Under the ePrivacy Directive all of those are either strictly necessary or set
-in direct response to something the reader explicitly asked for, so none of them
-is what a consent notice is about. **The notice is about the optional analytics**
-— the one thing here a reader has a genuine interest in refusing — and refusing
-means the script is never rendered, not that it loads and is asked to be quiet.
+Every one of them is either strictly necessary or set in direct response to
+something the reader explicitly asked for, and none exists before somebody asks
+for it. There is no cookie banner, because there is nothing on the board that
+needs one.
 
-`privacy.cookie_consent` (Settings → Privacy) decides who is asked:
-
-| Setting | Behaviour |
-|---|---|
-| **Where required** (default) | Asks in the EEA, the UK and Switzerland — and asks when the visitor's country is unknown |
-| **Everywhere** | Asks every visitor |
-| **Never ask** | Shows no notice, and analytics run for everyone |
-
-The country comes from whatever header the CDN in front of the board sets —
-`cf-ipcountry` behind Cloudflare, and one of a handful of equivalents elsewhere.
-A board behind no CDN has no such header, and "unknown" is treated as in scope on purpose: a
-notice somebody did not need is a smaller mistake than processing a European
-reader's data without asking. If that is not the trade you want, say so in the
-setting rather than living with the guess.
-
-Accepting and refusing are one click each, side by side, and the choice can be
-changed afterwards from the appearance strip at the foot of any page.
-
-> This is a mechanism, not legal advice. What your board must ask and record
-> depends on what it does with the data, which is yours to decide.
+> What a particular board must disclose or record depends on what it does with
+> its data, which is the operator's to decide — a board that adds its own
+> tracking is adding its own obligations with it.
 
 ## Plugins
 
 Same shape as a theme: add the package, a line in `forum.config.ts`, a redeploy.
+The worked example to copy is
+[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
+— reference code, not installed by default.
 
 > [!NOTE]
 > There is no upload-a-zip path, and there will not be one. A plugin discovered

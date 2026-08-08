@@ -29,9 +29,17 @@ export const acmeTheme = defineTheme({
 
 Register it in `forum.config.ts` and set `defaultTheme` to its key.
 
-`themes/midnight` is the worked example: twenty-two slots overridden, five
-inherited, tables where the default theme has lists, and no change to any package
-to make it possible.
+Two worked examples bracket the range a theme can occupy:
+
+- **[`examples/iris-theme`](https://github.com/meith-dev/meith/tree/main/examples/iris-theme)
+  is the minimal one, and the one to copy first**: the default board recoloured
+  by overriding one brand group of tokens, plus a single slot (`Footer`) where
+  its markup genuinely disagrees. It ships as reference code rather than
+  registered; [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples)
+  walks through installing it or your copy of it.
+- `themes/midnight` is the maximal one: twenty-two slots overridden, five
+  inherited, tables where the default theme has lists, and no change to any
+  package to make it possible.
 
 ### Four rules the tooling enforces
 

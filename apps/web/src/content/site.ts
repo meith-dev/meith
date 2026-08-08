@@ -145,14 +145,6 @@ export const hero = {
    * The one line of small print in the hero, and it is a claim rather than a
    * disclaimer: no hosted captcha is a decision about your members, and it is the
    * thing every other board asks you to accept without mentioning.
-   *
-   * It used to end "nothing that needs a cookie banner", and that was false. A
-   * board sets `meith_theme`, `meith_scheme` and a session cookie, and it ships a
-   * consent notice — see `apps/forum/src/view/consent.ts`, which exists precisely
-   * because the optional category (analytics, off until allowed) does need asking
-   * about. The strictly-necessary ones are exempt under ePrivacy 5(3); the
-   * optional one is not, and a marketing page is the last place that distinction
-   * should be flattened into a boast.
    */
   assurance: "No hosted captcha, and no third-party script between your members and your board.",
 } as const
@@ -531,8 +523,8 @@ export const closing = {
  *
  * This site has no analytics and sets no cookie at all: the colour scheme goes to
  * `localStorage` (see `theme-storage.ts`), which is why it can say so plainly. A
- * board is a different piece of software with different obligations, and it has
- * its own consent notice for the one thing that needs one.
+ * board is a different piece of software with different obligations, which are
+ * its operator's to weigh.
  */
 export const footer = {
   colophon:
