@@ -916,7 +916,7 @@ of them and silently did nothing for the rest would be worse than its absence.
 
 ```sh
 forum migrate      # core only
-forum upgrade      # core, then plugins, then record the version
+forum upgrade      # core, then each installed plugin's, then record the version
 ```
 
 The admin panel shows a notice when the deployed code is ahead of the database.

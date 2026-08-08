@@ -13,6 +13,8 @@
  * out of process and cannot. An operator renaming a forum in the panel and
  * seeing the old name would reasonably conclude the save failed.
  */
+import { revalidatePath } from 'next/cache'
+
 import { CacheTags, ValidationError, isAppError, logger } from '@meith/core'
 import { FORUM_PERMISSION_FIELDS } from '@meith/core'
 import { readMatrixCell } from '@meith/authorization'
@@ -46,9 +48,29 @@ function toFormState(err: unknown): FormState {
   return { error: 'Something went wrong. Please try again.' }
 }
 
-/** Everything that changes the tree invalidates the tree. */
+/**
+ * Everything that changes the tree invalidates the tree.
+ *
+ * **Two caches, and forgetting the second one is invisible with scripting off.**
+ * `drivers().cache` is the board's own store, and clearing it is what makes the
+ * next *server* render correct. It says nothing about Next's client Router
+ * Cache, which holds the RSC payload for the page the action was posted from —
+ * so until the 7 August 2026 audit, creating a forum returned its success
+ * notice and left the tree listing the forums that existed a moment ago. The
+ * row appeared on the next full navigation, by which time the operator had
+ * usually created it twice. With JavaScript off the browser's own reload hid
+ * the bug entirely, which is why nothing caught it.
+ *
+ * `revalidatePath` on the two named routes rather than the `('/', 'layout')`
+ * sweep `redirect-back.ts` warns about: that one purges cached data for every
+ * route under `/` — the whole board's settings and forum tree, for everybody —
+ * to refresh one list. These are the pages that render the tree, and they are
+ * the pages that go stale.
+ */
 async function invalidateTree(): Promise<void> {
   await drivers().cache.invalidateTags([CacheTags.forumTree()])
+  revalidatePath('/admin/forums')
+  revalidatePath('/admin/forums/[id]', 'page')
 }
 
 export async function saveForumOptionsAction(

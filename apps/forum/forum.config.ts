@@ -11,6 +11,8 @@
  * rather than burying in docs.
  */
 import { defineForumConfig } from '@meith/core'
+
+import { INSTALLED_PLUGINS } from './forum.plugins'
 import {
   BROWSER_THEME_COLOR,
   DARK_TOKENS,
@@ -58,14 +60,10 @@ export default defineForumConfig({
   defaultTheme: 'default',
 
   /*
-   * Empty because this board installs none, not because plugins are unfinished:
-   * the lifecycle is F79's and its execution is F69's, so a plugin listed here
-   * gets its hooks called, its migrations planned, its settings edited in the
-   * panel, its tasks on the tick and its pages under `/admin/plugins/<key>`.
-   *
-   * `plugins/reference` is deliberately *not* registered. It exercises every
-   * extension point and records what it was called with, which is a test double
-   * — shipping it on a real board would be shipping a fixture.
+   * The list itself is `forum.plugins.ts`, and it is a separate module so that
+   * `forum upgrade` can read it without importing the themes above — which are
+   * React components, and have no business in a CLI bundle. See that file for
+   * the whole reason it exists.
    */
-  plugins: [],
+  plugins: INSTALLED_PLUGINS,
 })

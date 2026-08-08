@@ -77,6 +77,7 @@ const INPUT = {
   bypassesFlood: false,
   /* F46. Off in the shared fixture; the tests that care set it. */
   heldAsNewMember: false,
+  requiresApproval: false,
 }
 
 function composer(
@@ -384,6 +385,63 @@ describe('warning restrictions (F53)', () => {
       'visible',
       'visible',
     ])
+  })
+})
+
+/**
+ * The `requiresThreadApproval` permission — the group/forum-permission route
+ * into the queue, as opposed to the forum's own switch beside it.
+ *
+ * Its own block because it was the gap the 7 August 2026 audit found: the field
+ * existed, the group screen wrote it, the authorizer combined it, and no write
+ * path read it, so a board that ticked "New threads land as unapproved" got
+ * nothing. These tests are what makes that a failure rather than a silence.
+ */
+describe('the requiresThreadApproval permission', () => {
+  it('holds a thread in a forum that does not moderate', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create({ ...INPUT, requiresApproval: true }, AUTHOR, {
+      ...FORUM,
+      moderateNewThreads: false,
+    })
+
+    expect(writes.written[0]?.visibility).toBe('unapproved')
+  })
+
+  it('leaves a thread visible when the permission does not ask for approval', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create({ ...INPUT, requiresApproval: false }, AUTHOR, {
+      ...FORUM,
+      moderateNewThreads: false,
+    })
+
+    expect(writes.written[0]?.visibility).toBe('visible')
+  })
+
+  /*
+   * Unlike the new-member hold, this one *does* yield to an explicit moderation
+   * bypass — the same rule the forum's own flag follows, and for the same
+   * reason: an account trusted with the queue does not queue behind itself.
+   */
+  it('yields to an explicit moderation bypass', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create(
+      { ...INPUT, requiresApproval: true, bypassesModeration: true },
+      AUTHOR,
+      { ...FORUM, moderateNewThreads: false },
+    )
+
+    expect(writes.written[0]?.visibility).toBe('visible')
+  })
+
+  it('composes with the forum switch rather than replacing it', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create({ ...INPUT, requiresApproval: false }, AUTHOR, {
+      ...FORUM,
+      moderateNewThreads: true,
+    })
+
+    expect(writes.written[0]?.visibility).toBe('unapproved')
   })
 })
 

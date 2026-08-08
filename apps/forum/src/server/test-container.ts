@@ -181,6 +181,7 @@ function identityOver(store: ReturnType<typeof createMemoryStore>) {
         usernameMax: 30,
         activationMethod: 'none',
         maxLoginAttempts: 5,
+        maxAccountLoginAttempts: 50,
         lockoutMinutes: 15,
         sessionIdleDays: 30,
         resetTokenTtlMinutes: 60,

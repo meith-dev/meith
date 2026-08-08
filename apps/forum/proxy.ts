@@ -28,8 +28,36 @@ import {
 } from './src/server/cookies'
 import { PATH_HEADER } from './src/server/location-header'
 
-/** Route prefixes that require a logged-in user. Everything else is public. */
-const PROTECTED_PREFIXES = ['/settings', '/messages', '/modcp', '/admincp']
+/**
+ * Route prefixes that require a logged-in user. Everything else is public.
+ *
+ * **Kept in step with the route tree by `proxy.test.ts`**, which resolves every
+ * entry against `app/` and fails on one that names nothing. That test exists
+ * because this list had drifted: it read
+ * `['/settings', '/messages', '/modcp', '/admincp']`, and neither `/settings`
+ * nor `/admincp` has ever been a route on this board — they are `/usercp` and
+ * `/admin`. Two dead entries protected nothing, and the four real member-facing
+ * panels were missing, so a signed-out visitor got a login screen at `/messages`
+ * and a bare 404 at `/usercp`, `/notifications` and `/subscriptions`. The audit
+ * of 7 August 2026 measured that split; this is its cause.
+ *
+ * The rule the list encodes: **a signed-out visitor is sent to sign in; a
+ * signed-in visitor without the permission gets a 404.** They are different
+ * questions. Somebody with no cookie probably has an account and needs the
+ * form; somebody who is already signed in and still cannot reach the moderator
+ * panel should not be told there is one. The pages keep their own `notFound()`
+ * for the second case — this is a fast path, not the boundary — and the ACP
+ * keeps its address allowlist and second password on top of both.
+ */
+export const PROTECTED_PREFIXES = [
+  '/usercp',
+  '/messages',
+  '/notifications',
+  '/subscriptions',
+  '/moderation',
+  '/modcp',
+  '/admin',
+]
 
 /** Where the remember-me cookie is exchanged for a session (Node runtime). */
 const RESUME_PATH = '/auth/resume'

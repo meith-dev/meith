@@ -58,8 +58,11 @@ export class PostgresOutboxReader implements OutboxReader {
         id: number
         topic: string
         payload: unknown
-        created_at: Date
-        dispatched_at: Date | null
+        /* See `api-repo.ts`: a raw execute yields a `Date` on PGlite and a
+         * string on postgres.js, so the column is typed for both and converted
+         * here rather than asserted into a shape only one driver produces. */
+        created_at: Date | string
+        dispatched_at: Date | string | null
       }>
     ).map((row) => ({
       id: Number(row.id),
@@ -68,8 +71,8 @@ export class PostgresOutboxReader implements OutboxReader {
       /* The table predates dedupe keys; the queue's idempotency key covers the
        * same ground for relayed work, so there is nothing to reconstruct. */
       dedupeKey: null,
-      createdAt: row.created_at,
-      relayedAt: row.dispatched_at,
+      createdAt: new Date(row.created_at),
+      relayedAt: row.dispatched_at === null ? null : new Date(row.dispatched_at),
     }))
   }
 
@@ -96,16 +99,16 @@ export class PostgresOutboxReader implements OutboxReader {
         id: number
         topic: string
         payload: unknown
-        created_at: Date
-        dispatched_at: Date | null
+        created_at: Date | string
+        dispatched_at: Date | string | null
       }>
     ).map((row) => ({
       id: Number(row.id),
       name: row.topic as DomainEventName,
       payload: row.payload,
       dedupeKey: null,
-      createdAt: row.created_at,
-      relayedAt: row.dispatched_at,
+      createdAt: new Date(row.created_at),
+      relayedAt: row.dispatched_at === null ? null : new Date(row.dispatched_at),
     }))
   }
 }

@@ -26,6 +26,23 @@ export const DEFAULT_AUTH_POLICY: AuthPolicy = {
   usernameMin: 3,
   usernameMax: 30,
   maxLoginAttempts: 5,
+  /*
+   * Ten times the per-address ceiling, and the ratio is the whole design.
+   *
+   * Five is right for one address: a person who has mistyped their password
+   * five times is not about to get it right on the sixth, and a guesser is
+   * stopped early. It is *wrong* as an account-wide number, because then
+   * anybody who can read a username off a post — everybody — can spend those
+   * five on somebody else's behalf and lock them out. That is what this pair
+   * separates.
+   *
+   * Fifty is chosen to sit above any plausible legitimate total (a member on
+   * three devices, all mistyping, still clears their counters the moment one of
+   * them succeeds) and far below what a brute force needs. It only ever
+   * engages when the guessing is spread across addresses, which is the case the
+   * narrow counter cannot see.
+   */
+  maxAccountLoginAttempts: 50,
   lockoutMinutes: 15,
   sessionIdleDays: 14,
   resetTokenTtlMinutes: 60,

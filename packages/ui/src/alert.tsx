@@ -73,9 +73,30 @@ function AlertTitle({ className, ...props }: React.ComponentProps<'strong'>) {
   )
 }
 
-function AlertDescription({ className, ...props }: React.ComponentProps<'p'>) {
+/**
+ * The body of an alert.
+ *
+ * A `<div>` rather than a `<p>`, which is not a styling preference.
+ *
+ * Most alerts are one sentence and a paragraph was the honest element for them.
+ * But an alert is also where a form reports several problems at once, and the
+ * installer's failure box does exactly that: a title, a sentence, a `<ul>` of
+ * field errors and a closing line. `<ul>` and `<p>` are both forbidden inside
+ * `<p>`, so the parser closed the paragraph early and built a DOM that did not
+ * match the tree React rendered — a hydration error on the one screen whose job
+ * is explaining what went wrong, found by the audit of 7 August 2026.
+ *
+ * The truncation was the worse half: `role="alert"` sits on the element this
+ * renders, so everything after the first block fell outside the announced
+ * region. A screen reader was told less about the failure than a sighted reader
+ * could see.
+ *
+ * A `<div>` can hold either shape, and nothing about the announcement or the
+ * styling depended on it being a paragraph.
+ */
+function AlertDescription({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <p
+    <div
       data-slot="alert-description"
       className={cn('min-w-0 [&_a]:underline [&_a]:underline-offset-2', className)}
       {...props}

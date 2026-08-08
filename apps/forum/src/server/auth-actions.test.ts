@@ -28,6 +28,13 @@ const { jar, RedirectError } = vi.hoisted(() => {
 })
 
 vi.mock('next/headers', () => ({
+  /*
+   * `loginAction` reads the caller's address to build its narrow lockout
+   * bucket (see `loginBuckets`). A fixed one here, so the two counters are
+   * distinct and deterministic rather than collapsing into the address-less
+   * fallback.
+   */
+  headers: async () => new Map([['x-forwarded-for', '203.0.113.7']]),
   cookies: async () => ({
     get: (name: string) =>
       jar.has(name) ? { name, value: jar.get(name) as string } : undefined,

@@ -22,6 +22,8 @@ const BASE_CONFIG: AuthConfig = {
   usernameMax: 20,
   activationMethod: 'none',
   maxLoginAttempts: 3,
+  /* Off by default here: the tests that mean to exercise it set their own. */
+  maxAccountLoginAttempts: 0,
   lockoutMinutes: 15,
   sessionIdleDays: 30,
   resetTokenTtlMinutes: 60,
@@ -223,6 +225,69 @@ describe('login', () => {
     clock.advance(16 * 60_000)
     await expect(
       service.login('alice', 'correct horse battery', 'alice'),
+    ).resolves.toBeTruthy()
+  })
+
+  /*
+   * The regression the 7 August 2026 audit found, stated as a test.
+   *
+   * Before the fix the caller passed *one* bucket keyed on the username, so
+   * these two contexts shared a counter and a stranger's three wrong guesses
+   * refused the owner with the right password. The buckets below are what
+   * `loginBuckets` now composes: the narrow one carries the address, so filling
+   * the attacker's costs the owner nothing.
+   */
+  it('a stranger filling their own bucket cannot lock the account owner out', async () => {
+    const { service } = makeService(store)
+    const attacker = [{ key: 'login:alice@203.0.113.9' }, { key: 'login:alice', max: 50 }]
+    const owner = [{ key: 'login:alice@198.51.100.4' }, { key: 'login:alice', max: 50 }]
+
+    for (let i = 0; i < 3; i++) {
+      await expect(service.login('alice', 'wrong', attacker)).rejects.toThrow(/incorrect/i)
+    }
+    /* The attacker is locked; they filled their own counter. */
+    await expect(
+      service.login('alice', 'correct horse battery', attacker),
+    ).rejects.toThrow(/too many/i)
+
+    /* The owner, from their own address, is unaffected. */
+    await expect(
+      service.login('alice', 'correct horse battery', owner),
+    ).resolves.toBeTruthy()
+  })
+
+  it('the account-wide backstop still stops a guess spread across addresses', async () => {
+    const { service } = makeService(store)
+    /* A low ceiling so the test does not have to run fifty hashes. */
+    const from = (ip: string) => [{ key: `login:alice@${ip}` }, { key: 'login:alice', max: 4 }]
+
+    for (let i = 0; i < 4; i++) {
+      await expect(service.login('alice', 'wrong', from(`203.0.113.${i}`))).rejects.toThrow(
+        /incorrect/i,
+      )
+    }
+
+    /* A fifth address is refused by the wide counter, not the narrow one. */
+    await expect(
+      service.login('alice', 'correct horse battery', from('203.0.113.99')),
+    ).rejects.toThrow(/too many/i)
+  })
+
+  it('a success clears every counter, the wide one included', async () => {
+    const { service } = makeService(store)
+    const buckets = [{ key: 'login:alice@203.0.113.1' }, { key: 'login:alice', max: 4 }]
+
+    for (let i = 0; i < 2; i++) {
+      await service.login('alice', 'wrong', buckets).catch(() => {})
+    }
+    await expect(service.login('alice', 'correct horse battery', buckets)).resolves.toBeTruthy()
+
+    /* Both counters are empty: three more failures do not reach either ceiling. */
+    for (let i = 0; i < 2; i++) {
+      await expect(service.login('alice', 'wrong', buckets)).rejects.toThrow(/incorrect/i)
+    }
+    await expect(
+      service.login('alice', 'correct horse battery', buckets),
     ).resolves.toBeTruthy()
   })
 
