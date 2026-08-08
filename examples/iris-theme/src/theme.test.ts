@@ -1,11 +1,11 @@
 /**
  * What is true of *this* theme.
  *
- * The rendering-contract suite (`apps/forum/src/theme/contract.test.ts`) and
- * the contrast gate (`apps/forum/src/view/contrast.test.ts`) both read the
- * theme list out of `forum.config.ts`, so registering iris enrolled it in both
- * — every stable slot renders, every painted pair clears WCAG AA. What is here
- * is what those suites cannot see: the shape iris claims for itself.
+ * Iris is reference code and is not registered on this repository's board, so
+ * the app's rendering-contract and contrast suites — which read the theme list
+ * out of `forum.config.ts` — do not see it. A board that installs it enrols it
+ * in both automatically. Until then this file is its coverage: the contract is
+ * asserted directly, and the rest is the shape iris claims for itself.
  */
 import { TOKEN_NAMES, defaultTheme } from '@meith/theme-default'
 import { assertThemeContract, resolveTheme } from '@meith/theme-kit'

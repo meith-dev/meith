@@ -1,10 +1,10 @@
 # Examples
 
-Worked, installed, copyable starting points for the two ways a board is
-extended. Both are registered on this repository's own board — the honest
-install story is short enough to read in `forum.config.ts` and
-`forum.plugins.ts` — so every CI run drives them through the rendering
-contract, the contrast gate and the plugin host.
+Worked, copyable starting points for the two ways a board is extended. They are
+**reference code, not installed**: this repository's board registers neither,
+so a fresh checkout runs exactly what a fresh board would. Each carries its own
+tests (`pnpm test` runs them), so the examples stay honest without being part
+of the product.
 
 | Directory | Package | What it shows |
 |---|---|---|
@@ -17,22 +17,27 @@ The policy documents are the place to start before copying either:
 [docs/plugin-hooks.md](../docs/plugin-hooks.md) and
 [docs/theme-slots.md](../docs/theme-slots.md) — list every hook and slot.
 
-## Installing your copy
+## Installing one
 
 Both kinds of extension install the same way, because nothing is discovered by
 scanning a directory at runtime (invariant 6 — a serverless bundle contains
 only what the bundler saw):
 
-1. Put the package in the workspace (copy a directory here, or `pnpm add` a
-   published one).
+1. Put the package in the workspace (these two already are; a copy of one, or a
+   `pnpm add`-ed package, joins the same way).
 2. Name it in the registry: themes in `apps/forum/forum.config.ts`, plugins in
-   `apps/forum/forum.plugins.ts`.
-3. Redeploy. If the plugin ships migrations, run `forum upgrade`.
+   `apps/forum/forum.plugins.ts`. For these two that is
+   `{ key: 'hello', plugin: helloPlugin }` in the plugins list, and an `iris`
+   entry beside `midnight` in the themes map — each file's comments show the
+   shape.
+3. Add the package to `apps/forum/package.json` and `pnpm install`, then
+   redeploy. If the plugin ships migrations, run `forum upgrade`.
 
 A registered theme is immediately offered to members on the appearance screen
-and to administrators under **Admin → Themes**. A registered plugin appears
-under **Admin → Plugins**, where it can be switched off durably without a
-redeploy.
+and to administrators under **Admin → Themes** — and is enrolled in the
+rendering-contract and WCAG contrast suites, which read the theme map. A
+registered plugin appears under **Admin → Plugins**, where it can be switched
+off durably without a redeploy.
 
 ## How the examples relate to their siblings
 

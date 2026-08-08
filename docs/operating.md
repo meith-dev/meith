@@ -238,6 +238,11 @@ export default { theme: midnight }
 Then commit, push, and redeploy — the image is rebuilt from your repository, so
 an installed theme is a commit rather than a state the server drifts into.
 
+Writing your own starts from
+[`examples/iris-theme`](https://github.com/meith-dev/meith/tree/main/examples/iris-theme),
+the worked minimal theme — reference code in the repository, not installed on
+any board until you register it.
+
 > [!NOTE]
 > This is why there is no upload-a-zip path and will not be one. A theme has to
 > be visible to the bundler at build time; a production build contains only what
@@ -359,6 +364,9 @@ needs one.
 ## Plugins
 
 Same shape as a theme: add the package, a line in `forum.config.ts`, a redeploy.
+The worked example to copy is
+[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
+— reference code, not installed by default.
 
 > [!NOTE]
 > There is no upload-a-zip path, and there will not be one. A plugin discovered

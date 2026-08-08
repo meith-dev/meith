@@ -25,12 +25,6 @@ import {
   LIGHT_TOKENS as MIDNIGHT_LIGHT_TOKENS,
   midnightTheme,
 } from '@meith/theme-midnight'
-import {
-  BROWSER_THEME_COLOR as IRIS_BROWSER_THEME_COLOR,
-  DARK_TOKENS as IRIS_DARK_TOKENS,
-  LIGHT_TOKENS as IRIS_LIGHT_TOKENS,
-  irisTheme,
-} from '@meith/example-theme-iris'
 
 export default defineForumConfig({
   themes: {
@@ -63,19 +57,12 @@ export default defineForumConfig({
       theme: midnightTheme,
     },
     /*
-     * The worked example from `examples/iris-theme` — the minimal theme, where
-     * midnight above is the maximal one. Registered for the same reason
-     * midnight is: the rendering contract and the contrast gate both read this
-     * map, so the example every stranger copies is driven through every stable
-     * slot on every CI run rather than rotting quietly in a directory.
+     * A third theme registers the same way — `examples/iris-theme` is the
+     * worked minimal one (a recolour plus a single slot override), kept as
+     * reference code rather than installed here. Registering a theme enrols it
+     * in the rendering-contract and contrast suites, both of which read this
+     * map.
      */
-    iris: {
-      key: 'iris',
-      title: 'Iris',
-      tokens: { light: IRIS_LIGHT_TOKENS, dark: IRIS_DARK_TOKENS },
-      browserThemeColor: IRIS_BROWSER_THEME_COLOR,
-      theme: irisTheme,
-    },
   },
   defaultTheme: 'default',
 

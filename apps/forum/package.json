@@ -39,8 +39,6 @@
     "@meith/api": "workspace:*",
     "@meith/install": "workspace:*",
     "@meith/plugin-kit": "workspace:*",
-    "@meith/example-plugin-hello": "workspace:*",
-    "@meith/example-theme-iris": "workspace:*",
     "@meith/theme-default": "workspace:*",
     "@meith/theme-midnight": "workspace:*",
     "@meith/theme-kit": "workspace:*",

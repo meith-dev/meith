@@ -32,23 +32,22 @@
 import type { InstalledPlugin } from '@meith/core'
 import type { PluginDefinition } from '@meith/plugin-kit'
 
-import { helloPlugin } from '@meith/example-plugin-hello'
-
 /**
- * One entry: the worked example from `examples/hello-plugin`. Installing it
- * here is the whole install story — `pnpm add`, this line, redeploy — and it
- * keeps the example a stranger copies exercised by the real host on every CI
- * run: its hooks called, its migrations applied by `forum upgrade`, its
- * setting edited in the panel, its task on the tick and its page under
- * `/admin/plugins/hello`.
+ * Empty because this board installs none, not because plugins are unfinished:
+ * the lifecycle is F79's and its execution is F69's, so a plugin listed here
+ * gets its hooks called, its migrations applied by `forum upgrade`, its settings
+ * edited in the panel, its tasks on the tick and its pages under
+ * `/admin/plugins/<key>`.
+ *
+ * Installing one is `pnpm add`, a line here, and a redeploy — the worked example
+ * to copy is `examples/hello-plugin`, and registering it verbatim is
+ * `{ key: 'hello', plugin: helloPlugin }` with the matching import.
  *
  * `plugins/reference` is deliberately *not* registered. It exercises every
  * extension point and records what it was called with, which is a test double —
  * shipping it on a real board would be shipping a fixture.
  */
-export const INSTALLED_PLUGINS: readonly InstalledPlugin<PluginDefinition>[] = [
-  { key: 'hello', plugin: helloPlugin },
-]
+export const INSTALLED_PLUGINS: readonly InstalledPlugin<PluginDefinition>[] = []
 
 /**
  * The definitions `forum upgrade` plans over.

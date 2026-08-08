@@ -32,6 +32,15 @@ export const greeter = definePlugin({
 
 Installing it is `pnpm add`, a line in `forum.plugins.ts`, and a redeploy.
 
+> [!TIP]
+> **[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
+> is the worked example to copy** — the smallest plugin that does something
+> visible with each extension point: a footer-link filter, a region
+> contribution, a setting, a migration, a task and an admin page, each with a
+> comment saying why it is shaped the way it is. It ships as reference code
+> rather than installed; [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples)
+> walks through registering it or your copy of it.
+
 ### What a plugin can declare
 
 | Field | What it is |

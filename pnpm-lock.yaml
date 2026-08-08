@@ -133,12 +133,6 @@ importers:
       '@meith/events':
         specifier: workspace:*
         version: link:../../packages/events
-      '@meith/example-plugin-hello':
-        specifier: workspace:*
-        version: link:../../examples/hello-plugin
-      '@meith/example-theme-iris':
-        specifier: workspace:*
-        version: link:../../examples/iris-theme
       '@meith/forums':
         specifier: workspace:*
         version: link:../../packages/forums
