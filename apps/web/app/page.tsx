@@ -3,8 +3,9 @@ import Link from "next/link"
 import { BoardPreview } from "../src/components/board-preview"
 import { CopyCommand } from "../src/components/copy-command"
 import { Terminal } from "../src/components/terminal"
-import { findScenario, readFacts } from "../src/content/facts"
+import { readFacts } from "../src/content/facts"
 import {
+  benefits,
   capabilities,
   closing,
   deployment,
@@ -16,31 +17,32 @@ import {
   licensing,
   migration,
   performance,
-  proof,
   site,
 } from "../src/content/site"
 import { docHref, documentsInSection, sections } from "../src/docs/registry"
-import { compact, group } from "../src/format"
 
 /**
  * The landing page.
  *
- * Eight bands, each answering one question somebody actually asks. What is it (a
- * picture of a board, not a paragraph about one). Is it any good (measured
- * numbers, from the load runner, with the budget beside them). What does it
- * actually do. Where does it run, and what does running it look like. What about
- * the board I am already on. What is the licence. Where do I read more.
+ * Eight bands, each answering one question somebody actually asks, in the order
+ * a person deciding where their community should live asks them. What is it (a
+ * picture of a board, not a paragraph about one). Why would my community live
+ * here (benefits, in the reader's units). What does it actually do for the
+ * people on it. Where does it run, and what does running it look like. Is it
+ * fast. What about the board I am already on. What is the licence. Where do I
+ * read more.
  *
- * There were nine. The band that went was the one explaining the name — the
- * meitheal, the proverb, the two paragraphs of etymology — and it went because
- * it was the page's *third* band and the reader's *last* question. What it is
- * named after is a good story for somebody who has already decided to run this;
- * for everybody else it was three screens between "what is this" and "does it
- * hold up". The band about where it runs picked up the transcript that its
- * removal made room for.
+ * Two bands of figures used to sit where the benefits strip and the speed band
+ * now are — a row of four stats under the hero, and a five-row table of p95s
+ * against budgets. Both were the software making its case in its own units,
+ * and they went for the same reason the etymology band went before them: they
+ * answered a question the reader was not asking yet. The measurements
+ * themselves are unchanged and one click away in the performance reference,
+ * and the one figure still quoted on the page is still read from it at build
+ * time.
  *
  * Every word comes from `src/content/site.ts`, every document link from the
- * manifest, and every *figure* from `src/content/facts.ts`, which reads the
+ * manifest, and the one *figure* from `src/content/facts.ts`, which reads the
  * generated references at build time rather than trusting anybody to retype a
  * number that changed.
  */
@@ -49,8 +51,6 @@ export default async function LandingPage() {
   const running = sections.find((section) => section.id === "running")
   const quickstart = running ? documentsInSection(running.id).find((doc) => doc.primary) : undefined
   const startHref = quickstart ? docHref(quickstart.slug) : "/docs"
-  const stats = proof(facts)
-  const featured = performance.featured.map((page) => findScenario(facts.performance, page))
 
   return (
     <>
@@ -106,14 +106,16 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the figures ──────────────────────────────────────────────── */}
-      <section aria-label="By the numbers" className="border-b border-border bg-surface">
+      {/* ── why live here ────────────────────────────────────────────── */}
+      <section aria-label="Why a board of your own" className="border-b border-border bg-surface">
         <div className="shell grid gap-x-10 gap-y-8 py-10 sm:grid-cols-2 sm:py-12 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="flex flex-col gap-2">
-              <p className="stat-value">{stat.value}</p>
-              <p className="max-w-[18rem] text-micro leading-[1.5] text-fg-muted text-pretty">
-                {stat.label}
+          {benefits.map((benefit) => (
+            <div key={benefit.title} className="flex flex-col gap-2">
+              <h2 className="text-mid leading-[1.25] font-semibold tracking-[-0.02em] text-fg">
+                {benefit.title}
+              </h2>
+              <p className="max-w-[18rem] text-micro leading-[1.6] text-fg-muted text-pretty">
+                {benefit.body}
               </p>
             </div>
           ))}
@@ -126,11 +128,11 @@ export default async function LandingPage() {
           <header className="max-w-[46rem]">
             <p className="eyebrow">What you get</p>
             <h2 className="display mt-3 text-large leading-[1.15]">
-              Six decisions you would otherwise be living with.
+              Everything a community needs to feel at home.
             </h2>
             <p className="mt-4 text-fg-muted text-pretty">
-              Each one is a thing that goes wrong on a board eventually, and what this one does
-              about it. Each is also a link, because the page asserts and the document argues.
+              Six things your members and moderators will actually notice, and how each one is
+              done. Each is also a link, because the page asserts and the document argues.
             </p>
           </header>
 
@@ -227,69 +229,28 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── the measurements ─────────────────────────────────────────── */}
+      {/* ── it stays quick ───────────────────────────────────────────── */}
       <section className="border-b border-border">
-        <div className="shell py-16 sm:py-24">
-          <header className="max-w-[46rem]">
+        <div className="shell grid gap-x-14 gap-y-6 py-14 sm:py-18 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
+          <div>
             <p className="eyebrow">{performance.eyebrow}</p>
             <h2 className="display mt-3 text-large leading-[1.15]">{performance.heading}</h2>
-            <p className="mt-4 text-fg-muted text-pretty">{performance.lede}</p>
-          </header>
-
-          <div className="mt-10 grid gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+          </div>
+          <div className="flex max-w-[36rem] flex-col gap-4 lg:pt-1">
+            <p className="text-fg-muted text-pretty">{performance.lede}</p>
             {/*
-              The same table styling the documentation uses, because it is the
-              same kind of claim: a column of numbers somebody may want to check
-              against their own board. The bar is one series against one budget,
-              so it needs no legend — the number is beside it, and the row names
-              itself.
+              The one number left on the page, in a sentence rather than a
+              table, and still read from the generated reference — see the
+              comment on `performance` in site.ts for where the table went.
             */}
-            <div className="doc-table perf-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Page</th>
-                    <th scope="col">Measured p95</th>
-                    <th scope="col">Budget</th>
-                    <th scope="col">Of budget used</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {featured.map((scenario) => (
-                    <tr key={scenario.page}>
-                      <td>{scenario.page}</td>
-                      <td className="font-mono">{scenario.p95Ms} ms</td>
-                      <td className="font-mono">{scenario.budgetMs} ms</td>
-                      <td>
-                        <span className="flex items-center gap-3">
-                          <span className="meter w-full min-w-16">
-                            <span style={{ width: `${scenario.used}%` }} />
-                          </span>
-                          <span className="w-9 shrink-0 text-right font-mono">{scenario.used}%</span>
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex flex-col gap-5">
-              <p className="text-micro leading-[1.65] text-fg-muted text-pretty">
-                {performance.aside}
-              </p>
-              <p className="text-micro leading-[1.65] text-fg-subtle text-pretty">
-                Measured on {facts.performance.measured} against a board of{" "}
-                {compact(facts.performance.posts)} posts in{" "}
-                {compact(facts.performance.threads)} threads, the longest of them{" "}
-                {group(facts.performance.longestThread)} posts.
-              </p>
-              <p>
-                <Link className="textlink text-micro" href={docHref("performance")}>
-                  {performance.link}
-                </Link>
-              </p>
-            </div>
+            <p className="text-micro leading-[1.65] text-fg-subtle text-pretty">
+              {performance.evidence(facts)}
+            </p>
+            <p>
+              <Link className="textlink text-micro" href={docHref("performance")}>
+                {performance.link}
+              </Link>
+            </p>
           </div>
         </div>
       </section>
