@@ -219,6 +219,19 @@ test('a board is installed from an empty database, with no scripting', async ({ 
   await expect(page.getByRole('link', { name: 'General discussion' })).toBeVisible()
 
   /*
+   * Named **in the header, right now** — not after a cache expires. On the
+   * deployed timelines the migrate container runs before the web one, so the
+   * operator's `/install` visit renders against a migrated but empty settings
+   * table and caches that emptiness for 60 seconds; the installer invalidates
+   * `CacheTags.settings()` after writing the name so the very next render
+   * shows it. This spec starts from an *unmigrated* database — the pre-install
+   * render throws instead of caching, so this assertion cannot reproduce that
+   * staleness; it holds the weaker, still-load-bearing half: straight after
+   * installing, the header carries the name that was typed.
+   */
+  await expect(page.getByRole('banner')).toContainText(BOARD)
+
+  /*
    * And the control panel asks for the password again, saying so *without*
    * claiming a session expired. Every administrator meets this once, straight
    * after installing, and was told a session they had never had had run out.

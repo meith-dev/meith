@@ -36,9 +36,10 @@ import {
   PostgresSettingsRepository,
   runMigrations,
 } from '@meith/db'
-import { env, logger } from '@meith/core'
-import { currentMailConfig } from '@meith/drivers'
+import { CacheTags, env, logger } from '@meith/core'
+import { currentMailConfig, drivers } from '@meith/drivers'
 import {
+  SETTING_DEFINITION_BY_KEY,
   SettingsSnapshot,
   canSendMail,
   describeMailConfig,
@@ -231,29 +232,52 @@ export async function runInstall(input: InstallInput): Promise<readonly StepOutc
         ]),
       )
 
-      const mail = mailConfigFromInstallInput(input)
-      if (mail.transport === 'log') return
+      /*
+       * `CacheTags.settings()` always — the cached snapshot is what these
+       * writes just made stale — plus whatever the written keys declare, read
+       * from the registry like the settings screen does.
+       */
+      const invalidates = new Set<string>([CacheTags.settings()])
+      for (const key of ['board.name', 'board.url']) {
+        for (const tag of SETTING_DEFINITION_BY_KEY.get(key)?.invalidates ?? []) {
+          invalidates.add(tag)
+        }
+      }
 
-      await saveSettings(
-        settings,
-        mail.transport === 'http'
-          ? {
-              'mail.transport': 'http',
-              'mail.from': mail.from,
-              'mail.http_endpoint': mail.endpoint,
-              'mail.http_token': mail.token,
-            }
-          : {
-              'mail.transport': 'smtp',
-              'mail.from': mail.from,
-              'mail.smtp_host': mail.host,
-              'mail.smtp_port': mail.port,
-              'mail.smtp_security': mail.security,
-              'mail.smtp_username': mail.username,
-              'mail.smtp_password': mail.password,
-            },
-        SettingsSnapshot.fromOverrides(await settings.loadAll()),
-      )
+      const mail = mailConfigFromInstallInput(input)
+      if (mail.transport !== 'log') {
+        const saved = await saveSettings(
+          settings,
+          mail.transport === 'http'
+            ? {
+                'mail.transport': 'http',
+                'mail.from': mail.from,
+                'mail.http_endpoint': mail.endpoint,
+                'mail.http_token': mail.token,
+              }
+            : {
+                'mail.transport': 'smtp',
+                'mail.from': mail.from,
+                'mail.smtp_host': mail.host,
+                'mail.smtp_port': mail.port,
+                'mail.smtp_security': mail.security,
+                'mail.smtp_username': mail.username,
+                'mail.smtp_password': mail.password,
+              },
+          SettingsSnapshot.fromOverrides(await settings.loadAll()),
+        )
+        for (const tag of saved.invalidates) invalidates.add(tag)
+      }
+
+      /*
+       * On the deployed timelines — Compose and Coolify both run the migrate
+       * container before the web one — the operator's `/install` visit renders
+       * against a migrated but still-empty settings table, and that emptiness
+       * is cached under `CacheTags.settings()` with a 60-second TTL. Without
+       * this, the first thing a new operator sees after signing in is a header
+       * that ignored the name they just typed, for as long as the TTL says so.
+       */
+      await drivers().cache.invalidateTags([...invalidates])
     }))
   ) {
     return report
@@ -369,6 +393,14 @@ export async function runInstall(input: InstallInput): Promise<readonly StepOutc
         description: 'Anything that does not fit elsewhere.',
         parentId: category.id,
       })
+
+      /*
+       * Same staleness as the settings step: a visit to `/` before installing
+       * renders — the schema exists on the deployed timelines — and caches an
+       * empty forum tree. The admin screen invalidates this tag on every
+       * structural change; creating the board's first forum is one.
+       */
+      await drivers().cache.invalidateTags([CacheTags.forumTree()])
     }))
   ) {
     return report

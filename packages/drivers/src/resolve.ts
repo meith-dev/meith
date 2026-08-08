@@ -34,12 +34,22 @@ import { MemoryQueue } from './queue/memory-queue'
 import { PostgresQueue } from './queue/postgres-queue'
 
 /**
- * Cached per process.
+ * Cached per process — on `globalThis`, not in module scope.
  *
  * Drivers hold connections and in-memory state, so rebuilding them per request
  * would both leak sockets and silently empty the memory cache on every request.
+ *
+ * `globalThis` rather than a module-level `let`, for the same reason as
+ * `getDb()` and the app's container: Next bundles this module separately into
+ * route chunks, and each copy would carry its own memoisation. Two copies is
+ * two `MemoryCache`s — so a Server Action invalidating a tag would purge *its*
+ * cache while the page that renders next reads from another, and the write
+ * appears to have been ignored until the TTL expires. That is not hypothetical:
+ * the installer's `board.name` write surfaced exactly this way.
  */
-let bundle: Drivers | undefined
+const BUNDLE = Symbol.for('@meith/drivers.bundle')
+
+type BundleHolder = { [BUNDLE]?: Drivers }
 
 function buildQueue(): QueueDriver {
   switch (env.QUEUE_DRIVER) {
@@ -141,16 +151,17 @@ function buildMail(): MailDriver {
 }
 
 export function drivers(): Drivers {
-  bundle ??= {
+  const holder = globalThis as BundleHolder
+  holder[BUNDLE] ??= {
     queue: buildQueue(),
     cache: buildCache(),
     files: buildFiles(),
     mail: buildMail(),
   }
-  return bundle
+  return holder[BUNDLE]
 }
 
 /** Test-only: forces the next `drivers()` call to rebuild from current env. */
 export function resetDriversForTests(): void {
-  bundle = undefined
+  delete (globalThis as BundleHolder)[BUNDLE]
 }
