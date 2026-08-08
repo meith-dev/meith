@@ -75,7 +75,7 @@ async function drainUntil(
 test('a member posts a thread and a reply, and both land in the database', async ({ page }) => {
   await signUp(page, 'poster')
 
-  await page.goto('/community/200-general')
+  await page.goto('/200-general')
   await page.getByRole('link', { name: 'New thread' }).click()
 
   const title = `A thread from the browser ${Date.now()}`
@@ -97,6 +97,14 @@ test('a member posts a thread and a reply, and both land in the database', async
   await page.getByLabel('Message').fill('And a reply, also without scripting.')
   await page.getByRole('button', { name: 'Post reply' }).click()
 
+  /*
+   * The URL anchor, not the text. A refused reply re-renders the form with the
+   * attempted text still in the textarea, which a text assertion also matches —
+   * that is exactly how this spec stayed green while the flood interval was
+   * refusing this reply on every fast run. The permalink anchor only exists
+   * once the post does.
+   */
+  await expect(page).toHaveURL(/#post-\d+$/)
   await expect(page.getByText('And a reply, also without scripting.')).toBeVisible()
 
   /*
@@ -105,14 +113,14 @@ test('a member posts a thread and a reply, and both land in the database', async
    * end to end — the write, the counter update and the read are three different
    * modules and this is the only place all three run together.
    */
-  await page.goto('/community/200-general')
+  await page.goto('/200-general')
   await expect(page.getByRole('link', { name: title })).toBeVisible()
 })
 
 test('an image attachment is not served until it has been re-encoded', async ({ page, request }) => {
   await signUp(page, 'uploader')
 
-  await page.goto('/community/200-general')
+  await page.goto('/200-general')
   await page.getByRole('link', { name: 'New thread' }).click()
 
   const title = `With a picture ${Date.now()}`
@@ -169,7 +177,7 @@ test('an image attachment is not served until it has been re-encoded', async ({ 
 test('a file the board will not accept is refused, and nothing is posted', async ({ page }) => {
   await signUp(page, 'refused')
 
-  await page.goto('/community/200-general')
+  await page.goto('/200-general')
   await page.getByRole('link', { name: 'New thread' }).click()
 
   const title = `Should not exist ${Date.now()}`
@@ -190,7 +198,7 @@ test('a file the board will not accept is refused, and nothing is posted', async
    */
   await expect(page.getByText(/not a type this board accepts/)).toBeVisible()
 
-  await page.goto('/community/200-general')
+  await page.goto('/200-general')
   await expect(page.getByRole('link', { name: title })).toHaveCount(0)
 })
 

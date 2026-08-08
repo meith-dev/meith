@@ -149,8 +149,20 @@ export function NewThreadForm({
           {...(hasPollDraft ? { open: true } : {})}
         >
           <Field label="Question" name="pollQuestion" maxLength={250} />
+          {/*
+            Four fields sharing one `name`, so each needs its own id — the
+            derived `field-pollOption` would appear four times, and every
+            "Option n" label would focus (and announce) Option 1. This is the
+            duplicate-id failure `Field`'s id prop exists for.
+          */}
           {[1, 2, 3, 4].map((number) => (
-            <Field key={number} label={`Option ${number}`} name="pollOption" maxLength={200} />
+            <Field
+              key={number}
+              id={`field-pollOption-${number}`}
+              label={`Option ${number}`}
+              name="pollOption"
+              maxLength={200}
+            />
           ))}
         </Disclosure>
       )}
