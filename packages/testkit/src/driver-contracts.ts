@@ -256,7 +256,7 @@ export function fileStoreContract(name: string, make: DriverFactory<FileStore>):
        * The port allows `undefined` for stores with no signing support, so the
        * caller streams through the app instead. What it must not do is return a
        * plain unsigned URL and let a private attachment be fetched directly —
-       * F42's "an attachment in a community the actor cannot view is not
+       * F42's "an attachment in a forum the actor cannot view is not
        * downloadable by direct URL".
        */
       const store = await make()

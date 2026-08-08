@@ -1,7 +1,7 @@
 /**
  * F50 — the granular half of an appointment.
  *
- * `moderatedCommunityIds` answers *where* somebody moderates; this answers *what*
+ * `moderatedForumIds` answers *where* somebody moderates; this answers *what*
  * they may do there. The four thread tools have no group-level permission field
  * at all — MyBB has never had one either — so an appointment and a staff bypass
  * are the only two ways to reach them, and these tests are about the first.
@@ -20,7 +20,7 @@ import { combinePermissionSets } from './combine'
 import { NO_MODERATOR_RIGHTS, type Action, type Actor } from './types'
 
 const GROUP = { registered: 2, superMod: 3, admin: 4 } as const
-const COMMUNITY = { category: 1, general: 2, nested: 3 } as const
+const FORUM = { category: 1, general: 2, nested: 3 } as const
 
 function set(over: Partial<PermissionSet>): PermissionSet {
   return { ...emptyPermissionSet(), ...over }
@@ -36,9 +36,9 @@ function board(moderators: readonly MemoryAppointment[] = []): MemoryBoard {
       { groupId: GROUP.admin, permissions: set({ ...READ, isAdministrator: true }) },
     ],
     chains: {
-      [COMMUNITY.category]: [COMMUNITY.category],
-      [COMMUNITY.general]: [COMMUNITY.general, COMMUNITY.category],
-      [COMMUNITY.nested]: [COMMUNITY.nested, COMMUNITY.general, COMMUNITY.category],
+      [FORUM.category]: [FORUM.category],
+      [FORUM.general]: [FORUM.general, FORUM.category],
+      [FORUM.nested]: [FORUM.nested, FORUM.general, FORUM.category],
     },
     overrides: [],
     moderators,
@@ -57,7 +57,7 @@ function actor(groupIds: readonly number[], userId: number | null = 10): Actor {
   }
 }
 
-const NONE: Omit<MemoryAppointment, 'communityId' | 'cascadeToSubcommunities'> = {
+const NONE: Omit<MemoryAppointment, 'forumId' | 'cascadeToSubforums'> = {
   canApproveContent: false,
   canEditPosts: false,
   canSoftDeletePosts: false,
@@ -83,27 +83,27 @@ const TOOLS: readonly Action[] = [
 async function allowed(
   who: Actor,
   moderators: readonly MemoryAppointment[],
-  communityId: number = COMMUNITY.general,
+  forumId: number = FORUM.general,
 ): Promise<Action[]> {
   const authorizer = authorizerFor(moderators)
-  const community = await authorizer.communityMatrix(who, communityId)
-  const moderatorRights = await authorizer.moderatorRightsIn(who, communityId)
+  const forum = await authorizer.forumMatrix(who, forumId)
+  const moderatorRights = await authorizer.moderatorRightsIn(who, forumId)
   return TOOLS.filter((action) =>
-    authorizer.can(who, action, { communityId, community, moderatorRights }),
+    authorizer.can(who, action, { forumId, forum, moderatorRights }),
   )
 }
 
 describe('moderatorRightsIn', () => {
   it('is nothing for an ordinary member', async () => {
     expect(
-      await authorizerFor([]).moderatorRightsIn(actor([GROUP.registered]), COMMUNITY.general),
+      await authorizerFor([]).moderatorRightsIn(actor([GROUP.registered]), FORUM.general),
     ).toEqual(NO_MODERATOR_RIGHTS)
     expect(await allowed(actor([GROUP.registered]), [])).toEqual([])
   })
 
   it('is nothing for a guest', async () => {
     expect(
-      await authorizerFor([]).moderatorRightsIn(actor([GROUP.registered], null), COMMUNITY.general),
+      await authorizerFor([]).moderatorRightsIn(actor([GROUP.registered], null), FORUM.general),
     ).toEqual(NO_MODERATOR_RIGHTS)
   })
 
@@ -122,8 +122,8 @@ describe('moderatorRightsIn', () => {
     const canLockOnly: MemoryAppointment = {
       ...NONE,
       userId: 10,
-      communityId: COMMUNITY.general,
-      cascadeToSubcommunities: false,
+      forumId: FORUM.general,
+      cascadeToSubforums: false,
       canOpenCloseThreads: true,
     }
 
@@ -134,8 +134,8 @@ describe('moderatorRightsIn', () => {
     const canDelete: MemoryAppointment = {
       ...NONE,
       userId: 10,
-      communityId: COMMUNITY.general,
-      cascadeToSubcommunities: false,
+      forumId: FORUM.general,
+      cascadeToSubforums: false,
       canSoftDeletePosts: true,
     }
 
@@ -146,27 +146,27 @@ describe('moderatorRightsIn', () => {
     const base: MemoryAppointment = {
       ...NONE,
       userId: 10,
-      communityId: COMMUNITY.general,
-      cascadeToSubcommunities: false,
+      forumId: FORUM.general,
+      cascadeToSubforums: false,
       canMoveThreads: true,
     }
 
-    expect(await allowed(actor([GROUP.registered]), [base], COMMUNITY.nested)).toEqual([])
+    expect(await allowed(actor([GROUP.registered]), [base], FORUM.nested)).toEqual([])
     expect(
-      await allowed(actor([GROUP.registered]), [{ ...base, cascadeToSubcommunities: true }], COMMUNITY.nested),
+      await allowed(actor([GROUP.registered]), [{ ...base, cascadeToSubforums: true }], FORUM.nested),
     ).toEqual(['thread.move'])
   })
 
-  it('does not reach the parent community', async () => {
+  it('does not reach the parent forum', async () => {
     const cascading: MemoryAppointment = {
       ...NONE,
       userId: 10,
-      communityId: COMMUNITY.general,
-      cascadeToSubcommunities: true,
+      forumId: FORUM.general,
+      cascadeToSubforums: true,
       canMoveThreads: true,
     }
 
-    expect(await allowed(actor([GROUP.registered]), [cascading], COMMUNITY.category)).toEqual([])
+    expect(await allowed(actor([GROUP.registered]), [cascading], FORUM.category)).toEqual([])
   })
 
   /* Two grants are two grants: rights union rather than the last one winning. */
@@ -174,15 +174,15 @@ describe('moderatorRightsIn', () => {
     const personal: MemoryAppointment = {
       ...NONE,
       userId: 10,
-      communityId: COMMUNITY.general,
-      cascadeToSubcommunities: false,
+      forumId: FORUM.general,
+      cascadeToSubforums: false,
       canOpenCloseThreads: true,
     }
     const byGroup: MemoryAppointment = {
       ...NONE,
       groupId: GROUP.registered,
-      communityId: COMMUNITY.general,
-      cascadeToSubcommunities: false,
+      forumId: FORUM.general,
+      cascadeToSubforums: false,
       canStickThreads: true,
     }
 
@@ -192,7 +192,7 @@ describe('moderatorRightsIn', () => {
     ])
   })
 
-  it('is nothing for a community that does not exist', async () => {
+  it('is nothing for a forum that does not exist', async () => {
     expect(await authorizerFor([]).moderatorRightsIn(actor([GROUP.registered]), 4242)).toEqual(
       NO_MODERATOR_RIGHTS,
     )

@@ -15,7 +15,7 @@ function record(overrides: Partial<AttachmentRecord> = {}): AttachmentRecord {
   return {
     id: 1,
     postId: 7,
-    communityId: 3,
+    forumId: 3,
     uploaderUserId: 2,
     filename: 'photo.png',
     contentType: 'image/png',

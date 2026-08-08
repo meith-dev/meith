@@ -5,7 +5,7 @@
  * board takes. Applying it directly to `threads.view_count` means every page
  * view updates the row that the R3.5 listing index sorts on, so a thread on the
  * front page produces a stream of dead tuples behind the index that serves the
- * whole community. The buffer turns N views of one thread into one `threads` update
+ * whole forum. The buffer turns N views of one thread into one `threads` update
  * per flush.
  *
  * The trade is explicit: an unflushed buffer lost to a database restore loses

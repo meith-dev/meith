@@ -22,7 +22,7 @@ export default tseslint.config(
       '**/node_modules/**',
       /*
        * `.next*`, not the two names that existed when this was written. The
-       * build directory is chosen at runtime by COMMUNITY_DIST_DIR, so a second
+       * build directory is chosen at runtime by FORUM_DIST_DIR, so a second
        * server started beside a developer's own produces a directory nobody
        * listed — and linting Turbopack output yields ~1,800 errors about
        * `__TURBOPACK__imported__module__`, which is how it was found.

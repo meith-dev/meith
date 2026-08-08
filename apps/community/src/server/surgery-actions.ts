@@ -6,7 +6,7 @@
  * Two exports rather than one, unlike F50's single `threadToolAction`. The
  * thread tools all take the same arguments and differ only in a verb, so one
  * adapter fits them; these two take different arguments (a post and a title
- * versus another thread) and authorise different pairs of communities. Forcing them
+ * versus another thread) and authorise different pairs of forums. Forcing them
  * into one action would mean a parser that ignores half its input depending on
  * a hidden field, which is how the wrong end gets authorised.
  *
@@ -56,14 +56,14 @@ export async function splitThreadAction(
     const actor = await getActor()
     if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
 
-    const communityId = await visibleCommunityOf(threadId)
+    const forumId = await visibleForumOf(threadId)
 
     outcome = await new ThreadSurgery({ threads: threadSurgery }).split({
       threadId,
       fromPostId,
       title,
       actorUserId: actor.userId,
-      rights: await resolveRights(communityId),
+      rights: await resolveRights(forumId),
     })
   } catch (err) {
     return toFormState(err)
@@ -110,14 +110,14 @@ export async function splitSelectedAction(
     const actor = await getActor()
     if (actor.userId === null) throw new ForbiddenError('You must be logged in.')
 
-    const communityId = await visibleCommunityOf(threadId)
+    const forumId = await visibleForumOf(threadId)
 
     outcome = await new ThreadSurgery({ threads: threadSurgery }).splitPosts({
       threadId,
       postIds,
       title,
       actorUserId: actor.userId,
-      rights: await resolveRights(communityId),
+      rights: await resolveRights(forumId),
     })
   } catch (err) {
     return toFormState(err)
@@ -150,21 +150,21 @@ export async function mergeThreadAction(
     /*
      * Both ends are located and authorised here, and the target end is checked
      * with the *same* answer a missing thread gets. A moderator must not be able
-     * to discover a thread in a community they cannot read by trying to merge into
+     * to discover a thread in a forum they cannot read by trying to merge into
      * it — the merge form takes a raw number, so without this it would be a
      * working thread-existence oracle.
      */
-    const [sourceCommunityId, targetCommunityId] = await Promise.all([
-      visibleCommunityOf(sourceThreadId),
-      visibleCommunityOf(targetThreadId),
+    const [sourceForumId, targetForumId] = await Promise.all([
+      visibleForumOf(sourceThreadId),
+      visibleForumOf(targetThreadId),
     ])
 
     outcome = await new ThreadSurgery({ threads: threadSurgery }).merge({
       sourceThreadId,
       targetThreadId,
       actorUserId: actor.userId,
-      rights: await resolveRights(sourceCommunityId),
-      targetRights: await resolveRights(targetCommunityId),
+      rights: await resolveRights(sourceForumId),
+      targetRights: await resolveRights(targetForumId),
     })
   } catch (err) {
     return toFormState(err)
@@ -174,35 +174,35 @@ export async function mergeThreadAction(
 }
 
 /**
- * The community a thread is in, if this actor may see that it is there at all.
+ * The forum a thread is in, if this actor may see that it is there at all.
  *
- * `locateCommunity` is deliberately unscoped (F47) and returns an id and nothing
+ * `locateForum` is deliberately unscoped (F47) and returns an id and nothing
  * else, so the permission check happens here — and its failure is worded as
  * "does not exist", because for this actor it does not.
  */
-async function visibleCommunityOf(threadId: number): Promise<number> {
+async function visibleForumOf(threadId: number): Promise<number> {
   const { threads, authorizer } = getContainer()
   const actor = await getActor()
 
-  const communityId = await threads.locateCommunity(threadId)
-  if (communityId === null) throw new ValidationError('That thread does not exist.')
+  const forumId = await threads.locateForum(threadId)
+  if (forumId === null) throw new ValidationError('That thread does not exist.')
 
-  const community = await authorizer.communityMatrix(actor, communityId)
-  if (!authorizer.can(actor, 'thread.view', { communityId, community })) {
+  const forum = await authorizer.forumMatrix(actor, forumId)
+  if (!authorizer.can(actor, 'thread.view', { forumId, forum })) {
     throw new ValidationError('That thread does not exist.')
   }
-  return communityId
+  return forumId
 }
 
-/** This actor's two answers in one community, resolved the way F50 resolves four. */
-async function resolveRights(communityId: number): Promise<SurgeryRights> {
+/** This actor's two answers in one forum, resolved the way F50 resolves four. */
+async function resolveRights(forumId: number): Promise<SurgeryRights> {
   const actor = await getActor()
   const { authorizer } = getContainer()
-  const [community, moderatorRights] = await Promise.all([
-    authorizer.communityMatrix(actor, communityId),
-    authorizer.moderatorRightsIn(actor, communityId),
+  const [forum, moderatorRights] = await Promise.all([
+    authorizer.forumMatrix(actor, forumId),
+    authorizer.moderatorRightsIn(actor, forumId),
   ])
-  const target = { communityId, community, moderatorRights }
+  const target = { forumId, forum, moderatorRights }
 
   return {
     merge: authorizer.can(actor, 'thread.merge', target),

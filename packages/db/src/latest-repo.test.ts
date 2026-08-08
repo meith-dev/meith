@@ -3,7 +3,7 @@
  *
  * Three claims carry the feature, and each of them is a leak if it is wrong:
  *
- *  - **the community scope is in the query**, and an empty scope means nothing
+ *  - **the forum scope is in the query**, and an empty scope means nothing
  *    rather than everything;
  *  - **a post is hidden when its thread is**, not only when the post itself is —
  *    the panel joins two tables and either one can be the removed thing;
@@ -41,12 +41,12 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
   await db.execute(sql`
-    insert into communities (id, type, title, slug, path) values
-      (${OPEN}, 'community', 'Open', 'open', '1'),
-      (${PRIVATE}, 'community', 'Private', 'private', '2')
+    insert into forums (id, type, title, slug, path) values
+      (${OPEN}, 'forum', 'Open', 'open', '1'),
+      (${PRIVATE}, 'forum', 'Private', 'private', '2')
   `)
   await db.execute(sql`
     insert into users (id, username, username_lower, email, email_lower,
@@ -58,15 +58,15 @@ beforeEach(async () => {
 
 interface SeedThread {
   readonly id: number
-  readonly communityId?: number
+  readonly forumId?: number
   readonly visibility?: string
 }
 
 async function seedThread(thread: SeedThread): Promise<void> {
   await db.execute(sql`
-    insert into threads (id, community_id, author_user_id, author_username, title, slug,
+    insert into threads (id, forum_id, author_user_id, author_username, title, slug,
                          reply_count, visibility)
-    values (${thread.id}, ${thread.communityId ?? OPEN}, ${ANN}, 'ann',
+    values (${thread.id}, ${thread.forumId ?? OPEN}, ${ANN}, 'ann',
             ${`Thread ${thread.id}`}, ${`t-${thread.id}`}, 0,
             ${thread.visibility ?? 'visible'})
   `)
@@ -75,22 +75,22 @@ async function seedThread(thread: SeedThread): Promise<void> {
 interface SeedPost {
   readonly id: number
   readonly threadId: number
-  readonly communityId?: number
+  readonly forumId?: number
   readonly message?: string
   readonly visibility?: string
 }
 
 async function seedPost(post: SeedPost): Promise<void> {
   await db.execute(sql`
-    insert into posts (id, thread_id, community_id, author_user_id, author_username,
+    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
                        message, visibility)
-    values (${post.id}, ${post.threadId}, ${post.communityId ?? OPEN}, ${ANN}, 'ann',
+    values (${post.id}, ${post.threadId}, ${post.forumId ?? OPEN}, ${ANN}, 'ann',
             ${post.message ?? 'hello'}, ${post.visibility ?? 'visible'})
   `)
 }
 
 const scope = (overrides: Partial<LatestScope> = {}): LatestScope => ({
-  communityIds: [OPEN, PRIVATE],
+  forumIds: [OPEN, PRIVATE],
   content: PUBLIC_CONTENT,
   ...overrides,
 })
@@ -100,18 +100,18 @@ describe('the permission filter', () => {
     await seedThread({ id: 1 })
     await seedPost({ id: 1, threadId: 1 })
 
-    expect(await repo.threads(5, scope({ communityIds: [] }))).toEqual([])
-    expect(await repo.posts(5, scope({ communityIds: [] }))).toEqual([])
+    expect(await repo.threads(5, scope({ forumIds: [] }))).toEqual([])
+    expect(await repo.posts(5, scope({ forumIds: [] }))).toEqual([])
   })
 
-  it('leaves out communities the reader may not see', async () => {
-    await seedThread({ id: 1, communityId: OPEN })
-    await seedThread({ id: 2, communityId: PRIVATE })
-    await seedPost({ id: 1, threadId: 1, communityId: OPEN })
-    await seedPost({ id: 2, threadId: 2, communityId: PRIVATE })
+  it('leaves out forums the reader may not see', async () => {
+    await seedThread({ id: 1, forumId: OPEN })
+    await seedThread({ id: 2, forumId: PRIVATE })
+    await seedPost({ id: 1, threadId: 1, forumId: OPEN })
+    await seedPost({ id: 2, threadId: 2, forumId: PRIVATE })
 
-    expect((await repo.threads(5, scope({ communityIds: [OPEN] }))).map((r) => r.threadId)).toEqual([1])
-    expect((await repo.posts(5, scope({ communityIds: [OPEN] }))).map((r) => r.postId)).toEqual([1])
+    expect((await repo.threads(5, scope({ forumIds: [OPEN] }))).map((r) => r.threadId)).toEqual([1])
+    expect((await repo.posts(5, scope({ forumIds: [OPEN] }))).map((r) => r.postId)).toEqual([1])
   })
 
   it('leaves out content the reader may not see, and shows it to staff', async () => {
@@ -154,8 +154,8 @@ describe('ordering and size', () => {
 })
 
 describe('the rows a panel renders from', () => {
-  it('carries the community a thread is in, so two same-named threads differ', async () => {
-    await seedThread({ id: 1, communityId: PRIVATE })
+  it('carries the forum a thread is in, so two same-named threads differ', async () => {
+    await seedThread({ id: 1, forumId: PRIVATE })
 
     const [row] = await repo.threads(5, scope())
 
@@ -163,9 +163,9 @@ describe('the rows a panel renders from', () => {
       threadId: 1,
       title: 'Thread 1',
       slug: 't-1',
-      communityId: PRIVATE,
-      communityTitle: 'Private',
-      communitySlug: 'private',
+      forumId: PRIVATE,
+      forumTitle: 'Private',
+      forumSlug: 'private',
       authorUserId: ANN,
       authorUsername: 'ann',
       replyCount: 0,
@@ -184,8 +184,8 @@ describe('the rows a panel renders from', () => {
       threadId: 1,
       threadTitle: 'Thread 1',
       threadSlug: 't-1',
-      communityId: OPEN,
-      communityTitle: 'Open',
+      forumId: OPEN,
+      forumTitle: 'Open',
       authorUsername: 'ann',
     })
     /*

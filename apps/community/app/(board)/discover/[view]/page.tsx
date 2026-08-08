@@ -181,14 +181,14 @@ export default async function DiscoverPage({
                 </a>
                 <p className="text-xs text-muted-foreground">
                   {/*
-                    The community is on every row because these lists cross the whole
+                    The forum is on every row because these lists cross the whole
                     board: without it, two identically named threads in two
-                    communities are indistinguishable. It comes from the same query as
+                    forums are indistinguishable. It comes from the same query as
                     the row (F74's budget), not a lookup per line.
                   */}
                   in{' '}
-                  <a href={`/${row.communityId}-${row.communitySlug}`} className="hover:underline">
-                    {row.communityTitle}
+                  <a href={`/${row.forumId}-${row.forumSlug}`} className="hover:underline">
+                    {row.forumTitle}
                   </a>{' '}
                   · started by {row.authorUsername}
                 </p>
@@ -222,7 +222,7 @@ export default async function DiscoverPage({
  * cannot see a tab does not learn it exists, and the refusal names the reason
  * and offers the sign-in link, which is more useful than the tab disappearing.
  *
- * The row itself is `ViewTabs`, shared with the inbox's folders and a community's
+ * The row itself is `ViewTabs`, shared with the inbox's folders and a forum's
  * ordering — see that file for why the board had three of these and now has
  * one.
  */

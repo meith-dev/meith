@@ -145,7 +145,7 @@ describe('events', () => {
       ],
     })
 
-    await host.emit('post.created', { postId: 1, threadId: 2, communityId: 3, authorId: 4 }, VIEWER)
+    await host.emit('post.created', { postId: 1, threadId: 2, forumId: 3, authorId: 4 }, VIEWER)
     expect(seen).toEqual(['alpha', 'bravo'])
   })
 
@@ -163,7 +163,7 @@ describe('events', () => {
     })
 
     await expect(
-      host.emit('post.created', { postId: 1, threadId: 2, communityId: 3, authorId: 4 }, VIEWER),
+      host.emit('post.created', { postId: 1, threadId: 2, forumId: 3, authorId: 4 }, VIEWER),
     ).resolves.toBeUndefined()
     expect(seen).toEqual(['bravo'])
   })
@@ -180,7 +180,7 @@ describe('failure isolation and auto-disable', () => {
 
   const fire = async (host: PluginHost, times: number): Promise<void> => {
     for (let i = 0; i < times; i++) {
-      await host.emit('post.created', { postId: 1, threadId: 2, communityId: 3, authorId: 4 }, VIEWER)
+      await host.emit('post.created', { postId: 1, threadId: 2, forumId: 3, authorId: 4 }, VIEWER)
     }
   }
 
@@ -316,7 +316,7 @@ describe('timing', () => {
       failureThreshold: 99,
     })
 
-    await host.emit('post.created', { postId: 1, threadId: 2, communityId: 3, authorId: 4 }, VIEWER)
+    await host.emit('post.created', { postId: 1, threadId: 2, forumId: 3, authorId: 4 }, VIEWER)
     const health = host.health()[0]
     expect(health?.totalMs).toBe(200)
     expect(health?.failures).toBe(1)
@@ -432,7 +432,7 @@ describe('health and introspection', () => {
     const first = host.health()[0]!
     ;(first as { calls: number }).calls = 999
 
-    await host.emit('post.created', { postId: 1, threadId: 2, communityId: 3, authorId: 4 }, VIEWER)
+    await host.emit('post.created', { postId: 1, threadId: 2, forumId: 3, authorId: 4 }, VIEWER)
     expect(host.health()[0]?.calls).toBe(1)
   })
 })
@@ -450,7 +450,7 @@ describe('the logger', () => {
     })
 
     await expect(
-      host.emit('post.created', { postId: 1, threadId: 2, communityId: 3, authorId: 4 }, VIEWER),
+      host.emit('post.created', { postId: 1, threadId: 2, forumId: 3, authorId: 4 }, VIEWER),
     ).resolves.toBeUndefined()
   })
 
@@ -467,7 +467,7 @@ describe('the logger', () => {
       ],
     })
 
-    await host.emit('post.created', { postId: 1, threadId: 2, communityId: 3, authorId: 4 }, VIEWER)
+    await host.emit('post.created', { postId: 1, threadId: 2, forumId: 3, authorId: 4 }, VIEWER)
     expect(error).toHaveBeenCalledWith('plugin hook failed', {
       plugin: 'alpha',
       hook: 'post.created',

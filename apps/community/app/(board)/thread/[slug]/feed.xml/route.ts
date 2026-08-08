@@ -37,7 +37,7 @@ export async function GET(
   const posts = await repo.recentPosts(id, FEED_LIMIT, await publicScope())
   /*
    * No visible posts is a 404, not an empty feed. It is also the answer for a
-   * thread in a private community and for a thread that never existed — the same
+   * thread in a private forum and for a thread that never existed — the same
    * answer, so this route cannot be used to enumerate either.
    */
   if (posts.length === 0) return noFeed()

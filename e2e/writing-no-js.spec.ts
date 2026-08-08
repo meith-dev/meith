@@ -108,7 +108,7 @@ test('a member posts a thread and a reply, and both land in the database', async
   await expect(page.getByText('And a reply, also without scripting.')).toBeVisible()
 
   /*
-   * The community listing's denormalised counters moved. This is the half of
+   * The forum listing's denormalised counters moved. This is the half of
    * posting that unit tests cover in isolation and nothing had ever exercised
    * end to end — the write, the counter update and the read are three different
    * modules and this is the only place all three run together.

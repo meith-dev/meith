@@ -25,7 +25,7 @@
  * Each partial index has an unfiltered twin for moderator views, and the twins
  * are checked too. A moderator seeing unapproved and deleted content *cannot*
  * use the partial index — their predicate does not imply it — so without the
- * twin their community view degrades to a sequential scan. That failure is invisible
+ * twin their forum view degrades to a sequential scan. That failure is invisible
  * to every test written from a member's point of view, which is most of them.
  */
 
@@ -37,32 +37,32 @@ export interface IndexPlan {
   readonly index: string
   /** Why the index exists, in one sentence. */
   readonly why: string
-  /** `$1` is a community id, `$2` a thread id — supplied by the runner. */
+  /** `$1` is a forum id, `$2` a thread id — supplied by the runner. */
   readonly sql: string
 }
 
 export const INDEX_PLANS: readonly IndexPlan[] = [
   {
-    id: 'community-listing-visible',
-    page: 'Community listing, as a member',
-    index: 'threads_community_listing_idx',
-    why: 'The index behind community display. Sticky first, then most recent, visible only.',
+    id: 'forum-listing-visible',
+    page: 'Forum listing, as a member',
+    index: 'threads_forum_listing_idx',
+    why: 'The index behind forum display. Sticky first, then most recent, visible only.',
     sql: `
       select id from threads
-       where community_id = $1 and visibility = 'visible'
+       where forum_id = $1 and visibility = 'visible'
        order by is_sticky desc, last_post_at desc
        limit 20`,
   },
   {
-    id: 'community-listing-moderator',
-    page: 'Community listing, as a moderator',
-    index: 'threads_community_listing_all_idx',
+    id: 'forum-listing-moderator',
+    page: 'Forum listing, as a moderator',
+    index: 'threads_forum_listing_all_idx',
     why:
       'The unfiltered twin. A moderator’s predicate does not imply the partial ' +
-      'index, so without this their community view is a sequential scan.',
+      'index, so without this their forum view is a sequential scan.',
     sql: `
       select id from threads
-       where community_id = $1 and visibility in ('visible', 'unapproved', 'deleted')
+       where forum_id = $1 and visibility in ('visible', 'unapproved', 'deleted')
        order by is_sticky desc, last_post_at desc
        limit 20`,
   },
@@ -81,7 +81,7 @@ export const INDEX_PLANS: readonly IndexPlan[] = [
     id: 'thread-page-moderator',
     page: 'Thread page, as a moderator',
     index: 'posts_thread_all_idx',
-    why: 'The unfiltered twin, for the same reason as the community listing’s.',
+    why: 'The unfiltered twin, for the same reason as the forum listing’s.',
     sql: `
       select id from posts
        where thread_id = $2 and visibility in ('visible', 'unapproved', 'deleted')
@@ -91,13 +91,13 @@ export const INDEX_PLANS: readonly IndexPlan[] = [
   {
     id: 'moderation-queue',
     page: 'Moderation queue',
-    index: 'posts_community_visibility_idx',
+    index: 'posts_forum_visibility_idx',
     why:
       'The inverse partial: unapproved and deleted posts only. Small on a healthy ' +
       'board, which is exactly why a scan to find them would go unnoticed.',
     sql: `
       select id from posts
-       where community_id = $1 and visibility <> 'visible'
+       where forum_id = $1 and visibility <> 'visible'
        order by created_at desc
        limit 20`,
   },

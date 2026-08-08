@@ -3,7 +3,7 @@
  *
  * The rules are unit-tested in `@meith/moderation` and the arithmetic against
  * real Postgres. What is proven here is the seam neither can see: that a merge
- * resolves rights in *both* threads' communities, that the target thread is located
+ * resolves rights in *both* threads' forums, that the target thread is located
  * through `thread.view` so the id box is not a thread-existence oracle, and
  * that the split right and the merge right are genuinely separate.
  */
@@ -45,7 +45,7 @@ const { mergeThreadAction, splitThreadAction, splitSelectedAction } = await impo
   './surgery-actions',
 )
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { SEED_BOARD, SEED_COMMUNITY, SEED_GROUP } = await import('./seed-board')
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
 const { installTestContainer } = await import('./test-container')
 
@@ -61,7 +61,7 @@ class FakeSurgery implements ThreadSurgeryRepository {
   async find(threadId: number): Promise<SurgeryThread | null> {
     return {
       id: threadId,
-      communityId: communityOf[threadId] ?? SEED_COMMUNITY.general,
+      forumId: forumOf[threadId] ?? SEED_FORUM.general,
       slug: threadId === SOURCE ? 'hello' : 'other',
       title: 'Hello',
       visibility: 'visible',
@@ -92,18 +92,18 @@ class FakeSurgery implements ThreadSurgeryRepository {
   }
 }
 
-/** Which community each thread id lives in, for both the fake and `locateCommunity`. */
-let communityOf: Record<number, number>
+/** Which forum each thread id lives in, for both the fake and `locateForum`. */
+let forumOf: Record<number, number>
 let surgery: FakeSurgery
 
 function appointment(
-  communityId: number,
+  forumId: number,
   rights: Partial<MemoryAppointment>,
 ): MemoryAppointment {
   return {
     userId: 3,
-    communityId,
-    cascadeToSubcommunities: false,
+    forumId,
+    cascadeToSubforums: false,
     canApproveContent: false,
     canEditPosts: false,
     canSoftDeletePosts: false,
@@ -127,9 +127,9 @@ function installContainer(
     container: {
       threadSurgery: surgery,
       threads: {
-        locateCommunity: async (id: number) => communityOf[id] ?? null,
+        locateForum: async (id: number) => forumOf[id] ?? null,
         findById: async () => null,
-        listCommunity: async () => ({ rows: [], nextCursor: null }),
+        listForum: async () => ({ rows: [], nextCursor: null }),
       },
     },
   })
@@ -171,7 +171,7 @@ async function redirectOf(run: Promise<unknown>): Promise<string> {
 
 beforeEach(async () => {
   surgery = new FakeSurgery()
-  communityOf = { [SOURCE]: SEED_COMMUNITY.general, [TARGET]: SEED_COMMUNITY.general }
+  forumOf = { [SOURCE]: SEED_FORUM.general, [TARGET]: SEED_FORUM.general }
   actorRef.current = await actorFor(SEED_GROUP.superModerators, 2)
   installContainer()
 })
@@ -207,7 +207,7 @@ describe('splitThreadAction', () => {
 
   it('needs the split right, and the merge right is not it', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    installContainer([appointment(SEED_COMMUNITY.general, { canMergeThreads: true })])
+    installContainer([appointment(SEED_FORUM.general, { canMergeThreads: true })])
 
     const state = await splitThreadAction(
       EMPTY_STATE,
@@ -215,7 +215,7 @@ describe('splitThreadAction', () => {
     )
     expect(state.error).toMatch(/cannot split/i)
 
-    installContainer([appointment(SEED_COMMUNITY.general, { canSplitThreads: true })])
+    installContainer([appointment(SEED_FORUM.general, { canSplitThreads: true })])
     expect(
       await redirectOf(
         splitThreadAction(
@@ -262,24 +262,24 @@ describe('mergeThreadAction', () => {
 
   /*
    * The rule that needs two resolutions, and the one a merge shares with a
-   * move. Rights in the source community only must not let a moderator push posts
-   * into a community they have no standing in.
+   * move. Rights in the source forum only must not let a moderator push posts
+   * into a forum they have no standing in.
    */
   it('needs the merge right at both ends', async () => {
-    communityOf[TARGET] = SEED_COMMUNITY.announcements
+    forumOf[TARGET] = SEED_FORUM.announcements
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    installContainer([appointment(SEED_COMMUNITY.general, { canMergeThreads: true })])
+    installContainer([appointment(SEED_FORUM.general, { canMergeThreads: true })])
 
     const state = await mergeThreadAction(
       EMPTY_STATE,
       form({ threadId: String(SOURCE), targetThreadId: String(TARGET) }),
     )
-    expect(state.error).toMatch(/into that community/i)
+    expect(state.error).toMatch(/into that forum/i)
     expect(surgery.merges).toEqual([])
 
     installContainer([
-      appointment(SEED_COMMUNITY.general, { canMergeThreads: true }),
-      appointment(SEED_COMMUNITY.announcements, { canMergeThreads: true }),
+      appointment(SEED_FORUM.general, { canMergeThreads: true }),
+      appointment(SEED_FORUM.announcements, { canMergeThreads: true }),
     ])
     expect(
       await redirectOf(
@@ -296,17 +296,17 @@ describe('mergeThreadAction', () => {
    * *target* it would answer "does thread N exist?" for every N on the board.
    */
   it('will not confirm that an unreadable thread exists', async () => {
-    communityOf[TARGET] = SEED_COMMUNITY.generalOffTopic
+    forumOf[TARGET] = SEED_FORUM.generalOffTopic
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     installContainer(
       [
-        appointment(SEED_COMMUNITY.general, { canMergeThreads: true }),
-        appointment(SEED_COMMUNITY.generalOffTopic, { canMergeThreads: true }),
+        appointment(SEED_FORUM.general, { canMergeThreads: true }),
+        appointment(SEED_FORUM.generalOffTopic, { canMergeThreads: true }),
       ],
-      /* A community this member cannot see into, appointment or no appointment. */
+      /* A forum this member cannot see into, appointment or no appointment. */
       [
         {
-          communityId: SEED_COMMUNITY.generalOffTopic,
+          forumId: SEED_FORUM.generalOffTopic,
           groupId: SEED_GROUP.registered,
           overrides: { canView: false, canViewThreads: false },
         },

@@ -10,14 +10,14 @@ export interface QueueRowModel {
   readonly kind: 'thread' | 'post'
   /** "New thread" / "Reply", so a moderator knows what they are approving. */
   readonly kindLabel: string
-  readonly communityTitle: string
+  readonly forumTitle: string
   readonly threadTitle: string
   /**
    * Where to read the item in full.
    *
    * A held *thread* has no page a moderator can open — it is not visible, and
    * F47's scope is what decides that, not this model. So the link goes to the
-   * community, and the excerpt is what the decision is made on. A held *reply*
+   * forum, and the excerpt is what the decision is made on. A held *reply*
    * lives in a visible thread and can be linked to directly.
    */
   readonly href: string
@@ -54,9 +54,9 @@ function row(item: QueueItem, now: Date, timeZone: string | undefined): QueueRow
     value: `${item.kind}:${item.id}`,
     kind: item.kind,
     kindLabel: item.kind === 'thread' ? 'New thread' : 'Reply',
-    communityTitle: item.communityTitle,
+    forumTitle: item.forumTitle,
     threadTitle: item.threadTitle,
-    href: item.kind === 'thread' ? `/${item.communityId}` : `${thread}#post-${item.id}`,
+    href: item.kind === 'thread' ? `/${item.forumId}` : `${thread}#post-${item.id}`,
     authorUsername: item.authorUsername,
     authorHref: item.authorUserId === null ? null : `/member/${item.authorUserId}`,
     /*

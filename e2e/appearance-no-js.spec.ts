@@ -7,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test'
  * rather than a unit test:
  *
  *  - a **theme** choice changes the markup, not merely the colours — `midnight`
- *    renders community listings as a `<table>` and the default renders a list, so
+ *    renders forum listings as a `<table>` and the default renders a list, so
  *    counting tables is the difference between a real switch and a repaint;
  *  - the choice **survives a reload**, because it is a cookie the server reads
  *    rather than something a script re-applies after the page has painted;

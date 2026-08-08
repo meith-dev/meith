@@ -66,15 +66,15 @@ describe('buildGroupPermissionView', () => {
     expect(view?.cells.find((cell) => cell.key === 'canView')?.value).toBe(true)
   })
 
-  it('includes the community-scoped fields, because they are the group’s default', async () => {
+  it('includes the forum-scoped fields, because they are the group’s default', async () => {
     /*
-     * They are R4.1 layer 1 — the answer for every community that does not override
-     * them. Leaving them off would hide the value most communities resolve to, and
+     * They are R4.1 layer 1 — the answer for every forum that does not override
+     * them. Leaving them off would hide the value most forums resolve to, and
      * an operator would set `canPostThreads` nowhere and wonder why nobody can
      * post. Kills the mutant that filters to `scope === 'global'`.
      */
     const view = await buildGroupPermissionView(2)
-    expect(view?.cells.some((cell) => cell.scope === 'community')).toBe(true)
+    expect(view?.cells.some((cell) => cell.scope === 'forum')).toBe(true)
   })
 
   it('is null for a group that does not exist', async () => {

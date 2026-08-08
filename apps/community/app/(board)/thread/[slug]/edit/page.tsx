@@ -55,7 +55,7 @@ export default async function EditPostPage({
   /*
    * Nothing on offer is a 404, not an empty page. A member who cannot edit a
    * post has no more business knowing this screen exists for it than they have
-   * knowing about a community they cannot see.
+   * knowing about a forum they cannot see.
    */
   const mayManage = isDeleted ? scope.mayRestore : scope.mayEdit || scope.mayDelete
   if (!mayManage) notFound()

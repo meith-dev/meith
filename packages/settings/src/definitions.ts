@@ -138,7 +138,7 @@ export const SETTING_DEFINITIONS = [
     group: 'board',
     label: 'Board address',
     description:
-      'The absolute public origin, with no trailing slash — https://community.example. ' +
+      'The absolute public origin, with no trailing slash — https://forum.example. ' +
       'Every link the board sends is built from it, because nothing in a queued ' +
       'job or a mail template knows the request that caused it. Left empty, mail ' +
       'still arrives and carries no link. Setting APP_URL in the environment ' +
@@ -155,7 +155,7 @@ export const SETTING_DEFINITIONS = [
      */
     schema: z.string().trim().refine(
       (value) => value === '' || isUsableOrigin(value),
-      'Give an absolute http(s) address with no path — https://community.example.',
+      'Give an absolute http(s) address with no path — https://forum.example.',
     ),
     default: '',
     invalidates: ['settings', 'layout'],
@@ -324,7 +324,7 @@ export const SETTING_DEFINITIONS = [
     key: 'display.threads_per_page',
     group: 'display',
     label: 'Threads per page',
-    description: 'Capped to protect the community-display query budget (F30).',
+    description: 'Capped to protect the forum-display query budget (F30).',
     schema: z.number().int().min(5).max(100),
     default: 25,
     invalidates: ['settings'],

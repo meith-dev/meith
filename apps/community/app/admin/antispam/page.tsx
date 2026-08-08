@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: 'Anti-spam' }
  * hold: the list of questions, and — the reason this screen exists at all —
  * **an honest account of what each control does and does not stop.**
  *
- * That last part is not padding. Every anti-spam control on every community is
+ * That last part is not padding. Every anti-spam control on every forum is
  * oversold, operators switch all of them on at once, and the ones that cost
  * legitimate visitors something are indistinguishable from the ones that do not
  * until somebody complains they cannot register. Saying which is which is the

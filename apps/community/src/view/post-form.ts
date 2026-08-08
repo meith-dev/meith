@@ -2,7 +2,7 @@
 import type { PostFormModel } from '@meith/theme-kit'
 
 export interface PostFormInput {
-  readonly community: { readonly id: number; readonly title: string; readonly slug: string }
+  readonly forum: { readonly id: number; readonly title: string; readonly slug: string }
   readonly errorMessage?: string | null
 }
 
@@ -12,9 +12,9 @@ export function buildNewThreadView(
 ): Omit<PostFormModel, 'regions'> {
   return {
     mode: 'thread',
-    heading: `Post a new thread in ${input.community.title}`,
-    cancelHref: `/${input.community.id}-${input.community.slug}`,
-    cancelLabel: `Back to ${input.community.title}`,
+    heading: `Post a new thread in ${input.forum.title}`,
+    cancelHref: `/${input.forum.id}-${input.forum.slug}`,
+    cancelLabel: `Back to ${input.forum.title}`,
     errorMessage: input.errorMessage ?? null,
   }
 }

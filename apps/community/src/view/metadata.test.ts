@@ -2,7 +2,7 @@
  * F76's canonical URLs and structured data.
  *
  * The claim worth a suite of its own is the canonical, because the wrong
- * version of it is the single most common way a community ends up with only its
+ * version of it is the single most common way a forum ends up with only its
  * first pages in a search index: pointing every page of a thread at page 1
  * asks a crawler to drop the rest of the conversation. What the canonical
  * *should* drop is the surplus — a permalink, a cursor and a reveal parameter
@@ -104,7 +104,7 @@ describe('threadJsonLd', () => {
     published: new Date('2026-01-01T00:00:00Z'),
     modified: new Date('2026-02-01T00:00:00Z'),
     replyCount: 4,
-    communityTitle: 'Open',
+    forumTitle: 'Open',
     description: 'A discussion.',
   }
 
@@ -162,7 +162,7 @@ describe('threadJsonLd', () => {
   })
 
   it('declares the type consumers look for', () => {
-    expect(threadJsonLd(input)['@type']).toBe('DiscussionCommunityPosting')
+    expect(threadJsonLd(input)['@type']).toBe('DiscussionForumPosting')
   })
 })
 

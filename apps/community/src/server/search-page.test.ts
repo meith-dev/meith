@@ -22,9 +22,9 @@ const { readFilters } = await import('./search-page')
 
 describe('readFilters', () => {
   it('reads a stored filter set', () => {
-    expect(readFilters({ sort: 'newest', communityIds: [1, 2] })).toEqual({
+    expect(readFilters({ sort: 'newest', forumIds: [1, 2] })).toEqual({
       sort: 'newest',
-      communityIds: [1, 2],
+      forumIds: [1, 2],
     })
   })
 
@@ -40,11 +40,11 @@ describe('readFilters', () => {
   it('drops an id list that is not a list of ids', () => {
     /*
      * A `jsonb` column can hold anything. A string where an array belongs would
-     * become `community_id in ('…')` — a query error on a page somebody reached
+     * become `forum_id in ('…')` — a query error on a page somebody reached
      * from their own history.
      */
-    expect(readFilters({ communityIds: 'all' }).communityIds).toBeUndefined()
-    expect(readFilters({ communityIds: [1, 'two'] }).communityIds).toBeUndefined()
+    expect(readFilters({ forumIds: 'all' }).forumIds).toBeUndefined()
+    expect(readFilters({ forumIds: [1, 'two'] }).forumIds).toBeUndefined()
     expect(readFilters({ authorUserIds: { any: true } }).authorUserIds).toBeUndefined()
   })
 
@@ -55,11 +55,11 @@ describe('readFilters', () => {
      * absent. Kills the mutant that defaults to `[]`.
      */
     const filters = readFilters({})
-    expect(filters.communityIds).toBeUndefined()
+    expect(filters.forumIds).toBeUndefined()
     expect(filters.authorUserIds).toBeUndefined()
   })
 
   it('keeps an explicitly empty list distinct from an absent one', () => {
-    expect(readFilters({ communityIds: [] }).communityIds).toEqual([])
+    expect(readFilters({ forumIds: [] }).forumIds).toEqual([])
   })
 })

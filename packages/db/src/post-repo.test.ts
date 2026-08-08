@@ -5,7 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { communities, posts, threads } from './schema'
+import { forums, posts, threads } from './schema'
 import { PostgresPostRepository } from './post-repo'
 
 let harness: TestDb
@@ -13,9 +13,9 @@ let db: Database
 let repo: PostgresPostRepository
 
 async function seed(count: number): Promise<void> {
-  await db.insert(communities).values({
+  await db.insert(forums).values({
     id: 1,
-    type: 'community',
+    type: 'forum',
     title: 'General',
     slug: 'general',
     path: '1',
@@ -24,7 +24,7 @@ async function seed(count: number): Promise<void> {
   })
   await db.insert(threads).values({
     id: 1,
-    communityId: 1,
+    forumId: 1,
     title: 'Thread',
     slug: 'thread',
     authorUsername: 'ada',
@@ -33,13 +33,13 @@ async function seed(count: number): Promise<void> {
     Array.from({ length: count }, (_, index) => ({
       id: index + 1,
       threadId: 1,
-      communityId: 1,
+      forumId: 1,
       authorUsername: 'ada',
       message: `Post ${index + 1}`,
       isFirstPost: index === 0,
     })),
   )
-  await db.execute(sql`select setval(pg_get_serial_sequence('communities', 'id'), 1)`)
+  await db.execute(sql`select setval(pg_get_serial_sequence('forums', 'id'), 1)`)
   await db.execute(sql`select setval(pg_get_serial_sequence('threads', 'id'), 1)`)
   await db.execute(sql`select setval(pg_get_serial_sequence('posts', 'id'), ${count})`)
 }
@@ -57,7 +57,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
 })
 
 describe('PostgresPostRepository.listThread', () => {
@@ -66,7 +66,7 @@ describe('PostgresPostRepository.listThread', () => {
     await db.insert(posts).values({
       id: 99,
       threadId: 1,
-      communityId: 1,
+      forumId: 1,
       authorUsername: 'mod',
       message: 'not public',
       visibility: 'unapproved',
@@ -87,7 +87,7 @@ describe('PostgresPostRepository.listThread', () => {
 
     await db.execute(sql`delete from posts`)
     await db.execute(sql`delete from threads`)
-    await db.execute(sql`delete from communities`)
+    await db.execute(sql`delete from forums`)
     await seed(50)
     const page = await expectQueryBudget(harness, 1, () => repo.listThread(1, { limit: 20, scope: PUBLIC_CONTENT }))
 

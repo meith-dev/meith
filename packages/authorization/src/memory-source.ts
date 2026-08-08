@@ -15,7 +15,7 @@
 import type {
   ModeratorAppointment,
   AuthorizationSource,
-  CommunityOverride,
+  ForumOverride,
   GroupDefaults,
 } from './types'
 
@@ -24,13 +24,13 @@ export interface MemoryBoard {
   /** Global defaults per group. */
   readonly groups: readonly GroupDefaults[]
   /**
-   * Ancestor chains keyed by community id, nearest-first and inclusive, matching
-   * the port contract. A community absent from this map resolves to an empty chain
-   * (i.e. "does not exist"), so callers must list every real community here.
+   * Ancestor chains keyed by forum id, nearest-first and inclusive, matching
+   * the port contract. A forum absent from this map resolves to an empty chain
+   * (i.e. "does not exist"), so callers must list every real forum here.
    */
   readonly chains: Readonly<Record<number, readonly number[]>>
-  /** Per-(community, group) overrides. */
-  readonly overrides: readonly CommunityOverride[]
+  /** Per-(forum, group) overrides. */
+  readonly overrides: readonly ForumOverride[]
   /**
    * Moderator appointments (F48). Optional so every existing fixture board — a
    * board with no appointments is a perfectly ordinary board — keeps compiling.
@@ -62,22 +62,22 @@ export class InMemoryAuthorizationSource implements AuthorizationSource {
     return out
   }
 
-  async ancestorChain(communityId: number): Promise<readonly number[]> {
-    return this.board.chains[communityId] ?? []
+  async ancestorChain(forumId: number): Promise<readonly number[]> {
+    return this.board.chains[forumId] ?? []
   }
 
-  async communityOverrides(
-    communityIds: readonly number[],
+  async forumOverrides(
+    forumIds: readonly number[],
     groupIds: readonly number[],
-  ): Promise<readonly CommunityOverride[]> {
-    const fset = new Set(communityIds)
+  ): Promise<readonly ForumOverride[]> {
+    const fset = new Set(forumIds)
     const gset = new Set(groupIds)
     return this.board.overrides.filter(
-      (o) => fset.has(o.communityId) && gset.has(o.groupId),
+      (o) => fset.has(o.forumId) && gset.has(o.groupId),
     )
   }
 
-  async allCommunityIds(): Promise<readonly number[]> {
+  async allForumIds(): Promise<readonly number[]> {
     return Object.keys(this.board.chains).map((k) => Number(k))
   }
 

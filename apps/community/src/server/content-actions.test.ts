@@ -26,7 +26,7 @@ import type {
 } from '@meith/posts'
 import type {
   CreatedThread,
-  CommunityPostingTarget,
+  ForumPostingTarget,
   NewReplyRecord,
   NewThreadRecord,
   ReplyTarget,
@@ -62,7 +62,7 @@ const {
   restorePostAction,
 } = await import('./content-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { SEED_BOARD, SEED_COMMUNITY, SEED_GROUP } = await import('./seed-board')
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
 const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 
@@ -71,12 +71,12 @@ class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
   readonly replies: NewReplyRecord[] = []
   /** The thread `replyTarget` describes; overridden per test. */
   thread: Partial<ReplyTarget> = {}
-  constructor(private readonly rules: Partial<CommunityPostingTarget> = {}) {}
+  constructor(private readonly rules: Partial<ForumPostingTarget> = {}) {}
 
   async replyTarget(threadId: number): Promise<ReplyTarget | null> {
     if (threadId === 4242) return null
-    const community = (await this.postingRules(
-      this.thread.community?.id ?? SEED_COMMUNITY.general,
+    const forum = (await this.postingRules(
+      this.thread.forum?.id ?? SEED_FORUM.general,
     ))!
     return {
       threadId,
@@ -87,7 +87,7 @@ class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
       lastPostId: 31,
       replyCount: 1,
       ...this.thread,
-      community,
+      forum,
     }
   }
 
@@ -96,11 +96,11 @@ class FakeWrites implements ThreadWriteRepository, ReplyWriteRepository {
     return { postId: 99 }
   }
 
-  async postingRules(communityId: number): Promise<CommunityPostingTarget | null> {
-    if (communityId === 4242) return null
+  async postingRules(forumId: number): Promise<ForumPostingTarget | null> {
+    if (forumId === 4242) return null
     return {
-      id: communityId,
-      type: 'community',
+      id: forumId,
+      type: 'forum',
       slug: 'general',
       isOpen: true,
       allowThreads: true,
@@ -173,7 +173,7 @@ function form(entries: Record<string, string>): FormData {
 }
 
 const VALID = {
-  communityId: String(SEED_COMMUNITY.general),
+  forumId: String(SEED_FORUM.general),
   title: 'A thread about testing',
   message: 'With a message in it.',
 }
@@ -228,7 +228,7 @@ describe('createThreadAction', () => {
 
     expect(to).toBe('/thread/77-a-thread-about-testing')
     expect(writes.written[0]).toMatchObject({
-      communityId: SEED_COMMUNITY.general,
+      forumId: SEED_FORUM.general,
       title: 'A thread about testing',
       authorUserId: 1,
       authorUsername: 'ada',
@@ -258,24 +258,24 @@ describe('createThreadAction', () => {
     expect(writes.written).toEqual([])
   })
 
-  it('refuses a member who may read a community but not post in it', async () => {
+  it('refuses a member who may read a forum but not post in it', async () => {
     // Announcements is readable by everyone and postable by staff only. This is
     // the case the guest test cannot cover: a real, logged-in author with a
     // valid draft, refused by the matrix alone.
     const state = await createThreadAction(
       EMPTY_STATE,
-      form({ ...VALID, communityId: String(SEED_COMMUNITY.announcements) }),
+      form({ ...VALID, forumId: String(SEED_FORUM.announcements) }),
     )
 
     expect(state.error).toBeTruthy()
     expect(writes.written).toEqual([])
   })
 
-  it('does not confirm that a community it cannot see exists', async () => {
-    // A community that is real and invisible to this actor. The writer would
+  it('does not confirm that a forum it cannot see exists', async () => {
+    // A forum that is real and invisible to this actor. The writer would
     // happily describe it; the visibility check comes first, and it answers
-    // exactly as it would for a community that is not there — the existence of a
-    // hidden community is not something to confirm.
+    // exactly as it would for a forum that is not there — the existence of a
+    // hidden forum is not something to confirm.
     const hidden = 555
     installContainer(
       {},
@@ -284,30 +284,30 @@ describe('createThreadAction', () => {
         chains: { ...SEED_BOARD.chains, [hidden]: [hidden] },
         overrides: [
           ...SEED_BOARD.overrides,
-          { communityId: hidden, groupId: SEED_GROUP.registered, overrides: { canView: false } },
+          { forumId: hidden, groupId: SEED_GROUP.registered, overrides: { canView: false } },
         ],
       },
     )
 
     const state = await createThreadAction(
       EMPTY_STATE,
-      form({ ...VALID, communityId: String(hidden) }),
+      form({ ...VALID, forumId: String(hidden) }),
     )
 
-    expect(state.error).toBe('That community does not exist.')
+    expect(state.error).toBe('That forum does not exist.')
     expect(writes.written).toEqual([])
   })
 
-  it('refuses a community that does not exist at all', async () => {
-    const state = await createThreadAction(EMPTY_STATE, form({ ...VALID, communityId: '4242' }))
+  it('refuses a forum that does not exist at all', async () => {
+    const state = await createThreadAction(EMPTY_STATE, form({ ...VALID, forumId: '4242' }))
 
-    expect(state.error).toBe('That community does not exist.')
+    expect(state.error).toBe('That forum does not exist.')
     expect(writes.written).toEqual([])
   })
 
-  it('rejects a community id that is not one', async () => {
-    for (const communityId of ['0', '-3', 'abc', '1e3', '']) {
-      const state = await createThreadAction(EMPTY_STATE, form({ ...VALID, communityId }))
+  it('rejects a forum id that is not one', async () => {
+    for (const forumId of ['0', '-3', 'abc', '1e3', '']) {
+      const state = await createThreadAction(EMPTY_STATE, form({ ...VALID, forumId }))
       expect(state.error).toBeTruthy()
     }
     expect(writes.written).toEqual([])
@@ -325,13 +325,13 @@ describe('createThreadAction', () => {
     expect(writes.written).toEqual([])
   })
 
-  it('sends a held thread to its community rather than to a page that 404s', async () => {
+  it('sends a held thread to its forum rather than to a page that 404s', async () => {
     writes = new FakeWrites({ moderateNewThreads: true })
     installContainer()
 
     const to = await redirectOf(createThreadAction(EMPTY_STATE, form(VALID)))
 
-    expect(to).toBe(`/${SEED_COMMUNITY.general}-general?posted=moderated`)
+    expect(to).toBe(`/${SEED_FORUM.general}-general?posted=moderated`)
     expect(writes.written[0]!.visibility).toBe('unapproved')
   })
 
@@ -374,7 +374,7 @@ describe('createReplyAction', () => {
     expect(to).toBe('/thread/20-hello#post-99')
     expect(writes.replies[0]).toMatchObject({
       threadId: 20,
-      communityId: SEED_COMMUNITY.general,
+      forumId: SEED_FORUM.general,
       message: 'Quite so.',
       authorUserId: 1,
       authorUsername: 'ada',
@@ -403,7 +403,7 @@ describe('createReplyAction', () => {
   })
 
   it('refuses a member who may read a thread but not reply to it', async () => {
-    writes.thread = { community: { id: SEED_COMMUNITY.announcements } as ReplyTarget['community'] }
+    writes.thread = { forum: { id: SEED_FORUM.announcements } as ReplyTarget['forum'] }
 
     const state = await createReplyAction(EMPTY_STATE, form(REPLY))
 
@@ -454,8 +454,8 @@ class FakePostWrites implements PostWriteRepository {
   readonly moves: PostVisibilityRecord[] = []
   /** The stored post. Overridden per test. */
   post: Partial<PostEditTarget['post']> = {}
-  /** Which community the post is in, for the visibility test. */
-  communityId: number = SEED_COMMUNITY.general
+  /** Which forum the post is in, for the visibility test. */
+  forumId: number = SEED_FORUM.general
 
   async findEditTarget(threadId: number, postId: number): Promise<PostEditTarget | null> {
     // The thread-scoped lookup, faithfully: a post id alone addresses nothing.
@@ -464,7 +464,7 @@ class FakePostWrites implements PostWriteRepository {
       post: {
         id: 50,
         threadId: 20,
-        communityId: this.communityId,
+        forumId: this.forumId,
         authorUserId: 1,
         subject: null,
         message: 'the original body',
@@ -475,7 +475,7 @@ class FakePostWrites implements PostWriteRepository {
         ...this.post,
       },
       thread: { id: 20, slug: 'hello', title: 'Hello', isLocked: false, visibility: 'visible' },
-      community: { id: this.communityId, slug: 'general', isOpen: true },
+      forum: { id: this.forumId, slug: 'general', isOpen: true },
     }
   }
 
@@ -536,7 +536,7 @@ describe('F41 post actions', () => {
 
     /*
      * Thread-scoped, like F40's quote. Without the thread in the lookup, a post
-     * id from a form addresses any post on the board — including one in a community
+     * id from a form addresses any post on the board — including one in a forum
      * this actor was never authorised against.
      */
     it('does not find a post that is not in the given thread', async () => {
@@ -549,15 +549,15 @@ describe('F41 post actions', () => {
     })
 
     /*
-     * The post is real, the actor owns it, and the community it lives in is one
+     * The post is real, the actor owns it, and the forum it lives in is one
      * they cannot see. The answer must be the same as for a post that is not
-     * there: the existence of content in a hidden community is not something to
+     * there: the existence of content in a hidden forum is not something to
      * confirm — and a permission model that only guards the *rendering* of the
      * edit page would let a direct POST straight through.
      */
-    it('does not confirm that a post in a community it cannot see exists', async () => {
+    it('does not confirm that a post in a forum it cannot see exists', async () => {
       const hidden = 555
-      postWrites.communityId = hidden
+      postWrites.forumId = hidden
       installContainer(
         { postWrites },
         {
@@ -565,7 +565,7 @@ describe('F41 post actions', () => {
           chains: { ...SEED_BOARD.chains, [hidden]: [hidden] },
           overrides: [
             ...SEED_BOARD.overrides,
-            { communityId: hidden, groupId: SEED_GROUP.registered, overrides: { canView: false } },
+            { forumId: hidden, groupId: SEED_GROUP.registered, overrides: { canView: false } },
           ],
         },
       )

@@ -4,8 +4,8 @@ import 'server-only'
  * F49 — which reports an actor may see, resolved once.
  *
  * Two sets, because reports have two scopes. A report about a post or a thread
- * belongs to that community's moderators; a report about a *member* belongs to no
- * community, so it is board staff's or it is nobody's.
+ * belongs to that forum's moderators; a report about a *member* belongs to no
+ * forum, so it is board staff's or it is nobody's.
  *
  * Not a Server Action module: a `'use server'` file publishes every export as a
  * callable endpoint, and this one hands back a permission decision.
@@ -18,10 +18,10 @@ import { getContainer } from './container'
 export async function resolveReportScope(): Promise<ReportScope> {
   const actor = await getActor()
   const { authorizer } = getContainer()
-  if (actor.userId === null) return { communityIds: [], global: false }
+  if (actor.userId === null) return { forumIds: [], global: false }
 
   return {
-    communityIds: await authorizer.moderatedCommunityIds(actor),
+    forumIds: await authorizer.moderatedForumIds(actor),
     /*
      * `modcp.access` rather than a new permission. A report about a member is
      * board-wide by nature, and the board already has a field for "this person
@@ -34,5 +34,5 @@ export async function resolveReportScope(): Promise<ReportScope> {
 
 /** True when this actor has any report surface at all. */
 export function hasReportScope(scope: ReportScope): boolean {
-  return scope.communityIds.length > 0 || scope.global
+  return scope.forumIds.length > 0 || scope.global
 }

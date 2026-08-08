@@ -42,14 +42,14 @@ function after(
   return compare(row, cursor, sort) > 0
 }
 
-/** Read-only demo data. Like the community fixture, it deliberately has no writes. */
+/** Read-only demo data. Like the forum fixture, it deliberately has no writes. */
 export class FixtureThreadRepository implements ThreadRepository {
   constructor(
     private readonly rows: readonly ThreadListingRow[] = SEED_THREAD_ROWS,
   ) {}
 
-  async locateCommunity(threadId: number): Promise<number | null> {
-    return this.rows.find((entry) => entry.id === threadId)?.communityId ?? null
+  async locateForum(threadId: number): Promise<number | null> {
+    return this.rows.find((entry) => entry.id === threadId)?.forumId ?? null
   }
 
   async findById(
@@ -62,8 +62,8 @@ export class FixtureThreadRepository implements ThreadRepository {
     return row ? { ...row } : null
   }
 
-  async listCommunity(
-    communityId: number,
+  async listForum(
+    forumId: number,
     options: {
       readonly after?: ThreadCursor
       readonly limit: number
@@ -75,7 +75,7 @@ export class FixtureThreadRepository implements ThreadRepository {
     const matches = this.rows
       .filter(
         (row) =>
-          row.communityId === communityId &&
+          row.forumId === forumId &&
           /* The same predicate the Postgres adapter applies, so a fixture-mode
              leak would be a fixture-mode bug rather than an untested path. */
           options.scope.states.includes(row.visibility) &&

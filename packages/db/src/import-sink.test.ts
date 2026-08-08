@@ -42,7 +42,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await harness.db.execute(sql`
-    truncate posts, threads, communities, legacy_ids restart identity cascade
+    truncate posts, threads, forums, legacy_ids restart identity cascade
   `)
   await harness.db.execute(sql`delete from users where legacy_mybb_uid is not null`)
 })
@@ -58,11 +58,11 @@ const user = (uid: number, name = `mybb${uid}`) => ({
   legacyGroupId: 2,
 })
 
-const community = (fid: number, parent: number | null = null) => ({
+const forum = (fid: number, parent: number | null = null) => ({
   legacyId: fid,
-  type: 'community' as const,
-  title: `Community ${fid}`,
-  description: 'A community',
+  type: 'forum' as const,
+  title: `Forum ${fid}`,
+  description: 'A forum',
   legacyParentId: parent,
   displayOrder: fid,
   linkUrl: null,
@@ -70,7 +70,7 @@ const community = (fid: number, parent: number | null = null) => ({
 
 const thread = (tid: number, fid: number, uid: number) => ({
   legacyId: tid,
-  legacyCommunityId: fid,
+  legacyForumId: fid,
   title: `Thread ${tid}`,
   legacyAuthorId: uid,
   authorUsername: `mybb${uid}`,
@@ -86,7 +86,7 @@ const thread = (tid: number, fid: number, uid: number) => ({
 const post = (pid: number, tid: number, fid: number, uid: number, at = '2015-01-01T00:00:00Z') => ({
   legacyId: pid,
   legacyThreadId: tid,
-  legacyCommunityId: fid,
+  legacyForumId: fid,
   legacyAuthorId: uid,
   authorUsername: `mybb${uid}`,
   body: `Post ${pid} body`,
@@ -97,7 +97,7 @@ const post = (pid: number, tid: number, fid: number, uid: number, at = '2015-01-
 
 async function seedTree(): Promise<void> {
   await sink.putUsers([user(1)])
-  await sink.putCommunities([community(3)])
+  await sink.putForums([forum(3)])
   await sink.putThreads([thread(91, 3, 1)])
 }
 
@@ -167,27 +167,27 @@ describe('rows whose parent is missing', () => {
     expect(await count('posts')).toBe(0)
   })
 
-  it('skips a thread whose community was never imported', async () => {
+  it('skips a thread whose forum was never imported', async () => {
     await sink.putUsers([user(1)])
     const result = await sink.putThreads([thread(91, 77, 1)])
 
-    expect(result.skipped).toEqual([{ legacyId: 91, reason: 'community 77 not imported' }])
+    expect(result.skipped).toEqual([{ legacyId: 91, reason: 'forum 77 not imported' }])
   })
 
   /*
-   * A child community arriving before its parent is skipped rather than reparented
+   * A child forum arriving before its parent is skipped rather than reparented
    * to the root — and picked up on the next pass. MyBB's fid order usually puts
    * parents first, and "usually" is not a thing to build a tree on.
    */
-  it('skips a child community until its parent exists, then places it', async () => {
-    const first = await sink.putCommunities([community(9, 3)])
-    expect(first.skipped).toEqual([{ legacyId: 9, reason: 'parent community 3 not imported yet' }])
+  it('skips a child forum until its parent exists, then places it', async () => {
+    const first = await sink.putForums([forum(9, 3)])
+    expect(first.skipped).toEqual([{ legacyId: 9, reason: 'parent forum 3 not imported yet' }])
 
-    await sink.putCommunities([community(3)])
-    const second = await sink.putCommunities([community(9, 3)])
+    await sink.putForums([forum(3)])
+    const second = await sink.putForums([forum(9, 3)])
     expect(second.inserted).toBe(1)
 
-    const rows = await rowsOf<{ path: string; depth: number }>(sql`select path, depth from communities where legacy_mybb_fid = 9`)
+    const rows = await rowsOf<{ path: string; depth: number }>(sql`select path, depth from forums where legacy_mybb_fid = 9`)
 
     expect(rows[0]!.depth).toBe(1)
     expect(rows[0]!.path).toMatch(/^\d+\.\d+$/)
@@ -200,7 +200,7 @@ describe('rows whose parent is missing', () => {
    */
   it('keeps a post whose author was deleted on the old board', async () => {
     await sink.putUsers([user(1)])
-    await sink.putCommunities([community(3)])
+    await sink.putForums([forum(3)])
     await sink.putThreads([thread(91, 3, 1)])
 
     const result = await sink.putPosts([
@@ -339,7 +339,7 @@ describe('the search index after an import', () => {
     (
       await new PostgresSearchRepository(harness.db).search(
         { terms, grouping: 'posts', sort: 'relevance', limit: 10, after: null },
-        { communityIds: [1], viewerUserId: null, content: PUBLIC_CONTENT },
+        { forumIds: [1], viewerUserId: null, content: PUBLIC_CONTENT },
       )
     ).hits.length
 
@@ -395,7 +395,7 @@ describe('the legacy id map', () => {
     const rows = await rowsOf<{ kind: string; legacy_id: number }>(sql`select kind, legacy_id from legacy_ids order by kind`)
 
     expect(rows).toEqual([
-      { kind: 'community', legacy_id: 3 },
+      { kind: 'forum', legacy_id: 3 },
       { kind: 'post', legacy_id: 4102 },
       { kind: 'thread', legacy_id: 91 },
       { kind: 'user', legacy_id: 1 },
@@ -415,7 +415,7 @@ describe('the legacy id map', () => {
 
 describe('an empty page', () => {
   /* The runner calls with an empty page at the end of a table. */
-  it.each(['putUsers', 'putCommunities', 'putThreads', 'putPosts'] as const)(
+  it.each(['putUsers', 'putForums', 'putThreads', 'putPosts'] as const)(
     '%s costs nothing and reports nothing',
     async (method) => {
       expect(await sink[method]([])).toEqual({ inserted: 0, updated: 0, skipped: [] })

@@ -16,7 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const threadId = idFrom((await params).id)
   const postId = idFrom(url.searchParams.get('post'))
   const actor = await getActor()
-  const { communities, posts, threads, authorizer, readState } = getContainer()
+  const { forums, posts, threads, authorizer, readState } = getContainer()
   if (threadId === null || postId === null || actor.userId === null || readState === null) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
 
   /*
@@ -26,10 +26,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
    */
   const thread = await threads.findById(threadId, PUBLIC_CONTENT)
   if (!thread) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
-  const community = await communities.findById(thread.communityId)
-  if (!community || community.type !== 'community') return NextResponse.redirect(new URL('/', request.url), { status: 303 })
-  const matrix = await authorizer.communityMatrix(actor, community.id)
-  if (!authorizer.can(actor, 'thread.view', { communityId: community.id, community: matrix })) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
+  const forum = await forums.findById(thread.forumId)
+  if (!forum || forum.type !== 'forum') return NextResponse.redirect(new URL('/', request.url), { status: 303 })
+  const matrix = await authorizer.forumMatrix(actor, forum.id)
+  if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
   if ((await posts.findVisibleById(threadId, postId)) === null) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
 
   await readState.markThreadRead(actor.userId, threadId, postId, new Date())

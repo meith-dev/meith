@@ -93,7 +93,7 @@ Worth knowing before they fire.
 >   markup to the build's theme. It is how a board offers three looks without
 >   maintaining three sets of components.
 > - **Pairing rules matter more.** `midnight`'s note about overriding
->   `CommunityRow` and `CategoryBlock` together is now a rule a *member* can trip
+>   `ForumRow` and `CategoryBlock` together is now a rule a *member* can trip
 >   over, not only an operator.
 
 ## What the freeze covers
@@ -264,7 +264,7 @@ design system that pulled a client boundary in behind a `<Card>` would cost the
 board the property the slot registry exists to protect.
 
 That is also why `buttonVariants` is a separate module from `Button`. Almost
-every button on a community is not a button: "New thread" is a link, "Mark read" is a
+every button on a forum is not a button: "New thread" is a link, "Mark read" is a
 native form submit. Both want the class recipe on a plain element —
 
 ```tsx

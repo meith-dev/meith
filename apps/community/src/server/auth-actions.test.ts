@@ -127,7 +127,7 @@ const { EMPTY_STATE } = await import('./auth-form-state')
 const { SESSION_COOKIE } = await import('./cookies')
 
 /** The container memoises onto globalThis; drop it for a clean board per test. */
-const CONTAINER_KEY = Symbol.for('@meith/community.container')
+const CONTAINER_KEY = Symbol.for('@meith/forum.container')
 
 function form(entries: Record<string, string>): FormData {
   const f = new FormData()

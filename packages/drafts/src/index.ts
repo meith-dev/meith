@@ -1,6 +1,6 @@
 /** F44 — durable drafts, with no browser dependency. */
 export interface Draft {
-  readonly communityId: number
+  readonly forumId: number
   readonly threadId: number | null
   readonly title: string
   readonly message: string
@@ -8,7 +8,7 @@ export interface Draft {
 }
 
 export interface DraftRepository {
-  find(userId: number, communityId: number, threadId: number | null): Promise<Draft | null>
+  find(userId: number, forumId: number, threadId: number | null): Promise<Draft | null>
   save(userId: number, draft: Draft): Promise<void>
-  remove(userId: number, communityId: number, threadId: number | null): Promise<void>
+  remove(userId: number, forumId: number, threadId: number | null): Promise<void>
 }

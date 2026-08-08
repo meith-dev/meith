@@ -11,7 +11,7 @@ import { eq, sql } from 'drizzle-orm'
 import type { Database } from './client'
 import { applyCreatedContentCounters, rollUpAncestorCounters } from './content-counters'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { communities, posts, threads, users } from './schema'
+import { forums, posts, threads, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -26,8 +26,8 @@ const AT = new Date('2026-07-30T12:00:00Z')
  *     "updates the parent".
  */
 const CATEGORY = 1
-const COMMUNITY = 4
-const SUBCOMMUNITY = 9
+const FORUM = 4
+const SUBFORUM = 9
 const DEEP = 12
 const DECOY = 40
 const DECOY_CHILD = 41
@@ -46,7 +46,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from outbox`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -60,15 +60,15 @@ beforeEach(async () => {
     primaryGroupId: 2,
   })
 
-  await db.insert(communities).values([
+  await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: COMMUNITY, title: 'Community', slug: 'community', path: '1.4', depth: 1, parentId: CATEGORY },
-    { id: SUBCOMMUNITY, title: 'Sub', slug: 'sub', path: '1.4.9', depth: 2, parentId: COMMUNITY },
-    { id: DEEP, title: 'Deep', slug: 'deep', path: '1.4.9.12', depth: 3, parentId: SUBCOMMUNITY },
+    { id: FORUM, title: 'Forum', slug: 'forum', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: SUBFORUM, title: 'Sub', slug: 'sub', path: '1.4.9', depth: 2, parentId: FORUM },
+    { id: DEEP, title: 'Deep', slug: 'deep', path: '1.4.9.12', depth: 3, parentId: SUBFORUM },
     // Sibling of `1.4` whose path shares its text prefix, plus a child of it —
     // the child is what makes the trap reachable: `1.40.41` starts with the
-    // text `1.4`, so a prefix match without the separator makes community 4 an
-    // ancestor of a community it has nothing to do with.
+    // text `1.4`, so a prefix match without the separator makes forum 4 an
+    // ancestor of a forum it has nothing to do with.
     { id: DECOY, title: 'Decoy', slug: 'decoy', path: '1.40', depth: 1, parentId: CATEGORY },
     { id: DECOY_CHILD, title: 'Decoy sub', slug: 'decoy-sub', path: '1.40.41', depth: 2, parentId: DECOY },
   ])
@@ -76,7 +76,7 @@ beforeEach(async () => {
   await db.insert(threads).values([
     {
       id: 20,
-      communityId: DEEP,
+      forumId: DEEP,
       title: 'Hello',
       slug: 'hello',
       authorUserId: 1,
@@ -84,7 +84,7 @@ beforeEach(async () => {
     },
     {
       id: 22,
-      communityId: DECOY_CHILD,
+      forumId: DECOY_CHILD,
       title: 'Elsewhere',
       slug: 'elsewhere',
       authorUserId: 1,
@@ -97,7 +97,7 @@ async function addPost(id: number, isFirstPost: boolean, at = AT): Promise<void>
   await db.insert(posts).values({
     id,
     threadId: 20,
-    communityId: DEEP,
+    forumId: DEEP,
     authorUserId: 1,
     authorUsername: 'ada',
     message: 'Hello',
@@ -109,13 +109,13 @@ async function addPost(id: number, isFirstPost: boolean, at = AT): Promise<void>
 async function counters(id: number) {
   const [row] = await db
     .select({
-      threadCount: communities.threadCount,
-      postCount: communities.postCount,
-      lastPostId: communities.lastPostId,
-      lastPostThreadTitle: communities.lastPostThreadTitle,
+      threadCount: forums.threadCount,
+      postCount: forums.postCount,
+      lastPostId: forums.lastPostId,
+      lastPostThreadTitle: forums.lastPostThreadTitle,
     })
-    .from(communities)
-    .where(eq(communities.id, id))
+    .from(forums)
+    .where(eq(forums.id, id))
   return row
 }
 
@@ -126,7 +126,7 @@ describe('rollUpAncestorCounters', () => {
       applyCreatedContentCounters(tx, {
         postId: 30,
         threadId: 20,
-        communityId: DEEP,
+        forumId: DEEP,
         authorId: 1,
         authorUsername: 'ada',
         threadTitle: 'Hello',
@@ -137,7 +137,7 @@ describe('rollUpAncestorCounters', () => {
 
     expect(await rollUpAncestorCounters(db, 30)).toBe(true)
 
-    for (const id of [CATEGORY, COMMUNITY, SUBCOMMUNITY]) {
+    for (const id of [CATEGORY, FORUM, SUBFORUM]) {
       expect(await counters(id)).toMatchObject({
         threadCount: 1,
         postCount: 1,
@@ -146,7 +146,7 @@ describe('rollUpAncestorCounters', () => {
       })
     }
 
-    // The posting community was counted synchronously and must not be counted twice.
+    // The posting forum was counted synchronously and must not be counted twice.
     expect(await counters(DEEP)).toMatchObject({ threadCount: 1, postCount: 1 })
     // `1.40` shares a text prefix with `1.4` and is not an ancestor of anything.
     expect(await counters(DECOY)).toMatchObject({ threadCount: 0, postCount: 0 })
@@ -154,12 +154,12 @@ describe('rollUpAncestorCounters', () => {
 
   it('does not treat a text-prefix sibling as an ancestor', async () => {
     // `1.40.41` starts with the characters of `1.4`. A prefix match missing the
-    // separator would credit community 4 with a post from a subtree it does not
+    // separator would credit forum 4 with a post from a subtree it does not
     // contain — the same trap D22 records for the tree read.
     await db.insert(posts).values({
       id: 40,
       threadId: 22,
-      communityId: DECOY_CHILD,
+      forumId: DECOY_CHILD,
       authorUserId: 1,
       authorUsername: 'ada',
       message: 'Elsewhere',
@@ -171,8 +171,8 @@ describe('rollUpAncestorCounters', () => {
 
     expect(await counters(DECOY)).toMatchObject({ threadCount: 1, postCount: 1 })
     expect(await counters(CATEGORY)).toMatchObject({ threadCount: 1, postCount: 1 })
-    expect(await counters(COMMUNITY)).toMatchObject({ threadCount: 0, postCount: 0 })
-    expect(await counters(SUBCOMMUNITY)).toMatchObject({ threadCount: 0, postCount: 0 })
+    expect(await counters(FORUM)).toMatchObject({ threadCount: 0, postCount: 0 })
+    expect(await counters(SUBFORUM)).toMatchObject({ threadCount: 0, postCount: 0 })
   })
 
   it('is a no-op when the same event is delivered again', async () => {

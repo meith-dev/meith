@@ -60,8 +60,8 @@ describe('the midnight theme', () => {
    * failure rather than a discovery.
    */
   it.each([
-    ['CommunityRow', 'CategoryBlock'],
-    ['ThreadRow', 'CommunityDisplay'],
+    ['ForumRow', 'CategoryBlock'],
+    ['ThreadRow', 'ForumDisplay'],
   ])('overrides %s together with its container %s', (row, container) => {
     const own = Object.keys(midnightTheme.slots)
     expect(own).toContain(row)

@@ -24,7 +24,7 @@ import {
   profileFieldRemove,
 } from './profile-fields'
 import {
-  communityCreate,
+  forumCreate,
   settingsGet,
   settingsSet,
   userCreate,
@@ -141,7 +141,7 @@ const commands: Command[] = [
     name: 'import',
     summary: 'Import a MyBB board. Resumable — run it again to continue.',
     usage:
-      'MYBB_PASSWORD=… community import --host H --user U --database D ' +
+      'MYBB_PASSWORD=… forum import --host H --user U --database D ' +
       '[--prefix mybb_] [--port 3306] [--charset utf8mb4] [--ssl] ' +
       '[--budget 20000] [--page-size 200]',
     async run(args: readonly string[]) {
@@ -239,12 +239,12 @@ const commands: Command[] = [
   },
 
   {
-    name: 'community:create',
-    summary: 'Create a category, community or link.',
+    name: 'forum:create',
+    summary: 'Create a category, forum or link.',
     usage:
-      'community community:create --title <title> --slug <slug> [--parent <id>] ' +
-      '[--type category|community|link] [--description <text>] [--link-url <url>]',
-    run: communityCreate,
+      'community forum:create --title <title> --slug <slug> [--parent <id>] ' +
+      '[--type category|forum|link] [--description <text>] [--link-url <url>]',
+    run: forumCreate,
   },
 
   {

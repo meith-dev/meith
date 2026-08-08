@@ -36,7 +36,7 @@ import {
 import type { AttachmentRepository } from '@meith/attachments'
 import type { AvatarRepository } from '@meith/avatars'
 import { env, logger } from '@meith/core'
-import { CachedCommunityRepository, type CommunityRepository } from '@meith/communities'
+import { CachedForumRepository, type ForumRepository } from '@meith/forums'
 import type {
   InlineModerationRepository,
   ModerationQueueRepository,
@@ -72,7 +72,7 @@ import {
   ActorBuilder,
   createPostgresAccountStore,
   PostgresBanRepository,
-  PostgresCommunityRepository,
+  PostgresForumRepository,
   PostgresThreadRepository,
   PostgresThreadWriteRepository,
   PostgresPostWriteRepository,
@@ -104,11 +104,11 @@ import {
 } from '@meith/db'
 import { drivers } from '@meith/drivers'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 
 import { AUTH_CONFIG, REMEMBER_DAYS, SESSION_IDLE_DAYS, boardAuthConfig } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
-import { FixtureCommunityRepository } from './fixture-community-repo'
+import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
@@ -126,19 +126,19 @@ export interface Container {
   /** Remember-me families + session rotation (F17). */
   readonly sessions: SessionService
   /**
-   * The community tree (F16), cached for the structural read and uncached for the
-   * listing read — see `CommunityRepository.listListing`.
+   * The forum tree (F16), cached for the structural read and uncached for the
+   * listing read — see `ForumRepository.listListing`.
    */
-  readonly communities: CommunityRepository
+  readonly forums: ForumRepository
   /** Keyset-paged thread listing (F30). */
   readonly threads: ThreadRepository
   /**
    * The posting write path — new threads (F39) and replies (F40). One object
-   * because both write a post and both read the same community flags; splitting
+   * because both write a post and both read the same forum flags; splitting
    * them would mean two adapters over the same three tables.
    *
    * `null` in fixture mode, which serves sample data from memory and would lose
-   * a thread on restart — the same refusal `FixtureCommunityRepository` makes for
+   * a thread on restart — the same refusal `FixtureForumRepository` makes for
    * structure (D38). The composer and reply routes, and the links to them, are
    * absent rather than broken when this is null.
    */
@@ -197,7 +197,7 @@ export interface Container {
    */
   readonly notifications: NotificationRepository | null
   /**
-   * Thread and community subscriptions (F56). `null` in fixture mode (D38): both
+   * Thread and forum subscriptions (F56). `null` in fixture mode (D38): both
    * tables are durable by nature — a follow list that resets on restart is a
    * member being silently unsubscribed — and the notifier behind them needs a
    * scheduler, which fixture mode also refuses.
@@ -320,7 +320,7 @@ export interface SchedulerBundle {
  * — the same trick the pg client uses — to guarantee a single Authorizer (and
  * therefore a single audit-log sink) per runtime.
  */
-const GLOBAL_KEY = Symbol.for('@meith/community.container')
+const GLOBAL_KEY = Symbol.for('@meith/forum.container')
 
 type GlobalWithContainer = typeof globalThis & {
   [GLOBAL_KEY]?: Container
@@ -341,7 +341,7 @@ function build(): Container {
         kind: event.kind,
         userId: event.userId,
         action: event.action,
-        communityId: event.communityId ?? null,
+        forumId: event.forumId ?? null,
       },
       'authorization bypass',
     )
@@ -360,7 +360,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     authorizationSource,
     authorizer: new Authorizer(authorizationSource, { onBypass }),
     actorSource: new FixtureActorSource(store),
-    communities: cached(new FixtureCommunityRepository()),
+    forums: cached(new FixtureForumRepository()),
     threads: new FixtureThreadRepository(),
     threadWrites: null,
     postWrites: null,
@@ -407,10 +407,10 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
  * either repository: the fixture path gets identical behaviour, so a caching bug
  * shows up in the app-tier tests instead of only against Postgres. The decorator
  * caches the structural tree read and deliberately passes the listing read
- * straight through — see `CachedCommunityRepository.listListing`.
+ * straight through — see `CachedForumRepository.listListing`.
  */
-function cached(inner: CommunityRepository): CommunityRepository {
-  return new CachedCommunityRepository(inner, drivers().cache)
+function cached(inner: ForumRepository): ForumRepository {
+  return new CachedForumRepository(inner, drivers().cache)
 }
 
 /**
@@ -472,7 +472,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     // == 1), which the seed migration also uses — so fixture and Postgres guests
     // resolve the same group.
     actorSource: new ActorBuilder(db, { guestGroupId: 1 }),
-    communities: cached(new PostgresCommunityRepository(db)),
+    forums: cached(new PostgresForumRepository(db)),
     threads: new PostgresThreadRepository(db),
     threadWrites: new PostgresThreadWriteRepository(db),
     postWrites: new PostgresPostWriteRepository(db),
@@ -529,7 +529,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
        * at all, which is the D32 shape: absent rather than failing.
        */
       mail: drivers().mail,
-      themeKey: communityConfig.defaultTheme,
+      themeKey: forumConfig.defaultTheme,
       /*
        * F42. The serverless profile drains the queue through
        * `/api/system/tick`, so the re-encode handler has to be registered here
@@ -564,7 +564,7 @@ export function getContainer(): Container {
    */
   if (
     !cached ||
-    typeof cached.threads?.locateCommunity !== 'function' ||
+    typeof cached.threads?.locateForum !== 'function' ||
     typeof cached.posts?.listThread !== 'function' ||
     typeof cached.posts?.findVisibleById !== 'function' ||
     cached.readState === undefined ||

@@ -2,23 +2,23 @@
  * F29 — the board index view model.
  *
  * The cases here are the ones that make a listing wrong rather than ugly: a
- * community the viewer may not see, a *child* of one, a deleted author, and an empty
- * community. All four are invisible on the fixture board unless asked for
+ * forum the viewer may not see, a *child* of one, a deleted author, and an empty
+ * forum. All four are invisible on the fixture board unless asked for
  * deliberately, and all four are how a real board differs from a demo.
  */
 
-import type { CommunityListingRow } from '@meith/communities'
+import type { ForumListingRow } from '@meith/forums'
 import { describe, expect, it } from 'vitest'
 
 import { buildBoardIndexView } from './board-index'
 
 const NOW = new Date('2026-07-30T12:00:00Z')
 
-function community(over: Partial<CommunityListingRow> & { id: number }): CommunityListingRow {
+function forum(over: Partial<ForumListingRow> & { id: number }): ForumListingRow {
   return {
-    type: 'community',
-    title: `Community ${over.id}`,
-    slug: `community-${over.id}`,
+    type: 'forum',
+    title: `Forum ${over.id}`,
+    slug: `forum-${over.id}`,
     description: null,
     parentId: null,
     path: String(over.id),
@@ -32,64 +32,64 @@ function community(over: Partial<CommunityListingRow> & { id: number }): Communi
   }
 }
 
-function view(rows: readonly CommunityListingRow[], visible: readonly number[]) {
+function view(rows: readonly ForumListingRow[], visible: readonly number[]) {
   return buildBoardIndexView({
     rows,
-    visibleCommunityIds: new Set(visible),
+    visibleForumIds: new Set(visible),
     now: NOW,
   })
 }
 
 describe('buildBoardIndexView', () => {
-  it('groups communities under their top-level block', () => {
+  it('groups forums under their top-level block', () => {
     const result = view(
       [
-        community({ id: 1, type: 'category', title: 'Community' }),
-        community({ id: 2, title: 'General', parentId: 1 }),
-        community({ id: 3, title: 'Announcements', parentId: 1 }),
+        forum({ id: 1, type: 'category', title: 'Forum' }),
+        forum({ id: 2, title: 'General', parentId: 1 }),
+        forum({ id: 3, title: 'Announcements', parentId: 1 }),
       ],
       [1, 2, 3],
     )
 
     expect(result.blocks).toHaveLength(1)
-    expect(result.blocks[0]!.block.category.title).toBe('Community')
-    expect(result.blocks[0]!.communities.map((f) => f.title)).toEqual([
+    expect(result.blocks[0]!.block.category.title).toBe('Forum')
+    expect(result.blocks[0]!.forums.map((f) => f.title)).toEqual([
       'General',
       'Announcements',
     ])
   })
 
-  it('shows a root-level community as its own block', () => {
-    const result = view([community({ id: 1, title: 'Lonely' })], [1])
+  it('shows a root-level forum as its own block', () => {
+    const result = view([forum({ id: 1, title: 'Lonely' })], [1])
 
     expect(result.blocks[0]!.block.category.title).toBe('Lonely')
-    expect(result.blocks[0]!.communities).toEqual([])
+    expect(result.blocks[0]!.forums).toEqual([])
   })
 
-  it('omits a community the viewer cannot see', () => {
+  it('omits a forum the viewer cannot see', () => {
     const result = view(
       [
-        community({ id: 1, type: 'category' }),
-        community({ id: 2, title: 'Public', parentId: 1 }),
-        community({ id: 3, title: 'Staff only', parentId: 1 }),
+        forum({ id: 1, type: 'category' }),
+        forum({ id: 2, title: 'Public', parentId: 1 }),
+        forum({ id: 3, title: 'Staff only', parentId: 1 }),
       ],
       [1, 2],
     )
 
-    expect(result.blocks[0]!.communities.map((f) => f.title)).toEqual(['Public'])
+    expect(result.blocks[0]!.forums.map((f) => f.title)).toEqual(['Public'])
   })
 
   /*
    * The case this file exists for. `buildTree` promotes orphans to roots (D22),
    * so filtering the flat list and building the tree would surface a visible
    * child of a hidden category as a top-level block — telling a guest both that
-   * the community exists and what it is called.
+   * the forum exists and what it is called.
    */
   it('drops a visible child whose parent is hidden, rather than promoting it', () => {
     const result = view(
       [
-        community({ id: 1, type: 'category', title: 'Staff' }),
-        community({ id: 2, title: 'Visible child', parentId: 1 }),
+        forum({ id: 1, type: 'category', title: 'Staff' }),
+        forum({ id: 2, title: 'Visible child', parentId: 1 }),
       ],
       [2],
     )
@@ -106,9 +106,9 @@ describe('buildBoardIndexView', () => {
   it('drops a grandchild whose parent was dropped for being orphaned', () => {
     const result = view(
       [
-        community({ id: 1, type: 'category', title: 'Staff' }),
-        community({ id: 2, title: 'Child', parentId: 1 }),
-        community({ id: 3, title: 'Grandchild', parentId: 2 }),
+        forum({ id: 1, type: 'category', title: 'Staff' }),
+        forum({ id: 2, title: 'Child', parentId: 1 }),
+        forum({ id: 3, title: 'Grandchild', parentId: 2 }),
       ],
       [2, 3],
     )
@@ -116,26 +116,26 @@ describe('buildBoardIndexView', () => {
     expect(result.blocks).toEqual([])
   })
 
-  it('lists deeper communities as subcommunity links on their parent row', () => {
+  it('lists deeper forums as subforum links on their parent row', () => {
     const result = view(
       [
-        community({ id: 1, type: 'category' }),
-        community({ id: 2, title: 'General', parentId: 1 }),
-        community({ id: 3, title: 'Off Topic', parentId: 2 }),
+        forum({ id: 1, type: 'category' }),
+        forum({ id: 2, title: 'General', parentId: 1 }),
+        forum({ id: 3, title: 'Off Topic', parentId: 2 }),
       ],
       [1, 2, 3],
     )
 
-    expect(result.blocks[0]!.communities).toHaveLength(1)
-    expect(result.blocks[0]!.communities[0]!.subcommunities).toEqual([
-      { label: 'Off Topic', href: '/3-community-3' },
+    expect(result.blocks[0]!.forums).toHaveLength(1)
+    expect(result.blocks[0]!.forums[0]!.subforums).toEqual([
+      { label: 'Off Topic', href: '/3-forum-3' },
     ])
   })
 
-  it('formats the last post, and links the thread rather than the community', () => {
+  it('formats the last post, and links the thread rather than the forum', () => {
     const result = view(
       [
-        community({
+        forum({
           id: 1,
           lastPost: {
             postId: 99,
@@ -165,7 +165,7 @@ describe('buildBoardIndexView', () => {
   it('renders a deleted author by name with no profile link', () => {
     const result = view(
       [
-        community({
+        forum({
           id: 1,
           lastPost: {
             postId: 1,
@@ -186,37 +186,37 @@ describe('buildBoardIndexView', () => {
     expect(author.profileHref).toBeNull()
   })
 
-  it('reports no last post for an empty community', () => {
-    const result = view([community({ id: 1 })], [1])
+  it('reports no last post for an empty forum', () => {
+    const result = view([forum({ id: 1 })], [1])
 
     expect(result.blocks[0]!.block.category.lastPost).toBeNull()
   })
 
-  it('sends a link community to its target and everything else to its community page', () => {
+  it('sends a link forum to its target and everything else to its forum page', () => {
     const result = view(
       [
-        community({ id: 1, type: 'category' }),
-        community({ id: 2, slug: 'general', parentId: 1 }),
-        community({ id: 3, type: 'link', linkUrl: 'https://example.com/docs', parentId: 1 }),
+        forum({ id: 1, type: 'category' }),
+        forum({ id: 2, slug: 'general', parentId: 1 }),
+        forum({ id: 3, type: 'link', linkUrl: 'https://example.com/docs', parentId: 1 }),
       ],
       [1, 2, 3],
     )
 
-    expect(result.blocks[0]!.communities.map((f) => f.href)).toEqual([
+    expect(result.blocks[0]!.forums.map((f) => f.href)).toEqual([
       '/2-general',
       'https://example.com/docs',
     ])
   })
 
   it('offers no mark-all-read action until read tracking exists', () => {
-    expect(view([community({ id: 1 })], [1]).index.markAllReadAction).toBeNull()
+    expect(view([forum({ id: 1 })], [1]).index.markAllReadAction).toBeNull()
   })
 
-  it('marks the supplied unread communities and exposes the native mark-all target', () => {
+  it('marks the supplied unread forums and exposes the native mark-all target', () => {
     const result = buildBoardIndexView({
-      rows: [community({ id: 1 })],
-      visibleCommunityIds: new Set([1]),
-      unreadCommunityIds: new Set([1]),
+      rows: [forum({ id: 1 })],
+      visibleForumIds: new Set([1]),
+      unreadForumIds: new Set([1]),
       markAllReadAction: '/api/read/all',
       now: new Date('2026-07-30T09:00:00Z'),
     })

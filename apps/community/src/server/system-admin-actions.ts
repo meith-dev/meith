@@ -154,8 +154,8 @@ export async function clearCacheAction(
 
     const what = form.get('what')
     const tag =
-      what === 'communities'
-        ? CacheTags.communityTree()
+      what === 'forums'
+        ? CacheTags.forumTree()
         : what === 'permissions'
           ? CacheTags.permissions()
           : null

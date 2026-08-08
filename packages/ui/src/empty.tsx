@@ -1,16 +1,16 @@
 /**
  * The empty state.
  *
- * A community is mostly empty on its first day and permanently empty in one corner
- * or another after that: a new community with no threads, a search with no results,
+ * A forum is mostly empty on its first day and permanently empty in one corner
+ * or another after that: a new forum with no threads, a search with no results,
  * a members list filtered down to nobody. Rendering nothing for those is the
  * commonest way board software looks broken — a reader cannot tell an empty
- * community from a community that failed to load, and the difference matters most
+ * forum from a forum that failed to load, and the difference matters most
  * exactly when the board is new and the reader is deciding whether to stay.
  *
  * So the component asks for a sentence and, where there is one, the way out.
  * `EmptyAction` is optional because "no results" sometimes has no next step, but
- * "this community has no threads" always does and it is *post the first one*.
+ * "this forum has no threads" always does and it is *post the first one*.
  */
 
 import { cn } from './utils'

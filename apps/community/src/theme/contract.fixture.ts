@@ -65,17 +65,17 @@ const LAST_POST = {
   at: TIME,
 }
 
-const COMMUNITY = {
+const FORUM = {
   id: 3,
   title: 'General discussion',
   description: 'Anything that does not fit elsewhere.',
   href: '/f/3-general',
-  type: 'community' as const,
+  type: 'forum' as const,
   threadCount: 412,
   postCount: 9130,
   lastPost: LAST_POST,
   isUnread: true,
-  subcommunities: [{ label: 'Introductions', href: '/f/8-introductions' }],
+  subforums: [{ label: 'Introductions', href: '/f/8-introductions' }],
 }
 
 const THREAD = {
@@ -279,7 +279,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       bodyHtml: '<p>New address on <strong>Friday</strong>.</p>',
       postedBy: AUTHOR,
       postedAt: TIME,
-      community: { label: 'General discussion', href: '/f/3-general' },
+      forum: { label: 'General discussion', href: '/f/3-general' },
     },
     requires: ['The board is moving', '<strong>Friday</strong>', 'Marlow'],
   },
@@ -302,7 +302,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       region('online'),
       /*
        * A theme is free to put the live pair anywhere — the default builds a
-       * rail out of it and midnight stacks it above the communities — and not free
+       * rail out of it and midnight stacks it above the forums — and not free
        * to drop it. A region silently absent is the failure the whole
        * rendering contract exists to catch, and it is the likeliest one here
        * because the field is optional for compatibility.
@@ -315,14 +315,14 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
 
   CategoryBlock: {
     model: {
-      category: { ...COMMUNITY, id: 1, title: 'Community', type: 'category', href: '/f/1-community' },
-      children: region('community-rows'),
+      category: { ...FORUM, id: 1, title: 'Forum', type: 'category', href: '/f/1-forum' },
+      children: region('forum-rows'),
     },
-    requires: ['Community', region('community-rows')],
+    requires: ['Forum', region('forum-rows')],
   },
 
-  CommunityRow: {
-    model: { community: COMMUNITY },
+  ForumRow: {
+    model: { forum: FORUM },
     requires: ['General discussion', '/f/3-general', LAST_POST.href],
   },
 
@@ -368,7 +368,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         {
           title: 'Bikeshedding the bike shed',
           href: '/thread/91-bikeshedding',
-          community: { label: 'General discussion', href: '/f/3-general' },
+          forum: { label: 'General discussion', href: '/f/3-general' },
           author: AUTHOR,
           replyCount: 27,
           startedAt: TIME,
@@ -377,10 +377,10 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       capturedAt: TIME,
     },
     /*
-     * The title, its link, and the community it is in. The community is required rather
+     * The title, its link, and the forum it is in. The forum is required rather
      * than optional here for the reason the panel exists: this list crosses the
      * whole board, and a row that does not say where it came from is a row two
-     * communities can both claim.
+     * forums can both claim.
      */
     requires: ['Bikeshedding the bike shed', '/thread/91-bikeshedding', 'General discussion'],
   },
@@ -391,7 +391,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         {
           threadTitle: 'Bikeshedding the bike shed',
           href: '/thread/91-bikeshedding?post=4102#post-4102',
-          community: { label: 'General discussion', href: '/f/3-general' },
+          forum: { label: 'General discussion', href: '/f/3-general' },
           author: AUTHOR,
           excerpt: 'The roof should be corrugated, not slate.',
           postedAt: TIME,
@@ -412,13 +412,13 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     ],
   },
 
-  CommunityDisplay: {
+  ForumDisplay: {
     model: {
-      community: COMMUNITY,
+      forum: FORUM,
       newThreadHref: '/f/3-general/new',
       markReadAction: '/f/3-general/mark-read',
       regions: {
-        subcommunities: region('subcommunities'),
+        subforums: region('subforums'),
         threads: region('threads'),
         pagination: region('pagination'),
         announcements: region('announcements'),
@@ -443,8 +443,8 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     requires: ['Bikeshedding the bike shed', '/thread/91-bikeshedding', '27'],
   },
 
-  SubcommunityList: {
-    model: { communities: [{ ...COMMUNITY, id: 8, title: 'Introductions', href: '/f/8-introductions' }] },
+  SubforumList: {
+    model: { forums: [{ ...FORUM, id: 8, title: 'Introductions', href: '/f/8-introductions' }] },
     requires: ['Introductions', '/f/8-introductions'],
   },
 
@@ -457,7 +457,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
   ThreadView: {
     model: {
       thread: THREAD,
-      community: { label: 'General discussion', href: '/f/3-general' },
+      forum: { label: 'General discussion', href: '/f/3-general' },
       replyHref: '/thread/91-bikeshedding/reply',
       markReadAction: '/thread/91-bikeshedding/mark-read',
       regions: {
@@ -534,11 +534,11 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
   SearchForm: {
     model: {
       action: '/search',
-      fields: { query: 'q', community: 'community', sort: 'sort' },
+      fields: { query: 'q', forum: 'forum', sort: 'sort' },
       query: 'teak',
       maxQueryLength: 128,
-      communities: [
-        { value: '', label: 'Every community I can see', isSelected: true },
+      forums: [
+        { value: '', label: 'Every forum I can see', isSelected: true },
         { value: '3', label: 'General discussion', isSelected: false },
       ],
       sorts: [
@@ -556,16 +556,16 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     requires: ['name="q"', 'method="get"', 'That search is too short.', 'General discussion'],
   },
 
-  CommunityJump: {
+  ForumJump: {
     model: {
       action: '/jump',
-      field: 'community',
-      communities: [
+      field: 'forum',
+      forums: [
         { value: '1', label: 'General', depth: 0, isCategory: true, isSelected: false },
         { value: '3', label: 'Chat', depth: 1, isCategory: false, isSelected: true },
       ],
       submitLabel: 'Go',
-      label: 'Jump to community',
+      label: 'Jump to forum',
     },
     /*
      * `method="get"` and a real submit control, both required.
@@ -576,10 +576,10 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
      * `change` fires on every keystroke. The button is the interaction, not the
      * fallback — so the contract asserts it is in the markup.
      *
-     * `name="community"` comes from the model. A theme typing its own hardcodes the
+     * `name="forum"` comes from the model. A theme typing its own hardcodes the
      * app's query-string contract into markup the app does not own.
      */
-    requires: ['method="get"', 'name="community"', 'type="submit"', 'Go', 'Jump to community', 'Chat'],
+    requires: ['method="get"', 'name="forum"', 'type="submit"', 'Go', 'Jump to forum', 'Chat'],
   },
 
   RedirectNotice: {

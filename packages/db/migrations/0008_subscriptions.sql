@@ -2,7 +2,7 @@
 --
 -- `thread_subscriptions` has existed since F28 and been *written* since F39: the
 -- composer's "subscribe to this thread" checkbox inserts a row, and nothing has
--- ever read one. This is what reads them, plus the community-level table MyBB has
+-- ever read one. This is what reads them, plus the forum-level table MyBB has
 -- and this schema did not.
 --
 -- Three decisions produce this shape.
@@ -71,36 +71,36 @@ CREATE INDEX "thread_subscriptions_mode_idx"
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------- --
--- Community subscriptions: the same table, the same two changes.
+-- Forum subscriptions: the same table, the same two changes.
 -- ---------------------------------------------------------------- --
 
--- `community_subscriptions` has also existed since `0000` with no reader and the
+-- `forum_subscriptions` has also existed since `0000` with no reader and the
 -- same channel column. It stays a separate table from `thread_subscriptions`
 -- rather than being merged into one polymorphic `subscriptions (target_kind,
 -- target_id)`: the two are read by different queries — one joins `threads`, the
--- other has to match every thread beneath a community — and a polymorphic key
+-- other has to match every thread beneath a forum — and a polymorphic key
 -- cannot carry a foreign key to either. Two narrow tables cost the notifier one
 -- extra query and buy referential integrity in both.
 
-ALTER TABLE "community_subscriptions" RENAME COLUMN "notify_via" TO "mode";
+ALTER TABLE "forum_subscriptions" RENAME COLUMN "notify_via" TO "mode";
 --> statement-breakpoint
 
-UPDATE "community_subscriptions" SET "mode" = 'instant' WHERE "mode" <> 'none';
+UPDATE "forum_subscriptions" SET "mode" = 'instant' WHERE "mode" <> 'none';
 --> statement-breakpoint
 
-ALTER TABLE "community_subscriptions" ALTER COLUMN "mode" SET DEFAULT 'instant';
+ALTER TABLE "forum_subscriptions" ALTER COLUMN "mode" SET DEFAULT 'instant';
 --> statement-breakpoint
 
-ALTER TABLE "community_subscriptions"
+ALTER TABLE "forum_subscriptions"
   ADD COLUMN "last_notified_post_id" integer DEFAULT 0 NOT NULL;
 --> statement-breakpoint
 
-CREATE INDEX "community_subscriptions_user_idx"
-  ON "community_subscriptions" ("user_id", "created_at" DESC NULLS LAST);
+CREATE INDEX "forum_subscriptions_user_idx"
+  ON "forum_subscriptions" ("user_id", "created_at" DESC NULLS LAST);
 --> statement-breakpoint
 
-CREATE INDEX "community_subscriptions_mode_idx"
-  ON "community_subscriptions" ("mode", "user_id");
+CREATE INDEX "forum_subscriptions_mode_idx"
+  ON "forum_subscriptions" ("mode", "user_id");
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------- --

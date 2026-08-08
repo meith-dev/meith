@@ -139,7 +139,7 @@ INSERT INTO "warning_types" ("id", "title", "points", "expiry_days", "display_or
   (2, 'Advertising', 3, 180, 20),
   (3, 'Offensive language', 2, 90, 30),
   (4, 'Trolling or flaming', 2, 90, 40),
-  (5, 'Posting in the wrong community', 1, 30, 50),
+  (5, 'Posting in the wrong forum', 1, 30, 50),
   (6, 'Ignoring a moderator', 3, 180, 60);
 --> statement-breakpoint
 
@@ -162,9 +162,9 @@ INSERT INTO "warning_levels" ("points", "action", "duration_days") VALUES
 
 -- F53's permission column.
 --
--- Global rather than per-community: a warning is aimed at a person and its points
--- follow them across the whole board, so a per-community grant would have to answer
--- "warned where?" about a total that has no community. MyBB's `canwarnusers` is
+-- Global rather than per-forum: a warning is aimed at a person and its points
+-- follow them across the whole board, so a per-forum grant would have to answer
+-- "warned where?" about a total that has no forum. MyBB's `canwarnusers` is
 -- global for the same reason.
 --
 -- Generated into the drizzle schema from `PERMISSION_FIELDS`, so this statement

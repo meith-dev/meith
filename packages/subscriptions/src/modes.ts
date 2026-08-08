@@ -55,9 +55,9 @@ export function isDigestCadence(value: string): value is DigestCadence {
   return DIGEST_CADENCES.includes(value as DigestCadence)
 }
 
-/** What a subscription points at. Threads and communities are separate tables. */
-export type SubscriptionTarget = 'thread' | 'community'
+/** What a subscription points at. Threads and forums are separate tables. */
+export type SubscriptionTarget = 'thread' | 'forum'
 
 export function parseSubscriptionTarget(value: string): SubscriptionTarget | null {
-  return value === 'thread' || value === 'community' ? value : null
+  return value === 'thread' || value === 'forum' ? value : null
 }

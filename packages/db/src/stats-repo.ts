@@ -13,18 +13,18 @@
  * sequential scan there is the difference between a board that survives its own
  * front page and one that does not.
  *
- * Totals are summed from the **root communities** rather than counted from `threads`
- * and `posts` directly: F38 already maintains a counter per community and rolls it
+ * Totals are summed from the **root forums** rather than counted from `threads`
+ * and `posts` directly: F38 already maintains a counter per forum and rolls it
  * up the ancestor chain, so a root category's count is the whole subtree's, and
  * summing tens of rows is free. Counting the content tables would be a second
- * opinion that drifts from the numbers every community row already shows.
+ * opinion that drifts from the numbers every forum row already shows.
  *
  * ## The leaderboards are queries
  *
  * Top posters, most-viewed and most-replied change with every post, and
  * pre-computing them buys nothing: they are `order by … limit 10` over an
  * indexed column. The two thread lists are **permission-filtered**, because a
- * "most viewed threads" table that includes the staff community is a leak with a
+ * "most viewed threads" table that includes the staff forum is a leak with a
  * ranking. Top posters is not — a post count is on every profile already.
  */
 import { sql } from 'drizzle-orm'
@@ -55,14 +55,14 @@ export interface TopThread {
   readonly threadId: number
   readonly title: string
   readonly slug: string
-  readonly communityId: number
-  readonly communityTitle: string
+  readonly forumId: number
+  readonly forumTitle: string
   readonly viewCount: number
   readonly replyCount: number
 }
 
 export interface StatsScope {
-  readonly communityIds: readonly number[]
+  readonly forumIds: readonly number[]
   readonly content: ContentScope
 }
 
@@ -109,10 +109,10 @@ export class PostgresStatsRepository {
   /**
    * Recompute the totals. One statement, run by the scheduled task.
    *
-   * The counts come from the **root communities**, which is where F38's ancestor
+   * The counts come from the **root forums**, which is where F38's ancestor
    * rollup has already accumulated the whole tree, and `type` is not filtered
    * because a category's counters are the sum of its children and a root
-   * *community* holds its own — summing every row whose `parent_id` is null covers
+   * *forum* holds its own — summing every row whose `parent_id` is null covers
    * both without knowing which is which.
    *
    * The newest member is the most recent *active* account: an account still
@@ -122,8 +122,8 @@ export class PostgresStatsRepository {
   async rollUp(now: Date): Promise<BoardTotals> {
     await this.db.execute(sql`
       update board_stats set
-        thread_count = coalesce((select sum(thread_count) from communities where parent_id is null), 0),
-        post_count = coalesce((select sum(post_count) from communities where parent_id is null), 0),
+        thread_count = coalesce((select sum(thread_count) from forums where parent_id is null), 0),
+        post_count = coalesce((select sum(post_count) from forums where parent_id is null), 0),
         member_count = (select count(*) from users where state = 'active'),
         newest_user_id = (select id from users where state = 'active'
                            order by created_at desc, id desc limit 1),
@@ -142,7 +142,7 @@ export class PostgresStatsRepository {
    *
    * Not permission-filtered, deliberately: a post count is on every profile
    * already, and F31's postbit shows it beside every post. Filtering it by
-   * which communities a reader can see would mean recomputing every member's count
+   * which forums a reader can see would mean recomputing every member's count
    * per reader — an aggregate over `posts` per page view — to hide a number
    * that is public everywhere else on the board.
    */
@@ -185,16 +185,16 @@ export class PostgresStatsRepository {
     limit: number,
     scope: StatsScope,
   ): Promise<readonly TopThread[]> {
-    if (scope.communityIds.length === 0) return []
+    if (scope.forumIds.length === 0) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select t.id, t.title, t.slug, t.community_id, f.title as community_title,
+        select t.id, t.title, t.slug, t.forum_id, f.title as forum_title,
                t.view_count, t.reply_count
           from threads t
-          join communities f on f.id = t.community_id
-         where t.community_id in (${sql.join(
-           scope.communityIds.map((id) => sql`${id}`),
+          join forums f on f.id = t.forum_id
+         where t.forum_id in (${sql.join(
+           scope.forumIds.map((id) => sql`${id}`),
            sql`, `,
          )})
            and ${visibleIn(sql`t.visibility`, scope.content)}
@@ -207,8 +207,8 @@ export class PostgresStatsRepository {
       threadId: Number(row.id),
       title: String(row.title),
       slug: String(row.slug),
-      communityId: Number(row.community_id),
-      communityTitle: String(row.community_title),
+      forumId: Number(row.forum_id),
+      forumTitle: String(row.forum_title),
       viewCount: Number(row.view_count),
       replyCount: Number(row.reply_count),
     }))

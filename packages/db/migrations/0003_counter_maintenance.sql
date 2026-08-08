@@ -7,7 +7,7 @@
 --      Replaying `post.created` would add the post to every ancestor twice, so
 --      the applied set has to be recorded somewhere durable and checked in the
 --      same transaction as the update.
---   2. Thread views are the highest-frequency write on a community and the least
+--   2. Thread views are the highest-frequency write on a forum and the least
 --      valuable one. Writing them straight to `threads.view_count` dirties the
 --      row behind the listing index on every page view of a hot thread.
 --   3. A recount over 2M posts cannot run in one serverless invocation, so it
@@ -43,7 +43,7 @@ CREATE TABLE "thread_view_buffer" (
 -- `phase` names which counter family is being rebuilt and `cursor` the last id
 -- completed within it, so a run that is cut short resumes at the next id rather
 -- than restarting the scan. A single row keyed 'default'; the key exists so a
--- future per-community repair (F70's Recount & Rebuild) can track its own cursor
+-- future per-forum repair (F70's Recount & Rebuild) can track its own cursor
 -- without a second table.
 CREATE TABLE "counter_recount_state" (
   "id" text PRIMARY KEY,

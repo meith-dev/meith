@@ -170,7 +170,7 @@ describe('theme runtime style', () => {
   })
 
   it('rejects stylesheet escapes and external fetches in custom CSS', () => {
-    expect(validateCustomCss('.community-row { font-weight: 600; }')).toContain('font-weight')
+    expect(validateCustomCss('.forum-row { font-weight: 600; }')).toContain('font-weight')
     expect(() => validateCustomCss('</style><script>')).toThrow(/unsafe/)
     expect(() => validateCustomCss('@import "https://example.test/a.css"')).toThrow(/unsafe/)
   })

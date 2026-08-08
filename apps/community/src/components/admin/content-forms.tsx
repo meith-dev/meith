@@ -142,7 +142,7 @@ export interface PrefixValues {
   readonly label: string
   readonly token: string | null
   readonly displayOrder: number
-  readonly communityPathPrefix: string | null
+  readonly forumPathPrefix: string | null
 }
 
 export function DeletePrefixForm({ prefix }: { prefix: PrefixValues }) {
@@ -188,9 +188,9 @@ export function NewPrefixForm() {
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Only in this branch</span>
-          <input name="communityPathPrefix" className={INPUT} />
+          <input name="forumPathPrefix" className={INPUT} />
           <span className="text-xs text-muted-foreground">
-            A community path, to scope the prefix to one branch of the tree. Blank
+            A forum path, to scope the prefix to one branch of the tree. Blank
             offers it everywhere.
           </span>
         </label>
@@ -444,7 +444,7 @@ export function DeleteAttachmentForm({ attachmentId }: { attachmentId: number })
 
 export interface AnnouncementValues {
   readonly id: number
-  readonly communityId: number | null
+  readonly forumId: number | null
   readonly title: string
   readonly message: string
   /** Pre-formatted for `datetime-local`, in UTC. See the action for why. */
@@ -453,7 +453,7 @@ export interface AnnouncementValues {
   readonly enabled: boolean
 }
 
-export interface CommunityChoice {
+export interface ForumChoice {
   readonly id: number
   readonly label: string
 }
@@ -466,10 +466,10 @@ export interface CommunityChoice {
  * form and not the other is a save that silently drops half the values.
  */
 function AnnouncementFields({
-  communities,
+  forums,
   values,
 }: {
-  communities: readonly CommunityChoice[]
+  forums: readonly ForumChoice[]
   values?: AnnouncementValues
 }) {
   return (
@@ -497,20 +497,20 @@ function AnnouncementFields({
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Where</span>
         <select
-          name="communityId"
-          defaultValue={values?.communityId === null || values === undefined ? '' : String(values.communityId)}
+          name="forumId"
+          defaultValue={values?.forumId === null || values === undefined ? '' : String(values.forumId)}
           className={INPUT}
         >
           <option value="">The whole board</option>
-          {communities.map((community) => (
-            <option key={community.id} value={community.id}>
-              {community.label}
+          {forums.map((forum) => (
+            <option key={forum.id} value={forum.id}>
+              {forum.label}
             </option>
           ))}
         </select>
         <span className="text-xs text-muted-foreground">
-          A community&rsquo;s announcement is shown to whoever can see that community. A
-          board-wide one is shown on the index and on every community.
+          A forum&rsquo;s announcement is shown to whoever can see that forum. A
+          board-wide one is shown on the index and on every forum.
         </span>
       </label>
 
@@ -550,10 +550,10 @@ function AnnouncementFields({
 
 export function AnnouncementRowForm({
   announcement,
-  communities,
+  forums,
 }: {
   announcement: AnnouncementValues
-  communities: readonly CommunityChoice[]
+  forums: readonly ForumChoice[]
 }) {
   const [state, action] = useActionState(updateAnnouncementAction, EMPTY_STATE)
   const [removeState, removeAction] = useActionState(deleteAnnouncementAction, EMPTY_STATE)
@@ -565,7 +565,7 @@ export function AnnouncementRowForm({
 
       <form action={action} className="flex flex-col gap-3" noValidate>
         <input type="hidden" name="id" value={announcement.id} />
-        <AnnouncementFields communities={communities} values={announcement} />
+        <AnnouncementFields forums={forums} values={announcement} />
 
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm">
@@ -595,7 +595,7 @@ export function AnnouncementRowForm({
   )
 }
 
-export function NewAnnouncementForm({ communities }: { communities: readonly CommunityChoice[] }) {
+export function NewAnnouncementForm({ forums }: { forums: readonly ForumChoice[] }) {
   const [state, action] = useActionState(createAnnouncementAction, EMPTY_STATE)
 
   return (
@@ -603,7 +603,7 @@ export function NewAnnouncementForm({ communities }: { communities: readonly Com
       <FormError message={state.error} />
       <Saved when={state.notice === 'saved'}>Added.</Saved>
 
-      <AnnouncementFields communities={communities} />
+      <AnnouncementFields forums={forums} />
 
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-sm">
@@ -703,7 +703,7 @@ export function NewCaptchaQuestionForm() {
         <input
           name="question"
           className={INPUT}
-          placeholder="What is the name of this community?"
+          placeholder="What is the name of this forum?"
           required
         />
       </label>

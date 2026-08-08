@@ -19,13 +19,13 @@ const NONE: ThreadToolRights = { lock: false, stick: false, move: false, delete:
 class FakeThreads implements ThreadToolsRepository {
   readonly calls: string[] = []
   target: Partial<ThreadToolTarget> = {}
-  destination: MoveDestination | null = { id: 9, type: 'community' }
+  destination: MoveDestination | null = { id: 9, type: 'forum' }
 
   async find(): Promise<ThreadToolTarget | null> {
     if (this.target === null) return null
     return {
       id: 20,
-      communityId: 4,
+      forumId: 4,
       slug: 'hello',
       title: 'Hello',
       isLocked: false,
@@ -92,7 +92,7 @@ describe('ThreadTools', () => {
       toolsFor(threads).apply({
         threadId: 20,
         tool,
-        toCommunityId: 9,
+        toForumId: 9,
         actorUserId: 7,
         rights,
         destinationRights: ALL,
@@ -105,7 +105,7 @@ describe('ThreadTools', () => {
     /*
      * The rule a "can this actor moderate here" check alone gets wrong. Rights
      * in the source only would let a moderator move a thread out from under the
-     * people watching it, into a community where they have no standing at all.
+     * people watching it, into a forum where they have no standing at all.
      */
     it('needs the right at both ends', async () => {
       const threads = new FakeThreads()
@@ -114,7 +114,7 @@ describe('ThreadTools', () => {
         toolsFor(threads).apply({
           threadId: 20,
           tool: 'move',
-          toCommunityId: 9,
+          toForumId: 9,
           actorUserId: 7,
           rights: ALL,
           destinationRights: NONE,
@@ -125,7 +125,7 @@ describe('ThreadTools', () => {
       await toolsFor(threads).apply({
         threadId: 20,
         tool: 'move',
-        toCommunityId: 9,
+        toForumId: 9,
         actorUserId: 7,
         rights: ALL,
         destinationRights: ALL,
@@ -143,10 +143,10 @@ describe('ThreadTools', () => {
           rights: ALL,
           destinationRights: ALL,
         }),
-      ).rejects.toThrow(/choose a community/i)
+      ).rejects.toThrow(/choose a forum/i)
     })
 
-    /* A category holds communities and a link holds nothing: both strand the thread. */
+    /* A category holds forums and a link holds nothing: both strand the thread. */
     it.each(['category', 'link'] as const)('refuses a %s as a destination', async (type) => {
       const threads = new FakeThreads()
       threads.destination = { id: 9, type }
@@ -155,12 +155,12 @@ describe('ThreadTools', () => {
         toolsFor(threads).apply({
           threadId: 20,
           tool: 'move',
-          toCommunityId: 9,
+          toForumId: 9,
           actorUserId: 7,
           rights: ALL,
           destinationRights: ALL,
         }),
-      ).rejects.toThrow(/not a community/i)
+      ).rejects.toThrow(/not a forum/i)
       expect(threads.calls).toEqual([])
     })
 
@@ -170,12 +170,12 @@ describe('ThreadTools', () => {
         toolsFor(threads).apply({
           threadId: 20,
           tool: 'move',
-          toCommunityId: 4,
+          toForumId: 4,
           actorUserId: 7,
           rights: ALL,
           destinationRights: ALL,
         }),
-      ).rejects.toThrow(/already in that community/i)
+      ).rejects.toThrow(/already in that forum/i)
     })
   })
 
@@ -195,7 +195,7 @@ describe('ThreadTools', () => {
           toolsFor(threads).apply({
             threadId: 20,
             tool,
-            toCommunityId: 9,
+            toForumId: 9,
             actorUserId: 7,
             rights: ALL,
             destinationRights: ALL,
@@ -275,7 +275,7 @@ describe('parseThreadTool', () => {
  * Authorised by `thread.move` at **both ends** rather than by a right of its
  * own: copying is moving that leaves the original behind, so the destination's
  * moderators have the same interest in it, and an eighth column on
- * `community_moderators` distinguishing two acts nobody grants separately would be
+ * `forum_moderators` distinguishing two acts nobody grants separately would be
  * the wrong shape.
  */
 describe('copy', () => {
@@ -285,7 +285,7 @@ describe('copy', () => {
     const outcome = await toolsFor(threads).apply({
       threadId: 20,
       tool: 'copy',
-      toCommunityId: 9,
+      toForumId: 9,
       actorUserId: 1,
       rights: ALL,
       destinationRights: ALL,
@@ -296,13 +296,13 @@ describe('copy', () => {
     expect(threads.calls).toEqual(['copy'])
   })
 
-  it('refuses without the move right in the source community', async () => {
+  it('refuses without the move right in the source forum', async () => {
     const threads = new FakeThreads()
     await expect(
       toolsFor(threads).apply({
         threadId: 20,
         tool: 'copy',
-        toCommunityId: 9,
+        toForumId: 9,
         actorUserId: 1,
         rights: { ...ALL, move: false },
         destinationRights: ALL,
@@ -311,13 +311,13 @@ describe('copy', () => {
     expect(threads.calls).toEqual([])
   })
 
-  it('refuses without the move right in the destination community', async () => {
+  it('refuses without the move right in the destination forum', async () => {
     const threads = new FakeThreads()
     await expect(
       toolsFor(threads).apply({
         threadId: 20,
         tool: 'copy',
-        toCommunityId: 9,
+        toForumId: 9,
         actorUserId: 1,
         rights: ALL,
         destinationRights: { ...ALL, move: false },
@@ -326,14 +326,14 @@ describe('copy', () => {
     expect(threads.calls).toEqual([])
   })
 
-  it('refuses a destination that is not a community threads can live in', async () => {
+  it('refuses a destination that is not a forum threads can live in', async () => {
     const threads = new FakeThreads()
     threads.destination = { id: 9, type: 'category' }
     await expect(
       toolsFor(threads).apply({
         threadId: 20,
         tool: 'copy',
-        toCommunityId: 9,
+        toForumId: 9,
         actorUserId: 1,
         rights: ALL,
         destinationRights: ALL,
@@ -348,7 +348,7 @@ describe('copy', () => {
       toolsFor(threads).apply({
         threadId: 20,
         tool: 'copy',
-        toCommunityId: 9,
+        toForumId: 9,
         actorUserId: 1,
         rights: ALL,
         destinationRights: ALL,
@@ -357,16 +357,16 @@ describe('copy', () => {
   })
 
   /*
-   * Unlike a move, the destination may be the source community: forking a
+   * Unlike a move, the destination may be the source forum: forking a
    * discussion in place is legitimate, and nothing left so there is no pointer
    * to repair.
    */
-  it('allows a copy into the thread"s own community', async () => {
+  it('allows a copy into the thread"s own forum', async () => {
     const threads = new FakeThreads()
     const outcome = await toolsFor(threads).apply({
       threadId: 20,
       tool: 'copy',
-      toCommunityId: 4,
+      toForumId: 4,
       actorUserId: 1,
       rights: ALL,
       destinationRights: ALL,

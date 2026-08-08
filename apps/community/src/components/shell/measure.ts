@@ -6,7 +6,7 @@
  *
  * A theme decides how wide a page is — `themes/default` centres its body in
  * `max-w-6xl`, `themes/midnight` could reasonably choose something else. But not
- * everything on a board page comes from a slot: the flash notice above a community
+ * everything on a board page comes from a slot: the flash notice above a forum
  * listing, the follow control, the thread-order tabs, the poll, and the inline
  * moderation bar are all rendered by the route, because each of them carries a
  * Server Action reference and those never cross the theme contract (D38/D42).
@@ -15,7 +15,7 @@
  * field in the contract that tells them what to line up *with*. Until this
  * constant they each carried a bare `px-6`, which meant they ran the full width
  * of the viewport while the listing beneath them was centred — visible as a
- * "Latest · Top rated" strip hanging off the left edge of its own community.
+ * "Latest · Top rated" strip hanging off the left edge of its own forum.
  *
  * So the app states its measure once, here, and the shipped theme agrees with
  * it. **That agreement is a convention, not a guarantee**: a theme that picks a

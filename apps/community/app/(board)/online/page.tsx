@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Who's online" }
  *
  * The index panel names members; this page says **where each of them is**, and
  * every location on it has already been resolved against the reader in the
- * repository. A community somebody may not see arrives here as "Viewing a community" —
+ * repository. A forum somebody may not see arrives here as "Viewing a forum" —
  * there is no title in the data to print by mistake.
  *
  * One query for the list and one for the record. No paging: the list is bounded

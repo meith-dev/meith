@@ -269,7 +269,7 @@ describe('adding somebody to a list', () => {
     /*
      * `returnTo` is a form value anybody can post. Kills the mutant that trusts
      * it — a board that will bounce you to an attacker's login page is a
-     * phishing kit with a community attached.
+     * phishing kit with a forum attached.
      */
     for (const bad of ['https://evil.test', '//evil.test', 'javascript:alert(1)']) {
       const result = await run(

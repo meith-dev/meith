@@ -65,8 +65,8 @@ export function buildAdminLogView(input: {
  * The detail object as one line of text.
  *
  * Not `JSON.stringify`: an audit row is read by a person under time pressure,
- * and `{"threadId":12,"toCommunityId":4}` is harder to scan than `threadId 12,
- * toCommunityId 4`. Nested values fall back to JSON rather than being walked —
+ * and `{"threadId":12,"toForumId":4}` is harder to scan than `threadId 12,
+ * toForumId 4`. Nested values fall back to JSON rather than being walked —
  * every row this board writes is flat, and a deeper one from a plugin should
  * still render *something*.
  *

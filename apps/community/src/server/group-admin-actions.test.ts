@@ -328,7 +328,7 @@ describe('createGroupAction', () => {
     /*
      * The board's own cache being clear does not refresh a payload the browser
      * already holds, so without this the operator saw "Created." beside a list
-     * the group was missing from — the shape the audit found on the community tree,
+     * the group was missing from — the shape the audit found on the forum tree,
      * and the reason this is checked here too.
      */
     await createGroupAction(

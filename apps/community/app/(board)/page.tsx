@@ -19,7 +19,7 @@ import { presenceRepository, readOnline } from "@/server/presence"
 import { readTotals } from "@/server/stats"
 import { buildBoardStatsModel, buildWhoIsOnlineModel } from "@/view/presence"
 
-export const metadata: Metadata = { title: "Communities" }
+export const metadata: Metadata = { title: "Forums" }
 
 /**
  * The board index (F29).
@@ -34,27 +34,27 @@ export const metadata: Metadata = { title: "Communities" }
  *
  * ## Two reads, and why not one
  *
- * `listListing()` returns every community with its counters in one query.
- * `visibleCommunityIds(actor)` is a constant three (it was a 32-query N+1 until D26).
+ * `listListing()` returns every forum with its counters in one query.
+ * `visibleForumIds(actor)` is a constant three (it was a 32-query N+1 until D26).
  * Filtering in the database instead would mean expressing the four-level
  * permission resolution as SQL, which is the model F20/F21 exist to keep out of
- * queries — and the community table is tens of rows, not millions.
+ * queries — and the forum table is tens of rows, not millions.
  *
  * ## Why this page is not cached
  *
- * Every row depends on who is asking: `visibleCommunityIds` differs per actor, and
+ * Every row depends on who is asking: `visibleForumIds` differs per actor, and
  * F32's unread marks differ per user. `cachedGlobal` is for global data only, and
- * a cached permission-filtered index is precisely how a private community leaks —
+ * a cached permission-filtered index is precisely how a private forum leaks —
  * the failure the caching harness was built to prevent. The cacheable part is the
- * community *structure*, which is already cached a layer down (F16).
+ * forum *structure*, which is already cached a layer down (F16).
  */
 export default async function BoardIndexPage() {
   const actor = await getActor()
-  const { communities, authorizer, readState } = getContainer()
+  const { forums, authorizer, readState } = getContainer()
 
   const [rows, visible, read, preferences] = await Promise.all([
-    communities.listListing(),
-    authorizer.visibleCommunityIds(actor),
+    forums.listListing(),
+    authorizer.visibleForumIds(actor),
     actor.userId === null || readState === null ? Promise.resolve(null) : readState.forUser(actor.userId),
     /* F57. One read per request, cached, and the board's defaults for a guest. */
     getViewerPreferences(),
@@ -83,7 +83,7 @@ export default async function BoardIndexPage() {
 
   /*
    * The group colour behind every name the index shows: one last-poster per
-   * community, the newest member, and everybody in "who is online". One query for
+   * forum, the newest member, and everybody in "who is online". One query for
    * all three rather than one per panel — they overlap heavily on a busy board,
    * and `identitiesFor` dedupes the ids before it asks.
    */
@@ -97,8 +97,8 @@ export default async function BoardIndexPage() {
 
   const view = buildBoardIndexView({
     rows,
-    visibleCommunityIds: new Set(visible),
-    ...(read === null ? {} : { unreadCommunityIds: read.unreadCommunityIds }),
+    visibleForumIds: new Set(visible),
+    ...(read === null ? {} : { unreadForumIds: read.unreadForumIds }),
     markAllReadAction: read === null ? null : '/api/read/all',
     /*
      * One clock for the whole render. Calling `new Date()` per row would let a
@@ -112,11 +112,11 @@ export default async function BoardIndexPage() {
 
   /*
    * F71. Permission-filtered in SQL against the same visible set the tree was
-   * built from, so a board-wide notice reaches everybody and a community's reaches
-   * only the people who can see that community.
+   * built from, so a board-wide notice reaches everybody and a forum's reaches
+   * only the people who can see that forum.
    */
   const announcements = await liveAnnouncements({
-    visibleCommunityIds: visible,
+    visibleForumIds: visible,
     now,
     timeZone: preferences.timezone,
   })
@@ -124,12 +124,12 @@ export default async function BoardIndexPage() {
   const Announcement = requireSlot(await currentTheme(), "Announcement")
   const BoardIndex = requireSlot(await currentTheme(), "BoardIndex")
   const CategoryBlock = requireSlot(await currentTheme(), "CategoryBlock")
-  const CommunityRow = requireSlot(await currentTheme(), "CommunityRow")
+  const ForumRow = requireSlot(await currentTheme(), "ForumRow")
   const BoardStats = requireSlot(await currentTheme(), "BoardStats")
   const WhoIsOnline = requireSlot(await currentTheme(), "WhoIsOnline")
 
   /*
-   * F80. `view.community-row` runs once per row, which is the reason its purpose
+   * F80. `view.forum-row` runs once per row, which is the reason its purpose
    * line says "keep it cheap" — a board index is fifty rows, and a plugin doing
    * a query in this filter turns one page into fifty.
    *
@@ -152,8 +152,8 @@ export default async function BoardIndexPage() {
   const blocks = await Promise.all(
     view.blocks.map(async (entry) => ({
       block: entry.block,
-      communities: await Promise.all(
-        entry.communities.map((community) => filterView('view.community-row', { community }, pluginContext)),
+      forums: await Promise.all(
+        entry.forums.map((forum) => filterView('view.forum-row', { forum }, pluginContext)),
       ),
     })),
   )
@@ -196,8 +196,8 @@ export default async function BoardIndexPage() {
       regions: {
         categories: blocks.map((entry) => (
           <CategoryBlock key={entry.block.category.id} category={entry.block.category}>
-            {entry.communities.map((row) => (
-              <CommunityRow key={row.community.id} {...row} />
+            {entry.forums.map((row) => (
+              <ForumRow key={row.forum.id} {...row} />
             ))}
           </CategoryBlock>
         )),

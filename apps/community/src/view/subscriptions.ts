@@ -7,7 +7,7 @@ import { formatTime } from './time'
 
 export interface SubscriptionRowView {
   readonly key: string
-  readonly target: 'thread' | 'community'
+  readonly target: 'thread' | 'forum'
   readonly targetId: number
   readonly title: string
   readonly href: string
@@ -20,7 +20,7 @@ export interface SubscriptionRowView {
 
 export interface SubscriptionsView {
   readonly threads: readonly SubscriptionRowView[]
-  readonly communities: readonly SubscriptionRowView[]
+  readonly forums: readonly SubscriptionRowView[]
   readonly modes: readonly { readonly value: SubscriptionMode; readonly label: string }[]
   readonly total: number
 }
@@ -38,13 +38,13 @@ export function buildSubscriptionsView(input: {
 
   return {
     /*
-     * Split rather than interleaved. Following a community and following a thread
+     * Split rather than interleaved. Following a forum and following a thread
      * are different commitments — one is "tell me about a room", the other
      * "tell me about a conversation" — and a member pruning their list is
      * almost always after one kind or the other.
      */
     threads: rows.filter((row) => row.target === 'thread'),
-    communities: rows.filter((row) => row.target === 'community'),
+    forums: rows.filter((row) => row.target === 'forum'),
     modes: SUBSCRIPTION_MODES.map((value) => ({ value, label: MODE_LABELS[value] })),
     total: rows.length,
   }

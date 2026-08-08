@@ -2,19 +2,19 @@
  * F52 — inline moderation.
  *
  * The queue (F48) is a screen you go to. This is the same power exercised
- * *where the content is*: checkboxes down a community listing or a thread page, one
+ * *where the content is*: checkboxes down a forum listing or a thread page, one
  * bar of buttons at the bottom, and no new mechanism behind any of them. Every
  * transition here is F41's, F48's or F50's, performed on several rows at once.
  *
  * Three things are genuinely new, and they are the whole file.
  *
  *  1. **The selection is re-read inside a scope.** F48 established that a form
- *     submits ids and each one is re-read to find the community it is really in.
+ *     submits ids and each one is re-read to find the forum it is really in.
  *     What F48 could get away with and this cannot is re-reading *the whole
- *     board*: with a per-community right, "you may not touch that" and "there is no
- *     such thing" would be different answers, and a moderator of one community
+ *     board*: with a per-forum right, "you may not touch that" and "there is no
+ *     such thing" would be different answers, and a moderator of one forum
  *     could enumerate every thread on the board by watching which count moved.
- *     So the re-read is scoped to `Authorizer.communityIdsWhere(actor, action)` and
+ *     So the re-read is scoped to `Authorizer.forumIdsWhere(actor, action)` and
  *     the two cases become one.
  *
  *  2. **The outcome has four numbers, not one.** A moderator who ticked twelve
@@ -48,7 +48,7 @@ export type InlineTool =
 
 /** A selected row after it has been re-read from the database. */
 export interface InlineTarget extends QueueSelection {
-  readonly communityId: number
+  readonly forumId: number
   readonly visibility: 'visible' | 'unapproved' | 'deleted'
   /**
    * The visibility of the thread this row is in — its own, for a thread row.
@@ -64,10 +64,10 @@ export interface InlineTarget extends QueueSelection {
 }
 
 /**
- * What the caller has already resolved for one community.
+ * What the caller has already resolved for one forum.
  *
  * Booleans, not permissions: group ids and matrix fields do not leave
- * `@meith/authorization` (R4). The caller asks `can()` once per community and hands
+ * `@meith/authorization` (R4). The caller asks `can()` once per forum and hands
  * over the answers, exactly as F50's thread tools do.
  */
 export interface InlineRights {
@@ -95,15 +95,15 @@ export const NO_INLINE_RIGHTS: InlineRights = {
 }
 
 /**
- * How the command asks about a community it did not know it would need.
+ * How the command asks about a forum it did not know it would need.
  *
- * A port rather than a pre-resolved map because the communities are not known until
+ * A port rather than a pre-resolved map because the forums are not known until
  * the selection has been re-read, and the selection is the untrusted half. The
  * app implements this over the Authorizer; the command never learns what a
  * group is.
  */
 export interface InlineRightsResolver {
-  rightsIn(communityId: number): Promise<InlineRights>
+  rightsIn(forumId: number): Promise<InlineRights>
 }
 
 export interface InlineOutcome {
@@ -120,7 +120,7 @@ export interface InlineOutcome {
 
 export interface InlineModerationRepository {
   /**
-   * Re-read the selection, restricted to `communityIds`.
+   * Re-read the selection, restricted to `forumIds`.
    *
    * The restriction is the security boundary, not a filter for convenience:
    * anything outside it must come back as absent so that a refusal and a
@@ -128,11 +128,11 @@ export interface InlineModerationRepository {
    */
   resolve(
     selection: readonly QueueSelection[],
-    communityIds: readonly number[],
+    forumIds: readonly number[],
   ): Promise<readonly InlineTarget[]>
 
-  /** The move destination, or `null` when it is not a community threads can live in. */
-  findDestination(communityId: number): Promise<MoveDestination | null>
+  /** The move destination, or `null` when it is not a forum threads can live in. */
+  findDestination(forumId: number): Promise<MoveDestination | null>
 
   /**
    * Apply one tool to rows the caller has already checked, in one transaction.
@@ -145,7 +145,7 @@ export interface InlineModerationRepository {
     readonly threadIds: readonly number[]
     readonly postIds: readonly number[]
     /** Required for `move`. */
-    readonly toCommunityId?: number | undefined
+    readonly toForumId?: number | undefined
     readonly actorUserId: number
     readonly at: Date
   }): Promise<number>
@@ -156,7 +156,7 @@ export interface InlineModerationRepository {
  *
  * A page's worth, deliberately. Deleting one thread tallies its posts, walks
  * two counter chains, updates every author in it and repairs the last-post
- * pointer of every community above it — a dozen statements, most of them touching
+ * pointer of every forum above it — a dozen statements, most of them touching
  * rows other requests want. Two hundred of those in a single transaction is a
  * long lock held over the busiest tables on the board, and on a serverless
  * platform it is also a request that gets killed halfway through with nothing
@@ -181,7 +181,7 @@ export const INLINE_CHUNK = 25
  */
 export const MAX_INLINE_SELECTION = 500
 
-/** Threads only. A post has no lock, no pin, and no community of its own to move to. */
+/** Threads only. A post has no lock, no pin, and no forum of its own to move to. */
 const THREAD_ONLY: ReadonlySet<InlineTool> = new Set<InlineTool>([
   'lock',
   'unlock',
@@ -203,12 +203,12 @@ export class InlineModeration {
     readonly selection: readonly QueueSelection[]
     readonly tool: InlineTool
     /** Required for `move`, ignored otherwise. */
-    readonly toCommunityId?: number | undefined
+    readonly toForumId?: number | undefined
     /**
      * Where this actor may use *this tool*, already resolved. The scope for the
      * re-read, and the reason a refusal cannot be told from a non-existence.
      */
-    readonly scopeCommunityIds: readonly number[]
+    readonly scopeForumIds: readonly number[]
     readonly rights: InlineRightsResolver
     readonly actorUserId: number
   }): Promise<InlineOutcome> {
@@ -225,35 +225,35 @@ export class InlineModeration {
     const unique = new Map<string, QueueSelection>()
     for (const item of input.selection) unique.set(`${item.kind}:${item.id}`, item)
 
-    if (input.scopeCommunityIds.length === 0) {
+    if (input.scopeForumIds.length === 0) {
       return { tool: input.tool, applied: 0, refused: 0, missing: unique.size, skipped: 0 }
     }
 
-    const targets = await this.repo.resolve([...unique.values()], input.scopeCommunityIds)
+    const targets = await this.repo.resolve([...unique.values()], input.scopeForumIds)
     const missing = unique.size - targets.length
 
     /*
      * A move is authorised at **both ends** (D49), and the destination end is
      * one question rather than one per row — so it is asked once, before any
      * row is touched. A destination that fails is a refusal of the whole
-     * submission, not a per-item skip: the moderator picked one community, and
+     * submission, not a per-item skip: the moderator picked one forum, and
      * telling them nine of twelve went somewhere they did not choose would be
      * worse than telling them none did.
      */
     if (input.tool === 'move') {
-      await this.requireDestination(input.toCommunityId, input.rights)
+      await this.requireDestination(input.toForumId, input.rights)
     }
 
     let refused = 0
     let skipped = 0
     const allowed: InlineTarget[] = []
-    const rightsByCommunity = new Map<number, InlineRights>()
+    const rightsByForum = new Map<number, InlineRights>()
 
     for (const target of targets) {
-      let rights = rightsByCommunity.get(target.communityId)
+      let rights = rightsByForum.get(target.forumId)
       if (rights === undefined) {
-        rights = await input.rights.rightsIn(target.communityId)
-        rightsByCommunity.set(target.communityId, rights)
+        rights = await input.rights.rightsIn(target.forumId)
+        rightsByForum.set(target.forumId, rights)
       }
 
       /*
@@ -265,7 +265,7 @@ export class InlineModeration {
         refused += 1
         continue
       }
-      if (!isApplicable(input.tool, target, input.toCommunityId)) {
+      if (!isApplicable(input.tool, target, input.toForumId)) {
         skipped += 1
         continue
       }
@@ -278,7 +278,7 @@ export class InlineModeration {
         tool: input.tool,
         threadIds: chunk.filter((i) => i.kind === 'thread').map((i) => i.id),
         postIds: chunk.filter((i) => i.kind === 'post').map((i) => i.id),
-        ...(input.toCommunityId === undefined ? {} : { toCommunityId: input.toCommunityId }),
+        ...(input.toForumId === undefined ? {} : { toForumId: input.toForumId }),
         actorUserId: input.actorUserId,
         at: this.now(),
       })
@@ -299,19 +299,19 @@ export class InlineModeration {
   }
 
   private async requireDestination(
-    toCommunityId: number | undefined,
+    toForumId: number | undefined,
     rights: InlineRightsResolver,
   ): Promise<void> {
-    if (toCommunityId === undefined) {
-      throw new ValidationError('Choose a community to move them to.')
+    if (toForumId === undefined) {
+      throw new ValidationError('Choose a forum to move them to.')
     }
-    const destinationRights = await rights.rightsIn(toCommunityId)
+    const destinationRights = await rights.rightsIn(toForumId)
     if (!destinationRights.move) {
-      throw new ValidationError('You cannot move threads into that community.')
+      throw new ValidationError('You cannot move threads into that forum.')
     }
-    const destination = await this.repo.findDestination(toCommunityId)
-    if (destination === null || destination.type !== 'community') {
-      throw new ValidationError('That is not a community threads can live in.')
+    const destination = await this.repo.findDestination(toForumId)
+    if (destination === null || destination.type !== 'forum') {
+      throw new ValidationError('That is not a forum threads can live in.')
     }
   }
 }
@@ -350,7 +350,7 @@ function holdsRight(
 function isApplicable(
   tool: InlineTool,
   target: InlineTarget,
-  toCommunityId: number | undefined,
+  toForumId: number | undefined,
 ): boolean {
   if (THREAD_ONLY.has(tool) && target.kind === 'post') return false
 
@@ -385,7 +385,7 @@ function isApplicable(
     case 'unstick':
       return target.visibility === 'visible' && target.isSticky
     case 'move':
-      return target.visibility === 'visible' && target.communityId !== toCommunityId
+      return target.visibility === 'visible' && target.forumId !== toForumId
   }
 }
 
@@ -420,15 +420,15 @@ export function parseInlineTool(value: string | undefined): InlineTool | null {
  * — F50 gave the thread tools no group-level column at all, so a Moderator
  * usergroup can hold the second without the first.
  *
- * Union scope, per-row right. Every community in the scope is one this actor
+ * Union scope, per-row right. Every forum in the scope is one this actor
  * already moderates with this tool, so a row coming back `refused` there
- * discloses nothing they could not already read; a row in any *other* community
+ * discloses nothing they could not already read; a row in any *other* forum
  * never comes back at all. Narrowing the scope to one action instead would fix
  * the disclosure by breaking the feature — a group-level post deleter would see
  * every selection report `missing`.
  *
  * Exported because the app needs the same mapping twice — once for the scope
- * and once per community for the rights — and two hand-written copies is how a tool
+ * and once per forum for the rights — and two hand-written copies is how a tool
  * ends up scoped by one permission and applied under another.
  */
 export const INLINE_TOOL_ACTIONS = {

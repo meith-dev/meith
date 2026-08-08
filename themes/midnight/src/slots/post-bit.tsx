@@ -136,7 +136,7 @@ export function PostBit({ post, select, regions }: PostBitSlotModel) {
                 <dd className="text-foreground">{post.author.reputation}</dd>
               </div>
             )}
-            {post.author.isOnline && <div className="text-community-unread">online</div>}
+            {post.author.isOnline && <div className="text-forum-unread">online</div>}
           </dl>
 
           {/* F59's fields: text, never markup — a member-supplied value is not HTML. */}

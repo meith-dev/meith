@@ -20,7 +20,7 @@ import { getContainer } from './container'
  * there is one answer to "may this actor touch this post" rather than four that
  * have to be kept in step. Thread-scoped: the post id from the form is only
  * ever looked up *within* the thread the form also names, so a post id alone
- * cannot address a post in a community the actor was never authorised against.
+ * cannot address a post in a forum the actor was never authorised against.
  */
 export interface PostManageScope {
   readonly target: NonNullable<Awaited<ReturnType<PostWriteRepository['findEditTarget']>>>
@@ -44,12 +44,12 @@ export async function resolvePostScope(
   if (!target) return null
 
   const scope = {
-    communityId: target.community.id,
-    community: await authorizer.communityMatrix(actor, target.community.id),
+    forumId: target.forum.id,
+    forum: await authorizer.forumMatrix(actor, target.forum.id),
     ownerId: target.post.authorUserId,
   }
-  // The existence of a post in a community you cannot read is not something to
-  // confirm — same answer an invisible community gives everywhere else.
+  // The existence of a post in a forum you cannot read is not something to
+  // confirm — same answer an invisible forum gives everywhere else.
   if (!authorizer.can(actor, 'thread.view', scope)) return null
 
   const isOwn =
@@ -75,10 +75,10 @@ export async function resolvePostScope(
     bypassesLock: moderates,
     capabilities: {
       isOwn,
-      editWindowMinutes: Number(scope.community.editTimeLimitMinutes ?? 0),
+      editWindowMinutes: Number(scope.forum.editTimeLimitMinutes ?? 0),
       bypassesWindow: editsOthers || moderates,
       bypassesLock: moderates,
-      requiresApprovalOnEdit: scope.community.requiresApprovalOnEdit === true,
+      requiresApprovalOnEdit: scope.forum.requiresApprovalOnEdit === true,
       bypassesModeration: moderates,
     },
   }

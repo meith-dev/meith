@@ -157,7 +157,7 @@ export default async function AdminThemesPage() {
         </h2>
         <p className="text-muted-foreground">
           <strong>The whole theme</strong> — its components as well as its colours. A
-          theme that renders community listings as tables renders them as tables for the
+          theme that renders forum listings as tables renders them as tables for the
           member who picked it. The choice is a cookie, resolved on the server, so the
           page arrives already correct: no flash, no second paint, and the control works
           with JavaScript turned off.

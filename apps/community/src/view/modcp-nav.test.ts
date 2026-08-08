@@ -49,7 +49,7 @@ describe('modCpSections', () => {
 
 describe('activeSectionHref', () => {
   it('picks the section, not the panel that contains it', () => {
-    expect(activeSectionHref(FULL, '/modcp/communities')).toBe('/modcp/communities')
+    expect(activeSectionHref(FULL, '/modcp/forums')).toBe('/modcp/forums')
     expect(activeSectionHref(FULL, '/modcp/log')).toBe('/modcp/log')
   })
 
@@ -100,7 +100,7 @@ describe('deepestNavHref', () => {
 
 describe('currentProps', () => {
   it('marks the screen you are on', () => {
-    expect(current(FULL, '/modcp/communities', '/modcp/communities')).toBe('page')
+    expect(current(FULL, '/modcp/forums', '/modcp/forums')).toBe('page')
   })
 
   it('announces the warn screen rather than the queue above it', () => {

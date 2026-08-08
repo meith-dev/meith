@@ -30,7 +30,7 @@ test('a tab row scrolls sideways only, and gives a focus ring room to draw', asy
 }) => {
   await page.goto('/100-announcements')
 
-  /* Every tab row on the page, including the board sections above the community. */
+  /* Every tab row on the page, including the board sections above the forum. */
   const overflow = await page.evaluate(() =>
     [...document.querySelectorAll('nav[aria-label] ul')].map(
       (ul) => ul.scrollHeight - ul.clientHeight,

@@ -129,7 +129,7 @@ export interface SessionRecord {
 /** The R3.1 `sessions.location_*` triplet, written at most once per 60s (F17). */
 export interface SessionLocation {
   readonly path: string | null
-  readonly communityId: number | null
+  readonly forumId: number | null
   readonly threadId: number | null
 }
 

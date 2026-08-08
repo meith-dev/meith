@@ -9,11 +9,11 @@ test('the fixture board, registration, and login work without JavaScript', async
   await page.goto('/')
   /*
    * Scoped to the category block, because the index now says this thread's name
-   * three times: the community row's last post, and both panels in the activity
+   * three times: the forum row's last post, and both panels in the activity
    * rail. The one this test is about is the listing's — an unscoped locator
    * here stopped being unambiguous the day the rail landed.
    */
-  await page.getByLabel('Community').getByRole('link', { name: 'Version 0.1 is live' }).click()
+  await page.getByLabel('Forum').getByRole('link', { name: 'Version 0.1 is live' }).click()
   await expect(page).toHaveURL(/\/thread\/4(?:#|$)/)
 
   /*
@@ -23,7 +23,7 @@ test('the fixture board, registration, and login work without JavaScript', async
    * the tags rather than the words is the point — a renderer that emitted its
    * input verbatim would still show the sentence.
    */
-  await expect(page.locator('#post-10 strong')).toHaveText('new community')
+  await expect(page.locator('#post-10 strong')).toHaveText('new forum')
   const rules = page.locator('#post-10 a[href="/100-announcements"]')
   await expect(rules).toHaveText('Announcements')
   await expect(rules).toHaveAttribute('rel', 'nofollow ugc noopener noreferrer')
@@ -59,16 +59,16 @@ test('a quoted reply renders as a quote block, not as its own markup', async ({ 
  * The acceptance names both, and they are the same requirement seen twice. The
  * implementation everybody writes first — a `<select>` with an `onChange` that
  * sets `location.href` — fails both at once: it does nothing here, and it
- * teleports a keyboard user to the first community in the list as they arrow towards
+ * teleports a keyboard user to the first forum in the list as they arrow towards
  * the one they wanted, because `change` fires on every keystroke.
  *
  * So this test does the thing that only works if the box is a real form:
  * selects an option and presses a button.
  */
-test('the community jump box works without JavaScript', async ({ page }) => {
+test('the forum jump box works without JavaScript', async ({ page }) => {
   await page.goto('/')
 
-  const jump = page.getByRole('combobox', { name: 'Jump to community' })
+  const jump = page.getByRole('combobox', { name: 'Jump to forum' })
   await expect(jump).toBeVisible()
 
   /*
@@ -97,14 +97,14 @@ test('the community jump box works without JavaScript', async ({ page }) => {
 test('the jump box is reachable and operable from the keyboard', async ({ page }) => {
   await page.goto('/')
 
-  const jump = page.getByRole('combobox', { name: 'Jump to community' })
+  const jump = page.getByRole('combobox', { name: 'Jump to forum' })
   await jump.focus()
   await expect(jump).toBeFocused()
 
   /*
    * Tab from the select must land on the submit control — that adjacency is the
    * whole keyboard story. If the button were somewhere else in the tab order, a
-   * keyboard user would choose a community and then have to go looking for the way
+   * keyboard user would choose a forum and then have to go looking for the way
    * to commit to it.
    */
   await page.keyboard.press('Tab')
@@ -116,7 +116,7 @@ test('the jump box is reachable and operable from the keyboard', async ({ page }
  *
  * The box only lists what the viewer may see, which makes it tempting to trust
  * the submitted id. But the id arrives in a query string that anybody can type,
- * and a page that redirected on it would answer "does community 42 exist, and what
+ * and a page that redirected on it would answer "does forum 42 exist, and what
  * is it called" for every id on the board.
  *
  * **The body is asserted, not just the status.** This was a route handler until
@@ -136,8 +136,8 @@ test('the jump box is reachable and operable from the keyboard', async ({ page }
  * asserting a heading here would fail for a reason that has nothing to do with
  * the jump box, and would pass again the day the framework changes underneath.
  */
-test('jumping to a community id that does not exist is a 404, not a redirect', async ({ page }) => {
-  const response = await page.goto('/jump?community=99999')
+test('jumping to a forum id that does not exist is a 404, not a redirect', async ({ page }) => {
+  const response = await page.goto('/jump?forum=99999')
   expect(response?.status()).toBe(404)
   expect(response?.headers()['content-type']).toContain('text/html')
   expect(await response?.text()).not.toBe('')

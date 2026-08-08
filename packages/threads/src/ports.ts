@@ -7,7 +7,7 @@ import type {
   ThreadSort,
 } from './types'
 
-/** SQL-free seam for the community-display read (F30). */
+/** SQL-free seam for the forum-display read (F30). */
 export interface ThreadRepository {
   /**
    * A thread by its stable id, within the scope this actor may see (F47).
@@ -19,21 +19,21 @@ export interface ThreadRepository {
   findById(id: number, scope: ContentScope): Promise<ThreadListingRow | null>
 
   /**
-   * Which community a thread is in, whatever state the thread is in.
+   * Which forum a thread is in, whatever state the thread is in.
    *
    * The one lookup that is deliberately unscoped, and it returns an id and
-   * nothing else. It exists because the scope cannot be built before the community
-   * is known and the community cannot be known before the thread is found — so
+   * nothing else. It exists because the scope cannot be built before the forum
+   * is known and the forum cannot be known before the thread is found — so
    * either something reads the thread unscoped, or this reads the single field
-   * that resolving permissions actually needs. A community id is not content: it
+   * that resolving permissions actually needs. A forum id is not content: it
    * confirms nothing a reader could not learn by being refused, and the
    * `thread.view` check that follows is what decides whether they learn even
    * that.
    */
-  locateCommunity(threadId: number): Promise<number | null>
+  locateForum(threadId: number): Promise<number | null>
 
-  listCommunity(
-    communityId: number,
+  listForum(
+    forumId: number,
     options: {
       readonly after?: ThreadCursor
       readonly limit: number

@@ -295,7 +295,7 @@ function render({ budgets, results, indexes, plans }) {
   out.push('')
   out.push('Each partial index has an unfiltered twin, and the twins are checked too. A')
   out.push('moderator seeing unapproved and deleted content *cannot* use the partial')
-  out.push('index — their predicate does not imply it — so without the twin their community')
+  out.push('index — their predicate does not imply it — so without the twin their forum')
   out.push('view is a sequential scan. That failure is invisible to every test written')
   out.push('from a member’s point of view, which is most of them.')
   out.push('')

@@ -113,7 +113,7 @@ export interface PutFileOptions {
   readonly contentType: string
   /**
    * Whether the object should be readable without a signed URL. Avatars are
-   * public; attachments in a private community are emphatically not.
+   * public; attachments in a private forum are emphatically not.
    */
   readonly visibility: 'public' | 'private'
 }

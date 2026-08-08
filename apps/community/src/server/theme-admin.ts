@@ -25,7 +25,7 @@ import 'server-only'
 import { ForbiddenError } from '@meith/core'
 import { PostgresThemeAdminRepository, getDb, type ThemeRecord } from '@meith/db'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 import { tokenMeta } from '@/view/theme-tokens'
 import type { EditableToken } from '@/view/theme-draft'
 
@@ -85,7 +85,7 @@ export interface ThemeListing {
   readonly updatedAt: Date | null
 }
 
-const buildThemeKey = communityConfig.defaultTheme
+const buildThemeKey = forumConfig.defaultTheme
 
 /**
  * How many tokens this board has overridden, counted across both schemes.
@@ -124,7 +124,7 @@ export async function themeListing(): Promise<readonly ThemeListing[]> {
   const rows = repository === null ? [] : await repository.list()
   const byKey = new Map(rows.map((row) => [row.key, row]))
 
-  const registered = Object.values(communityConfig.themes)
+  const registered = Object.values(forumConfig.themes)
   const claimed = registered.find((theme) => byKey.get(theme.key)?.isDefault === true)
 
   return registered.map((theme) => {
@@ -165,7 +165,7 @@ export async function themeListing(): Promise<readonly ThemeListing[]> {
  * refusing to open is how they end up back in psql.
  */
 export async function buildThemeAdminView(key: string): Promise<ThemeAdminView | null> {
-  const installed = communityConfig.themes[key]
+  const installed = forumConfig.themes[key]
   const repository = themeAdminRepository()
   if (installed === undefined || repository === null) return null
 
@@ -217,14 +217,14 @@ export async function buildThemeAdminView(key: string): Promise<ThemeAdminView |
 export function themeTokens(
   key: string,
 ): { light: Readonly<Record<string, string>>; dark: Readonly<Record<string, string>> } | null {
-  const installed = communityConfig.themes[key]
+  const installed = forumConfig.themes[key]
   return installed === undefined
     ? null
     : { light: installed.tokens.light, dark: installed.tokens.dark }
 }
 
 export function themeTitle(key: string): string | null {
-  return communityConfig.themes[key]?.title ?? null
+  return forumConfig.themes[key]?.title ?? null
 }
 
 /**
@@ -275,7 +275,7 @@ export async function boardSampleSurfaces(): Promise<{
 }> {
   const listing = await themeListing().catch(() => [])
   const key = listing.find((entry) => entry.isDefault)?.key ?? buildThemeKey
-  const theme = communityConfig.themes[key] ?? communityConfig.themes[buildThemeKey]
+  const theme = forumConfig.themes[key] ?? forumConfig.themes[buildThemeKey]
 
   const light = theme?.tokens.light ?? {}
   const dark = theme?.tokens.dark ?? {}

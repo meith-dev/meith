@@ -35,11 +35,11 @@ import { FIXTURE_DATA_VERSION, SEED_BOARD } from './seed-board'
  *
  * Exported because a few tests reach past `installTestContainer` to mutate one
  * field mid-test (dropping a repository to prove a route refuses without it, or
- * swapping the Authorizer for a board with a hidden community). Those are legitimate
+ * swapping the Authorizer for a board with a hidden forum). Those are legitimate
  * and re-declaring the symbol in each file is how one of them ends up keyed on a
  * different string and silently tests nothing.
  */
-export const CONTAINER_KEY = Symbol.for('@meith/community.container')
+export const CONTAINER_KEY = Symbol.for('@meith/forum.container')
 
 /**
  * The fields a test may override.
@@ -53,12 +53,12 @@ export const CONTAINER_KEY = Symbol.for('@meith/community.container')
 export type TestContainerOverrides = Record<string, unknown>
 
 export interface TestContainerOptions {
-  /** Appointments for `community_moderators` (F48). */
+  /** Appointments for `forum_moderators` (F48). */
   readonly moderators?: readonly MemoryAppointment[]
-  /** Extra per-community permission overrides, appended to the seed board's. */
+  /** Extra per-forum permission overrides, appended to the seed board's. */
   readonly overrides?: MemoryBoard['overrides']
   /**
-   * A whole replacement board, for the tests that build one (a hidden community
+   * A whole replacement board, for the tests that build one (a hidden forum
    * with its own chain, say). Wins over `moderators`/`overrides`, which are the
    * convenience path for the common case of tweaking the seed board.
    */
@@ -130,16 +130,16 @@ export function installTestContainer(
 
     /* The read ports, stubbed to "nothing here" rather than to null. */
     threads: {
-      locateCommunity: async () => null,
+      locateForum: async () => null,
       findById: async () => null,
-      listCommunity: async () => ({ rows: [], nextCursor: null }),
+      listForum: async () => ({ rows: [], nextCursor: null }),
     },
     posts: {
       findVisibleById: async () => null,
       listThread: async () => ({ rows: [], nextAfterId: null }),
     },
     memberProfiles: { findPublicById: async () => null },
-    communities: {
+    forums: {
       listAll: async () => [],
       listListing: async () => [],
       findById: async () => null,
@@ -203,7 +203,7 @@ export function clearTestContainer(): void {
 }
 
 /**
- * An appointment carrying exactly the named rights, over one community.
+ * An appointment carrying exactly the named rights, over one forum.
  *
  * Four of the six app-tier test files declared this identically. The default is
  * *no* rights, so a test naming `canOpenCloseThreads: true` is stating the whole
@@ -211,14 +211,14 @@ export function clearTestContainer(): void {
  * readable.
  */
 export function appointment(
-  communityId: number,
+  forumId: number,
   rights: Partial<MemoryAppointment> = {},
   userId = 3,
 ): MemoryAppointment {
   return {
     userId,
-    communityId,
-    cascadeToSubcommunities: false,
+    forumId,
+    cascadeToSubforums: false,
     canApproveContent: false,
     canEditPosts: false,
     canSoftDeletePosts: false,

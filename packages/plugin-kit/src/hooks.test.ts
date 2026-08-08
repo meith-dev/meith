@@ -88,7 +88,7 @@ describe('the hook registry', () => {
    * R4, stated as a test. `authorization.can()` is the single answer to "may
    * this actor do this", and a hook able to filter it — or to reach inside F47's
    * visibility filter — is a plugin able to grant itself anything or to publish
-   * a private community. This asserts the absence rather than trusting the review
+   * a private forum. This asserts the absence rather than trusting the review
    * that removed it.
    */
   it('offers no hook over authorization or content visibility', () => {

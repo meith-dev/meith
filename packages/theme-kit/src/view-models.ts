@@ -141,7 +141,7 @@ export interface ViewerModel {
    * `canAccessAdminCp`: a rendering hint the Authorizer has already decided.
    *
    * Group-level only, which is a real limitation rather than an oversight: a
-   * per-community appointee's queue exists and is reachable, but answering "does
+   * per-forum appointee's queue exists and is reachable, but answering "does
    * this person moderate anything" for them costs the tree, and the shell
    * renders on every page. The moderation control panel is where that link earns its query.
    */
@@ -170,7 +170,7 @@ export interface UserRefModel {
   readonly nameClass?: string | null | undefined
 }
 
-/** The last post in a community or thread, as a listing shows it. */
+/** The last post in a forum or thread, as a listing shows it. */
 export interface LastPostModel {
   readonly threadTitle: string
   /** Deep link to the post itself, not the thread's first page. */
@@ -204,19 +204,19 @@ export interface OptionModel {
  * Listing models
  * ------------------------------------------------------------------ */
 
-export interface CommunityRowModel {
+export interface ForumRowModel {
   readonly id: number
   readonly title: string
   readonly description: string | null
   readonly href: string
   /** `link` rows navigate away and have no counters. */
-  readonly type: 'category' | 'community' | 'link'
+  readonly type: 'category' | 'forum' | 'link'
   readonly threadCount: number
   readonly postCount: number
   readonly lastPost: LastPostModel | null
   /** `false` for a guest, who has no read state. */
   readonly isUnread: boolean
-  readonly subcommunities: readonly LinkModel[]
+  readonly subforums: readonly LinkModel[]
 }
 
 export interface ThreadRowModel {
@@ -554,8 +554,8 @@ export interface AnnouncementModel {
   readonly bodyHtml: string
   readonly postedBy: UserRefModel | null
   readonly postedAt: TimeModel
-  /** The community it belongs to, or `null` when it is board-wide. */
-  readonly community: LinkModel | null
+  /** The forum it belongs to, or `null` when it is board-wide. */
+  readonly forum: LinkModel | null
 }
 
 export interface BoardIndexModel {
@@ -602,9 +602,9 @@ export interface BoardIndexModel {
   }
 }
 
-/** A category and the community rows under it; the rows arrive as `children`. */
+/** A category and the forum rows under it; the rows arrive as `children`. */
 export interface CategoryBlockModel {
-  readonly category: CommunityRowModel
+  readonly category: ForumRowModel
   readonly children?: ReactNode
 }
 
@@ -627,7 +627,7 @@ export interface BoardStatsModel {
 /**
  * One visitor in the online list.
  *
- * `location` is **already resolved against the reader**: a community they may not
+ * `location` is **already resolved against the reader**: a forum they may not
  * see arrives as the bare label, never as a title with a link. The theme
  * renders what it is given and cannot leak what it was not.
  */
@@ -653,15 +653,15 @@ export interface WhoIsOnlineModel {
 /**
  * One thread in the index's "latest threads" panel.
  *
- * Every row carries its community, because these two panels are the only lists on
- * the board that cross it: without the community, two identically-titled threads in
- * two communities are the same row printed twice.
+ * Every row carries its forum, because these two panels are the only lists on
+ * the board that cross it: without the forum, two identically-titled threads in
+ * two forums are the same row printed twice.
  */
 export interface LatestThreadModel {
   readonly title: string
   readonly href: string
-  /** The community it was started in, resolved — a theme never builds an href. */
-  readonly community: LinkModel
+  /** The forum it was started in, resolved — a theme never builds an href. */
+  readonly forum: LinkModel
   readonly author: UserRefModel
   readonly replyCount: number
   readonly startedAt: TimeModel
@@ -687,7 +687,7 @@ export interface LatestPostModel {
   readonly threadTitle: string
   /** `/thread/12-slug#post-34` — the post, not the top of its thread. */
   readonly href: string
-  readonly community: LinkModel
+  readonly forum: LinkModel
   readonly author: UserRefModel
   /**
    * The post as text: flattened out of its Markdown source and cut on a word
@@ -708,19 +708,19 @@ export interface LatestPostsModel {
   readonly capturedAt: TimeModel
 }
 
-export interface CommunityDisplayModel {
-  readonly community: CommunityRowModel
+export interface ForumDisplayModel {
+  readonly forum: ForumRowModel
   readonly newThreadHref: string | null
   readonly markReadAction: string | null
   readonly regions: {
     /**
-     * Controls scoped to this community — the thread ordering, and the follow
+     * Controls scoped to this forum — the thread ordering, and the follow
      * form for a member who may subscribe. Rendered by the route because both
      * carry a Server Action or a URL contract the theme does not own.
      *
      * **A theme renders this under its heading, not above it.** That placement
      * is the reason the field exists: these were app-rendered strips stacked
-     * *before* `CommunityDisplay`, so the first thing on a community page was a filter
+     * *before* `ForumDisplay`, so the first thing on a forum page was a filter
      * with nothing yet to say what it filtered. A control belongs after the
      * thing it acts on has been named.
      *
@@ -728,25 +728,25 @@ export interface CommunityDisplayModel {
      * versioning policy — a theme written against 0.3 keeps compiling.
      *
      * Only what acts on the listing *below* it belongs here. Following the
-     * community is in `afterContent`, for the reason given there.
+     * forum is in `afterContent`, for the reason given there.
      */
     readonly tools?: ReactNode
-    readonly subcommunities: ReactNode
+    readonly subforums: ReactNode
     /** One `ThreadRow` per thread. Empty-state markup is the theme's. */
     readonly threads: ReactNode
     readonly pagination: ReactNode
     /**
-     * This community's announcements *and* the board's — an announcement being
+     * This forum's announcements *and* the board's — an announcement being
      * board-wide would mean little if it appeared only on the index, which is
      * the page fewest people arrive on.
      */
     readonly announcements?: ReactNode
     /**
      * Controls for somebody who has finished with the page — today, the form
-     * that follows this community.
+     * that follows this forum.
      *
      * A theme renders it after the listing. "Do you want to hear about this
-     * community?" is a question you can only answer once you have seen what is in
+     * forum?" is a question you can only answer once you have seen what is in
      * it, and asked above the threads it is a panel between a reader and the
      * thing they came for. The ordering tabs stay at the top in `tools`,
      * because those act on the list underneath them.
@@ -755,13 +755,13 @@ export interface CommunityDisplayModel {
   }
 }
 
-export interface SubcommunityListModel {
-  readonly communities: readonly CommunityRowModel[]
+export interface SubforumListModel {
+  readonly forums: readonly ForumRowModel[]
 }
 
 export interface ThreadViewModel {
   readonly thread: ThreadRowModel
-  readonly community: LinkModel
+  readonly forum: LinkModel
   readonly replyHref: string | null
   /** A native POST target for the last visible post on this page. */
   readonly markReadAction: string | null
@@ -772,7 +772,7 @@ export interface ThreadViewModel {
      * every app-rendered region exists: each one carries a Server Action.
      *
      * **A theme renders this under its heading, not above it**, and the same
-     * history is behind this field as behind `CommunityDisplayModel`'s. Four of
+     * history is behind this field as behind `ForumDisplayModel`'s. Four of
      * these strips used to stack before `ThreadView`, so a thread opened on a
      * phone began with a follow control, a star rating and a poll, and the
      * title of the thing being followed, rated and voted on was a screen
@@ -830,7 +830,7 @@ export interface PostFormModel {
   readonly mode: 'thread' | 'reply' | 'edit'
   /** e.g. "Post a new thread in General". */
   readonly heading: string
-  /** Where a cancel link returns to — the community, or the thread being replied to. */
+  /** Where a cancel link returns to — the forum, or the thread being replied to. */
   readonly cancelHref: string
   readonly cancelLabel: string
   readonly errorMessage: string | null
@@ -893,7 +893,7 @@ export interface MemberProfileModel {
 /**
  * The search form, reshaped at the slot-contract freeze.
  *
- * It was originally declared as `{ action, query, communities: LinkModel[], errorMessage }`
+ * It was originally declared as `{ action, query, forums: LinkModel[], errorMessage }`
  * and never rendered — F73 shipped its own form inside the page, so the slot was
  * a contract nothing had ever tested. Wiring it up is what found the shape wrong:
  * a filter is a `<select>`, and an option is a value and a label, not an href.
@@ -912,14 +912,14 @@ export interface SearchFormModel {
   /** The names to give the controls, owned by the app. */
   readonly fields: {
     readonly query: string
-    readonly community: string
+    readonly forum: string
     readonly sort: string
   }
   readonly query: string
   /** The server's limit, so the browser can refuse over-long input first. */
   readonly maxQueryLength: number
-  /** Communities this viewer may search. The first option is "everywhere". */
-  readonly communities: readonly OptionModel[]
+  /** Forums this viewer may search. The first option is "everywhere". */
+  readonly forums: readonly OptionModel[]
   readonly sorts: readonly OptionModel[]
   /** Guidance for an empty form: quoting, exclusion. `null` once submitted. */
   readonly hint: string | null
@@ -927,7 +927,7 @@ export interface SearchFormModel {
 }
 
 /**
- * The community jump box — MyBB's `<select>` at the foot of every page.
+ * The forum jump box — MyBB's `<select>` at the foot of every page.
  *
  * ## Why a form and a button rather than a `<select>` that navigates
  *
@@ -936,7 +936,7 @@ export interface SearchFormModel {
  * JavaScript, and it fails in the same way for both reasons: **choosing an
  * option is not the same act as committing to it.** A keyboard user moving
  * through a `<select>` with the arrow keys changes the value on every
- * keystroke, so an auto-navigating jump box teleports them to the first community
+ * keystroke, so an auto-navigating jump box teleports them to the first forum
  * in the list before they reach the one they wanted.
  *
  * So the model carries an `action` and a submit label, and the theme renders a
@@ -946,23 +946,23 @@ export interface SearchFormModel {
  * ## `depth` rather than a pre-indented label
  *
  * The app gives the tree's shape and the theme decides how to show it. Baking
- * `— — Subcommunity` into the label would make the indentation impossible to
+ * `— — Subforum` into the label would make the indentation impossible to
  * restyle and would put non-breaking spaces into what a screen reader announces.
  */
-export interface CommunityJumpModel {
+export interface ForumJumpModel {
   /** Where the form submits. GET, because a jump is a navigation. */
   readonly action: string
   /** The query-parameter name to give the select. The app owns it. */
   readonly field: string
-  /** Visible communities, in tree order. */
-  readonly communities: readonly CommunityJumpOption[]
+  /** Visible forums, in tree order. */
+  readonly forums: readonly ForumJumpOption[]
   /** The label for the submit control. Always rendered. */
   readonly submitLabel: string
-  /** Accessible name for the control, e.g. "Jump to community". */
+  /** Accessible name for the control, e.g. "Jump to forum". */
   readonly label: string
 }
 
-export interface CommunityJumpOption {
+export interface ForumJumpOption {
   readonly value: string
   readonly label: string
   /** 0 for a top-level category. The theme chooses how to show nesting. */
@@ -1001,7 +1001,7 @@ export interface ErrorNoticeModel {
  * HTML's `form` attribute associates a control with a form **by id, anywhere
  * in the document**, so the checkboxes can live inside table rows, list items
  * or article elements without the listing having to be wrapped in a `<form>` —
- * which it cannot be, because `CommunityDisplay` already renders a mark-read form
+ * which it cannot be, because `ForumDisplay` already renders a mark-read form
  * and nested forms are not a thing browsers will parse.
  */
 export interface SelectionModel {
@@ -1029,8 +1029,8 @@ export interface PostBitSlotModel {
   }
 }
 
-export interface CommunityRowSlotModel {
-  readonly community: CommunityRowModel
+export interface ForumRowSlotModel {
+  readonly forum: ForumRowModel
 }
 
 export interface ThreadRowSlotModel {
@@ -1082,15 +1082,15 @@ export interface SlotModels {
 
   BoardIndex: BoardIndexModel
   CategoryBlock: CategoryBlockModel
-  CommunityRow: CommunityRowSlotModel
+  ForumRow: ForumRowSlotModel
   BoardStats: BoardStatsModel
   WhoIsOnline: WhoIsOnlineModel
   LatestThreads: LatestThreadsModel
   LatestPosts: LatestPostsModel
 
-  CommunityDisplay: CommunityDisplayModel
+  ForumDisplay: ForumDisplayModel
   ThreadRow: ThreadRowSlotModel
-  SubcommunityList: SubcommunityListModel
+  SubforumList: SubforumListModel
   Pagination: PaginationModel
 
   ThreadView: ThreadViewModel
@@ -1104,7 +1104,7 @@ export interface SlotModels {
   MemberProfile: MemberProfileModel
 
   SearchForm: SearchFormModel
-  CommunityJump: CommunityJumpModel
+  ForumJump: ForumJumpModel
 
   RedirectNotice: RedirectNoticeModel
   ErrorNotice: ErrorNoticeModel

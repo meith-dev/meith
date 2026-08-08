@@ -4,7 +4,7 @@ import {
   AnnouncementRowForm,
   NewAnnouncementForm,
   type AnnouncementValues,
-  type CommunityChoice,
+  type ForumChoice,
 } from '@/components/admin/content-forms'
 import { PanelPage } from '@/components/shell/panel-page'
 import { requireAdmin } from '@/server/admin'
@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: 'Announcements' }
  * that.** A sticky thread is a conversation: members reply to it, it belongs to
  * its author, and taking it down deletes what they said — which is why boards
  * built on pinned threads end up with a three-year-old rules post at the top of
- * every community. This is a dated notice nobody can reply to, that expires on its
+ * every forum. This is a dated notice nobody can reply to, that expires on its
  * own, and whose removal removes nothing anybody wrote. That is what makes the
  * delete button here safe and the same button on a sticky thread not.
  *
@@ -43,16 +43,16 @@ export default async function AdminAnnouncementsPage() {
     )
   }
 
-  const { communities } = getContainer()
-  const [rows, tree] = await Promise.all([repository.list(), communities.listListing()])
+  const { forums } = getContainer()
+  const [rows, tree] = await Promise.all([repository.list(), forums.listListing()])
 
   /*
    * Categories are excluded: nobody reads a category page, so an announcement
    * on one would be written and never seen. Offering the choice would be
    * offering a way to publish into a void.
    */
-  const choices: readonly CommunityChoice[] = tree
-    .filter((row) => row.type === 'community')
+  const choices: readonly ForumChoice[] = tree
+    .filter((row) => row.type === 'forum')
     .map((row) => ({
       id: row.id,
       label: `${' '.repeat(row.depth)}${row.title}`,
@@ -70,7 +70,7 @@ export default async function AdminAnnouncementsPage() {
       title="Announcements"
       lede={
         <>
-          A dated notice above the communities. Nobody can reply to one, it disappears on its
+          A dated notice above the forums. Nobody can reply to one, it disappears on its
           own date, and removing it removes nothing anybody wrote — which is what makes it
           a different thing from a pinned thread rather than a worse one.
         </>
@@ -103,7 +103,7 @@ export default async function AdminAnnouncementsPage() {
 
             const values: AnnouncementValues = {
               id: row.id,
-              communityId: row.communityId,
+              forumId: row.forumId,
               title: row.title,
               message: row.message,
               startsAtInput: forInput(row.startsAt),
@@ -118,10 +118,10 @@ export default async function AdminAnnouncementsPage() {
                     {state}
                   </span>
                   {' · '}
-                  {row.communityTitle ?? 'the whole board'}
+                  {row.forumTitle ?? 'the whole board'}
                   {row.authorUsername !== '' && ` · by ${row.authorUsername}`}
                 </p>
-                <AnnouncementRowForm announcement={values} communities={choices} />
+                <AnnouncementRowForm announcement={values} forums={choices} />
               </div>
             )
           })}
@@ -130,7 +130,7 @@ export default async function AdminAnnouncementsPage() {
 
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-heading text-lg font-semibold">New announcement</h2>
-        <NewAnnouncementForm communities={choices} />
+        <NewAnnouncementForm forums={choices} />
       </section>
     </PanelPage>
   )

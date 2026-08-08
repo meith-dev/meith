@@ -61,7 +61,7 @@ at any price.
 ## What you get
 
 - **A real permission model.** 46 permission fields — 27 resolved per actor per
-  community, 19 board-wide — not a three-tier guess. Search, feeds and the API all
+  forum, 19 board-wide — not a three-tier guess. Search, feeds and the API all
   answer to it, so there is no path that reads around the rules.
 - **Themes that cannot break the board.** A frozen slot contract, documented
   and generated from the registry, so a theme is replaceable rather than a fork.

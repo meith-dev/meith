@@ -110,7 +110,7 @@ function isClientReference(value: unknown): boolean {
 /**
  * Validate a theme manifest and return it typed.
  *
- * Same shape and same reasoning as `defineCommunityConfig` (invariant 6): an
+ * Same shape and same reasoning as `defineForumConfig` (invariant 6): an
  * identity function whose job is to attach the type and check the things that
  * would otherwise fail a long way from their cause.
  *

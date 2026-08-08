@@ -10,8 +10,8 @@
  * Two rules shape everything here.
  *
  *  1. **The selection is never trusted.** A form submits ids. Each one is
- *     re-read to find out which community it is actually in, and only then checked
- *     against the communities this actor moderates. An id in the POST body is a
+ *     re-read to find out which forum it is actually in, and only then checked
+ *     against the forums this actor moderates. An id in the POST body is a
  *     request, not a fact.
  *  2. **A refusal is reported, not silently dropped.** A moderator who selects
  *     twelve items and acts on eleven must be told, or the queue quietly
@@ -29,8 +29,8 @@ export interface QueueSelection {
 
 /** One row of the queue, as the screen needs it. */
 export interface QueueItem extends QueueSelection {
-  readonly communityId: number
-  readonly communityTitle: string
+  readonly forumId: number
+  readonly forumTitle: string
   readonly threadId: number
   readonly threadSlug: string
   readonly threadTitle: string
@@ -47,9 +47,9 @@ export interface QueuePage {
   readonly nextCursor?: string
 }
 
-/** A selected item after its community has been re-read from the database. */
+/** A selected item after its forum has been re-read from the database. */
 export interface PendingItem extends QueueSelection {
-  readonly communityId: number
+  readonly forumId: number
 }
 
 export type QueueDecision = 'approve' | 'reject'
@@ -58,7 +58,7 @@ export interface QueueOutcome {
   readonly decision: QueueDecision
   /** Items whose state actually changed. */
   readonly applied: number
-  /** Selected, but in a community this actor does not moderate. */
+  /** Selected, but in a forum this actor does not moderate. */
   readonly refused: number
   /** Selected, but no longer pending — somebody else got there first. */
   readonly missing: number
@@ -67,16 +67,16 @@ export interface QueueOutcome {
 export interface ModerationQueueRepository {
   /** Oldest first: a queue is worked from the front. */
   list(
-    communityIds: readonly number[],
+    forumIds: readonly number[],
     options: { readonly limit: number; readonly after?: string },
   ): Promise<QueuePage>
 
   /** How many items are waiting, for the screen's heading. */
-  countPending(communityIds: readonly number[]): Promise<number>
+  countPending(forumIds: readonly number[]): Promise<number>
 
   /**
    * Re-read the selection. Returns only items that are *still pending*, with
-   * the community they are really in — which is the whole point of the call.
+   * the forum they are really in — which is the whole point of the call.
    */
   resolve(selection: readonly QueueSelection[]): Promise<readonly PendingItem[]>
 
@@ -118,28 +118,28 @@ export class ModerationQueue {
     this.now = deps.now ?? (() => new Date())
   }
 
-  /** One page of what is waiting in the communities this actor moderates. */
+  /** One page of what is waiting in the forums this actor moderates. */
   async list(
-    moderatedCommunityIds: readonly number[],
+    moderatedForumIds: readonly number[],
     options: { readonly after?: string } = {},
   ): Promise<QueuePage> {
-    if (moderatedCommunityIds.length === 0) return { items: [] }
-    return this.queue.list(moderatedCommunityIds, {
+    if (moderatedForumIds.length === 0) return { items: [] }
+    return this.queue.list(moderatedForumIds, {
       limit: QUEUE_PAGE_SIZE,
       ...(options.after === undefined ? {} : { after: options.after }),
     })
   }
 
-  async countPending(moderatedCommunityIds: readonly number[]): Promise<number> {
-    if (moderatedCommunityIds.length === 0) return 0
-    return this.queue.countPending(moderatedCommunityIds)
+  async countPending(moderatedForumIds: readonly number[]): Promise<number> {
+    if (moderatedForumIds.length === 0) return 0
+    return this.queue.countPending(moderatedForumIds)
   }
 
   /**
    * Apply a decision to a selection.
    *
-   * `moderatedCommunityIds` is the caller's already-resolved answer to "which
-   * communities may this actor act in" — the same set the listing used. Passing it
+   * `moderatedForumIds` is the caller's already-resolved answer to "which
+   * forums may this actor act in" — the same set the listing used. Passing it
    * rather than an actor keeps group and matrix reasoning inside
    * `@meith/authorization` (R4), and means this command cannot accidentally
    * widen its own authority.
@@ -147,7 +147,7 @@ export class ModerationQueue {
   async decide(input: {
     readonly selection: readonly QueueSelection[]
     readonly decision: QueueDecision
-    readonly moderatedCommunityIds: ReadonlySet<number>
+    readonly moderatedForumIds: ReadonlySet<number>
     readonly actorUserId: number
   }): Promise<QueueOutcome> {
     if (input.selection.length === 0) {
@@ -170,7 +170,7 @@ export class ModerationQueue {
     const pending = await this.queue.resolve([...unique.values()])
     const missing = unique.size - pending.length
 
-    const allowed = pending.filter((item) => input.moderatedCommunityIds.has(item.communityId))
+    const allowed = pending.filter((item) => input.moderatedForumIds.has(item.forumId))
     const refused = pending.length - allowed.length
 
     const applied =

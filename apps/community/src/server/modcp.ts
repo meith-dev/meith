@@ -9,9 +9,9 @@ import 'server-only'
  *
  * **The panel is rights-aware rather than permission-gated.** `modcp.access` is
  * a usergroup column and it is *not* the only route in: a member appointed to
- * moderate one community has work to do and no group grant, which is exactly the
- * case F48 discovered `community_moderators` had never been read for. So the gate is
- * "holds `modcp.access` **or** moderates at least one community", and the sections
+ * moderate one forum has work to do and no group grant, which is exactly the
+ * case F48 discovered `forum_moderators` had never been read for. So the gate is
+ * "holds `modcp.access` **or** moderates at least one forum", and the sections
  * inside it are filtered by what that resolves to.
  */
 import { cache } from 'react'
@@ -31,8 +31,8 @@ import { hasReportScope, resolveReportScope } from './report-scope'
 export interface ModCpAccess {
   readonly actor: Actor
   readonly userId: number
-  /** Communities they moderate, in tree order. Possibly empty for group-level staff. */
-  readonly communityIds: readonly number[]
+  /** Forums they moderate, in tree order. Possibly empty for group-level staff. */
+  readonly forumIds: readonly number[]
   /** Whether they hold the group-level panel permission. */
   readonly hasGroupAccess: boolean
   /** F53's global warn permission — the warn section. */
@@ -70,13 +70,13 @@ export const resolveModCpAccess = cache(
     if (modcp === null || actor.userId === null) return null
 
     const hasGroupAccess = authorizer.can(actor, 'modcp.access')
-    const communityIds = await authorizer.moderatedCommunityIds(actor)
-    if (!hasGroupAccess && communityIds.length === 0) return null
+    const forumIds = await authorizer.moderatedForumIds(actor)
+    if (!hasGroupAccess && forumIds.length === 0) return null
 
     return {
       actor,
       userId: actor.userId,
-      communityIds,
+      forumIds,
       hasGroupAccess,
       canWarn: getContainer().warnings !== null && authorizer.can(actor, 'user.warn'),
       canLookUpIp:
@@ -118,7 +118,7 @@ export const modCpCounts = cache(async function modCpCounts(): Promise<ModCpCoun
     moderationQueue === null
       ? Promise.resolve(0)
       : new ModerationQueue({ queue: moderationQueue })
-          .countPending(access.communityIds)
+          .countPending(access.forumIds)
           .catch(() => 0),
     reports === null
       ? Promise.resolve(0)
@@ -130,9 +130,9 @@ export const modCpCounts = cache(async function modCpCounts(): Promise<ModCpCoun
   return { pending, openReports }
 })
 
-/** One community this actor moderates, with the rights they hold there. */
-export interface ModeratedCommunityRights {
-  readonly communityId: number
+/** One forum this actor moderates, with the rights they hold there. */
+export interface ModeratedForumRights {
+  readonly forumId: number
   readonly title: string
   readonly slug: string
   readonly rights: readonly string[]
@@ -152,28 +152,28 @@ const RIGHT_LABELS: Readonly<Record<keyof ModeratorRights, string>> = {
 }
 
 /**
- * The communities this actor moderates, with their granular rights in each.
+ * The forums this actor moderates, with their granular rights in each.
  *
- * One `moderatorRightsIn` call per community, which is the honest cost of a screen
- * whose subject *is* per-community rights: the alternative is a batched read whose
+ * One `moderatorRightsIn` call per forum, which is the honest cost of a screen
+ * whose subject *is* per-forum rights: the alternative is a batched read whose
  * combination rules would be a second implementation of the one in
- * `@meith/authorization` (R4). A moderator has a handful of communities, not a
+ * `@meith/authorization` (R4). A moderator has a handful of forums, not a
  * hundred — and the dashboard's *counts* are one query for all of them, which is
  * the part that would otherwise be an N+1.
  */
-export async function moderatedCommunityRights(
+export async function moderatedForumRights(
   access: ModCpAccess,
-): Promise<readonly ModeratedCommunityRights[]> {
-  const { authorizer, communities } = getContainer()
-  const rows = await communities.listListing()
+): Promise<readonly ModeratedForumRights[]> {
+  const { authorizer, forums } = getContainer()
+  const rows = await forums.listListing()
 
   const resolved = await Promise.all(
-    access.communityIds.map(async (communityId): Promise<ModeratedCommunityRights | null> => {
-      const row = rows.find((r) => r.id === communityId)
-      if (row === undefined || row.type !== 'community') return null
-      const rights = await authorizer.moderatorRightsIn(access.actor, communityId)
+    access.forumIds.map(async (forumId): Promise<ModeratedForumRights | null> => {
+      const row = rows.find((r) => r.id === forumId)
+      if (row === undefined || row.type !== 'forum') return null
+      const rights = await authorizer.moderatorRightsIn(access.actor, forumId)
       return {
-        communityId,
+        forumId,
         title: row.title,
         slug: row.slug,
         rights: (Object.keys(RIGHT_LABELS) as (keyof ModeratorRights)[])
@@ -183,14 +183,14 @@ export async function moderatedCommunityRights(
     }),
   )
 
-  return resolved.filter((row): row is ModeratedCommunityRights => row !== null)
+  return resolved.filter((row): row is ModeratedForumRights => row !== null)
 }
 
 /**
  * The `Target` a per-page `can()` call should be built with (F54's debt).
  *
- * F48 introduced `Target.isCommunityModerator` and recorded that nothing ever set
- * it, so outside the queue a per-community appointee had only their group's rights —
+ * F48 introduced `Target.isForumModerator` and recorded that nothing ever set
+ * it, so outside the queue a per-forum appointee had only their group's rights —
  * `post.editOthers`, `post.softDelete` and the two content-visibility actions
  * all read the flag and all saw `undefined`. F52 paid half of it inside the
  * inline-moderation scope; this is the other half, and it is a helper rather
@@ -198,22 +198,22 @@ export async function moderatedCommunityRights(
  */
 export async function moderatorTargetFor(
   actor: Actor,
-  communityId: number,
-  community: Awaited<
-    ReturnType<ReturnType<typeof getContainer>['authorizer']['communityMatrix']>
+  forumId: number,
+  forum: Awaited<
+    ReturnType<ReturnType<typeof getContainer>['authorizer']['forumMatrix']>
   >,
 ): Promise<{
-  communityId: number
-  community: typeof community
+  forumId: number
+  forum: typeof forum
   moderatorRights: ModeratorRights
-  isCommunityModerator: boolean
+  isForumModerator: boolean
 }> {
   const { authorizer } = getContainer()
-  const moderatorRights = await authorizer.moderatorRightsIn(actor, communityId)
+  const moderatorRights = await authorizer.moderatorRightsIn(actor, forumId)
   return {
-    communityId,
-    community,
+    forumId,
+    forum,
     moderatorRights,
-    isCommunityModerator: hasAnyModeratorRight(moderatorRights),
+    isForumModerator: hasAnyModeratorRight(moderatorRights),
   }
 }

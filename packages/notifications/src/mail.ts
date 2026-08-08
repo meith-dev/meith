@@ -22,7 +22,7 @@
  * ## The text part is not a fallback
  *
  * Both parts are always produced, and the text part is written to be read. A
- * community notification is short, and plenty of people read mail as text.
+ * forum notification is short, and plenty of people read mail as text.
  *
  * ## Relative links are never emitted
  *
@@ -80,7 +80,7 @@ export function renderNotificationMail(input: {
 }): RenderedMail {
   const { view, brand, recipientName } = input
 
-  const boardName = brand.boardName === '' ? 'the community' : brand.boardName
+  const boardName = brand.boardName === '' ? 'the forum' : brand.boardName
   const target = absolute(brand, view.href)
   const preferences = absolute(brand, PREFERENCES_PATH)
   /*

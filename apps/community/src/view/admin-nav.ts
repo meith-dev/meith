@@ -6,7 +6,7 @@
  * It was: the index rendered a grid of eleven cards from a constant in
  * `app/admin/page.tsx`, and the shell rendered a header with two links in it.
  * The shell's list was the one an administrator actually needed — it is on
- * every screen — and it did not exist. Reaching the community tree from the
+ * every screen — and it did not exist. Reaching the forum tree from the
  * settings page meant going back to the index and finding the right card,
  * which is the navigation pattern of a table of contents rather than of a
  * panel somebody works in.
@@ -23,7 +23,7 @@
  * currently in. Rendering all of them all of the time would put seventeen rows
  * in a list whose value is that you can scan it.
  *
- * Per-row screens (`/admin/communities/12`, `/admin/users/12`) are deliberately not
+ * Per-row screens (`/admin/forums/12`, `/admin/users/12`) are deliberately not
  * here. They are not places in the panel, they are a record you opened, and
  * the navigation stays on the section they belong to while you are in one.
  *
@@ -77,9 +77,9 @@ export const ADMIN_SECTIONS: PanelNav = [
     children: SETTING_GROUP_NAV,
   },
   {
-    href: '/admin/communities',
-    title: 'Communities',
-    blurb: 'The tree, each community’s options, and the permission matrix.',
+    href: '/admin/forums',
+    title: 'Forums',
+    blurb: 'The tree, each forum’s options, and the permission matrix.',
   },
   {
     href: '/admin/groups',

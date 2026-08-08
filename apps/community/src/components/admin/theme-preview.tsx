@@ -14,7 +14,7 @@
  * landed on. An operator changing those was choosing blind, and the only way to
  * see the result was to save it onto the live board.
  *
- * So the sample is three scenes — a community listing, a thread, and the controls —
+ * So the sample is three scenes — a forum listing, a thread, and the controls —
  * and between them they render every colour token the theme declares. Each is
  * built out of the same utilities the real board uses, so `bg-card` here is
  * `bg-card` there: the sample cannot drift from the board by being written in
@@ -30,7 +30,7 @@
  * One above the other rather than side by side, which is the opposite of what
  * the version before this did and is a consequence of the sample moving into a
  * column beside the form: two scenes across 26rem is 13rem each, at which width
- * a community row's title and its post count collide and the thing an operator is
+ * a forum row's title and its post count collide and the thing an operator is
  * judging is the layout's failure rather than their colours.
  *
  * ## The sample is also the index
@@ -70,9 +70,9 @@ import { useId, useState } from "react"
 /** The scenes, in the order the picker offers them. */
 export const PREVIEW_SCENES = [
   {
-    key: "communities",
-    title: "Community list",
-    blurb: "Categories, community rows and their read state — the board’s front page.",
+    key: "forums",
+    title: "Forum list",
+    blurb: "Categories, forum rows and their read state — the board’s front page.",
   },
   {
     key: "thread",
@@ -103,7 +103,7 @@ const CHIP =
  * looking at it alone is routinely the same value as the card beside it, and the
  * band then disappears on the live board.
  */
-function CommunitiesScene() {
+function ForumsScene() {
   return (
     <div className="flex flex-col gap-3">
       <div
@@ -127,7 +127,7 @@ function CommunitiesScene() {
         >
           <div className="flex items-baseline justify-between gap-3 p-3">
             <span className="flex min-w-0 flex-col">
-              <span data-token="community-unread" className="text-sm font-semibold text-community-unread">
+              <span data-token="forum-unread" className="text-sm font-semibold text-forum-unread">
                 Announcements
               </span>
               <span className="text-xs text-muted-foreground">
@@ -145,7 +145,7 @@ function CommunitiesScene() {
 
           <div className="flex items-baseline justify-between gap-3 p-3">
             <span className="flex min-w-0 flex-col">
-              <span data-token="community-read" className="text-sm font-semibold text-community-read">
+              <span data-token="forum-read" className="text-sm font-semibold text-forum-read">
                 Introductions
               </span>
               <span className="text-xs text-muted-foreground">
@@ -161,7 +161,7 @@ function CommunitiesScene() {
 
           <div className="flex items-baseline justify-between gap-3 p-3">
             <span className="flex min-w-0 flex-col">
-              <span data-token="community-locked" className="text-sm font-semibold text-community-locked">
+              <span data-token="forum-locked" className="text-sm font-semibold text-forum-locked">
                 The archive
               </span>
               <span className="text-xs text-muted-foreground">Closed to new posts</span>
@@ -360,7 +360,7 @@ function ControlsScene() {
 }
 
 function Scene({ scene }: { scene: PreviewScene }) {
-  if (scene === "communities") return <CommunitiesScene />
+  if (scene === "forums") return <ForumsScene />
   if (scene === "thread") return <ThreadScene />
   return <ControlsScene />
 }
@@ -384,7 +384,7 @@ function SampleFrame({
 }) {
   /*
    * One handler on the frame rather than one per element: the scenes are markup
-   * about a community, and threading a callback through forty spans would make them
+   * about a forum, and threading a callback through forty spans would make them
    * markup about a callback. `closest` finds the innermost tagged ancestor, so a
    * button's label resolves to `primary-foreground` and the button itself to
    * `primary` — which is the distinction somebody clicking on a word means.
@@ -455,7 +455,7 @@ export function ThemePreview({
   /** Open the control for the token that paints whatever was clicked. */
   onPick?: ((token: string) => void) | undefined
 }) {
-  const [scene, setScene] = useState<PreviewScene>("communities")
+  const [scene, setScene] = useState<PreviewScene>("forums")
   const groupId = useId()
 
   const shown = hydrated ? PREVIEW_SCENES.filter((entry) => entry.key === scene) : PREVIEW_SCENES
@@ -523,7 +523,7 @@ export function ThemePreview({
  * no palette of its own so that block is what paints it. Same component, so what
  * the two previews show cannot drift apart.
  */
-export function ValidatedSample({ scene = "communities" }: { scene?: PreviewScene }) {
+export function ValidatedSample({ scene = "forums" }: { scene?: PreviewScene }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row">
       <SampleFrame label="Light" palette={{}} scene={scene} />

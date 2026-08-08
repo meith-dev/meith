@@ -3,7 +3,7 @@
  *
  * The report rules are unit-tested in `@meith/moderation` and the SQL against
  * real Postgres. What is proven here is the seam neither can see: that filing a
- * report re-authorises against the *target's* community rather than trusting the
+ * report re-authorises against the *target's* forum rather than trusting the
  * form, and that a member who cannot see something cannot learn it exists by
  * reporting it.
  */
@@ -41,7 +41,7 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { fileReportAction } = await import('./report-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { SEED_BOARD, SEED_COMMUNITY, SEED_GROUP } = await import('./seed-board')
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
 const { installTestContainer } = await import('./test-container')
 
@@ -51,7 +51,7 @@ class FakeReports implements ReportRepository {
   target: ReportTarget | null = {
     kind: 'post',
     id: 50,
-    communityId: SEED_COMMUNITY.general,
+    forumId: SEED_FORUM.general,
     threadId: 20,
     label: 'A thread',
   }
@@ -138,7 +138,7 @@ describe('fileReportAction', () => {
   })
 
   it('returns to the profile for a member report', async () => {
-    reports.target = { kind: 'user', id: 9, communityId: null, threadId: null, label: 'ada' }
+    reports.target = { kind: 'user', id: 9, forumId: null, threadId: null, label: 'ada' }
 
     expect(
       await redirectOf(
@@ -158,15 +158,15 @@ describe('fileReportAction', () => {
 
   /*
    * The check that matters. The form says which row; whether this member could
-   * *see* it is a question only the row's community can answer, and reporting
+   * *see* it is a question only the row's forum can answer, and reporting
    * something invisible would be a way to confirm it exists.
    */
-  it('does not confirm that content in a community it cannot see exists', async () => {
+  it('does not confirm that content in a forum it cannot see exists', async () => {
     const hidden = 555
     reports.target = {
       kind: 'post',
       id: 50,
-      communityId: hidden,
+      forumId: hidden,
       threadId: 20,
       label: 'A thread',
     }
@@ -175,7 +175,7 @@ describe('fileReportAction', () => {
       chains: { ...SEED_BOARD.chains, [hidden]: [hidden] },
       overrides: [
         ...SEED_BOARD.overrides,
-        { communityId: hidden, groupId: SEED_GROUP.registered, overrides: { canView: false } },
+        { forumId: hidden, groupId: SEED_GROUP.registered, overrides: { canView: false } },
       ],
     })
 
@@ -194,7 +194,7 @@ describe('fileReportAction', () => {
     const member = await actorFor(SEED_GROUP.registered, 3)
     /*
      * Everything else about this actor is a perfectly ordinary member — they
-     * can see the community, so the target check passes and the only thing left to
+     * can see the forum, so the target check passes and the only thing left to
      * refuse them is the permission itself. The guest case above is refused
      * earlier, by having no user id, so it proves nothing about this.
      */
@@ -227,7 +227,7 @@ describe('fileReportAction', () => {
   })
 
   it('refuses a kind it does not recognise', async () => {
-    const state = await fileReportAction(EMPTY_STATE, form({ ...VALID, kind: 'community' }))
+    const state = await fileReportAction(EMPTY_STATE, form({ ...VALID, kind: 'forum' }))
 
     expect(state.error).toBeTruthy()
     expect(reports.filed).toHaveLength(0)

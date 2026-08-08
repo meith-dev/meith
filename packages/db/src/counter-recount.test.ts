@@ -12,7 +12,7 @@ import { eq, sql } from 'drizzle-orm'
 import type { Database } from './client'
 import { PostgresCounterRecount, type RecountRun } from './counter-recount'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { communities, posts, threads, users } from './schema'
+import { forums, posts, threads, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -21,8 +21,8 @@ let recount: PostgresCounterRecount
 const AT = new Date('2026-07-30T12:00:00Z')
 
 const CATEGORY = 1
-const COMMUNITY = 4
-const SUBCOMMUNITY = 9
+const FORUM = 4
+const SUBFORUM = 9
 
 beforeAll(async () => {
   harness = await createTestDb()
@@ -38,7 +38,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from counter_recount_state`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -52,17 +52,17 @@ beforeEach(async () => {
     primaryGroupId: 2,
   })
 
-  await db.insert(communities).values([
+  await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: COMMUNITY, title: 'Community', slug: 'community', path: '1.4', depth: 1, parentId: CATEGORY },
-    { id: SUBCOMMUNITY, title: 'Sub', slug: 'sub', path: '1.4.9', depth: 2, parentId: COMMUNITY },
+    { id: FORUM, title: 'Forum', slug: 'forum', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: SUBFORUM, title: 'Sub', slug: 'sub', path: '1.4.9', depth: 2, parentId: FORUM },
   ])
 
-  // One thread in the community (2 posts) and one in its subcommunity (1 post).
+  // One thread in the forum (2 posts) and one in its subforum (1 post).
   await db.insert(threads).values([
     {
       id: 20,
-      communityId: COMMUNITY,
+      forumId: FORUM,
       title: 'Hello',
       slug: 'hello',
       authorUserId: 1,
@@ -71,7 +71,7 @@ beforeEach(async () => {
     },
     {
       id: 21,
-      communityId: SUBCOMMUNITY,
+      forumId: SUBFORUM,
       title: 'Deeper',
       slug: 'deeper',
       authorUserId: 1,
@@ -81,9 +81,9 @@ beforeEach(async () => {
   ])
 
   await db.insert(posts).values([
-    { id: 30, threadId: 20, communityId: COMMUNITY, authorUserId: 1, authorUsername: 'ada', message: 'a', isFirstPost: true, createdAt: AT },
-    { id: 31, threadId: 20, communityId: COMMUNITY, authorUserId: 1, authorUsername: 'ada', message: 'b', createdAt: new Date(AT.getTime() + 1000) },
-    { id: 32, threadId: 21, communityId: SUBCOMMUNITY, authorUserId: 1, authorUsername: 'ada', message: 'c', isFirstPost: true, createdAt: new Date(AT.getTime() + 2000) },
+    { id: 30, threadId: 20, forumId: FORUM, authorUserId: 1, authorUsername: 'ada', message: 'a', isFirstPost: true, createdAt: AT },
+    { id: 31, threadId: 20, forumId: FORUM, authorUserId: 1, authorUsername: 'ada', message: 'b', createdAt: new Date(AT.getTime() + 1000) },
+    { id: 32, threadId: 21, forumId: SUBFORUM, authorUserId: 1, authorUsername: 'ada', message: 'c', isFirstPost: true, createdAt: new Date(AT.getTime() + 2000) },
   ])
 })
 
@@ -100,8 +100,8 @@ async function fullSweep(batchSize = 500, maxRuns = 60): Promise<{ corrected: nu
   throw new Error(`recount did not complete a pass in ${maxRuns} runs`)
 }
 
-async function communityRow(id: number) {
-  const [row] = await db.select().from(communities).where(eq(communities.id, id))
+async function forumRow(id: number) {
+  const [row] = await db.select().from(forums).where(eq(forums.id, id))
   return row!
 }
 
@@ -115,10 +115,10 @@ describe('PostgresCounterRecount', () => {
     const [thread] = await db.select().from(threads).where(eq(threads.id, 20))
     expect(thread).toMatchObject({ replyCount: 1, firstPostId: 30, lastPostId: 31 })
 
-    // Community totals are subtree-inclusive, so the category carries everything.
-    expect(await communityRow(CATEGORY)).toMatchObject({ threadCount: 2, postCount: 3, lastPostId: 32 })
-    expect(await communityRow(COMMUNITY)).toMatchObject({ threadCount: 2, postCount: 3, lastPostId: 32 })
-    expect(await communityRow(SUBCOMMUNITY)).toMatchObject({ threadCount: 1, postCount: 1, lastPostId: 32 })
+    // Forum totals are subtree-inclusive, so the category carries everything.
+    expect(await forumRow(CATEGORY)).toMatchObject({ threadCount: 2, postCount: 3, lastPostId: 32 })
+    expect(await forumRow(FORUM)).toMatchObject({ threadCount: 2, postCount: 3, lastPostId: 32 })
+    expect(await forumRow(SUBFORUM)).toMatchObject({ threadCount: 1, postCount: 1, lastPostId: 32 })
 
     const [user] = await db.select().from(users).where(eq(users.id, 1))
     expect(user).toMatchObject({ postCount: 3, threadCount: 2 })
@@ -126,13 +126,13 @@ describe('PostgresCounterRecount', () => {
 
   it('converges counters that were corrupted in the other direction', async () => {
     await fullSweep()
-    await db.update(communities).set({ threadCount: 900, postCount: 900 }).where(eq(communities.id, CATEGORY))
+    await db.update(forums).set({ threadCount: 900, postCount: 900 }).where(eq(forums.id, CATEGORY))
     await db.update(threads).set({ replyCount: 77 }).where(eq(threads.id, 20))
     await db.update(users).set({ postCount: 42, threadCount: 42 }).where(eq(users.id, 1))
 
     await fullSweep()
 
-    expect(await communityRow(CATEGORY)).toMatchObject({ threadCount: 2, postCount: 3 })
+    expect(await forumRow(CATEGORY)).toMatchObject({ threadCount: 2, postCount: 3 })
     const [thread] = await db.select().from(threads).where(eq(threads.id, 20))
     expect(thread!.replyCount).toBe(1)
     const [user] = await db.select().from(users).where(eq(users.id, 1))
@@ -156,8 +156,8 @@ describe('PostgresCounterRecount', () => {
 
     const [thread] = await db.select().from(threads).where(eq(threads.id, 20))
     expect(thread).toMatchObject({ replyCount: 0, lastPostId: 30 })
-    // The subcommunity's only thread is unapproved: neither it nor its post counts.
-    expect(await communityRow(CATEGORY)).toMatchObject({ threadCount: 1, postCount: 1 })
+    // The subforum's only thread is unapproved: neither it nor its post counts.
+    expect(await forumRow(CATEGORY)).toMatchObject({ threadCount: 1, postCount: 1 })
     const [user] = await db.select().from(users).where(eq(users.id, 1))
     expect(user).toMatchObject({ postCount: 1, threadCount: 1 })
   })
@@ -188,7 +188,7 @@ describe('PostgresCounterRecount', () => {
 
     // A short batch means the table is exhausted and the next phase begins.
     const third = await recount.run(1)
-    expect(third).toMatchObject({ phase: 'threads', scanned: 0, nextPhase: 'communities', cursor: 0 })
+    expect(third).toMatchObject({ phase: 'threads', scanned: 0, nextPhase: 'forums', cursor: 0 })
   })
 
   it('converges at a batch size of one, in bounded runs', async () => {
@@ -196,7 +196,7 @@ describe('PostgresCounterRecount', () => {
 
     // Nothing in the sweep ever examined more than the batch allowed.
     expect(Math.max(...runs.map((r) => r.scanned))).toBe(1)
-    expect(await communityRow(CATEGORY)).toMatchObject({ threadCount: 2, postCount: 3 })
+    expect(await forumRow(CATEGORY)).toMatchObject({ threadCount: 2, postCount: 3 })
     const [user] = await db.select().from(users).where(eq(users.id, 1))
     expect(user).toMatchObject({ postCount: 3, threadCount: 2 })
   })

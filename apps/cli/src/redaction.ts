@@ -1,12 +1,12 @@
 /**
- * Which environment variables `community env` refuses to print.
+ * Which environment variables `forum env` refuses to print.
  *
  * Its own module so a test can hold it against the schema that declares the
  * variables. That is not tidiness — it is the fix for how this list failed.
  *
  * ## A deny-list that nothing checked
  *
- * `community env` prints the resolved environment, and it is the command whose
+ * `forum env` prints the resolved environment, and it is the command whose
  * output people paste into bug reports and support threads, which is the whole
  * reason it redacts anything. The redaction was a set of literal names sitting
  * inside the command handler, so adding a credential to `env.ts` printed it —
@@ -14,7 +14,7 @@
  *
  * That is exactly what happened when the SMTP transport arrived:
  * `MAIL_SMTP_PASSWORD` joined the schema, the set did not change, and
- * `community env` would have printed a mail password in full. It was found by
+ * `forum env` would have printed a mail password in full. It was found by
  * reading this file for an unrelated reason, which is not a mechanism.
  *
  * An allow-list would fail the safer way but would need a decision recorded for

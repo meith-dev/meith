@@ -3,9 +3,9 @@
  *
  * The tool rules are unit-tested in `@meith/moderation` and the counters
  * against real Postgres. What is proven here is the seam neither can see: that
- * this actor's rights are resolved *per community, for this request* — including a
+ * this actor's rights are resolved *per forum, for this request* — including a
  * second resolution for a move's destination — and that a moderator of one
- * community cannot learn a thread exists in another by trying to lock it.
+ * forum cannot learn a thread exists in another by trying to lock it.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -38,18 +38,18 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { threadToolAction } = await import('./thread-tool-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { SEED_BOARD, SEED_COMMUNITY, SEED_GROUP } = await import('./seed-board')
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
 const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 
 class FakeTools implements ThreadToolsRepository {
   readonly calls: string[] = []
-  communityId: number = SEED_COMMUNITY.general
+  forumId: number = SEED_FORUM.general
 
   async find(): Promise<ThreadToolTarget | null> {
     return {
       id: 20,
-      communityId: this.communityId,
+      forumId: this.forumId,
       slug: 'hello',
       title: 'Hello',
       isLocked: false,
@@ -59,7 +59,7 @@ class FakeTools implements ThreadToolsRepository {
   }
 
   async findDestination(): Promise<MoveDestination | null> {
-    return { id: SEED_COMMUNITY.announcements, type: 'community' }
+    return { id: SEED_FORUM.announcements, type: 'forum' }
   }
 
   async setLocked(): Promise<boolean> {
@@ -90,15 +90,15 @@ class FakeTools implements ThreadToolsRepository {
 
 let tools: FakeTools
 
-/** An appointment carrying exactly the named rights, over one community. */
+/** An appointment carrying exactly the named rights, over one forum. */
 function appointment(
-  communityId: number,
+  forumId: number,
   rights: Partial<MemoryAppointment>,
 ): MemoryAppointment {
   return {
     userId: 3,
-    communityId,
-    cascadeToSubcommunities: false,
+    forumId,
+    cascadeToSubforums: false,
     canApproveContent: false,
     canEditPosts: false,
     canSoftDeletePosts: false,
@@ -173,12 +173,12 @@ describe('threadToolAction', () => {
 
   /*
    * An appointment carrying exactly one right must reach exactly one tool. This
-   * is the first place in the app where `community_moderators` decides anything
+   * is the first place in the app where `forum_moderators` decides anything
    * other than which queue somebody sees.
    */
   it('honours a partial appointment', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    installContainer([appointment(SEED_COMMUNITY.general, { canOpenCloseThreads: true })])
+    installContainer([appointment(SEED_FORUM.general, { canOpenCloseThreads: true })])
 
     expect(
       await redirectOf(threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'lock' }))),
@@ -190,27 +190,27 @@ describe('threadToolAction', () => {
   })
 
   /*
-   * The rule that needs two resolutions. Rights in the source community only must
-   * not be enough to move a thread into a community this actor has no standing in.
+   * The rule that needs two resolutions. Rights in the source forum only must
+   * not be enough to move a thread into a forum this actor has no standing in.
    */
   it('needs the move right in the destination as well as the source', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    installContainer([appointment(SEED_COMMUNITY.general, { canMoveThreads: true })])
+    installContainer([appointment(SEED_FORUM.general, { canMoveThreads: true })])
 
     const state = await threadToolAction(
       EMPTY_STATE,
       form({
         threadId: '20',
         tool: 'move',
-        toCommunityId: String(SEED_COMMUNITY.announcements),
+        toForumId: String(SEED_FORUM.announcements),
       }),
     )
     expect(state.error).toMatch(/cannot move threads into/i)
     expect(tools.calls).toEqual([])
 
     installContainer([
-      appointment(SEED_COMMUNITY.general, { canMoveThreads: true }),
-      appointment(SEED_COMMUNITY.announcements, { canMoveThreads: true }),
+      appointment(SEED_FORUM.general, { canMoveThreads: true }),
+      appointment(SEED_FORUM.announcements, { canMoveThreads: true }),
     ])
     expect(
       await redirectOf(
@@ -219,7 +219,7 @@ describe('threadToolAction', () => {
           form({
             threadId: '20',
             tool: 'move',
-            toCommunityId: String(SEED_COMMUNITY.announcements),
+            toForumId: String(SEED_FORUM.announcements),
           }),
         ),
       ),
@@ -227,12 +227,12 @@ describe('threadToolAction', () => {
   })
 
   /*
-   * Same answer a missing thread gets. A moderator of another community must not
+   * Same answer a missing thread gets. A moderator of another forum must not
    * learn a thread exists here by trying to lock it.
    */
-  it('does not confirm a thread in a community it cannot see', async () => {
+  it('does not confirm a thread in a forum it cannot see', async () => {
     const hidden = 555
-    tools.communityId = hidden
+    tools.forumId = hidden
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
     ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = undefined
     installContainer()
@@ -241,7 +241,7 @@ describe('threadToolAction', () => {
       chains: { ...SEED_BOARD.chains, [hidden]: [hidden] },
       overrides: [
         ...SEED_BOARD.overrides,
-        { communityId: hidden, groupId: SEED_GROUP.registered, overrides: { canView: false } },
+        { forumId: hidden, groupId: SEED_GROUP.registered, overrides: { canView: false } },
       ],
     }
     ;(globalThis as Record<symbol, unknown>)[CONTAINER_KEY] = {
@@ -269,14 +269,14 @@ describe('threadToolAction', () => {
 describe('copy', () => {
   it('needs the move right in the destination as well as the source', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    installContainer([appointment(SEED_COMMUNITY.general, { canMoveThreads: true })])
+    installContainer([appointment(SEED_FORUM.general, { canMoveThreads: true })])
 
     const state = await threadToolAction(
       EMPTY_STATE,
       form({
         threadId: '20',
         tool: 'copy',
-        toCommunityId: String(SEED_COMMUNITY.announcements),
+        toForumId: String(SEED_FORUM.announcements),
       }),
     )
     expect(state.error).toMatch(/cannot copy threads into/i)
@@ -292,7 +292,7 @@ describe('copy', () => {
           form({
             threadId: '20',
             tool: 'copy',
-            toCommunityId: String(SEED_COMMUNITY.announcements),
+            toForumId: String(SEED_FORUM.announcements),
           }),
         ),
       ),

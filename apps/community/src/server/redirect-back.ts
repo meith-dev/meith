@@ -22,7 +22,7 @@ import 'server-only'
  *
  * `revalidatePath('/', 'layout')` would also work and is the obvious reach. It
  * is the wrong tool here: it purges cached data for every route under `/`, so a
- * member toggling dark mode would drop the board's cached settings and community
+ * member toggling dark mode would drop the board's cached settings and forum
  * tree *for everybody*. A redirect costs one round trip and invalidates
  * nothing.
  *

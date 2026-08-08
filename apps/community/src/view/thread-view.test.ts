@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
 import { BodyFormat, RENDER_VERSION } from '@meith/markdown'
-import type { CommunityRow } from '@meith/communities'
+import type { ForumRow } from '@meith/forums'
 import type { PostListingRow } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
 
 import type { MemberIdentity } from './member-identity'
 import { buildThreadView, revealedFrom } from './thread-view'
 
-const community: CommunityRow = {
+const forum: ForumRow = {
   id: 2,
-  type: 'community',
+  type: 'forum',
   title: 'General',
   slug: 'general',
   description: null,
@@ -23,7 +23,7 @@ const community: CommunityRow = {
 
 const thread: ThreadListingRow = {
   id: 3,
-  communityId: 2,
+  forumId: 2,
   title: 'Hello',
   slug: 'hello',
   prefix: null,
@@ -45,13 +45,13 @@ describe('buildThreadView', () => {
   it('escapes raw text before the post slot treats it as HTML', () => {
     const view = buildThreadView({
       thread,
-      community,
+      forum,
       page: {
         rows: [
           {
             id: 4,
             threadId: 3,
-            communityId: 2,
+            forumId: 2,
             number: 1,
             authorUserId: null,
             authorUsername: 'departed',
@@ -90,13 +90,13 @@ function bodyOf(
 ): string {
   const view = buildThreadView({
     thread,
-    community,
+    forum,
     page: {
       rows: [
         {
           id: 4,
           threadId: 3,
-          communityId: 2,
+          forumId: 2,
           number: 1,
           authorUserId: null,
           authorUsername: 'departed',
@@ -192,14 +192,14 @@ describe('post affordances (F41)', () => {
   ) {
     const view = buildThreadView({
       thread,
-      community,
+      forum,
       capabilities: { ...MEMBER, ...capabilities },
       page: {
         rows: [
           {
             id: 4,
             threadId: 3,
-            communityId: 2,
+            forumId: 2,
             number: 1,
             authorUserId: 7,
             authorUsername: 'ada',
@@ -245,13 +245,13 @@ describe('post affordances (F41)', () => {
   it('offers nothing to a guest', () => {
     const view = buildThreadView({
       thread,
-      community,
+      forum,
       page: {
         rows: [
           {
             id: 4,
             threadId: 3,
-            communityId: 2,
+            forumId: 2,
             number: 1,
             authorUserId: 7,
             authorUsername: 'ada',
@@ -346,14 +346,14 @@ describe('the report link (F49)', () => {
   ): string | null {
     const view = buildThreadView({
       thread,
-      community,
+      forum,
       capabilities: { ...REPORTER, ...capabilities },
       page: {
         rows: [
           {
             id: 4,
             threadId: 3,
-            communityId: 2,
+            forumId: 2,
             number: 1,
             authorUserId: 99,
             authorUsername: 'someone',
@@ -408,7 +408,7 @@ describe('ignored posts (F61)', () => {
     return {
       id: 4,
       threadId: 3,
-      communityId: 2,
+      forumId: 2,
       number: 1,
       authorUserId: 9,
       authorUsername: 'noisy',
@@ -434,7 +434,7 @@ describe('ignored posts (F61)', () => {
   ) {
     return buildThreadView({
       thread,
-      community,
+      forum,
       page: { rows: [...rows], nextAfterId: null },
       pageNumber: 1,
       nextHref: null,
@@ -563,7 +563,7 @@ describe('the author\'s group standing', () => {
   }) {
     const view = buildThreadView({
       thread,
-      community,
+      forum,
       capabilities: {
         viewerUserId: 9,
         editOwn: false,
@@ -579,7 +579,7 @@ describe('the author\'s group standing', () => {
           {
             id: 4,
             threadId: 3,
-            communityId: 2,
+            forumId: 2,
             number: 1,
             authorUserId: 7,
             authorUsername: 'ada',
@@ -636,14 +636,14 @@ describe('the author\'s group standing', () => {
   it('is absent for a post whose author was deleted', () => {
     const view = buildThreadView({
       thread,
-      community,
+      forum,
       identities: new Map([[7, IDENTITY]]),
       page: {
         rows: [
           {
             id: 4,
             threadId: 3,
-            communityId: 2,
+            forumId: 2,
             number: 1,
             authorUserId: null,
             authorUsername: 'departed',

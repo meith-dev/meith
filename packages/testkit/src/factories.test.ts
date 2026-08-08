@@ -19,10 +19,10 @@ afterAll(async () => {
 describe('createFactories', () => {
   it('creates unique, related rows and maintains their denormalised pointers', async () => {
     const factory = createFactories(harness.db)
-    const category = await factory.community({ type: 'category' })
-    const community = await factory.community({ parent: category })
+    const category = await factory.forum({ type: 'category' })
+    const forum = await factory.forum({ parent: category })
     const author = await factory.user()
-    const thread = await factory.thread({ community, author })
+    const thread = await factory.thread({ forum, author })
     const opening = await factory.post({ thread, author })
     await factory.post({ thread, author, isFirstPost: false })
 
@@ -32,7 +32,7 @@ describe('createFactories', () => {
       .where(eq(schema.threads.id, thread.id))
 
     expect(category.path).toBe(String(category.id))
-    expect(community.path).toBe(`${category.id}.${community.id}`)
+    expect(forum.path).toBe(`${category.id}.${forum.id}`)
     expect(opening.threadId).toBe(thread.id)
     expect(storedThread).toMatchObject({ firstPostId: opening.id, replyCount: 1 })
   })

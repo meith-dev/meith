@@ -109,6 +109,6 @@ export {
   type ModCpRepository,
   type ModLogEntry,
   type ModLogPage,
-  type ModeratedCommunity,
+  type ModeratedForum,
   type ModeratorPanelRights,
 } from './modcp'

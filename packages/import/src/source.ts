@@ -39,11 +39,11 @@ export interface MybbUser {
   readonly postnum: number
 }
 
-export interface MybbCommunity {
+export interface MybbForum {
   readonly fid: number
   readonly name: string
   readonly description: string
-  /** `f` = community, `c` = category, `l` = link. */
+  /** `f` = forum, `c` = category, `l` = link. */
   readonly type: string
   readonly pid: number
   readonly disporder: number
@@ -98,7 +98,7 @@ export interface Page<T> {
  */
 export interface MybbSource {
   users(afterId: number, limit: number): Promise<Page<MybbUser>>
-  communities(afterId: number, limit: number): Promise<Page<MybbCommunity>>
+  forums(afterId: number, limit: number): Promise<Page<MybbForum>>
   threads(afterId: number, limit: number): Promise<Page<MybbThread>>
   posts(afterId: number, limit: number): Promise<Page<MybbPost>>
 }
@@ -115,7 +115,7 @@ export class FixtureMybbSource implements MybbSource {
   constructor(
     private readonly data: {
       readonly users?: readonly MybbUser[]
-      readonly communities?: readonly MybbCommunity[]
+      readonly forums?: readonly MybbForum[]
       readonly threads?: readonly MybbThread[]
       readonly posts?: readonly MybbPost[]
     },
@@ -125,8 +125,8 @@ export class FixtureMybbSource implements MybbSource {
     return this.#page(this.data.users ?? [], (row) => row.uid, afterId, limit)
   }
 
-  communities(afterId: number, limit: number): Promise<Page<MybbCommunity>> {
-    return this.#page(this.data.communities ?? [], (row) => row.fid, afterId, limit)
+  forums(afterId: number, limit: number): Promise<Page<MybbForum>> {
+    return this.#page(this.data.forums ?? [], (row) => row.fid, afterId, limit)
   }
 
   threads(afterId: number, limit: number): Promise<Page<MybbThread>> {

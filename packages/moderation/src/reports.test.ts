@@ -22,13 +22,13 @@ import type {
 } from './reports'
 
 const NOW = new Date('2026-07-31T12:00:00Z')
-const SCOPE: ReportScope = { communityIds: [10], global: true }
+const SCOPE: ReportScope = { forumIds: [10], global: true }
 
 const REPORT: ReportRow = {
   id: 3,
   kind: 'post',
   targetId: 50,
-  communityId: 10,
+  forumId: 10,
   threadId: 20,
   targetLabel: 'A post by ivan',
   reporterUserId: 7,

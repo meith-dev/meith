@@ -20,12 +20,12 @@ import type { Database } from './client'
 import { resultRows } from './result-rows'
 import {
   applyAuthorCounts,
-  applyCommunityChain,
+  applyForumChain,
   logModeratorAction as log,
   syncLedger,
   tallyThread,
 } from './thread-counters'
-import { repairCommunityLastPostChain, repairThreadLastPost } from './visibility-counters'
+import { repairForumLastPostChain, repairThreadLastPost } from './visibility-counters'
 
 export class PostgresThreadToolsRepository implements ThreadToolsRepository {
   constructor(private readonly db: Database) {}
@@ -33,12 +33,12 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
   async find(threadId: number): Promise<ThreadToolTarget | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select id, community_id, slug, title, is_locked, is_sticky, visibility
+        select id, forum_id, slug, title, is_locked, is_sticky, visibility
           from threads where id = ${threadId}
       `),
     ) as Array<{
       id: number
-      community_id: number
+      forum_id: number
       slug: string
       title: string
       is_locked: boolean
@@ -50,7 +50,7 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     if (!row) return null
     return {
       id: Number(row.id),
-      communityId: Number(row.community_id),
+      forumId: Number(row.forum_id),
       slug: row.slug,
       title: row.title,
       isLocked: row.is_locked,
@@ -59,9 +59,9 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     }
   }
 
-  async findDestination(communityId: number): Promise<MoveDestination | null> {
+  async findDestination(forumId: number): Promise<MoveDestination | null> {
     const rows = resultRows(
-      await this.db.execute(sql`select id, type from communities where id = ${communityId}`),
+      await this.db.execute(sql`select id, type from forums where id = ${forumId}`),
     ) as Array<{ id: number; type: MoveDestination['type'] }>
     const row = rows[0]
     return row === undefined ? null : { id: Number(row.id), type: row.type }
@@ -135,25 +135,25 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         await tx.execute(sql`
           update threads set visibility = ${input.to}, updated_at = ${input.at}
            where id = ${input.threadId} and visibility = ${input.from}
-           returning community_id
+           returning forum_id
         `),
-      ) as Array<{ community_id: number }>
+      ) as Array<{ forum_id: number }>
       const row = moved[0]
       if (!row) return false
 
-      const communityId = Number(row.community_id)
+      const forumId = Number(row.forum_id)
       const delta: 1 | -1 = input.to === 'visible' ? 1 : -1
 
-      await applyCommunityChain(tx, communityId, delta, tally)
+      await applyForumChain(tx, forumId, delta, tally)
       await applyAuthorCounts(tx, delta, tally)
       await syncLedger(tx, input.threadId, input.to === 'visible')
-      await repairCommunityLastPostChain(tx, communityId)
+      await repairForumLastPostChain(tx, forumId)
 
       await log(
         tx,
         input.to === 'visible' ? 'thread.restore' : 'thread.delete',
         input.actorUserId,
-        { threadId: input.threadId, communityId, posts: tally.posts },
+        { threadId: input.threadId, forumId, posts: tally.posts },
         input.at,
       )
       return true
@@ -162,8 +162,8 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
 
   async move(input: {
     readonly threadId: number
-    readonly fromCommunityId: number
-    readonly toCommunityId: number
+    readonly fromForumId: number
+    readonly toForumId: number
     readonly actorUserId: number
     readonly at: Date
   }): Promise<boolean> {
@@ -172,37 +172,37 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
 
       const moved = resultRows(
         await tx.execute(sql`
-          update threads set community_id = ${input.toCommunityId}, updated_at = ${input.at}
-           where id = ${input.threadId} and community_id = ${input.fromCommunityId}
+          update threads set forum_id = ${input.toForumId}, updated_at = ${input.at}
+           where id = ${input.threadId} and forum_id = ${input.fromForumId}
            returning id
         `),
       ) as Array<{ id: number }>
       if (moved.length === 0) return false
 
       /*
-       * `posts.community_id` is denormalised from the thread (R3.3) so that
-       * permission filtering and the moderation queue can scope by community
+       * `posts.forum_id` is denormalised from the thread (R3.3) so that
+       * permission filtering and the moderation queue can scope by forum
        * without joining `threads`. A move that updated only the thread would
        * leave every post claiming to be somewhere it is not — and the queue,
        * the leak suite's scope and the recount all read that column.
        */
       await tx.execute(sql`
-        update posts set community_id = ${input.toCommunityId} where thread_id = ${input.threadId}
+        update posts set forum_id = ${input.toForumId} where thread_id = ${input.threadId}
       `)
 
       /*
        * Both chains, in this order. Where they share an ancestor the two
        * statements cancel to zero, which is exactly right: a thread moved
-       * between two subcommunities of one category has not left the category.
+       * between two subforums of one category has not left the category.
        *
        * Author counts are deliberately untouched. A move changes where somebody
        * wrote, never how much.
        */
-      await applyCommunityChain(tx, input.fromCommunityId, -1, tally)
-      await applyCommunityChain(tx, input.toCommunityId, 1, tally)
+      await applyForumChain(tx, input.fromForumId, -1, tally)
+      await applyForumChain(tx, input.toForumId, 1, tally)
 
-      await repairCommunityLastPostChain(tx, input.fromCommunityId)
-      await repairCommunityLastPostChain(tx, input.toCommunityId)
+      await repairForumLastPostChain(tx, input.fromForumId)
+      await repairForumLastPostChain(tx, input.toForumId)
 
       await log(
         tx,
@@ -210,8 +210,8 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         input.actorUserId,
         {
           threadId: input.threadId,
-          from: input.fromCommunityId,
-          to: input.toCommunityId,
+          from: input.fromForumId,
+          to: input.toForumId,
           posts: tally.posts,
         },
         input.at,
@@ -221,7 +221,7 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
   }
 
   /**
-   * Duplicate a thread and its visible posts into another community.
+   * Duplicate a thread and its visible posts into another forum.
    *
    * **The one tool that creates content**, which is why every other operation
    * in this file could reuse one tally and this one cannot: a copy is not a
@@ -238,13 +238,13 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
    * recount agrees with it, because the recount counts *rows*.
    *
    * Only **visible** posts are copied. A held or removed post is not part of
-   * what a moderator is duplicating — copying the queue into a second community
+   * what a moderator is duplicating — copying the queue into a second forum
    * would double the work waiting for somebody, and copying deleted content
    * would republish it.
    */
   async copy(input: {
     readonly threadId: number
-    readonly toCommunityId: number
+    readonly toForumId: number
     readonly actorUserId: number
     readonly at: Date
   }): Promise<{ threadId: number; slug: string; posts: number }> {
@@ -270,10 +270,10 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
       const created = resultRows(
         await tx.execute(sql`
           insert into threads
-            (community_id, title, slug, prefix_id, author_user_id, author_username,
+            (forum_id, title, slug, prefix_id, author_user_id, author_username,
              visibility, created_at, updated_at)
           values
-            (${input.toCommunityId}, ${source.title}, ${source.slug}, ${source.prefix_id},
+            (${input.toForumId}, ${source.title}, ${source.slug}, ${source.prefix_id},
              ${source.author_user_id}, ${source.author_username},
              'visible', ${input.at}, ${input.at})
           returning id, slug
@@ -290,10 +290,10 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
       const copied = resultRows(
         await tx.execute(sql`
           insert into posts
-            (thread_id, community_id, author_user_id, author_username, subject, message,
+            (thread_id, forum_id, author_user_id, author_username, subject, message,
              message_html, render_version, vocab_version, body_format, visibility,
              is_first_post, created_at, search_vector, search_version)
-          select ${newThreadId}, ${input.toCommunityId}, p.author_user_id, p.author_username,
+          select ${newThreadId}, ${input.toForumId}, p.author_user_id, p.author_username,
                  p.subject, p.message, p.message_html, p.render_version,
                  /*
                   * Both stamps travel with the body. A copy that claimed to be
@@ -333,11 +333,11 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
        * filter.
        */
       const tally = await tallyThread(tx, newThreadId)
-      await applyCommunityChain(tx, input.toCommunityId, 1, tally)
+      await applyForumChain(tx, input.toForumId, 1, tally)
       await applyAuthorCounts(tx, 1, tally)
       await syncLedger(tx, newThreadId, true)
       await repairThreadLastPost(tx, newThreadId)
-      await repairCommunityLastPostChain(tx, input.toCommunityId)
+      await repairForumLastPostChain(tx, input.toForumId)
 
       await log(
         tx,
@@ -345,7 +345,7 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         input.actorUserId,
         {
           threadId: input.threadId,
-          toCommunityId: input.toCommunityId,
+          toForumId: input.toForumId,
           newThreadId,
           posts: copied.length,
         },

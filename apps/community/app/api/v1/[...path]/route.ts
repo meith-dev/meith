@@ -38,7 +38,7 @@ import { requireSearch, searchScopeFor } from '@/server/search'
  * ask for; the Authorizer says what its *owner* may see. A token is a
  * restriction on an actor and never a grant to one, so both run, and the
  * per-request authorization is exactly the same code a page uses — `visibleIn`,
- * `visibleCommunityIds`, the lot. There is no API-specific visibility path, because
+ * `visibleForumIds`, the lot. There is no API-specific visibility path, because
  * a second implementation of F47 is a second thing to get wrong.
  *
  * ## Errors say what is wrong and nothing more
@@ -190,7 +190,7 @@ function decodeCursor<T>(raw: string | null): T | null {
  * Locate a thread, authorise it, and return the scope it may be read in.
  *
  * The same order the thread page uses, for the same reason: the scope cannot be
- * built before the community is known, and the community cannot be known before the
+ * built before the forum is known, and the forum cannot be known before the
  * thread is located. `null` means "does not exist" *and* "you may not see it",
  * deliberately indistinguishable.
  */
@@ -199,29 +199,29 @@ async function threadScope(
   threadId: number,
 ): Promise<{
   readonly scope: ReturnType<ReturnType<typeof getContainer>['authorizer']['contentScope']>
-  readonly communityId: number
+  readonly forumId: number
 } | null> {
-  const { authorizer, communities, threads } = getContainer()
+  const { authorizer, forums, threads } = getContainer()
 
-  const communityId = await threads.locateCommunity(threadId)
-  if (communityId === null) return null
+  const forumId = await threads.locateForum(threadId)
+  if (forumId === null) return null
 
-  const community = await communities.findById(communityId)
-  if (!community || community.type !== 'community') return null
+  const forum = await forums.findById(forumId)
+  if (!forum || forum.type !== 'forum') return null
 
-  const matrix = await authorizer.communityMatrix(actor, community.id)
-  if (!authorizer.can(actor, 'thread.view', { communityId: community.id, community: matrix })) return null
+  const matrix = await authorizer.forumMatrix(actor, forum.id)
+  if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) return null
 
   return {
-    scope: authorizer.contentScope(actor, { communityId: community.id, community: matrix }),
-    communityId: community.id,
+    scope: authorizer.contentScope(actor, { forumId: forum.id, forum: matrix }),
+    forumId: forum.id,
   }
 }
 
 /** One thread, as the API describes it. Ids and text, no rendered HTML. */
 function threadBody(row: {
   readonly id: number
-  readonly communityId: number
+  readonly forumId: number
   readonly title: string
   readonly slug: string
   readonly authorUserId: number | null
@@ -235,7 +235,7 @@ function threadBody(row: {
 }): Record<string, unknown> {
   return {
     id: row.id,
-    communityId: row.communityId,
+    forumId: row.forumId,
     title: row.title,
     slug: row.slug,
     authorUserId: row.authorUserId,
@@ -262,7 +262,7 @@ async function dispatch(
   actor: Awaited<ReturnType<typeof apiActor>> & object,
   request: NextRequest,
 ): Promise<Ok> {
-  const { authorizer, communities, threads, posts } = getContainer()
+  const { authorizer, forums, threads, posts } = getContainer()
   const url = new URL(request.url)
 
   /* A bad id is a 404, not a 400: `/threads/abc` names no thread, and telling
@@ -276,52 +276,52 @@ async function dispatch(
     case 'GET /me':
       return { status: 200, body: { userId: actor.userId } }
 
-    case 'GET /communities': {
+    case 'GET /forums': {
       /*
-       * `communityIdsWhere` is the single source of what this actor may see (F21),
-       * the same call the board index makes. Listing every community and filtering
+       * `forumIdsWhere` is the single source of what this actor may see (F21),
+       * the same call the board index makes. Listing every forum and filtering
        * the array afterwards would be a second visibility implementation.
        */
-      const visible = new Set(await authorizer.communityIdsWhere(actor, 'community.view'))
-      const all = await communities.listAll()
+      const visible = new Set(await authorizer.forumIdsWhere(actor, 'forum.view'))
+      const all = await forums.listAll()
 
       return {
         status: 200,
         body: {
           data: all
-            .filter((community) => visible.has(community.id))
-            .map((community) => ({
-              id: community.id,
-              title: community.title,
-              slug: community.slug,
-              type: community.type,
-              parentId: community.parentId ?? null,
-              depth: community.depth,
+            .filter((forum) => visible.has(forum.id))
+            .map((forum) => ({
+              id: forum.id,
+              title: forum.title,
+              slug: forum.slug,
+              type: forum.type,
+              parentId: forum.parentId ?? null,
+              depth: forum.depth,
             })),
         },
       }
     }
 
-    case 'GET /communities/:communityId/threads': {
-      const communityId = idParam(params.communityId)
-      if (communityId === null) return notFound
+    case 'GET /forums/:forumId/threads': {
+      const forumId = idParam(params.forumId)
+      if (forumId === null) return notFound
 
-      const community = await communities.findById(communityId)
-      if (!community || community.type !== 'community') return notFound
+      const forum = await forums.findById(forumId)
+      if (!forum || forum.type !== 'forum') return notFound
 
-      const matrix = await authorizer.communityMatrix(actor, community.id)
-      if (!authorizer.can(actor, 'thread.view', { communityId: community.id, community: matrix })) {
+      const matrix = await authorizer.forumMatrix(actor, forum.id)
+      if (!authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })) {
         return notFound
       }
 
       const cursor = decodeCursor<ThreadCursor>(url.searchParams.get('after'))
-      const page = await threads.listCommunity(community.id, {
+      const page = await threads.listForum(forum.id, {
         limit: pageLimit(url),
-        scope: authorizer.contentScope(actor, { communityId: community.id, community: matrix }),
+        scope: authorizer.contentScope(actor, { forumId: forum.id, forum: matrix }),
         /*
          * A stored cursor carries the sort it was produced under, so paging
          * cannot silently change ordering halfway through a run. Reviving one
-         * is `...(x ?? {})` rather than a default, because `listCommunity` treats
+         * is `...(x ?? {})` rather than a default, because `listForum` treats
          * an absent cursor and a null one differently.
          */
         ...(cursor === null
@@ -455,7 +455,7 @@ async function dispatch(
           limit: pageLimit(url),
           after: decodeCursor<SearchCursor>(url.searchParams.get('after')),
         },
-        /* The same scope the search page builds: `thread.view` community ids and
+        /* The same scope the search page builds: `thread.view` forum ids and
            the viewer's content visibility, never a widened API-only variant. */
         await searchScopeFor(actor),
       )
@@ -466,7 +466,7 @@ async function dispatch(
           data: results.hits.map((hit) => ({
             postId: hit.postId,
             threadId: hit.threadId,
-            communityId: hit.communityId,
+            forumId: hit.forumId,
             threadTitle: hit.threadTitle,
             authorUserId: hit.authorUserId,
             authorUsername: hit.authorUsername,
@@ -529,8 +529,8 @@ async function readJsonBody(request: NextRequest): Promise<Record<string, unknow
 /** Exported for the test that holds the registry against the implementation. */
 export const IMPLEMENTED_ROUTES: readonly string[] = [
   'GET /me',
-  'GET /communities',
-  'GET /communities/:communityId/threads',
+  'GET /forums',
+  'GET /forums/:forumId/threads',
   'GET /threads/:threadId',
   'GET /threads/:threadId/posts',
   'POST /threads/:threadId/posts',

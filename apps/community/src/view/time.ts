@@ -115,7 +115,7 @@ function sameDay(a: CalendarParts, b: CalendarParts): boolean {
 }
 
 /**
- * Format an instant the way a community listing shows it.
+ * Format an instant the way a forum listing shows it.
  *
  * MyBB's shape, and it is the right one: recent activity is what a reader is
  * scanning for, so today and yesterday get a name and everything older gets a

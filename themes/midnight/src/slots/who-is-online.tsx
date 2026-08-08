@@ -5,7 +5,7 @@ import { UserRef } from '../shared'
 /**
  * Who is online.
  *
- * `location` arrives **already resolved against the reader** (F75): a community they
+ * `location` arrives **already resolved against the reader** (F75): a forum they
  * may not see comes through as a bare label with a null href, so there is
  * nothing here to leak and no check for this theme to get wrong.
  *

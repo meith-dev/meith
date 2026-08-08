@@ -18,7 +18,7 @@ import { FormError } from "../auth/form-controls"
 export interface QueueFormRow {
   readonly value: string
   readonly kindLabel: string
-  readonly communityTitle: string
+  readonly forumTitle: string
   readonly threadTitle: string
   readonly href: string
   readonly authorUsername: string
@@ -47,7 +47,7 @@ export function QueueForm({ rows }: { rows: readonly QueueFormRow[] }) {
               <span className="flex min-w-0 flex-col gap-1">
                 <span className="flex flex-wrap items-baseline gap-2 text-sm">
                   <span className="font-medium">{row.kindLabel}</span>
-                  <span className="text-muted-foreground">in {row.communityTitle}</span>
+                  <span className="text-muted-foreground">in {row.forumTitle}</span>
                   <a href={row.href} className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground">
                     {row.threadTitle}
                   </a>

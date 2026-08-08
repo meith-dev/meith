@@ -6,12 +6,12 @@
  * which is what lets a deleted author, an empty board and a post made of one
  * pasted URL be tested without a database.
  *
- * ## The community is on every row, and that is not decoration
+ * ## The forum is on every row, and that is not decoration
  *
  * These are the only two lists on the board that cross the whole of it. A
  * sidebar row reading "Re: the meeting" says nothing about whether it happened
- * in the staff room or the pub thread, and two communities with a "General" thread
- * each would render as the same row twice. The community comes out of the same
+ * in the staff room or the pub thread, and two forums with a "General" thread
+ * each would render as the same row twice. The forum comes out of the same
  * statement as the row, never a lookup per line.
  *
  * ## Why the excerpt is flattened rather than rendered
@@ -31,7 +31,7 @@ import type {
   LatestThreadsModel,
 } from '@meith/theme-kit'
 
-import { communityHref } from './board-index'
+import { forumHref } from './board-index'
 import { nameClassOf, type MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
 import { formatTime } from './time'
@@ -41,9 +41,9 @@ export interface LatestThreadRow {
   readonly threadId: number
   readonly title: string
   readonly slug: string
-  readonly communityId: number
-  readonly communityTitle: string
-  readonly communitySlug: string
+  readonly forumId: number
+  readonly forumTitle: string
+  readonly forumSlug: string
   readonly authorUserId: number | null
   readonly authorUsername: string
   readonly replyCount: number
@@ -55,9 +55,9 @@ export interface LatestPostRow {
   readonly threadId: number
   readonly threadTitle: string
   readonly threadSlug: string
-  readonly communityId: number
-  readonly communityTitle: string
-  readonly communitySlug: string
+  readonly forumId: number
+  readonly forumTitle: string
+  readonly forumSlug: string
   readonly authorUserId: number | null
   readonly authorUsername: string
   readonly createdAt: Date
@@ -119,9 +119,9 @@ export function buildLatestThreadsModel(
   const threads: LatestThreadModel[] = input.rows.map((row) => ({
     title: row.title,
     href: `/thread/${row.threadId}-${row.slug}`,
-    community: {
-      label: row.communityTitle,
-      href: communityHref({ id: row.communityId, slug: row.communitySlug }),
+    forum: {
+      label: row.forumTitle,
+      href: forumHref({ id: row.forumId, slug: row.forumSlug }),
     },
     author: authorOf(row, input.identities),
     replyCount: row.replyCount,
@@ -135,9 +135,9 @@ export function buildLatestPostsModel(input: LatestInput<LatestPostRow>): Latest
   const posts: LatestPostModel[] = input.rows.map((row) => ({
     threadTitle: row.threadTitle,
     href: postHref(row),
-    community: {
-      label: row.communityTitle,
-      href: communityHref({ id: row.communityId, slug: row.communitySlug }),
+    forum: {
+      label: row.forumTitle,
+      href: forumHref({ id: row.forumId, slug: row.forumSlug }),
     },
     author: authorOf(row, input.identities),
     excerpt: summarise(row.messageSource, EXCERPT_CHARS),

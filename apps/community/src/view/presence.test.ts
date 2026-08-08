@@ -2,7 +2,7 @@
  * F75's view models.
  *
  * The subject is `locationOf`, and the thing worth pinning is what it does with
- * a **null** community or thread. The repository has already replaced everything
+ * a **null** forum or thread. The repository has already replaced everything
  * this reader may not be told about with null, so null here does not mean
  * "nowhere" — it means "you may not know". A builder that treated the two the
  * same would be correct on the happy path and a leak on the other one, because
@@ -19,8 +19,8 @@ const row = (overrides: Partial<OnlineRow> = {}): OnlineRow => ({
   username: 'ann',
   invisible: false,
   lastSeenAt: new Date('2026-05-05T11:58:00Z'),
-  communityId: null,
-  communityTitle: null,
+  forumId: null,
+  forumTitle: null,
   threadId: null,
   threadSlug: null,
   threadTitle: null,
@@ -30,42 +30,42 @@ const row = (overrides: Partial<OnlineRow> = {}): OnlineRow => ({
 describe('locationOf', () => {
   it('names the thread when the reader may see it', () => {
     const where = locationOf(
-      row({ communityId: 1, communityTitle: 'Open', threadId: 9, threadTitle: 'Hello', threadSlug: 'hello' }),
+      row({ forumId: 1, forumTitle: 'Open', threadId: 9, threadTitle: 'Hello', threadSlug: 'hello' }),
     )
 
     expect(where).toEqual({ label: 'Reading Hello', href: '/thread/9-hello' })
   })
 
-  it('names the community when there is no thread', () => {
-    expect(locationOf(row({ communityId: 1, communityTitle: 'Open' })).label).toBe('Viewing Open')
+  it('names the forum when there is no thread', () => {
+    expect(locationOf(row({ forumId: 1, forumTitle: 'Open' })).label).toBe('Viewing Open')
   })
 
   it('says nothing specific when the reader may not be told', () => {
     /*
-     * The claim. A withheld community arrives as null on both the id and the title —
+     * The claim. A withheld forum arrives as null on both the id and the title —
      * the repository gates them together — and what comes out must name
      * nothing. Kills the mutant that falls back to the path, which is where a
-     * private community's slug would be.
+     * private forum's slug would be.
      */
-    const where = locationOf(row({ communityId: null, communityTitle: null, threadId: null }))
+    const where = locationOf(row({ forumId: null, forumTitle: null, threadId: null }))
 
     expect(where).toEqual({ label: 'Somewhere on the board', href: null })
   })
 
-  it('withholds the thread but keeps the community when only the thread is hidden', () => {
+  it('withholds the thread but keeps the forum when only the thread is hidden', () => {
     /*
      * The mixed case the repository produces for a soft-deleted thread in a
-     * community the reader can see. The label must fall back to the community rather
+     * forum the reader can see. The label must fall back to the forum rather
      * than to nothing — and must not link to a thread it was not given.
      */
-    const where = locationOf(row({ communityId: 1, communityTitle: 'Open', threadId: null }))
+    const where = locationOf(row({ forumId: 1, forumTitle: 'Open', threadId: null }))
 
     expect(where).toEqual({ label: 'Viewing Open', href: '/1' })
   })
 
-  it('links to the community by bare id, since the session row holds no slug', () => {
-    /* The community route accepts `/<id>` and canonicalises via its metadata. */
-    expect(locationOf(row({ communityId: 1, communityTitle: 'Open' })).href).toBe('/1')
+  it('links to the forum by bare id, since the session row holds no slug', () => {
+    /* The forum route accepts `/<id>` and canonicalises via its metadata. */
+    expect(locationOf(row({ forumId: 1, forumTitle: 'Open' })).href).toBe('/1')
   })
 })
 

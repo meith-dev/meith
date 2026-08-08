@@ -9,7 +9,7 @@ import 'server-only'
  * things that **cache one response per URL and hand it to everybody**:
  * aggregators, crawlers, link unfurlers, corporate proxies, the CDN in front of
  * this board. A feed built for a signed-in member and cached under a shared URL
- * is a private community served to whoever asks next, and nothing in the request
+ * is a private forum served to whoever asks next, and nothing in the request
  * makes that visible — the leak happens in somebody else's cache.
  *
  * So the scope here comes from `actorSource.buildGuest()`, deliberately, even
@@ -20,8 +20,8 @@ import 'server-only'
  *
  * ## Everything else follows the model
  *
- * The guest scope is built the same way every other read builds one: community ids
- * from `Authorizer.communityIdsWhere`, states from `contentScope`. There is no
+ * The guest scope is built the same way every other read builds one: forum ids
+ * from `Authorizer.forumIdsWhere`, states from `contentScope`. There is no
  * second definition of "public" anywhere in this file, which is the point —
  * F47's guard has never had a feed to fire on until now, and this is the shape
  * that keeps it quiet for the right reason.
@@ -102,7 +102,7 @@ export async function publicScope(): Promise<FeedScope> {
   const guest = await actorSource.buildGuest()
 
   return {
-    communityIds: await authorizer.communityIdsWhere(guest, 'thread.view'),
+    forumIds: await authorizer.forumIdsWhere(guest, 'thread.view'),
     /*
      * `PUBLIC_CONTENT` rather than a scope derived from the guest, because they
      * are the same thing and the constant says so. A guest sees visible content

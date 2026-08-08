@@ -119,8 +119,8 @@ export default async function AdminContentPage() {
                   <span className="truncate text-xs text-muted-foreground">
                     order {prefix.displayOrder}
                     {prefix.token !== null && ` · ${prefix.token}`}
-                    {prefix.communityPathPrefix !== null &&
-                      ` · only under ${prefix.communityPathPrefix}`}
+                    {prefix.forumPathPrefix !== null &&
+                      ` · only under ${prefix.forumPathPrefix}`}
                   </span>
                 </span>
                 <DeletePrefixForm prefix={prefix} />
@@ -137,7 +137,7 @@ export default async function AdminContentPage() {
       <section className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
         <h2 className="font-heading text-lg font-semibold">Announcements</h2>
         <p className="text-muted-foreground">
-          A dated notice above the communities, board-wide or attached to one. Not a pinned
+          A dated notice above the forums, board-wide or attached to one. Not a pinned
           thread: nobody can reply to it, it expires on its own date, and removing it
           removes nothing anybody wrote.
         </p>

@@ -42,12 +42,12 @@ export default async function AdminGroupsPage() {
       lede={
         <>
           A group is a set of permissions and the members who hold it. What a group allows
-          here is the <em>default</em> for every community — a community may override it, and{' '}
+          here is the <em>default</em> for every forum — a forum may override it, and{' '}
           <a
-            href="/admin/communities"
+            href="/admin/forums"
             className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
           >
-            community permissions
+            forum permissions
           </a>{' '}
           is where that happens.
         </>

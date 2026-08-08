@@ -4,7 +4,7 @@ import 'server-only'
  * Can this board actually send the mail its settings promise? (F18/F55/F70)
  *
  * The board can be told to confirm every new address (`registration.method:
- * 'email'`) while having no working transport, and the result is a community nobody
+ * 'email'`) while having no working transport, and the result is a forum nobody
  * can join: every account mints an activation link, the link goes to a log file,
  * and the member waits forever. Nothing errors, which is why this exists.
  *

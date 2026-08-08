@@ -19,7 +19,7 @@ import type { ContentScope } from '@meith/core'
 /** What a viewer is allowed to see, resolved before the query runs. */
 export interface SearchScope {
   /**
-   * The communities this viewer may search, already resolved by the Authorizer.
+   * The forums this viewer may search, already resolved by the Authorizer.
    *
    * **An empty array means "nothing", never "everything".** That distinction is
    * the whole reason this is a required field rather than an optional filter: a
@@ -27,7 +27,7 @@ export interface SearchScope {
    * permission failure into a full-board search, which is exactly the leak this
    * feature must not have.
    */
-  readonly communityIds: readonly number[]
+  readonly forumIds: readonly number[]
   /** The viewer, for future own-content rules. Null for a guest. */
   readonly viewerUserId: number | null
   /**
@@ -48,7 +48,7 @@ export interface SearchQuery {
   /** Restrict to threads started by, or posts written by, these members. */
   readonly authorUserIds?: readonly number[] | undefined
   /** Restrict further than the scope allows — never wider. */
-  readonly communityIds?: readonly number[] | undefined
+  readonly forumIds?: readonly number[] | undefined
   readonly postedAfter?: Date | undefined
   readonly postedBefore?: Date | undefined
   /** `posts` returns individual posts; `threads` collapses to one hit each. */
@@ -74,7 +74,7 @@ export interface SearchCursor {
 export interface SearchHit {
   readonly postId: number
   readonly threadId: number
-  readonly communityId: number
+  readonly forumId: number
   readonly threadTitle: string
   readonly threadSlug: string
   readonly authorUserId: number | null

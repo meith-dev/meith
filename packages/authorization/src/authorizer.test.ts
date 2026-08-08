@@ -1,5 +1,5 @@
 /**
- * Focused unit tests for the global-action bypass logic that the F22 community
+ * Focused unit tests for the global-action bypass logic that the F22 forum
  * matrix does not, by construction, exercise.
  *
  * These exist because mutation testing found a gap: deleting the
@@ -49,7 +49,7 @@ describe('admincp.access', () => {
   })
 
   it('is denied to a super-moderator who lacks canAccessAdminCp', () => {
-    // Proves the super-mod bypass (which force-grants community-scoped actions)
+    // Proves the super-mod bypass (which force-grants forum-scoped actions)
     // does NOT leak into the admin control panel.
     const superMod = actorWith({
       isAdministrator: false,
@@ -90,15 +90,15 @@ describe('admincp.access', () => {
 })
 
 describe('super-moderator bypass isolation', () => {
-  it('force-grants a community-scoped action the matrix would deny, and logs it', () => {
+  it('force-grants a forum-scoped action the matrix would deny, and logs it', () => {
     const onBypass = vi.fn()
     const superMod = actorWith({ isSuperModerator: true })
     const auth = new Authorizer(source, { onBypass })
 
-    // A community matrix that denies posting outright.
+    // A forum matrix that denies posting outright.
     const denied = { ...emptyPermissionSet(), canView: true, canPostThreads: false }
     expect(
-      auth.can(superMod, 'thread.post', { communityId: 1, community: denied }),
+      auth.can(superMod, 'thread.post', { forumId: 1, forum: denied }),
     ).toBe(true)
     expect(onBypass).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'super_moderator', action: 'thread.post' }),
@@ -112,21 +112,21 @@ describe('super-moderator bypass isolation', () => {
   })
 })
 
-describe('community-scoped action without a resolved matrix', () => {
-  it('throws rather than silently denying — a missing Target.community is a bug', () => {
+describe('forum-scoped action without a resolved matrix', () => {
+  it('throws rather than silently denying — a missing Target.forum is a bug', () => {
     const auth = new Authorizer(source)
-    expect(() => auth.can(actorWith({}), 'thread.post', { communityId: 1 })).toThrow()
+    expect(() => auth.can(actorWith({}), 'thread.post', { forumId: 1 })).toThrow()
   })
 })
 
 describe('flood.bypass (F39/F40)', () => {
   /*
    * Global, and outside the F22 matrix by construction: the flood interval is a
-   * board setting rather than a per-community grant — see
+   * board setting rather than a per-forum grant — see
    * docs/mybb-parity.md#flood-intervals. That is exactly the shape of gap this
    * file exists for, so the three cases live here.
    */
-  it('is granted by the permission, without any community context', () => {
+  it('is granted by the permission, without any forum context', () => {
     const actor = actorWith({ canBypassFloodCheck: true })
 
     expect(new Authorizer(source).can(actor, 'flood.bypass')).toBe(true)

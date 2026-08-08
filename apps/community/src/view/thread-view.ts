@@ -6,7 +6,7 @@ import {
   type CompiledWordFilter,
 } from '@meith/markdown'
 import { suppress } from '@meith/relations'
-import type { CommunityRow } from '@meith/communities'
+import type { ForumRow } from '@meith/forums'
 import type {
   PaginationModel,
   PostAttachmentModel,
@@ -16,8 +16,8 @@ import type {
 import { editedNote, type PostListingRow, type PostPage } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
 
-import { communityHref } from './board-index'
-import { threadRowModel } from './community-display'
+import { forumHref } from './board-index'
+import { threadRowModel } from './forum-display'
 import { memberHref } from './member-profile'
 import type { MemberIdentity } from './member-identity'
 import { formatDate, formatTime } from './time'
@@ -355,7 +355,7 @@ function post(
 
 export interface ThreadViewInput {
   readonly thread: ThreadListingRow
-  readonly community: CommunityRow
+  readonly forum: ForumRow
   readonly page: PostPage
   readonly pageNumber: number
   readonly nextHref: string | null
@@ -452,7 +452,7 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
   return {
     view: {
       thread: threadRowModel(input.thread, input.now, null, input.timeZone),
-      community: { label: input.community.title, href: communityHref(input.community) },
+      forum: { label: input.forum.title, href: forumHref(input.forum) },
       replyHref: input.replyHref ?? null,
       markReadAction: input.markReadAction ?? null,
     },

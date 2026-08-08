@@ -56,7 +56,7 @@ assembly that belongs in `src/view/`.
 **`app/` reads through the container in `src/server/container.ts`, not
 `@meith/db`.** Held by review rather than a tool — dependency-cruiser has no
 rule for it — and two admin pages (`admin/users/[id]/merge`,
-`admin/communities/[id]`) currently import `@meith/db` directly. Do not add a third;
+`admin/forums/[id]`) currently import `@meith/db` directly. Do not add a third;
 the rule is the direction of travel.
 
 ---
@@ -217,18 +217,18 @@ which is how one escaped.
 Read `packages/core/src/cache.ts` before caching anything.
 
 - **Every tag name is spelled once**, in `CacheTags`. Never write a tag as a
-  literal: a writer invalidating `"community-tree"` while a reader cached under
-  `"communityTree"` is stale data that no test catches.
+  literal: a writer invalidating `"forum-tree"` while a reader cached under
+  `"forumTree"` is stale data that no test catches.
 - **`cachedGlobal` is for global data only.** If a value varies by actor it must
   not go through it.
 
   > [!CAUTION]
-  > A cached permission-filtered page is how private communities leak. This is the
+  > A cached permission-filtered page is how private forums leak. This is the
   > reason the caching harness exists at all.
 
 - **Invalidate after the write, never before.** Clearing first opens a window
   where a concurrent read repopulates from the pre-write state and nothing
-  clears it again. `CachedCommunityRepository` pins this ordering with a test.
+  clears it again. `CachedForumRepository` pins this ordering with a test.
 - A cached region may not read `cookies()`, `headers()`, `getActor()` or
   `getUserId()` — guarded by `no-request-state-in-cache`.
 
@@ -237,7 +237,7 @@ Read `packages/core/src/cache.ts` before caching anything.
 ## Counters and event handlers
 
 A denormalised counter has three obligations, and a change that adds one has to
-satisfy all three — the thread and community counters are the worked example:
+satisfy all three — the thread and forum counters are the worked example:
 
 - **Write it in the transaction that writes the content.** Counters and the row
   they describe move together or not at all. `applyCreatedContentCounters()`
@@ -287,7 +287,7 @@ const PostBit = requireSlot(theme, 'PostBit')
 
 <ThreadView
   thread={vm.thread}
-  community={vm.community}
+  forum={vm.forum}
   replyHref={vm.replyHref}
   regions={{
     posts: vm.posts.map((post) => <PostBit key={post.id} post={post} regions={{ actions: … }} />),

@@ -2,7 +2,7 @@
  * F39 — creating a thread.
  *
  * The rules live here rather than in the Server Action because they are not
- * about HTTP: a locked community refuses a thread whether the request came from a
+ * about HTTP: a locked forum refuses a thread whether the request came from a
  * form, the operator CLI, or the importer. The action's job is to parse
  * `FormData`, re-authorise, and call this.
  *
@@ -14,10 +14,10 @@
 import { RateLimitedError, ValidationError } from '@meith/core'
 import { validatePoll, type NewPoll } from '@meith/polls'
 
-/** The community's own posting rules, read from the community row. */
-export interface CommunityPostingRules {
+/** The forum's own posting rules, read from the forum row. */
+export interface ForumPostingRules {
   readonly id: number
-  readonly type: 'category' | 'community' | 'link'
+  readonly type: 'category' | 'forum' | 'link'
   readonly isOpen: boolean
   readonly allowThreads: boolean
   readonly allowReplies: boolean
@@ -62,8 +62,8 @@ export interface ComposeThreadInput {
   readonly mayPostPoll?: boolean | undefined
   /**
    * Whether this actor's content skips the moderation queue. Resolved by the
-   * caller from the community matrix — a moderator of the community posts straight
-   * through, everyone else waits when the community moderates new threads.
+   * caller from the forum matrix — a moderator of the forum posts straight
+   * through, everyone else waits when the forum moderates new threads.
    */
   readonly bypassesModeration: boolean
   /**
@@ -73,14 +73,14 @@ export interface ComposeThreadInput {
    * Resolved by the caller, like `bypassesModeration` and the warning
    * restriction beside it, and for the same reason: it is a fact about the
    * *account* (its post count against a board setting) rather than about this
-   * community or this message, and the composer is not the thing that reads
+   * forum or this message, and the composer is not the thing that reads
    * settings.
    */
   readonly heldAsNewMember: boolean
   /**
    * The `requiresThreadApproval` permission, already resolved for this author in
-   * this community. See the same field on `ComposeReplyInput` for why it sits beside
-   * `community.moderateNewThreads` rather than replacing it.
+   * this forum. See the same field on `ComposeReplyInput` for why it sits beside
+   * `forum.moderateNewThreads` rather than replacing it.
    */
   readonly requiresApproval: boolean
   /** Whether the flood interval applies. Staff are exempt (F46 generalises this). */
@@ -91,7 +91,7 @@ export interface ComposeThreadInput {
 
 /** What the repository is asked to persist. Already validated. */
 export interface NewThreadRecord {
-  readonly communityId: number
+  readonly forumId: number
   readonly title: string
   readonly slug: string
   readonly message: string
@@ -118,20 +118,20 @@ export interface PrefixOption {
   readonly token: string | null
 }
 
-/** The community as the posting path needs it: its rules, plus the slug a redirect uses. */
-export type CommunityPostingTarget = CommunityPostingRules & { readonly slug: string }
+/** The forum as the posting path needs it: its rules, plus the slug a redirect uses. */
+export type ForumPostingTarget = ForumPostingRules & { readonly slug: string }
 
 export interface ThreadWriteRepository {
   /**
-   * The community's posting rules.
+   * The forum's posting rules.
    *
-   * A read on the write port rather than a widening of `CommunityRow`: these flags
+   * A read on the write port rather than a widening of `ForumRow`: these flags
    * are meaningless to every read path on the board — the index, the listing and
-   * the thread view none of them care whether a community is open — and adding six
+   * the thread view none of them care whether a forum is open — and adding six
    * columns to the shared row shape to serve one screen is how a read model
    * turns into a table dump.
    */
-  postingRules(communityId: number): Promise<CommunityPostingTarget | null>
+  postingRules(forumId: number): Promise<ForumPostingTarget | null>
   /**
    * Persist the thread, its opening post, its counters and its event **in one
    * transaction**. Splitting them is how a board ends up with a post nothing
@@ -142,11 +142,11 @@ export interface ThreadWriteRepository {
   /** Most recent post time by this author, for the flood check. Null if none. */
   lastPostAt(userId: number): Promise<Date | null>
 
-  /** Prefix ids usable in this community, for validating the submitted one. */
-  allowedPrefixIds(communityId: number): Promise<readonly number[]>
+  /** Prefix ids usable in this forum, for validating the submitted one. */
+  allowedPrefixIds(forumId: number): Promise<readonly number[]>
 
   /** The same prefixes with their labels, for the composer's select. */
-  listPrefixes(communityId: number): Promise<readonly PrefixOption[]>
+  listPrefixes(forumId: number): Promise<readonly PrefixOption[]>
 }
 
 export interface ThreadComposerConfig {
@@ -201,21 +201,21 @@ export class ThreadComposer {
   async create(
     input: ComposeThreadInput,
     author: ThreadAuthor,
-    community: CommunityPostingRules,
+    forum: ForumPostingRules,
   ): Promise<CreatedThread> {
     const title = input.title.trim()
     const message = input.message.trim()
 
     /*
-     * Community shape first. A category holds no threads and a link is not a place
+     * Forum shape first. A category holds no threads and a link is not a place
      * at all; both are reachable by typing a URL, and neither is a permission
      * question, so no matrix would have stopped it.
      */
-    if (community.type !== 'community') {
+    if (forum.type !== 'forum') {
       throw new ValidationError('Threads cannot be posted here.')
     }
-    if (!community.isOpen || !community.allowThreads) {
-      throw new ValidationError('This community is closed to new threads.')
+    if (!forum.isOpen || !forum.allowThreads) {
+      throw new ValidationError('This forum is closed to new threads.')
     }
 
     /*
@@ -249,16 +249,16 @@ export class ThreadComposer {
       )
     }
 
-    const prefixId = await this.resolvePrefix(input.prefixId, community)
+    const prefixId = await this.resolvePrefix(input.prefixId, forum)
     const poll =
       input.poll === undefined
         ? undefined
         : validatePoll(input.poll, this.now())
     if (
       poll !== undefined &&
-      (input.mayPostPoll !== true || !community.allowPolls)
+      (input.mayPostPoll !== true || !forum.allowPolls)
     ) {
-      throw new ValidationError('You cannot attach a poll in this community.')
+      throw new ValidationError('You cannot attach a poll in this forum.')
     }
 
     await this.enforceFlood(input, author)
@@ -274,12 +274,12 @@ export class ThreadComposer {
      * the same bypass — which is the whole subtlety of this expression.
      *
      * The warning one is deliberately *not* subject to `bypassesModeration`.
-     * That flag says "this community's queue does not apply to you"; a warning level
+     * That flag says "this forum's queue does not apply to you"; a warning level
      * says "your posts are reviewed", and a moderator under a warning whose own
      * bypass cancelled it would be the one person on the board the restriction
      * could not reach.
      *
-     * F46's new-member hold *is* subject to it, and follows the community queue's
+     * F46's new-member hold *is* subject to it, and follows the forum queue's
      * rule rather than the warning's. It is a statement about how much the
      * board trusts an account, and an account explicitly granted a moderation
      * bypass is one it has already decided to trust — the caller resolves that
@@ -287,7 +287,7 @@ export class ThreadComposer {
      * already accounted for it.
      */
     const visibility =
-      ((community.moderateNewThreads || input.requiresApproval) &&
+      ((forum.moderateNewThreads || input.requiresApproval) &&
         !input.bypassesModeration) ||
       input.heldAsNewMember ||
       restriction.moderated
@@ -295,7 +295,7 @@ export class ThreadComposer {
         : 'visible'
 
     return this.threads.create({
-      communityId: community.id,
+      forumId: forum.id,
       title,
       slug: threadSlug(title),
       message,
@@ -311,23 +311,23 @@ export class ThreadComposer {
 
   private async resolvePrefix(
     prefixId: number | null,
-    community: CommunityPostingRules,
+    forum: ForumPostingRules,
   ): Promise<number | null> {
     if (prefixId === null) {
-      if (community.requiresPrefix) {
-        throw new ValidationError('This community requires a prefix.')
+      if (forum.requiresPrefix) {
+        throw new ValidationError('This forum requires a prefix.')
       }
       return null
     }
 
     /*
-     * Checked against the community's own list rather than merely "exists": prefixes
+     * Checked against the forum's own list rather than merely "exists": prefixes
      * can be scoped to a subtree, and an unchecked id lets anyone label a thread
-     * with a prefix reserved for a staff community.
+     * with a prefix reserved for a staff forum.
      */
-    const allowed = await this.threads.allowedPrefixIds(community.id)
+    const allowed = await this.threads.allowedPrefixIds(forum.id)
     if (!allowed.includes(prefixId)) {
-      throw new ValidationError('That prefix cannot be used in this community.')
+      throw new ValidationError('That prefix cannot be used in this forum.')
     }
     return prefixId
   }

@@ -40,7 +40,7 @@ export interface ThreadPrefixRow {
   readonly label: string
   readonly token: string | null
   readonly displayOrder: number
-  readonly communityPathPrefix: string | null
+  readonly forumPathPrefix: string | null
 }
 
 export class PostgresContentAdminRepository {
@@ -140,7 +140,7 @@ export class PostgresContentAdminRepository {
   async listPrefixes(): Promise<readonly ThreadPrefixRow[]> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select id, label, token, display_order, community_path_prefix
+        select id, label, token, display_order, forum_path_prefix
           from thread_prefixes order by display_order, id
       `),
     ) as Array<Record<string, unknown>>
@@ -150,7 +150,7 @@ export class PostgresContentAdminRepository {
       label: String(row.label),
       token: row.token === null ? null : String(row.token),
       displayOrder: Number(row.display_order),
-      communityPathPrefix: row.community_path_prefix === null ? null : String(row.community_path_prefix),
+      forumPathPrefix: row.forum_path_prefix === null ? null : String(row.forum_path_prefix),
     }))
   }
 
@@ -158,15 +158,15 @@ export class PostgresContentAdminRepository {
     readonly label: string
     readonly token: string | null
     readonly displayOrder: number
-    readonly communityPathPrefix: string | null
+    readonly forumPathPrefix: string | null
   }): Promise<number> {
     if (input.label.trim() === '') throw new ValidationError('A prefix needs a label.')
 
     const rows = resultRows(
       await this.db.execute(sql`
-        insert into thread_prefixes (label, token, display_order, community_path_prefix)
+        insert into thread_prefixes (label, token, display_order, forum_path_prefix)
         values (${input.label.trim()}, ${input.token}, ${input.displayOrder},
-                ${input.communityPathPrefix})
+                ${input.forumPathPrefix})
         returning id
       `),
     ) as Array<{ id: number }>

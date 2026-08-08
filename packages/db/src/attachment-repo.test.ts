@@ -25,7 +25,7 @@ let db: Database
 let repo: PostgresAttachmentRepository
 
 const ADA = 1
-const COMMUNITY = 1
+const FORUM = 1
 let postId: number
 let otherPostId: number
 
@@ -44,7 +44,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from attachment_orphans`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.execute(sql`
@@ -53,18 +53,18 @@ beforeEach(async () => {
     values (${ADA}, 'ada', 'ada', 'a@example.test', 'a@example.test', 'x', 'argon2id', 3)
   `)
   await db.execute(sql`
-    insert into communities (id, type, title, slug, path)
-    values (${COMMUNITY}, 'community', 'General', 'general', '/general')
+    insert into forums (id, type, title, slug, path)
+    values (${FORUM}, 'forum', 'General', 'general', '/general')
   `)
   await db.execute(sql`
-    insert into threads (id, community_id, title, slug, author_user_id, author_username)
-    values (1, ${COMMUNITY}, 'Hello', 'hello', ${ADA}, 'ada')
+    insert into threads (id, forum_id, title, slug, author_user_id, author_username)
+    values (1, ${FORUM}, 'Hello', 'hello', ${ADA}, 'ada')
   `)
   await db.execute(sql`
-    insert into posts (id, thread_id, community_id, author_user_id, author_username,
+    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
                        message, is_first_post)
-    values (1, 1, ${COMMUNITY}, ${ADA}, 'ada', 'first', true),
-           (2, 1, ${COMMUNITY}, ${ADA}, 'ada', 'second', false)
+    values (1, 1, ${FORUM}, ${ADA}, 'ada', 'first', true),
+           (2, 1, ${FORUM}, ${ADA}, 'ada', 'second', false)
   `)
   postId = 1
   otherPostId = 2
@@ -73,7 +73,7 @@ beforeEach(async () => {
 function pending(overrides: Partial<Parameters<typeof repo.create>[0]> = {}) {
   return repo.create({
     postId,
-    communityId: COMMUNITY,
+    forumId: FORUM,
     uploaderUserId: ADA,
     filename: 'photo.png',
     contentType: 'image/png',
@@ -91,7 +91,7 @@ describe('create', () => {
 
     expect(row).toMatchObject({
       postId,
-      communityId: COMMUNITY,
+      forumId: FORUM,
       uploaderUserId: ADA,
       filename: 'photo.png',
       status: 'pending',

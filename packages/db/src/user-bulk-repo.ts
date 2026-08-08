@@ -112,10 +112,10 @@ export class PostgresUserBulkRepository {
          where m.user_id = u.id and g.is_staff_group = true
       )`,
       /*
-       * Never anyone who has moderated a community, whatever group they are in.
+       * Never anyone who has moderated a forum, whatever group they are in.
        * An appointment is a job somebody was given; a sweep must not undo it.
        */
-      sql`not exists (select 1 from community_moderators f where f.user_id = u.id)`,
+      sql`not exists (select 1 from forum_moderators f where f.user_id = u.id)`,
     ]
 
     if (criteria.inactiveSince !== undefined) {

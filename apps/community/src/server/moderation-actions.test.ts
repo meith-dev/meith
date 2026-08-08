@@ -3,7 +3,7 @@
  *
  * The queue's rules are unit-tested in `@meith/moderation` and its SQL against
  * real Postgres. What is proven here is the adapter tier neither can see: that
- * the set of moderated communities is resolved *server-side* for this request rather
+ * the set of moderated forums is resolved *server-side* for this request rather
  * than read from the form, that a member who moderates nothing is refused
  * however the form is crafted, and that the redirect reports what actually
  * happened.
@@ -43,14 +43,14 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { moderateQueueAction } = await import('./moderation-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { SEED_BOARD, SEED_COMMUNITY, SEED_GROUP } = await import('./seed-board')
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
 const { installTestContainer } = await import('./test-container')
 
 class FakeQueue implements ModerationQueueRepository {
   readonly applied: Array<{ threadIds: readonly number[]; postIds: readonly number[] }> = []
   /** Every pending item lives in `announcements` unless a test moves it. */
-  communityOf = (_item: QueueSelection): number => SEED_COMMUNITY.announcements
+  forumOf = (_item: QueueSelection): number => SEED_FORUM.announcements
 
   async list(): Promise<QueuePage> {
     return { items: [] }
@@ -61,7 +61,7 @@ class FakeQueue implements ModerationQueueRepository {
   }
 
   async resolve(selection: readonly QueueSelection[]): Promise<readonly PendingItem[]> {
-    return selection.map((item) => ({ ...item, communityId: this.communityOf(item) }))
+    return selection.map((item) => ({ ...item, forumId: this.forumOf(item) }))
   }
 
   async apply(input: {
@@ -129,17 +129,17 @@ describe('moderateQueueAction', () => {
   })
 
   /*
-   * The set of moderated communities is the authorisation, so it is resolved for
+   * The set of moderated forums is the authorisation, so it is resolved for
    * this request from the actor — never carried in the form, where it would be
    * the whole permission check sitting in the browser.
    */
-  it('ignores a community id supplied by the form', async () => {
+  it('ignores a forum id supplied by the form', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    queue.communityOf = () => 4242
+    queue.forumOf = () => 4242
 
     const state = await moderateQueueAction(
       EMPTY_STATE,
-      form([...SELECTION, ['communityIds', '4242']]),
+      form([...SELECTION, ['forumIds', '4242']]),
     )
 
     expect(state.error).toMatch(/do not moderate/i)
@@ -165,20 +165,20 @@ describe('moderateQueueAction', () => {
   })
 
   /*
-   * A moderator of one community acting on an item in another. The item's community
+   * A moderator of one forum acting on an item in another. The item's forum
    * comes from the database, so this is refused after the re-read rather than
    * before — and reported rather than silently dropped.
    */
-  it('reports items in communities this actor does not moderate', async () => {
+  it('reports items in forums this actor does not moderate', async () => {
     /*
      * An *appointed* moderator, not a staff group — a super-moderator bypasses
-     * community permissions everywhere, so they are exactly the wrong actor for
+     * forum permissions everywhere, so they are exactly the wrong actor for
      * this test. This is also the first time an appointment decides anything at
-     * the app layer: `community_moderators` had no reader before F48.
+     * the app layer: `forum_moderators` had no reader before F48.
      */
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    queue.communityOf = (item) =>
-      item.kind === 'thread' ? SEED_COMMUNITY.announcements : SEED_COMMUNITY.general
+    queue.forumOf = (item) =>
+      item.kind === 'thread' ? SEED_FORUM.announcements : SEED_FORUM.general
 
     installContainer({
       authorizer: new Authorizer(
@@ -187,8 +187,8 @@ describe('moderateQueueAction', () => {
           moderators: [
             {
               userId: 3,
-              communityId: SEED_COMMUNITY.announcements,
-              cascadeToSubcommunities: false,
+              forumId: SEED_FORUM.announcements,
+              cascadeToSubforums: false,
               canApproveContent: true,
               canEditPosts: false,
               canSoftDeletePosts: false,

@@ -20,7 +20,7 @@
  *
  * ## Order is a dependency graph, not a preference
  *
- * Users, then communities, then threads, then posts. A thread references a community and
+ * Users, then forums, then threads, then posts. A thread references a forum and
  * an author; a post references a thread. Importing posts first means either
  * inventing the parents or holding every post in memory until the thread arrives
  * — and the second is the design that works on a small board and dies on a real
@@ -34,11 +34,11 @@
  * and importing somebody else's arithmetic bakes in their drift.
  */
 
-import { mapCommunity, mapPost, mapThread, mapUser } from './map'
-import type { ImportedCommunity, ImportedPost, ImportedThread, ImportedUser } from './map'
+import { mapForum, mapPost, mapThread, mapUser } from './map'
+import type { ImportedForum, ImportedPost, ImportedThread, ImportedUser } from './map'
 import type { MybbSource } from './source'
 
-export const KINDS = ['users', 'communities', 'threads', 'posts'] as const
+export const KINDS = ['users', 'forums', 'threads', 'posts'] as const
 export type Kind = (typeof KINDS)[number]
 
 /**
@@ -49,7 +49,7 @@ export type Kind = (typeof KINDS)[number]
  */
 export type Cursors = Readonly<Record<Kind, number>>
 
-export const NO_PROGRESS: Cursors = { users: 0, communities: 0, threads: 0, posts: 0 }
+export const NO_PROGRESS: Cursors = { users: 0, forums: 0, threads: 0, posts: 0 }
 
 /**
  * Where imported rows go.
@@ -61,7 +61,7 @@ export const NO_PROGRESS: Cursors = { users: 0, communities: 0, threads: 0, post
  */
 export interface ImportSink {
   putUsers(rows: readonly ImportedUser[]): Promise<WriteResult>
-  putCommunities(rows: readonly ImportedCommunity[]): Promise<WriteResult>
+  putForums(rows: readonly ImportedForum[]): Promise<WriteResult>
   putThreads(rows: readonly ImportedThread[]): Promise<WriteResult>
   putPosts(rows: readonly ImportedPost[]): Promise<WriteResult>
 }
@@ -120,7 +120,7 @@ export async function runImport(options: RunOptions): Promise<ImportReport> {
 
   const kinds: Record<Kind, KindReport> = {
     users: emptyKind(),
-    communities: emptyKind(),
+    forums: emptyKind(),
     threads: emptyKind(),
     posts: emptyKind(),
   }
@@ -130,7 +130,7 @@ export async function runImport(options: RunOptions): Promise<ImportReport> {
 
   /*
    * Sequential, in dependency order, and a kind is finished before the next
-   * starts. Interleaving would import a thread whose community has not arrived —
+   * starts. Interleaving would import a thread whose forum has not arrived —
    * the sink would refuse it, the report would fill with skips, and the run
    * would look like a failure when it was only out of order.
    */
@@ -197,8 +197,8 @@ async function importPage(
   switch (kind) {
     case 'users':
       return write(await source.users(after, limit), mapUser, sink.putUsers.bind(sink))
-    case 'communities':
-      return write(await source.communities(after, limit), mapCommunity, sink.putCommunities.bind(sink))
+    case 'forums':
+      return write(await source.forums(after, limit), mapForum, sink.putForums.bind(sink))
     case 'threads':
       return write(await source.threads(after, limit), mapThread, sink.putThreads.bind(sink))
     case 'posts':
@@ -229,11 +229,11 @@ export interface CounterComparison {
 }
 
 export function compareCounters(input: {
-  readonly communities: readonly ImportedCommunity[]
+  readonly forums: readonly ImportedForum[]
   readonly threads: readonly ImportedThread[]
   readonly posts: readonly ImportedPost[]
-  /** MyBB's claimed per-community totals, keyed by legacy community id. */
-  readonly claimedCommunityTotals: Readonly<Record<number, { threads: number; posts: number }>>
+  /** MyBB's claimed per-forum totals, keyed by legacy forum id. */
+  readonly claimedForumTotals: Readonly<Record<number, { threads: number; posts: number }>>
 }): readonly CounterComparison[] {
   const differences: CounterComparison[] = []
 
@@ -245,18 +245,18 @@ export function compareCounters(input: {
   const visibleThreads = input.threads.filter((thread) => thread.visibility === 'visible')
   const visiblePosts = input.posts.filter((post) => post.visibility === 'visible')
 
-  for (const community of input.communities) {
-    const claimed = input.claimedCommunityTotals[community.legacyId]
+  for (const forum of input.forums) {
+    const claimed = input.claimedForumTotals[forum.legacyId]
     if (claimed === undefined) continue
 
     const actualThreads = visibleThreads.filter(
-      (thread) => thread.legacyCommunityId === community.legacyId,
+      (thread) => thread.legacyForumId === forum.legacyId,
     ).length
-    const actualPosts = visiblePosts.filter((post) => post.legacyCommunityId === community.legacyId).length
+    const actualPosts = visiblePosts.filter((post) => post.legacyForumId === forum.legacyId).length
 
     if (claimed.threads !== actualThreads) {
       differences.push({
-        legacyId: community.legacyId,
+        legacyId: forum.legacyId,
         field: 'threads',
         claimed: claimed.threads,
         actual: actualThreads,
@@ -264,7 +264,7 @@ export function compareCounters(input: {
     }
     if (claimed.posts !== actualPosts) {
       differences.push({
-        legacyId: community.legacyId,
+        legacyId: forum.legacyId,
         field: 'posts',
         claimed: claimed.posts,
         actual: actualPosts,

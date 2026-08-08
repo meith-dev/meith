@@ -32,7 +32,7 @@ import {
   getDb,
   isInstalled,
   markInstalled,
-  PostgresCommunityRepository,
+  PostgresForumRepository,
   PostgresSettingsRepository,
   runMigrations,
 } from '@meith/db'
@@ -47,7 +47,7 @@ import {
 } from '@meith/settings'
 import {
   INSTALL_STEPS,
-  defaultCommunitySlug,
+  defaultForumSlug,
   mailConfigFromInstallInput,
   preflight,
   type Check,
@@ -349,21 +349,21 @@ export async function runInstall(input: InstallInput): Promise<readonly StepOutc
   }
 
   /*
-   * 4. A category and a community inside it. A board whose index is empty looks
+   * 4. A category and a forum inside it. A board whose index is empty looks
    * broken rather than new, and the first thing an operator does otherwise is
    * hunt for how to add one.
    */
-  const communities = new PostgresCommunityRepository(db)
+  const forums = new PostgresForumRepository(db)
   if (
-    !(await step('community', async () => {
-      const category = await communities.create({
+    !(await step('forum', async () => {
+      const category = await forums.create({
         type: 'category',
         title: input.boardName,
-        slug: defaultCommunitySlug(input.boardName),
+        slug: defaultForumSlug(input.boardName),
         parentId: null,
       })
-      await communities.create({
-        type: 'community',
+      await forums.create({
+        type: 'forum',
         title: 'General discussion',
         slug: 'general-discussion',
         description: 'Anything that does not fit elsewhere.',

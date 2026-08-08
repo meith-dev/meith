@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
  *
  * F62 shipped reputation and one way to reach it: a **Rate** link to a separate
  * page carrying a form. That is the right shape for a considered rating with a
- * reason and the wrong shape for what people actually do on a community, which is
+ * reason and the wrong shape for what people actually do on a forum, which is
  * say thanks for an answer that helped — and it is why most boards' reputation
  * totals stay at zero.
  *
@@ -23,7 +23,7 @@ import { expect, test, type Page } from '@playwright/test'
 test.use({ javaScriptEnabled: false })
 
 const PASSWORD = 'long-enough-password'
-const THREAD = '/thread/4-welcome-to-the-community'
+const THREAD = '/thread/4-welcome-to-the-forum'
 
 /** Register through the form, then sign in. The only way to get a session. */
 async function signIn(page: Page): Promise<string> {

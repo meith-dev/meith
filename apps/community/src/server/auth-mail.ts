@@ -55,7 +55,7 @@ async function boardOrigin(): Promise<string | null> {
 async function boardIdentity(): Promise<{ name: string; fromName: string }> {
   const settings = await getSettings()
   return {
-    name: settings.get('board.name') || 'the community',
+    name: settings.get('board.name') || 'the forum',
     fromName: settings.get('mail.from_name'),
   }
 }

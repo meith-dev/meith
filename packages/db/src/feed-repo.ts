@@ -6,7 +6,7 @@
  * is always the guest's.** Not because a feed cannot be personalised, but
  * because the things that fetch these URLs — aggregators, crawlers, link
  * unfurlers, CDNs — cache one response per URL and hand it to everybody. A feed
- * built for a member and cached under a shared URL is a private community served to
+ * built for a member and cached under a shared URL is a private forum served to
  * whoever asks next. That decision lives at the call sites in the app; this file
  * simply takes a scope and never assumes one, exactly as F72 and F74 do.
  *
@@ -23,8 +23,8 @@ import { resultRows } from './result-rows'
 import { visibleIn } from './visibility'
 
 export interface FeedScope {
-  /** Communities the feed's audience may read — for a public feed, the guest's. */
-  readonly communityIds: readonly number[]
+  /** Forums the feed's audience may read — for a public feed, the guest's. */
+  readonly forumIds: readonly number[]
   readonly content: ContentScope
 }
 
@@ -32,8 +32,8 @@ export interface FeedThread {
   readonly threadId: number
   readonly title: string
   readonly slug: string
-  readonly communityId: number
-  readonly communityTitle: string
+  readonly forumId: number
+  readonly forumTitle: string
   readonly authorUsername: string
   readonly createdAt: Date
   readonly lastPostAt: Date
@@ -52,8 +52,8 @@ export interface FeedPost {
   readonly messageSource: string
 }
 
-export interface SitemapCommunity {
-  readonly communityId: number
+export interface SitemapForum {
+  readonly forumId: number
   readonly slug: string
   readonly lastPostAt: Date | null
 }
@@ -71,7 +71,7 @@ export class PostgresFeedRepository {
   constructor(private readonly db: Database) {}
 
   /**
-   * The board's — or one community's — most recently active threads.
+   * The board's — or one forum's — most recently active threads.
    *
    * Ordered by last post rather than by creation, because a feed answers "what
    * is happening" and a thread revived after a year is news. The excerpt is the
@@ -82,34 +82,34 @@ export class PostgresFeedRepository {
   async recentThreads(
     limit: number,
     scope: FeedScope,
-    communityId?: number,
+    forumId?: number,
   ): Promise<readonly FeedThread[]> {
-    if (scope.communityIds.length === 0) return []
+    if (scope.forumIds.length === 0) return []
 
-    const communities =
-      communityId === undefined
-        ? sql`t.community_id in (${sql.join(
-            scope.communityIds.map((id) => sql`${id}`),
+    const forums =
+      forumId === undefined
+        ? sql`t.forum_id in (${sql.join(
+            scope.forumIds.map((id) => sql`${id}`),
             sql`, `,
           )})`
         : /*
-           * A single community still goes through the scope: asking for a community the
-           * audience may not read must produce nothing, not that community's
+           * A single forum still goes through the scope: asking for a forum the
+           * audience may not read must produce nothing, not that forum's
            * threads. `and` rather than a replacement is what makes the narrowing
            * additive and impossible to widen by argument.
            */
-          sql`t.community_id = ${communityId} and t.community_id in (${sql.join(
-            scope.communityIds.map((id) => sql`${id}`),
+          sql`t.forum_id = ${forumId} and t.forum_id in (${sql.join(
+            scope.forumIds.map((id) => sql`${id}`),
             sql`, `,
           )})`
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select t.id, t.title, t.slug, t.community_id, f.title as community_title,
+        select t.id, t.title, t.slug, t.forum_id, f.title as forum_title,
                t.author_username, t.created_at, t.last_post_at, t.reply_count,
                left(p.message, ${EXCERPT_CHARS}) as excerpt
           from threads t
-          join communities f on f.id = t.community_id
+          join forums f on f.id = t.forum_id
           /*
            * The opening post, and left-joined *through the scope*: a thread
            * whose first post was removed is still a thread, and it appears with
@@ -118,7 +118,7 @@ export class PostgresFeedRepository {
           left join posts p
             on p.id = t.first_post_id
            and ${visibleIn(sql`p.visibility`, scope.content)}
-         where ${communities}
+         where ${forums}
            and ${visibleIn(sql`t.visibility`, scope.content)}
          order by t.last_post_at desc, t.id desc
          limit ${limit}
@@ -129,8 +129,8 @@ export class PostgresFeedRepository {
       threadId: Number(row.id),
       title: String(row.title),
       slug: String(row.slug),
-      communityId: Number(row.community_id),
-      communityTitle: String(row.community_title),
+      forumId: Number(row.forum_id),
+      forumTitle: String(row.forum_title),
       authorUsername: String(row.author_username),
       createdAt: toDate(row.created_at),
       lastPostAt: toDate(row.last_post_at),
@@ -151,7 +151,7 @@ export class PostgresFeedRepository {
     limit: number,
     scope: FeedScope,
   ): Promise<readonly FeedPost[]> {
-    if (scope.communityIds.length === 0) return []
+    if (scope.forumIds.length === 0) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
@@ -160,8 +160,8 @@ export class PostgresFeedRepository {
           from posts p
           join threads t on t.id = p.thread_id
          where p.thread_id = ${threadId}
-           and t.community_id in (${sql.join(
-             scope.communityIds.map((id) => sql`${id}`),
+           and t.forum_id in (${sql.join(
+             scope.forumIds.map((id) => sql`${id}`),
              sql`, `,
            )})
            and ${visibleIn(sql`t.visibility`, scope.content)}
@@ -183,30 +183,30 @@ export class PostgresFeedRepository {
   }
 
   /**
-   * The communities a crawler may index.
+   * The forums a crawler may index.
    *
-   * `last_post_at` comes from the community's own denormalised column (F38), so the
-   * sitemap's `lastmod` costs no aggregate — and it is null for a community nobody
+   * `last_post_at` comes from the forum's own denormalised column (F38), so the
+   * sitemap's `lastmod` costs no aggregate — and it is null for a forum nobody
    * has posted in, which the serialiser omits rather than inventing a date for.
    */
-  async sitemapCommunities(scope: FeedScope): Promise<readonly SitemapCommunity[]> {
-    if (scope.communityIds.length === 0) return []
+  async sitemapForums(scope: FeedScope): Promise<readonly SitemapForum[]> {
+    if (scope.forumIds.length === 0) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
         select id, slug, last_post_at
-          from communities
+          from forums
          where id in (${sql.join(
-           scope.communityIds.map((id) => sql`${id}`),
+           scope.forumIds.map((id) => sql`${id}`),
            sql`, `,
          )})
-           and type = 'community'
+           and type = 'forum'
          order by id
       `),
     ) as Array<Record<string, unknown>>
 
     return rows.map((row) => ({
-      communityId: Number(row.id),
+      forumId: Number(row.id),
       slug: String(row.slug),
       lastPostAt: row.last_post_at === null ? null : toDate(row.last_post_at),
     }))
@@ -221,14 +221,14 @@ export class PostgresFeedRepository {
    * out where they stop — is the same scan done several times.
    */
   async sitemapThreadCount(scope: FeedScope): Promise<number> {
-    if (scope.communityIds.length === 0) return 0
+    if (scope.forumIds.length === 0) return 0
 
     const rows = resultRows(
       await this.db.execute(sql`
         select count(*)::int as n
           from threads t
-         where t.community_id in (${sql.join(
-           scope.communityIds.map((id) => sql`${id}`),
+         where t.forum_id in (${sql.join(
+           scope.forumIds.map((id) => sql`${id}`),
            sql`, `,
          )})
            and ${visibleIn(sql`t.visibility`, scope.content)}
@@ -260,14 +260,14 @@ export class PostgresFeedRepository {
    */
   async sitemapBoundaryId(skip: number, scope: FeedScope): Promise<number | null> {
     if (skip <= 0) return 0
-    if (scope.communityIds.length === 0) return null
+    if (scope.forumIds.length === 0) return null
 
     const rows = resultRows(
       await this.db.execute(sql`
         select t.id
           from threads t
-         where t.community_id in (${sql.join(
-           scope.communityIds.map((id) => sql`${id}`),
+         where t.forum_id in (${sql.join(
+           scope.forumIds.map((id) => sql`${id}`),
            sql`, `,
          )})
            and ${visibleIn(sql`t.visibility`, scope.content)}
@@ -292,14 +292,14 @@ export class PostgresFeedRepository {
     limit: number,
     scope: FeedScope,
   ): Promise<readonly SitemapThread[]> {
-    if (scope.communityIds.length === 0) return []
+    if (scope.forumIds.length === 0) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
         select t.id, t.slug, t.last_post_at
           from threads t
-         where t.community_id in (${sql.join(
-           scope.communityIds.map((id) => sql`${id}`),
+         where t.forum_id in (${sql.join(
+           scope.forumIds.map((id) => sql`${id}`),
            sql`, `,
          )})
            and ${visibleIn(sql`t.visibility`, scope.content)}

@@ -24,7 +24,7 @@ import 'server-only'
  * Not a `'use server'` module: those may only export async actions, and these
  * are functions the API route calls directly.
  */
-import { ForbiddenError, ValidationError, type CommunityPermissions } from '@meith/core'
+import { ForbiddenError, ValidationError, type ForumPermissions } from '@meith/core'
 import type { Actor } from '@meith/authorization'
 import { ReplyComposer, type AuthorRestriction, type ReplyTarget } from '@meith/threads'
 import { restrictsPosting } from '@meith/moderation'
@@ -38,9 +38,9 @@ import { getSettings } from './settings'
 /** What `resolveReplyTarget` proved, and what writing the reply needs. */
 export interface ResolvedReplyTarget {
   readonly target: ReplyTarget
-  readonly communityId: number
+  readonly forumId: number
   /** The post scope, for the Authorizer and for staging attachments. */
-  readonly scope: { readonly communityId: number; readonly community: CommunityPermissions }
+  readonly scope: { readonly forumId: number; readonly forum: ForumPermissions }
 }
 
 /**
@@ -50,7 +50,7 @@ export interface ResolvedReplyTarget {
  * decides whether the thread may be *known to exist*, and its failure is
  * deliberately the same "that thread does not exist" a missing row produces.
  * Answering "you may not reply to that" would confirm the thread is real to
- * somebody who cannot see the community it is in.
+ * somebody who cannot see the forum it is in.
  */
 export async function resolveReplyTarget(
   actor: Actor,
@@ -67,8 +67,8 @@ export async function resolveReplyTarget(
   const target = await threadWrites.replyTarget(threadId)
   if (!target) throw new ValidationError('That thread does not exist.')
 
-  const communityId = target.community.id
-  const scope = { communityId, community: await authorizer.communityMatrix(actor, communityId) }
+  const forumId = target.forum.id
+  const scope = { forumId, forum: await authorizer.forumMatrix(actor, forumId) }
 
   if (!authorizer.can(actor, 'thread.view', scope)) {
     throw new ValidationError('That thread does not exist.')
@@ -79,7 +79,7 @@ export async function resolveReplyTarget(
     throw new ForbiddenError('You must be logged in to post.')
   }
 
-  return { target, communityId, scope }
+  return { target, forumId, scope }
 }
 
 export interface SubmitReplyInput {
@@ -109,7 +109,7 @@ export async function submitReply(
   if (userId === null) throw new ForbiddenError('You must be logged in to post.')
 
   const settings = await getSettings()
-  const { scope, target, communityId } = resolved
+  const { scope, target, forumId } = resolved
 
   /* F46's hourly limit, beside F39's interval. See `content-actions.ts`. */
   const limited = await spendLimit({ scope: 'post', actor, settings })
@@ -144,11 +144,11 @@ export async function submitReply(
       }),
       /*
        * The `requiresPostApproval` permission, resolved for this actor in this
-       * community. AND-combined across their groups by the authorizer and
-       * overridable per community, so reading the matrix is the whole of it — the
+       * forum. AND-combined across their groups by the authorizer and
+       * overridable per forum, so reading the matrix is the whole of it — the
        * exemption rules are already applied by the time it gets here.
        */
-      requiresApproval: scope.community.requiresPostApproval === true,
+      requiresApproval: scope.forum.requiresPostApproval === true,
       /*
        * Replying to a locked thread is a moderator act, and `content.viewDeleted`
        * would be the wrong test — seeing removed content says nothing about
@@ -163,7 +163,7 @@ export async function submitReply(
 
   await emitEvent(
     'post.created',
-    { postId: created.postId, threadId: created.threadId, communityId, authorId: userId },
+    { postId: created.postId, threadId: created.threadId, forumId, authorId: userId },
     viewerRef(actor),
   )
 

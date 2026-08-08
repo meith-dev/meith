@@ -25,8 +25,8 @@ export const metadata: Metadata = { title: 'Subscriptions' }
  * them, change them, or turn one off.
  *
  * **The list is filtered by what the member may still see.** A subscription to
- * a community that has since been made private is dropped rather than shown greyed
- * out — a row that names a private community back at somebody is a disclosure, and
+ * a forum that has since been made private is dropped rather than shown greyed
+ * out — a row that names a private forum back at somebody is a disclosure, and
  * the subscription itself keeps working the moment access returns.
  *
  * App-owned rather than a theme slot, like F55's centre and Phase 4's screens:
@@ -53,10 +53,10 @@ export default async function SubscriptionsPage({
    * the notifier resolves per member when it decides what to tell them, so the
    * screen and the e-mail cannot disagree about what this member follows.
    */
-  const visibleCommunityIds = await authorizer.visibleCommunityIds(actor)
+  const visibleForumIds = await authorizer.visibleForumIds(actor)
   const rows = await new SubscriptionService({ subscriptions }).list(
     actor.userId,
-    visibleCommunityIds,
+    visibleForumIds,
   )
 
   const view = buildSubscriptionsView({ rows, now: new Date() })
@@ -86,7 +86,7 @@ export default async function SubscriptionsPage({
       {view.total === 0 ? (
         <p className="text-sm text-muted-foreground">
           You are not following anything yet. Use the “Follow” control on a thread or a
-          community, or tick the box when you post.
+          forum, or tick the box when you post.
         </p>
       ) : (
         <>
@@ -97,9 +97,9 @@ export default async function SubscriptionsPage({
             modes={view.modes}
           />
           <Section
-            title="Communities"
-            empty="You are not following any communities."
-            rows={view.communities}
+            title="Forums"
+            empty="You are not following any forums."
+            rows={view.forums}
             modes={view.modes}
           />
         </>

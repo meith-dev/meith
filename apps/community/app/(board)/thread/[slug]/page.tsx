@@ -76,17 +76,17 @@ export async function generateMetadata({
   if (id === null) return { title: 'Thread' }
 
   const actor = await getActor()
-  const { communities, threads, authorizer } = getContainer()
+  const { forums, threads, authorizer } = getContainer()
 
-  const communityId = await threads.locateCommunity(id)
-  if (communityId === null) return { title: 'Thread' }
+  const forumId = await threads.locateForum(id)
+  if (forumId === null) return { title: 'Thread' }
 
-  const community = await communities.findById(communityId)
-  if (!community || community.type !== 'community') return { title: 'Thread' }
+  const forum = await forums.findById(forumId)
+  if (!forum || forum.type !== 'forum') return { title: 'Thread' }
 
-  const matrix = await authorizer.communityMatrix(actor, community.id)
+  const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (
-    !authorizer.can(actor, 'thread.view', { communityId: community.id, community: matrix })
+    !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
   ) {
     /*
      * The same title an unknown thread gets. A metadata function that said
@@ -98,7 +98,7 @@ export async function generateMetadata({
 
   const thread = await threads.findById(
     id,
-    authorizer.contentScope(actor, { communityId: community.id, community: matrix }),
+    authorizer.contentScope(actor, { forumId: forum.id, forum: matrix }),
   )
   if (!thread) return { title: 'Thread' }
 
@@ -110,13 +110,13 @@ export async function generateMetadata({
   })
 
   /*
-   * The community, not the opening post. This function runs beside the page rather
+   * The forum, not the opening post. This function runs beside the page rather
    * than inside it, and reading the first post here would be a second post
    * query on every thread view to fill a description only a link unfurler
    * sees. The page itself has the posts already and puts the real text into
    * the JSON-LD, which is where a crawler reads it.
    */
-  const description = `A discussion in ${community.title}.`
+  const description = `A discussion in ${forum.title}.`
 
   return {
     title: thread.title,
@@ -132,7 +132,7 @@ export async function generateMetadata({
       title: thread.title,
       description,
       url: links.canonical,
-      siteName: community.title,
+      siteName: forum.title,
     },
     twitter: { card: 'summary', title: thread.title, description },
   }
@@ -197,7 +197,7 @@ export default async function ThreadPage({
 
   const actor = await getActor()
   const {
-    communities,
+    forums,
     posts,
     threads,
     authorizer,
@@ -212,26 +212,26 @@ export default async function ThreadPage({
   } = getContainer()
   /*
    * Locate, authorise, then read — in that order, and the order is the whole
-   * point. The scope cannot be built before the community is known and the community
-   * cannot be known before the thread is located, so `locateCommunity` returns the
+   * point. The scope cannot be built before the forum is known and the forum
+   * cannot be known before the thread is located, so `locateForum` returns the
    * one field permissions need and nothing else. The thread itself is read
    * exactly once, inside the scope this actor turns out to have, so a moderator
    * sees a hidden thread and nobody else learns it exists.
    */
-  const communityId = await threads.locateCommunity(id)
-  if (communityId === null) notFound()
+  const forumId = await threads.locateForum(id)
+  if (forumId === null) notFound()
 
-  const community = await communities.findById(communityId)
-  if (!community || community.type !== 'community') notFound()
-  const matrix = await authorizer.communityMatrix(actor, community.id)
+  const forum = await forums.findById(forumId)
+  if (!forum || forum.type !== 'forum') notFound()
+  const matrix = await authorizer.forumMatrix(actor, forum.id)
   if (
-    !authorizer.can(actor, 'thread.view', { communityId: community.id, community: matrix })
+    !authorizer.can(actor, 'thread.view', { forumId: forum.id, forum: matrix })
   )
     notFound()
 
   const scope = authorizer.contentScope(actor, {
-    communityId: community.id,
-    community: matrix,
+    forumId: forum.id,
+    forum: matrix,
   })
   const thread = await threads.findById(id, scope)
   if (!thread) notFound()
@@ -270,11 +270,11 @@ export default async function ThreadPage({
    */
   const canReply =
     threadWrites !== null &&
-    authorizer.can(actor, 'reply.post', { communityId: community.id, community: matrix }) &&
+    authorizer.can(actor, 'reply.post', { forumId: forum.id, forum: matrix }) &&
     (!thread.isLocked ||
       authorizer.can(actor, 'content.viewUnapproved', {
-        communityId: community.id,
-        community: matrix,
+        forumId: forum.id,
+        forum: matrix,
       }))
 
   /*
@@ -285,13 +285,13 @@ export default async function ThreadPage({
    * acts on it.
    */
   /*
-   * F54's debt, paid. `Target.isCommunityModerator` has existed since F48 and was
-   * never set on a per-page `can()` call, so outside the queue a per-community
+   * F54's debt, paid. `Target.isForumModerator` has existed since F48 and was
+   * never set on a per-page `can()` call, so outside the queue a per-forum
    * appointee had only their group's rights — `post.editOthers` and
    * `post.softDelete` both read the flag and both saw `undefined`. Every
    * affordance below is now built on the appointment-aware target.
    */
-  const appointment = await moderatorTargetFor(actor, community.id, matrix)
+  const appointment = await moderatorTargetFor(actor, forum.id, matrix)
   const own = { ...appointment, ownerId: actor.userId }
   const others = { ...appointment, ownerId: -1 }
   /*
@@ -315,7 +315,7 @@ export default async function ThreadPage({
     bypassesWindow:
       authorizer.can(actor, 'post.editOthers', others) ||
       authorizer.can(actor, 'content.viewUnapproved', own),
-    /* Global (F49): reporting is a board capability, not a per-community grant. */
+    /* Global (F49): reporting is a board capability, not a per-forum grant. */
     canReport: postWrites !== null && authorizer.can(actor, 'content.report'),
     /* F53. Global too, and gated on there being a warning store at all (D38). */
     canWarn:
@@ -357,7 +357,7 @@ export default async function ThreadPage({
   const movableInto =
     threadTools === null
       ? []
-      : await authorizer.moderatedCommunityIds(actor, 'canMoveThreads')
+      : await authorizer.moderatedForumIds(actor, 'canMoveThreads')
   const toolTarget = appointment
   const toolRights = {
     lock:
@@ -394,11 +394,11 @@ export default async function ThreadPage({
         }))
   const moveTargets = !toolRights.move
     ? []
-    : (await communities.listListing())
+    : (await forums.listListing())
         .filter(
           (row) =>
-            row.type === 'community' &&
-            row.id !== community.id &&
+            row.type === 'forum' &&
+            row.id !== forum.id &&
             movableInto.includes(row.id),
         )
         .map((row) => ({ id: row.id, title: row.title }))
@@ -415,7 +415,7 @@ export default async function ThreadPage({
     lock: false,
     stick: false,
     move: false,
-    /* `toolTarget` already carries `isCommunityModerator` (see `appointment`). */
+    /* `toolTarget` already carries `isForumModerator` (see `appointment`). */
     delete:
       inlineModeration !== null &&
       authorizer.can(actor, 'post.softDelete', toolTarget),
@@ -494,7 +494,7 @@ export default async function ThreadPage({
     vocabulary: await activeVocabulary(),
     capabilities,
     replyHref: canReply ? `/thread/${thread.id}-${thread.slug}/reply` : null,
-    community,
+    forum,
     page: postPage,
     pageNumber: page,
     nextHref,
@@ -587,10 +587,10 @@ export default async function ThreadPage({
           published: opening.createdAt,
           modified: thread.lastPostAt,
           replyCount: thread.replyCount,
-          communityTitle: community.title,
+          forumTitle: forum.title,
           description: cardDescription(
             opening.message,
-            `A discussion in ${community.title}.`,
+            `A discussion in ${forum.title}.`,
           ),
         })
 
@@ -607,7 +607,7 @@ export default async function ThreadPage({
   const pluginContext = {
     ...viewerRef(actor),
     threadId: thread.id,
-    communityId: community.id,
+    forumId: forum.id,
   }
 
   const postModels = await Promise.all(
@@ -694,7 +694,7 @@ export default async function ThreadPage({
   const canVotePoll =
     polls !== null &&
     actor.userId !== null &&
-    authorizer.can(actor, 'poll.vote', { communityId: community.id, community: matrix })
+    authorizer.can(actor, 'poll.vote', { forumId: forum.id, forum: matrix })
   const ratingsEnabled = (await getSettings()).get(
     'posting.thread_ratings_enabled',
   )
@@ -704,8 +704,8 @@ export default async function ThreadPage({
     ratingsEnabled &&
     polls !== null &&
     actor.userId !== null &&
-    authorizer.can(actor, 'thread.rate', { communityId: community.id, community: matrix })
-  const replyTarget = { communityId: community.id, community: matrix }
+    authorizer.can(actor, 'thread.rate', { forumId: forum.id, forum: matrix })
+  const replyTarget = { forumId: forum.id, forum: matrix }
   const quickReply = !canReply ? null : (
     <>
       {/*
@@ -720,9 +720,9 @@ export default async function ThreadPage({
         threadId={thread.id}
         seenLastPostId={thread.lastPost?.postId ?? null}
         prefill=""
-        canSubscribe={authorizer.can(actor, 'community.subscribe', replyTarget)}
+        canSubscribe={authorizer.can(actor, 'forum.subscribe', replyTarget)}
         attachmentLimits={canAttach(actor, replyTarget) ? attachmentLimits(replyTarget) : null}
-        draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, community.id, thread.id)}
+        draft={actor.userId === null || drafts === null ? null : await drafts.find(actor.userId, forum.id, thread.id)}
         /*
          * Folded and shrunk, because inline this is the quick reply rather than
          * the page — see `ReplyForm`. `/thread/…/reply` passes nothing and gets
@@ -824,22 +824,25 @@ export default async function ThreadPage({
   )
 
   /*
-   * The trail: Communities › Category › Community › this thread.
+   * The trail: Forums › Category › Forum › this thread.
    *
    * Both reads are already paid for on this request — `listAll` is what the
-   * shell's jump box calls and `CachedCommunityRepository` serves once, and the
+   * shell's jump box calls and `CachedForumRepository` serves once, and the
    * visibility set is memoised by the authorizer. Rendered outside `<main>`,
    * because it is navigation and "skip to content" should skip it.
    */
-  const [allCommunities, visibleIds] = await Promise.all([
-    communities.listAll(),
-    authorizer.visibleCommunityIds(actor),
+  const [allForums, visibleIds] = await Promise.all([
+    forums.listAll(),
+    authorizer.visibleForumIds(actor),
   ])
   const trail = buildBreadcrumb({
-    communities: allCommunities,
-    communityId: community.id,
-    visibleCommunityIds: new Set(visibleIds),
+    forums: allForums,
+    forumId: forum.id,
+    visibleForumIds: new Set(visibleIds),
     leaf: thread.title,
+    /* The board's own name as the root crumb. `board.name` is globally cached
+       and tagged (F08), so reading it here costs no query. */
+    homeLabel: (await getSettings()).get('board.name'),
   })
 
   return (

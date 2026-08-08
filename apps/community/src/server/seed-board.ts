@@ -3,7 +3,7 @@
  *
  * This is the app's *own* demo/dev data, intentionally separate from the F22
  * test fixture in `@meith/authorization`. The F22 board is tuned to exercise
- * every matrix cell; this one is tuned to be a believable little community you can
+ * every matrix cell; this one is tuned to be a believable little forum you can
  * click around in with no database attached. Coupling the two would mean a tweak
  * to a permission test could silently change what a demo visitor sees.
  *
@@ -13,11 +13,11 @@
 import { BodyFormat } from '@meith/markdown'
 import {
   emptyPermissionSet,
-  type CommunityPermissions,
+  type ForumPermissions,
   type PermissionSet,
 } from '@meith/core'
 import type { GroupDefaults, MemoryBoard } from '@meith/authorization'
-import type { CommunityListingRow } from '@meith/communities'
+import type { ForumListingRow } from '@meith/forums'
 import type { PostListingRow } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
 import type { MemberProfileRecord } from '@meith/accounts'
@@ -47,19 +47,19 @@ export const SEED_GROUP = {
 /** Bump when the read-only fixture rows change so a live dev container refreshes. */
 export const FIXTURE_DATA_VERSION = 4
 
-/** Canonical seed communities. */
-export const SEED_COMMUNITY = {
+/** Canonical seed forums. */
+export const SEED_FORUM = {
   /**
-   * The category the two top-level communities sit under (F29).
+   * The category the two top-level forums sit under (F29).
    *
-   * A category is a community row of `type: 'category'`: it holds no threads and
+   * A category is a forum row of `type: 'category'`: it holds no threads and
    * renders as the heading of a block on the index. It carries no permission
    * overrides, so it changes no resolution — every ancestor walk through it
    * finds no row and inherits, which is the nullable-column inheritance F21
    * already tests. It exists so the fixture board has the shape a real board
-   * has, rather than two orphan communities the index has to invent a heading for.
+   * has, rather than two orphan forums the index has to invent a heading for.
    */
-  community: 10,
+  main: 10,
   announcements: 100,
   general: 200,
   generalOffTopic: 201, // child of general
@@ -89,7 +89,7 @@ const POST = {
   canPostReplies: true,
   canSubscribe: true,
   /*
-   * F41. A member who cannot correct their own typo is not a community, so this is
+   * F41. A member who cannot correct their own typo is not a forum, so this is
    * the baseline every real board ships with — and the fixture has to have it
    * for the edit affordances to appear at all. The *window* is the permission
    * that limits it (`editTimeLimitMinutes`), and it is 0 here: unlimited.
@@ -166,7 +166,7 @@ const GROUPS: GroupDefaults[] = [
 ]
 
 /** Announcements: everyone reads, only staff post (guests/registered read-only). */
-const ANNOUNCEMENT_READONLY: Partial<CommunityPermissions> = {
+const ANNOUNCEMENT_READONLY: Partial<ForumPermissions> = {
   canPostThreads: false,
   canPostReplies: false,
 }
@@ -179,26 +179,26 @@ export const SEED_BOARD: MemoryBoard = {
    * one Postgres derives from `path`.
    */
   chains: {
-    [SEED_COMMUNITY.community]: [SEED_COMMUNITY.community],
-    [SEED_COMMUNITY.announcements]: [
-      SEED_COMMUNITY.announcements,
-      SEED_COMMUNITY.community,
+    [SEED_FORUM.main]: [SEED_FORUM.main],
+    [SEED_FORUM.announcements]: [
+      SEED_FORUM.announcements,
+      SEED_FORUM.main,
     ],
-    [SEED_COMMUNITY.general]: [SEED_COMMUNITY.general, SEED_COMMUNITY.community],
-    [SEED_COMMUNITY.generalOffTopic]: [
-      SEED_COMMUNITY.generalOffTopic,
-      SEED_COMMUNITY.general,
-      SEED_COMMUNITY.community,
+    [SEED_FORUM.general]: [SEED_FORUM.general, SEED_FORUM.main],
+    [SEED_FORUM.generalOffTopic]: [
+      SEED_FORUM.generalOffTopic,
+      SEED_FORUM.general,
+      SEED_FORUM.main,
     ],
   },
   overrides: [
     {
-      communityId: SEED_COMMUNITY.announcements,
+      forumId: SEED_FORUM.announcements,
       groupId: SEED_GROUP.guest,
       overrides: ANNOUNCEMENT_READONLY,
     },
     {
-      communityId: SEED_COMMUNITY.announcements,
+      forumId: SEED_FORUM.announcements,
       groupId: SEED_GROUP.registered,
       overrides: ANNOUNCEMENT_READONLY,
     },
@@ -206,11 +206,11 @@ export const SEED_BOARD: MemoryBoard = {
 }
 
 /* ------------------------------------------------------------------ *
- * Community rows (F29)
+ * Forum rows (F29)
  * ------------------------------------------------------------------ */
 
 /**
- * The demo board's community rows, with the counters and last-post triplet the
+ * The demo board's forum rows, with the counters and last-post triplet the
  * index renders.
  *
  * Fixed timestamps rather than `Date.now()` offsets: a fixture whose dates move
@@ -223,12 +223,12 @@ export const SEED_BOARD: MemoryBoard = {
  * switching `DATA_SOURCE` changes the data source and nothing else — the same
  * reason the group ids mirror the seed migration.
  */
-export const SEED_COMMUNITY_ROWS: readonly CommunityListingRow[] = [
+export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
   {
-    id: SEED_COMMUNITY.community,
+    id: SEED_FORUM.main,
     type: 'category',
-    title: 'Community',
-    slug: 'community',
+    title: 'Main',
+    slug: 'main',
     description: null,
     parentId: null,
     path: '10',
@@ -241,12 +241,12 @@ export const SEED_COMMUNITY_ROWS: readonly CommunityListingRow[] = [
     lastPost: null,
   },
   {
-    id: SEED_COMMUNITY.announcements,
-    type: 'community',
+    id: SEED_FORUM.announcements,
+    type: 'forum',
     title: 'Announcements',
     slug: 'announcements',
     description: 'Board news and release notes. Staff post, everyone reads.',
-    parentId: SEED_COMMUNITY.community,
+    parentId: SEED_FORUM.main,
     path: '10.100',
     depth: 1,
     displayOrder: 1,
@@ -263,12 +263,12 @@ export const SEED_COMMUNITY_ROWS: readonly CommunityListingRow[] = [
     },
   },
   {
-    id: SEED_COMMUNITY.general,
-    type: 'community',
+    id: SEED_FORUM.general,
+    type: 'forum',
     title: 'General Discussion',
     slug: 'general',
     description: 'Anything and everything.',
-    parentId: SEED_COMMUNITY.community,
+    parentId: SEED_FORUM.main,
     path: '10.200',
     depth: 1,
     displayOrder: 2,
@@ -290,12 +290,12 @@ export const SEED_COMMUNITY_ROWS: readonly CommunityListingRow[] = [
     },
   },
   {
-    id: SEED_COMMUNITY.generalOffTopic,
-    type: 'community',
+    id: SEED_FORUM.generalOffTopic,
+    type: 'forum',
     title: 'Off Topic',
     slug: 'off-topic',
     description: 'Everything else.',
-    parentId: SEED_COMMUNITY.general,
+    parentId: SEED_FORUM.general,
     path: '10.200.201',
     depth: 2,
     displayOrder: 1,
@@ -307,11 +307,11 @@ export const SEED_COMMUNITY_ROWS: readonly CommunityListingRow[] = [
   },
 ]
 
-/** Threads for the fixture community display (F30). */
+/** Threads for the fixture forum display (F30). */
 export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
   {
     id: 4,
-    communityId: SEED_COMMUNITY.announcements,
+    forumId: SEED_FORUM.announcements,
     title: 'Version 0.1 is live',
     slug: 'version-0-1-is-live',
     prefix: null,
@@ -335,7 +335,7 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
   },
   {
     id: 22,
-    communityId: SEED_COMMUNITY.general,
+    forumId: SEED_FORUM.general,
     title: 'What are you reading this week?',
     slug: 'what-are-you-reading-this-week',
     prefix: { label: 'Weekly', token: null },
@@ -369,7 +369,7 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
   },
   {
     id: 21,
-    communityId: SEED_COMMUNITY.general,
+    forumId: SEED_FORUM.general,
     title: 'Show us your desk setup',
     slug: 'show-us-your-desk-setup',
     prefix: null,
@@ -398,14 +398,14 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
   {
     id: 10,
     threadId: 4,
-    communityId: SEED_COMMUNITY.announcements,
+    forumId: SEED_FORUM.announcements,
     number: 1,
     authorUserId: 1,
     authorUsername: 'admin',
     authorPostCount: 5,
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
     message:
-      'Welcome to the **new community**. We are glad you are here.\n\n' +
+      'Welcome to the **new forum**. We are glad you are here.\n\n' +
       'The rules live in [Announcements](/100-announcements).',
     messageHtml: null,
     renderVersion: 0,
@@ -420,7 +420,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
   {
     id: 11,
     threadId: 4,
-    communityId: SEED_COMMUNITY.announcements,
+    forumId: SEED_FORUM.announcements,
     number: 2,
     authorUserId: 1,
     authorUsername: 'admin',
@@ -440,7 +440,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
   {
     id: 121,
     threadId: 21,
-    communityId: SEED_COMMUNITY.general,
+    forumId: SEED_FORUM.general,
     number: 1,
     authorUserId: 1,
     authorUsername: 'admin',
@@ -460,7 +460,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
   {
     id: 132,
     threadId: 21,
-    communityId: SEED_COMMUNITY.general,
+    forumId: SEED_FORUM.general,
     number: 2,
     authorUserId: 1,
     authorUsername: 'admin',
@@ -482,7 +482,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
   {
     id: 133,
     threadId: 22,
-    communityId: SEED_COMMUNITY.general,
+    forumId: SEED_FORUM.general,
     number: 1,
     authorUserId: 1,
     authorUsername: 'admin',
@@ -502,7 +502,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
   {
     id: 143,
     threadId: 22,
-    communityId: SEED_COMMUNITY.general,
+    forumId: SEED_FORUM.general,
     number: 2,
     authorUserId: null,
     authorUsername: 'departed',

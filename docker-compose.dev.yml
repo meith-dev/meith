@@ -33,9 +33,9 @@
 services:
   postgres:
     image: postgres:16-alpine
-    # A fixed name so `docker exec community-pg psql …` works without looking it up,
+    # A fixed name so `docker exec forum-pg psql …` works without looking it up,
     # and so the container is recognisable among a machine's other databases.
-    container_name: community-pg
+    container_name: forum-pg
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -47,7 +47,7 @@ services:
       # worse failure than a refused connection.
       - '55432:5432'
     volumes:
-      - community-pgdata:/var/lib/postgresql/data
+      - forum-pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d community_test']
       interval: 10s
@@ -64,7 +64,7 @@ volumes:
   # A local board is cheap to lose and annoying to rebuild.
   #
   # `name:` pins the exact volume rather than letting compose prefix it with the
-  # project directory, so `docker volume inspect community-pgdata` finds it and a
+  # project directory, so `docker volume inspect forum-pgdata` finds it and a
   # container started by hand can mount the same data.
-  community-pgdata:
-    name: community-pgdata
+  forum-pgdata:
+    name: forum-pgdata

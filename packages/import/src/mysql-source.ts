@@ -24,14 +24,14 @@
  *
  * ## Read-only, by construction and by intent
  *
- * The source board is somebody's live community. Every statement here is a `SELECT`,
+ * The source board is somebody's live forum. Every statement here is a `SELECT`,
  * the connection is opened read-only where the server allows it, and there is no
  * code path in this file that writes. An importer that could modify the board it
  * is reading is one nobody should run against production — and "we were careful"
  * is not the same guarantee as "there is no write in the file".
  */
 
-import type { MybbCommunity, MybbPost, MybbSource, MybbThread, MybbUser, Page } from './source'
+import type { MybbForum, MybbPost, MybbSource, MybbThread, MybbUser, Page } from './source'
 
 /** Enough to reach a MyBB database. Everything else has a sensible default. */
 export interface MysqlSourceOptions {
@@ -139,8 +139,8 @@ export class MysqlMybbSource implements MybbSource {
     )
   }
 
-  communities(afterId: number, limit: number): Promise<Page<MybbCommunity>> {
-    return this.#page<MybbCommunity>(
+  forums(afterId: number, limit: number): Promise<Page<MybbForum>> {
+    return this.#page<MybbForum>(
       `select fid, name, description, type, pid, disporder, linkto, threads, posts
          from \`${this.prefix}forums\``,
       'fid',

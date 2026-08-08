@@ -84,7 +84,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
   /*
    * F58's moderator control. Offered only to somebody who may warn — the same
-   * trust level, aimed at the same thing (a person rather than a community's
+   * trust level, aimed at the same thing (a person rather than a forum's
    * content) — and only on a board that keeps signatures at all.
    */
   const signatures = getContainer().signatures

@@ -5,7 +5,7 @@ import { legacyRedirectPath, resolveLegacyUrl, type LegacyTarget } from './legac
 /**
  * F86 — the URL table.
  *
- * A community's inbound links accumulate for years and live on other people's
+ * A forum's inbound links accumulate for years and live on other people's
  * servers, so getting a form wrong is not recoverable after the migration. Every
  * form is therefore a row rather than a paragraph, and the ones that resolve to
  * *nothing* are rows too — a redirect that guesses is worse than a 404, because
@@ -25,8 +25,8 @@ describe('the script forms', () => {
       '/showthread.php?tid=91&pid=4102',
       { kind: 'thread', legacyId: 91, postId: 4102, page: null },
     ],
-    ['/forumdisplay.php?fid=3', { kind: 'community', legacyId: 3, page: null }],
-    ['/forumdisplay.php?fid=3&page=2', { kind: 'community', legacyId: 3, page: 2 }],
+    ['/forumdisplay.php?fid=3', { kind: 'forum', legacyId: 3, page: null }],
+    ['/forumdisplay.php?fid=3&page=2', { kind: 'forum', legacyId: 3, page: 2 }],
     ['/member.php?uid=12', { kind: 'user', legacyId: 12 }],
     ['/index.php', { kind: 'home' }],
     ['/', { kind: 'home' }],
@@ -66,8 +66,8 @@ describe('the rewritten forms', () => {
     ['/Thread-Bikeshedding-91', { kind: 'thread', legacyId: 91, postId: null, page: null }],
     ['/Thread-Bikeshedding-91?page=4', { kind: 'thread', legacyId: 91, postId: null, page: 4 }],
     ['/Thread-Bikeshedding--4102', { kind: 'post', legacyId: 4102 }],
-    ['/Forum-General-3', { kind: 'community', legacyId: 3, page: null }],
-    ['/Forum-General-3?page=2', { kind: 'community', legacyId: 3, page: 2 }],
+    ['/Forum-General-3', { kind: 'forum', legacyId: 3, page: null }],
+    ['/Forum-General-3?page=2', { kind: 'forum', legacyId: 3, page: 2 }],
   ])('resolves %s', (url, expected) => {
     expect(resolve(url)).toEqual(expected)
   })
@@ -134,7 +134,7 @@ describe('the redirect path', () => {
     expect(legacyRedirectPath(target, 7, 'bikeshedding')).toBe('/thread/7-bikeshedding?post=4102')
   })
 
-  it('sends a community, a post and a member to theirs', () => {
+  it('sends a forum, a post and a member to theirs', () => {
     expect(legacyRedirectPath(resolve('/forumdisplay.php?fid=3')!, 2, 'general')).toBe(
       '/2-general',
     )

@@ -37,7 +37,7 @@ const PAGE_WIDTH = 'max-w-6xl'
 /**
  * The page's measure.
  *
- * `max-w-6xl` rather than the `5xl` this theme used to be. A community listing is
+ * `max-w-6xl` rather than the `5xl` this theme used to be. A forum listing is
  * four columns wide — marker, title, counters, last post — and at 1024px the
  * last two were being squeezed until the last-post author wrapped under its own
  * timestamp. Prose is kept narrow where prose actually is (`.prose-md` caps a
@@ -82,7 +82,7 @@ export function pageAt(width: 'max-w-3xl' | 'max-w-4xl'): string {
  * uses, and it costs nothing at all in contrast because it is not carrying the
  * text.
  *
- * Still hover-only in listings: a community index is mostly links, and underlining
+ * Still hover-only in listings: a forum index is mostly links, and underlining
  * all of them at rest is a page of ruled lines rather than a page of titles.
  * Post bodies are the opposite case and underline at rest — that is `.prose-md`
  * in the app's stylesheet, where running prose needs links findable without a
@@ -138,12 +138,12 @@ export function Stamp({ at, className }: { at: TimeModel; className?: string }) 
  * The dot beside an unread row.
  *
  * `aria-hidden`, always, and always beside a `sr-only` sentence supplied by the
- * caller. "This community has new posts" is information, and information carried
+ * caller. "This forum has new posts" is information, and information carried
  * only by a coloured circle is absent for a large number of readers and for
  * every screen reader.
  */
 export function UnreadDot() {
-  return <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-community-unread" />
+  return <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-forum-unread" />
 }
 
 /** Keeps the dot's space when a row is read, so titles stay in one column. */
@@ -159,7 +159,7 @@ export function ReadSpacer() {
  * `:empty` in CSS can *hide* a box that turned out to have no children, and
  * that is what the postbit's footer uses; it cannot put a sentence in one.
  *
- * A community with no threads needs the sentence. The page hands the listing an
+ * A forum with no threads needs the sentence. The page hands the listing an
  * array of rendered rows, so an empty array is the honest signal available
  * here, and the model's own note says the empty state is the theme's to
  * supply.
@@ -173,7 +173,7 @@ export function isEmptyRegion(node: React.ReactNode): boolean {
  * Numbers in a listing, in a face whose digits are all one width.
  *
  * Without this a column of counts jitters left and right as the digits change,
- * and a reader scanning for the busiest community is comparing ragged edges.
+ * and a reader scanning for the busiest forum is comparing ragged edges.
  */
 export const NUMERIC = 'tabular-nums'
 
@@ -183,7 +183,7 @@ export const NUMERIC = 'tabular-nums'
  * See this file's header for why this is a table and not interpolation. The
  * names are the domain-semantic tokens from `globals.css`; a prefix pointing at
  * anything else — including a token this theme paints but has no tone for, like
- * `community-read` — gets `neutral`, which is a legible badge rather than a missing
+ * `forum-read` — gets `neutral`, which is a legible badge rather than a missing
  * one.
  */
 const PREFIX_TONES = {
@@ -222,7 +222,7 @@ export function Prefix({ prefix }: { prefix: PrefixModel }) {
  *
  * Both forms of the noun are given rather than a singular with an `+ 's'` rule.
  * The board counts replies, and "1 replys" is the kind of thing that survives a
- * review and then sits on the busiest page of a community forever. Four words need
+ * review and then sits on the busiest page of a forum forever. Four words need
  * two spellings each; a real pluralisation rule needs a translation layer, and
  * that is not a thing to improvise in a theme one irregular noun at a time.
  */

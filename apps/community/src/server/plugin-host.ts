@@ -43,7 +43,7 @@ import { logger } from '@meith/core/logger'
 import { PluginHost, operatorDisabledPlugins, type PluginDefinition } from '@meith/plugin-kit'
 import { cache } from 'react'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 import { getSettingOverrides } from './settings'
 
 export interface ConfiguredPlugin {
@@ -73,7 +73,7 @@ export interface ConfiguredPlugin {
  * symptom nobody looks for in an accessor.
  */
 export function configuredPlugins(): readonly ConfiguredPlugin[] {
-  return (communityConfig.plugins ?? []).map((entry) => {
+  return (forumConfig.plugins ?? []).map((entry) => {
     const definition = entry.plugin as PluginDefinition | undefined
     return {
       key: entry.key,
@@ -87,7 +87,7 @@ export function configuredPlugins(): readonly ConfiguredPlugin[] {
 
 /** Enabled plugins that actually carry code. */
 export function activeDefinitions(): readonly PluginDefinition[] {
-  return (communityConfig.plugins ?? [])
+  return (forumConfig.plugins ?? [])
     .filter((entry) => entry.enabled !== false && entry.plugin !== undefined)
     .map((entry) => entry.plugin as PluginDefinition)
 }

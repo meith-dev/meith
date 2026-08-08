@@ -94,7 +94,7 @@ describe('the admin gate', () => {
     await pruneSessionsAction()
     await pruneTokensAction()
     await recountAction()
-    await clearCacheAction({}, form({ what: 'communities' }))
+    await clearCacheAction({}, form({ what: 'forums' }))
     await retryJobAction({}, form({ jobId: '42' }))
 
     expect(requireAdminMock).toHaveBeenCalledTimes(5)
@@ -153,8 +153,8 @@ describe('recountAction', () => {
 
 describe('clearCacheAction', () => {
   it('clears one named tag', async () => {
-    await clearCacheAction({}, form({ what: 'communities' }))
-    expect(invalidated).toEqual([['community-tree']])
+    await clearCacheAction({}, form({ what: 'forums' }))
+    expect(invalidated).toEqual([['forum-tree']])
 
     await clearCacheAction({}, form({ what: 'permissions' }))
     expect(invalidated[1]).toEqual(['permissions'])

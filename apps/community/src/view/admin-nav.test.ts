@@ -35,7 +35,7 @@ describe('isUnder', () => {
 describe('activeSectionHref', () => {
   it('picks the section, not the panel that contains it', () => {
     expect(activeSectionHref('/admin/settings')).toBe('/admin/settings')
-    expect(activeSectionHref('/admin/communities/12/permissions')).toBe('/admin/communities')
+    expect(activeSectionHref('/admin/forums/12/permissions')).toBe('/admin/forums')
   })
 
   it('keeps the section lit while you are inside one of its screens', () => {
@@ -82,7 +82,7 @@ describe('currentProps', () => {
   })
 
   it('leaves everything else alone', () => {
-    expect(current('/admin/settings', '/admin/communities')).toBeUndefined()
+    expect(current('/admin/settings', '/admin/forums')).toBeUndefined()
     /* The overview is not "current" merely because it contains the panel. */
     expect(current('/admin/settings', '/admin')).toBeUndefined()
   })

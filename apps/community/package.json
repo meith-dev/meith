@@ -18,7 +18,7 @@
     "@meith/db": "workspace:*",
     "@meith/drivers": "workspace:*",
     "@meith/events": "workspace:*",
-    "@meith/communities": "workspace:*",
+    "@meith/forums": "workspace:*",
     "@meith/groups": "workspace:*",
     "@meith/markdown": "workspace:*",
     "@meith/moderation": "workspace:*",

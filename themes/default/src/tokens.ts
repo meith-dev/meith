@@ -53,12 +53,12 @@
  * a test in Phase 2". By the time that test was written (F25,
  * `apps/community/src/styles/tokens.test.ts`) the two had drifted completely: this
  * file named four tokens the CSS does not define (`popover`,
- * `popover-foreground`, `community-pinned`, `community-staff`), omitted fifteen it does,
+ * `popover-foreground`, `forum-pinned`, `forum-staff`), omitted fifteen it does,
  * and **every single value differed**. Nothing failed, because nothing checked.
  *
  * The consequence was not cosmetic. F26 validates database overrides against
  * `TOKEN_NAMES`, so a board overriding `thread-pinned` would have been told the
- * token does not exist, while an override of `community-pinned` would have been
+ * token does not exist, while an override of `forum-pinned` would have been
  * accepted and then applied to a variable no stylesheet reads.
  *
  * Values here are copied verbatim from `globals.css`, and the test asserts the
@@ -100,9 +100,9 @@ export const TOKEN_NAMES = [
   'font-sans-stack',
   'font-heading-stack',
   'elevation',
-  'community-unread',
-  'community-read',
-  'community-locked',
+  'forum-unread',
+  'forum-read',
+  'forum-locked',
   'thread-pinned',
   'thread-locked',
   'thread-moved',
@@ -156,9 +156,9 @@ export const SCHEME_INDEPENDENT_TOKENS = [
  * Light-mode defaults. Verbatim from `:root` in globals.css.
  *
  * Several tokens deliberately share a value, and the repetition is the
- * statement rather than a copy-paste: `community-locked`, `thread-locked` and
+ * statement rather than a copy-paste: `forum-locked`, `thread-locked` and
  * `moderation-rejected` are one signal — *this is closed* — wearing three
- * names, and `community-read`, `thread-moved` and `group-banned` are one signal
+ * names, and `forum-read`, `thread-moved` and `group-banned` are one signal
  * too: *this has receded*. They stay separate names because a board that wants
  * to tell a locked thread from a rejected report should be able to, by
  * overriding one of them and not the other.
@@ -190,9 +190,9 @@ export const LIGHT_TOKENS: Record<TokenName, string> = {
   'font-sans-stack': 'var(--font-inter), ui-sans-serif, system-ui, sans-serif',
   'font-heading-stack': 'var(--font-sans-stack)',
   elevation: '0 1px 2px var(--shadow-tint), 0 12px 32px -16px var(--shadow-tint)',
-  'community-unread': 'oklch(0.205 0 0)',
-  'community-read': 'oklch(0.556 0 0)',
-  'community-locked': 'oklch(0.554 0.135 32)',
+  'forum-unread': 'oklch(0.205 0 0)',
+  'forum-read': 'oklch(0.556 0 0)',
+  'forum-locked': 'oklch(0.554 0.135 32)',
   'thread-pinned': 'oklch(0.55 0.12 68)',
   'thread-locked': 'oklch(0.554 0.135 32)',
   'thread-moved': 'oklch(0.556 0 0)',
@@ -238,9 +238,9 @@ export const DARK_TOKENS: Record<TokenName, string> = {
   'font-sans-stack': 'var(--font-inter), ui-sans-serif, system-ui, sans-serif',
   'font-heading-stack': 'var(--font-sans-stack)',
   elevation: '0 1px 2px var(--shadow-tint), 0 12px 32px -16px var(--shadow-tint)',
-  'community-unread': 'oklch(0.967 0 0)',
-  'community-read': 'oklch(0.6 0 0)',
-  'community-locked': 'oklch(0.708 0.13 34)',
+  'forum-unread': 'oklch(0.967 0 0)',
+  'forum-read': 'oklch(0.6 0 0)',
+  'forum-locked': 'oklch(0.708 0.13 34)',
   'thread-pinned': 'oklch(0.769 0.13 74)',
   'thread-locked': 'oklch(0.708 0.13 34)',
   'thread-moved': 'oklch(0.6 0 0)',

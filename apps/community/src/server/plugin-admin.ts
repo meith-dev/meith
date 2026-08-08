@@ -39,7 +39,7 @@ import {
   type PluginSettingValue,
 } from '@meith/plugin-kit'
 
-import communityConfig from '../../community.config'
+import forumConfig from '../../community.config'
 import { configuredPlugins, pluginHost } from './plugin-host'
 import { getSettingOverrides } from './settings'
 
@@ -128,7 +128,7 @@ export interface PluginInventory {
  */
 function definitionsByKey(): ReadonlyMap<string, PluginDefinition | undefined> {
   return new Map(
-    (communityConfig.plugins ?? []).map((entry) => [entry.key, entry.plugin as PluginDefinition | undefined]),
+    (forumConfig.plugins ?? []).map((entry) => [entry.key, entry.plugin as PluginDefinition | undefined]),
   )
 }
 

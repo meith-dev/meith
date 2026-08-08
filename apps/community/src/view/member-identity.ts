@@ -27,7 +27,7 @@ export interface MemberIdentity {
 /**
  * What every listing needs and nothing more.
  *
- * A community row, a thread row, "who is online" and the board's stats each render
+ * A forum row, a thread row, "who is online" and the board's stats each render
  * a name and want it in the member's group colour. None of them wants the
  * title, the badge or the reputation — those belong to the postbit, which has
  * the room for them.

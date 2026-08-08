@@ -4,7 +4,7 @@
  * The rules are unit-tested in `@meith/moderation` and the counters against
  * real Postgres. What is proven here is the seam neither can see: that the
  * *scope* the selection is re-read inside is resolved from the actor for this
- * request, per tool, and that an id in a community the actor has no standing in is
+ * request, per tool, and that an id in a forum the actor has no standing in is
  * indistinguishable from an id that does not exist.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -43,26 +43,26 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 
 const { inlineModerateAction } = await import('./inline-moderation-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { SEED_BOARD, SEED_COMMUNITY, SEED_GROUP } = await import('./seed-board')
+const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 
 const { installTestContainer, CONTAINER_KEY } = await import('./test-container')
 
 class FakeInline implements InlineModerationRepository {
   /** Every row the board contains, whatever the scope. */
   rows: InlineTarget[] = []
-  destination: MoveDestination | null = { id: SEED_COMMUNITY.announcements, type: 'community' }
+  destination: MoveDestination | null = { id: SEED_FORUM.announcements, type: 'forum' }
   readonly applied: Array<{ tool: InlineTool; threadIds: number[]; postIds: number[] }> = []
   /** What `resolve` was actually asked to look inside. */
   scopes: number[][] = []
 
   async resolve(
     selection: readonly QueueSelection[],
-    communityIds: readonly number[],
+    forumIds: readonly number[],
   ): Promise<readonly InlineTarget[]> {
-    this.scopes.push([...communityIds])
+    this.scopes.push([...forumIds])
     const wanted = new Set(selection.map((s) => `${s.kind}:${s.id}`))
     return this.rows.filter(
-      (row) => wanted.has(`${row.kind}:${row.id}`) && communityIds.includes(row.communityId),
+      (row) => wanted.has(`${row.kind}:${row.id}`) && forumIds.includes(row.forumId),
     )
   }
 
@@ -90,7 +90,7 @@ function target(
   over: Partial<InlineTarget> & Pick<InlineTarget, 'kind' | 'id'>,
 ): InlineTarget {
   return {
-    communityId: SEED_COMMUNITY.general,
+    forumId: SEED_FORUM.general,
     visibility: 'visible',
     threadVisibility: 'visible',
     isLocked: false,
@@ -100,13 +100,13 @@ function target(
 }
 
 function appointment(
-  communityId: number,
+  forumId: number,
   rights: Partial<MemoryAppointment>,
 ): MemoryAppointment {
   return {
     userId: 3,
-    communityId,
-    cascadeToSubcommunities: false,
+    forumId,
+    cascadeToSubforums: false,
     canApproveContent: false,
     canEditPosts: false,
     canSoftDeletePosts: false,
@@ -249,14 +249,14 @@ describe('inlineModerateAction', () => {
    * The scope is the authorisation, so it is resolved here rather than read out
    * of the form. A partial appointment must reach exactly one tool.
    */
-  it('scopes the re-read to the communities this actor may use this tool in', async () => {
+  it('scopes the re-read to the forums this actor may use this tool in', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    installContainer([appointment(SEED_COMMUNITY.general, { canOpenCloseThreads: true })])
+    installContainer([appointment(SEED_FORUM.general, { canOpenCloseThreads: true })])
 
     await redirectOf(
       inlineModerateAction(EMPTY_STATE, form({ tool: 'lock' }, ['thread:20'])),
     )
-    expect(inline.scopes[0]).toEqual([SEED_COMMUNITY.general])
+    expect(inline.scopes[0]).toEqual([SEED_FORUM.general])
 
     const state = await inlineModerateAction(
       EMPTY_STATE,
@@ -267,14 +267,14 @@ describe('inlineModerateAction', () => {
   })
 
   /*
-   * The disclosure property, end to end. A thread in a community this actor has no
+   * The disclosure property, end to end. A thread in a forum this actor has no
    * standing in must produce the *same* answer as a thread that never existed —
    * otherwise the counts enumerate the board.
    */
   it('reports a thread outside the scope exactly as it reports one that does not exist', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    installContainer([appointment(SEED_COMMUNITY.general, { canOpenCloseThreads: true })])
-    inline.rows = [target({ kind: 'thread', id: 20, communityId: SEED_COMMUNITY.announcements })]
+    installContainer([appointment(SEED_FORUM.general, { canOpenCloseThreads: true })])
+    inline.rows = [target({ kind: 'thread', id: 20, forumId: SEED_FORUM.announcements })]
 
     const elsewhere = await redirectOf(
       inlineModerateAction(
@@ -299,9 +299,9 @@ describe('inlineModerateAction', () => {
    * Deleting is scoped by the union of the two actions that can authorise it,
    * because a thread and a post are different grants — see INLINE_TOOL_ACTIONS.
    */
-  it('lets an appointee delete a post in their community', async () => {
+  it('lets an appointee delete a post in their forum', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    installContainer([appointment(SEED_COMMUNITY.general, { canSoftDeletePosts: true })])
+    installContainer([appointment(SEED_FORUM.general, { canSoftDeletePosts: true })])
     inline.rows = [target({ kind: 'post', id: 7 })]
 
     const where = await redirectOf(
@@ -316,23 +316,23 @@ describe('inlineModerateAction', () => {
 
   it('needs the move right in the destination as well as the source', async () => {
     actorRef.current = await actorFor(SEED_GROUP.registered, 3)
-    installContainer([appointment(SEED_COMMUNITY.general, { canMoveThreads: true })])
+    installContainer([appointment(SEED_FORUM.general, { canMoveThreads: true })])
 
     const state = await inlineModerateAction(
       EMPTY_STATE,
-      form({ tool: 'move', toCommunityId: String(SEED_COMMUNITY.announcements) }, ['thread:20']),
+      form({ tool: 'move', toForumId: String(SEED_FORUM.announcements) }, ['thread:20']),
     )
     expect(state.error).toMatch(/cannot move threads into/i)
     expect(inline.applied).toEqual([])
 
     installContainer([
-      appointment(SEED_COMMUNITY.general, { canMoveThreads: true }),
-      appointment(SEED_COMMUNITY.announcements, { canMoveThreads: true }),
+      appointment(SEED_FORUM.general, { canMoveThreads: true }),
+      appointment(SEED_FORUM.announcements, { canMoveThreads: true }),
     ])
     await redirectOf(
       inlineModerateAction(
         EMPTY_STATE,
-        form({ tool: 'move', toCommunityId: String(SEED_COMMUNITY.announcements) }, ['thread:20']),
+        form({ tool: 'move', toForumId: String(SEED_FORUM.announcements) }, ['thread:20']),
       ),
     )
     expect(inline.applied).toEqual([{ tool: 'move', threadIds: [20], postIds: [] }])

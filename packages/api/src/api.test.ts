@@ -31,7 +31,7 @@ function tokenRecord(overrides: Partial<ApiTokenRecord> = {}): ApiTokenRecord {
     name: 'ci',
     lookup: issued.lookup,
     secretHash: issued.secretHash,
-    scopes: ['communities:read'],
+    scopes: ['forums:read'],
     expiresAt: null,
     revokedAt: null,
     ...overrides,
@@ -50,7 +50,7 @@ describe('token shape', () => {
   it('mints a greppable, three-part token and stores only a hash', () => {
     const issued = issueToken()
 
-    expect(issued.token.startsWith('community_pat_')).toBe(true)
+    expect(issued.token.startsWith('forum_pat_')).toBe(true)
     expect(issued.token).toContain(issued.lookup)
     /* The plaintext secret must not be recoverable from what is stored. */
     expect(issued.token).not.toContain(issued.secretHash)
@@ -72,15 +72,15 @@ describe('token shape', () => {
 
   /*
    * The empty-lookup case is the one that matters. A lenient parser accepting
-   * `community_pat__` would look up the empty prefix, and a row matching it would be
+   * `forum_pat__` would look up the empty prefix, and a row matching it would be
    * an authentication bypass rather than a bad request.
    */
   it.each([
     'nope',
-    'community_pat_short_secretsecretsecretsecret',
-    'community_pat__secretsecretsecretsecret',
-    'community_pat_abcdef12_tooshort',
-    'community_pat_abcdef12',
+    'forum_pat_short_secretsecretsecretsecret',
+    'forum_pat__secretsecretsecretsecret',
+    'forum_pat_abcdef12_tooshort',
+    'forum_pat_abcdef12',
     'other_pat_abcdef12_secretsecretsecretsecret',
   ])('refuses the malformed token %o', (value) => {
     expect(parseToken(value)).toBeNull()
@@ -176,8 +176,8 @@ describe('scopes', () => {
   })
 
   it('answers only for the scopes a token carries', () => {
-    const token = tokenRecord({ scopes: ['communities:read', 'threads:read'] })
-    expect(hasScope(token, 'communities:read')).toBe(true)
+    const token = tokenRecord({ scopes: ['forums:read', 'threads:read'] })
+    expect(hasScope(token, 'forums:read')).toBe(true)
     expect(hasScope(token, 'posts:write')).toBe(false)
   })
 
@@ -213,7 +213,7 @@ describe('the route registry', () => {
   })
 
   it('matches a literal route and extracts parameters', () => {
-    expect(matchRoute('GET', '/communities')?.route.path).toBe('/communities')
+    expect(matchRoute('GET', '/forums')?.route.path).toBe('/forums')
 
     const matched = matchRoute('GET', '/threads/91/posts')
     expect(matched?.route.path).toBe('/threads/:threadId/posts')
@@ -234,7 +234,7 @@ describe('the route registry', () => {
     ['GET', '/threads/91/posts/extra'],
     ['GET', '/threads/91/../../admin'],
     ['GET', '/threads'],
-    ['DELETE', '/communities'],
+    ['DELETE', '/forums'],
     ['GET', '/unknown'],
   ])('refuses %s %s', (method, path) => {
     expect(matchRoute(method, path)).toBeNull()

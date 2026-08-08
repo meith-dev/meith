@@ -1,6 +1,6 @@
 /**
- * R3.2 Community tree: `communities`, `community_permissions`, `community_moderators`,
- * `communities_read`, `community_subscriptions`, `community_password_grants`.
+ * R3.2 Forum tree: `forums`, `forum_permissions`, `forum_moderators`,
+ * `forums_read`, `forum_subscriptions`, `forum_password_grants`.
  *
  * The tree is stored with a **materialised path** rather than a recursive CTE
  * per read, because F16 requires "tree read is one query regardless of depth"
@@ -9,13 +9,13 @@
  * `path` holds dot-separated ancestor ids, root first, including the row itself:
  *
  *     Category (id 1)                 path = '1'
- *       Community (id 4)                  path = '1.4'
- *         Subcommunity (id 9)             path = '1.4.9'
- *           Sub-subcommunity (id 12)      path = '1.4.9.12'
+ *       Forum (id 4)                  path = '1.4'
+ *         Subforum (id 9)             path = '1.4.9'
+ *           Sub-subforum (id 12)      path = '1.4.9.12'
  *
- * That makes "this community and all descendants" a prefix match, and "my
+ * That makes "this forum and all descendants" a prefix match, and "my
  * ancestors" a parse of my own path with no query at all — which is what F21's
- * one-query `visibleCommunityIds` depends on. The cost is that reparenting must
+ * one-query `visibleForumIds` depends on. The cost is that reparenting must
  * rewrite every descendant's path in one transaction (F16's explicit warning).
  */
 
@@ -30,22 +30,22 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
-import { communityPermissionColumns } from './permission-columns'
+import { forumPermissionColumns } from './permission-columns'
 import { usergroups, users } from './identity'
 
 /**
  * `category` — a container; holds no threads, renders as a block on the index.
- * `community`    — holds threads, may hold subcommunities.
+ * `forum`    — holds threads, may hold subforums.
  * `link`     — renders as a row but navigates elsewhere; has no content.
  */
-export const COMMUNITY_TYPES = ['category', 'community', 'link'] as const
+export const FORUM_TYPES = ['category', 'forum', 'link'] as const
 
-export const communities = pgTable(
-  'communities',
+export const forums = pgTable(
+  'forums',
   {
     id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
 
-    type: text('type').notNull().default('community'),
+    type: text('type').notNull().default('forum'),
 
     title: text('title').notNull(),
     description: text('description'),
@@ -69,7 +69,7 @@ export const communities = pgTable(
     /** Redirect hit counter for link-type rows. */
     linkHits: integer('link_hits').notNull().default(0),
 
-    /* ---- Per-community posting toggles (R3.2) ---- */
+    /* ---- Per-forum posting toggles (R3.2) ---- */
     isOpen: boolean('is_open').notNull().default(true),
     allowThreads: boolean('allow_threads').notNull().default(true),
     allowReplies: boolean('allow_replies').notNull().default(true),
@@ -83,8 +83,8 @@ export const communities = pgTable(
     moderateNewPosts: boolean('moderate_new_posts').notNull().default(false),
 
     /**
-     * Password-protected communities. Argon2id hash of the community password; access is
-     * granted per-session via `community_password_grants` rather than by keeping the
+     * Password-protected forums. Argon2id hash of the forum password; access is
+     * granted per-session via `forum_password_grants` rather than by keeping the
      * cleartext password in a cookie.
      */
     passwordHash: text('password_hash'),
@@ -118,70 +118,70 @@ export const communities = pgTable(
   (t) => [
     // Sibling slugs must be unique; the same slug may recur under a different
     // parent. Two indexes because NULL parent (roots) needs its own uniqueness.
-    uniqueIndex('communities_parent_slug_key')
+    uniqueIndex('forums_parent_slug_key')
       .on(t.parentId, t.slug)
       .where(sql`${t.parentId} is not null`),
-    uniqueIndex('communities_root_slug_key')
+    uniqueIndex('forums_root_slug_key')
       .on(t.slug)
       .where(sql`${t.parentId} is null`),
 
-    index('communities_parent_order_idx').on(t.parentId, t.displayOrder),
+    index('forums_parent_order_idx').on(t.parentId, t.displayOrder),
     // Prefix scans for "this subtree": WHERE path LIKE '1.4.%'.
-    index('communities_path_idx').on(t.path),
-    uniqueIndex('communities_legacy_mybb_fid_key')
+    index('forums_path_idx').on(t.path),
+    uniqueIndex('forums_legacy_mybb_fid_key')
       .on(t.legacyMybbFid)
       .where(sql`${t.legacyMybbFid} is not null`),
   ],
 )
 
 /**
- * R4.1 layer 2 — the usergroup × community matrix, "the heart of the product".
+ * R4.1 layer 2 — the usergroup × forum matrix, "the heart of the product".
  *
  * Every permission column is NULLABLE and NULL means **inherit**: resolution
  * walks the ancestor chain, takes the first non-NULL value, and falls back to
  * the group default from `usergroups`. A row existing here does not mean the
- * community overrides everything — only the columns that are non-NULL.
+ * forum overrides everything — only the columns that are non-NULL.
  */
-export const communityPermissions = pgTable(
-  'community_permissions',
+export const forumPermissions = pgTable(
+  'forum_permissions',
   {
-    communityId: integer('community_id')
+    forumId: integer('forum_id')
       .notNull()
-      .references(() => communities.id, { onDelete: 'cascade' }),
+      .references(() => forums.id, { onDelete: 'cascade' }),
     groupId: integer('group_id')
       .notNull()
       .references(() => usergroups.id, { onDelete: 'cascade' }),
 
-    /** Community-scoped permission fields only, all nullable. */
-    ...communityPermissionColumns(),
+    /** Forum-scoped permission fields only, all nullable. */
+    ...forumPermissionColumns(),
 
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (t) => [
-    uniqueIndex('community_permissions_pkey').on(t.communityId, t.groupId),
+    uniqueIndex('forum_permissions_pkey').on(t.forumId, t.groupId),
     // The resolver loads every override for the actor's groups in one query.
-    index('community_permissions_group_idx').on(t.groupId),
+    index('forum_permissions_group_idx').on(t.groupId),
   ],
 )
 
 /**
  * R4.1 layer 3 — moderators, per user *or* per group, with granular rights and
- * an optional cascade to subcommunities.
+ * an optional cascade to subforums.
  *
  * Exactly one of `userId` / `groupId` is set; a CHECK constraint enforces that
  * in the migration. Modelling both in one table keeps the resolver to a single
  * query instead of a union of two.
  */
-export const communityModerators = pgTable(
-  'community_moderators',
+export const forumModerators = pgTable(
+  'forum_moderators',
   {
     id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
 
-    communityId: integer('community_id')
+    forumId: integer('forum_id')
       .notNull()
-      .references(() => communities.id, { onDelete: 'cascade' }),
+      .references(() => forums.id, { onDelete: 'cascade' }),
 
     userId: integer('user_id').references(() => users.id, {
       onDelete: 'cascade',
@@ -190,8 +190,8 @@ export const communityModerators = pgTable(
       onDelete: 'cascade',
     }),
 
-    /** When true the rights apply to every descendant community as well. */
-    cascadeToSubcommunities: boolean('cascade_to_subcommunities')
+    /** When true the rights apply to every descendant forum as well. */
+    cascadeToSubforums: boolean('cascade_to_subforums')
       .notNull()
       .default(false),
 
@@ -222,73 +222,73 @@ export const communityModerators = pgTable(
       .defaultNow(),
   },
   (t) => [
-    uniqueIndex('community_moderators_user_key')
-      .on(t.communityId, t.userId)
+    uniqueIndex('forum_moderators_user_key')
+      .on(t.forumId, t.userId)
       .where(sql`${t.userId} is not null`),
-    uniqueIndex('community_moderators_group_key')
-      .on(t.communityId, t.groupId)
+    uniqueIndex('forum_moderators_group_key')
+      .on(t.forumId, t.groupId)
       .where(sql`${t.groupId} is not null`),
-    index('community_moderators_user_idx').on(t.userId),
-    index('community_moderators_group_idx').on(t.groupId),
+    index('forum_moderators_user_idx').on(t.userId),
+    index('forum_moderators_group_idx').on(t.groupId),
   ],
 )
 
 /**
- * Per-session grants for password-protected communities.
+ * Per-session grants for password-protected forums.
  *
  * Scoped to a session, not a user, so the grant dies with the session and is
  * not silently inherited by a "remember me" login on another device.
  */
-export const communityPasswordGrants = pgTable(
-  'community_password_grants',
+export const forumPasswordGrants = pgTable(
+  'forum_password_grants',
   {
     sessionId: integer('session_id').notNull(),
-    communityId: integer('community_id')
+    forumId: integer('forum_id')
       .notNull()
-      .references(() => communities.id, { onDelete: 'cascade' }),
+      .references(() => forums.id, { onDelete: 'cascade' }),
     grantedAt: timestamp('granted_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex('community_password_grants_pkey').on(t.sessionId, t.communityId)],
+  (t) => [uniqueIndex('forum_password_grants_pkey').on(t.sessionId, t.forumId)],
 )
 
 /**
- * Community-level read marker (F35). Holds the "everything before this instant is
- * read" watermark, so marking a busy community read is one row, not one row per
+ * Forum-level read marker (F35). Holds the "everything before this instant is
+ * read" watermark, so marking a busy forum read is one row, not one row per
  * thread.
  */
-export const communitiesRead = pgTable(
-  'communities_read',
+export const forumsRead = pgTable(
+  'forums_read',
   {
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    communityId: integer('community_id')
+    forumId: integer('forum_id')
       .notNull()
-      .references(() => communities.id, { onDelete: 'cascade' }),
+      .references(() => forums.id, { onDelete: 'cascade' }),
     readAt: timestamp('read_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('communities_read_pkey').on(t.userId, t.communityId)],
+  (t) => [uniqueIndex('forums_read_pkey').on(t.userId, t.forumId)],
 )
 
 /**
- * Community subscriptions. Thread subscriptions live in the content schema.
+ * Forum subscriptions. Thread subscriptions live in the content schema.
  *
  * Like that table, this one has existed since `0000` and had no reader until
  * F56 — and like that table, its `notify_via` *channel* became a `mode`
  * cadence, because F55 answered the channel question board-wide and a
  * per-subscription second answer would disagree with it (migration `0008`).
  */
-export const communitySubscriptions = pgTable(
-  'community_subscriptions',
+export const forumSubscriptions = pgTable(
+  'forum_subscriptions',
   {
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    communityId: integer('community_id')
+    forumId: integer('forum_id')
       .notNull()
-      .references(() => communities.id, { onDelete: 'cascade' }),
+      .references(() => forums.id, { onDelete: 'cascade' }),
     /** 'none' | 'instant' | 'daily' | 'weekly' — a cadence, not a channel. */
     mode: text('mode').notNull().default('instant'),
     /** The last post this subscriber was told about. See `threadSubscriptions`. */
@@ -298,9 +298,9 @@ export const communitySubscriptions = pgTable(
       .defaultNow(),
   },
   (t) => [
-    uniqueIndex('community_subscriptions_pkey').on(t.userId, t.communityId),
-    index('community_subscriptions_community_idx').on(t.communityId),
-    index('community_subscriptions_user_idx').on(t.userId, t.createdAt.desc()),
-    index('community_subscriptions_mode_idx').on(t.mode, t.userId),
+    uniqueIndex('forum_subscriptions_pkey').on(t.userId, t.forumId),
+    index('forum_subscriptions_forum_idx').on(t.forumId),
+    index('forum_subscriptions_user_idx').on(t.userId, t.createdAt.desc()),
+    index('forum_subscriptions_mode_idx').on(t.mode, t.userId),
   ],
 )

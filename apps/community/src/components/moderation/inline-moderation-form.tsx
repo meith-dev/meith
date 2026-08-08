@@ -11,7 +11,7 @@
  *     `<input form="inline-moderation">` — which is a form-owner relationship
  *     the browser honours natively and which `new FormData(form)` picks up
  *     after hydration. The alternative, wrapping the listing in a `<form>`,
- *     cannot work: `CommunityDisplay` already renders a mark-read form and nested
+ *     cannot work: `ForumDisplay` already renders a mark-read form and nested
  *     forms are not parsed.
  *   - Each tool is a submit button carrying `name="tool"`, which is how a
  *     no-JS form expresses "one form, several verbs" without a line of script.
@@ -142,12 +142,12 @@ export function InlineModerationForm({
             <label className="flex items-center gap-2 text-xs">
               <span className="sr-only">Move to</span>
               <select
-                name="toCommunityId"
+                name="toForumId"
                 className="h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
-                {moveTargets.map((community) => (
-                  <option key={community.id} value={community.id}>
-                    {community.title}
+                {moveTargets.map((forum) => (
+                  <option key={forum.id} value={forum.id}>
+                    {forum.title}
                   </option>
                 ))}
               </select>

@@ -14,7 +14,7 @@
 
 export {
   FixtureMybbSource,
-  type MybbCommunity,
+  type MybbForum,
   type MybbPost,
   type MybbSource,
   type MybbThread,
@@ -31,12 +31,12 @@ export {
 
 export {
   fromUnixSeconds,
-  mapCommunity,
+  mapForum,
   mapPost,
   mapThread,
   mapUser,
   visibilityOf,
-  type ImportedCommunity,
+  type ImportedForum,
   type ImportedPost,
   type ImportedThread,
   type ImportedUser,

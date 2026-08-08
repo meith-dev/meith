@@ -4,7 +4,7 @@ import 'server-only'
  * F74 at the app layer.
  *
  * Four views, one scope, one paging shape. The scope is F72's — built from
- * `Authorizer.communityIdsWhere` and a `ContentScope` — because "which communities may
+ * `Authorizer.forumIdsWhere` and a `ContentScope` — because "which forums may
  * this actor see" has exactly one right answer and search already asks it.
  */
 import type { Actor } from '@meith/authorization'
@@ -41,7 +41,7 @@ export async function discoveryScopeFor(actor: Actor): Promise<DiscoveryScope> {
     actor.global.isAdministrator === true || actor.global.isSuperModerator === true
 
   return {
-    communityIds: await authorizer.communityIdsWhere(actor, 'thread.view'),
+    forumIds: await authorizer.forumIdsWhere(actor, 'thread.view'),
     content: contentScopeFrom({ seesUnapproved: staff, seesDeleted: staff }),
     viewerUserId: actor.userId,
   }

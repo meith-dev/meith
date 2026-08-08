@@ -42,7 +42,7 @@ export interface RouteSpec {
   /**
    * What one request costs against the window.
    *
-   * A search is not a community listing: it runs full-text over the board and is the
+   * A search is not a forum listing: it runs full-text over the board and is the
    * cheapest way for a token to be expensive. Costing it more is honest pricing
    * rather than a special case — the limit is about work done, not requests
    * made.
@@ -63,17 +63,17 @@ export const ROUTES = [
   },
   {
     method: 'GET',
-    path: '/communities',
-    scope: 'communities:read',
-    summary: 'Every community the token’s owner may see, as a flat list with parent ids.',
+    path: '/forums',
+    scope: 'forums:read',
+    summary: 'Every forum the token’s owner may see, as a flat list with parent ids.',
     cost: 1,
     authenticated: true,
   },
   {
     method: 'GET',
-    path: '/communities/:communityId/threads',
+    path: '/forums/:forumId/threads',
     scope: 'threads:read',
-    summary: 'Threads in a community, newest activity first, keyset-paged.',
+    summary: 'Threads in a forum, newest activity first, keyset-paged.',
     cost: 1,
     authenticated: true,
   },
@@ -113,7 +113,7 @@ export const ROUTES = [
 
 export type RouteKey = `${Method} ${string}`
 
-/** `GET /communities/:communityId/threads` — the key the handler and the docs both use. */
+/** `GET /forums/:forumId/threads` — the key the handler and the docs both use. */
 export function routeKey(route: Pick<RouteSpec, 'method' | 'path'>): RouteKey {
   return `${route.method} ${route.path}`
 }
@@ -147,7 +147,7 @@ export function matchRoute(
         /*
          * An empty parameter is not a match. `/threads//posts` would otherwise
          * resolve with an id of "", and every downstream `Number('')` is 0 —
-         * which is a real community id on some boards and a confusing 404 on the
+         * which is a real forum id on some boards and a confusing 404 on the
          * rest.
          */
         if (actual === '') {

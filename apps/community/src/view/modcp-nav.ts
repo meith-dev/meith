@@ -6,7 +6,7 @@
  * The ModCP's navigation was six bordered links laid out across the top of its
  * layout, hard-coded in that file, with no mark on the one you were reading and
  * no sentence saying what any of them held. Worse, it was rendered by
- * `app/(board)/modcp/layout.tsx` — so it existed on the overview, on My communities
+ * `app/(board)/modcp/layout.tsx` — so it existed on the overview, on My forums
  * and on the log, and **vanished** on the approval queue and the reports list,
  * which live under `/moderation` and are where a moderator actually spends the
  * day. The panel disappeared exactly when you started using it.
@@ -65,7 +65,7 @@ export interface ModCpNavAccess {
 export const MODCP_OVERVIEW: PanelSection = {
   href: '/modcp',
   title: 'Overview',
-  blurb: 'What is waiting across the communities you moderate, and where you may act.',
+  blurb: 'What is waiting across the forums you moderate, and where you may act.',
 }
 
 /**
@@ -80,7 +80,7 @@ export function modCpSections(access: ModCpNavAccess): PanelNav {
     {
       href: '/moderation',
       title: 'Approval queue',
-      blurb: 'Posts and threads held for approval in the communities you moderate.',
+      blurb: 'Posts and threads held for approval in the forums you moderate.',
       children: access.canWarn
         ? [{ href: '/moderation/warn', title: 'Warn a member', record: true }]
         : [],
@@ -91,14 +91,14 @@ export function modCpSections(access: ModCpNavAccess): PanelNav {
       blurb: 'What members have reported, who has picked it up, and what came of it.',
     },
     {
-      href: '/modcp/communities',
-      title: 'My communities',
+      href: '/modcp/forums',
+      title: 'My forums',
       blurb: 'Where you are appointed, and exactly what you may do in each.',
     },
     {
       href: '/modcp/log',
       title: 'Moderator log',
-      blurb: 'What has been done in your communities, by whom, and when.',
+      blurb: 'What has been done in your forums, by whom, and when.',
     },
     /*
      * Offered only to somebody who may actually use it. The address lookup has

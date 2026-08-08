@@ -4,7 +4,7 @@ import 'server-only'
  * F42 at the app layer.
  *
  * Three jobs, and they are here together because they share one question —
- * *may this person do this, in this community* — which the Authorizer owns and
+ * *may this person do this, in this forum* — which the Authorizer owns and
  * which no route may answer for itself (R4):
  *
  *  1. taking files off a submitted composer form and storing them;
@@ -19,7 +19,7 @@ import 'server-only'
  * to: the member has already been redirected to their own post.
  */
 import { ForbiddenError, ValidationError } from '@meith/core'
-import type { CommunityPermissions } from '@meith/core'
+import type { ForumPermissions } from '@meith/core'
 import type { Actor } from '@meith/authorization'
 import {
   ATTACHMENT_FIELD,
@@ -37,10 +37,10 @@ import { drivers } from '@meith/drivers'
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
 
-/** A community scope as `content-actions.ts` builds it. */
+/** A forum scope as `content-actions.ts` builds it. */
 export interface AttachmentScope {
-  readonly communityId: number
-  readonly community: CommunityPermissions
+  readonly forumId: number
+  readonly forum: ForumPermissions
 }
 
 /**
@@ -63,17 +63,17 @@ export function attachmentService(): AttachmentService | null {
 }
 
 /**
- * What this member may attach in this community.
+ * What this member may attach in this forum.
  *
- * Read off the resolved community matrix, the same way `post-scope.ts` reads
+ * Read off the resolved forum matrix, the same way `post-scope.ts` reads
  * `editTimeLimitMinutes`: the combination across groups has already happened
  * (R4.2), and 0 still means unlimited — which `maxBytesFor` and `maxPerPostFor`
  * are the only two places allowed to interpret.
  */
 export function attachmentLimits(scope: AttachmentScope): UploadLimits {
   return {
-    maxPerPost: Number(scope.community.maxAttachmentsPerPost ?? 0),
-    maxSizeKb: Number(scope.community.maxAttachmentSizeKb ?? 0),
+    maxPerPost: Number(scope.forum.maxAttachmentsPerPost ?? 0),
+    maxSizeKb: Number(scope.forum.maxAttachmentSizeKb ?? 0),
   }
 }
 
@@ -130,7 +130,7 @@ export async function stageAttachments(
 
   const { authorizer } = getContainer()
   if (!authorizer.can(actor, 'attachment.upload', scope)) {
-    throw new ForbiddenError('You may not attach files in this community.')
+    throw new ForbiddenError('You may not attach files in this forum.')
   }
   if (actor.userId === null) {
     throw new ForbiddenError('You must be logged in to attach a file.')
@@ -163,7 +163,7 @@ export async function stageAttachments(
  */
 export async function attachStaged(
   staged: readonly StagedUpload[],
-  post: { readonly postId: number; readonly communityId: number; readonly userId: number },
+  post: { readonly postId: number; readonly forumId: number; readonly userId: number },
 ): Promise<readonly AttachmentRecord[]> {
   if (staged.length === 0) return []
 
@@ -207,7 +207,7 @@ export interface DownloadGrant {
  *
  * Every refusal returns null rather than a reason. Distinguishing "no such
  * attachment" from "you may not have this one" would turn the download route
- * into an oracle for what exists in communities the caller cannot see — and the
+ * into an oracle for what exists in forums the caller cannot see — and the
  * attachment id is a small integer anybody can enumerate.
  */
 export async function resolveDownload(
@@ -225,8 +225,8 @@ export async function resolveDownload(
   if (record.status !== 'ready' || record.storageKey === null) return null
 
   const scope = {
-    communityId: record.communityId,
-    community: await authorizer.communityMatrix(actor, record.communityId),
+    forumId: record.forumId,
+    forum: await authorizer.forumMatrix(actor, record.forumId),
   }
   if (!authorizer.can(actor, 'thread.view', scope)) return null
   if (!authorizer.can(actor, 'attachment.download', scope)) return null

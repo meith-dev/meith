@@ -148,8 +148,8 @@ function ThreadTable({
     threadId: number
     title: string
     slug: string
-    communityId: number
-    communityTitle: string
+    forumId: number
+    forumTitle: string
     viewCount: number
     replyCount: number
   }[]
@@ -174,7 +174,7 @@ function ThreadTable({
                 >
                   {row.title}
                 </a>{' '}
-                <span className="text-muted-foreground">in {row.communityTitle}</span>
+                <span className="text-muted-foreground">in {row.forumTitle}</span>
               </span>
               <span className="shrink-0 text-muted-foreground">{figure(row)}</span>
             </li>

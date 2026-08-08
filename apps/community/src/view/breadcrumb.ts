@@ -6,26 +6,26 @@
  * `Navigation` has been in the theme contract since F27, is marked `stable` in
  * `SLOT_STABILITY`, and is implemented by both shipped themes — with a careful
  * note in each about `aria-current` on the last crumb. No page had ever
- * composed one. So a member three communities deep had exactly one way back up: the
- * "Communities" item in the board navigation, which returns to the index and
- * discards the whole path.
+ * composed one. So a member three forums deep had exactly one way back up: the
+ * "Home" item in the board navigation, which returns to the index and discards
+ * the whole path.
  *
- * This builds the trail, and the community and thread pages render it. It is the
- * one navigation aid a community cannot do without, because a community's structure
+ * This builds the trail, and the forum and thread pages render it. It is the
+ * one navigation aid a forum cannot do without, because a forum's structure
  * *is* its tree and a URL like `/thread/22-what-are-you-reading` says nothing
  * about where the thread lives.
  *
  * ## It costs no query
  *
- * `communities.path` is the materialised ancestor chain (root first, inclusive of
- * self), so the ancestors of a community are a parse of a string it already
- * carries. The rows come from `communities.listAll()`, which every one of these
- * pages has already called and which `CachedCommunityRepository` serves once per
+ * `forums.path` is the materialised ancestor chain (root first, inclusive of
+ * self), so the ancestors of a forum are a parse of a string it already
+ * carries. The rows come from `forums.listAll()`, which every one of these
+ * pages has already called and which `CachedForumRepository` serves once per
  * request. A trail is therefore string work over data in hand.
  *
  * ## What is deliberately not in it
  *
- * **Ancestors the viewer cannot see.** A community's parent may be invisible to
+ * **Ancestors the viewer cannot see.** A forum's parent may be invisible to
  * this member, and a breadcrumb naming it — even without a working link — is a
  * private category's title leaked into every thread page beneath it. Invisible
  * ancestors are dropped, which can leave a trail with a gap in it; a gap is the
@@ -38,13 +38,13 @@
  * should click it.
  */
 
-import { ancestorIds } from '@meith/communities'
+import { ancestorIds } from '@meith/forums'
 import type { LinkModel } from '@meith/theme-kit'
 
-import { communityHref } from './board-index'
+import { forumHref } from './board-index'
 
-/** The little a trail needs from a community row. */
-export interface CrumbCommunity {
+/** The little a trail needs from a forum row. */
+export interface CrumbForum {
   readonly id: number
   readonly slug: string
   readonly title: string
@@ -52,22 +52,38 @@ export interface CrumbCommunity {
 }
 
 export interface BreadcrumbInput {
-  /** Every community, from `communities.listAll()`. Order does not matter. */
-  readonly communities: readonly CrumbCommunity[]
-  /** The community the page is in, or under. */
-  readonly communityId: number
+  /** Every forum, from `forums.listAll()`. Order does not matter. */
+  readonly forums: readonly CrumbForum[]
+  /** The forum the page is in, or under. */
+  readonly forumId: number
   /**
    * Ids the viewer may see. Omit when the caller has already filtered
-   * `communities` — passing an unfiltered list *and* no set would publish the
+   * `forums` — passing an unfiltered list *and* no set would publish the
    * board's whole private structure, so the ambiguity is worth the parameter.
    */
-  readonly visibleCommunityIds?: ReadonlySet<number>
+  readonly visibleForumIds?: ReadonlySet<number>
   /**
    * A final, unlinked crumb — a thread's title, "New thread", "Reply". Absent
-   * on a community page, where the community itself is the last crumb.
+   * on a forum page, where the forum itself is the last crumb.
    */
   readonly leaf?: string
-  /** What the root crumb is called. The board's index, always first. */
+  /**
+   * What the root crumb is called. The board's index, always first.
+   *
+   * Callers pass the board's own name (`board.name`), which is what a trail
+   * should open with: **Workshop / Announcements / this thread** says which
+   * board you are on and then where in it, and it stays right no matter what
+   * this codebase decides to call the rows underneath. The previous default
+   * was the plural of the entity, which collided with the shipped seed — a
+   * category titled "Community" one crumb below a root crumb reading
+   * "Communities" — and would collide again with any board whose top-level
+   * category happens to share the vocabulary word.
+   *
+   * The default is deliberately *not* the board's name: this module is pure and
+   * cannot read a setting, and a builder that guessed a board title would put a
+   * wrong one in the trail on every page that forgot to pass it. "Home" is the
+   * one label that is never wrong.
+   */
   readonly homeLabel?: string
 }
 
@@ -80,19 +96,19 @@ export interface BreadcrumbInput {
  * one.
  */
 export function buildBreadcrumb({
-  communities,
-  communityId,
-  visibleCommunityIds,
+  forums,
+  forumId,
+  visibleForumIds,
   leaf,
-  homeLabel = 'Communities',
+  homeLabel = 'Home',
 }: BreadcrumbInput): readonly LinkModel[] {
-  const byId = new Map(communities.map((community) => [community.id, community]))
-  const self = byId.get(communityId)
+  const byId = new Map(forums.map((forum) => [forum.id, forum]))
+  const self = byId.get(forumId)
 
   const items: LinkModel[] = [{ label: homeLabel, href: '/' }]
   if (self === undefined) {
     /*
-     * A community the caller could not find. Not an error: the trail degrades to
+     * A forum the caller could not find. Not an error: the trail degrades to
      * the root, which is still a way back, and a page that renders is better
      * than a page that throws over a decoration.
      */
@@ -100,15 +116,15 @@ export function buildBreadcrumb({
     return items
   }
 
-  const visible = (id: number) => visibleCommunityIds === undefined || visibleCommunityIds.has(id)
+  const visible = (id: number) => visibleForumIds === undefined || visibleForumIds.has(id)
 
   for (const ancestorId of ancestorIds(self.path)) {
     const ancestor = byId.get(ancestorId)
     if (ancestor === undefined || !visible(ancestor.id)) continue
-    items.push({ label: ancestor.title, href: communityHref(ancestor) })
+    items.push({ label: ancestor.title, href: forumHref(ancestor) })
   }
 
-  items.push({ label: self.title, href: communityHref(self) })
+  items.push({ label: self.title, href: forumHref(self) })
 
   /*
    * The leaf carries `href: ''` rather than its own URL. Themes key their list

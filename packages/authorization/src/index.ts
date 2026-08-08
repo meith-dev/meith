@@ -3,7 +3,7 @@ export type { AuthorizerOptions, BypassEvent } from './authorizer'
 export { combineGroupValue, combinePermissionSets } from './combine'
 export { InMemoryAuthorizationSource } from './memory-source'
 export type { MemoryBoard } from './memory-source'
-export { resolveCommunityMatrix, indexOverrides, communitySubset } from './resolve'
+export { resolveForumMatrix, indexOverrides, forumSubset } from './resolve'
 export type {
   Action,
   Actor,
@@ -11,7 +11,7 @@ export type {
   ActorState,
   AuthorizationSource,
   ContentVisibility,
-  CommunityOverride,
+  ForumOverride,
   GroupDefaults,
   NumericGlobalPermission,
   Target,

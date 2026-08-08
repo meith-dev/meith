@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { getActor } from '@/server/context'
 import { getContainer } from '@/server/container'
-import { JUMP_FIELD, parseJumpTarget } from '@/view/community-jump'
+import { JUMP_FIELD, parseJumpTarget } from '@/view/forum-jump'
 
 /**
  * F27 — where the jump box submits.
@@ -18,7 +18,7 @@ import { JUMP_FIELD, parseJumpTarget } from '@/view/community-jump'
  * with — a route handler is not a React tree — so Next ends the response at the
  * status line. What a browser does with a bodiless error response is its own
  * business: Chromium ≥ 126 refuses the navigation outright with
- * `ERR_HTTP_RESPONSE_CODE_FAILURE`, so a member who typed a community id got a
+ * `ERR_HTTP_RESPONSE_CODE_FAILURE`, so a member who typed a forum id got a
  * browser network error instead of the board saying no.
  *
  * A page is the whole fix. `notFound()` from here renders `app/not-found.tsx`,
@@ -31,15 +31,15 @@ import { JUMP_FIELD, parseJumpTarget } from '@/view/community-jump'
  *
  * ## It re-checks the permission
  *
- * The box only ever lists communities the viewer may see, so the obvious reading is
+ * The box only ever lists forums the viewer may see, so the obvious reading is
  * that this page can trust its input. It cannot, and the reason is the whole
  * reason for the file: **the id arrives in a query string**, which anybody can
  * type. Building the redirect from a submitted id without re-authorising would
- * turn the jump box into an oracle — `/jump?community=42` would reveal whether community
+ * turn the jump box into an oracle — `/jump?forum=42` would reveal whether forum
  * 42 exists and what it is called, for every id, to anyone.
  *
  * So the check is the same one the box's own model was built from,
- * `communityIdsWhere(actor, 'community.view')`, and an id outside it is a 404 rather
+ * `forumIdsWhere(actor, 'forum.view')`, and an id outside it is a 404 rather
  * than a 403 — the same answer as an id that does not exist, which is what makes
  * it not an oracle.
  */
@@ -48,7 +48,7 @@ export default async function JumpPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }): Promise<never> {
-  const communityId = parseJumpTarget((await searchParams)[JUMP_FIELD])
+  const forumId = parseJumpTarget((await searchParams)[JUMP_FIELD])
 
   /*
    * No selection, or a malformed one, goes to the index. This is the one case
@@ -56,23 +56,23 @@ export default async function JumpPage({
    * pressing "Go" without choosing anything, which is an accident rather than a
    * probe, and the index is where a jump box lives anyway.
    */
-  if (communityId === null) redirect('/')
+  if (forumId === null) redirect('/')
 
-  const { authorizer, communities } = getContainer()
+  const { authorizer, forums } = getContainer()
   const actor = await getActor()
 
-  const visible = new Set(await authorizer.communityIdsWhere(actor, 'community.view'))
-  if (!visible.has(communityId)) notFound()
+  const visible = new Set(await authorizer.forumIdsWhere(actor, 'forum.view'))
+  if (!visible.has(forumId)) notFound()
 
-  const community = await communities.findById(communityId)
-  if (community === null) notFound()
+  const forum = await forums.findById(forumId)
+  if (forum === null) notFound()
 
   /*
    * A category is not a destination — it has no page of its own — so jumping to
    * one lands on the index rather than 404ing. The box renders categories
    * disabled, so this only happens to somebody typing the URL.
    */
-  if (community.type === 'category') redirect('/')
+  if (forum.type === 'category') redirect('/')
 
-  redirect(`/${community.id}-${community.slug}`)
+  redirect(`/${forum.id}-${forum.slug}`)
 }

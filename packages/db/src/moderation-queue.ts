@@ -57,8 +57,8 @@ function idList(ids: readonly number[]): SQL {
 interface QueueRow {
   kind: 'thread' | 'post'
   id: number
-  community_id: number
-  community_title: string
+  forum_id: number
+  forum_title: string
   thread_id: number
   thread_slug: string
   thread_title: string
@@ -101,8 +101,8 @@ function toItem(row: QueueRow): QueueItem {
   return {
     kind: row.kind,
     id: Number(row.id),
-    communityId: Number(row.community_id),
-    communityTitle: row.community_title,
+    forumId: Number(row.forum_id),
+    forumTitle: row.forum_title,
     threadId: Number(row.thread_id),
     threadSlug: row.thread_slug,
     threadTitle: row.thread_title,
@@ -117,10 +117,10 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
   constructor(private readonly db: Database) {}
 
   async list(
-    communityIds: readonly number[],
+    forumIds: readonly number[],
     options: { readonly limit: number; readonly after?: string },
   ): Promise<QueuePage> {
-    if (communityIds.length === 0) return { items: [] }
+    if (forumIds.length === 0) return { items: [] }
 
     const cursor = options.after === undefined ? null : decodeCursor(options.after)
     /*
@@ -135,14 +135,14 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
     const rows = resultRows(
       await this.db.execute(sql`
         with q as (
-          select 'thread'::text as kind, t.id, t.community_id, f.title as community_title,
+          select 'thread'::text as kind, t.id, t.forum_id, f.title as forum_title,
                  t.id as thread_id, t.slug as thread_slug, t.title as thread_title,
                  t.author_user_id, t.author_username,
                  left(p.message, ${EXCERPT}) as excerpt, t.created_at
             from threads t
-            join communities f on f.id = t.community_id
+            join forums f on f.id = t.forum_id
             left join posts p on p.id = t.first_post_id
-           where t.community_id in ${idList(communityIds)}
+           where t.forum_id in ${idList(forumIds)}
              and t.visibility = ${PENDING_APPROVAL}
           union all
           /*
@@ -151,14 +151,14 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
            * Listing both would let a moderator approve a post into a thread
            * nobody can see.
            */
-          select 'post'::text, p.id, p.community_id, f.title,
+          select 'post'::text, p.id, p.forum_id, f.title,
                  p.thread_id, t.slug, t.title,
                  p.author_user_id, p.author_username,
                  left(p.message, ${EXCERPT}), p.created_at
             from posts p
             join threads t on t.id = p.thread_id
-            join communities f on f.id = p.community_id
-           where p.community_id in ${idList(communityIds)}
+            join forums f on f.id = p.forum_id
+           where p.forum_id in ${idList(forumIds)}
              and p.visibility = ${PENDING_APPROVAL}
              and t.visibility <> ${PENDING_APPROVAL}
              and p.is_first_post = false
@@ -177,17 +177,17 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
       : { items }
   }
 
-  async countPending(communityIds: readonly number[]): Promise<number> {
-    if (communityIds.length === 0) return 0
+  async countPending(forumIds: readonly number[]): Promise<number> {
+    if (forumIds.length === 0) return 0
     const rows = resultRows(
       await this.db.execute(sql`
         select
           (select count(*) from threads
-            where community_id in ${idList(communityIds)} and visibility = ${PENDING_APPROVAL})
+            where forum_id in ${idList(forumIds)} and visibility = ${PENDING_APPROVAL})
           +
           (select count(*) from posts p
              join threads t on t.id = p.thread_id
-            where p.community_id in ${idList(communityIds)}
+            where p.forum_id in ${idList(forumIds)}
               and p.visibility = ${PENDING_APPROVAL}
               and t.visibility <> ${PENDING_APPROVAL}
               and p.is_first_post = false)
@@ -200,7 +200,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
   /**
    * Re-read the selection.
    *
-   * Only still-pending rows come back, with the community they are really in. That
+   * Only still-pending rows come back, with the forum they are really in. That
    * is the whole purpose: the ids arrived in a POST body, and where they live
    * decides whether this actor may touch them.
    */
@@ -211,18 +211,18 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select 'thread'::text as kind, id, community_id from threads
+        select 'thread'::text as kind, id, forum_id from threads
          where id in ${idList(threadIds)} and visibility = ${PENDING_APPROVAL}
         union all
-        select 'post'::text, id, community_id from posts
+        select 'post'::text, id, forum_id from posts
          where id in ${idList(postIds)} and visibility = ${PENDING_APPROVAL}
       `),
-    ) as Array<{ kind: 'thread' | 'post'; id: number; community_id: number }>
+    ) as Array<{ kind: 'thread' | 'post'; id: number; forum_id: number }>
 
     return rows.map((row) => ({
       kind: row.kind,
       id: Number(row.id),
-      communityId: Number(row.community_id),
+      forumId: Number(row.forum_id),
     }))
   }
 
@@ -252,11 +252,11 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
           await tx.execute(sql`
             update threads set visibility = ${to}, updated_at = now()
              where id = ${threadId} and visibility = ${PENDING_APPROVAL}
-             returning id, community_id, first_post_id, author_user_id
+             returning id, forum_id, first_post_id, author_user_id
           `),
         ) as Array<{
           id: number
-          community_id: number
+          forum_id: number
           first_post_id: number | null
           author_user_id: number | null
         }>
@@ -284,7 +284,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
             await applyVisibilityChangeCounters(tx, {
               postId: Number(post[0].id),
               threadId: Number(thread.id),
-              communityId: Number(thread.community_id),
+              forumId: Number(thread.forum_id),
               authorId:
                 thread.author_user_id === null ? null : Number(thread.author_user_id),
               isFirstPost: true,
@@ -299,12 +299,12 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
           await tx.execute(sql`
             update posts set visibility = ${to}
              where id = ${postId} and visibility = ${PENDING_APPROVAL}
-             returning id, thread_id, community_id, author_user_id, is_first_post
+             returning id, thread_id, forum_id, author_user_id, is_first_post
           `),
         ) as Array<{
           id: number
           thread_id: number
-          community_id: number
+          forum_id: number
           author_user_id: number | null
           is_first_post: boolean
         }>
@@ -322,7 +322,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
           await applyVisibilityChangeCounters(tx, {
             postId: Number(post.id),
             threadId: Number(post.thread_id),
-            communityId: Number(post.community_id),
+            forumId: Number(post.forum_id),
             authorId: post.author_user_id === null ? null : Number(post.author_user_id),
             isFirstPost: post.is_first_post,
             delta: 1,

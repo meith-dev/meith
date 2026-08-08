@@ -5,7 +5,7 @@ import 'server-only'
  *
  * The same three jobs `attachments.ts` has, and they are here rather than there
  * because the permission is a different one: `avatar.upload` is global, and
- * seeing somebody's avatar is `profile.view` rather than anything community-scoped.
+ * seeing somebody's avatar is `profile.view` rather than anything forum-scoped.
  * An avatar appears in a member list and on a profile, not only under a post.
  */
 import { ForbiddenError } from '@meith/core'
@@ -99,8 +99,8 @@ export async function resolveAvatar(
   if (avatars === null) return null
 
   /*
-   * `profile.view` and not a community permission. An avatar is shown in a member
-   * list and on a profile as well as under a post, so the community a thread
+   * `profile.view` and not a forum permission. An avatar is shown in a member
+   * list and on a profile as well as under a post, so the forum a thread
    * happens to be in cannot be the thing that decides it.
    */
   if (!authorizer.can(actor, 'profile.view')) return null

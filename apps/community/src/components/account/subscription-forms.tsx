@@ -34,7 +34,7 @@ export interface ModeOption {
 }
 
 /**
- * The control on a thread or community page.
+ * The control on a thread or forum page.
  *
  * One form for three states — not following, following, changing cadence —
  * because they are one act from the member's side and the server treats them
@@ -63,7 +63,7 @@ export function FollowForm({
   back,
   label,
 }: {
-  target: "thread" | "community"
+  target: "thread" | "forum"
   targetId: number
   /** The member's current cadence, or null when they do not follow this. */
   mode: string | null
@@ -127,7 +127,7 @@ export function SubscriptionRowForm({
   mode,
   modes,
 }: {
-  target: "thread" | "community"
+  target: "thread" | "forum"
   targetId: number
   mode: string
   modes: readonly ModeOption[]

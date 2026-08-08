@@ -9,7 +9,7 @@
  * idea and re-typed the markup, so its cards were a hand-rolled `div` where the
  * ACP's were a `Card` and its button was `h-8` where the ACP's was a
  * `buttonVariants` outline; the ModCP had no front door at all in that sense —
- * it opened on a list of communities with two counts buried in the corner of each
+ * it opened on a list of forums with two counts buried in the corner of each
  * row, which is a report rather than a call to action.
  *
  * So the answer lives here, once. A panel's overview supplies its numbers and

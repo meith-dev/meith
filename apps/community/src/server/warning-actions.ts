@@ -4,7 +4,7 @@
  * F53 — the warning Server Actions.
  *
  * Two verbs, one permission. `user.warn` is global (see the `Action` type for
- * why a warning has no community), so unlike every other moderator action in Phase
+ * why a warning has no forum), so unlike every other moderator action in Phase
  * 4 there is no matrix to resolve and no appointment to read — which makes the
  * *other* checks the interesting ones:
  *

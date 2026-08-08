@@ -46,7 +46,7 @@ export function PostForm({
       </div>
 
       {/*
-        The route's own error — "this community is closed", say. Errors raised by a
+        The route's own error — "this forum is closed", say. Errors raised by a
         submit come back through the form itself, which is why both exist and
         why this one is above the card rather than inside it: it is a statement
         about whether the form should be used at all.

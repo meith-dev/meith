@@ -5,7 +5,7 @@
  * Naming follows R3.1 exactly (`username_lower`, `password_algo`, …) so the
  * MyBB importer in a later phase has no translation layer to get wrong.
  *
- * Integer surrogate keys throughout, not UUIDs. R4.3 types `visibleCommunityIds()`
+ * Integer surrogate keys throughout, not UUIDs. R4.3 types `visibleForumIds()`
  * as `Promise<number[]>`, and at the F12 target of 2M posts a 4-byte key versus
  * a 16-byte one is a materially smaller index on `posts (thread_id, id)` — the
  * hottest index on the board.
@@ -355,7 +355,7 @@ export const sessions = pgTable(
 
     /** R3.1 `sessions.location_*`, updated at most once per 60s (F17). */
     locationPath: text('location_path'),
-    locationCommunityId: integer('location_community_id'),
+    locationForumId: integer('location_forum_id'),
     locationThreadId: integer('location_thread_id'),
 
     ipPrefix: text('ip_prefix'),
@@ -832,7 +832,7 @@ export const profileFields = pgTable(
 )
 
 /**
- * The per-group override, in F21's `community_permissions` shape.
+ * The per-group override, in F21's `forum_permissions` shape.
  *
  * Nullable columns, where NULL means "inherit the field's default" — which is
  * what makes "staff may edit this" one row rather than a row per group with the

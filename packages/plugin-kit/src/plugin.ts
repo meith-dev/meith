@@ -197,7 +197,7 @@ const PAGE_PATH_PATTERN = /^[a-z][a-z0-9-]{0,39}$/
 /**
  * Validate a manifest and return it typed.
  *
- * The same shape and reasoning as `defineTheme` and `defineCommunityConfig`: an
+ * The same shape and reasoning as `defineTheme` and `defineForumConfig`: an
  * identity function whose job is to attach the type and to catch the mistakes
  * that would otherwise fail a long way from their cause. Everything here is
  * checked at module load, which on this stack means at build or at boot — never

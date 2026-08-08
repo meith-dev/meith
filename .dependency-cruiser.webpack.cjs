@@ -4,7 +4,7 @@
  * dependency-cruiser reads path aliases from one tsconfig, and this repo's is
  * `tsconfig.base.json` — which holds the `@meith/<name>` workspace aliases and
  * deliberately does not hold `@/*`, because that one belongs to the app alone
- * (`apps/community/tsconfig.json`). Putting `@/*` in the base config would let any
+ * (`apps/forum/tsconfig.json`). Putting `@/*` in the base config would let any
  * package resolve `@/…` into the app, which is a dependency direction this
  * repo does not permit.
  *
@@ -27,7 +27,7 @@ const { resolve } = require('node:path')
 
 module.exports = {
   resolve: {
-    alias: { '@': resolve(__dirname, 'apps/community/src') },
+    alias: { '@': resolve(__dirname, 'apps/forum/src') },
     /*
      * Repeated here because supplying a webpack config *replaces* the
      * resolver's defaults rather than adding to them. Without this the module

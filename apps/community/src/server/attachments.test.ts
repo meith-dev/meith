@@ -7,7 +7,7 @@
  *
  * A download route is the one place on this board where an attacker supplies a
  * small integer and gets bytes back, so every one of these is about refusing:
- * the wrong community, the wrong status, content nobody may see, and the difference
+ * the wrong forum, the wrong status, content nobody may see, and the difference
  * between "no such attachment" and "not for you" — which must not be visible
  * from outside.
  */
@@ -67,11 +67,11 @@ const {
   stageAttachments,
   submittedFiles,
 } = await import('./attachments')
-const { SEED_BOARD, SEED_GROUP, SEED_COMMUNITY } = await import('./seed-board')
+const { SEED_BOARD, SEED_GROUP, SEED_FORUM } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
 
 const ADA = 1
-const PUBLIC_COMMUNITY = SEED_COMMUNITY.general
+const PUBLIC_FORUM = SEED_FORUM.general
 
 const PNG = new Uint8Array(64)
 PNG.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
@@ -84,7 +84,7 @@ function record(overrides: Partial<AttachmentRecord> = {}): AttachmentRecord {
   return {
     id: 5,
     postId: 9,
-    communityId: PUBLIC_COMMUNITY,
+    forumId: PUBLIC_FORUM,
     uploaderUserId: ADA,
     filename: 'photo.png',
     contentType: 'image/png',
@@ -158,17 +158,17 @@ async function actorFor(groupId: number, userId: number | null): Promise<Actor> 
 }
 
 /** The installed container's Authorizer, so a scope is resolved for real. */
-async function scope(actor: Actor, communityId = PUBLIC_COMMUNITY) {
+async function scope(actor: Actor, forumId = PUBLIC_FORUM) {
   const installed = (
     globalThis as Record<
       symbol,
-      { authorizer: { communityMatrix(a: Actor, id: number): Promise<unknown> } }
+      { authorizer: { forumMatrix(a: Actor, id: number): Promise<unknown> } }
     >
-  )[Symbol.for('@meith/community.container')]!
+  )[Symbol.for('@meith/forum.container')]!
 
   return {
-    communityId,
-    community: (await installed.authorizer.communityMatrix(actor, communityId)) as never,
+    forumId,
+    forum: (await installed.authorizer.forumMatrix(actor, forumId)) as never,
   }
 }
 
@@ -203,7 +203,7 @@ describe('the composer control', () => {
 })
 
 describe('the limits shown on the form', () => {
-  it('are the resolved community matrix, with 0 left as 0 for the domain to read', async () => {
+  it('are the resolved forum matrix, with 0 left as 0 for the domain to read', async () => {
     /*
      * 0 means unlimited (R4.2) and this is deliberately *not* the place that
      * interprets it — `maxBytesFor` and `maxPerPostFor` are, and there is
@@ -251,7 +251,7 @@ describe('staging', () => {
     expect(objects.size).toBe(0)
   })
 
-  it('refuses a member without `attachment.upload` in this community', async () => {
+  it('refuses a member without `attachment.upload` in this forum', async () => {
     const guest = await actorFor(SEED_GROUP.guest, null)
     await expect(
       stageAttachments(guest, await scope(guest), [{ filename: 'a.png', bytes: PNG }]),
@@ -284,7 +284,7 @@ describe('resolving a download', () => {
     return resolveDownload(actorRef.current!, 5, want)
   }
 
-  it('grants a ready attachment in a community the viewer may read', async () => {
+  it('grants a ready attachment in a forum the viewer may read', async () => {
     expect(await get()).toMatchObject({
       key: 'attachments/a/file',
       contentType: 'image/png',
@@ -348,10 +348,10 @@ describe('resolving a download', () => {
     expect(await get()).toBeNull()
   })
 
-  it('refuses a viewer who cannot see the community it is in', async () => {
+  it('refuses a viewer who cannot see the forum it is in', async () => {
     /*
      * The attachment id is a small integer anybody can enumerate, so this is
-     * the check that stops a private community's images being readable by URL.
+     * the check that stops a private forum's images being readable by URL.
      * Kills the mutant that drops `thread.view` and keeps only the download
      * permission — which every ordinary member holds.
      */
@@ -359,14 +359,14 @@ describe('resolving a download', () => {
       container: { attachments },
       overrides: [
         {
-          communityId: SEED_COMMUNITY.announcements,
+          forumId: SEED_FORUM.announcements,
           groupId: SEED_GROUP.registered,
           overrides: { canView: false, canViewThreads: false },
         },
       ],
     })
     attachments.found = {
-      record: record({ communityId: SEED_COMMUNITY.announcements }),
+      record: record({ forumId: SEED_FORUM.announcements }),
       postVisibility: 'visible',
       threadVisibility: 'visible',
     }
@@ -383,7 +383,7 @@ describe('resolving a download', () => {
       container: { attachments },
       overrides: [
         {
-          communityId: PUBLIC_COMMUNITY,
+          forumId: PUBLIC_FORUM,
           groupId: SEED_GROUP.registered,
           overrides: { canDownloadAttachments: false },
         },
@@ -426,7 +426,7 @@ describe('resolving a download', () => {
   it('refuses an unknown attachment the same way it refuses a forbidden one', async () => {
     /*
      * Both null, with no reason. Distinguishing them would turn this into an
-     * oracle for what exists in communities the caller cannot see.
+     * oracle for what exists in forums the caller cannot see.
      */
     attachments.found = null
     expect(await get()).toBeNull()

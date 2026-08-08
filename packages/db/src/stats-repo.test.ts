@@ -2,9 +2,9 @@
  * F75's statistics, against real Postgres.
  *
  * The rollup's tests are all about where the numbers come from. Summing the
- * root communities rather than counting `threads` and `posts` is the whole point —
+ * root forums rather than counting `threads` and `posts` is the whole point —
  * F38 already maintains those counters and rolls them up the ancestor chain, so
- * a second opinion here would drift from the number every community row shows, and
+ * a second opinion here would drift from the number every forum row shows, and
  * the drift would appear after a deletion, which is when somebody looks.
  *
  * The leaderboards' tests are all about the permission filter, for F72's
@@ -44,7 +44,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
   await db.execute(sql`
     update board_stats
@@ -53,14 +53,14 @@ beforeEach(async () => {
   `)
 
   /*
-   * A category with a community under it, plus a second root community. The rollup sums
+   * A category with a forum under it, plus a second root forum. The rollup sums
    * roots, so this shape is what proves it does not double-count the child.
    */
   await db.execute(sql`
-    insert into communities (id, type, title, slug, path, parent_id, thread_count, post_count) values
+    insert into forums (id, type, title, slug, path, parent_id, thread_count, post_count) values
       (${CATEGORY}, 'category', 'Main', 'main', '1', null, 6, 20),
-      (${OPEN}, 'community', 'Open', 'open', '1.2', ${CATEGORY}, 6, 20),
-      (${SECRET}, 'community', 'Staff room', 'staff', '3', null, 2, 5)
+      (${OPEN}, 'forum', 'Open', 'open', '1.2', ${CATEGORY}, 6, 20),
+      (${SECRET}, 'forum', 'Staff room', 'staff', '3', null, 2, 5)
   `)
 
   /* Threads need an author; the rollup and member tests seed their own. */
@@ -93,12 +93,12 @@ async function seedUser(
 
 async function seedThread(
   id: number,
-  options: { communityId?: number; views?: number; replies?: number; visibility?: string } = {},
+  options: { forumId?: number; views?: number; replies?: number; visibility?: string } = {},
 ): Promise<void> {
   await db.execute(sql`
-    insert into threads (id, community_id, author_user_id, author_username, title, slug,
+    insert into threads (id, forum_id, author_user_id, author_username, title, slug,
                          view_count, reply_count, visibility)
-    values (${id}, ${options.communityId ?? OPEN}, ${ANN}, 'ann',
+    values (${id}, ${options.forumId ?? OPEN}, ${ANN}, 'ann',
             ${`Thread ${id}`}, ${`t-${id}`},
             ${options.views ?? 0}, ${options.replies ?? 0},
             ${options.visibility ?? 'visible'})
@@ -106,16 +106,16 @@ async function seedThread(
 }
 
 const scope = (overrides: Partial<StatsScope> = {}): StatsScope => ({
-  communityIds: [OPEN],
+  forumIds: [OPEN],
   content: PUBLIC_CONTENT,
   ...overrides,
 })
 
 describe('the rollup', () => {
-  it('sums the root communities rather than double-counting the tree', async () => {
+  it('sums the root forums rather than double-counting the tree', async () => {
     /*
      * F38 rolls a post up its whole ancestor chain, so the category already
-     * holds its child's counters. Summing every community would count the same
+     * holds its child's counters. Summing every forum would count the same
      * content twice — 12 threads on a board that has 8. Kills the mutant that
      * drops the `parent_id is null` filter.
      */
@@ -204,20 +204,20 @@ describe('the thread leaderboards', () => {
     expect((await repo.mostReplied(10, scope())).map((r) => r.threadId)).toEqual([2, 1])
   })
 
-  it('leave out a thread in a community the reader cannot see', async () => {
+  it('leave out a thread in a forum the reader cannot see', async () => {
     /*
-     * A "most viewed threads" table that includes the staff community is a leak
-     * with a ranking on it. Kills the mutant that drops the community filter.
+     * A "most viewed threads" table that includes the staff forum is a leak
+     * with a ranking on it. Kills the mutant that drops the forum filter.
      */
-    await seedThread(1, { communityId: OPEN, views: 5 })
-    await seedThread(2, { communityId: SECRET, views: 500 })
+    await seedThread(1, { forumId: OPEN, views: 5 })
+    await seedThread(2, { forumId: SECRET, views: 500 })
 
     expect((await repo.mostViewed(10, scope())).map((r) => r.threadId)).toEqual([1])
   })
 
-  it('return nothing for a reader who can see no community', async () => {
+  it('return nothing for a reader who can see no forum', async () => {
     await seedThread(1, { views: 5 })
-    expect(await repo.mostViewed(10, scope({ communityIds: [] }))).toEqual([])
+    expect(await repo.mostViewed(10, scope({ forumIds: [] }))).toEqual([])
   })
 
   it('leave out a thread the reader’s content scope hides', async () => {
@@ -230,10 +230,10 @@ describe('the thread leaderboards', () => {
     expect((await repo.mostViewed(10, staff)).map((r) => r.threadId)).toEqual([2, 1])
   })
 
-  it('carry the community title, so the table needs no second query', async () => {
+  it('carry the forum title, so the table needs no second query', async () => {
     await seedThread(1, { views: 5 })
     expect((await repo.mostViewed(10, scope()))[0]).toMatchObject({
-      communityTitle: 'Open',
+      forumTitle: 'Open',
       title: 'Thread 1',
     })
   })

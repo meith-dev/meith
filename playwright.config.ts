@@ -139,7 +139,7 @@ export default defineConfig({
         UPLOADS_DIR: E2E_UPLOADS_DIR,
         AUTH_SECRET: 'e2e-only-secret-0000000000000000',
         TICK_SECRET: 'e2e-only-tick-secret-000000000000',
-        COMMUNITY_DIST_DIR: '.next-e2e',
+        FORUM_DIST_DIR: '.next-e2e',
         NEXT_TELEMETRY_DISABLED: '1',
       },
     },
@@ -166,7 +166,7 @@ export default defineConfig({
      * shape — `APP_URL` set, no box — is covered by `withEnvironmentAnswers`'
      * unit tests, which is where a substitution rule belongs.
      *
-     * Its own `COMMUNITY_DIST_DIR`: two `next dev` processes sharing a build
+     * Its own `FORUM_DIST_DIR`: two `next dev` processes sharing a build
      * directory race each other's manifests, which fails in a way that looks
      * like a routing bug.
      */
@@ -176,7 +176,7 @@ export default defineConfig({
        * `/install`, not `/`.
        *
        * The database behind this server has no schema, so the board's index
-       * cannot render — every page that reads a community or resolves an actor
+       * cannot render — every page that reads a forum or resolves an actor
        * fails, correctly. `/install` is the one route written to work anyway
        * ("this page also has to render when the database is unreachable"), which
        * makes it both the right health check and a standing assertion of that
@@ -195,7 +195,7 @@ export default defineConfig({
         UPLOADS_DIR: `${E2E_UPLOADS_DIR}-install`,
         AUTH_SECRET: 'e2e-only-secret-0000000000000000',
         TICK_SECRET: 'e2e-only-tick-secret-000000000000',
-        COMMUNITY_DIST_DIR: '.next-e2e-install',
+        FORUM_DIST_DIR: '.next-e2e-install',
         NEXT_TELEMETRY_DISABLED: '1',
       },
     },

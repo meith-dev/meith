@@ -18,7 +18,7 @@ server, on a domain, in about half an hour.
 | Writing a theme | [The theme API](./theme-api.md) |
 | Writing a plugin | [The plugin API](./plugin-api.md) |
 | Calling the API | [REST API v1](./rest-api.md) |
-| Moving a community off MyBB | [MyBB parity](./mybb-parity.md) |
+| Moving a forum off MyBB | [MyBB parity](./mybb-parity.md) |
 | Working on Meith itself | [Development](./development.md) |
 | Understanding how it fits together | [Architecture](./architecture.md) |
 

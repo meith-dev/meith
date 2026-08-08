@@ -2,7 +2,7 @@
  * F74: "budgeted" discovery views.
  *
  * The roadmap's word is *budgeted*, and it means something specific here. Each
- * of these screens is a list of threads with their community, their author and
+ * of these screens is a list of threads with their forum, their author and
  * their last poster — fetched naively that is three queries per row, which on a
  * twenty-row page is sixty. An N+1 does not fail a test: it passes, quickly, on
  * a fixture with three threads in it, and falls over on a real board.
@@ -23,7 +23,7 @@ import { SMOKE_SCALE, seedBoard } from './seed'
 
 let harness: TestDb
 let repo: PostgresDiscoveryRepository
-let communityIds: number[]
+let forumIds: number[]
 let viewerUserId: number
 
 beforeAll(async () => {
@@ -36,7 +36,7 @@ beforeAll(async () => {
   )
 
   repo = new PostgresDiscoveryRepository(harness.db)
-  communityIds = await authorizer.communityIdsWhere(actor!, 'thread.view')
+  forumIds = await authorizer.forumIdsWhere(actor!, 'thread.view')
   viewerUserId = actor!.userId as number
 }, 60_000)
 
@@ -44,7 +44,7 @@ afterAll(async () => {
   await harness.close()
 })
 
-const scope = () => ({ communityIds, content: PUBLIC_CONTENT, viewerUserId })
+const scope = () => ({ forumIds, content: PUBLIC_CONTENT, viewerUserId })
 const query = { limit: 20, after: null }
 const EPOCH = new Date('2000-01-01T00:00:00Z')
 
@@ -85,7 +85,7 @@ describe('discovery query budget', () => {
     try {
       const board = await seedBoard(bigger.db, {
         ...SMOKE_SCALE,
-        communities: 40,
+        forums: 40,
         categories: 4,
         threads: 10,
       })
@@ -96,7 +96,7 @@ describe('discovery query budget', () => {
       )
       const bigRepo = new PostgresDiscoveryRepository(bigger.db)
       const bigScope = {
-        communityIds: await bigAuthorizer.communityIdsWhere(bigActor!, 'thread.view'),
+        forumIds: await bigAuthorizer.forumIdsWhere(bigActor!, 'thread.view'),
         content: PUBLIC_CONTENT,
         viewerUserId: bigActor!.userId as number,
       }

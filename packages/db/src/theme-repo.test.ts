@@ -28,13 +28,13 @@ describe('PostgresThemeRepository', () => {
       key: 'default',
       title: 'Default',
       tokenOverrides: { primary: '#123456' },
-      customCss: '.community-row { font-weight: 600; }',
+      customCss: '.forum-row { font-weight: 600; }',
     })
     await db.insert(themes).values({ key: 'other', title: 'Other' })
 
     await expect(new PostgresThemeRepository(db).findRuntimeByKey('default')).resolves.toEqual({
       tokenOverrides: { primary: '#123456' },
-      customCss: '.community-row { font-weight: 600; }',
+      customCss: '.forum-row { font-weight: 600; }',
     })
     await expect(new PostgresThemeRepository(db).findRuntimeByKey('missing')).resolves.toBeNull()
   })

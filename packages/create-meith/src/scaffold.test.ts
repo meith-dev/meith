@@ -12,7 +12,7 @@ const OPTIONS = { name: 'my-board', version: '1.2.3', repositoryUrl: DEFAULT_REP
 describe('the project name', () => {
   it('accepts an npm-shaped name', () => {
     expect(validateName('my-board')).toBeNull()
-    expect(validateName('community.example')).toBeNull()
+    expect(validateName('forum.example')).toBeNull()
     expect(validateName('board_2')).toBeNull()
   })
 

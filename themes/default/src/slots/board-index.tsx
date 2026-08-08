@@ -6,7 +6,7 @@ import { PAGE_BODY } from '../shared'
 /**
  * The board index body (F29).
  *
- * A frame around five regions the page fills, in three bands: the communities, a
+ * A frame around five regions the page fills, in three bands: the forums, a
  * rail beside them, and a footer under both. Every region may be absent —
  * `stats` and `online` are `null` on a board with no rollup, `latest` on a board
  * with no thread index — and absent means *nothing rendered*, not an empty box.
@@ -17,14 +17,14 @@ import { PAGE_BODY } from '../shared'
  *
  * The newest threads and the newest posts change while somebody is looking at
  * the page — the host refreshes that region on a timer — so they sit beside the
- * community listing where a reader can see them change, rather than under it where
+ * forum listing where a reader can see them change, rather than under it where
  * nobody is looking.
  *
- * Two columns above `lg`: the communities, and a 20rem rail. Below `lg` the rail
+ * Two columns above `lg`: the forums, and a 20rem rail. Below `lg` the rail
  * becomes panels stacked under the listing, because 20rem of sidebar on a phone
  * is a second page nobody scrolled to. `lg:items-start` is load-bearing rather
  * than tidy — grid items stretch by default, so without it the rail's last card
- * would grow to the height of a fifty-community listing.
+ * would grow to the height of a fifty-forum listing.
  *
  * ## The totals and the online list are the page's footer
  *
@@ -46,7 +46,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
   return (
     <div className={PAGE_BODY}>
       {/*
-        F71. Above the communities, because that is where somebody looks first and
+        F71. Above the forums, because that is where somebody looks first and
         the whole point of an announcement is being read before the board is.
       */}
       {regions.announcements !== undefined && (
@@ -55,7 +55,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
 
       {markAllReadAction !== null && (
         /*
-         * A form, not a link: marking every community read is a state change, and a
+         * A form, not a link: marking every forum read is a state change, and a
          * GET that mutates gets fired by every prefetcher and link scanner that
          * touches the page. It is a plain submit button so it works without
          * JavaScript (R5).
@@ -66,7 +66,7 @@ export function BoardIndex({ markAllReadAction, regions }: BoardIndexModel) {
          */
         <form action={markAllReadAction} method="post" className="self-end">
           <button type="submit" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-            Mark all communities read
+            Mark all forums read
           </button>
         </form>
       )}

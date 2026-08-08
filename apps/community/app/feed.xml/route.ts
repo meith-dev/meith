@@ -12,7 +12,7 @@ import { FEED_LIMIT, feedRepository, origin, publicScope } from '@/server/syndic
  *
  * Rendered **as a guest, always** — see `syndication.ts`. This response is
  * cached at the edge and by every aggregator that fetches it, and a
- * viewer-specific body behind a shared URL is a private community handed to
+ * viewer-specific body behind a shared URL is a private forum handed to
  * whoever asks next.
  */
 export const dynamic = 'force-dynamic'

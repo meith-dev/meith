@@ -4,7 +4,7 @@
  *
  * A move is the interesting one and the reason this file is long: it takes a
  * thread's contribution out of one subtree and puts it into another, has to
- * rewrite the denormalised `posts.community_id` for every post, and has to leave a
+ * rewrite the denormalised `posts.forum_id` for every post, and has to leave a
  * shared ancestor exactly where it was.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -19,7 +19,7 @@ import { PostgresThreadToolsRepository } from './thread-tools'
 import { PostgresThreadWriteRepository } from './thread-writes'
 import { rollUpAncestorCounters } from './content-counters'
 import { resultRows } from './result-rows'
-import { communities, users } from './schema'
+import { forums, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -54,7 +54,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from outbox`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values(
@@ -73,7 +73,7 @@ beforeEach(async () => {
       primaryGroupId: 2,
     })),
   )
-  await db.insert(communities).values([
+  await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
     { id: LEFT, title: 'Left', slug: 'left', path: '1.4', depth: 1, parentId: CATEGORY },
     { id: RIGHT, title: 'Right', slug: 'right', path: '1.5', depth: 1, parentId: CATEGORY },
@@ -85,9 +85,9 @@ beforeEach(async () => {
  * A thread with an opening post by Ada and one reply by Bob, written through
  * the real posting path so the starting counters are the board's own.
  */
-async function seedThread(communityId = LEFT): Promise<{ threadId: number; postIds: number[] }> {
+async function seedThread(forumId = LEFT): Promise<{ threadId: number; postIds: number[] }> {
   const thread = await writes.create({
-    communityId,
+    forumId,
     title: 'Hello there',
     slug: 'hello-there',
     message: 'the opening post',
@@ -100,7 +100,7 @@ async function seedThread(communityId = LEFT): Promise<{ threadId: number; postI
   })
   const { postId } = await writes.createReply({
     threadId: thread.threadId,
-    communityId,
+    forumId,
     threadTitle: 'Hello there',
     message: 'a reply',
     authorUserId: BOB,
@@ -114,9 +114,9 @@ async function seedThread(communityId = LEFT): Promise<{ threadId: number; postI
   return { threadId: thread.threadId, postIds: [thread.postId, postId] }
 }
 
-async function communityCounts(id: number): Promise<{ posts: number; threads: number }> {
+async function forumCounts(id: number): Promise<{ posts: number; threads: number }> {
   const rows = resultRows(
-    await db.execute(sql`select post_count, thread_count from communities where id = ${id}`),
+    await db.execute(sql`select post_count, thread_count from forums where id = ${id}`),
   ) as Array<{ post_count: number; thread_count: number }>
   return { posts: Number(rows[0]!.post_count), threads: Number(rows[0]!.thread_count) }
 }
@@ -175,20 +175,20 @@ describe('lock and stick', () => {
 
   it('moves no counter', async () => {
     const { threadId } = await seedThread()
-    const before = await communityCounts(LEFT)
+    const before = await forumCounts(LEFT)
 
     await repo.setLocked({ threadId, locked: true, actorUserId: MOD, at: AT })
     await repo.setSticky({ threadId, sticky: true, actorUserId: MOD, at: AT })
 
-    expect(await communityCounts(LEFT)).toEqual(before)
+    expect(await forumCounts(LEFT)).toEqual(before)
   })
 })
 
 describe('deleting a thread', () => {
-  it('takes its whole contribution off the community and its ancestors', async () => {
+  it('takes its whole contribution off the forum and its ancestors', async () => {
     const { threadId } = await seedThread()
-    expect(await communityCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
-    expect(await communityCounts(CATEGORY)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 2, threads: 1 })
 
     await repo.setVisibility({
       threadId,
@@ -198,8 +198,8 @@ describe('deleting a thread', () => {
       at: AT,
     })
 
-    expect(await communityCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
-    expect(await communityCounts(CATEGORY)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 0, threads: 0 })
   })
 
   /*
@@ -249,8 +249,8 @@ describe('deleting a thread', () => {
   it('puts everything back on restore', async () => {
     const { threadId } = await seedThread()
     const before = {
-      left: await communityCounts(LEFT),
-      category: await communityCounts(CATEGORY),
+      left: await forumCounts(LEFT),
+      category: await forumCounts(CATEGORY),
       ada: await userCounts(ADA),
       bob: await userCounts(BOB),
     }
@@ -270,8 +270,8 @@ describe('deleting a thread', () => {
       at: AT,
     })
 
-    expect(await communityCounts(LEFT)).toEqual(before.left)
-    expect(await communityCounts(CATEGORY)).toEqual(before.category)
+    expect(await forumCounts(LEFT)).toEqual(before.left)
+    expect(await forumCounts(CATEGORY)).toEqual(before.category)
     expect(await userCounts(ADA)).toEqual(before.ada)
     expect(await userCounts(BOB)).toEqual(before.bob)
   })
@@ -312,7 +312,7 @@ describe('deleting a thread', () => {
     expect(
       (
         resultRows(
-          await db.execute(sql`select last_post_id from communities where id = ${CATEGORY}`),
+          await db.execute(sql`select last_post_id from forums where id = ${CATEGORY}`),
         ) as Array<{ last_post_id: number | null }>
       )[0]!.last_post_id,
     ).not.toBeNull()
@@ -327,7 +327,7 @@ describe('deleting a thread', () => {
 
     for (const id of [LEFT, CATEGORY]) {
       const rows = resultRows(
-        await db.execute(sql`select last_post_id from communities where id = ${id}`),
+        await db.execute(sql`select last_post_id from forums where id = ${id}`),
       ) as Array<{ last_post_id: number | null }>
       expect(rows[0]!.last_post_id).toBeNull()
     }
@@ -342,7 +342,7 @@ describe('deleting a thread', () => {
       actorUserId: MOD,
       at: AT,
     })
-    const after = await communityCounts(LEFT)
+    const after = await forumCounts(LEFT)
 
     expect(
       await repo.setVisibility({
@@ -353,7 +353,7 @@ describe('deleting a thread', () => {
         at: AT,
       }),
     ).toBe(false)
-    expect(await communityCounts(LEFT)).toEqual(after)
+    expect(await forumCounts(LEFT)).toEqual(after)
     expect(await auditActions()).toEqual(['thread.delete'])
   })
 })
@@ -362,36 +362,36 @@ describe('moving a thread', () => {
   async function move(threadId: number, to: number): Promise<boolean> {
     return repo.move({
       threadId,
-      fromCommunityId: LEFT,
-      toCommunityId: to,
+      fromForumId: LEFT,
+      toForumId: to,
       actorUserId: MOD,
       at: AT,
     })
   }
 
-  it('takes the counts out of one community and puts them in the other', async () => {
+  it('takes the counts out of one forum and puts them in the other', async () => {
     const { threadId } = await seedThread()
-    expect(await communityCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
-    expect(await communityCounts(RIGHT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 0, threads: 0 })
 
     expect(await move(threadId, RIGHT)).toBe(true)
 
-    expect(await communityCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
-    expect(await communityCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 0, threads: 0 })
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
   })
 
   /*
    * The assertion a naive implementation fails. A thread moved between two
-   * subcommunities of one category has not left the category, so the two chain
+   * subforums of one category has not left the category, so the two chain
    * updates must cancel exactly at their shared ancestor.
    */
   it('leaves a shared ancestor exactly where it was', async () => {
     const { threadId } = await seedThread()
-    const before = await communityCounts(CATEGORY)
+    const before = await forumCounts(CATEGORY)
 
     await move(threadId, RIGHT)
 
-    expect(await communityCounts(CATEGORY)).toEqual(before)
+    expect(await forumCounts(CATEGORY)).toEqual(before)
   })
 
   it('carries the counts down into a nested destination", ancestors included', async () => {
@@ -399,26 +399,26 @@ describe('moving a thread', () => {
 
     await move(threadId, NESTED)
 
-    expect(await communityCounts(NESTED)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(NESTED)).toEqual({ posts: 2, threads: 1 })
     /* NESTED is a child of LEFT, so LEFT keeps the subtree totals. */
-    expect(await communityCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
-    expect(await communityCounts(CATEGORY)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(LEFT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 2, threads: 1 })
   })
 
   /*
-   * `posts.community_id` is denormalised from the thread. A move that updated only
+   * `posts.forum_id` is denormalised from the thread. A move that updated only
    * the thread would leave every post claiming to be somewhere it is not — and
    * the moderation queue, F47's scope and the recount all read that column.
    */
-  it('rewrites the denormalised community id on every post', async () => {
+  it('rewrites the denormalised forum id on every post', async () => {
     const { threadId } = await seedThread()
 
     await move(threadId, RIGHT)
 
     const rows = resultRows(
-      await db.execute(sql`select distinct community_id from posts where thread_id = ${threadId}`),
-    ) as Array<{ community_id: number }>
-    expect(rows.map((r) => Number(r.community_id))).toEqual([RIGHT])
+      await db.execute(sql`select distinct forum_id from posts where thread_id = ${threadId}`),
+    ) as Array<{ forum_id: number }>
+    expect(rows.map((r) => Number(r.forum_id))).toEqual([RIGHT])
   })
 
   it('does not touch author counts: a move changes where, not how much', async () => {
@@ -439,7 +439,7 @@ describe('moving a thread', () => {
 
     const pointer = async (id: number): Promise<number | null> => {
       const rows = resultRows(
-        await db.execute(sql`select last_post_id from communities where id = ${id}`),
+        await db.execute(sql`select last_post_id from forums where id = ${id}`),
       ) as Array<{ last_post_id: number | null }>
       return rows[0]!.last_post_id === null ? null : Number(rows[0]!.last_post_id)
     }
@@ -466,7 +466,7 @@ describe('moving a thread', () => {
     await move(threadId, RIGHT)
 
     expect(await move(threadId, NESTED)).toBe(false)
-    expect(await communityCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
   })
 })
 
@@ -487,7 +487,7 @@ describe('copy', () => {
   it('duplicates the thread and its posts into the destination', async () => {
     const { threadId } = await seedThread(LEFT)
 
-    const copy = await repo.copy({ threadId, toCommunityId: RIGHT, actorUserId: MOD, at: AT })
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     expect(copy.posts).toBe(2)
     expect(copy.threadId).not.toBe(threadId)
@@ -514,37 +514,37 @@ describe('copy', () => {
      * document is the same one.
      */
     const { threadId } = await seedThread(LEFT)
-    const copy = await repo.copy({ threadId, toCommunityId: RIGHT, actorUserId: MOD, at: AT })
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     const found = await new PostgresSearchRepository(db).search(
       { terms: 'hello', grouping: 'posts', sort: 'relevance', limit: 10, after: null },
-      { communityIds: [RIGHT], viewerUserId: null, content: PUBLIC_CONTENT },
+      { forumIds: [RIGHT], viewerUserId: null, content: PUBLIC_CONTENT },
     )
     expect(found.hits.map((hit) => hit.threadId)).toEqual([copy.threadId])
     expect((await new PostgresSearchRepository(db).indexProgress()).pending).toBe(0)
   })
 
-  it('leaves the source thread and its community completely untouched', async () => {
+  it('leaves the source thread and its forum completely untouched', async () => {
     const { threadId } = await seedThread(LEFT)
-    const before = await communityCounts(LEFT)
+    const before = await forumCounts(LEFT)
 
-    await repo.copy({ threadId, toCommunityId: RIGHT, actorUserId: MOD, at: AT })
+    await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
-    expect(await communityCounts(LEFT)).toEqual(before)
+    expect(await forumCounts(LEFT)).toEqual(before)
     const stillThere = resultRows(
       await db.execute(sql`select count(*)::int as n from posts where thread_id = ${threadId}`),
     ) as Array<{ n: number }>
     expect(Number(stillThere[0]!.n)).toBe(2)
   })
 
-  it('credits the destination community and every ancestor', async () => {
+  it('credits the destination forum and every ancestor', async () => {
     const { threadId } = await seedThread(LEFT)
 
-    await repo.copy({ threadId, toCommunityId: RIGHT, actorUserId: MOD, at: AT })
+    await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
-    expect(await communityCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 2, threads: 1 })
     /* The category holds both, so it gains the copy on top of the original. */
-    expect(await communityCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
+    expect(await forumCounts(CATEGORY)).toEqual({ posts: 4, threads: 2 })
   })
 
   /* The parity decision, pinned. */
@@ -553,29 +553,29 @@ describe('copy', () => {
     expect(await userCounts(ADA)).toEqual({ posts: 1, threads: 1 })
     expect(await userCounts(BOB)).toEqual({ posts: 1, threads: 0 })
 
-    await repo.copy({ threadId, toCommunityId: RIGHT, actorUserId: MOD, at: AT })
+    await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     expect(await userCounts(ADA)).toEqual({ posts: 2, threads: 2 })
     expect(await userCounts(BOB)).toEqual({ posts: 2, threads: 0 })
   })
 
   /*
-   * Copying the queue into a second community would double the work waiting for
+   * Copying the queue into a second forum would double the work waiting for
    * somebody; copying removed content would republish it.
    */
   it('copies only the visible posts', async () => {
     const { threadId, postIds } = await seedThread(LEFT)
     await db.execute(sql`update posts set visibility = 'deleted' where id = ${postIds[1]!}`)
 
-    const copy = await repo.copy({ threadId, toCommunityId: RIGHT, actorUserId: MOD, at: AT })
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     expect(copy.posts).toBe(1)
-    expect(await communityCounts(RIGHT)).toEqual({ posts: 1, threads: 1 })
+    expect(await forumCounts(RIGHT)).toEqual({ posts: 1, threads: 1 })
   })
 
   it('points the copy at its own opening post, not the source"s', async () => {
     const { threadId } = await seedThread(LEFT)
-    const copy = await repo.copy({ threadId, toCommunityId: RIGHT, actorUserId: MOD, at: AT })
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     const rows = resultRows(
       await db.execute(
@@ -593,7 +593,7 @@ describe('copy', () => {
 
   it('logs the act with both thread ids', async () => {
     const { threadId } = await seedThread(LEFT)
-    const copy = await repo.copy({ threadId, toCommunityId: RIGHT, actorUserId: MOD, at: AT })
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     const rows = resultRows(
       await db.execute(sql`select action, detail from admin_log where action = 'thread.copy'`),
@@ -601,7 +601,7 @@ describe('copy', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]!.detail).toMatchObject({
       threadId,
-      toCommunityId: RIGHT,
+      toForumId: RIGHT,
       newThreadId: copy.threadId,
       posts: 2,
     })
@@ -614,7 +614,7 @@ describe('copy', () => {
    */
   it('puts the copies in the roll-up ledger', async () => {
     const { threadId } = await seedThread(LEFT)
-    const copy = await repo.copy({ threadId, toCommunityId: RIGHT, actorUserId: MOD, at: AT })
+    const copy = await repo.copy({ threadId, toForumId: RIGHT, actorUserId: MOD, at: AT })
 
     const rows = resultRows(
       await db.execute(sql`

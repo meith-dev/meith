@@ -19,8 +19,8 @@ export const metadata: Metadata = { title: 'Group' }
 /**
  * F66 — one group.
  *
- * **Every cell is two states.** F65's community matrix has three because
- * `community_permissions` is nullable and null means inherit (R4.1 layer 2); a
+ * **Every cell is two states.** F65's forum matrix has three because
+ * `forum_permissions` is nullable and null means inherit (R4.1 layer 2); a
  * group's global permissions are layer 1, the bottom of the resolution, with
  * nothing above them to inherit from. A third state here would be an "inherit"
  * that resolves to nothing, which is worse than no control at all.
@@ -121,7 +121,7 @@ export default async function AdminGroupPage({
       <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <h2 className="font-heading text-lg font-semibold">Permissions</h2>
         <p className="text-sm text-muted-foreground">
-          These are this group&rsquo;s answers, not a community&rsquo;s. A member in several
+          These are this group&rsquo;s answers, not a forum&rsquo;s. A member in several
           groups gets the most permissive of them — a tick can only ever grant, never take
           away — except for the restrictions, where any group that lifts one lifts it
           everywhere.

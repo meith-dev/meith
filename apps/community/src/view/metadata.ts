@@ -5,7 +5,7 @@
  *
  * Not at page one. A thread's page 4 is a distinct document with distinct
  * content, and telling a crawler it is really page 1 asks it to drop three
- * quarters of the thread from its index — the single most common way a community
+ * quarters of the thread from its index — the single most common way a forum
  * ends up with only its first pages searchable. What the canonical *does* fix
  * is the surplus: a permalink (`?post=812`), a cursor (`?after=…`) and a
  * highlighted reveal (`?reveal=…`) are three URLs for one document, and only
@@ -83,7 +83,7 @@ export interface ThreadJsonLd {
   readonly published: Date
   readonly modified: Date
   readonly replyCount: number
-  readonly communityTitle: string
+  readonly forumTitle: string
   readonly description: string
 }
 
@@ -116,7 +116,7 @@ export function jsonLdScript(record: Record<string, unknown>): string {
 }
 
 /**
- * `DiscussionCommunityPosting`, which is the schema.org type for exactly this.
+ * `DiscussionForumPosting`, which is the schema.org type for exactly this.
  *
  * Returns data. `jsonLdScript` above is the only supported way to get it into
  * a page, for a reason a test found rather than a review: `JSON.stringify`
@@ -129,13 +129,13 @@ export function jsonLdScript(record: Record<string, unknown>): string {
 export function threadJsonLd(input: ThreadJsonLd): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
-    '@type': 'DiscussionCommunityPosting',
+    '@type': 'DiscussionForumPosting',
     headline: input.title,
     url: input.url,
     datePublished: input.published.toISOString(),
     dateModified: input.modified.toISOString(),
     author: { '@type': 'Person', name: input.author },
-    articleSection: input.communityTitle,
+    articleSection: input.forumTitle,
     description: input.description,
     interactionStatistic: {
       '@type': 'InteractionCounter',

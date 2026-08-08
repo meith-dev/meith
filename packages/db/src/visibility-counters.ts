@@ -11,7 +11,7 @@
  *
  * The split between synchronous and asynchronous follows F38's:
  *
- *   - The **direct community, thread and author counters** and **every last-post
+ *   - The **direct forum, thread and author counters** and **every last-post
  *     pointer on the path** are written in the caller's transaction, because
  *     the page the actor lands on has to be right and because a board index
  *     linking to a post that no longer exists is worse than a count being late.
@@ -38,7 +38,7 @@ interface CounterTransaction {
 export interface VisibilityChange {
   readonly postId: number
   readonly threadId: number
-  readonly communityId: number
+  readonly forumId: number
   readonly authorId: number | null
   readonly isFirstPost: boolean
   /** `+1` when the post became visible, `-1` when it stopped being. */
@@ -77,9 +77,9 @@ export async function repairThreadLastPost(
 }
 
 /**
- * Recompute the last-post pointer of a community and every ancestor, bottom-up.
+ * Recompute the last-post pointer of a forum and every ancestor, bottom-up.
  *
- * Community pointers are subtree-inclusive, so each level is the newest of (its own
+ * Forum pointers are subtree-inclusive, so each level is the newest of (its own
  * visible threads) and (its children's already-correct pointers). Walking
  * deepest-first is what makes that induction hold in one pass.
  *
@@ -89,33 +89,33 @@ export async function repairThreadLastPost(
  * is needed costs about as much as doing it, and getting that decision subtly
  * wrong leaves the board index advertising a deleted post.
  */
-export async function repairCommunityLastPostChain(
+export async function repairForumLastPostChain(
   tx: CounterTransaction,
-  communityId: number,
+  forumId: number,
 ): Promise<void> {
   /*
    * Self plus ancestors, deepest first. The `child.path like f.path || '.%'`
-   * form with the separator is D22's prefix trap again: without the dot, community
+   * form with the separator is D22's prefix trap again: without the dot, forum
    * `1.4` would be treated as an ancestor of `1.40`.
    */
   const chain = resultRows(
     await tx.execute(sql`
       select f.id
-        from communities f
-        join communities child on child.id = ${communityId}
+        from forums f
+        join forums child on child.id = ${forumId}
        where f.id = child.id or child.path like f.path || '.%'
        order by f.depth desc
     `),
   ) as Array<{ id: number }>
 
-  for (const community of chain) {
+  for (const forum of chain) {
     await tx.execute(sql`
       with own as (
         select t.last_post_id as post_id, t.last_post_at as at, t.id as thread_id,
                t.title as thread_title, t.last_post_user_id as user_id,
                t.last_post_username as username
           from threads t
-         where t.community_id = ${community.id}
+         where t.forum_id = ${forum.id}
            and t.visibility = 'visible'
            and t.last_post_id is not null
          order by t.last_post_at desc, t.last_post_id desc
@@ -125,8 +125,8 @@ export async function repairCommunityLastPostChain(
         select c.last_post_id as post_id, c.last_post_at as at,
                c.last_post_thread_id as thread_id, c.last_post_thread_title as thread_title,
                c.last_post_user_id as user_id, c.last_post_username as username
-          from communities c
-         where c.parent_id = ${community.id} and c.last_post_id is not null
+          from forums c
+         where c.parent_id = ${forum.id} and c.last_post_id is not null
          order by c.last_post_at desc, c.last_post_id desc
          limit 1
       ),
@@ -135,7 +135,7 @@ export async function repairCommunityLastPostChain(
          order by at desc, post_id desc
          limit 1
       )
-      update communities f
+      update forums f
          set last_post_id = (select post_id from best),
              last_post_thread_id = (select thread_id from best),
              last_post_thread_title = (select thread_title from best),
@@ -143,7 +143,7 @@ export async function repairCommunityLastPostChain(
              last_post_username = (select username from best),
              last_post_at = (select at from best),
              updated_at = now()
-       where f.id = ${community.id}
+       where f.id = ${forum.id}
     `)
   }
 }
@@ -163,11 +163,11 @@ export async function applyVisibilityChangeCounters(
   const replyDelta = change.isFirstPost ? 0 : change.delta
 
   await tx.execute(sql`
-    update communities
+    update forums
        set post_count = greatest(post_count + ${change.delta}, 0),
            thread_count = greatest(thread_count + ${threadDelta}, 0),
            updated_at = now()
-     where id = ${change.communityId}
+     where id = ${change.forumId}
   `)
 
   await tx.execute(sql`
@@ -187,9 +187,9 @@ export async function applyVisibilityChangeCounters(
     `)
   }
 
-  // Pointers before ancestors: the community chain reads the thread rows below.
+  // Pointers before ancestors: the forum chain reads the thread rows below.
   await repairThreadLastPost(tx, change.threadId)
-  await repairCommunityLastPostChain(tx, change.communityId)
+  await repairForumLastPostChain(tx, change.forumId)
 
   await tx.execute(sql`
     insert into outbox (topic, payload)
@@ -198,7 +198,7 @@ export async function applyVisibilityChangeCounters(
       ${JSON.stringify({
         postId: change.postId,
         threadId: change.threadId,
-        communityId: change.communityId,
+        forumId: change.forumId,
         visible: change.delta === 1,
       })}::jsonb
     )
@@ -224,9 +224,9 @@ export async function applyAncestorVisibilityChange(
   return db.transaction(async (tx) => {
     const found = resultRows(
       await tx.execute(sql`
-        select visibility, community_id, is_first_post from posts where id = ${postId}
+        select visibility, forum_id, is_first_post from posts where id = ${postId}
       `),
-    ) as Array<{ visibility: string; community_id: number; is_first_post: boolean }>
+    ) as Array<{ visibility: string; forum_id: number; is_first_post: boolean }>
 
     const post = found[0]
     // Hard-deleted since the event was written. `content_counter_rollups`
@@ -252,12 +252,12 @@ export async function applyAncestorVisibilityChange(
     const threadDelta = post.is_first_post ? delta : 0
 
     await tx.execute(sql`
-      update communities f
+      update forums f
          set post_count = greatest(f.post_count + ${delta}, 0),
              thread_count = greatest(f.thread_count + ${threadDelta}, 0),
              updated_at = now()
-        from communities child
-       where child.id = ${post.community_id}
+        from forums child
+       where child.id = ${post.forum_id}
          and f.id <> child.id
          and child.path like f.path || '.%'
     `)

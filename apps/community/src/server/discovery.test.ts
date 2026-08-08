@@ -24,7 +24,7 @@ const calls: string[] = []
 vi.mock('./container', () => ({
   getContainer: () => ({
     dataSource: 'postgres',
-    authorizer: { communityIdsWhere: async () => [1] },
+    authorizer: { forumIdsWhere: async () => [1] },
   }),
 }))
 vi.mock('@meith/db', () => ({

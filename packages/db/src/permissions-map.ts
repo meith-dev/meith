@@ -17,19 +17,19 @@
  *     as a string (`"5"`). `Math.max("5", 3)` is `NaN`-adjacent nonsense. Each
  *     numeric field is coerced to a real number here, once.
  *
- *  3. **The null-means-inherit rule (R4.1 layer 2).** `community_permissions`
+ *  3. **The null-means-inherit rule (R4.1 layer 2).** `forum_permissions`
  *     columns are nullable; null is *not* `false`, it means "defer to the
- *     parent community". `communityRowToOverride` keeps only the non-null keys, which is
+ *     parent forum". `forumRowToOverride` keeps only the non-null keys, which is
  *     exactly what the resolver's ancestor walk consumes.
  *
  * Keeping this in `@meith/db` (not `@meith/authorization`) is deliberate: it is
  * storage-shape knowledge. The authorizer receives already-clean domain objects.
  */
 import {
-  COMMUNITY_PERMISSION_FIELDS,
+  FORUM_PERMISSION_FIELDS,
   PERMISSION_FIELDS,
   emptyPermissionSet,
-  type CommunityPermissions,
+  type ForumPermissions,
   type PermissionField,
   type PermissionSet,
 } from '@meith/core'
@@ -41,7 +41,7 @@ export type PermissionRow = Record<string, unknown>
  * Coerce one raw column value to the type its field declares.
  *
  * Returns `undefined` when the value is null/absent so callers can decide
- * whether that means "inherit" (community override) or "use default" (group row).
+ * whether that means "inherit" (forum override) or "use default" (group row).
  */
 function coerceField(field: PermissionField, raw: unknown): boolean | number | undefined {
   if (raw === null || raw === undefined) return undefined
@@ -90,17 +90,17 @@ export function groupRowToPermissionSet(row: PermissionRow): PermissionSet {
 }
 
 /**
- * Turn a `community_permissions` row into the partial override it represents.
+ * Turn a `forum_permissions` row into the partial override it represents.
  *
- * Only community-scoped fields are considered, and only non-null values are kept:
+ * Only forum-scoped fields are considered, and only non-null values are kept:
  * a null column means "inherit from the parent", which the resolver handles by
  * this key simply being absent from the returned object (R4.1 layer 2).
  */
-export function communityRowToOverride(row: PermissionRow): Partial<CommunityPermissions> {
+export function forumRowToOverride(row: PermissionRow): Partial<ForumPermissions> {
   const out: Record<string, boolean | number> = {}
-  for (const field of COMMUNITY_PERMISSION_FIELDS) {
+  for (const field of FORUM_PERMISSION_FIELDS) {
     const value = coerceField(field, row[field.key])
     if (value !== undefined) out[field.key] = value
   }
-  return out as Partial<CommunityPermissions>
+  return out as Partial<ForumPermissions>
 }

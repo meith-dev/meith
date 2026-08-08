@@ -38,9 +38,9 @@ const TARGET: ReplyTarget = {
   visibility: 'visible',
   lastPostId: 31,
   replyCount: 1,
-  community: {
+  forum: {
     id: 10,
-    type: 'community',
+    type: 'forum',
     slug: 'general',
     isOpen: true,
     allowThreads: true,
@@ -74,13 +74,13 @@ function composer(
 }
 
 describe('ReplyComposer', () => {
-  it('writes the reply against the thread and its community', async () => {
+  it('writes the reply against the thread and its forum', async () => {
     const posts = new RecordingReplies()
     const result = await composer(posts).create(INPUT, AUTHOR, TARGET)
 
     expect(posts.written[0]).toMatchObject({
       threadId: 20,
-      communityId: 10,
+      forumId: 10,
       threadTitle: 'Hello',
       message: 'Quite so.',
       authorUserId: 1,
@@ -99,10 +99,10 @@ describe('ReplyComposer', () => {
     ['a locked thread', { isLocked: true }],
     ['an unapproved thread', { visibility: 'unapproved' as const }],
     ['a deleted thread', { visibility: 'deleted' as const }],
-    ['a closed community', { community: { ...TARGET.community, isOpen: false } }],
+    ['a closed forum', { forum: { ...TARGET.forum, isOpen: false } }],
     [
-      'a community that takes no replies',
-      { community: { ...TARGET.community, allowReplies: false } },
+      'a forum that takes no replies',
+      { forum: { ...TARGET.forum, allowReplies: false } },
     ],
   ])('refuses %s', async (_label, overrides) => {
     const posts = new RecordingReplies()
@@ -138,14 +138,14 @@ describe('ReplyComposer', () => {
     ).rejects.toThrow(/at most 5 characters/)
   })
 
-  it('holds the reply when the community moderates new posts', async () => {
+  it('holds the reply when the forum moderates new posts', async () => {
     const posts = new RecordingReplies()
     const result = await composer(posts).create(INPUT, AUTHOR, {
       ...TARGET,
-      community: { ...TARGET.community, moderateNewPosts: true },
+      forum: { ...TARGET.forum, moderateNewPosts: true },
     })
 
-    // `moderate_new_posts`, not `moderate_new_threads`: a community can hold replies
+    // `moderate_new_posts`, not `moderate_new_threads`: a forum can hold replies
     // while letting threads through, and vice versa.
     expect(result.visibility).toBe('unapproved')
   })
@@ -153,8 +153,8 @@ describe('ReplyComposer', () => {
   /*
    * The `requiresPostApproval` permission, which until the 7 August 2026 audit
    * was written to the database by the group screen and read by nothing. The
-   * community's own switch above and this one are different axes: a board holds one
-   * group's replies everywhere with this, and everybody's replies in one community
+   * forum's own switch above and this one are different axes: a board holds one
+   * group's replies everywhere with this, and everybody's replies in one forum
    * with that.
    */
   it('holds the reply when the permission requires approval', async () => {
@@ -162,18 +162,18 @@ describe('ReplyComposer', () => {
     const result = await composer(posts).create(
       { ...INPUT, requiresApproval: true },
       AUTHOR,
-      { ...TARGET, community: { ...TARGET.community, moderateNewPosts: false } },
+      { ...TARGET, forum: { ...TARGET.forum, moderateNewPosts: false } },
     )
 
     expect(result.visibility).toBe('unapproved')
   })
 
-  it('leaves the reply visible when neither the community nor the permission asks', async () => {
+  it('leaves the reply visible when neither the forum nor the permission asks', async () => {
     const posts = new RecordingReplies()
     const result = await composer(posts).create(
       { ...INPUT, requiresApproval: false },
       AUTHOR,
-      { ...TARGET, community: { ...TARGET.community, moderateNewPosts: false } },
+      { ...TARGET, forum: { ...TARGET.forum, moderateNewPosts: false } },
     )
 
     expect(result.visibility).toBe('visible')
@@ -184,7 +184,7 @@ describe('ReplyComposer', () => {
     const result = await composer(posts).create(
       { ...INPUT, requiresApproval: true, bypassesModeration: true },
       AUTHOR,
-      { ...TARGET, community: { ...TARGET.community, moderateNewPosts: false } },
+      { ...TARGET, forum: { ...TARGET.forum, moderateNewPosts: false } },
     )
 
     expect(result.visibility).toBe('visible')

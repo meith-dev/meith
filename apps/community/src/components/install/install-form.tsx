@@ -500,7 +500,7 @@ function Outcome({ state }: { state: InstallFormState }) {
           <>
             {/*
               The step's title, not its id. The ids are `migrate`, `settings`,
-              `admin`, `community`, `seal` — and the third one printed as *The “admin”
+              `admin`, `forum`, `seal` — and the third one printed as *The “admin”
               step failed* beside the message “That username is reserved”, which
               reads as though the installer were quoting the name that had just
               been typed into the box above.

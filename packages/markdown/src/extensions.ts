@@ -11,7 +11,7 @@
  * ## Directives, where BBCode had custom tags
  *
  * `[spoiler]…[/spoiler]` has no Markdown spelling, so a board's own additions
- * use the generic **directive** syntax the CommonMark community settled on:
+ * use the generic **directive** syntax the CommonMark forum settled on:
  *
  *     :::spoiler             ← a block directive
  *     the ending

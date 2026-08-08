@@ -18,7 +18,7 @@
  * reason — the codecs cannot re-encode it, and an animated GIF silently reduced
  * to one frame is worse than a refusal.
  *
- * F71 owns making this configurable per community. Until then it is a constant,
+ * F71 owns making this configurable per forum. Until then it is a constant,
  * which is the honest state: a board cannot be given a switch for a format
  * nothing can process.
  */
@@ -136,7 +136,7 @@ export type AttachmentStatus = 'pending' | 'ready' | 'failed'
 export interface AttachmentRecord {
   readonly id: number
   readonly postId: number
-  readonly communityId: number
+  readonly forumId: number
   readonly uploaderUserId: number | null
   readonly filename: string
   readonly contentType: string

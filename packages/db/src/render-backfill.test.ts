@@ -18,14 +18,14 @@ import { PostgresContentAdminRepository } from './content-admin-repo'
 import { PostgresRenderBackfill } from './render-backfill'
 import { resultRows } from './result-rows'
 import { PostgresThreadWriteRepository } from './thread-writes'
-import { communities, users } from './schema'
+import { forums, users } from './schema'
 
 let harness: TestDb
 let db: Database
 let backfill: PostgresRenderBackfill
 
 const CATEGORY = 1
-const COMMUNITY = 4
+const FORUM = 4
 const AT = new Date('2026-07-30T12:00:00Z')
 
 beforeAll(async () => {
@@ -43,7 +43,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from outbox`)
   await db.execute(sql`delete from posts`)
   await db.execute(sql`delete from threads`)
-  await db.execute(sql`delete from communities`)
+  await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
 
   await db.insert(users).values({
@@ -56,9 +56,9 @@ beforeEach(async () => {
     passwordAlgo: 'argon2id',
     primaryGroupId: 2,
   })
-  await db.insert(communities).values([
+  await db.insert(forums).values([
     { id: CATEGORY, type: 'category', title: 'Cat', slug: 'cat', path: '1', depth: 0 },
-    { id: COMMUNITY, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
+    { id: FORUM, title: 'General', slug: 'general', path: '1.4', depth: 1, parentId: CATEGORY },
   ])
 })
 
@@ -74,15 +74,15 @@ async function insertStale(
   format: number = BodyFormat.Markdown,
 ): Promise<void> {
   await db.execute(sql`
-    insert into threads (id, community_id, title, slug, author_user_id, author_username,
+    insert into threads (id, forum_id, title, slug, author_user_id, author_username,
                          visibility, last_post_at, created_at, updated_at)
-    values (${id}, ${COMMUNITY}, ${'T' + String(id)}, ${'t' + String(id)}, 1, 'ada',
+    values (${id}, ${FORUM}, ${'T' + String(id)}, ${'t' + String(id)}, 1, 'ada',
             'visible', ${AT}, ${AT}, ${AT})
   `)
   await db.execute(sql`
-    insert into posts (id, thread_id, community_id, author_user_id, author_username,
+    insert into posts (id, thread_id, forum_id, author_user_id, author_username,
                        message, body_format, visibility, is_first_post, created_at)
-    values (${id}, ${id}, ${COMMUNITY}, 1, 'ada', ${message}, ${format}, 'visible', true, ${AT})
+    values (${id}, ${id}, ${FORUM}, 1, 'ada', ${message}, ${format}, 'visible', true, ${AT})
   `)
 }
 
@@ -100,7 +100,7 @@ describe('the stored render', () => {
   it('is written by the same transaction as the post', async () => {
     const repo = new PostgresThreadWriteRepository(db)
     const created = await repo.create({
-      communityId: COMMUNITY,
+      forumId: FORUM,
       title: 'Hello there',
       slug: 'hello-there',
       message: 'a **bold** claim',
@@ -121,7 +121,7 @@ describe('the stored render', () => {
   it('is written for a reply too', async () => {
     const repo = new PostgresThreadWriteRepository(db)
     const thread = await repo.create({
-      communityId: COMMUNITY,
+      forumId: FORUM,
       title: 'Hello there',
       slug: 'hello-there',
       message: 'opening',
@@ -134,7 +134,7 @@ describe('the stored render', () => {
     })
     const { postId } = await repo.createReply({
       threadId: thread.threadId,
-      communityId: COMMUNITY,
+      forumId: FORUM,
       threadTitle: 'Hello there',
       message: '> opening\n\nagreed',
       authorUserId: 1,
@@ -317,7 +317,7 @@ describe('the board vocabulary', () => {
     const revision = await addSmiley()
 
     const created = await new PostgresThreadWriteRepository(db).create({
-      communityId: COMMUNITY,
+      forumId: FORUM,
       title: 'Hello there',
       slug: 'hello-there',
       message: 'hi :)',

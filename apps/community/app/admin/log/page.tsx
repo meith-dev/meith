@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: 'Admin log' }
  *
  * `admin_log` has had *writers* since F48 — every moderation action records a
  * row — and until now the only reader was the ModCP's view, which is scoped to
- * the communities one moderator covers. This is the unscoped one: an administrator
+ * the forums one moderator covers. This is the unscoped one: an administrator
  * reading the audit log is reading everything, which is the point of there
  * being one.
  *

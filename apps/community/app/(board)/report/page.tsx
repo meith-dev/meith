@@ -45,9 +45,9 @@ export default async function ReportPage({
    */
   const target = await reports.resolveTarget(kind, targetId, actor.userId)
   if (target === null) notFound()
-  if (target.communityId !== null) {
-    const matrix = await authorizer.communityMatrix(actor, target.communityId)
-    if (!authorizer.can(actor, 'thread.view', { communityId: target.communityId, community: matrix })) {
+  if (target.forumId !== null) {
+    const matrix = await authorizer.forumMatrix(actor, target.forumId)
+    if (!authorizer.can(actor, 'thread.view', { forumId: target.forumId, forum: matrix })) {
       notFound()
     }
   }

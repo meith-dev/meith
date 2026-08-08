@@ -7,7 +7,7 @@ import { NUMERIC, Stamp, UserRef } from '../shared'
  *
  * ## It is a line, not a panel
  *
- * This was a card with a three-column `<dl>` in it, sitting under the community
+ * This was a card with a three-column `<dl>` in it, sitting under the forum
  * listing beside the online list. Both have moved to the foot of the index,
  * where they belong: they are facts *about* the board rather than things to do
  * on it, and a card is a container for something a reader acts on. Three

@@ -168,8 +168,8 @@ describe('prefix writes', () => {
   })
 
   it('reads blank optional fields as null, not as empty strings', async () => {
-    await createPrefixAction({}, form({ label: 'Ask', token: '', communityPathPrefix: '' }))
-    expect(prefixes[0]).toMatchObject({ token: null, communityPathPrefix: null })
+    await createPrefixAction({}, form({ label: 'Ask', token: '', forumPathPrefix: '' }))
+    expect(prefixes[0]).toMatchObject({ token: null, forumPathPrefix: null })
   })
 
   it('refuses a display order that is not a whole number', async () => {

@@ -94,10 +94,10 @@ export function ClearCacheForm() {
         <span className="font-medium">What to clear</span>
         <select
           name="what"
-          defaultValue="communities"
+          defaultValue="forums"
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
         >
-          <option value="communities">The community tree</option>
+          <option value="forums">The forum tree</option>
           <option value="permissions">Resolved permissions</option>
         </select>
       </label>

@@ -30,7 +30,7 @@
  *
  * The same rule as every other cross-board listing here (F72's search, F74's
  * discovery): filtering after the fetch returns five rows as one and calls it a
- * page. An empty community list short-circuits before a statement runs — a version
+ * page. An empty forum list short-circuits before a statement runs — a version
  * that omitted the clause for an empty list would show the whole board to
  * exactly the reader who may see none of it.
  */
@@ -43,8 +43,8 @@ import { resultRows } from './result-rows'
 import { visibleIn } from './visibility'
 
 export interface LatestScope {
-  /** Communities this reader may see, from `Authorizer.communityIdsWhere` (F47). */
-  readonly communityIds: readonly number[]
+  /** Forums this reader may see, from `Authorizer.forumIdsWhere` (F47). */
+  readonly forumIds: readonly number[]
   readonly content: ContentScope
 }
 
@@ -52,9 +52,9 @@ export interface LatestThreadRow {
   readonly threadId: number
   readonly title: string
   readonly slug: string
-  readonly communityId: number
-  readonly communityTitle: string
-  readonly communitySlug: string
+  readonly forumId: number
+  readonly forumTitle: string
+  readonly forumSlug: string
   readonly authorUserId: number | null
   readonly authorUsername: string
   readonly replyCount: number
@@ -66,9 +66,9 @@ export interface LatestPostRow {
   readonly threadId: number
   readonly threadTitle: string
   readonly threadSlug: string
-  readonly communityId: number
-  readonly communityTitle: string
-  readonly communitySlug: string
+  readonly forumId: number
+  readonly forumTitle: string
+  readonly forumSlug: string
   readonly authorUserId: number | null
   readonly authorUsername: string
   readonly createdAt: Date
@@ -92,22 +92,22 @@ export class PostgresLatestRepository {
   /**
    * The newest threads on the board.
    *
-   * The community is carried on every row because these lists cross the whole
-   * board: without it two identically-titled threads in two communities are the same
+   * The forum is carried on every row because these lists cross the whole
+   * board: without it two identically-titled threads in two forums are the same
    * row twice. It comes from the same statement, not a lookup per row.
    */
   async threads(limit: number, scope: LatestScope): Promise<readonly LatestThreadRow[]> {
-    if (scope.communityIds.length === 0) return []
+    if (scope.forumIds.length === 0) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
-        select t.id, t.title, t.slug, t.community_id, f.title as community_title,
-               f.slug as community_slug, t.author_user_id, t.author_username,
+        select t.id, t.title, t.slug, t.forum_id, f.title as forum_title,
+               f.slug as forum_slug, t.author_user_id, t.author_username,
                t.reply_count, t.created_at
           from threads t
-          join communities f on f.id = t.community_id
-         where t.community_id in (${sql.join(
-           scope.communityIds.map((id) => sql`${id}`),
+          join forums f on f.id = t.forum_id
+         where t.forum_id in (${sql.join(
+           scope.forumIds.map((id) => sql`${id}`),
            sql`, `,
          )})
            and ${visibleIn(sql`t.visibility`, scope.content)}
@@ -120,9 +120,9 @@ export class PostgresLatestRepository {
       threadId: Number(row.id),
       title: String(row.title),
       slug: String(row.slug),
-      communityId: Number(row.community_id),
-      communityTitle: String(row.community_title),
-      communitySlug: String(row.community_slug),
+      forumId: Number(row.forum_id),
+      forumTitle: String(row.forum_title),
+      forumSlug: String(row.forum_slug),
       authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
       authorUsername: String(row.author_username),
       replyCount: Number(row.reply_count),
@@ -138,26 +138,26 @@ export class PostgresLatestRepository {
    * panel that asked only about the post would put it back on the front page —
    * with a link, an author and an excerpt.
    *
-   * The community scope is applied to `threads` rather than to `posts.community_id`,
+   * The forum scope is applied to `threads` rather than to `posts.forum_id`,
    * even though the denormalised column exists and F51 rewrites it on a move.
-   * One source of truth for "which community is this in" is worth more than the
+   * One source of truth for "which forum is this in" is worth more than the
    * column saving a join that the thread title needs anyway; the day the two
    * disagree, this reads the one every other permission check reads.
    */
   async posts(limit: number, scope: LatestScope): Promise<readonly LatestPostRow[]> {
-    if (scope.communityIds.length === 0) return []
+    if (scope.forumIds.length === 0) return []
 
     const rows = resultRows(
       await this.db.execute(sql`
         select p.id, p.thread_id, p.author_user_id, p.author_username, p.created_at,
                left(p.message, ${EXCERPT_CHARS}) as message,
                t.title as thread_title, t.slug as thread_slug,
-               t.community_id, f.title as community_title, f.slug as community_slug
+               t.forum_id, f.title as forum_title, f.slug as forum_slug
           from posts p
           join threads t on t.id = p.thread_id
-          join communities f on f.id = t.community_id
-         where t.community_id in (${sql.join(
-           scope.communityIds.map((id) => sql`${id}`),
+          join forums f on f.id = t.forum_id
+         where t.forum_id in (${sql.join(
+           scope.forumIds.map((id) => sql`${id}`),
            sql`, `,
          )})
            and ${visibleIn(sql`t.visibility`, scope.content)}
@@ -172,9 +172,9 @@ export class PostgresLatestRepository {
       threadId: Number(row.thread_id),
       threadTitle: String(row.thread_title),
       threadSlug: String(row.thread_slug),
-      communityId: Number(row.community_id),
-      communityTitle: String(row.community_title),
-      communitySlug: String(row.community_slug),
+      forumId: Number(row.forum_id),
+      forumTitle: String(row.forum_title),
+      forumSlug: String(row.forum_slug),
       authorUserId: row.author_user_id === null ? null : Number(row.author_user_id),
       authorUsername: String(row.author_username),
       createdAt: toDate(row.created_at),

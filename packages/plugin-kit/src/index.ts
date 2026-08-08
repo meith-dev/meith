@@ -29,7 +29,7 @@ export {
 
 export type {
   DraftPayload,
-  CommunityRef,
+  ForumRef,
   HookContext,
   HookSignatures,
   HookValue,

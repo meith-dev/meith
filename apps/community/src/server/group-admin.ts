@@ -7,7 +7,7 @@ import 'server-only'
  *
  * **The permission editor's rows.** A group's global permissions are the
  * *bottom* of the resolution (R4.1 layer 1) — there is no ancestor above them
- * and nothing to inherit from — so unlike F65's community matrix these cells have
+ * and nothing to inherit from — so unlike F65's forum matrix these cells have
  * two states, not three. The editor is built from the registry rather than from
  * a hand-written list of fields, so a permission added to `PERMISSION_FIELDS`
  * appears here without anybody remembering to add it.
@@ -33,7 +33,7 @@ import { getContainer } from './container'
 
 export function groupAdminRepository(): PostgresGroupAdminRepository | null {
   /*
-   * Gated on the container's data source, like `communityAdminRepository`: this is
+   * Gated on the container's data source, like `forumAdminRepository`: this is
    * used by four ACP screens and nothing else, and a field on `Container` would
    * be a field every test double has to carry.
    */
@@ -84,9 +84,9 @@ export async function buildGroupPermissionView(
 /**
  * Every field in the registry, in registry order.
  *
- * Including the `community`-scoped ones. They are a group's *default* answer for
- * every community that does not override them (R4.1 layer 1), so leaving them off
- * this screen would hide the value that most communities actually resolve to — an
+ * Including the `forum`-scoped ones. They are a group's *default* answer for
+ * every forum that does not override them (R4.1 layer 1), so leaving them off
+ * this screen would hide the value that most forums actually resolve to — an
  * operator would set `canPostThreads` nowhere and wonder why nobody can post.
  */
 function permissionCells(permissions: PermissionSet): readonly GroupPermissionCell[] {

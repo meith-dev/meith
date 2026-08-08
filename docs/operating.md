@@ -95,7 +95,7 @@ community settings:set board.name "The Townland"
 
 ## The operator CLI
 
-Everything you should not need a browser for: migrations, users, communities,
+Everything you should not need a browser for: migrations, users, forums,
 settings, scheduled tasks, search reindexing. It ships **inside the image**, so
 a deployed board needs no checkout, no toolchain and no Node on the host.
 
@@ -116,7 +116,7 @@ The rest of this page writes **`community <command>`**, which is worth making tr
 on a Compose board:
 
 ```sh
-alias community='docker compose -f ~/meith/docker-compose.yml run --rm --no-deps web node apps/cli/cli.cjs'
+alias forum='docker compose -f ~/meith/docker-compose.yml run --rm --no-deps web node apps/cli/cli.cjs'
 ```
 
 ```sh
@@ -141,7 +141,7 @@ missing rather than hidden.
 
 ## Permissions
 
-46 permission fields — 27 resolved per member per community, 19 board-wide. Every
+46 permission fields — 27 resolved per member per forum, 19 board-wide. Every
 read path — pages, search, feeds, the REST API — asks the same resolver, so
 there is no route that quietly reads around the rules.
 
@@ -152,16 +152,16 @@ understanding the model.
 
 1. **Group permissions** — the floor. A member's groups are combined, and a
    boolean is granted if *any* of their groups grants it.
-2. **The community matrix** — per community, per group. Each cell has three states:
+2. **The forum matrix** — per forum, per group. Each cell has three states:
    inherit, grant, deny.
-3. **Moderator rights** — per community, per member or group, granted separately.
+3. **Moderator rights** — per forum, per member or group, granted separately.
 
 > [!IMPORTANT]
-> In the community matrix, **empty means inherit** — it is not the same as "no".
+> In the forum matrix, **empty means inherit** — it is not the same as "no".
 > That is why each cell is a three-state control rather than a checkbox: a
 > checkbox writes an explicit value into every cell the first time you save,
-> pinning that community so later changes at its parent do nothing. Silently pinning
-> a community is the commonest way a board's permissions end up wrong.
+> pinning that forum so later changes at its parent do nothing. Silently pinning
+> a forum is the commonest way a board's permissions end up wrong.
 
 ### Numbers behave differently from switches
 
@@ -173,12 +173,12 @@ combine as the **most generous** value across a member's groups.
 
 ### Reading the matrix
 
-`/admin/communities` holds it. Each cell shows what it resolves to *and which community it
+`/admin/forums` holds it. Each cell shows what it resolves to *and which forum it
 inherited from* — "inherit" on its own tells nobody anything.
 
-**Copy to subcommunities** means *identical*, not *merged*. It clears rows the source
-community does not have, because a descendant that denied something the source
-inherits would leave you with two communities you had just been told now match. The
+**Copy to subforums** means *identical*, not *merged*. It clears rows the source
+forum does not have, because a descendant that denied something the source
+inherits would leave you with two forums you had just been told now match. The
 change is previewed cell by cell before it applies.
 
 ### The one door no bypass opens
@@ -251,7 +251,7 @@ any board until you register it.
 
 > [!IMPORTANT]
 > **A member picks a whole theme, components included.** `midnight` renders its
-> community listings as tables, and a member who picks it gets tables. The choice is
+> forum listings as tables, and a member who picks it gets tables. The choice is
 > a cookie the server reads, so the page arrives already correct — no flash, no
 > second paint — and the control works with JavaScript turned off.
 >
@@ -594,7 +594,7 @@ SMTP password:     an app password — never the password you sign in with
 ```
 
 Mailbox providers rate-limit sending (Workspace is around 2,000 messages a day),
-which is ample for a community and not for a newsletter.
+which is ample for a forum and not for a newsletter.
 
 ### Resend, copy-pasteable
 
@@ -831,7 +831,7 @@ mail arrives, it is polite, and it is useless. Feeds and canonical URLs fall bac
 to a localhost origin, which is obviously wrong rather than subtly wrong.
 
 The address is an **origin** — scheme, host, optional port, nothing else.
-`https://community.example/board` is rejected by the settings screen on the way in,
+`https://forum.example/board` is rejected by the settings screen on the way in,
 because every link the board built from it would carry `/board` in the middle.
 `APP_URL` is checked more loosely — only that it is a URL — so a path pasted
 into the environment is the one place this mistake can still get through.
@@ -853,7 +853,7 @@ on by default because no human notices either.
 | Hidden-field trap | Bots that fill every field | Nothing. Leave it on. |
 | Minimum fill time | Instant submissions | Occasionally somebody with a password manager. Keep it to a few seconds. |
 | A question | Scripted registration | A moment, every time. Switch it on when you have a problem. |
-| Hold first posts | Nearly all community spam | One wait per genuine new member. |
+| Hold first posts | Nearly all forum spam | One wait per genuine new member. |
 | Hourly limits | A night's work by one script | Nothing, set sensibly. |
 
 > [!TIP]
@@ -952,7 +952,7 @@ From a container deployment, where `pg_dump` is in the database container rather
 than on the host:
 
 ```sh
-docker compose exec -T postgres pg_dump -U community community | gzip > board-$(date +%F).sql.gz
+docker compose exec -T postgres pg_dump -U forum forum | gzip > board-$(date +%F).sql.gz
 docker run --rm -v meith_uploads:/u -v "$PWD":/out alpine \
   tar czf /out/uploads-$(date +%F).tar.gz -C /u .
 ```
@@ -974,7 +974,7 @@ you will restore into.
 ### Restoring
 
 ```sh
-createdb community_restored
+createdb forum_restored
 pg_restore --no-owner --no-privileges --dbname="$RESTORE_URL" board.dump
 ```
 
@@ -1088,9 +1088,9 @@ Three possibilities, in order of likelihood:
 3. Your admin session expired. It has a 30-minute idle timeout and an 8-hour
    ceiling, both separate from your board session.
 
-### A member cannot see a community they should
+### A member cannot see a forum they should
 
-Open `/admin/communities` for that community and read **the row for their group** rather
+Open `/admin/forums` for that forum and read **the row for their group** rather
 than reasoning about the combination. Each cell says what it resolves to and
 where it inherited from.
 

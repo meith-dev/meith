@@ -27,7 +27,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from thread_ratings`)
   await db.execute(sql`delete from threads`)
   await db.execute(sql`delete from users where id in (901, 902)`)
-  await db.execute(sql`delete from communities where id = 900`)
+  await db.execute(sql`delete from forums where id = 900`)
   const groups = await db.execute(
     sql`select id from usergroups where key = 'registered'`,
   )
@@ -36,9 +36,9 @@ beforeEach(async () => {
     values (901, 'one', 'one', 'one@example.test', 'one@example.test', ${groupId}),
            (902, 'two', 'two', 'two@example.test', 'two@example.test', ${groupId})`)
   await db.execute(
-    sql`insert into communities (id, type, title, slug, path) values (900, 'community', 'Test', 'test', '900')`,
+    sql`insert into forums (id, type, title, slug, path) values (900, 'forum', 'Test', 'test', '900')`,
   )
-  await db.execute(sql`insert into threads (id, community_id, author_username, title, slug)
+  await db.execute(sql`insert into threads (id, forum_id, author_username, title, slug)
     values (900, 900, 'one', 'Thread', 'thread')`)
 })
 

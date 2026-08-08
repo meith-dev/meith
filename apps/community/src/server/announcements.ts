@@ -10,11 +10,11 @@ import 'server-only'
  * announcement becomes live at `starts_at` and stops at `ends_at`, so a cached
  * one under a global tag would appear late and — worse — linger after it
  * expired, with nothing to invalidate it because nothing *happened*: no write,
- * no tag, just a clock passing a value. And the community-scoped ones are
+ * no tag, just a clock passing a value. And the forum-scoped ones are
  * permission-filtered, which is the one thing `cachedGlobal` exists to forbid
  * (invariant 9).
  *
- * The cost is one indexed query on the index and community pages, over a table with
+ * The cost is one indexed query on the index and forum pages, over a table with
  * a handful of rows. That is the right trade rather than a concession: the
  * alternative is a TTL short enough not to matter, which is a cache that costs
  * a lookup and saves nothing.
@@ -32,7 +32,7 @@ import { PostgresAnnouncementRepository, getDb, type AnnouncementRow } from '@me
 import type { AnnouncementModel } from '@meith/theme-kit'
 
 import { activeVocabulary } from './content-admin'
-import { communityHref } from '../view/board-index'
+import { forumHref } from '../view/board-index'
 import { formatTime } from '../view/time'
 
 export function announcementRepository(): PostgresAnnouncementRepository | null {
@@ -48,7 +48,7 @@ export function announcementRepository(): PostgresAnnouncementRepository | null 
  * notice, so a failure logs and shows none.
  */
 export async function liveAnnouncements(input: {
-  readonly visibleCommunityIds: readonly number[]
+  readonly visibleForumIds: readonly number[]
   readonly scope?: number | null
   readonly now: Date
   readonly timeZone?: string | undefined
@@ -60,7 +60,7 @@ export async function liveAnnouncements(input: {
     const [rows, vocabulary] = await Promise.all([
       repository.live({
         now: input.now,
-        visibleCommunityIds: input.visibleCommunityIds,
+        visibleForumIds: input.visibleForumIds,
         scope: input.scope ?? null,
       }),
       activeVocabulary(),
@@ -96,12 +96,12 @@ function toModel(
             profileHref: row.authorUserId === null ? null : `/member/${row.authorUserId}`,
           },
     postedAt: formatTime(row.startsAt, now, timeZone),
-    community:
-      row.communityId === null || row.communityTitle === null || row.communitySlug === null
+    forum:
+      row.forumId === null || row.forumTitle === null || row.forumSlug === null
         ? null
         : {
-            label: row.communityTitle,
-            href: communityHref({ id: row.communityId, slug: row.communitySlug }),
+            label: row.forumTitle,
+            href: forumHref({ id: row.forumId, slug: row.forumSlug }),
           },
   }
 }
