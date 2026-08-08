@@ -253,6 +253,23 @@ class DocRenderer extends Renderer {
 
   override code(token: Tokens.Code): string {
     const language = (token.lang ?? "").trim().split(/\s+/)[0] ?? ""
+
+    /*
+     * A mermaid fence is a diagram, not code. The figure ships the source —
+     * which is what GitHub renders natively, what `/llms.txt` serves, and what
+     * a reader without JavaScript gets — and `mermaid-diagrams.tsx` replaces it
+     * with the drawn SVG after mount. The source is legible on its own; that is
+     * a property of the language worth relying on, and it is why the fallback
+     * is the source rather than an apology.
+     */
+    if (language.toLowerCase() === "mermaid") {
+      return (
+        `<figure class="doc-diagram" data-diagram="mermaid">` +
+        `<pre data-code="${escapeHtml(token.text)}"><code>${escapeHtml(token.text)}</code></pre>` +
+        `</figure>\n`
+      )
+    }
+
     const label = LANGUAGE_LABELS[language.toLowerCase()] ?? language
     const highlighted = this.codeBlocks.get(token)
 

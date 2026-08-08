@@ -20,6 +20,7 @@ server, on a domain, in about half an hour.
 | Calling the API | [REST API v1](./rest-api.md) |
 | Moving a community off MyBB | [MyBB parity](./mybb-parity.md) |
 | Working on Meith itself | [Development](./development.md) |
+| Understanding how it fits together | [Architecture](./architecture.md) |
 
 ## Running a board
 
@@ -69,12 +70,13 @@ described in [`operating.md`](./operating.md).
 
 ## Development
 
-Working on Meith itself. The first two are published on the site; the rest are
+Working on Meith itself. The first three are published on the site; the rest are
 working records kept in the repository.
 
 | Document | What it answers |
 |---|---|
 | [`development.md`](./development.md) | **Start here.** Running it on your machine, the workspace, the commands, the gates, and what to do before opening a pull request. |
+| [`architecture.md`](./architecture.md) | How it fits together: the processes, the layers, the path a request takes, and the seams — data, themes, plugins — everything else hangs off. |
 | [`nextjs-conventions.md`](./nextjs-conventions.md) | The decisions that would otherwise be re-litigated in every pull request. |
 | [`roadmap.md`](./roadmap.md) | The delivery plan, with acceptance criteria. The source of truth for *what* is being built. |
 | [`plan-status.md`](./plan-status.md) | One row per plan feature: done, partial, or not started. The source of truth for *where* it is. |

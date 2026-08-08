@@ -85,6 +85,9 @@ Every `@meith/*` import resolves through tsconfig path aliases straight to
 typecheck is fast and why `pnpm workspace:check` exists — see
 [the invariant scripts](#the-scripts-that-fail-on-purpose).
 
+How those packages relate — the layers, what may import what, and why — is
+[Architecture](./architecture.md).
+
 ## The commands
 
 | | |
@@ -182,6 +185,7 @@ cannot quietly go unlinked.
 
 | You want to | Read |
 |---|---|
+| How the system fits together | [Architecture](./architecture.md) |
 | The conventions this codebase holds to | [Next.js conventions](./nextjs-conventions.md) |
 | To write a theme | [The theme API](./theme-api.md) |
 | To write a plugin | [The plugin API](./plugin-api.md) |

@@ -104,6 +104,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 | The API | [`rest-api.md`](./docs/rest-api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
 | Migrating from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place this board behaves differently from MyBB, with the reason. Read it before promising anyone a like-for-like move. |
 | Development | [`development.md`](./docs/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
+| Development | [`architecture.md`](./docs/architecture.md) | How it fits together: the processes, the layers, the path a request takes, and the seams everything else hangs off. |
 | Development | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
 
 <!-- docs:table end -->

@@ -967,6 +967,49 @@ body {
   color: var(--shiki-dark);
 }
 
+/*
+ * A mermaid figure. Until `mermaid-diagrams.tsx` has drawn it — and always,
+ * without JavaScript — the figure shows the diagram's source, which is legible
+ * on its own. Once drawn, the source steps aside for the SVG rather than
+ * sitting beneath it saying the same thing twice.
+ */
+.doc-diagram {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+
+.doc-diagram pre {
+  overflow-x: auto;
+  padding: 1rem 1.1rem;
+  line-height: 1.65;
+}
+
+.doc-diagram pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: var(--step--1);
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.doc-diagram[data-rendered="true"] pre {
+  display: none;
+}
+
+.doc-diagram-canvas {
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 1.25rem 1rem;
+}
+
+.doc-diagram-canvas svg {
+  max-width: 100%;
+  height: auto;
+}
+
 .doc-code-copy {
   position: absolute;
   right: 0.4rem;

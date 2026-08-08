@@ -106,6 +106,19 @@ describe("renderMarkdown", () => {
     expect(html).toContain("--shiki-light")
   })
 
+  it("turns a mermaid fence into a diagram figure that carries its source", async () => {
+    const { html } = await renderMarkdown("# T\n\n```mermaid\ngraph LR\n  A --> B\n```\n", identity)
+
+    expect(html).toContain('<figure class="doc-diagram" data-diagram="mermaid">')
+    /* The source rides along twice: as text for a reader without JavaScript,
+       and on `data-code` for the client component that draws it. */
+    expect(html).toContain('data-code="graph LR')
+    expect(html).toContain("A --&gt; B")
+    /* It is a diagram, not code: no language chip, no copy button hook. */
+    expect(html).not.toContain('data-lang="mermaid"')
+    expect(html).not.toContain('class="doc-code"')
+  })
+
   it("leaves a fence with no language alone", async () => {
     const { html } = await renderMarkdown("# T\n\n```\n2 + 2 < 5\n```\n", identity)
 

@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { CodeCopyButtons } from "../../../src/components/code-copy"
+import { MermaidDiagrams } from "../../../src/components/mermaid-diagrams"
 import { TableOfContents } from "../../../src/components/table-of-contents"
 import { site } from "../../../src/content/site"
 import { loadDocument } from "../../../src/docs/load"
@@ -105,6 +106,7 @@ export default async function DocumentPage({ params }: PageProps) {
           dangerouslySetInnerHTML={{ __html: rendered.html }}
         />
         <CodeCopyButtons />
+        <MermaidDiagrams />
 
         <nav
           aria-label="Nearby documents"
