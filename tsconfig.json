@@ -8,6 +8,8 @@
     "packages/**/*.tsx",
     "themes/**/*.ts",
     "themes/**/*.tsx",
+    "examples/**/*.ts",
+    "examples/**/*.tsx",
     "apps/cli/**/*.ts",
     "apps/worker/**/*.ts",
     "*.ts",

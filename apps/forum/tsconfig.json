@@ -72,6 +72,10 @@
       "@meith/theme-default/*": ["../../themes/default/src/*"],
       "@meith/theme-midnight": ["../../themes/midnight/src/index.ts"],
       "@meith/theme-midnight/*": ["../../themes/midnight/src/*"],
+      "@meith/example-plugin-hello": ["../../examples/hello-plugin/src/index.ts"],
+      "@meith/example-plugin-hello/*": ["../../examples/hello-plugin/src/*"],
+      "@meith/example-theme-iris": ["../../examples/iris-theme/src/index.ts"],
+      "@meith/example-theme-iris/*": ["../../examples/iris-theme/src/*"],
       /*
        * Needed even though the app never imports it: this config compiles
        * `../../packages/**`, which includes package *tests*, and those import
@@ -105,6 +109,8 @@
     "../../packages/**/*.tsx",
     "../../themes/**/*.ts",
     "../../themes/**/*.tsx",
+    "../../examples/**/*.ts",
+    "../../examples/**/*.tsx",
     ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
