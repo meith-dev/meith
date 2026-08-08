@@ -30,6 +30,10 @@ function fromInline(nodes: readonly Inline[]): string {
       case 'break':
         out += ' '
         break
+      case 'mention':
+        /* The `@` too: "@wren agreed" without it reads as somebody else's words. */
+        out += `@${node.name}`
+        break
       default:
         out += fromInline(node.children)
     }

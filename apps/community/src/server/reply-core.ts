@@ -32,6 +32,7 @@ import { restrictsPosting } from '@meith/moderation'
 import { holdsNewMember, limitMessage, spendLimit } from './antispam'
 import { emitEvent, viewerRef } from './plugin-view'
 import { getContainer } from './container'
+import { notifyPostAudience } from './post-notifications'
 import { getSettings } from './settings'
 
 /** What `resolveReplyTarget` proved, and what writing the reply needs. */
@@ -165,6 +166,22 @@ export async function submitReply(
     { postId: created.postId, threadId: created.threadId, communityId, authorId: userId },
     viewerRef(actor),
   )
+
+  /*
+   * F55. After the commit, like the event above, and never throwing: whoever
+   * this reply quotes or mentions is told here, for the form and the API
+   * alike — which is the reason it lives in the shared middle and not in
+   * either adapter.
+   */
+  await notifyPostAudience({
+    postId: created.postId,
+    threadId: created.threadId,
+    threadSlug: created.slug,
+    threadTitle: target.title,
+    message: input.message,
+    authorUsername: profile.username,
+    visibility: created.visibility,
+  })
 
   return created
 }

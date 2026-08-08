@@ -37,6 +37,7 @@ import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import { getActor } from './context'
 import { holdsNewMember, limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
+import { notifyPostAudience } from './post-notifications'
 import { resolveReplyTarget, submitReply } from './reply-core'
 import { resolvePostScope } from './post-scope'
 import { getSettings } from './settings'
@@ -203,6 +204,7 @@ export async function createThreadAction(
   const settings = await getSettings()
   let created
   let community
+  let author: Awaited<ReturnType<typeof authorProfile>>
   let staged: Awaited<ReturnType<typeof stageAttachments>>
   try {
     community = await threadWrites.postingRules(communityId)
@@ -264,7 +266,7 @@ export async function createThreadAction(
      */
     staged = await stageAttachments(actor, target, await submittedFiles(form))
 
-    const author = await authorProfile(actor.userId)
+    author = await authorProfile(actor.userId)
 
     created = await composer.create(
       {
@@ -347,6 +349,21 @@ export async function createThreadAction(
     },
     viewerRef(actor),
   )
+
+  /*
+   * F55. After the commit, like the event above, and never throwing. An
+   * opening post mentions people exactly as a reply does — and can quote one,
+   * if its author carried a quote block over — so the same producer runs here.
+   */
+  await notifyPostAudience({
+    postId: created.postId,
+    threadId: created.threadId,
+    threadSlug: created.slug,
+    threadTitle: title,
+    message,
+    authorUsername: author.username,
+    visibility: created.visibility,
+  })
 
   /*
    * Outside the try: `redirect()` works by throwing, so catching it would turn

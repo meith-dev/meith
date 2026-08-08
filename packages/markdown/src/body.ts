@@ -25,12 +25,14 @@ import type { BoardVocabulary } from './vocabulary'
 /**
  * Current version of the renderer's output. Bump to invalidate every render.
  *
- * Two, and the jump is the whole of this release: version 1 was BBCode. Every
- * row a running board already has is stale the moment this deploys, renders
- * live, and is rewritten behind the read path — which is exactly the mechanism
- * a renderer change was always supposed to use.
+ * Version 1 was BBCode; version 2 was this renderer's debut. Three is member
+ * mentions: `@name` renders as a profile link now, and a stored render from
+ * before the change would show the plain text forever on exactly the posts
+ * members wrote expecting a link. Every stale row renders live and is rewritten
+ * behind the read path — the mechanism a renderer change was always supposed to
+ * use.
  */
-export const RENDER_VERSION = 2
+export const RENDER_VERSION = 3
 
 /**
  * Which language a stored source column is written in.

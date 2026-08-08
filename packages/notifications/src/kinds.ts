@@ -121,6 +121,38 @@ export const NOTIFICATION_KINDS = [
     emailConfigurable: true,
   },
   {
+    id: 'post.mentioned',
+    title: 'Somebody mentions you in a post',
+    description:
+      'Somebody writes @your-name in a post. The notification links to the ' +
+      'post so you can read it in place.',
+    audience: 'member',
+    /*
+     * On by default: a mention is addressed to one person by name, which is
+     * the same argument `pm.received` makes. The member a busy board mentions
+     * too often has this switch, and unlike a PM the post itself is public —
+     * so the mail carries nothing that was not already on a page.
+     */
+    emailByDefault: true,
+    emailConfigurable: true,
+  },
+  {
+    id: 'post.quoted',
+    title: 'Somebody quotes your post',
+    description:
+      'Somebody carries your words into their reply with the quote button. ' +
+      'The notification links to the reply that quotes you.',
+    audience: 'member',
+    /*
+     * Off by default. Quoting is how threads converse, and a member whose post
+     * starts a good discussion would be mailed once per participant — the same
+     * repetition argument `report.actioned` makes. The on-site row is the
+     * record; the mail is opt-in.
+     */
+    emailByDefault: false,
+    emailConfigurable: true,
+  },
+  {
     id: 'pm.received',
     title: 'You receive a private message',
     description:

@@ -187,6 +187,30 @@ const TEMPLATES: Readonly<
     }
   },
 
+  'post.mentioned': (data) => {
+    const by = str(data, 'byUsername', 'Somebody')
+    const title = str(data, 'threadTitle', 'a thread')
+    return {
+      subject: `${by} mentioned you in ${title}`,
+      /*
+       * Who and where, never the post body: the row outlives the post (F55),
+       * and the link is the honest way to read words that may since have been
+       * edited or removed.
+       */
+      body: `${by} mentioned you by name in a post in ${title}.`,
+    }
+  },
+
+  'post.quoted': (data) => {
+    const by = str(data, 'byUsername', 'Somebody')
+    const title = str(data, 'threadTitle', 'a thread')
+    return {
+      subject: `${by} quoted your post in ${title}`,
+      /* The same restraint as `post.mentioned`, for the same two reasons. */
+      body: `${by} quoted one of your posts in a reply in ${title}.`,
+    }
+  },
+
   'pm.received': (data) => {
     const from = str(data, 'fromUsername', 'Somebody')
     const subject = str(data, 'subject', 'a private message')
