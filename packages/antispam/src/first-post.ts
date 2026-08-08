@@ -1,7 +1,7 @@
 /**
  * F46 — holding a new member's first posts for review.
  *
- * The single most effective anti-spam control a forum has, and the cheapest:
+ * The single most effective anti-spam control a board has, and the cheapest:
  * spam accounts post once or twice and never come back, so a threshold of two
  * or three catches nearly all of it and costs a real member one wait.
  *

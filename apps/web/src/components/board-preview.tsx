@@ -5,7 +5,7 @@ import { group } from "../format"
  * A drawing of a board, beside the headline.
  *
  * The site had no picture of the thing it sells. That is a real omission on a
- * page for forum software: "forum" is a word people have twenty years of
+ * page for community software: a board is a thing people have twenty years of
  * different pictures for, and the half-second it takes to recognise one is worth
  * more than the paragraph underneath.
  *
@@ -19,13 +19,13 @@ import { group } from "../format"
  * it costs no request, and it stays sharp at any density.
  */
 export function BoardPreview() {
-  const { caption, name, blurb, forums, latest } = boardPreview
+  const { caption, name, blurb, spaces, latest } = boardPreview
 
   return (
     <figure className="flex flex-col gap-3">
       {/*
         `aria-hidden` on the drawing itself, and the caption left readable. A
-        screen reader gains nothing from three invented forum names and a
+        screen reader gains nothing from three invented space names and a
         thread count; it gains the sentence that says what the picture is.
       */}
       <div aria-hidden className="card overflow-hidden shadow-[var(--lift-lg)]">
@@ -36,17 +36,17 @@ export function BoardPreview() {
           </span>
         </div>
 
-        {forums.map((forum) => (
-          <div key={forum.title} className="preview-row">
+        {spaces.map((space) => (
+          <div key={space.title} className="preview-row">
             <span className="preview-dot">#</span>
             <div className="min-w-0">
-              <p className="truncate text-base font-medium text-fg">{forum.title}</p>
-              <p className="truncate text-micro text-fg-subtle">{forum.blurb}</p>
+              <p className="truncate text-base font-medium text-fg">{space.title}</p>
+              <p className="truncate text-micro text-fg-subtle">{space.blurb}</p>
             </div>
             <p className="text-right font-mono text-[0.66rem] leading-[1.6] text-fg-subtle tabular-nums">
-              {group(forum.threads)} threads
+              {group(space.threads)} threads
               <br />
-              {group(forum.posts)} posts
+              {group(space.posts)} posts
             </p>
           </div>
         ))}

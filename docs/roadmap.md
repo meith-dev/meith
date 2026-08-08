@@ -1,7 +1,7 @@
-# Forum Platform roadmap
+# Community Platform roadmap
 
 The canonical delivery plan for a MyBB-grade, five-minute-deployable Next.js
-forum. It reconciles the supplied build plan (F01–F89) and engineering plan.
+community platform. It reconciles the supplied build plan (F01–F89) and engineering plan.
 `plan-status.md` records completion; this document records the promised scope,
 dependencies, and acceptance criteria. Do not mark a feature complete by
 reading this file—use the evidence in `plan-status.md`.

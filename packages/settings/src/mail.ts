@@ -4,7 +4,7 @@
  * Mail used to be four environment variables read directly by `resolve.ts`, and
  * that had one consequence which outweighed every convenience: **the only way to
  * configure mail was to redeploy.** A board is installed by somebody who does
- * not yet have a working forum to read the handbook on, and the first thing that
+ * not yet have a working board to read the handbook on, and the first thing that
  * needs mail is the confirmation link for the second member. Making that an
  * env-var edit put it after the board went live, which is where it stayed.
  *

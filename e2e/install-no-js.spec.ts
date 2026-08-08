@@ -199,7 +199,7 @@ test('a board is installed from an empty database, with no scripting', async ({ 
 
   /*
    * A 404, not an "already installed" page. An informative page would confirm to
-   * anybody who asked that this is a forum, that it is installed, and — more
+   * anybody who asked that this is a board, that it is installed, and — more
    * usefully to them — that the route was once reachable.
    */
   const sealed = await page.goto('/install')

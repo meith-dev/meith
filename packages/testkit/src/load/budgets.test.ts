@@ -93,7 +93,7 @@ describe('the budget registry', () => {
     expect(deep!.p95Ms).toBeLessThanOrEqual(first!.p95Ms * 2)
   })
 
-  it('covers the pages a forum’s traffic actually goes to', () => {
+  it('covers the pages a board’s traffic actually goes to', () => {
     const ids = BUDGETS.map((b) => b.id)
     for (const required of ['thread-page-first', 'forum-page-first', 'board-index']) {
       expect(ids).toContain(required)

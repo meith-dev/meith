@@ -754,7 +754,7 @@ export const SETTING_DEFINITIONS = [
     label: 'Hold a new member’s first posts',
     description:
       'Posts are held for approval until the account has this many. 0 ' +
-      'disables it. The cheapest control a forum has: spam accounts post ' +
+      'disables it. The cheapest control a board has: spam accounts post ' +
       'once and never return.',
     schema: z.number().int().min(0).max(50),
     default: 0,

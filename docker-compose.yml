@@ -1,7 +1,7 @@
 # F04 — a complete board on one machine: Postgres, the migration, the web server
 # and the worker.
 #
-# `docker compose up -d --build` should produce a working forum with no other
+# `docker compose up -d --build` should produce a working board with no other
 # setup, which is the parity claim against MyBB's "upload and run" story. This
 # is the deployment route this project supports, in its by-hand shape;
 # docs/self-hosting.md is the walkthrough, docs/quickstart.md is the guided

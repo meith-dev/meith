@@ -1,6 +1,6 @@
 # Meith
 
-**Forum software for communities that want to build something together.**
+**Community software for people who want to build something together.**
 [meith.dev](https://meith.dev)
 
 The internet used to feel like a neighborhood, but today, it often feels like a

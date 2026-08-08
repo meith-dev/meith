@@ -12,7 +12,7 @@
  *  - **a captcha** asks the visitor for something, behind a seam so a board can
  *    swap in a hosted one without any call site changing;
  *  - **first-post moderation** holds a new account's opening posts, which is the
- *    cheapest control a forum has — spam accounts post once and never return.
+ *    cheapest control a board has — spam accounts post once and never return.
  *
  * Everything here is pure and takes its storage as a port (R2), so the same
  * logic runs against Postgres and against a test double. What is *not* here is

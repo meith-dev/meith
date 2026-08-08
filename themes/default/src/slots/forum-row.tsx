@@ -22,7 +22,7 @@ import { Counts, LINK, MUTED_LINK, ReadSpacer, Stamp, UnreadDot, UserRef } from 
  * **The last-post author is a link only when there is somewhere to link to.**
  * `profileHref` is null for a deleted account, and the name renders either way.
  * A listing that crashes or blanks a row because an account was deleted is the
- * standard forum-software bug; `UserRef` is where that is handled once.
+ * standard community-software bug; `UserRef` is where that is handled once.
  *
  * **The timestamp is `<time>` with the machine value in `datetime`.** The visible
  * label is preformatted in the board's zone (see `TimeModel`), so this element is

@@ -201,7 +201,7 @@ function render({ budgets, results, indexes, plans }) {
   out.push('  Regenerate with `pnpm perf:docs`; `pnpm verify` fails when this is stale.')
   out.push('-->')
   out.push('')
-  out.push('The p95 budgets for the pages a forum’s traffic actually goes to, and what')
+  out.push('The p95 budgets for the pages a board’s traffic actually goes to, and what')
   out.push('the last recorded run measured against a full-scale board.')
   out.push('')
 

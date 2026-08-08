@@ -13,7 +13,7 @@
  * a name appears has to render the name anyway. Written out at each call site
  * that is a ternary somebody eventually forgets, and the symptom is a listing
  * that blanks a row — or crashes — because an account was deleted. It is the
- * single commonest bug in forum software.
+ * single commonest bug in community software.
  *
  * **`Stamp`.** Every timestamp needs both halves of `TimeModel`: the machine
  * value in `datetime`, the preformatted label as text. A `<time>` without the

@@ -8,7 +8,7 @@
   Regenerate with `pnpm perf:docs`; `pnpm verify` fails when this is stale.
 -->
 
-The p95 budgets for the pages a forum’s traffic actually goes to, and what
+The p95 budgets for the pages a board’s traffic actually goes to, and what
 the last recorded run measured against a full-scale board.
 
 ## The board these numbers came from

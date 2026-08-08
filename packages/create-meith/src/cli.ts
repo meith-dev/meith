@@ -46,7 +46,7 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
     return {
       code: 0,
       lines: [
-        'create-meith — scaffold a forum project.',
+        'create-meith — scaffold a community project.',
         '',
         '  npx create-meith <name> [--repo <url>]',
         '',

@@ -6387,7 +6387,7 @@ when the database is unreachable. Same rule `ErrorNotice` follows.
 
 Once sealed the route is a **404, not an "already installed" page**. An
 informative page would confirm to anybody who asks that this is a
-forum-software board, that it has been installed, and — more usefully to
+community-software board, that it has been installed, and — more usefully to
 them — that the route was reachable. A 404 is the answer the board gives for
 every path it does not serve, and it is the only one that says nothing.
 

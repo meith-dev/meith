@@ -217,7 +217,7 @@ APP_URL=
     'README.md',
     `# ${name}
 
-A forum, built on [Meith](${repositoryUrl}).
+A community, built on [Meith](${repositoryUrl}).
 
 ## Deploy
 
