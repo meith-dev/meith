@@ -372,7 +372,7 @@ export async function createThreadAction(
   if (created.visibility === 'unapproved') {
     // The thread exists but nothing can see it yet, so sending the author to it
     // would be a 404 on their own post. The community says what happened instead.
-    redirect(`/community/${community.id}-${community.slug}?posted=moderated`)
+    redirect(`/${community.id}-${community.slug}?posted=moderated`)
   }
   redirect(`/thread/${created.threadId}-${created.slug}`)
 }

@@ -28,7 +28,7 @@ test('the skip link is the first keyboard target and reaches the main landmark',
 test('a tab row scrolls sideways only, and gives a focus ring room to draw', async ({
   page,
 }) => {
-  await page.goto('/community/100-announcements')
+  await page.goto('/100-announcements')
 
   /* Every tab row on the page, including the board sections above the community. */
   const overflow = await page.evaluate(() =>

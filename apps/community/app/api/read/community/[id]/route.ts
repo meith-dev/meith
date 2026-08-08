@@ -21,5 +21,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!authorizer.can(actor, 'community.view', { communityId: id, community: matrix })) return NextResponse.redirect(new URL('/', request.url), { status: 303 })
 
   await readState.markCommunitiesRead(actor.userId, [id], new Date())
-  return NextResponse.redirect(new URL(`/community/${id}-${community.slug}`, request.url), { status: 303 })
+  return NextResponse.redirect(new URL(`/${id}-${community.slug}`, request.url), { status: 303 })
 }

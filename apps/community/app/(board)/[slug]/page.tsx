@@ -67,7 +67,7 @@ export async function generateMetadata({
 
   const page = Number(query.page ?? '1')
   const canonical = canonicalPath({
-    path: `/community/${community.id}-${community.slug}`,
+    path: `/${community.id}-${community.slug}`,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
   })
   const description = community.description ?? `Discussions in ${community.title}.`
@@ -78,7 +78,7 @@ export async function generateMetadata({
     alternates: {
       canonical,
       types: {
-        'application/rss+xml': `/community/${community.id}-${community.slug}/feed.xml`,
+        'application/rss+xml': `/${community.id}-${community.slug}/feed.xml`,
       },
     },
     openGraph: {
@@ -92,7 +92,7 @@ export async function generateMetadata({
 }
 
 function communityId(value: string): number | null {
-  const match = /^(\d+)-/.exec(value)
+  const match = /^(\d+)(?:-|$)/.exec(value)
   if (!match) return null
   const id = Number(match[1])
   return Number.isSafeInteger(id) && id > 0 ? id : null
@@ -173,7 +173,7 @@ export default async function CommunityPage({
     sort,
   })
   const nextHref = threadPage.nextCursor
-    ? `/community/${id}-${community.slug}?after=${encodeCommunityCursor(threadPage.nextCursor)}&page=${page + 1}${sort === 'rating' ? '&sort=rating' : ''}`
+    ? `/${id}-${community.slug}?after=${encodeCommunityCursor(threadPage.nextCursor)}&page=${page + 1}${sort === 'rating' ? '&sort=rating' : ''}`
     : null
   /*
    * The composer link appears only when this actor may actually use it, and
@@ -240,7 +240,7 @@ export default async function CommunityPage({
 
   const view = buildCommunityDisplayView({
     community,
-    newThreadHref: canPost ? `/community/${id}-${community.slug}/new` : null,
+    newThreadHref: canPost ? `/${id}-${community.slug}/new` : null,
     subcommunities: rows.filter(
       (row) => row.parentId === id && visible.includes(row.id),
     ),
@@ -354,12 +354,12 @@ export default async function CommunityPage({
       label="Thread order"
       tabs={[
         {
-          href: `/community/${id}-${community.slug}`,
+          href: `/${id}-${community.slug}`,
           label: 'Latest',
           isCurrent: sort === 'activity',
         },
         {
-          href: `/community/${id}-${community.slug}?sort=rating`,
+          href: `/${id}-${community.slug}?sort=rating`,
           label: 'Top rated',
           isCurrent: sort === 'rating',
         },
@@ -387,7 +387,7 @@ export default async function CommunityPage({
                   targetId={community.id}
                   mode={followMode}
                   modes={followModes}
-                  back={`/community/${id}-${community.slug}`}
+                  back={`/${id}-${community.slug}`}
                   label="Follow this community"
                 />
               ),
@@ -436,7 +436,7 @@ export default async function CommunityPage({
           <Notice
             kind="info"
             message={notice}
-            dismissHref={`/community/${id}-${community.slug}`}
+            dismissHref={`/${id}-${community.slug}`}
           />
         </div>
       )}
@@ -452,7 +452,7 @@ export default async function CommunityPage({
           scope="threads"
           rights={inlineRights}
           moveTargets={inlineMoveTargets}
-          returnTo={`/community/${id}-${community.slug}`}
+          returnTo={`/${id}-${community.slug}`}
         />
       )}
       </main>

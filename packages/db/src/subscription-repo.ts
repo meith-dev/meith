@@ -277,7 +277,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
       href:
         row.target === 'thread'
           ? `/thread/${Number(row.target_id)}-${row.slug}`
-          : `/community/${Number(row.target_id)}-${row.slug}`,
+          : `/${Number(row.target_id)}-${row.slug}`,
       mode: parseSubscriptionMode(row.mode) ?? 'instant',
       createdAt: toDate(row.created_at),
       pending: Number(row.pending),

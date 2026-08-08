@@ -74,5 +74,5 @@ export default async function JumpPage({
    */
   if (community.type === 'category') redirect('/')
 
-  redirect(`/community/${community.id}-${community.slug}`)
+  redirect(`/${community.id}-${community.slug}`)
 }

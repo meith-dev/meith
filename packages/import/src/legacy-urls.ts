@@ -167,7 +167,7 @@ export function legacyRedirectPath(
 
     case 'community': {
       if (newId === null) return null
-      const base = `/community/${newId}-${slug ?? 'community'}`
+      const base = `/${newId}-${slug ?? 'community'}`
       return target.page !== null && target.page > 1 ? `${base}?page=${target.page}` : base
     }
 

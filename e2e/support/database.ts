@@ -340,6 +340,16 @@ function seedSql(): string {
      * be tested without spending thirty seconds a case.
      */
     { key: 'search.flood_seconds', value: '0', group_key: 'search' },
+    /*
+     * The posting flood interval, off, for the same reason. It counts the
+     * thread's opening post, so "post a thread, then reply to it" — the shape
+     * of half the write-path specs — is refused inside the fifteen-second
+     * default. The writing spec's reply had in fact been refused on every
+     * fast run: its old assertion matched the attempted text re-rendered in
+     * the refused form's textarea, which is why nothing noticed. The interval
+     * has its own coverage in the composer's unit suite.
+     */
+    { key: 'posting.flood_seconds', value: '0', group_key: 'posting' },
   ]
 
   /*

@@ -41,7 +41,7 @@ export default async function ModCpCommunitiesPage() {
             {communities.map((community) => (
               <li key={community.communityId} className="flex flex-col gap-2 px-4 py-3">
                 <a
-                  href={`/community/${community.communityId}-${community.slug}`}
+                  href={`/${community.communityId}-${community.slug}`}
                   className="font-medium text-foreground underline-offset-2 hover:underline"
                 >
                   {community.title}

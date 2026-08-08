@@ -124,7 +124,7 @@ test('pressing it returns the reader to the post they pressed', async ({ page })
 test('there is no Thanks button on your own post', async ({ page }) => {
   const username = await signIn(page)
 
-  await page.goto('/community/200-general')
+  await page.goto('/200-general')
   await page.getByRole('link', { name: 'New thread' }).click()
   await page.getByLabel('Subject').fill(`A thread of my own ${Date.now()}`)
   await page.getByLabel('Message').fill('Nobody should be able to thank me for this.')

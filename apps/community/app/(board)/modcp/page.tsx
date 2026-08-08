@@ -121,7 +121,7 @@ export default async function ModCpPage() {
                   className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3"
                 >
                   <a
-                    href={`/community/${community.communityId}-${community.slug}`}
+                    href={`/${community.communityId}-${community.slug}`}
                     className="font-medium text-foreground underline-offset-2 hover:underline"
                   >
                     {community.title}

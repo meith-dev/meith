@@ -13,7 +13,7 @@ export function buildNewThreadView(
   return {
     mode: 'thread',
     heading: `Post a new thread in ${input.community.title}`,
-    cancelHref: `/community/${input.community.id}-${input.community.slug}`,
+    cancelHref: `/${input.community.id}-${input.community.slug}`,
     cancelLabel: `Back to ${input.community.title}`,
     errorMessage: input.errorMessage ?? null,
   }

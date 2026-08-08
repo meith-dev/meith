@@ -156,7 +156,7 @@ test("the group's title, badge and reputation are in the postbit", async ({ page
  * listing.
  */
 test('the same member is the same colour in a listing', async ({ page }) => {
-  await page.goto('/community/100-announcements')
+  await page.goto('/100-announcements')
 
   const started = page.getByRole('link', { name: 'admin', exact: true }).first()
   await expect(started).toBeVisible()

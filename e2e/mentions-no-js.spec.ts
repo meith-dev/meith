@@ -9,11 +9,11 @@
  * crosses three sessions and every layer at once.
  *
  * Three members, deliberately: the poster quotes one and mentions another in a
- * single reply. One reply, because the flood interval is real here (the seed
- * leaves `posting.flood_seconds` at its default) and two back-to-back replies
- * from one member would be testing the rate limiter, not the mentions. It also
- * pins the two kinds apart: the quoted member gets `post.quoted`, the
- * mentioned one `post.mentioned`, and neither sees the other's row.
+ * single reply. One reply, because it pins the two kinds apart: the quoted
+ * member gets `post.quoted`, the mentioned one `post.mentioned`, and neither
+ * sees the other's row. (The posting flood interval is off in the e2e seed —
+ * see `e2e/support/database.ts` — so the single reply is about precision, not
+ * the rate limiter.)
  *
  * The registered usernames carry an underscore on purpose. `plainAuthorName`
  * used to strip `_` from quote attributions — cosmetic while an attribution
@@ -61,7 +61,7 @@ test('a reply that quotes one member and mentions another notifies both', async 
     const quoted = await signUp(quotedPage, 'quoted')
 
     /* The quoted member posts something worth quoting. */
-    await quotedPage.goto('/community/200-general')
+    await quotedPage.goto('/200-general')
     await quotedPage.getByRole('link', { name: 'New thread' }).click()
     const title = `Mentions end to end ${Date.now()}`
     await quotedPage.getByLabel('Subject').fill(title)

@@ -52,8 +52,8 @@ export async function GET(
     feed.channel({
       title: community.title,
       description: community.description ?? '',
-      path: `/community/${community.id}-${community.slug}`,
-      selfPath: `/community/${community.id}-${community.slug}/feed.xml`,
+      path: `/${community.id}-${community.slug}`,
+      selfPath: `/${community.id}-${community.slug}/feed.xml`,
       entries: threads.map(feed.threadEntry),
       now: new Date(),
     }),

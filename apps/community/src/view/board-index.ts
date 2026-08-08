@@ -67,9 +67,9 @@ export interface BoardIndexInput {
   readonly identities?: ReadonlyMap<number, MemberIdentity>
 }
 
-/** `/community/12-general` — id first so a rename never breaks a link. */
+/** `/12-general` — id first so a rename never breaks a link. */
 export function communityHref(row: { id: number; slug: string }): string {
-  return `/community/${row.id}-${row.slug}`
+  return `/${row.id}-${row.slug}`
 }
 
 /**

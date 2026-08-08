@@ -170,11 +170,11 @@ describe('inlineModerateAction', () => {
     const where = await redirectOf(
       inlineModerateAction(
         EMPTY_STATE,
-        form({ tool: 'lock', returnTo: '/community/2-general' }, ['thread:20', 'thread:21']),
+        form({ tool: 'lock', returnTo: '/2-general' }, ['thread:20', 'thread:21']),
       ),
     )
 
-    expect(where).toBe('/community/2-general?did=lock&n=2')
+    expect(where).toBe('/2-general?did=lock&n=2')
     expect(inline.applied).toEqual([{ tool: 'lock', threadIds: [20, 21], postIds: [] }])
   })
 
@@ -187,7 +187,7 @@ describe('inlineModerateAction', () => {
     const where = await redirectOf(
       inlineModerateAction(
         EMPTY_STATE,
-        form({ tool: 'lock', returnTo: '/community/2-general' }, [
+        form({ tool: 'lock', returnTo: '/2-general' }, [
           'thread:20',
           'thread:21',
           'thread:99',
@@ -196,7 +196,7 @@ describe('inlineModerateAction', () => {
     )
 
     /* One locked, one already locked, one that does not exist. */
-    expect(where).toBe('/community/2-general?did=lock&n=1&gone=1&skipped=1')
+    expect(where).toBe('/2-general?did=lock&n=1&gone=1&skipped=1')
   })
 
   it('refuses a guest and an ordinary member', async () => {
@@ -233,7 +233,7 @@ describe('inlineModerateAction', () => {
     const where = await redirectOf(
       inlineModerateAction(
         EMPTY_STATE,
-        form({ tool: 'lock', returnTo: '/community/2-general' }, [
+        form({ tool: 'lock', returnTo: '/2-general' }, [
           'thread:20',
           'thread:-1',
           'wombat:5',
@@ -241,7 +241,7 @@ describe('inlineModerateAction', () => {
         ]),
       ),
     )
-    expect(where).toBe('/community/2-general?did=lock&n=1')
+    expect(where).toBe('/2-general?did=lock&n=1')
     expect(inline.applied).toEqual([{ tool: 'lock', threadIds: [20], postIds: [] }])
   })
 
@@ -279,7 +279,7 @@ describe('inlineModerateAction', () => {
     const elsewhere = await redirectOf(
       inlineModerateAction(
         EMPTY_STATE,
-        form({ tool: 'lock', returnTo: '/community/2-general' }, ['thread:20']),
+        form({ tool: 'lock', returnTo: '/2-general' }, ['thread:20']),
       ),
     )
 
@@ -287,12 +287,12 @@ describe('inlineModerateAction', () => {
     const nowhere = await redirectOf(
       inlineModerateAction(
         EMPTY_STATE,
-        form({ tool: 'lock', returnTo: '/community/2-general' }, ['thread:20']),
+        form({ tool: 'lock', returnTo: '/2-general' }, ['thread:20']),
       ),
     )
 
     expect(elsewhere).toBe(nowhere)
-    expect(elsewhere).toBe('/community/2-general?did=lock&n=0&gone=1')
+    expect(elsewhere).toBe('/2-general?did=lock&n=0&gone=1')
   })
 
   /*
@@ -366,10 +366,10 @@ describe('inlineModerateAction', () => {
         await redirectOf(
           inlineModerateAction(
             EMPTY_STATE,
-            form({ tool: 'lock', returnTo: '/community/2-general?page=2' }, ['thread:20']),
+            form({ tool: 'lock', returnTo: '/2-general?page=2' }, ['thread:20']),
           ),
         ),
-      ).toBe('/community/2-general?page=2&did=lock&n=1')
+      ).toBe('/2-general?page=2&did=lock&n=1')
     })
   })
 

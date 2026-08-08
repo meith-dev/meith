@@ -406,7 +406,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
     authorJoinedAt: new Date('2026-01-01T00:00:00Z'),
     message:
       'Welcome to the **new community**. We are glad you are here.\n\n' +
-      'The rules live in [Announcements](/community/100-announcements).',
+      'The rules live in [Announcements](/100-announcements).',
     messageHtml: null,
     renderVersion: 0,
     bodyFormat: BodyFormat.Markdown,

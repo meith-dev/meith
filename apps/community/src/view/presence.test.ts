@@ -60,15 +60,12 @@ describe('locationOf', () => {
      */
     const where = locationOf(row({ communityId: 1, communityTitle: 'Open', threadId: null }))
 
-    expect(where).toEqual({ label: 'Viewing Open', href: null })
+    expect(where).toEqual({ label: 'Viewing Open', href: '/1' })
   })
 
-  it('does not link to a community, because a community link needs a slug it was not given', () => {
-    /*
-     * `/community/<id>` alone is a 404 — the route wants `<id>-<slug>` — and the
-     * session row holds no slug. A label with no link beats a link that 404s.
-     */
-    expect(locationOf(row({ communityId: 1, communityTitle: 'Open' })).href).toBeNull()
+  it('links to the community by bare id, since the session row holds no slug', () => {
+    /* The community route accepts `/<id>` and canonicalises via its metadata. */
+    expect(locationOf(row({ communityId: 1, communityTitle: 'Open' })).href).toBe('/1')
   })
 })
 

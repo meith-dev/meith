@@ -59,7 +59,7 @@ export interface BoardLocation {
  * Where the visitor is, from the path the proxy passed on.
  *
  * Parsed rather than threaded through every page, and parsed here rather than
- * in the shell so it is a pure function with a test. `/community/12-news` and
+ * in the shell so it is a pure function with a test. `/12-news` and
  * `/thread/34-hello` are the two routes that carry an id, and both put it
  * first — which is exactly the shape the pages themselves already parse.
  *
@@ -74,7 +74,7 @@ export function parseLocation(path: string | null): BoardLocation | null {
      anyway rather than trusting a header that anything upstream could set. */
   const clean = path.split('?')[0] ?? path
 
-  const community = /^\/community\/(\d+)-/.exec(clean)
+  const community = /^\/(\d+)(?:-|\/|$)/.exec(clean)
   const thread = /^\/thread\/(\d+)-/.exec(clean)
 
   return {

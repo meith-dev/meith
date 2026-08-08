@@ -171,10 +171,10 @@ describe('renderSitemap', () => {
      * teaches a crawler to keep re-fetching a page that never moves, which is a
      * cost paid forever for a field that could simply be absent.
      */
-    const xml = renderSitemap([{ loc: 'https://example.test/community/1-open' }])
+    const xml = renderSitemap([{ loc: 'https://example.test/1-open' }])
 
     expect(xml).not.toContain('<lastmod>')
-    expect(xml).toContain('<loc>https://example.test/community/1-open</loc>')
+    expect(xml).toContain('<loc>https://example.test/1-open</loc>')
   })
 
   it('includes lastmod when there is one', () => {

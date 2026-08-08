@@ -128,7 +128,7 @@ describe('buildBoardIndexView', () => {
 
     expect(result.blocks[0]!.communities).toHaveLength(1)
     expect(result.blocks[0]!.communities[0]!.subcommunities).toEqual([
-      { label: 'Off Topic', href: '/community/3-community-3' },
+      { label: 'Off Topic', href: '/3-community-3' },
     ])
   })
 
@@ -203,7 +203,7 @@ describe('buildBoardIndexView', () => {
     )
 
     expect(result.blocks[0]!.communities.map((f) => f.href)).toEqual([
-      '/community/2-general',
+      '/2-general',
       'https://example.com/docs',
     ])
   })
